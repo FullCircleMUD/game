@@ -1,0 +1,14 @@
+from world.recipes.carpentry.training_dagger import *     # noqa: F401,F403
+from world.recipes.carpentry.training_shortsword import * # noqa: F401,F403
+from world.recipes.carpentry.training_longsword import *  # noqa: F401,F403
+from world.recipes.carpentry.training_bow import *        # noqa: F401,F403
+from world.recipes.carpentry.club import *                # noqa: F401,F403
+from world.recipes.carpentry.wooden_shield import *       # noqa: F401,F403
+from world.recipes.carpentry.shaft import *               # noqa: F401,F403
+from world.recipes.carpentry.haft import *                # noqa: F401,F403
+from world.recipes.carpentry.training_greatsword import * # noqa: F401,F403
+from world.recipes.carpentry.shortbow import *           # noqa: F401,F403
+from world.recipes.carpentry.quarterstaff import *       # noqa: F401,F403
+from world.recipes.carpentry.training_lance import *     # noqa: F401,F403
+from world.recipes.carpentry.stock import *              # noqa: F401,F403
+from world.recipes.carpentry.wooden_torch import *       # noqa: F401,F403

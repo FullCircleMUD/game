@@ -1,0 +1,9 @@
+from world.recipes.alchemy.lifes_essence import *   # noqa: F401,F403
+from world.recipes.alchemy.the_zephyr import *      # noqa: F401,F403
+from world.recipes.alchemy.the_wellspring import *  # noqa: F401,F403
+from world.recipes.alchemy.the_bull import *        # noqa: F401,F403
+from world.recipes.alchemy.cats_grace import *      # noqa: F401,F403
+from world.recipes.alchemy.the_bear import *        # noqa: F401,F403
+from world.recipes.alchemy.foxs_cunning import *    # noqa: F401,F403
+from world.recipes.alchemy.owls_insight import *    # noqa: F401,F403
+from world.recipes.alchemy.silver_tongue import *   # noqa: F401,F403

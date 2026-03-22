@@ -1,0 +1,11 @@
+from world.recipes.tailoring.gambeson import *              # noqa: F401,F403
+from world.recipes.tailoring.coarse_robe import *           # noqa: F401,F403
+from world.recipes.tailoring.kippah import *                # noqa: F401,F403
+from world.recipes.tailoring.brown_corduroy_pants import *  # noqa: F401,F403
+from world.recipes.tailoring.bandana import *               # noqa: F401,F403
+from world.recipes.tailoring.cloak import *                 # noqa: F401,F403
+from world.recipes.tailoring.veil import *                  # noqa: F401,F403
+from world.recipes.tailoring.scarf import *                 # noqa: F401,F403
+from world.recipes.tailoring.sash import *                  # noqa: F401,F403
+from world.recipes.tailoring.warriors_wraps import *        # noqa: F401,F403
+from world.recipes.tailoring.n95_mask import *              # noqa: F401,F403

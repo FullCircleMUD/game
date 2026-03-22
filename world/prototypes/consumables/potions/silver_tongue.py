@@ -1,0 +1,11 @@
+SILVER_TONGUE = {
+    "prototype_key": "silver_tongue",
+    "typeclass": "typeclasses.items.consumables.potion_nft_item.PotionNFTItem",
+    "key": "Potion of the Silver Tongue",
+    "aliases": ["potion", "silver tongue", "charisma potion"],
+    "desc": "An iridescent potion with a sweet, intoxicating aroma.",
+    "weight": 0.2,
+    "potion_effects": [{"type": "stat_bonus", "stat": "charisma", "value": 1}],
+    "duration": 60,
+    "named_effect_key": "potion_charisma",
+}

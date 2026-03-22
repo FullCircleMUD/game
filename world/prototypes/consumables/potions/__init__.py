@@ -1,0 +1,9 @@
+from world.prototypes.consumables.potions.lifes_essence import *   # noqa: F401,F403
+from world.prototypes.consumables.potions.the_zephyr import *      # noqa: F401,F403
+from world.prototypes.consumables.potions.the_wellspring import *  # noqa: F401,F403
+from world.prototypes.consumables.potions.the_bull import *        # noqa: F401,F403
+from world.prototypes.consumables.potions.cats_grace import *      # noqa: F401,F403
+from world.prototypes.consumables.potions.the_bear import *        # noqa: F401,F403
+from world.prototypes.consumables.potions.foxs_cunning import *    # noqa: F401,F403
+from world.prototypes.consumables.potions.owls_insight import *    # noqa: F401,F403
+from world.prototypes.consumables.potions.silver_tongue import *   # noqa: F401,F403

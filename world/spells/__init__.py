@@ -1,0 +1,12 @@
+from world.spells.evocation import *          # noqa: F401,F403
+from world.spells.abjuration import *         # noqa: F401,F403
+from world.spells.necromancy import *         # noqa: F401,F403
+from world.spells.conjuration import *        # noqa: F401,F403
+from world.spells.divination import *         # noqa: F401,F403
+from world.spells.illusion import *           # noqa: F401,F403
+from world.spells.divine_healing import *     # noqa: F401,F403
+from world.spells.divine_protection import *  # noqa: F401,F403
+from world.spells.divine_judgement import *   # noqa: F401,F403
+from world.spells.divine_revelation import *  # noqa: F401,F403
+from world.spells.divine_dominion import *    # noqa: F401,F403
+from world.spells.nature_magic import *       # noqa: F401,F403

@@ -1,0 +1,210 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Blockchain Documentation{% endblock %}
+
+{% block content %}
+
+{# ── Overview ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h1 class="card-title">Blockchain</h1>
+    <hr/>
+    <p class="lead">
+      Every gold coin, resource, and crafted item in Full Circle MUD exists as a real asset on
+      the <strong>XRP Ledger</strong>.
+    </p>
+    <p>
+      You own your loot. Export anything to your own wallet whenever you want, trade it on-ledger,
+      or import it back into the game. The economy is powered by XRPL's native AMM pools &mdash;
+      prices are driven by real supply and demand, not scripts.
+    </p>
+    <p>
+      The game is currently running on <strong>XRPL Testnet</strong>. All addresses and assets
+      listed on this page are testnet only. We'll move to mainnet when the game is ready for
+      go-live.
+    </p>
+  </div>
+</div>
+
+{# ── Xaman Wallet ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Xaman Wallet</h2>
+    <hr/>
+    <p>
+      You'll need <strong>Xaman</strong> (formerly Xumm) to interact with the blockchain.
+      Xaman is a self-custodial XRPL wallet available on
+      <a href="https://xaman.app" target="_blank" rel="noopener">iOS and Android</a>.
+    </p>
+    <p>
+      Xaman is used for:
+    </p>
+    <ul>
+      <li><strong>Logging in</strong> &mdash; sign a challenge to prove wallet ownership (no passwords)</li>
+      <li><strong>Importing and exporting</strong> &mdash; sign transactions to move assets between your wallet and the game</li>
+      <li><strong>Setting up trustlines</strong> &mdash; approve new currency types when you first export them</li>
+    </ul>
+    <p>
+      Your wallet address <em>is</em> your identity. The game never sees your private keys &mdash;
+      every transaction is signed on your device in Xaman and verified on-chain.
+    </p>
+  </div>
+</div>
+
+{# ── Testnet Addresses ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Wallet Addresses</h2>
+    <hr/>
+    <p>
+      The following addresses are on <strong>XRPL Testnet</strong>. They will change when
+      the game moves to mainnet at go-live.
+    </p>
+    <table class="table table-sm mt-3">
+      <thead>
+        <tr><th>Wallet</th><th>Address</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Issuer</strong></td>
+          <td><code>rU3VtgY3LE63tmd7egjPUx37JqQXumokyJ</code></td>
+          <td>Issues all game currencies (FCMGold and all 36 resource tokens). Manages the
+            gold and resource supply, processes player fees, and handles currency issuance
+            and operations on the XRP Ledger.</td>
+        </tr>
+        <tr>
+          <td><strong>Vault</strong></td>
+          <td><code>rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ</code></td>
+          <td>Holds all in-game assets. When a player imports, assets go into this wallet;
+            when a player exports, assets are sent out from this wallet.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ── On-Chain Assets ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">On-Chain Assets</h2>
+    <hr/>
+    <p>
+      All game assets are issued on XRPL by the Issuer wallet. There are three types:
+    </p>
+
+    <h5 class="mt-3">FCMGold</h5>
+    <p>
+      The primary game currency, issued on the XRP Ledger by the Issuer wallet. On testnet,
+      gold has no monetary value. Mainnet economy details will be published before go-live.
+    </p>
+
+    <h5 class="mt-3">Resource Tokens</h5>
+    <p>
+      36 fungible tokens representing every harvestable and craftable resource in the game &mdash;
+      Wheat, Iron Ore, Leather, Cloth, Moonpetal Essence, and more. Each resource is a separate
+      issued currency on XRPL.
+    </p>
+
+    <h5 class="mt-3">NFTs</h5>
+    <p>
+      Crafted items &mdash; weapons, armour, jewellery &mdash; are minted as XRPL NFTokens.
+      Each NFT carries metadata describing the item's stats, enchantments, and crafting history.
+      When you export an NFT, the actual game item transfers to your wallet.
+    </p>
+  </div>
+</div>
+
+{# ── AMM Pools ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">AMM Pools &amp; Pricing</h2>
+    <hr/>
+    <p>
+      NPC shop prices are not scripted &mdash; they're driven by real on-ledger
+      <strong>Automated Market Maker</strong> pools using XRPL's native AMM feature.
+    </p>
+    <p>
+      Each tradeable resource has a <strong>Gold &harr; Resource</strong> liquidity pool.
+      Prices follow the constant product formula (x &times; y = k), meaning supply and demand
+      directly determine what you pay. Buy more of a resource and the price goes up. Sell it
+      back and the price drops.
+    </p>
+    <ul>
+      <li><strong>Buy prices</strong> round up (slightly unfavourable to the buyer)</li>
+      <li><strong>Sell prices</strong> round down (slightly unfavourable to the seller)</li>
+      <li>The spread between buy and sell goes to the liquidity pool</li>
+    </ul>
+    <p>
+      You can see live pool prices on the <a href="{% url 'markets' %}">Markets</a> page.
+    </p>
+  </div>
+</div>
+
+{# ── Trustlines ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Trustlines</h2>
+    <hr/>
+    <p>
+      XRPL requires a <strong>trustline</strong> before your wallet can hold an issued currency.
+      Think of it as telling the ledger "I'm willing to hold this token."
+    </p>
+    <p>
+      <strong>You don't need to set up trustlines in advance.</strong> The game handles it
+      automatically: the first time you export a currency you don't have a trustline for,
+      the game will send a TrustSet request to your Xaman wallet. Approve it, and the export
+      proceeds. It's a one-time step per currency &mdash; once the trustline exists, future
+      exports of that game token go through instantly.
+    </p>
+    <p>The flow looks like this:</p>
+    <ol>
+      <li>You run <code>export wheat 50</code> in the game</li>
+      <li>The game checks your wallet &mdash; no trustline for FCMWheat yet</li>
+      <li>The game sends you a TrustSet request via a Xaman link/QR code &mdash; approve it</li>
+      <li>Trustline created &mdash; the export continues automatically</li>
+      <li>Next time you export Wheat, it goes straight through</li>
+    </ol>
+  </div>
+</div>
+
+{# ── Import & Export ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Import &amp; Export</h2>
+    <hr/>
+    <p>
+      Moving assets between the game and your wallet is done with the <code>import</code>
+      and <code>export</code> commands from the account view (out of character). All
+      transactions are signed in Xaman &mdash; the game never has access to your private keys.
+    </p>
+
+    <h5 class="mt-3">Export (Game &rarr; Wallet)</h5>
+    <p>
+      Take assets out of your in-game bank account and send them to your XRPL wallet.
+    </p>
+    <ul>
+      <li><strong>Gold &amp; resources:</strong> <code>export gold 100</code> or <code>export wheat 50</code> &mdash;
+        the game vault sends a Payment to your wallet</li>
+      <li><strong>NFTs:</strong> <code>export &lt;item&gt;</code> &mdash;
+        the vault creates a sell offer, you accept it in Xaman, and the NFT transfers to your wallet</li>
+    </ul>
+
+    <h5 class="mt-3">Import (Wallet &rarr; Game)</h5>
+    <p>
+      Send assets from your XRPL wallet back into the game.
+    </p>
+    <ul>
+      <li><strong>Gold &amp; resources:</strong> <code>import gold 100</code> or <code>import wheat 50</code> &mdash;
+        you sign a Payment to the vault in Xaman, and the game credits your account</li>
+      <li><strong>NFTs:</strong> use <code>wallet</code> to see your on-chain NFTs, then <code>import &lt;item&gt;</code> &mdash;
+        you create a sell offer in Xaman, the vault accepts it, and the item appears in your bank</li>
+    </ul>
+
+    <p class="mt-3">
+      Every transaction is logged with its XRPL transaction hash for full auditability
+      and crash recovery.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

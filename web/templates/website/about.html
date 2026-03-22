@@ -1,0 +1,205 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}About{% endblock %}
+
+{% block content %}
+
+{# ── Hero ── #}
+<div class="card mb-4">
+  <div class="card-body text-center py-5">
+    <h1 class="card-title mb-3">Full Circle MUD</h1>
+    <p class="lead mb-1">Eve Online meets Ultima Online, but the gold is real and the economy is on chain.</p>
+    <p class="text-muted">A text-based multiplayer world where every coin, every sword, and every hide of leather is a real asset you own.</p>
+  </div>
+</div>
+
+{# ── The Name ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Why "Full Circle"?</h2>
+    <hr/>
+    <p>
+      The name comes from the game's heritage. Full Circle MUD is inspired by the founder's
+      teenage years spent on CircleMUD-based MUDs &mdash; games descended from DikuMUD that
+      defined a generation of text-based multiplayer worlds. This project aims to bring those worlds
+      <em>full circle</em>: the same addictive, text-driven gameplay, combined with ideas
+      that simply weren't possible on a 56k modem in the late '90s.
+    </p>
+    <p>
+      It also describes the economy. Currency flows in, becomes gold, becomes resources,
+      becomes crafted items, gets traded, becomes gold again, and &mdash; if the player
+      chooses &mdash; flows back out to their wallet. The full circle.
+    </p>
+  </div>
+</div>
+
+{# ── Pillars ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Design Pillars</h2>
+    <hr/>
+
+    <h4 class="mt-4">1. You Own Your Assets</h4>
+    <p>
+      Gold is an issued currency on the XRP Ledger. Resources &mdash; wheat, iron ore,
+      moonpetal essence &mdash; are fungible tokens. Every crafted item can be exported to the XRPL as an NFT. These aren't database entries dressed up as tokens; they're real on-chain assets
+      that you control from your own Xaman wallet.
+    </p>
+    <p>
+      Import assets into the game to use them. Export them to your wallet to trade freely.
+      The game never locks you in.
+    </p>
+
+    <h4 class="mt-4">2. True Custody</h4>
+    <p>
+      While you're playing, your assets sit in a game-controlled bridge wallet. But you can
+      export them to your own wallet at any time. Every ledger transaction is
+      initiated and signed by you &mdash; the game server provides cryptographic authorisations,
+      but never moves assets without your approval.
+    </p>
+    <p>
+      The result: your assets are genuinely yours. No admin can freeze your gold or confiscate
+      your gear. Even if the server went offline, your wallet still holds everything you earned.
+    </p>
+
+    <h4 class="mt-4">3. A Real Economy, Not a Token Economy</h4>
+    <p>
+      Most blockchain games create a token and call it an economy. FCM builds an actual
+      medieval economy with supply chains, crafting professions, resource scarcity, and NPC markets
+      &mdash; then backs it with real value.
+    </p>
+    <p>
+      Farmers harvest wheat. Millers grind it to flour. Bakers bake bread. Miners pull ore from the
+      ground. Smelters refine ingots. Blacksmiths forge weapons. Alchemists brew potions from
+      rare herbs. Every step has cost, skill requirements, and market dynamics.
+      Thirty-six resource types feed into seven crafting professions through interconnected
+      supply chains.
+    </p>
+    <p>
+      NPC markets use constant-product AMMs &mdash; powered by the XRPL's native DEX &mdash; so prices
+      respond to supply and demand. Flood the market with iron and the price drops.
+      Corner the moonpetal supply and watch essence prices climb. The economy is emergent, not scripted.
+    </p>
+
+    <h4 class="mt-4">4. Deep Gameplay First</h4>
+    <p>
+      The blockchain enables the economy, but the game stands on its own. Eight character classes.
+      Twenty-four weapon types, each with unique mechanics that evolve across five mastery tiers
+      &mdash; a longsword in the hands of a Grandmaster plays fundamentally differently than in the hands of a novice.
+      Six schools of magic with spells that gain qualitative new abilities as you advance, not just bigger numbers.
+      Stealth, traps, reactive combat, group tactics.
+    </p>
+    <p>
+      This is a MUD in the tradition of the genre's best &mdash; rich, text-driven, imagination-first
+      &mdash; with the addition that the loot you earn has real value and the economy you
+      participate in is genuine.
+    </p>
+  </div>
+</div>
+
+{# ── The World ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">The World</h2>
+    <hr/>
+    <p>
+      Full Circle MUD is a persistent multiplayer world connected via WebSocket. No downloads,
+      no installs &mdash; connect from any client that speaks the protocol, or build your own.
+    </p>
+
+    <div class="row mt-4">
+      <div class="col-md-6 mb-3">
+        <h5>Classes</h5>
+        <p>
+          Warrior, Thief, Mage, Cleric, Bard, Berserker, Paladin, and more. Each class unlocks
+          unique skills and plays distinctly. A thief hides in shadows and picks pockets;
+          a mage commands six schools of arcane power; a cleric channels divine healing and judgement.
+        </p>
+      </div>
+      <div class="col-md-6 mb-3">
+        <h5>Combat</h5>
+        <p>
+          D20-based resolution with initiative, advantage, reactive spells, and weapon mastery.
+          Every weapon type &mdash; longsword, nunchaku, war hammer, longbow &mdash; has
+          its own progression curve with abilities that unlock at each mastery tier.
+        </p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <h5>Crafting</h5>
+        <p>
+          Seven professions with over fifty recipes. Gather raw materials, refine them through
+          processing stations, and craft finished goods. Every step produces a real on-ledger
+          asset. Mastery unlocks better recipes and faster production.
+        </p>
+      </div>
+      <div class="col-md-6 mb-3">
+        <h5>Magic</h5>
+        <p>
+          Six arcane schools and four divine domains. Spells scale qualitatively with mastery
+          &mdash; True Sight at Skilled reveals hidden things; at Expert it detects traps;
+          at Master it pierces invisibility. Every tier is a meaningful upgrade.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── How It Works ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">How It Works</h2>
+    <hr/>
+    <div class="row mt-3">
+      <div class="col-md-4 mb-3">
+        <h5>Connect</h5>
+        <p>
+          Link your Xaman wallet. Your wallet address is your identity.
+          No email, no password &mdash; just a cryptographic signature that proves you are you.
+        </p>
+      </div>
+      <div class="col-md-4 mb-3">
+        <h5>Play</h5>
+        <p>
+          Explore, fight, craft, trade. While you're in the game, your assets live in the
+          vault contract &mdash; a secure smart contract that holds everything in play.
+          The game tracks your inventory, your bank, your equipment.
+        </p>
+      </div>
+      <div class="col-md-4 mb-3">
+        <h5>Own</h5>
+        <p>
+          Export any asset to your personal wallet at any time. Trade on secondary markets.
+          Your sword is an NFT. Your gold is an issued currency. Your stack of iron ingots is
+          a fungible token. They're yours.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Technical Foundation ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Technical Foundation</h2>
+    <hr/>
+    <p>
+      Built on <a href="https://www.evennia.com" target="_blank">Evennia</a>, a mature
+      Python/Django MUD framework, with game assets issued natively on the
+      <a href="https://xrpl.org" target="_blank">XRP Ledger</a>. A dedicated sync service
+      bridges on-ledger events to the game's mirror database, ensuring the game world and the
+      ledger always agree.
+    </p>
+    <p>
+      Gold is issued as a currency on the XRP Ledger by the game's issuer wallet.
+      The vault holds all in-game assets. The reconciliation ledger ensures every transfer
+      between wallet and vault is accounted for on both sides.
+    </p>
+    <p class="mb-0">
+      One ledger. Near-zero fees. Complete player custody.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

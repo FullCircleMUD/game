@@ -89,7 +89,8 @@ AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
 AUTO_PUPPET_ON_LOGIN = False
 MAX_NR_CHARACTERS = 4
 MAX_NR_SESSIONS_PER_ACCOUNT = 1
-
+DEBUG = False
+ADMINS = ('tim@timbaird.com')
 PUPPET_LOOK_ON_IC = False
 
 ######################################################################
@@ -122,6 +123,18 @@ XRPL_VAULT_WALLET_SEED = ""  # vault wallet seed for server-signed txns
 XAMAN_API_KEY = "PLACEHOLDER"
 XAMAN_API_SECRET = "PLACEHOLDER"
 
+
+######################################################################
+# LEGAL / COMPLIANCE SETTINGS
+######################################################################
+
+# Public-facing website URL — used for in-game ToS links and compliance notices.
+GAME_WEBSITE_URL = "https://fcmud.world"
+
+# Terms of Service version string. Bump this when the ToS changes.
+# Future: at_account_login can check account.db.tos_version != TOS_VERSION
+# and force re-acceptance before play is permitted.
+TOS_VERSION = "draft-1"
 
 ######################################################################
 # LLM / AI SETTINGS
@@ -178,8 +191,8 @@ HUNGER_TICK_INTERVAL = 1200 # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAE D
 # 'XX' = unknown (fail-closed → Variant A)
 # Remove or guard with `if DEBUG:` before production deploy — Cloudflare
 # header takes precedence whenever it is present.
-#DEV_GEO_COUNTRY = 'PY'
-DEV_GEO_COUNTRY = 'US'
+DEV_GEO_COUNTRY = 'PY'
+#DEV_GEO_COUNTRY = 'US'
 
 # Community links — update here when these change, no template edits needed.
 DISCORD_URL = 'https://discord.gg/j8b5GkysM3'

@@ -1,0 +1,11 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.wolf.Wolf",
+        "key": "a grey wolf",
+        "area_tag": "woods_wolves",
+        "target": 20,
+        "max_per_room": 1,
+        "respawn_seconds": 120,
+        "desc": "A grey wolf pads through the undergrowth, ears pricked and amber eyes watchful. Lean muscle ripples beneath a coarse pelt as it scans the woods for prey."
+    }
+]

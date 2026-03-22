@@ -1,71 +1,74 @@
 """
-Geo-detection middleware and context processor for FCM.
+Geo-detection middleware and context processor.
 
-Production: reads CF-IPCountry header injected by Cloudflare DNS proxy.
-Development: falls back to settings.DEV_GEO_COUNTRY mock.
-Fail-closed: unknown country ('XX') → Variant A (restricted).
+Reads the Cloudflare CF-IPCountry header on every HTTP request and classifies
+the visitor as Variant A (restricted) or Variant B (eligible).
 
-Variant A — restricted jurisdictions: no RLUSD/redemption/reserve copy.
-Variant B — eligible jurisdictions: full financial product copy.
+In production, Cloudflare injects CF-IPCountry on every request when the DNS
+proxy is enabled.  In development, falls back to settings.DEV_GEO_COUNTRY.
+Fail-closed: unknown / missing country -> 'XX' -> Variant A (restricted).
+
+Restricted paths (Variant A) receive a 302 redirect to the homepage.
 """
+
+from django.conf import settings
 from django.http import HttpResponseRedirect
 
 
-# Paths that are hard-blocked for Variant A (restricted jurisdictions).
-# Hitting any of these redirects silently to the homepage.
-# NOTE: /costs/ is NOT listed — restricted users still need to subscribe.
-_RESTRICTED_PATHS = [
+# Paths that Variant A (restricted) users are hard-redirected away from.
+_RESTRICTED_PATHS = (
     '/redemption/',
     '/reserve/',
     '/eligible-jurisdictions/',
     '/kyc/',
-]
+    '/docs/blockchain/',
+)
 
 
 class GeoDetectionMiddleware:
+    """
+    Sets request.geo_country and request.geo_variant on every request.
+
+    geo_variant is 'B' for eligible countries, 'A' for everyone else.
+    Restricted paths for Variant A receive a 302 to '/'.
+    """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        country = self._get_country(request)
+        # 1. Cloudflare header (production)
+        cf_country = request.META.get('HTTP_CF_IPCOUNTRY', '').strip().upper()
 
-        from django.conf import settings
+        # 2. Dev fallback -- mirrors WalletWebSocketClient behaviour
+        if not cf_country:
+            cf_country = getattr(settings, 'DEV_GEO_COUNTRY', '')
+
+        # 3. Fail-closed: empty / unknown -> 'XX' -> Variant A
+        country = (cf_country or 'XX').strip().upper()
+
         eligible = getattr(settings, 'GEO_ELIGIBLE_COUNTRIES', set())
         variant = 'B' if country in eligible else 'A'
 
         request.geo_country = country
         request.geo_variant = variant
 
+        # Hard-redirect restricted users away from financial-product pages.
         if variant == 'A':
-            for path in _RESTRICTED_PATHS:
-                if request.path.startswith(path):
+            path = request.path_info
+            for restricted in _RESTRICTED_PATHS:
+                if path.startswith(restricted):
                     return HttpResponseRedirect('/')
 
         return self.get_response(request)
 
-    def _get_country(self, request):
-        # Production: Cloudflare injects this on every request when DNS proxy is enabled.
-        # Users cannot forge it because Cloudflare is in front of the origin.
-        cf = request.META.get('HTTP_CF_IPCOUNTRY')
-        if cf:
-            return cf
-
-        # Development: mock via Django setting.
-        from django.conf import settings
-        dev = getattr(settings, 'DEV_GEO_COUNTRY', None)
-        if dev:
-            return dev
-
-        # Unknown — fail closed (Variant A).
-        return 'XX'
-
 
 def geo_context(request):
-    """Context processor: injects geo_variant, geo_country, and site-wide config into every template."""
-    from django.conf import settings
+    """
+    Template context processor -- injects geo_variant and geo_country
+    into every template so partials like _menu.html can branch on them.
+    """
     return {
         'geo_variant': getattr(request, 'geo_variant', 'A'),
         'geo_country': getattr(request, 'geo_country', 'XX'),
-        'discord_url': getattr(settings, 'DISCORD_URL', ''),
-        'github_url': getattr(settings, 'GITHUB_URL', ''),
     }

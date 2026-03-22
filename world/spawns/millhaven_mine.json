@@ -1,0 +1,11 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.kobold.Kobold",
+        "key": "a kobold",
+        "area_tag": "mine_kobolds",
+        "target": 12,
+        "max_per_room": 3,
+        "respawn_seconds": 120,
+        "desc": "A scrawny, reptilian creature barely three feet tall crouches in the shadows. Its dull scales are caked with mine dust, and it clutches a crude shiv fashioned from a broken pickaxe head. Beady yellow eyes dart nervously between the exits."
+    }
+]

@@ -1,0 +1,1134 @@
+"""
+Spawn NPCs into the Millhaven game world.
+
+Run AFTER the Millhaven world builder has created rooms.
+
+Usage (from Evennia):
+    @py from world.game_world.spawn_millhaven_npcs import spawn_millhaven_npcs; spawn_millhaven_npcs()
+"""
+
+from evennia import ObjectDB
+from evennia.utils import create
+
+
+def _find_room(key):
+    """Find a room by key. Returns first match or None."""
+    results = ObjectDB.objects.filter(
+        db_key__iexact=key, db_typeclass_path__contains="room"
+    )
+    if results.exists():
+        return results.first()
+    results = ObjectDB.objects.filter(db_key__iexact=key)
+    return results.first() if results.exists() else None
+
+
+def _spawn_bartender():
+    """Spawn Rowan the bartender in the Harvest Moon Inn."""
+    room = _find_room("The Harvest Moon")
+    if not room:
+        print("  [!] Room 'The Harvest Moon' not found — skipping bartender")
+        return None
+
+    # Tag the room for easy lookup (used by character spawn)
+    room.tags.add("harvest_moon_inn", category="special_room")
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.bartender_npc.BartenderNPC",
+        key="Rowan",
+        location=room,
+    )
+    npc.quest_key = "rat_cellar"
+    npc.llm_prompt_file = "bartender.md"
+    npc.llm_hook_arrive = True
+    npc.llm_use_vector_memory = True
+    npc.llm_speech_mode = "name_match"
+    npc.llm_personality = (
+        "A warm, broad-shouldered innkeeper in his forties with laugh lines "
+        "around his eyes and a booming voice that carries over the din. He's "
+        "been running the Harvest Moon for twenty years and knows everyone in "
+        "Millhaven by name. He's the first friendly face new adventurers see "
+        "and takes pride in pointing them in the right direction."
+    )
+    # Knowledge is now injected per-player via BartenderNPC._build_quest_context()
+    # as part of the {quest_context} template variable.
+    npc.db.desc = (
+        "A broad-shouldered man in a flour-dusted apron stands behind the "
+        "polished bar, idly wiping a tankard with a cloth. His weathered "
+        "face creases into an easy smile at the sight of a new arrival."
+    )
+    print(f"  Spawned bartender 'Rowan' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_baker():
+    """Spawn Bron the baker in the Goldencrust Bakery."""
+    room = _find_room("Goldencrust Bakery")
+    if not room:
+        print("  [!] Room 'Goldencrust Bakery' not found — skipping baker")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.baker_npc.BakerNPC",
+        key="Bron",
+        location=room,
+    )
+    npc.quest_key = "bakers_flour"
+    npc.llm_prompt_file = "baker.md"
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.tradeable_resources = [2, 3]   # Flour, Bread
+    npc.shop_name = "Goldencrust Bakery"
+    npc.llm_personality = (
+        "A stocky, flour-dusted baker in his fifties with thick forearms "
+        "and a ruddy face. He speaks plainly and takes enormous pride in "
+        "his bread — the best in Millhaven, he'll tell anyone who listens. "
+        "He's a simple, honest man who works hard and expects the same of "
+        "others. Quick to smile, slow to anger, and always smells faintly "
+        "of fresh-baked bread."
+    )
+    npc.db.desc = (
+        "A stocky man in a flour-dusted apron works behind the counter, "
+        "his thick forearms kneading dough with practised ease. His ruddy "
+        "face glistens with sweat from the heat of the ovens, but he wears "
+        "a contented smile."
+    )
+    print(f"  Spawned baker 'Bron' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_oakwright():
+    """Spawn Master Oakwright the carpenter trainer in his Woodshop."""
+    room = _find_room("Master Oakwright's Woodshop")
+    if not room:
+        print("  [!] Room 'Master Oakwright's Woodshop' not found — skipping oakwright")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.oakwright_npc.OakwrightNPC",
+        key="Master Oakwright",
+        location=room,
+    )
+    npc.quest_key = "oakwright_timber"
+    npc.llm_prompt_file = "oakwright.md"
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.trainable_skills = ["carpentry"]
+    npc.trainer_masteries = {"carpentry": 2}
+    npc.trainer_class = None
+    npc.llm_personality = (
+        "A lean, weathered man in his sixties with calloused hands and "
+        "sawdust permanently embedded in the creases of his skin. He "
+        "speaks only when he has something worth saying — which isn't "
+        "often. His workshop is immaculate, every tool in its place, "
+        "every joint precise. He measures twice and cuts once, in "
+        "carpentry and in conversation."
+    )
+    npc.db.desc = (
+        "A lean, weathered man works at a sturdy bench, his calloused "
+        "hands guiding a plane along a length of timber with steady, "
+        "practised strokes. Sawdust dusts his leather apron and clings "
+        "to his grey-streaked hair. He doesn't look up."
+    )
+    print(f"  Spawned carpenter 'Master Oakwright' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_elena():
+    """Spawn Elena Copperkettle the seamstress/tailor trainer at her cottage."""
+    room = _find_room("Elena Copperkettle's House")
+    if not room:
+        print("  [!] Room 'Elena Copperkettle's House' not found — skipping elena")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.elena_npc.ElenaNPC",
+        key="Elena Copperkettle",
+        location=room,
+    )
+    npc.quest_key = "elena_cloth"
+    npc.llm_prompt_file = "elena.md"
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.trainable_skills = ["tailoring"]
+    npc.trainer_masteries = {"tailoring": 2}
+    npc.trainer_class = None
+    npc.llm_personality = (
+        "A wiry woman in her thirties with pins stuck in her sleeves, "
+        "thread tangled in her auburn hair, and a measuring tape draped "
+        "permanently around her neck. She talks at twice the speed of "
+        "anyone else in Millhaven, changes subject without warning, and "
+        "is always in the middle of at least three projects. She's "
+        "genuinely talented — when she can stop panicking long enough "
+        "to finish something, her work is the finest in the region."
+    )
+    npc.db.desc = (
+        "A wiry woman hunches over a cutting table, scissors flashing "
+        "through ivory fabric with startling precision. Pins bristle "
+        "from a cushion strapped to her wrist, and a measuring tape "
+        "hangs around her neck like a scarf. She glances up with wide, "
+        "slightly harried eyes."
+    )
+    print(f"  Spawned seamstress 'Elena Copperkettle' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_mara():
+    """Spawn Mara Brightwater the herbalist/alchemy trainer at The Mortar and Pestle."""
+    room = _find_room("The Mortar and Pestle")
+    if not room:
+        print("  [!] Room 'The Mortar and Pestle' not found — skipping mara")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.mara_npc.MaraNPC",
+        key="Mara Brightwater",
+        location=room,
+    )
+    npc.quest_key = "mara_moonpetal"
+    npc.llm_prompt_file = "mara.md"
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.trainable_skills = ["alchemy"]
+    npc.trainer_masteries = {"alchemy": 1}  # high-demand skill — BASIC cap in Millhaven
+    npc.trainer_class = None
+    npc.llm_personality = (
+        "A slender woman in her forties with sharp, dark eyes and "
+        "ink-stained fingers. Her hair is pulled back in a severe bun, "
+        "and she smells of dried lavender and something sharper — "
+        "chemical, mineral. She speaks precisely, choosing each word "
+        "the way she measures each ingredient. She notices things about "
+        "people that they'd rather she didn't, and mentions them "
+        "without malice or apology."
+    )
+    npc.db.desc = (
+        "A slender woman stands at a workbench crowded with glass vials "
+        "and ceramic bowls, grinding something in a heavy stone mortar "
+        "with unhurried, circular strokes. Her dark eyes flick up — "
+        "appraising, clinical — then return to her work."
+    )
+    print(f"  Spawned herbalist 'Mara Brightwater' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_torben():
+    """Spawn Torben Greaves the leatherworker trainer at The Tanned Hide."""
+    room = _find_room("The Tanned Hide")
+    if not room:
+        print("  [!] Room 'The Tanned Hide' not found — skipping torben")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.torben_npc.TorbenNPC",
+        key="Torben Greaves",
+        location=room,
+    )
+    npc.llm_prompt_file = "torben.md"
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.trainable_skills = ["leatherworking"]
+    npc.trainer_masteries = {"leatherworking": 2}  # trainable to SKILLED in Millhaven
+    npc.trainer_class = None
+    npc.llm_personality = (
+        "A broad, thick-fingered man in his fifties with a leather "
+        "apron so worn it's become part of him. His hands are scarred "
+        "and stained from decades of working hides. He's patient and "
+        "methodical — never rushes, never wastes a cut. He takes quiet "
+        "pride in his craft and gets annoyed when people can't tell "
+        "good leather from bad. He smells of tanning chemicals and "
+        "has long since stopped noticing."
+    )
+    npc.db.desc = (
+        "A broad man in a stained leather apron works a hide stretched "
+        "across a frame, scraping it with a curved blade in long, "
+        "steady strokes. His thick fingers move with surprising "
+        "delicacy. He glances up with a patient nod."
+    )
+    print(f"  Spawned leatherworker 'Torben Greaves' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_hendricks():
+    """Spawn Old Hendricks the blacksmith trainer at his smithy."""
+    room = _find_room("Old Hendricks Smithy")
+    if not room:
+        print("  [!] Room 'Old Hendricks Smithy' not found — skipping hendricks")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.hendricks_npc.HendricksNPC",
+        key="Old Hendricks",
+        location=room,
+    )
+    npc.quest_key = "hendricks_ore"
+    npc.llm_prompt_file = "hendricks.md"
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.trainable_skills = ["blacksmithing"]
+    npc.trainer_masteries = {"blacksmithing": 1}  # high-demand skill — BASIC cap in Millhaven
+    npc.trainer_class = None
+    npc.llm_personality = (
+        "A barrel-chested man in his sixties with arms like knotted "
+        "rope and a face creased by decades of forge-heat. His grey "
+        "beard is singed short and his hands are mapped with old burns. "
+        "He learned his craft from a dwarf named Korgan and measures "
+        "everything he makes against that standard — it's never quite "
+        "good enough. He speaks in grunts and single sentences. "
+        "'That'll do' is the highest praise he gives."
+    )
+    npc.db.desc = (
+        "A barrel-chested old man works the forge, his hammer rising "
+        "and falling in a steady rhythm that hasn't changed in forty "
+        "years. Sparks scatter with each blow. He doesn't look up."
+    )
+    print(f"  Spawned blacksmith 'Old Hendricks' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_warrior_guildmaster():
+    """Spawn Sergeant Grimjaw the warrior guildmaster in The Iron Company."""
+    room = _find_room("The Iron Company")
+    if not room:
+        print("  [!] Room 'The Iron Company' not found — skipping grimjaw")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
+        key="Sergeant Grimjaw",
+        location=room,
+    )
+    npc.guild_class = "warrior"
+    npc.multi_class_quest_key = "warrior_initiation"
+    npc.max_advance_level = 5
+    npc.next_guildmaster_hint = "the War Marshal in the Capital"
+    npc.db.desc = (
+        "A stocky, scarred man in battered chainmail stands with arms "
+        "folded, watching the training yard with a critical eye. His jaw "
+        "is set in a permanent clench — the source of his name — and a "
+        "jagged scar runs from his left ear to his chin. He has the look "
+        "of someone who has seen every dirty trick a fight can offer and "
+        "survived them all."
+    )
+    print(f"  Spawned guildmaster 'Sergeant Grimjaw' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_warrior_trainer():
+    """Spawn Corporal Hask the warrior trainer in the Barracks."""
+    room = _find_room("Barracks")
+    if not room:
+        print("  [!] Room 'Barracks' not found — skipping warrior trainer")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.trainer.TrainerNPC",
+        key="Corporal Hask",
+        location=room,
+    )
+    npc.trainer_class = "warrior"
+    npc.trainable_skills = [
+        "bash", "pummel", "protect", "strategy",  # warrior class skills
+        "battleskills", "alertness",               # general combat skills
+    ]
+    npc.trainable_weapons = [
+        "long_sword", "handaxe", "spear", "hammer", "crossbow",  # SKILLED
+        "great_sword", "battleaxe", "lance",                      # BASIC
+    ]
+    npc.trainer_masteries = {
+        "long_sword": 2,    # SKILLED
+        "handaxe": 2,       # SKILLED
+        "spear": 2,         # SKILLED
+        "hammer": 2,        # SKILLED
+        "crossbow": 2,      # SKILLED
+        "great_sword": 1,   # BASIC
+        "battleaxe": 1,     # BASIC
+        "lance": 1,         # BASIC
+        "bash": 2,          # SKILLED
+        "pummel": 2,        # SKILLED
+        "protect": 2,       # SKILLED
+        "strategy": 2,      # SKILLED
+        "battleskills": 2,  # SKILLED
+        "alertness": 2,     # SKILLED
+    }
+    npc.db.desc = (
+        "A wiry woman with close-cropped hair and a soldier's bearing "
+        "runs drills in the barracks, correcting stances and barking "
+        "orders with clipped efficiency. Her arms are roped with lean "
+        "muscle and her eyes miss nothing. A wooden practice sword "
+        "rests across her shoulder."
+    )
+    print(f"  Spawned trainer 'Corporal Hask' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_thief_guildmaster():
+    """Spawn Shadow Mistress Vex in the Thieves' Lair."""
+    room = _find_room("Shadow Mistress's Chamber")
+    if not room:
+        print("  [!] Room 'Shadow Mistress's Chamber' not found — skipping vex")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
+        key="Shadow Mistress Vex",
+        location=room,
+    )
+    npc.guild_class = "thief"
+    npc.multi_class_quest_key = "thief_initiation"
+    npc.max_advance_level = 5
+    npc.next_guildmaster_hint = "the Grandmaster of Shadows in Eastport"
+    npc.db.desc = (
+        "A tall, lithe woman draped in dark silk that seems to drink the "
+        "light. Her black hair is pulled back from an angular face dominated "
+        "by sharp cheekbones and cool, appraising eyes. She moves with the "
+        "languid grace of someone who has nothing to prove and everything to "
+        "take. A single exquisite rapier hangs at her hip — more ornament "
+        "than weapon, until it isn't."
+    )
+    print(f"  Spawned guildmaster 'Shadow Mistress Vex' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_thief_trainer():
+    """Spawn Whisper the thief trainer in the Training Alcove."""
+    room = _find_room("Training Alcove")
+    if not room:
+        print("  [!] Room 'Training Alcove' not found — skipping whisper")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.trainer.TrainerNPC",
+        key="Whisper",
+        location=room,
+    )
+    npc.trainer_class = "thief"
+    npc.trainable_skills = [
+        "stealth", "subterfuge", "stab",          # thief class skills
+        "battleskills", "alertness",               # general combat skills
+    ]
+    npc.trainable_weapons = [
+        "dagger", "short_sword",                   # SKILLED
+        "rapier", "crossbow",                      # BASIC
+    ]
+    npc.trainer_masteries = {
+        "dagger": 2,        # SKILLED
+        "short_sword": 2,   # SKILLED
+        "rapier": 1,        # BASIC
+        "crossbow": 1,      # BASIC
+        "stealth": 2,       # SKILLED
+        "subterfuge": 2,    # SKILLED
+        "stab": 2,          # SKILLED
+        "battleskills": 2,  # SKILLED
+        "alertness": 2,     # SKILLED
+    }
+    npc.db.desc = (
+        "A wiry figure in nondescript grey leathers leans against the wall, "
+        "idly flipping a coin across scarred knuckles. You didn't hear them "
+        "arrive. Their face is forgettable — deliberately so — but their "
+        "eyes are sharp and constantly moving, cataloguing exits, counting "
+        "weapons, measuring distances. When they speak, it's barely above "
+        "a whisper."
+    )
+    print(f"  Spawned trainer 'Whisper' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_mage_guildmaster():
+    """Spawn Archmage Tindel in the Circle of the First Light."""
+    room = _find_room("Circle of the First Light")
+    if not room:
+        print("  [!] Room 'Circle of the First Light' not found — skipping tindel")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
+        key="Archmage Tindel",
+        location=room,
+    )
+    npc.guild_class = "mage"
+    npc.multi_class_quest_key = "mage_initiation"
+    npc.max_advance_level = 5
+    npc.next_guildmaster_hint = "the High Magus at the Arcane Academy"
+    npc.db.desc = (
+        "An elderly man in deep blue robes embroidered with silver "
+        "constellations sits at a reading desk, surrounded by teetering "
+        "stacks of books. His long white beard is ink-stained at the tip "
+        "and his spectacles sit crookedly on a hawkish nose. He has the "
+        "distracted air of someone whose mind is always three problems "
+        "ahead of his mouth — but the occasional sharp glance reveals an "
+        "intellect that misses nothing."
+    )
+    print(f"  Spawned guildmaster 'Archmage Tindel' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_mage_trainer():
+    """Spawn Apprentice Selene the mage trainer in the Arcane Study."""
+    room = _find_room("Arcane Study")
+    if not room:
+        print("  [!] Room 'Arcane Study' not found — skipping mage trainer")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.trainer.TrainerNPC",
+        key="Apprentice Selene",
+        location=room,
+    )
+    npc.trainer_class = "mage"
+    npc.trainable_skills = [
+        "evocation", "conjuration", "divination",  # mage spell schools
+        "abjuration", "necromancy", "illusion",     # mage spell schools
+        "enchanting",                                # mage crafting skill
+    ]
+    npc.trainable_weapons = [
+        "staff", "dagger",                           # mage weapons
+    ]
+    npc.trainer_masteries = {
+        "evocation": 1,     # BASIC
+        "conjuration": 1,   # BASIC
+        "divination": 1,    # BASIC
+        "abjuration": 1,    # BASIC
+        "necromancy": 1,    # BASIC
+        "illusion": 1,      # BASIC
+        "enchanting": 1,    # BASIC
+        "staff": 1,         # BASIC
+        "dagger": 1,        # BASIC
+    }
+    npc.db.desc = (
+        "A young woman in a plain grey robe stands at the binding plinth, "
+        "carefully arranging reagents in a precise pattern. Her auburn hair "
+        "is tied back with a leather cord and her fingers are stained with "
+        "ink and something faintly luminous. She has the focused intensity "
+        "of someone who takes her studies very seriously — perhaps too "
+        "seriously, judging by the dark circles under her eyes."
+    )
+    print(f"  Spawned trainer 'Apprentice Selene' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_cleric_guildmaster():
+    """Spawn Brother Aldric in the Shrine of the First Harvest."""
+    room = _find_room("Shrine of the First Harvest")
+    if not room:
+        print("  [!] Room 'Shrine of the First Harvest' not found — skipping aldric")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
+        key="Brother Aldric",
+        location=room,
+    )
+    npc.guild_class = "cleric"
+    npc.multi_class_quest_key = "cleric_initiation"
+    npc.max_advance_level = 5
+    npc.next_guildmaster_hint = "the High Priestess at the Grand Cathedral"
+    npc.db.desc = (
+        "A tall, gaunt man in a simple brown robe kneels before the altar, "
+        "his hands clasped in prayer. His tonsured head is bowed and his "
+        "face, when he looks up, is lined with the deep creases of someone "
+        "who carries others' sorrows as his own. His eyes are gentle but "
+        "searching — he has the unnerving habit of looking at people as if "
+        "he can see exactly what they need. He speaks of distant temples and "
+        "holy sites, and of pilgrims passing through heading south."
+    )
+    print(f"  Spawned guildmaster 'Brother Aldric' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_cleric_trainer():
+    """Spawn Sister Maeve the cleric trainer in the Priest's Quarters."""
+    room = _find_room("Priest's Quarters")
+    if not room:
+        print("  [!] Room 'Priest's Quarters' not found — skipping cleric trainer")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.trainer.TrainerNPC",
+        key="Sister Maeve",
+        location=room,
+    )
+    npc.trainer_class = "cleric"
+    npc.trainable_skills = [
+        "divine_healing", "divine_protection",      # cleric spell domains
+        "divine_judgement", "divine_revelation",     # cleric spell domains
+        "divine_dominion", "turn_undead",            # cleric spell domains
+        "battleskills", "alertness",                 # general combat skills
+    ]
+    npc.trainable_weapons = [
+        "mace", "staff",                             # SKILLED
+        "hammer", "club",                            # BASIC
+    ]
+    npc.trainer_masteries = {
+        "divine_healing": 2,     # SKILLED
+        "divine_protection": 2,  # SKILLED
+        "divine_judgement": 2,   # SKILLED
+        "divine_revelation": 2,  # SKILLED
+        "divine_dominion": 2,    # SKILLED
+        "turn_undead": 2,        # SKILLED
+        "mace": 2,               # SKILLED
+        "staff": 2,              # SKILLED
+        "hammer": 1,             # BASIC
+        "club": 1,               # BASIC
+        "battleskills": 2,       # SKILLED
+        "alertness": 2,          # SKILLED
+    }
+    npc.db.desc = (
+        "A sturdy woman in white robes cinched at the waist with a "
+        "braided cord moves between the shelves, organising prayer books "
+        "and sacred texts with quiet efficiency. A heavy iron mace hangs "
+        "from her belt — she is clearly no stranger to the realities of "
+        "defending the faithful. Her face is kind but firm, the face of "
+        "someone who heals with one hand and fights with the other."
+    )
+    print(f"  Spawned trainer 'Sister Maeve' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_beggar():
+    """Spawn the beggar NPC in Beggar's Alley (cleric quest target)."""
+    room = _find_room("Beggar's Alley")
+    if not room:
+        print("  [!] Room 'Beggar's Alley' not found — skipping beggar")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Old Silas",
+        location=room,
+    )
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = True
+    npc.llm_personality = (
+        "A broken old man who was once a soldier. He lost everything — his "
+        "family, his home, his health — and ended up on the street. He's "
+        "not bitter, just tired. He's grateful for any kindness, no matter "
+        "how small. He speaks slowly, with long pauses, as if each word "
+        "costs him effort. He has a dry, surprising wit that surfaces "
+        "occasionally. He knows the alley and the back streets better "
+        "than anyone, and notices things others miss. He doesn't beg — "
+        "he just sits and watches the world go by."
+    )
+    npc.llm_knowledge = (
+        "You live in Beggar's Alley behind the Shrine of the First "
+        "Harvest in Millhaven. You were a soldier once — fought in a "
+        "border war years ago. You lost your family to plague while you "
+        "were away fighting. You came back to nothing. Brother Aldric "
+        "from the temple is kind to you — brings food when he can. The "
+        "other beggars come and go but you've been here the longest. You "
+        "know every back alley and hidden corner of Millhaven. You've "
+        "seen strange things going in and out of the sewers at night."
+    )
+    npc.db.desc = (
+        "A gaunt old man sits hunched against the alley wall, wrapped "
+        "in a threadbare blanket that might once have been green. His "
+        "weathered face is deeply lined and his eyes, sunk deep in their "
+        "sockets, hold a weary alertness — the watchfulness of someone "
+        "who has learned that the world can take everything from you "
+        "without warning. A battered tin cup sits beside him, empty."
+    )
+    print(f"  Spawned beggar 'Old Silas' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_jeweller():
+    """Spawn Gemma the jeweller LLM trainer in The Gilded Setting."""
+    room = _find_room("The Gilded Setting")
+    if not room:
+        print("  [!] Room 'The Gilded Setting' not found — skipping jeweller")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.quest_giving_llm_trainer.QuestGivingLLMTrainer",
+        key="Gemma",
+        location=room,
+    )
+    npc.trainer_class = None  # jewellery is a general craft skill
+    npc.trainable_skills = ["jeweller"]
+    npc.trainer_masteries = {"jeweller": 1}  # BASIC
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = True
+    npc.llm_personality = (
+        "A meticulous halfling woman with a jeweller's loupe permanently "
+        "perched on her forehead and nimble fingers that never stop moving. "
+        "She's warm and chatty but gets intensely focused when examining "
+        "a gem or a piece of metalwork — the rest of the world ceases to "
+        "exist. She has strong opinions about craftsmanship and will happily "
+        "lecture anyone who'll listen about the difference between a good "
+        "setting and a lazy one. She collects interesting stones."
+    )
+    npc.llm_knowledge = (
+        "You are Gemma, the jeweller of Millhaven. You run The Gilded "
+        "Setting on the Old Trade Way. You work with pewter, copper, and "
+        "silver — no gold metal, it gets confused with gold coins. You "
+        "can train apprentices in basic jewellery skills. You buy gems "
+        "from miners and adventurers. Your best work is silver filigree "
+        "but you'll take any commission. You know the mine to the east "
+        "produces copper and tin, and you've heard rumours of silver "
+        "deeper underground."
+    )
+    npc.db.desc = (
+        "A small, bright-eyed halfling woman sits at a workbench cluttered "
+        "with tiny tools, wire, and fragments of polished stone. A jeweller's "
+        "loupe is pushed up onto her forehead and her fingers move with "
+        "practised precision, setting a small gem into a pewter ring. She "
+        "hums tunelessly as she works."
+    )
+    print(f"  Spawned jeweller 'Gemma' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_general_store():
+    """Spawn the general store shopkeeper."""
+    room = _find_room("Millhaven General Store")
+    if not room:
+        print("  [!] Room 'Millhaven General Store' not found — skipping shopkeeper")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        key="Merchant Harlow",
+        location=room,
+    )
+    npc.tradeable_resources = [2, 3]  # Flour, Bread
+    npc.shop_name = "Harlow's General Store"
+    npc.db.desc = (
+        "A portly, ruddy-faced man in a well-worn apron stands behind "
+        "a broad wooden counter, surrounded by barrels of flour and "
+        "baskets of fresh bread. He watches customers with the shrewd, "
+        "appraising eye of someone who knows exactly what everything "
+        "is worth — and what you're willing to pay for it."
+    )
+    print(f"  Spawned shopkeeper 'Merchant Harlow' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_wheat_farmer():
+    """Spawn Bramble the wheat farmer at Goldwheat Farm."""
+    room = _find_room("Goldwheat Farm - Homestead")
+    if not room:
+        print("  [!] Room 'Goldwheat Farm - Homestead' not found — skipping farmer")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        key="Farmer Bramble",
+        location=room,
+    )
+    npc.tradeable_resources = [1]  # Wheat only
+    npc.shop_name = "Goldwheat Farm"
+    npc.db.desc = (
+        "A stout halfling woman in mud-caked boots and a wide straw hat "
+        "leans against the doorframe, surveying her fields with quiet "
+        "pride. Her sun-browned face is creased with smile lines and "
+        "her thick fingers are permanently stained with earth. She grows "
+        "the best wheat in Millhaven and she knows it — but she's not "
+        "above a fair haggle."
+    )
+    print(f"  Spawned farmer 'Farmer Bramble' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_broken_crown_barkeep():
+    """Spawn Gerta the barkeep in The Broken Crown tavern."""
+    room = _find_room("The Broken Crown")
+    if not room:
+        print("  [!] Room 'The Broken Crown' not found — skipping barkeep")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Gerta",
+        location=room,
+    )
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_personality = (
+        "A heavyset woman in her fifties with iron-grey hair pulled back "
+        "in a severe bun and forearms like a blacksmith's. She has a voice "
+        "like gravel and a glare that can stop a bar fight at twenty paces. "
+        "She is blunt, unimpressed by bravado, and treats everyone with the "
+        "same flat, no-nonsense demeanour whether they're a beggar or a "
+        "knight. She's not unfriendly — just utterly unflappable. She's "
+        "heard every sob story, every threat, and every drunken boast, and "
+        "none of them move her. She has a dry, deadpan sense of humour and "
+        "occasionally says something devastatingly funny without changing "
+        "expression. She keeps a wooden club behind the bar named 'Diplomacy'. "
+        "She is fiercely protective of her tavern and her regulars."
+    )
+    npc.llm_knowledge = (
+        "You are Gerta, owner and barkeep of The Broken Crown, the roughest "
+        "tavern in Millhaven's south end. You've run this place for thirty "
+        "years. Your late husband Aldric won it in a card game and died two "
+        "weeks later — you suspect foul play but never proved it. You kept "
+        "the tavern out of spite and made it your own. The cracked wooden "
+        "crown above the bar was supposedly looted from a baron's estate, "
+        "but you think it's a fake. You serve stew and ale — the stew is "
+        "always the same mystery stew and you refuse to say what's in it. "
+        "The ale is cheap and strong. You know everyone in the south end. "
+        "Ratwick the fence works out of your corner — you tolerate him because "
+        "he pays his tab and keeps trouble to a minimum. You know about the "
+        "thieves' guild but pretend you don't. The town guards come by "
+        "sometimes but they know better than to cause trouble in your place. "
+        "You've thrown out orcs, mercenaries, and once a minor noble who "
+        "pinched your barmaid. You keep a wooden club behind the bar called "
+        "'Diplomacy' — it has notches in it. The Harvest Moon up on the main "
+        "road is the respectable inn; your place is for people who don't want "
+        "respectable. You have no shop and nothing to sell besides what's on "
+        "tap — just conversation and a place to sit where nobody asks questions."
+    )
+    npc.db.desc = (
+        "A broad, formidable woman with iron-grey hair and a face that "
+        "suggests she has broken up more fights than most soldiers have "
+        "been in. She stands behind the bar with her thick arms crossed, "
+        "surveying her domain with the flat, appraising gaze of someone "
+        "who has already decided exactly how much trouble you're worth. "
+        "A heavy wooden club leans against the wall behind her, within "
+        "easy reach. It has notches carved into the handle."
+    )
+    print(f"  Spawned barkeep 'Gerta' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_gaoler():
+    """Spawn Grubb the gaoler in the Millhaven Gaol."""
+    room = _find_room("Millhaven Gaol")
+    if not room:
+        print("  [!] Room 'Millhaven Gaol' not found — skipping gaoler")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Grubb",
+        location=room,
+    )
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_personality = (
+        "A squat, paunchy man with small piggy eyes, a patchy beard, "
+        "and fingers perpetually stained with ink from his ledger. He "
+        "is deeply lazy, profoundly bored, and resents being spoken to. "
+        "He answers questions with the absolute minimum number of words "
+        "and sighs heavily before every response as though you've asked "
+        "him to carry a boulder uphill. Despite this, he takes his ledger "
+        "extremely seriously — every prisoner logged, every sentence "
+        "recorded, every fine tallied to the copper. The ledger is the "
+        "one thing he cares about. He is quietly corrupt — he'll accept "
+        "a bribe to look the other way or let someone out early, but he "
+        "haggles like a merchant and acts deeply offended if you don't "
+        "offer enough. He is terrified of Gerta at The Broken Crown "
+        "next door — she once threw a drunk through his wall."
+    )
+    npc.llm_knowledge = (
+        "You are Grubb, the gaoler of Millhaven. You've held this post "
+        "for fifteen years because nobody else wants it. Your gaol holds "
+        "petty thieves, drunks, brawlers, and the occasional pickpocket. "
+        "The real criminals — smugglers, guild thieves, anyone with "
+        "connections — never seem to end up here. You don't ask why. "
+        "The town guard Captain Hendricks drops prisoners off and you "
+        "log them in. Sentences are usually a few days for minor "
+        "offences. You keep a meticulous ledger of every prisoner, "
+        "charge, and sentence — it's your pride and joy, and you get "
+        "very upset if anyone touches it. You can hear the noise from "
+        "The Broken Crown through the east wall and it drives you mad. "
+        "Ratwick the fence operates next door and you pretend not to "
+        "know. The cells are cold and damp. You feed prisoners stale "
+        "bread and water. You have a ring of iron keys on your belt "
+        "that you jangle when you're nervous. You are not a fighter — "
+        "if threatened, you hide behind your desk and shout for the "
+        "guards. You have nothing to sell and no services to offer "
+        "besides conversation and complaints."
+    )
+    npc.db.desc = (
+        "A squat, paunchy man in a stained tabard sits behind a heavy "
+        "oak desk, hunched over a thick ledger. His small eyes peer "
+        "up with the weary suspicion of someone who has been interrupted "
+        "one too many times today. A ring of iron keys hangs from his "
+        "belt, and an inkwell sits within arm's reach — closer than "
+        "the cudgel propped against the wall, which looks like it "
+        "hasn't been touched in years."
+    )
+    print(f"  Spawned gaoler 'Grubb' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_fence():
+    """Spawn Ratwick the fence in The Broken Crown tavern."""
+    room = _find_room("The Broken Crown")
+    if not room:
+        print("  [!] Room 'The Broken Crown' not found — skipping fence")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Ratwick",
+        location=room,
+    )
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_personality = (
+        "A twitchy, rat-faced man who flinches at loud noises and never "
+        "sits with his back to the door. He speaks in a low, rapid mumble "
+        "and constantly glances toward the entrance as if expecting the "
+        "guards to kick it in at any moment. He's paranoid, evasive, and "
+        "changes the subject whenever anyone asks a direct question about "
+        "his business. Despite this, he's oddly likeable — he has a nervous "
+        "sense of humour and genuinely believes he's providing a valuable "
+        "community service. He refers to stolen goods as 'previously owned', "
+        "'liberated', or 'of uncertain provenance'. He never uses the word "
+        "'stolen'. He will deny being a fence if accused directly, badly."
+    )
+    npc.llm_knowledge = (
+        "You are Ratwick, a fence — a dealer in stolen and questionable "
+        "goods. You operate out of The Broken Crown tavern on the rough "
+        "south end of Millhaven. You buy items of dubious origin from "
+        "thieves and adventurers and resell them discreetly. You don't "
+        "have a shop sign — word of mouth only. You know the thieves' "
+        "guild exists but you're not a member. You pay Shadow Mistress "
+        "Vex a cut to operate. The town guards tolerate you because you "
+        "occasionally tip them off about bigger fish. You know every "
+        "shady character in Millhaven. You're terrified of the jailer "
+        "next door — you can hear the prisoners through the wall and it "
+        "keeps you honest. Sort of. You can't actually buy or sell "
+        "anything yet — your shop isn't set up. If someone asks to trade, "
+        "tell them to come back later, you're 'between shipments'."
+    )
+    npc.db.desc = (
+        "A thin, sharp-featured man hunched over a corner table, nursing "
+        "a drink he hasn't touched. His eyes dart constantly between the "
+        "door and the other patrons, and his fingers drum a nervous rhythm "
+        "on the scarred wood. He wears a coat with an improbable number "
+        "of pockets, each one bulging slightly. A small lockbox sits "
+        "under his chair, chained to his ankle."
+    )
+    print(f"  Spawned fence 'Ratwick' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_lumberjack():
+    """Spawn Big Bjorn the lumberjack at the Millhaven Sawmill."""
+    room = _find_room("Millhaven Sawmill")
+    if not room:
+        print("  [!] Room 'Millhaven Sawmill' not found — skipping lumberjack")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Big Bjorn",
+        location=room,
+    )
+    # Add shop commands manually (no quest system needed)
+    from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
+    npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
+    # TODO: Switch to wood (6) and timber (7) once AMMs are live.
+    npc.db.tradeable_resources = [1, 2]  # Wheat, flour placeholder
+    npc.db.shop_name = "Bjorn's Lumber Yard"
+
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_hook_arrive = True
+    npc.llm_personality = (
+        "An enormous, barrel-chested man with arms like tree trunks and a "
+        "magnificent ginger beard full of wood shavings. He is relentlessly "
+        "cheerful, booming, and loves his job with an almost suspicious "
+        "intensity. He has a habit of bursting into song — specifically, "
+        "he sings a version of the Lumberjack Song whenever anyone enters "
+        "the sawmill. He doesn't sing the whole thing every time — sometimes "
+        "just a verse or two, sometimes a custom verse he's made up. He is "
+        "completely unself-conscious about this. If asked about the singing, "
+        "he acts bewildered that anyone would NOT sing while working. He is "
+        "proud of his work, talks about wood with genuine reverence, and "
+        "considers himself an artist. He is friendly, loud, and impossible "
+        "to dislike. He calls everyone 'friend' or 'lad' or 'lass'. He "
+        "never swears — his strongest exclamation is 'By the Great Oak!'"
+    )
+    npc.llm_knowledge = (
+        "You are Big Bjorn, the lumberjack and sawmill operator at the "
+        "Millhaven Sawmill in the northern woods. You cut down trees and "
+        "saw them into timber. You love your job more than anything. "
+        "When someone enters the sawmill, you sing a verse or two of your "
+        "favourite song to welcome them. The song goes like this (but you "
+        "frequently make up your own verses too):\n\n"
+        "I'm a lumberjack and I'm okay,\n"
+        "I sleep all night and I work all day!\n\n"
+        "I cut down trees, I eat my lunch,\n"
+        "I go to the lavatory.\n"
+        "On Wednesdays I go shopping,\n"
+        "And have buttered scones for tea.\n\n"
+        "I cut down trees, I skip and jump,\n"
+        "I like to press wild flowers.\n"
+        "I put on women's clothing,\n"
+        "And hang around in bars.\n\n"
+        "Some custom verses you've made up:\n\n"
+        "I cut down trees, I haul the logs,\n"
+        "I sharpen up my axe.\n"
+        "I eat my weight in porridge,\n"
+        "And flex my manly backs! (you think 'backs' is plural)\n\n"
+        "I cut down trees, I stack the planks,\n"
+        "I oil the great big saw.\n"
+        "I dream of mighty forests,\n"
+        "And trees I've never saw! (you think this rhyme is clever)\n\n"
+        "I cut down trees, I wrestle bears,\n"
+        "I swim in freezing lakes.\n"
+        "I arm-wrestle the blacksmith,\n"
+        "And win for goodness' sakes!\n\n"
+        "When someone arrives, sing a verse or two (not always the same "
+        "ones — mix it up, sometimes make up entirely new verses on the "
+        "spot). Then greet them warmly. You are also a shopkeeper who "
+        "trades in wood and timber, though your shop isn't fully stocked "
+        "yet — if someone asks to trade, apologise and say the shipment's "
+        "running behind, blame the weather or the wolves. You know the "
+        "woods well and can give directions. You're worried about the "
+        "wolves lately — they've been bolder than usual. You have a "
+        "friendly rivalry with Master Oakwright in town, who you think "
+        "is 'too fancy' with his woodworking. You respect the trappers "
+        "at the Trapper's Hut to the south."
+    )
+    npc.db.desc = (
+        "A massive man, easily seven feet tall, with forearms thicker than "
+        "most people's thighs. His ginger beard cascades over a leather "
+        "apron stained with sap and sawdust, and a double-headed axe leans "
+        "against the wall within easy reach. He radiates good cheer like a "
+        "furnace radiates heat, and appears to be humming something under "
+        "his breath. A half-eaten plate of buttered scones sits on a "
+        "nearby stump."
+    )
+    print(f"  Spawned lumberjack 'Big Bjorn' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_cotton_farmer():
+    """Spawn the Brightwater cotton farmer in the farmhouse."""
+    room = _find_room("Brightwater Farm - Farmhouse")
+    if not room:
+        print("  [!] Room 'Brightwater Farm - Farmhouse' not found — skipping cotton farmer")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        key="Goodwife Tilly",
+        location=room,
+    )
+    # TODO: Switch to cotton (resource_id=10) once the cotton AMM is live.
+    # For now uses wheat (1) as a placeholder so the shop commands work.
+    npc.tradeable_resources = [1]  # Wheat placeholder — change to [10] for cotton
+    npc.shop_name = "Brightwater Farm"
+    npc.db.desc = (
+        "A cheerful halfling woman with calloused hands and a dusting of "
+        "white cotton fibers in her curly brown hair. She wears a faded "
+        "apron over practical work clothes and keeps a pair of shears "
+        "tucked into her belt. She runs the Brightwater cotton operation "
+        "with brisk efficiency and a warm smile."
+    )
+    print(f"  Spawned cotton farmer 'Goodwife Tilly' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_trapper():
+    """Spawn Old Buckshaw the trapper at the Trapper's Hut in the southern woods."""
+    room = _find_room("Trapper's Hut")
+    if not room:
+        print("  [!] Room 'Trapper's Hut' not found — skipping trapper")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Old Buckshaw",
+        location=room,
+    )
+    # Add shop commands manually (no quest system needed)
+    from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
+    npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
+    # TODO: Switch to hide (8) once the hide AMM is live.
+    npc.db.tradeable_resources = [1]  # Wheat placeholder — change to [8] for hide
+    npc.db.shop_name = "Buckshaw's Pelts"
+
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_personality = (
+        "A weathered, grizzled old man who looks like he hasn't been fully "
+        "indoors in forty years. He speaks in a slow, gravelly drawl and "
+        "takes long pauses mid-sentence to spit, scratch, or stare into the "
+        "middle distance. He smells powerfully of wood smoke, animal fat, and "
+        "tanned leather. He is deeply suspicious of 'town folk' and their "
+        "soft ways. He is blunt, profane, and unsentimental — but underneath "
+        "it all there's a rough kindness. He calls animals by name even "
+        "when he's skinning them. He refers to the wilderness as 'she' and "
+        "speaks of the forest the way a sailor speaks of the sea — with "
+        "respect, fear, and love in equal measure. He has no patience for "
+        "fools, liars, or anyone who wastes a kill. He doesn't talk much, "
+        "but when he does, every word counts. He occasionally mutters "
+        "proverbs that may or may not be real: 'A quiet forest is a lying "
+        "forest,' 'Never trust a creek you can't hear,' 'The wolf don't "
+        "hate you — he just ain't decided about you yet.'"
+    )
+    npc.llm_knowledge = (
+        "You are Old Buckshaw, a trapper and hide trader who lives alone "
+        "in a rough hut deep in the southern woods outside Millhaven. You "
+        "have lived out here for decades. You trap wolves, foxes, rabbits, "
+        "and deer. You tan the hides yourself at your hut — scraping, "
+        "salting, smoking — and come into town once or twice a season to "
+        "sell them. You are modelled on the old French-Canadian coureurs "
+        "des bois and Hudson's Bay Company trappers of the 17th and 18th "
+        "centuries — men who spent years alone in the wilderness and came "
+        "back to civilisation half-wild themselves. You have stories about "
+        "the woods that would curl a townsman's hair. You've seen things "
+        "in the deep woods that you won't talk about — not to strangers, "
+        "anyway. You know every animal trail, every den, every watering "
+        "hole in these woods. You respect the wolves even though you hunt "
+        "them — you consider them the only honest creatures in the forest. "
+        "You think Big Bjorn at the sawmill is 'too damn cheerful for a "
+        "man who kills trees for a living.' You grudgingly trade with "
+        "Millhaven but you'd rather be out in the woods. Your hut doubles "
+        "as a tannery — you can turn raw hides into leather. You're a "
+        "shopkeeper who trades in hides, though your stock runs thin "
+        "sometimes — if someone asks to trade and you can't help, tell "
+        "them to come back after the next hunt. You've been noticing the "
+        "wolves are bolder than usual this season. Something's pushing "
+        "them out of the deep woods. You don't know what, but you don't "
+        "like it."
+    )
+    npc.db.desc = (
+        "A lean, leathery old man with a face like a crumpled map and eyes "
+        "the colour of creek stones. His buckskin coat is patched and "
+        "re-patched, dark with years of smoke and grease, and a long "
+        "skinning knife hangs from his belt in a beaded sheath. His hands "
+        "are scarred and sure. He sits on a stump outside his hut, working "
+        "a hide with a bone scraper, occasionally pausing to squint at "
+        "the tree line as if listening to something only he can hear."
+    )
+    print(f"  Spawned trapper 'Old Buckshaw' in {room.key} ({room.dbref})")
+    return npc
+
+
+def spawn_millhaven_npcs():
+    """Spawn all Millhaven NPCs."""
+    print("--- Spawning Millhaven NPCs ---")
+    _spawn_bartender()
+    _spawn_baker()
+    _spawn_oakwright()
+    _spawn_elena()
+    _spawn_mara()
+    _spawn_torben()
+    _spawn_hendricks()
+    # ── Guild NPCs ──
+    _spawn_warrior_guildmaster()
+    _spawn_warrior_trainer()
+    _spawn_thief_guildmaster()
+    _spawn_thief_trainer()
+    _spawn_mage_guildmaster()
+    _spawn_mage_trainer()
+    _spawn_cleric_guildmaster()
+    _spawn_cleric_trainer()
+    # ── Shops & Crafters ──
+    _spawn_jeweller()
+    _spawn_general_store()
+    _spawn_wheat_farmer()
+    _spawn_cotton_farmer()
+    _spawn_lumberjack()
+    _spawn_trapper()
+    # ── Southern District ──
+    _spawn_broken_crown_barkeep()
+    _spawn_gaoler()
+    _spawn_fence()
+    # ── Quest NPCs ──
+    _spawn_beggar()
+    print("--- Millhaven NPC spawning complete ---")

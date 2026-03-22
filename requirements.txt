@@ -1,0 +1,19 @@
+# FullCircleMUD — all dependencies
+# Usage:
+#   python -m venv venv && source venv/bin/activate
+#   pip install -r requirements.txt
+
+# Evennia MUD framework
+evennia
+
+# LLM integration (OpenRouter API, OpenAI-compatible + embeddings)
+openai
+
+# XRPL blockchain integration (transactions, AMM, wallet auth)
+xrpl-py
+
+# Vector memory cosine similarity (ai_memory app)
+numpy
+
+# needed for xaman API
+requests

@@ -1,0 +1,383 @@
+/* ============================================================
+   FCM Dark Theme — Bootstrap 4 overlay
+   Loaded after website.css via base.html override.
+   See web/DESIGN_BRIEF.md for rationale and colour specs.
+   ============================================================ */
+
+/* --- CSS Custom Properties --- */
+:root {
+  --fcm-bg: #121212;
+  --fcm-surface: #1E1E1E;
+  --fcm-surface-hover: #252525;
+  --fcm-border: #2C2C2C;
+  --fcm-text: #E0E0E0;
+  --fcm-text-bright: #F0F0F0;
+  --fcm-text-muted: #9E9E9E;
+  --fcm-green: #00FF41;
+  --fcm-green-soft: #7FFF7F;
+  --fcm-green-visited: #5FBF5F;
+  --fcm-blue: #3D7A9E;
+  --fcm-blue-hover: #4A8FB5;
+  --fcm-gold: #DAA520;
+  --fcm-danger: #CC4444;
+  --fcm-nav-bg: #0D1117;
+  --fcm-font-heading: 'Space Mono', monospace;
+  --fcm-font-body: 'Space Grotesk', sans-serif;
+  --fcm-font-terminal: 'Space Mono', monospace;
+}
+
+/* --- Base --- */
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--fcm-bg);
+  color: var(--fcm-text);
+  font-family: var(--fcm-font-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4, h5, h6,
+.card-title {
+  font-family: var(--fcm-font-heading);
+  color: var(--fcm-text-bright);
+}
+
+h1 { font-size: 32px; font-weight: 700; line-height: 1.3; }
+h2 { font-size: 24px; font-weight: 700; line-height: 1.3; }
+h3 { font-size: 20px; font-weight: 700; line-height: 1.4; }
+h4, h5 { font-size: 18px; font-weight: 400; line-height: 1.4; }
+
+.lead {
+  font-family: var(--fcm-font-body);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.text-muted {
+  color: var(--fcm-text-muted) !important;
+}
+
+/* --- Links --- */
+a {
+  color: var(--fcm-green-soft);
+  transition: color 0.15s ease;
+}
+a:hover {
+  color: var(--fcm-green);
+  text-decoration: underline;
+}
+a:visited {
+  color: var(--fcm-green-visited);
+}
+
+/* --- Navbar --- */
+.navbar {
+  background-color: var(--fcm-nav-bg) !important;
+  border-bottom: 1px solid var(--fcm-border);
+}
+
+.navbar-dark .navbar-nav .nav-link {
+  font-family: var(--fcm-font-heading);
+  color: var(--fcm-text);
+  font-size: 14px;
+  transition: color 0.15s ease;
+}
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: var(--fcm-green);
+}
+.navbar-dark .navbar-nav .nav-link.active,
+.navbar-dark .navbar-nav .show > .nav-link {
+  color: var(--fcm-green);
+}
+
+.navbar-brand {
+  font-family: var(--fcm-font-heading);
+}
+.navbar-brand .media-body {
+  color: var(--fcm-text-bright);
+}
+.navbar-brand .media-body small {
+  color: var(--fcm-text-muted);
+}
+
+/* --- Cards --- */
+.card {
+  background-color: var(--fcm-surface);
+  border: 1px solid var(--fcm-border);
+  border-radius: 4px;
+  color: var(--fcm-text);
+}
+
+.card-title {
+  color: var(--fcm-text-bright);
+}
+
+.card-text {
+  color: var(--fcm-text);
+}
+
+/* Clickable cards (docs hub) */
+a.text-reset .card {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+a.text-reset:hover .card {
+  border-color: var(--fcm-green-soft);
+  background-color: var(--fcm-surface-hover);
+}
+a.text-reset {
+  text-decoration: none !important;
+}
+a.text-reset:hover {
+  text-decoration: none !important;
+}
+
+/* Reset link colours inside cards so text stays readable */
+a.text-decoration-none,
+a.text-reset {
+  color: inherit;
+}
+a.text-decoration-none:visited,
+a.text-reset:visited {
+  color: inherit;
+}
+
+/* --- Code blocks --- */
+pre {
+  background-color: var(--fcm-bg);
+  border: 1px solid var(--fcm-border);
+  border-radius: 4px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+pre code {
+  color: var(--fcm-text-bright);
+  font-family: var(--fcm-font-terminal);
+  font-size: 14px;
+}
+code {
+  color: var(--fcm-green-soft);
+}
+
+/* --- Horizontal rules --- */
+hr {
+  border-top-color: var(--fcm-border);
+}
+
+/* --- Footer --- */
+.footer {
+  background-color: var(--fcm-nav-bg);
+  border-top: 1px solid var(--fcm-border);
+}
+.footer .text-white {
+  color: var(--fcm-text-muted) !important;
+}
+.footer a.text-white {
+  color: var(--fcm-green-soft) !important;
+}
+.footer a.text-white:hover {
+  color: var(--fcm-green) !important;
+}
+
+/* --- Forms --- */
+.form-control {
+  background-color: var(--fcm-surface);
+  border-color: #333333;
+  color: var(--fcm-text);
+}
+.form-control:focus {
+  background-color: var(--fcm-surface-hover);
+  border-color: var(--fcm-green);
+  color: var(--fcm-text);
+  box-shadow: 0 0 0 0.2rem rgba(0, 255, 65, 0.25);
+}
+
+/* --- Tables --- */
+.table {
+  color: var(--fcm-text);
+}
+.table td, .table th {
+  border-color: var(--fcm-border);
+}
+.table thead th {
+  border-bottom-color: var(--fcm-border);
+  font-family: var(--fcm-font-heading);
+  color: var(--fcm-text-bright);
+}
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+.table-hover tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--fcm-text);
+}
+
+/* --- Buttons --- */
+.btn-primary {
+  background-color: var(--fcm-blue);
+  border-color: var(--fcm-blue);
+  color: #ffffff;
+}
+.btn-primary:hover {
+  background-color: var(--fcm-blue-hover);
+  border-color: var(--fcm-blue-hover);
+}
+
+.btn-secondary {
+  background-color: #333333;
+  border-color: #444444;
+  color: var(--fcm-text);
+}
+.btn-secondary:hover {
+  background-color: #3C3C3C;
+  border-color: #555555;
+  color: var(--fcm-text-bright);
+}
+
+/* --- Play Button (override Evennia default) --- */
+a.playbutton {
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  background: linear-gradient(to bottom, #3D7A9E 0%, #2B5E7E 100%);
+  background-color: var(--fcm-blue);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 65, 0.4);
+  display: inline-block;
+  cursor: pointer;
+  color: #ffffff;
+  font-family: var(--fcm-font-heading);
+  font-size: 18px;
+  padding: 14px 40px;
+  text-decoration: none;
+  text-shadow: none;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+a.playbutton:hover {
+  background: linear-gradient(to bottom, #4A8FB5 0%, #3D7A9E 100%);
+  background-color: var(--fcm-blue-hover);
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+  border-color: var(--fcm-green);
+  color: #ffffff;
+  text-decoration: none;
+}
+a.playbutton:active {
+  position: relative;
+  top: 1px;
+}
+a.playbutton:visited {
+  color: #ffffff;
+}
+
+/* --- Dropdowns --- */
+.dropdown-menu {
+  background-color: var(--fcm-surface);
+  border-color: var(--fcm-border);
+}
+.dropdown-item {
+  color: var(--fcm-text);
+}
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--fcm-surface-hover);
+  color: var(--fcm-text-bright);
+}
+
+/* --- Alerts --- */
+.alert-info {
+  background-color: #0D1520;
+  border-color: var(--fcm-blue);
+  color: var(--fcm-text);
+}
+.alert-success {
+  background-color: #0D150D;
+  border-color: #397339;
+  color: var(--fcm-green-soft);
+}
+.alert-danger {
+  background-color: #1A0A0A;
+  border-color: var(--fcm-danger);
+  color: #FF6B6B;
+}
+.alert-warning {
+  background-color: #1A150A;
+  border-color: var(--fcm-gold);
+  color: var(--fcm-gold);
+}
+
+/* --- Modal --- */
+.modal-content {
+  background-color: var(--fcm-surface);
+  border-color: var(--fcm-border);
+  color: var(--fcm-text);
+}
+
+/* --- Pagination --- */
+.page-link {
+  background-color: var(--fcm-surface);
+  border-color: var(--fcm-border);
+  color: var(--fcm-green-soft);
+}
+.page-link:hover {
+  background-color: var(--fcm-surface-hover);
+  border-color: var(--fcm-border);
+  color: var(--fcm-green);
+}
+.page-item.active .page-link {
+  background-color: var(--fcm-blue);
+  border-color: var(--fcm-blue);
+  color: #ffffff;
+}
+.page-item.disabled .page-link {
+  background-color: var(--fcm-bg);
+  border-color: var(--fcm-border);
+  color: var(--fcm-text-muted);
+}
+
+/* --- Scrollbar (Webkit) --- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--fcm-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* --- Nav Tabs --- */
+.nav-tabs {
+  border-bottom-color: var(--fcm-border);
+}
+.nav-tabs .nav-link {
+  color: var(--fcm-text-muted);
+  border-color: transparent;
+}
+.nav-tabs .nav-link:hover {
+  color: var(--fcm-green-soft);
+  border-color: transparent;
+}
+.nav-tabs .nav-link.active {
+  color: var(--fcm-text-bright);
+  background-color: var(--fcm-surface);
+  border-color: var(--fcm-border) var(--fcm-border) var(--fcm-surface);
+  border-top: 2px solid var(--fcm-green);
+}
+
+/* --- Utility overrides --- */
+.bg-dark {
+  background-color: var(--fcm-nav-bg) !important;
+}
+
+/* --- Selection highlight --- */
+::selection {
+  background-color: rgba(0, 255, 65, 0.2);
+  color: var(--fcm-text-bright);
+}

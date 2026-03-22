@@ -1,0 +1,917 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Gameplay Documentation{% endblock %}
+
+{% block content %}
+
+{# ── Overview ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h1 class="card-title">Gameplay</h1>
+    <hr/>
+    <p class="lead">
+      Full Circle MUD is a deep, text-driven multiplayer game in the tradition of CircleMUD and
+      DikuMUD &mdash; real-time combat, player-driven economy, procedural dungeons, and AI NPCs
+      that remember your name.
+    </p>
+    <p>
+      This page covers the core mechanics. Use the links below to jump to a specific section.
+    </p>
+
+    {# ── Table of Contents ── #}
+    <div class="row mt-4">
+      <div class="col-md-4 mb-2">
+        <ul class="list-unstyled">
+          <li><a href="#getting-started">Getting Started</a></li>
+          <li><a href="#races">Races</a></li>
+          <li><a href="#classes">Classes</a></li>
+          <li><a href="#ability-scores">Ability Scores</a></li>
+          <li><a href="#levels-and-experience">Levels &amp; Experience</a></li>
+          <li><a href="#combat">Combat</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4 mb-2">
+        <ul class="list-unstyled">
+          <li><a href="#weapons">Weapons &amp; Mastery</a></li>
+          <li><a href="#armour">Armour &amp; Equipment</a></li>
+          <li><a href="#magic">Magic &amp; Spells</a></li>
+          <li><a href="#skills">Skills &amp; Training</a></li>
+          <li><a href="#crafting">Crafting</a></li>
+          <li><a href="#resources">Resource Gathering &amp; Processing</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4 mb-2">
+        <ul class="list-unstyled">
+          <li><a href="#economy">The Economy</a></li>
+          <li><a href="#hunger">Hunger &amp; Food</a></li>
+          <li><a href="#death">Death &amp; Respawn</a></li>
+          <li><a href="#dungeons">Dungeons</a></li>
+          <li><a href="#quests">Quests</a></li>
+          <li><a href="#groups">Groups &amp; Communication</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════ #}
+{# ── Getting Started ── #}
+<div class="card mb-4" id="getting-started">
+  <div class="card-body">
+    <h2 class="card-title">Getting Started</h2>
+    <hr/>
+    <p>
+      Connect via the <a href="{% url 'webclient:index' %}">browser client</a> or any MUD client
+      that supports WebSocket. Once logged in, create a character with the <code>charcreate</code>
+      command. The creation wizard walks you through:
+    </p>
+    <ol>
+      <li><strong>Race</strong> &mdash; each race grants ability score bonuses, starting languages, and a size category</li>
+      <li><strong>Class</strong> &mdash; determines your combat role, skill access, spell schools, starting weapon, and class-specific skills</li>
+      <li><strong>Alignment</strong> &mdash; nine alignments (Lawful Good through Chaotic Evil) that gate certain classes and items</li>
+      <li><strong>Ability Scores</strong> &mdash; distribute 27 points across six abilities using a point-buy system</li>
+      <li><strong>Name</strong> &mdash; choose your character's name</li>
+    </ol>
+    <p>
+      You'll start with a basic weapon for your class, your class-specific skills, and a set
+      of general skills available to all characters (such as crafting professions and battleskills).
+    </p>
+    <p>
+      After creation you'll enter the world. Type <code>look</code> to see your surroundings,
+      <code>exits</code> to see where you can go, and <code>help</code> to see available commands.
+    </p>
+  </div>
+</div>
+
+{# ── Races ── #}
+<div class="card mb-4" id="races">
+  <div class="card-body">
+    <h2 class="card-title">Races</h2>
+    <hr/>
+    <p>
+      New players choose from <strong>Human, Dwarf, or Elf</strong>. Additional races become
+      available through <strong>remort</strong> &mdash; reaching max level and starting over
+      at level 1 with permanent perks. More races will be added as the game develops.
+    </p>
+
+    <h5 class="mt-3">Starting Races</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Race</th><th>Ability Modifiers</th><th>Size</th><th>Traits</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Human</strong></td><td>None</td><td>Medium</td><td>No bonuses or penalties &mdash; the most adaptable race</td></tr>
+        <tr><td><strong>Dwarf</strong></td><td>+2 CON, -1 DEX</td><td>Medium</td><td>Darkvision, 30% poison resistance, battleaxe &amp; hammer proficiency</td></tr>
+        <tr><td><strong>Elf</strong></td><td>+1 DEX, +1 INT, -1 CON</td><td>Medium</td><td>Darkvision</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Remort Races</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Race</th><th>Ability Modifiers</th><th>Size</th><th>Traits</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Halfling</strong></td><td>+2 DEX, -1 STR</td><td>Small</td><td>Sling proficiency (requires 1 remort)</td></tr>
+        <tr><td><strong>Aasimar</strong></td><td>+1 WIS, +1 CHA</td><td>Medium</td><td>Darkvision, 25% necrotic resistance (requires 2 remorts)</td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      Racial modifiers are applied after point-buy and can push a score above the normal
+      15-point cap or below 8.
+    </p>
+  </div>
+</div>
+
+{# ── Classes ── #}
+<div class="card mb-4" id="classes">
+  <div class="card-body">
+    <h2 class="card-title">Classes</h2>
+    <hr/>
+    <p>
+      New characters choose from four starting classes. Additional classes become available
+      later in the game through <strong>multiclassing</strong> at Guildmaster NPCs, which may
+      require meeting ability score minimums, completing quests, or remorting. More classes
+      will be added as the game develops.
+    </p>
+
+    <div class="row mt-3">
+      <div class="col-md-6">
+        <h5>Starting Classes</h5>
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Class</th><th>Role</th><th>Prime Stat</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Warrior</strong></td><td>Melee combatant</td><td>STR</td></tr>
+            <tr><td><strong>Thief</strong></td><td>Stealth &amp; finesse</td><td>DEX</td></tr>
+            <tr><td><strong>Cleric</strong></td><td>Healer &amp; divine caster</td><td>WIS</td></tr>
+            <tr><td><strong>Mage</strong></td><td>Offensive magic</td><td>INT</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <h5>Available Later in the Game</h5>
+        <table class="table table-sm">
+          <thead>
+            <tr><th>Class</th><th>Role</th><th>Prime Stat</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Paladin</strong></td><td>Holy warrior</td><td>CHA</td></tr>
+
+            <tr><td><strong>Ranger</strong></td><td>Ranged &amp; nature</td><td>DEX</td></tr>
+            <tr><td><strong>Druid</strong></td><td>Nature magic &amp; shifting</td><td>WIS</td></tr>
+            <tr><td><strong>Ninja</strong></td><td>Speed &amp; stealth</td><td>DEX</td></tr>
+            <tr><td><strong>Bard</strong></td><td>Support &amp; social</td><td>CHA</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h5 class="mt-3">Multiclassing</h5>
+    <p>
+      Visit a Guildmaster NPC to advance in your class or pick up a new one. Each guildmaster
+      has a level cap &mdash; to advance further, you'll need to find a higher-tier guildmaster
+      elsewhere in the world. Multiclassing requires meeting ability score minimums and may
+      require a remort.
+    </p>
+
+    <h5 class="mt-3">Remort</h5>
+    <p>
+      The remort system provides long-term progression. After reaching a level cap, you can
+      remort to reset to level 1 while keeping permanent perks: extra point-buy budget, bonus
+      HP/mana/move per level, and access to higher-tier classes and items.
+    </p>
+  </div>
+</div>
+
+{# ── Ability Scores ── #}
+<div class="card mb-4" id="ability-scores">
+  <div class="card-body">
+    <h2 class="card-title">Ability Scores</h2>
+    <hr/>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Ability</th><th>Abbr</th><th>Affects</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Strength</strong></td><td>STR</td><td>Melee damage, carrying capacity (+5 kg per modifier point)</td></tr>
+        <tr><td><strong>Dexterity</strong></td><td>DEX</td><td>Armour class, initiative, ranged attacks, finesse weapons</td></tr>
+        <tr><td><strong>Constitution</strong></td><td>CON</td><td>HP per level, poison saves</td></tr>
+        <tr><td><strong>Intelligence</strong></td><td>INT</td><td>Mage mana cap, identify tier</td></tr>
+        <tr><td><strong>Wisdom</strong></td><td>WIS</td><td>Cleric mana cap, perception</td></tr>
+        <tr><td><strong>Charisma</strong></td><td>CHA</td><td>Training cost discounts, spell save DCs</td></tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>Modifiers:</strong> Your ability modifier is <code>floor((score - 10) / 2)</code>.
+      A score of 10&ndash;11 gives +0, 14&ndash;15 gives +2, and so on. Modifiers affect combat
+      rolls, skill checks, and resource pools.
+    </p>
+    <p>
+      <strong>Point buy:</strong> All abilities start at 8. You have 27 points to distribute
+      (more after remorts). The cap before racial bonuses is 15.
+    </p>
+  </div>
+</div>
+
+{# ── Levels & Experience ── #}
+<div class="card mb-4" id="levels-and-experience">
+  <div class="card-body">
+    <h2 class="card-title">Levels &amp; Experience</h2>
+    <hr/>
+    <p>
+      The level cap is <strong>40</strong>. XP is earned from combat (10 &times; mob level per kill),
+      quests, and crafting. When you have enough XP, visit a Guildmaster and use
+      <code>advance</code> to spend your pending levels.
+    </p>
+    <p>
+      Each level grants HP, mana, and move increases based on your class progression tables,
+      plus skill points to spend on new abilities.
+    </p>
+    <table class="table table-sm mt-3">
+      <thead>
+        <tr><th>Level</th><th>XP Required</th><th>Level</th><th>XP Required</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>0</td><td>20</td><td>240,000</td></tr>
+        <tr><td>5</td><td>6,500</td><td>25</td><td>487,000</td></tr>
+        <tr><td>10</td><td>35,000</td><td>30</td><td>847,000</td></tr>
+        <tr><td>15</td><td>110,000</td><td>40</td><td>2,417,000</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════ #}
+{# ── Combat ── #}
+<div class="card mb-4" id="combat">
+  <div class="card-body">
+    <h2 class="card-title">Combat</h2>
+    <hr/>
+    <p>
+      Combat is <strong>real-time</strong>. Once you engage a target with <code>attack &lt;target&gt;</code>,
+      your character automatically swings every few seconds based on weapon speed. You can queue
+      actions between swings.
+    </p>
+
+    <h5 class="mt-3">Attack Resolution</h5>
+    <p>
+      Each swing rolls <code>d20 + hit bonus</code> against the target's <strong>AC</strong>
+      (armour class). On a hit, damage is rolled using your weapon's damage dice plus your
+      ability modifier and any bonuses. A natural 20 is a critical hit, doubling the damage roll.
+    </p>
+
+    <h5 class="mt-3">Combat Commands</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Command</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>attack &lt;target&gt;</code></td><td>Engage in combat</td></tr>
+        <tr><td><code>flee</code></td><td>Attempt to escape (DEX check vs DC 10)</td></tr>
+        <tr><td><code>dodge</code></td><td>Skip your action, give enemies disadvantage for 1 round</td></tr>
+        <tr><td><code>join &lt;ally&gt;</code></td><td>Attack whoever your ally is fighting</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Class Combat Skills</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Class</th><th>Skills</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Warrior</td><td><code>bash</code> (stun), <code>pummel</code> (multi-hit), <code>protect</code> (shield ally), <code>taunt</code> (draw aggro)</td></tr>
+        <tr><td>Thief / Ninja</td><td><code>stab</code> (backstab), <code>assassinate</code> (stealth kill)</td></tr>
+
+        <tr><td>Cleric</td><td><code>turn</code> (repel undead)</td></tr>
+        <tr><td>Bard</td><td><code>mock</code> (confuse enemy)</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Advantage &amp; Disadvantage</h5>
+    <p>
+      Some abilities grant <strong>advantage</strong> (roll 2d20, take the best) or impose
+      <strong>disadvantage</strong> (roll 2d20, take the worst) on attack rolls. Stunned or
+      prone targets give advantage to all their attackers.
+    </p>
+
+    <h5 class="mt-3">Damage Types</h5>
+    <p>
+      Weapons and spells deal specific damage types: <em>slashing, piercing, bludgeoning, fire,
+      cold, lightning, acid, poison, magic, force, necrotic, radiant,</em> and <em>psychic</em>.
+      Armour and spells can grant resistance or vulnerability to specific types.
+    </p>
+  </div>
+</div>
+
+{# ── Weapons & Mastery ── #}
+<div class="card mb-4" id="weapons">
+  <div class="card-body">
+    <h2 class="card-title">Weapons &amp; Mastery</h2>
+    <hr/>
+    <p>
+      There are <strong>24 weapon types</strong>, each with a unique mastery tree that unlocks
+      special abilities as you advance. Any class can equip any weapon, but you fight at
+      <strong>Unskilled</strong> (-2 to hit and damage) unless your class can train that weapon.
+    </p>
+
+    <h5 class="mt-3">Mastery Levels</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Level</th><th>Hit/Damage Bonus</th><th>Skill Points Cost</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Unskilled</td><td>-2</td><td>&mdash;</td></tr>
+        <tr><td>Basic</td><td>+0</td><td>1</td></tr>
+        <tr><td>Skilled</td><td>+2</td><td>4</td></tr>
+        <tr><td>Expert</td><td>+4</td><td>9</td></tr>
+        <tr><td>Master</td><td>+6</td><td>16</td></tr>
+        <tr><td>Grandmaster</td><td>+8</td><td>27</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Weapon Types</h5>
+    <div class="row">
+      <div class="col-md-4">
+        <h6>Slashing</h6>
+        <ul class="mb-2">
+          <li>Great Sword &mdash; two-handed, cleave</li>
+          <li>Long Sword &mdash; balanced, parry</li>
+          <li>Short Sword &mdash; fast, dual-wield</li>
+          <li>Battle Axe &mdash; two-handed, devastating</li>
+          <li>Hand Axe &mdash; one-hand</li>
+          <li>Ninjat&#333; &mdash; ninja only, fast</li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h6>Piercing</h6>
+        <ul class="mb-2">
+          <li>Spear &mdash; reach, counter-attacks</li>
+          <li>Bow &mdash; ranged</li>
+          <li>Crossbow &mdash; ranged, slow, high damage</li>
+          <li>Rapier &mdash; finesse, riposte</li>
+          <li>Dagger &mdash; finesse, fast, dual-wield</li>
+          <li>Lance &mdash; mounted, charge</li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h6>Bludgeoning &amp; Special</h6>
+        <ul class="mb-2">
+          <li>Staff &mdash; parry specialist</li>
+          <li>Mace &mdash; armour crusher</li>
+          <li>Club &mdash; simple, fast</li>
+          <li>Greatclub &mdash; two-handed, stagger</li>
+          <li>Hammer &mdash; crushing</li>
+          <li>Unarmed &mdash; stun/knockdown</li>
+          <li>Nunchaku &mdash; fast, stun</li>
+          <li>Sling &mdash; ranged, concussive</li>
+          <li>Blowgun &mdash; poison, silent</li>
+          <li>Bola &mdash; entangle</li>
+          <li>Shuriken &mdash; thrown, consumable</li>
+          <li>Sai &mdash; disarm specialist</li>
+        </ul>
+      </div>
+    </div>
+    <p>
+      Higher mastery tiers unlock weapon-specific abilities. For example, a Grandmaster
+      greatsword wielder gains <strong>Cleave</strong> (cascading AoE) and
+      <strong>Executioner</strong> (free attack on kill), while a Master rapier duelist gains
+      <strong>Riposte</strong> (counter-attack after a successful parry).
+    </p>
+
+    <h5 class="mt-3">Dual-Wielding</h5>
+    <p>
+      Daggers and short swords can be dual-wielded. Equip your main weapon with
+      <code>wield</code> and your off-hand with <code>hold</code>. Your main-hand mastery
+      determines how many off-hand attacks you get.
+    </p>
+  </div>
+</div>
+
+{# ── Armour & Equipment ── #}
+<div class="card mb-4" id="armour">
+  <div class="card-body">
+    <h2 class="card-title">Armour &amp; Equipment</h2>
+    <hr/>
+    <p>
+      Characters have <strong>19 wear slots</strong> for equipment:
+    </p>
+    <div class="row">
+      <div class="col-md-4">
+        <ul class="mb-2">
+          <li>Head</li>
+          <li>Face</li>
+          <li>Left/Right Ear</li>
+          <li>Neck</li>
+          <li>Cloak</li>
+          <li>Body</li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <ul class="mb-2">
+          <li>Left/Right Arm</li>
+          <li>Hands</li>
+          <li>Left/Right Wrist</li>
+          <li>Left/Right Ring Finger</li>
+          <li>Waist</li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <ul class="mb-2">
+          <li>Legs</li>
+          <li>Feet</li>
+          <li>Wield (main hand)</li>
+          <li>Hold (off-hand / shield)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h5 class="mt-3">Armour Class (AC)</h5>
+    <p>
+      Base AC is <strong>10 + DEX modifier</strong>. Equipment adds or subtracts from this.
+      Spells like <em>Shield</em> and <em>Mage Armor</em> provide temporary AC boosts.
+      Lower AC is harder to hit.
+    </p>
+
+    <h5 class="mt-3">Durability</h5>
+    <p>
+      All weapons and armour have durability that degrades through combat and over time based
+      on material quality. Materials range from <strong>Cloth</strong> (degrades fastest) to
+      <strong>Mithral</strong> (degrades slowest). Use the <code>repair</code> command at a
+      workshop to restore durability.
+    </p>
+
+    <h5 class="mt-3">Equipment Commands</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Command</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>wear &lt;item&gt;</code></td><td>Equip to appropriate slot</td></tr>
+        <tr><td><code>wield &lt;weapon&gt;</code></td><td>Equip to main hand</td></tr>
+        <tr><td><code>hold &lt;item&gt;</code></td><td>Equip to off-hand (shield or second weapon)</td></tr>
+        <tr><td><code>remove &lt;item&gt;</code></td><td>Unequip an item</td></tr>
+        <tr><td><code>equipment</code></td><td>Show all worn items and durability</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════ #}
+{# ── Magic & Spells ── #}
+<div class="card mb-4" id="magic">
+  <div class="card-body">
+    <h2 class="card-title">Magic &amp; Spells</h2>
+    <hr/>
+    <p>
+      Spells are organised into <strong>schools</strong>. Mages access arcane schools, clerics
+      and paladins access divine domains, and druids/rangers access nature magic. Each school
+      levels independently through mastery tiers.
+    </p>
+
+    <h5 class="mt-3">Arcane Schools (Mage)</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>School</th><th>Focus</th><th>Example Spells</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Evocation</strong></td><td>Direct damage</td><td>Magic Missile, Fireball, Frostbolt, Cone of Cold</td></tr>
+        <tr><td><strong>Conjuration</strong></td><td>Summoning &amp; creation</td><td>Acid Arrow, Conjure Elemental, Teleport, Gate</td></tr>
+        <tr><td><strong>Abjuration</strong></td><td>Protection</td><td>Shield, Mage Armor, Resist Elements, Invulnerability</td></tr>
+        <tr><td><strong>Necromancy</strong></td><td>Life &amp; undeath</td><td>Drain Life, Death Mark, Raise Dead, Vampiric Touch</td></tr>
+        <tr><td><strong>Illusion</strong></td><td>Deception</td><td>Invisibility, Blur, Mass Confusion, Phantasmal Killer</td></tr>
+        <tr><td><strong>Divination</strong></td><td>Knowledge</td><td>Identify, Scry, True Sight</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Divine Domains (Cleric / Paladin)</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Domain</th><th>Focus</th><th>Example Spells</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Divine Healing</strong></td><td>Restoration</td><td>Cure Wounds, Mass Heal, Purify, Death Ward</td></tr>
+        <tr><td><strong>Divine Protection</strong></td><td>Blessings &amp; wards</td><td>Divine Aegis, Holy Aura, Sanctuary</td></tr>
+        <tr><td><strong>Divine Dominion</strong></td><td>Control</td><td>Command, Hold, Word of God</td></tr>
+        <tr><td><strong>Divine Revelation</strong></td><td>Perception</td><td>Holy Insight, Holy Sight</td></tr>
+        <tr><td><strong>Divine Judgement</strong></td><td>Paladin only</td><td>Smite, Holy Retribution</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Nature Magic (Druid / Ranger)</h5>
+    <p>
+      Entangle, Call Lightning, Earthquake &mdash; nature spells that interact with terrain
+      and the environment.
+    </p>
+
+    <h5 class="mt-3">How Magic Works</h5>
+    <ol>
+      <li><strong>Learn</strong> a spell by consuming a Spell Scroll item: <code>transcribe &lt;scroll&gt;</code></li>
+      <li><strong>Memorise</strong> the spell to prepare it for casting: <code>memorise &lt;spell&gt;</code></li>
+      <li><strong>Cast</strong> the spell at a target: <code>cast &lt;spell&gt; [target]</code></li>
+    </ol>
+    <p>
+      Each casting costs <strong>mana</strong>. Your mana cap is based on level, prime ability
+      modifier, and equipment bonuses. Mana regenerates over time &mdash; faster when resting
+      or sleeping.
+    </p>
+    <p>
+      Spells scale with your <strong>mastery tier</strong> in that school. Higher mastery means
+      more damage, more targets, longer durations, and new effects. For example, Magic Missile
+      fires 1 missile at Basic but up to 5 at Grandmaster.
+    </p>
+  </div>
+</div>
+
+{# ── Skills & Training ── #}
+<div class="card mb-4" id="skills">
+  <div class="card-body">
+    <h2 class="card-title">Skills &amp; Training</h2>
+    <hr/>
+    <p>
+      Skills use the same five-tier mastery system as weapons (Basic through Grandmaster).
+      You spend <strong>skill points</strong> earned at each level to advance. Visit a
+      <strong>Trainer NPC</strong> and use <code>train &lt;skill&gt;</code> to advance.
+    </p>
+
+    <h5 class="mt-3">Crafting Skills (all classes)</h5>
+    <ul>
+      <li><strong>Blacksmith</strong> &mdash; forge weapons and armour from metal ingots</li>
+      <li><strong>Carpenter</strong> &mdash; craft weapons, shields, and furniture from timber</li>
+      <li><strong>Tailor</strong> &mdash; sew clothing and cloth armour from cloth</li>
+      <li><strong>Leatherworker</strong> &mdash; craft leather armour and equipment from leather</li>
+      <li><strong>Jeweller</strong> &mdash; craft jewellery from silver ingots and gems</li>
+      <li><strong>Alchemist</strong> &mdash; brew potions from herbs and reagents</li>
+      <li><strong>Enchanting</strong> &mdash; imbue items with magical properties (mage only)</li>
+    </ul>
+
+    <h5 class="mt-3">General Skills (all classes)</h5>
+    <ul>
+      <li><strong>Battleskills</strong> &mdash; dodge, assist</li>
+      <li><strong>Alertness</strong> &mdash; perception bonus, initiative</li>
+      <li><strong>Cartography</strong> &mdash; create maps of explored areas</li>
+      <li><strong>Animal Handling</strong> &mdash; tame and command animals</li>
+      <li><strong>Shipwright / Seamanship</strong> &mdash; build and sail ships</li>
+    </ul>
+
+    <h5 class="mt-3">Class-Specific Skills</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Class</th><th>Skills</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Warrior</td><td>Bash, Pummel, Protect, Strategy</td></tr>
+
+        <tr><td>Thief / Ninja</td><td>Stealth, Subterfuge, Stab, Assassinate</td></tr>
+        <tr><td>Bard</td><td>Performance, Inspiration, Debilitation, Manipulation, Misdirection, Lore</td></tr>
+        <tr><td>Druid / Ranger</td><td>Survivalist, Animal Companion, Shape Shifting, Nature Magic</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════ #}
+{# ── Crafting ── #}
+<div class="card mb-4" id="crafting">
+  <div class="card-body">
+    <h2 class="card-title">Crafting</h2>
+    <hr/>
+    <p>
+      Crafting produces <strong>NFT items</strong> &mdash; weapons, armour, potions, and
+      jewellery that you truly own. Each crafted item exists as a unique on-chain asset.
+    </p>
+
+    <h5 class="mt-3">How to Craft</h5>
+    <ol>
+      <li><strong>Learn a recipe</strong> &mdash; buy from a Trainer NPC or find recipe scrolls</li>
+      <li><strong>Gather materials</strong> &mdash; harvest and process the required resources</li>
+      <li><strong>Visit a workshop</strong> &mdash; each craft type has a specific room</li>
+      <li><strong>Craft the item</strong> &mdash; use the room's crafting command</li>
+    </ol>
+
+    <h5 class="mt-3">Workshop Types</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Workshop</th><th>Command</th><th>Skill</th><th>Products</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Smithy</td><td><code>forge</code></td><td>Blacksmith</td><td>Metal weapons &amp; armour</td></tr>
+        <tr><td>Woodshop</td><td><code>carve</code></td><td>Carpenter</td><td>Wooden weapons, shields, furniture</td></tr>
+        <tr><td>Tailor</td><td><code>sew</code></td><td>Tailor</td><td>Clothing &amp; cloth armour</td></tr>
+        <tr><td>Leathershop</td><td><code>craft</code></td><td>Leatherworker</td><td>Leather armour &amp; equipment</td></tr>
+        <tr><td>Jeweller</td><td><code>craft</code></td><td>Jeweller</td><td>Rings, amulets, tiaras</td></tr>
+        <tr><td>Apothecary</td><td><code>brew</code></td><td>Alchemist</td><td>Potions &amp; elixirs</td></tr>
+        <tr><td>Wizard&rsquo;s Workshop</td><td><code>enchant</code></td><td>Enchanting</td><td>Enchanted items</td></tr>
+      </tbody>
+    </table>
+
+    <p class="mt-3">
+      Each recipe requires a minimum mastery tier. Higher-tier recipes produce more powerful
+      items. Crafting costs a small gold workshop fee plus the raw resources, and awards XP
+      that scales with recipe difficulty.
+    </p>
+    <p>
+      Use <code>recipes</code> to see your known recipes and <code>available</code> to see
+      what you can craft in the current room.
+    </p>
+  </div>
+</div>
+
+{# ── Resource Gathering & Processing ── #}
+<div class="card mb-4" id="resources">
+  <div class="card-body">
+    <h2 class="card-title">Resource Gathering &amp; Processing</h2>
+    <hr/>
+
+    <h5>Gathering</h5>
+    <p>
+      Raw resources are gathered at harvesting nodes throughout the world using commands like
+      <code>mine</code>, <code>chop</code>, <code>harvest</code>, <code>hunt</code>,
+      <code>fish</code>, and <code>forage</code>.
+    </p>
+
+    <h5 class="mt-3">Processing</h5>
+    <p>
+      Raw materials must be processed at specialised stations before they can be used in
+      crafting. Processing is available to <strong>all players</strong> regardless of skill
+      level &mdash; just visit the right room and use the command.
+    </p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Station</th><th>Command</th><th>Input</th><th>Output</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Windmill</td><td><code>mill</code></td><td>Wheat</td><td>Flour</td></tr>
+        <tr><td>Bakery</td><td><code>bake</code></td><td>Flour + Wood</td><td>Bread</td></tr>
+        <tr><td>Smelter</td><td><code>smelt</code></td><td>Ore (any)</td><td>Ingot (matching)</td></tr>
+        <tr><td>Sawmill</td><td><code>saw</code></td><td>Wood</td><td>Timber</td></tr>
+        <tr><td>Tannery</td><td><code>tan</code></td><td>Hide</td><td>Leather</td></tr>
+        <tr><td>Textile Mill</td><td><code>weave</code></td><td>Cotton</td><td>Cloth</td></tr>
+        <tr><td>Distillery</td><td><code>distill</code></td><td>Moonpetal</td><td>Moonpetal Essence</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Example Supply Chains</h5>
+    <ul>
+      <li><strong>Food:</strong> Harvest Wheat &rarr; Mill into Flour &rarr; Bake into Bread &rarr; Eat to restore hunger</li>
+      <li><strong>Metal weapons:</strong> Mine Iron Ore &rarr; Smelt into Iron Ingot &rarr; Forge into sword/armour (NFT)</li>
+      <li><strong>Leather armour:</strong> Hunt for Hide &rarr; Tan into Leather &rarr; Craft into leather gear (NFT)</li>
+      <li><strong>Potions:</strong> Forage Moonpetal &rarr; Distill into Essence &rarr; Brew into potion (NFT)</li>
+      <li><strong>Alloys:</strong> Mine Copper + Tin Ore &rarr; Smelt into Bronze Ingot &rarr; Forge into bronze gear</li>
+    </ul>
+    <p>
+      Processing costs a small gold fee per batch. Use <code>rates</code> in any processing
+      room to see conversion details.
+    </p>
+  </div>
+</div>
+
+{# ── The Economy ── #}
+<div class="card mb-4" id="economy">
+  <div class="card-body">
+    <h2 class="card-title">The Economy</h2>
+    <hr/>
+    <p>
+      Full Circle MUD has a <strong>fully player-driven economy</strong>. If a shopkeeper sells
+      it, a player harvested or crafted it. Gold flows in a circle: subscriptions create gold,
+      players earn and spend it, sinks recirculate it, and the cycle continues.
+    </p>
+
+    <h5 class="mt-3">Earning Gold</h5>
+    <ul>
+      <li>Kill mobs and loot their corpses</li>
+      <li>Complete quests</li>
+      <li>Sell resources to NPC shopkeepers</li>
+    </ul>
+
+    <h5 class="mt-3">Spending Gold</h5>
+    <ul>
+      <li>Buy resources from shopkeepers</li>
+      <li>Crafting workshop fees</li>
+      <li>Resource processing fees</li>
+      <li>Skill training at Trainers</li>
+      <li>Equipment repair</li>
+      <li>Early release from Purgatory on death</li>
+    </ul>
+
+    <h5 class="mt-3">NPC Shops &amp; AMM Pricing</h5>
+    <p>
+      Shopkeeper prices are <strong>not scripted</strong>. They're driven by real on-ledger
+      <strong>AMM pools</strong> (Automated Market Makers) on the XRP Ledger. Buy more of a
+      resource and the price goes up. Sell it back and the price drops. Supply and demand
+      in action.
+    </p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Command</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>list</code></td><td>See tradeable resources with live prices</td></tr>
+        <tr><td><code>buy &lt;amount&gt; &lt;resource&gt;</code></td><td>Buy at current AMM price</td></tr>
+        <tr><td><code>sell &lt;amount&gt; &lt;resource&gt;</code></td><td>Sell at current AMM price</td></tr>
+        <tr><td><code>quote buy &lt;amount&gt; &lt;resource&gt;</code></td><td>Get a price quote (2-minute expiry)</td></tr>
+        <tr><td><code>accept</code></td><td>Execute a quoted trade</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Market prices (refreshed hourly) are also visible on the <a href="{% url 'markets' %}">Markets</a> page.
+    </p>
+
+    <h5 class="mt-3">Banking</h5>
+    <p>
+      Your <strong>account bank</strong> is a persistent, account-level store that survives
+      character death and is shared across all your characters. Use <code>deposit</code> and
+      <code>withdraw</code> at any bank to move gold, resources, and items between your
+      character's inventory and your account bank.
+    </p>
+  </div>
+</div>
+
+{# ── Hunger & Food ── #}
+<div class="card mb-4" id="hunger">
+  <div class="card-body">
+    <h2 class="card-title">Hunger &amp; Food</h2>
+    <hr/>
+    <p>
+      Characters get hungry over time. Your hunger level degrades naturally through six stages:
+    </p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Level</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Full</strong></td><td>Well-fed, normal regeneration</td></tr>
+        <tr><td><strong>Satisfied</strong></td><td>Content, normal regeneration</td></tr>
+        <tr><td><strong>Peckish</strong></td><td>Slightly hungry, no penalty yet</td></tr>
+        <tr><td><strong>Hungry</strong></td><td>Regeneration stops</td></tr>
+        <tr><td><strong>Famished</strong></td><td>Losing HP over time</td></tr>
+        <tr><td><strong>Starving</strong></td><td>Rapid HP loss &mdash; death if not addressed</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Eat <strong>Bread</strong> (crafted from Flour + Wood at a bakery) or drink a potion to
+      restore hunger. Rangers and druids can <code>forage</code> for food in the wilderness.
+    </p>
+  </div>
+</div>
+
+{# ── Death & Respawn ── #}
+<div class="card mb-4" id="death">
+  <div class="card-body">
+    <h2 class="card-title">Death &amp; Respawn</h2>
+    <hr/>
+    <p>
+      When your HP reaches 0, your character dies. Here's what happens:
+    </p>
+    <ol>
+      <li>All your items, gold, and resources are placed in a <strong>corpse</strong> at the location of death</li>
+      <li>You're sent to <strong>Purgatory</strong> for 60 seconds (or pay gold for early release)</li>
+      <li>You lose <strong>5% of your XP</strong></li>
+      <li>After the timer expires, you respawn with 1 HP at a cemetery room you have bound yourself to with the <code>bind</code> command — or if unbound, at the zone transition room where you entered the zone</li>
+    </ol>
+    <p>
+      Your corpse is <strong>owner-locked for 5 minutes</strong> &mdash; only you can loot it.
+      After 5 minutes anyone can loot it. After 10 minutes it despawns entirely.
+      <strong>Get back to your corpse quickly.</strong>
+    </p>
+
+    <h5 class="mt-3">Arena &amp; PvP</h5>
+    <p>
+      The bulk of the game is <strong>PvE</strong> (player vs environment). PvP combat is available
+      in the Arena, and possibly other areas in the future. All PvP zones are
+      <strong>no-death rooms</strong> &mdash; if you're defeated, you keep all your items, gold,
+      and XP and are simply teleported out with 1 HP.
+    </p>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════ #}
+{# ── Dungeons ── #}
+<div class="card mb-4" id="dungeons">
+  <div class="card-body">
+    <h2 class="card-title">Dungeons</h2>
+    <hr/>
+    <p>
+      While some dungeons are static, many are <strong>procedurally generated</strong> every time you enter. No two runs
+      are the same &mdash; no walkthroughs, no memorised paths. Explore, fight, and find the
+      boss waiting at the deepest level.
+    </p>
+
+    <h5 class="mt-3">Dungeon Types</h5>
+    <ul>
+      <li><strong>Instance dungeons</strong> &mdash; a private or group dungeon with a boss
+        encounter at the end. Defeat the boss to complete the run.</li>
+      <li><strong>Passage dungeons</strong> &mdash; procedurally generated corridors that
+        connect two locations in the world. Navigate through to reach the other side.</li>
+    </ul>
+
+    <h5 class="mt-3">Instance Modes</h5>
+    <ul>
+      <li><strong>Solo</strong> &mdash; a private instance just for you</li>
+      <li><strong>Group</strong> &mdash; shared with your party (leader + followers)</li>
+      <li><strong>Shared</strong> &mdash; one instance per entrance, anyone can enter</li>
+    </ul>
+
+    <p>
+      Instances have a <strong>lifetime</strong> (typically 2 hours). After that, the dungeon
+      collapses.
+    </p>
+  </div>
+</div>
+
+{# ── Quests ── #}
+<div class="card mb-4" id="quests">
+  <div class="card-body">
+    <h2 class="card-title">Quests</h2>
+    <hr/>
+    <p>
+      Quests are picked up from NPCs throughout the world. They range from simple fetch tasks
+      to multi-step adventures with prerequisites.
+    </p>
+
+    <h5 class="mt-3">Quest Commands</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Command</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>quests</code></td><td>List your active and completed quests</td></tr>
+        <tr><td><code>quests &lt;name&gt;</code></td><td>View details and progress for a specific quest</td></tr>
+        <tr><td><code>quest</code></td><td>While at a quest-giving NPC, see their available quest</td></tr>
+        <tr><td><code>quest accept</code></td><td>Accept the quest from the NPC you're speaking to</td></tr>
+        <tr><td><code>quest abandon</code></td><td>Abandon the quest from the NPC you're speaking to</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Quest Types</h5>
+    <ul>
+      <li><strong>Guild Initiation</strong> &mdash; one per starting class, introduces you to your role</li>
+      <li><strong>NPC Quests</strong> &mdash; tasks from named NPCs (collect resources, explore areas, clear dungeons)</li>
+      <li><strong>Repeatable Quests</strong> &mdash; can be re-accepted after completion for ongoing rewards</li>
+    </ul>
+    <p>
+      Quest rewards include XP, gold, and sometimes unique items or access to new areas.
+    </p>
+  </div>
+</div>
+
+{# ── Groups & Communication ── #}
+<div class="card mb-4" id="groups">
+  <div class="card-body">
+    <h2 class="card-title">Groups &amp; Communication</h2>
+    <hr/>
+
+    <h5>Forming a Group</h5>
+    <p>
+      Groups form through a follow chain. Use <code>follow &lt;character&gt;</code> to join
+      someone's group. The person at the top of the chain is the leader. When the leader moves,
+      all followers in the same room move with them automatically.
+    </p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Command</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>follow &lt;character&gt;</code></td><td>Follow a character (join their group)</td></tr>
+        <tr><td><code>unfollow</code></td><td>Stop following (leave the group)</td></tr>
+        <tr><td><code>nofollow</code></td><td>Toggle whether others can follow you</td></tr>
+        <tr><td><code>group</code></td><td>List all members in your group</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Communication</h5>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Command</th><th>Range</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>say &lt;message&gt;</code></td><td>Current room</td><td>Language-aware &mdash; listeners who don't know the language hear gibberish</td></tr>
+        <tr><td><code>shout &lt;message&gt;</code></td><td>Current room + adjacent rooms</td><td>Muffled in adjacent rooms with direction hint</td></tr>
+        <tr><td><code>whisper &lt;target&gt; &lt;message&gt;</code></td><td>Private</td><td>Only the target hears it</td></tr>
+        <tr><td><code>pose &lt;action&gt;</code></td><td>Current room</td><td>Emote an action (e.g. <code>:waves</code>)</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Languages</h5>
+    <p>
+      Characters know <strong>Common</strong> plus any racial languages. You can speak in a
+      specific language with <code>say/&lt;language&gt; &lt;message&gt;</code> (e.g.
+      <code>say/dwarven Hello friend</code>). Listeners who don't know the language hear
+      garbled text with language-specific syllables.
+    </p>
+    <p>
+      Available languages: Common, Dwarven, Elfish, Halfling, Celestial, Kobold, Goblin, Dragon.
+    </p>
+
+    <h5 class="mt-3">Socials</h5>
+    <p>
+      50 social commands for roleplay expression: <code>bow</code>, <code>wave</code>,
+      <code>laugh</code>, <code>hug</code>, <code>shrug</code>, <code>nod</code>, and many
+      more. Type <code>socials</code> for the full list.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,162 @@
+"""
+Tests for the HungerService script — periodic hunger decrement.
+
+Verifies hunger level decrement, free pass tick, starving floor,
+and skip logic for characters without valid hunger levels.
+
+evennia test --settings settings tests.typeclass_tests.test_hunger_service
+"""
+
+from unittest.mock import patch, MagicMock
+
+from evennia.utils.test_resources import EvenniaCommandTest
+
+from enums.hunger_level import HungerLevel
+from typeclasses.scripts.hunger_service import HungerService
+
+
+WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+
+class HungerServiceTestBase(EvenniaCommandTest):
+    """Base class providing a character for hunger service tests."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        # Create an unbound instance — don't call at_script_creation
+        # (it tries to save to DB). We only test at_repeat() logic.
+        self.service = HungerService.__new__(HungerService)
+
+    def _run_tick(self, characters):
+        """Run one hunger tick with the given character list.
+        Patches has_account to True for test characters (no real sessions)."""
+        with patch("typeclasses.scripts.hunger_service.ObjectDB") as mock_db, \
+             patch.object(type(self.char1), "has_account",
+                          new_callable=lambda: property(lambda s: True)):
+            mock_db.objects.filter.return_value = characters
+            self.service.at_repeat()
+
+
+class TestHungerDecrement(HungerServiceTestBase):
+    """Test hunger level decrement on at_repeat()."""
+
+    def test_satisfied_to_peckish(self):
+        """SATISFIED should decrement to PECKISH."""
+        self.char1.hunger_level = HungerLevel.SATISFIED
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.PECKISH)
+
+    def test_peckish_to_hungry(self):
+        """PECKISH should decrement to HUNGRY."""
+        self.char1.hunger_level = HungerLevel.PECKISH
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.HUNGRY)
+
+    def test_hungry_to_famished(self):
+        """HUNGRY should decrement to FAMISHED."""
+        self.char1.hunger_level = HungerLevel.HUNGRY
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.FAMISHED)
+
+    def test_famished_to_starving(self):
+        """FAMISHED should decrement to STARVING."""
+        self.char1.hunger_level = HungerLevel.FAMISHED
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.STARVING)
+
+    def test_full_progression(self):
+        """Full decrement chain: FULL → SATISFIED → ... → STARVING."""
+        self.char1.hunger_level = HungerLevel.FULL
+        self.char1.hunger_free_pass_tick = False
+
+        expected = [
+            HungerLevel.SATISFIED,
+            HungerLevel.PECKISH,
+            HungerLevel.HUNGRY,
+            HungerLevel.FAMISHED,
+            HungerLevel.STARVING,
+        ]
+        for expected_level in expected:
+            self._run_tick([self.char1])
+            self.assertEqual(self.char1.hunger_level, expected_level)
+
+
+class TestHungerStarvingFloor(HungerServiceTestBase):
+    """Test that STARVING characters stay at STARVING."""
+
+    def test_starving_stays_starving(self):
+        """STARVING should not decrement further."""
+        self.char1.hunger_level = HungerLevel.STARVING
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.STARVING)
+
+    def test_starving_after_multiple_ticks(self):
+        """Multiple ticks at STARVING should not crash or change level."""
+        self.char1.hunger_level = HungerLevel.STARVING
+        for _ in range(3):
+            self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.STARVING)
+
+
+class TestHungerFreePass(HungerServiceTestBase):
+    """Test the free pass tick when character is FULL."""
+
+    def test_full_with_free_pass_stays_full(self):
+        """FULL with free_pass_tick=True should stay FULL (pass consumed)."""
+        self.char1.hunger_level = HungerLevel.FULL
+        self.char1.hunger_free_pass_tick = True
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.FULL)
+        self.assertFalse(self.char1.hunger_free_pass_tick)
+
+    def test_full_without_free_pass_decrements(self):
+        """FULL without free_pass_tick should decrement to SATISFIED."""
+        self.char1.hunger_level = HungerLevel.FULL
+        self.char1.hunger_free_pass_tick = False
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)
+
+    def test_free_pass_only_works_once(self):
+        """After free pass consumed, next tick should decrement."""
+        self.char1.hunger_level = HungerLevel.FULL
+        self.char1.hunger_free_pass_tick = True
+        # First tick: consumes pass, stays FULL
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.FULL)
+        # Second tick: no pass, decrements
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)
+
+
+class TestHungerSkipLogic(HungerServiceTestBase):
+    """Test that invalid characters are skipped."""
+
+    def test_skip_non_hunger_level(self):
+        """Characters with non-HungerLevel hunger_level should be skipped."""
+        self.char1.hunger_level = "not a hunger level"
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, "not a hunger level")
+
+    def test_skip_no_hunger_attr(self):
+        """Characters without hunger_level attribute should be skipped."""
+        obj = MagicMock(spec=["msg", "has_account"])
+        obj.has_account = True
+        self._run_tick([obj])
+        # No crash = success
+
+    def test_skip_unpuppeted_character(self):
+        """Unpuppeted characters (quit but account logged in) should be skipped."""
+        self.char1.hunger_level = HungerLevel.SATISFIED
+        with patch("typeclasses.scripts.hunger_service.ObjectDB") as mock_db, \
+             patch.object(type(self.char1), "has_account",
+                          new_callable=lambda: property(lambda s: False)):
+            mock_db.objects.filter.return_value = [self.char1]
+            self.service.at_repeat()
+        self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)

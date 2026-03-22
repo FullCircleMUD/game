@@ -1,0 +1,119 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Home{% endblock %}
+
+{% block content %}
+
+{# ── Hero ── #}
+<div class="card mb-4">
+  <div class="card-body text-center py-5">
+    <h1 class="card-title mb-2" style="font-size: 2.5rem;">Full Circle MUD</h1>
+    <p class="lead mb-1">A text-based world where the economy runs on chain and the loot is yours to keep.</p>
+    <p class="text-muted mb-4">Player-crafted items. On-chain assets on the XRPL. AI-driven NPCs that remember your name.</p>
+
+    {% if webclient_enabled %}
+    <a href="{% url 'webclient:index' %}" class="playbutton">Play in the Browser</a>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Pre-Alpha Notice ── #}
+<div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
+  <div class="card-body text-center py-4">
+    <h4 class="card-title" style="color: #DAA520;">Pre-Alpha &mdash; Adventure at Your Own Risk!</h4>
+    <p class="mb-2">
+      Full Circle MUD is in <strong>pre-alpha development</strong>. The game is currently running on
+      <strong>XRPL Testnet</strong> with the economy in test mode &mdash; testnet gold and items
+      have <strong>no monetary value</strong> and cannot be transferred to the mainnet economy.
+      We'll move to mainnet and the economy will go live when the game is ready for beta release.
+      You're welcome to test the import and export of NFTs and game tokens to your testnet wallet
+      and let us know if you can see ways to improve the experience.
+    </p>
+    <p class="mb-0">
+      We'll do our best to let early adventurers keep what they earn once we go live, but during
+      the pre-alpha and alpha phases we reserve the right to rebalance, wipe, or change anything
+      in the game as development requires. Think of it as scouting ahead &mdash; the real treasure
+      is the stories you'll have when the world opens for good.
+    </p>
+  </div>
+</div>
+
+{# ── Feature Cards ── #}
+<div class="row mb-4">
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Player Economy</h5>
+        <p class="card-text">
+          If a shopkeeper sells it, a player harvested or crafted it. Farmers, miners,
+          smiths, alchemists &mdash; every link in the supply chain is a real player.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Own Your Loot</h5>
+        <p class="card-text">
+          Items are NFTs. Resources are fungible tokens. Gold is an issued currency on the XRPL.
+          Export anything to your own wallet whenever you want. They're yours.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Living NPCs</h5>
+        <p class="card-text">
+          AI-driven mobs remember past fights and adapt. Build a relationship with a boss
+          &mdash; or watch it learn to counter your tactics.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">Never Solved</h5>
+        <p class="card-text">
+          Procedurally generated dungeons mean you explore fresh every time.
+          No walkthroughs. No memorised paths. Every run is real.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── What Kind of Game ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6 mb-3 mb-md-0">
+        <h5>Classic MUD, Modern Ambition</h5>
+        <p>
+          Eight classes. Twenty-four weapon types with unique mastery progressions. Six schools
+          of magic where spells gain new abilities &mdash; not just bigger numbers &mdash; as you
+          advance. Crafting chains from raw ore to enchanted weapons. This is a deep, text-driven
+          game in the tradition of CircleMUD and DikuMUD.
+        </p>
+        <a href="{% url 'vision' %}">Read the vision &rarr;</a>
+      </div>
+      <div class="col-md-6">
+        <h5>On-Chain Economy</h5>
+        <p>
+          NPC shop prices are driven by on-ledger AMMs &mdash; supply and demand, not scripts.
+          Every asset you earn in-game is a real on-chain token you can export to your own
+          wallet on the XRP Ledger and trade freely.
+        </p>
+        <a href="{% url 'about' %}">How it works &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

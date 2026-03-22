@@ -1,0 +1,48 @@
+<h1 class="card-title">Welcome to Full Circle MUD!</h1>
+
+<hr/>
+
+<p class="lead">Eve Online meets Ultima Online, but the gold is real and the economy is on chain.</p>
+
+<p>
+    A text-based multiplayer online game with real blockchain-based item ownership.
+</p>
+
+{% if webclient_enabled %}
+
+<p><a href="{% url 'webclient:index' %}" class="playbutton">Play in the browser!</a></p>
+
+{% endif %}
+{% if telnet_enabled %}
+<p>
+    Telnet: <strong>{{ server_hostname }}</strong>, port
+    {% for port in telnet_ports %}
+    {% if not forloop.first and forloop.last %} or
+    {% elif forloop.counter != 1 %},
+    {% endif %}
+    <strong>{{ port }}</strong>
+    {% endfor %}
+</p>
+{% endif %}
+{% if telnet_ssl_enabled %}
+<p>
+    Telnet (SSL): <strong>{{ server_hostname }}</strong>, port
+    {% for port in telnet_ssl_ports %}
+    {% if not forloop.first and forloop.last %} or
+    {% elif forloop.counter != 1 %},
+    {% endif %}
+    <strong>{{ port }}</strong>
+    {% endfor %}
+</p>
+{% endif %}
+{% if ssh_enabled %}
+<p>
+    SSH: <strong>{{ server_hostname }}</strong>, port
+    {% for port in ssh_ports %}
+    {% if not forloop.first and forloop.last %} or
+    {% elif forloop.counter != 1 %},
+    {% endif %}
+    <strong>{{ port }}</strong>
+    {% endfor %}
+</p>
+{% endif %}

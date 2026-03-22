@@ -1,0 +1,28 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.aggressive_mob.AggressiveMob",
+        "key": "a sewer rat",
+        "area_tag": "sewer_rats",
+        "target": 10,
+        "max_per_room": 2,
+        "respawn_seconds": 90,
+        "desc": "A fat, mangy rat the size of a small dog crouches in the filth. Its matted fur is slick with sewer water and its yellowed teeth are bared in a constant snarl.",
+        "attrs": {
+            "hp": 8,
+            "hp_max": 8,
+            "strength": 6,
+            "dexterity": 14,
+            "constitution": 10,
+            "base_armor_class": 10,
+            "armor_class": 10,
+            "level": 1,
+            "damage_dice": "1d3",
+            "attack_message": "bites",
+            "attack_delay_min": 2,
+            "attack_delay_max": 5,
+            "is_aggressive_to_players": true,
+            "size": "small",
+            "ai_tick_interval": 6
+        }
+    }
+]

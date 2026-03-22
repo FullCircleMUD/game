@@ -1,0 +1,13 @@
+from world.prototypes.wearables.head import *     # noqa: F401,F403
+from world.prototypes.wearables.face import *     # noqa: F401,F403
+from world.prototypes.wearables.ear import *      # noqa: F401,F403
+from world.prototypes.wearables.neck import *     # noqa: F401,F403
+from world.prototypes.wearables.cloak import *    # noqa: F401,F403
+from world.prototypes.wearables.body import *     # noqa: F401,F403
+from world.prototypes.wearables.hands import *    # noqa: F401,F403
+from world.prototypes.wearables.wrist import *    # noqa: F401,F403
+from world.prototypes.wearables.finger import *   # noqa: F401,F403
+from world.prototypes.wearables.waist import *    # noqa: F401,F403
+from world.prototypes.wearables.legs import *     # noqa: F401,F403
+from world.prototypes.wearables.feet import *     # noqa: F401,F403
+from world.prototypes.wearables.bridle import *   # noqa: F401,F403
