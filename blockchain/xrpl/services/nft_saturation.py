@@ -301,9 +301,13 @@ class NFTSaturationService:
     def get_nft_circulation_counts():
         """Count NFTs in circulation per item type.
 
-        Counts NFTs in CHARACTER, ACCOUNT, or SPAWNED locations,
-        excluding scroll and recipe types (those are tracked separately
-        via knowledge saturation).
+        Counts NFTs in all player-owned locations: CHARACTER, ACCOUNT,
+        SPAWNED, ONCHAIN (private wallet), and AUCTION (listed for sale).
+        Only RESERVE is excluded — those items are held by the game system,
+        not by any player.
+
+        Scroll and recipe types are excluded here as they are tracked
+        separately via knowledge saturation.
 
         Returns:
             dict mapping item_type name to circulation count.
@@ -317,6 +321,7 @@ class NFTSaturationService:
                     NFTGameState.LOCATION_ACCOUNT,
                     NFTGameState.LOCATION_SPAWNED,
                     NFTGameState.LOCATION_ONCHAIN,
+                    NFTGameState.LOCATION_AUCTION,
                 ],
             )
             .exclude(item_type__typeclass__in=excluded_typeclasses)

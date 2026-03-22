@@ -296,6 +296,13 @@ class TestGetNftCirculationCounts(EvenniaTest):
         counts = NFTSaturationService.get_nft_circulation_counts()
         self.assertEqual(counts["Test Sword ZZZ"], 1)
 
+    def test_nfts_in_auction_counted(self):
+        sword_type = _create_item_type("Test Sword ZZZ")
+        _create_nft(sword_type, NFTGameState.LOCATION_AUCTION, "token_205b")
+
+        counts = NFTSaturationService.get_nft_circulation_counts()
+        self.assertEqual(counts["Test Sword ZZZ"], 1)
+
     def test_scroll_nfts_excluded(self):
         """Scroll NFTs are tracked via knowledge saturation, not circulation."""
         scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
