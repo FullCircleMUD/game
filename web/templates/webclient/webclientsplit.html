@@ -1,0 +1,93 @@
+{% extends "webclient/base.html" %}
+{% load static %}
+
+{% block client %}
+
+<!-- Basic toolbar -->
+<div id="toolbar"></div>
+
+<!-- Outer flex container: main area + side panel -->
+<div id="split-container">
+
+  <!-- Left: GoldenLayout area (main text + input) -->
+  <div id="split-main">
+    <div id="main" class="split split-vertical" data-role-default>
+      <div id="main-sub" class="split-sub">
+        <div id="messagewindow"></div>
+      </div>
+    </div>
+    <!-- Input pane -->
+    <div id="input" class="split split-vertical" data-role-input data-update-append>
+      <div id="inputform" class="wrapper">
+        <div id="prompt" class="prompt"></div>
+        <div id="inputcontrol" class="input-group">
+          <textarea id="inputfield" type="text" class="form-control"></textarea>
+          <span class="input-group-btn">
+            <button class="btn btn-large btn-outline-primary" id="inputsend" type="button" value="">&gt;</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Side panel -->
+  <div id="side-panel">
+    <div id="vitals-panel">
+      <h3>Vitals</h3>
+      <div id="vitals-level"></div>
+
+      <div class="vital-bar" id="vital-hp">
+        <label>HP</label>
+        <div class="bar-container">
+          <div class="bar-fill bar-hp" style="width: 100%"></div>
+        </div>
+        <span class="bar-text">--/--</span>
+      </div>
+
+      <div class="vital-bar" id="vital-mana">
+        <label>MP</label>
+        <div class="bar-container">
+          <div class="bar-fill bar-mana" style="width: 100%"></div>
+        </div>
+        <span class="bar-text">--/--</span>
+      </div>
+
+      <div class="vital-bar" id="vital-move">
+        <label>MV</label>
+        <div class="bar-container">
+          <div class="bar-fill bar-move" style="width: 100%"></div>
+        </div>
+        <span class="bar-text">--/--</span>
+      </div>
+    </div>
+    <!-- Future panels (map, inventory, etc.) go here -->
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block guilib_import %}
+    <script src={% static "webclient/js/webclient_gui.js" %} language="javascript" type="text/javascript" charset="utf-8"></script>
+    <script src={% static "webclient/js/plugins/goldenlayout_default_config.js" %} type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/clienthelp.js" %} language="javascript" type="text/javascript" charset="utf-8"></script>
+    <script src={% static "webclient/js/plugins/popups.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/options2.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/iframe.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/message_routing.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/history.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/font.js" %} language="javascript" type="text/javascript" charset="utf-8"></script>
+    <script src={% static "webclient/js/plugins/oob.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/notifications.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/goldenlayout.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/default_in.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/vitals_panel.js" %} type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/default_out.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/multimedia.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/html.js" %} language="javascript" type="text/javascript"></script>
+    <script src={% static "webclient/js/plugins/text2html.js" %} language="javascript" type="text/javascript"></script>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" type="text/css" href={% static "webclient/css/vitals_panel.css" %}>
+{% endblock %}

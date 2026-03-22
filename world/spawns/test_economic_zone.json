@@ -1,0 +1,29 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
+        "key": "a rabbit",
+        "area_tag": "deep_woods",
+        "target": 3,
+        "max_per_room": 0,
+        "respawn_seconds": 60,
+        "desc": "A small brown rabbit with long ears and a twitching nose. It freezes when it notices you, ready to bolt."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.wolf.Wolf",
+        "key": "a wolf",
+        "area_tag": "deep_woods",
+        "target": 2,
+        "max_per_room": 1,
+        "respawn_seconds": 120,
+        "desc": "A grey wolf, lean and watchful. Its yellow eyes track your movements with predatory focus."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.dire_wolf.DireWolf",
+        "key": "a dire wolf",
+        "area_tag": "wolves_den",
+        "target": 1,
+        "max_per_room": 0,
+        "respawn_seconds": 300,
+        "desc": "A massive dire wolf, easily twice the size of its lesser kin. Scars crisscross its dark pelt and its eyes burn with primal menace. This is not a creature to be trifled with."
+    }
+]
