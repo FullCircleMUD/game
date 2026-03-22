@@ -1,0 +1,54 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Documentation{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h1 class="card-title">Documentation</h1>
+    <hr/>
+    <p class="lead">Game guides, mechanics, and technical documentation.</p>
+    {% if github_url %}
+    <p class="mb-0">Source code and issue tracker: <a href="{{ github_url }}" target="_blank" rel="noopener">{{ github_url }}</a></p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-4 mb-3">
+    <a href="{% url 'docs_gameplay' %}" class="text-decoration-none text-reset">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="card-title">Gameplay</h3>
+          <hr/>
+          <p>Character creation, combat, skills, spells, crafting, and world lore.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-4 mb-3">
+    <a href="{% url 'docs_blockchain' %}" class="text-decoration-none text-reset">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="card-title">Blockchain</h3>
+          <hr/>
+          <p>On-chain assets, wallet setup, importing and exporting items, and the FCM economy.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-md-4 mb-3">
+    <a href="{% url 'docs_client_api' %}" class="text-decoration-none text-reset">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="card-title">Client API</h3>
+          <hr/>
+          <p>WebSocket protocol, message formats, and building custom game clients.</p>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+{% endblock %}

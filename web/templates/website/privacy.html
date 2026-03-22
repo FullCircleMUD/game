@@ -1,0 +1,237 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Privacy Policy{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h1 class="card-title">Privacy Policy</h1>
+    <hr/>
+    <p class="text-muted small">
+      <strong>Status: Draft — pending legal review before mainnet launch.</strong>
+      This policy describes how Full Circle MUD collects, uses, and retains data
+      about players. By creating an account you agree to the practices described here.
+    </p>
+  </div>
+</div>
+
+{# ── What We Collect ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">What We Collect</h2>
+    <hr/>
+    <p>We collect the following categories of data:</p>
+    <ol type="a">
+      <li>
+        <strong>Account data</strong> — your chosen username, the XRPL wallet
+        address you authenticated with, account creation date, and character
+        names associated with your account.
+      </li>
+      <li>
+        <strong>Jurisdictional records</strong> — a hashed representation of your
+        IP address (SHA-256 one-way hash; the raw IP address is never stored) and
+        the detected country code for each login session. These records are created
+        automatically at login for regulatory compliance purposes.
+      </li>
+      <li>
+        <strong>Game activity</strong> — session start and end times, in-game
+        economic activity (gold and resource transfers, crafting, trading), and
+        quest and progression data.
+      </li>
+      <li>
+        <strong>Redemption and identity data</strong> (eligible jurisdictions only,
+        at mainnet) — KYC/AML verification data required to process gold redemptions.
+        This data is collected and processed by our third-party verification provider
+        and is subject to their privacy policy as well as ours.
+      </li>
+    </ol>
+    <p>
+      We do not collect payment card data, passwords (authentication uses
+      cryptographic wallet signatures), or sensitive personal information beyond
+      what is listed above.
+    </p>
+  </div>
+</div>
+
+{# ── IP Address Hashing ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">IP Address Hashing</h2>
+    <hr/>
+    <p>
+      Full Circle MUD does not store raw IP addresses. When your IP address is
+      used for geo-detection, it is immediately hashed using SHA-256 (a one-way
+      cryptographic function) and only the hash is retained. The hash allows us
+      to demonstrate that geo-detection was performed on a given session without
+      storing any data that could be used to identify your network location after
+      the fact.
+    </p>
+    <p>
+      The detected country code (a two-letter ISO code such as "PY" or "US") is
+      stored alongside the hash as the operative compliance record.
+    </p>
+  </div>
+</div>
+
+{# ── How We Use Data ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">How We Use Data</h2>
+    <hr/>
+    <p>We use collected data for the following purposes:</p>
+    <ol type="a">
+      <li>
+        <strong>Regulatory compliance</strong> — geo-detection records and
+        jurisdictional data are maintained as documentation that Full Circle MUD
+        has made reasonable efforts to restrict the gold redemption feature to
+        eligible jurisdictions.
+      </li>
+      <li>
+        <strong>Game operation</strong> — session and activity data is used to
+        run the game, calculate the in-game economy, and maintain account state.
+      </li>
+      <li>
+        <strong>Transparency reporting</strong> — aggregated, anonymised economic
+        data is published in monthly financial reports. No individual player data
+        is included in these reports.
+      </li>
+      <li>
+        <strong>Fraud and abuse prevention</strong> — account and session data
+        may be used to investigate suspected violations of the
+        <a href="{% url 'terms' %}">Terms of Service</a>, including attempted
+        circumvention of jurisdictional restrictions.
+      </li>
+    </ol>
+    <p>We do not sell personal data to third parties.</p>
+  </div>
+</div>
+
+{# ── Retention Periods ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Retention Periods</h2>
+    <hr/>
+    <p>We retain different categories of data for different periods:</p>
+    <table class="table table-sm table-dark">
+      <thead>
+        <tr>
+          <th>Data Category</th>
+          <th>Retention Period</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Account data (username, wallet address)</td>
+          <td>Duration of account + 3 years</td>
+          <td>Account management, dispute resolution</td>
+        </tr>
+        <tr>
+          <td>Jurisdictional records (IP hash, country code, page variant served)</td>
+          <td>3 years from each session</td>
+          <td>Regulatory compliance documentation</td>
+        </tr>
+        <tr>
+          <td>Login session records</td>
+          <td>3 years</td>
+          <td>Regulatory compliance, fraud prevention</td>
+        </tr>
+        <tr>
+          <td>In-game economic activity logs</td>
+          <td>3 years</td>
+          <td>Economy audit trail, dispute resolution</td>
+        </tr>
+        <tr>
+          <td>Redemption records and KYC/AML data</td>
+          <td>5 years from redemption date</td>
+          <td>Anti-money-laundering regulatory requirements</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      After the applicable retention period, data is deleted or anonymised such
+      that it can no longer be associated with an individual account.
+    </p>
+  </div>
+</div>
+
+{# ── Your Rights ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Your Rights</h2>
+    <hr/>
+    <p>
+      Depending on where you are located, you may have rights regarding your
+      personal data. Because our player base consists of users in jurisdictions
+      outside the EEA/UK where GDPR applies, GDPR does not govern this policy.
+      However, we respect the following rights for all players:
+    </p>
+    <ol type="a">
+      <li>
+        <strong>Access</strong> — you may request a summary of the personal data
+        we hold about your account.
+      </li>
+      <li>
+        <strong>Correction</strong> — if your account data is inaccurate, you may
+        request a correction.
+      </li>
+      <li>
+        <strong>Deletion</strong> — you may request deletion of your account.
+        Note that certain data required for regulatory compliance (jurisdictional
+        records, redemption records) cannot be deleted before the end of the
+        applicable retention period.
+      </li>
+      <li>
+        <strong>Objection to processing</strong> — you may object to processing
+        of your data for purposes other than those listed in this policy.
+      </li>
+    </ol>
+    <p>
+      To exercise any of these rights, contact us at
+      <a href="mailto:compliance@fcmud.world">compliance@fcmud.world</a>.
+      We will respond within 30 days.
+    </p>
+  </div>
+</div>
+
+{# ── Third Parties ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Third Parties</h2>
+    <hr/>
+    <p>We share data with the following categories of third parties:</p>
+    <ol type="a">
+      <li>
+        <strong>Infrastructure providers</strong> — hosting and database services
+        that store game data on our behalf, under data processing agreements.
+      </li>
+      <li>
+        <strong>KYC/AML verification providers</strong> (eligible jurisdictions
+        only) — identity verification services used to process redemption requests.
+        These providers have their own privacy policies.
+      </li>
+      <li>
+        <strong>XRPL network</strong> — on-chain transactions (wallet addresses,
+        token transfers) are recorded on the XRP Ledger, which is a public
+        blockchain. Wallet addresses and transaction details are publicly visible.
+      </li>
+    </ol>
+    <p>We do not share data with advertisers or data brokers.</p>
+  </div>
+</div>
+
+{# ── Contact ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Contact</h2>
+    <hr/>
+    <p>
+      Questions about this Privacy Policy, data access requests, correction
+      requests, or deletion requests should be directed to
+      <a href="mailto:compliance@fcmud.world">compliance@fcmud.world</a>.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

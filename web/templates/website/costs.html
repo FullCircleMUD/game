@@ -1,0 +1,226 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Costs{% endblock %}
+
+{% block content %}
+
+{# ── Hero ── #}
+<div class="card mb-4">
+  <div class="card-body text-center py-5">
+    <h1 class="card-title mb-3">Costs &amp; Transparency</h1>
+    {% if geo_variant == 'B' %}
+    <p class="lead mb-1">No loot boxes. No pay-to-win. Just a flat subscription that backs a real economy.</p>
+    <p class="text-muted">Every dollar is accounted for. Here's exactly where your money goes.</p>
+    {% else %}
+    <p class="lead mb-1">A subscription is required to play Full Circle MUD.</p>
+    <p class="text-muted">No loot boxes. No pay-to-win. No microtransactions. Just a flat monthly fee.</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Why a Subscription ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Why a Subscription?</h2>
+    <hr/>
+    <p>
+      Most games monetise through microtransactions, loot boxes, or selling power. We don't.
+      Full Circle MUD uses a simple monthly subscription because it's the only model that lets
+      us build the game we want to build &mdash; sustainably, without selling power or player data.
+    </p>
+    {% if geo_variant == 'B' %}
+    <p>
+      Your subscription is what creates the gold supply. When you pay, the bulk of that money
+      is converted to RLUSD stablecoin and held in reserve &mdash; meaning every gold coin in the
+      game is redeemable for real currency. No inflation tricks, no unbacked token printing.
+      The economy is real because your subscription makes it real.
+    </p>
+    {% else %}
+    <p>
+      Your subscription is what sustains the game. A flat monthly fee keeps the economics
+      simple &mdash; no microtransactions, no loot boxes, no pay-to-win. The game stands on
+      its own merits.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── What You Get (Variant A only) ── #}
+{% if geo_variant != 'B' %}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">What Does a Subscription Get You?</h2>
+    <hr/>
+    <p>Your subscription gives you full access to the game:</p>
+    <ul>
+      <li>Unlimited play &mdash; log in any time, on any character</li>
+      <li>Full access to the crafting economy, dungeons, and world content</li>
+      <li>AI-driven NPCs that remember you and react to your reputation</li>
+      <li>Blockchain-backed item ownership &mdash; your gear is yours, stored on XRPL</li>
+      <li>All future content updates included at no extra cost</li>
+    </ul>
+    <p>
+      There is nothing else to buy. No premium currency, no battle passes,
+      no cosmetic shop. One subscription, the whole game.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{# ── Pricing Tiers ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Pricing</h2>
+    <hr/>
+
+    <div class="row mt-3">
+      <div class="col-md-6 mb-3">
+        <h4 style="color: #DAA520;">Alpha: $2/month</h4>
+        <p>
+          While the game is in alpha and the economy is running on testnet,
+          subscriptions are just <strong>$2 per month</strong>. This covers our running costs
+          and helps fund ongoing development.
+        </p>
+        {% if geo_variant == 'B' %}
+        <p>
+          You're an early adventurer &mdash; exploring, testing, and shaping the world before
+          the economy goes live. We think that's worth recognising with a minimal entry price.
+        </p>
+        {% endif %}
+      </div>
+      <div class="col-md-6 mb-3">
+        <h4 style="color: var(--fcm-green);">Post Go-Live: $20/month</h4>
+        {% if geo_variant == 'B' %}
+        <p>
+          When the game goes live and the economy moves to XRPL mainnet, the subscription moves
+          to <strong>$20 per month</strong>. At that point your subscription directly funds the
+          backed economy:
+        </p>
+        <ul>
+          <li><strong>$18.00 (90%)</strong> &mdash; converted to RLUSD, backing fully redeemable game gold</li>
+          <li><strong>$2.00 (10%)</strong> &mdash; hosting, LLM services, infrastructure, and development</li>
+        </ul>
+        {% else %}
+        <p>
+          When the game goes live and the economy moves to XRPL mainnet, the subscription moves
+          to <strong>$20 per month</strong>. This covers hosting, infrastructure, LLM services,
+          and ongoing development.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if geo_variant == 'B' %}
+
+{# ── The Circular Economy ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">The Circular Economy</h2>
+    <hr/>
+    <p>
+      Gold doesn't just flow in &mdash; it circulates. When you process resources at a mill,
+      craft items at a forge, or pay fees at an NPC shop, you're feeding the game's gold sinks.
+      These sinks exist to combat inflation and keep the economy healthy. Here's where that
+      gold goes:
+    </p>
+    <ul>
+      <li><strong>90%</strong> is recirculated back into the game &mdash; spawned on mobs, placed
+        in treasure chests, and seeded into dungeons for players to earn again</li>
+      <li><strong>10%</strong> goes toward running costs &mdash; hosting, LLM API services, and
+        further development</li>
+    </ul>
+    <p>
+      The result is a living economy where value flows in a circle: subscriptions create gold,
+      players earn and spend it, sinks recirculate it, and the cycle continues. The gold supply
+      stays stable because every coin is backed by reserves and actively circulating
+      through gameplay.
+    </p>
+  </div>
+</div>
+
+{# ── Reserve Management ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Reserve Management</h2>
+    <hr/>
+    <p>
+      Every gold coin is redeemable for RLUSD, fully backed 1:1 by RLUSD and non-price-volatile
+      yield-producing reserves like tokenised T-Bills and money market funds. We manage
+      those reserves conservatively to ensure players can always redeem their gold:
+    </p>
+    <ul>
+      <li><strong>25% in liquid RLUSD</strong> &mdash; available immediately for player redemptions,
+        no waiting period</li>
+      <li><strong>75% in liquid, price-stable, yield-producing assets</strong> &mdash; e.g. T-Bills,
+        RLUSD lending pools, and similar instruments with no price volatility risk</li>
+    </ul>
+    <p>
+      Yield generated by reserve assets is general operating revenue of the FullCircleMUD entity.
+      It is not distributed to gold holders and does not accrue based on gold holdings. Our aim is
+      to reinvest the majority of profits back into improving the game &mdash; which may include
+      increasing reserve collateral to support a larger earnable gold supply, funding development,
+      or expanding infrastructure. Reinvestment decisions are made at our discretion and are
+      documented in our monthly transparency reports.
+    </p>
+  </div>
+</div>
+
+{% endif %}
+
+{# ── Our Running Costs ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Our Running Costs</h2>
+    <hr/>
+    <p>
+      We believe in full transparency. Here's what it costs to keep Full Circle MUD running:
+    </p>
+
+    <h5 class="mt-3">Hosting &amp; Infrastructure</h5>
+    <p>
+      Server hosting, database management, XRPL node access, and the infrastructure that keeps
+      the game world running 24/7.
+    </p>
+
+    <h5 class="mt-3">LLM Services</h5>
+    <p>
+      Our AI-driven NPCs aren't scripted chatbots &mdash; every conversation with an NPC is a real
+      API call to a large language model. When a shopkeeper remembers your name, when a quest giver
+      reacts to your reputation, when a boss taunts you mid-fight &mdash; that's real compute.
+      These API costs scale with the number of active players and the depth of NPC interactions.
+    </p>
+
+    <h5 class="mt-3">Development</h5>
+    <p>
+      New features, content updates, bug fixes, and the ongoing work of building a world worth
+      living in. Full Circle MUD is an independent project built with care, not a venture-funded
+      sprint to an exit.
+    </p>
+
+    <h5 class="mt-3">Monthly Financial Reports</h5>
+    <p>
+      Once the game economy goes live at beta, we'll publish monthly financial reports covering
+      reserve balances, gold issuance and redemptions, game cashflow, and operating expenses.
+      Full transparency &mdash; you'll always know exactly where the money is and how it's being used.
+    </p>
+    {% if github_url %}
+    <p class="mb-0">Reports will be published at: <a href="{{ github_url }}" target="_blank" rel="noopener">{{ github_url }}</a></p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Coming Soon ── #}
+<div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
+  <div class="card-body text-center py-4">
+    <h4 class="card-title" style="color: #DAA520;">Subscriptions Coming Soon</h4>
+    <p class="mb-0">
+      We're currently looking for a blockchain-friendly payment provider to handle subscriptions.
+      When we find the right fit, we'll enable the $2/month alpha subscription here.
+      In the meantime, the game is free to explore during pre-alpha development.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

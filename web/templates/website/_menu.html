@@ -1,0 +1,48 @@
+{% comment %}
+FCM custom menu — stripped all Evennia default links pending rework.
+Only Home and Admin (staff-only) remain.
+{% endcomment %}
+{% load static %}
+<nav class="navbar navbar-dark font-weight-bold navbar-expand-lg">
+  <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#menu-content"
+    aria-controls="menu-content" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <a class="navbar-brand" href="/">
+    <div class="media">
+      <img class="d-flex navbar-brand-logo mx-3" src="{% static "website/images/evennia_logo.png" %}"
+        alt="{{game_name}} logo" />
+      <div class="media-body">
+        {{ game_name }}<br />
+        <small>{{game_slogan}}</small>
+      </div>
+    </div>
+  </a>
+
+  <div class="collapse navbar-collapse" id="menu-content">
+    <ul class="navbar-nav ml-auto">
+      {% block navbar_left %}
+      <li>
+        <a class="nav-link" href="{% url 'index' %}">Home</a>
+      </li>
+      <li><a class="nav-link" href="{% url 'vision' %}">Vision</a></li>
+      <li><a class="nav-link" href="{% url 'about' %}">About</a></li>
+      <li><a class="nav-link" href="{% url 'costs' %}">Costs</a></li>
+      {% if geo_variant == 'B' %}
+      <li><a class="nav-link" href="{% url 'redemption' %}">Redemption</a></li>
+      {% endif %}
+      <li><a class="nav-link" href="{% url 'markets' %}">Markets</a></li>
+      <li><a class="nav-link" href="{% url 'docs' %}">Docs</a></li>
+      {% if discord_url %}<li><a class="nav-link" href="{{ discord_url }}" target="_blank" rel="noopener">Discord</a></li>{% endif %}
+
+      {% if user.is_staff %}
+      <li><a class="nav-link" href="{% url 'admin:index' %}">Admin</a></li>
+      {% if rest_api_enabled %}
+      <li><a class="nav-link" href="/api">API</a></li>
+      {% endif %}
+      {% endif %}
+      {% endblock %}
+    </ul>
+  </div>
+</nav>

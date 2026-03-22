@@ -1,0 +1,162 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Terms of Service{% endblock %}
+
+{% block content %}
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h1 class="card-title">Terms of Service</h1>
+    <hr/>
+    <p class="text-muted small">
+      <strong>Status: Draft — pending legal review before mainnet launch.</strong>
+      These terms govern access to and use of Full Circle MUD. By creating an account
+      you agree to be bound by them.
+    </p>
+  </div>
+</div>
+
+{# ── Jurisdictional Restrictions ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Jurisdictional Restrictions</h2>
+    <hr/>
+    <p>
+      The gold redemption feature is offered exclusively to players accessing Full Circle MUD
+      from an eligible jurisdiction as determined by our geo-detection systems, and whose
+      account login history is consistent with access from an eligible jurisdiction as set out
+      in the <a href="{% url 'eligible_jurisdictions' %}">Eligible Jurisdictions List</a>.
+    </p>
+    <p>
+      Residents of the United States of America (including all US territories), all European
+      Economic Area member states, the United Kingdom, Switzerland, Canada, Japan, South Korea,
+      and any other jurisdiction in which Full Circle MUD's gold redemption feature would
+      constitute an unlicensed or regulated financial service, are not eligible for gold
+      redemption.
+    </p>
+    <p>By creating an account, players in restricted jurisdictions acknowledge and agree that:</p>
+    <ol type="a">
+      <li>
+        The gold redemption feature is not available to them and they will not attempt to
+        access it by any means including the use of virtual private networks or other
+        location-masking technologies;
+      </li>
+      <li>
+        Gold earned in-game by players in restricted jurisdictions represents in-game
+        progression only and does not constitute a financial instrument, payment instrument,
+        stablecoin, electronic money token, or enforceable claim against Full Circle MUD or
+        any related entity;
+      </li>
+      <li>
+        Full Circle MUD has not solicited, marketed, or offered any financial product to
+        players in restricted jurisdictions;
+      </li>
+      <li>
+        Any attempt to circumvent jurisdictional restrictions constitutes a material breach
+        of these Terms and may result in immediate account suspension and forfeiture of any
+        pending redemption requests.
+      </li>
+    </ol>
+  </div>
+</div>
+
+{# ── Location Determination ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Location Determination</h2>
+    <hr/>
+    <p>
+      Full Circle MUD determines user location automatically using IP geolocation technology
+      for regulatory compliance purposes. This determination is made at the network edge before
+      page content is rendered and cannot be modified through browser settings, language
+      preferences, or other client-side means.
+    </p>
+    <p>
+      Full Circle MUD records the detected jurisdiction for each login session. These records
+      are retained for a minimum of three years and constitute Full Circle MUD's documentation
+      of reasonable efforts to restrict the gold redemption feature to eligible jurisdictions.
+    </p>
+    <p>
+      Players who believe their location has been determined incorrectly may submit a documented
+      review request to <a href="mailto:compliance@fcmud.world">compliance@fcmud.world</a>.
+      Full Circle MUD cannot accommodate requests to change detected location without satisfactory
+      documentation, and no self-service location change mechanism is provided.
+    </p>
+  </div>
+</div>
+
+{# ── Prohibition on Circumvention ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Prohibition on Circumvention</h2>
+    <hr/>
+    <p>
+      Players are prohibited from using virtual private networks, proxy services, or any other
+      technology or method designed to misrepresent their physical location for the purpose of
+      accessing features unavailable in their actual jurisdiction. Such use constitutes:
+    </p>
+    <ol type="a">
+      <li>A material breach of these Terms of Service;</li>
+      <li>A misrepresentation made to Full Circle MUD's compliance systems; and</li>
+      <li>
+        Assumption by the player of all legal responsibility arising from any regulatory
+        non-compliance in their actual jurisdiction.
+      </li>
+    </ol>
+    <p>
+      Full Circle MUD accepts no liability for any loss, regulatory consequence, or legal
+      exposure arising from a player's misrepresentation of their physical location.
+    </p>
+  </div>
+</div>
+
+{# ── Nature of In-Game Gold ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Nature of In-Game Gold</h2>
+    <hr/>
+    <p>
+      For players in restricted jurisdictions, in-game gold represents in-game progression
+      earned through gameplay activity only. It does not constitute a financial instrument,
+      a claim on any reserve, or an entitlement to any monetary value. Full Circle MUD makes
+      no representation to restricted-jurisdiction players regarding the monetary value of
+      in-game gold and has not offered any financial product to such players.
+    </p>
+    <p>
+      For players in eligible jurisdictions, the nature of in-game gold, the reserve backing,
+      and the redemption mechanism are described on the
+      <a href="{% url 'costs' %}">Costs &amp; Transparency</a> and
+      <a href="{% url 'redemption' %}">Redemption</a> pages.
+    </p>
+  </div>
+</div>
+
+{# ── Alpha and Testing Phases ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Alpha and Testing Phases</h2>
+    <hr/>
+    <p>
+      During pre-alpha and alpha phases operating on XRPL testnet, all in-game gold and items
+      are test assets with no monetary value. Test phase assets are not transferable to the
+      mainnet economy and carry no entitlement to any reserve, redemption, or monetary value.
+      Players who participated in testnet phases have no claim arising from that participation
+      in respect of mainnet assets or the mainnet economy.
+    </p>
+  </div>
+</div>
+
+{# ── Contact ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Contact</h2>
+    <hr/>
+    <p>
+      Questions about these Terms, jurisdictional eligibility, or location review requests
+      should be directed to
+      <a href="mailto:compliance@fcmud.world">compliance@fcmud.world</a>.
+    </p>
+  </div>
+</div>
+
+{% endblock %}
