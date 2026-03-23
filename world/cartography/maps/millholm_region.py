@@ -30,13 +30,13 @@ _TEMPLATE = (
 )
 
 _POINT_CELLS = {
-    "millholm_town":    [(1, 11)],
-    "millholm_farms":   [(1, 2)],
-    "millholm_woods":   [(1, 20)],
-    "millholm_southern": [(3, 2)],
-    "deep_woods":        [(4, 19)],  # shared: faerie hollow + mine entrance
-    "millholm_sewers":  [(6, 4)],
-    "millholm_mine":    [(6, 20)],
+    "millholm_town":     {"pos": [(1, 11)], "poi": "town"},
+    "millholm_farms":    {"pos": [(1, 2)],  "poi": "farm"},
+    "millholm_woods":    {"pos": [(1, 20)], "poi": "woods"},
+    "millholm_southern": {"pos": [(3, 2)],  "poi": "district"},
+    "deep_woods":        {"pos": [(4, 19)], "poi": "unknown"},  # shared: faerie hollow + mine entrance
+    "millholm_sewers":   {"pos": [(6, 4)],  "poi": "tunnel"},
+    "millholm_mine":     {"pos": [(6, 20)], "poi": "mine"},
 }
 
 register_map({

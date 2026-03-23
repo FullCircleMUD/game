@@ -107,11 +107,30 @@ def _finish_survey(caller, targets, room_id):
         caller.msg("|yYou moved before finishing the survey.|n")
         return
 
-    from world.cartography.map_registry import get_map
+    from world.cartography.map_registry import get_map, get_map_keys_for_room
 
-    updated = []
+    # Add current room's points
     for map_nft, point_key in targets:
         map_nft.surveyed_points.add(point_key)
+
+    # Reveal adjacent rooms (one step in every direction)
+    map_nfts_by_key = {map_nft.map_key: map_nft for map_nft, _ in targets}
+    for exit_obj in caller.location.exits:
+        dest = exit_obj.destination
+        if not dest:
+            continue
+        for adj_map_key, adj_point_key in get_map_keys_for_room(dest):
+            map_nft = map_nfts_by_key.get(adj_map_key)
+            if map_nft:
+                map_nft.surveyed_points.add(adj_point_key)
+
+    # Persist and report
+    updated = []
+    seen_maps = set()
+    for map_nft, _ in targets:
+        if map_nft.map_key in seen_maps:
+            continue
+        seen_maps.add(map_nft.map_key)
         map_nft.db.surveyed_points = map_nft.surveyed_points  # persist
         map_def = get_map(map_nft.map_key)
         name = map_def["display_name"] if map_def else map_nft.map_key

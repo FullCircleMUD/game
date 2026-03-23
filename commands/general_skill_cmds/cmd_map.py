@@ -26,7 +26,7 @@ class CmdMap(Command):
     current completion percentage.
 
     With an argument, renders the named map — unexplored areas appear
-    as '░' so you must survey rooms to reveal them.
+    as blank space. Survey rooms to reveal them.
     """
 
     key = "map"
@@ -77,6 +77,9 @@ class CmdMap(Command):
             caller.msg("That map has no template data.")
             return
 
-        rendered = render_map(map_def, match.surveyed_points)
+        rendered, legend = render_map(map_def, match.surveyed_points)
         name = match.get_display_name(caller)
-        caller.msg(f"|w{name}|n\n{rendered}")
+        output = f"|w{name}|n\n{rendered}"
+        if legend:
+            output += f"\n|w{legend}|n"
+        caller.msg(output)

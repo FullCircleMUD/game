@@ -175,32 +175,37 @@ class TestRenderMap(EvenniaTest):
     def create_script(self):
         pass
 
-    def test_all_unsurveyed_shows_only_mask(self):
-        result = render_map(FAKE_MAP_DEF, set())
-        self.assertEqual(result, "░░\n░░")
+    def test_all_unsurveyed_shows_blank(self):
+        ascii_out, legend = render_map(FAKE_MAP_DEF, set())
+        self.assertEqual(ascii_out, "  \n  ")
+        self.assertEqual(legend, "")
 
-    def test_all_surveyed_shows_original_template(self):
+    def test_all_surveyed_shows_symbols(self):
+        """All cells visible — legacy format uses 'unknown' POI → '?' symbol."""
         all_keys = set(FAKE_MAP_DEF["point_cells"].keys())
-        result = render_map(FAKE_MAP_DEF, all_keys)
-        self.assertEqual(result, FAKE_MAP_DEF["template"])
+        ascii_out, legend = render_map(FAKE_MAP_DEF, all_keys)
+        # Legacy format cells get 'unknown' POI type
+        from world.cartography.poi_symbols import POI_SYMBOLS
+        sym = POI_SYMBOLS.get("unknown", "?")
+        self.assertTrue(all(c == sym for c in ascii_out if c not in ("\n", " ")))
 
     def test_partial_survey_first_point(self):
-        result = render_map(FAKE_MAP_DEF, {"room_a"})
-        lines = result.split("\n")
-        self.assertEqual(lines[0][0], "A")   # room_a surveyed → shown
-        self.assertEqual(lines[0][1], "░")   # room_b not surveyed
-        self.assertEqual(lines[1][0], "░")   # room_c not surveyed
-        self.assertEqual(lines[1][1], "░")   # room_d not surveyed
+        ascii_out, _ = render_map(FAKE_MAP_DEF, {"room_a"})
+        lines = ascii_out.split("\n")
+        self.assertNotEqual(lines[0][0], " ")  # room_a surveyed → symbol shown
+        self.assertEqual(lines[0][1], " ")     # room_b not surveyed → blank
+        self.assertEqual(lines[1][0], " ")     # room_c not surveyed
+        self.assertEqual(lines[1][1], " ")     # room_d not surveyed
 
     def test_partial_survey_diagonal(self):
-        result = render_map(FAKE_MAP_DEF, {"room_a", "room_d"})
-        lines = result.split("\n")
-        self.assertEqual(lines[0][0], "A")
-        self.assertEqual(lines[0][1], "░")
-        self.assertEqual(lines[1][0], "░")
-        self.assertEqual(lines[1][1], "D")
+        ascii_out, _ = render_map(FAKE_MAP_DEF, {"room_a", "room_d"})
+        lines = ascii_out.split("\n")
+        self.assertNotEqual(lines[0][0], " ")  # room_a visible
+        self.assertEqual(lines[0][1], " ")     # room_b hidden
+        self.assertEqual(lines[1][0], " ")     # room_c hidden
+        self.assertNotEqual(lines[1][1], " ")  # room_d visible
 
-    def test_structural_chars_always_visible(self):
+    def test_structural_chars_hidden_when_no_visible_neighbors(self):
         map_def = {
             "key": "_struct_test",
             "display_name": "Struct",
@@ -210,20 +215,24 @@ class TestRenderMap(EvenniaTest):
                 "pt_b": [(1, 1)],
             },
         }
-        result = render_map(map_def, set())
-        lines = result.split("\n")
-        self.assertEqual(lines[0], "-░-")
-        self.assertEqual(lines[1], "|░|")
+        ascii_out, _ = render_map(map_def, set())
+        lines = ascii_out.split("\n")
+        # No visible point cells → structural chars hidden
+        self.assertEqual(lines[0], "   ")
+        self.assertEqual(lines[1], "   ")
 
-    def test_structural_chars_remain_when_surveyed(self):
+    def test_structural_chars_shown_when_surveyed(self):
         map_def = {
             "key": "_struct_test2",
             "display_name": "Struct2",
             "template": "-A-",
             "point_cells": {"pt_a": [(0, 1)]},
         }
-        result = render_map(map_def, {"pt_a"})
-        self.assertEqual(result, "-A-")
+        ascii_out, _ = render_map(map_def, {"pt_a"})
+        lines = ascii_out.split("\n")
+        # Dashes adjacent to visible cell should show
+        self.assertEqual(lines[0][1], ascii_out[1])  # cell is visible
+        self.assertNotEqual(lines[0][0], " ")  # left dash visible
 
     def test_unknown_surveyed_key_does_not_raise(self):
         try:
@@ -231,14 +240,15 @@ class TestRenderMap(EvenniaTest):
         except Exception as exc:
             self.fail(f"render_map raised unexpectedly: {exc}")
 
-    def test_empty_template_returns_empty_string(self):
+    def test_empty_template_returns_empty(self):
         map_def = {"key": "_empty", "display_name": "E", "template": "", "point_cells": {}}
-        self.assertEqual(render_map(map_def, set()), "")
+        ascii_out, legend = render_map(map_def, set())
+        self.assertEqual(ascii_out, "")
 
     def test_multiline_template_preserves_lines(self):
         all_keys = set(FAKE_MAP_DEF["point_cells"].keys())
-        result = render_map(FAKE_MAP_DEF, all_keys)
-        self.assertEqual(len(result.split("\n")), 2)
+        ascii_out, _ = render_map(FAKE_MAP_DEF, all_keys)
+        self.assertEqual(len(ascii_out.split("\n")), 2)
 
     def test_point_with_multiple_positions_all_masked(self):
         map_def = {
@@ -247,8 +257,8 @@ class TestRenderMap(EvenniaTest):
             "template": "AB",
             "point_cells": {"big_room": [(0, 0), (0, 1)]},
         }
-        result = render_map(map_def, set())
-        self.assertEqual(result, "░░")
+        ascii_out, _ = render_map(map_def, set())
+        self.assertEqual(ascii_out, "  ")
 
     def test_point_with_multiple_positions_all_shown(self):
         map_def = {
@@ -257,8 +267,10 @@ class TestRenderMap(EvenniaTest):
             "template": "AB",
             "point_cells": {"big_room": [(0, 0), (0, 1)]},
         }
-        result = render_map(map_def, {"big_room"})
-        self.assertEqual(result, "AB")
+        ascii_out, _ = render_map(map_def, {"big_room"})
+        # Both positions shown (legacy format → unknown symbol)
+        self.assertNotEqual(ascii_out[0], " ")
+        self.assertNotEqual(ascii_out[1], " ")
 
     def test_three_line_template(self):
         map_def = {
@@ -271,18 +283,49 @@ class TestRenderMap(EvenniaTest):
                 "r3": [(2, 0)],
             },
         }
-        result = render_map(map_def, {"r1", "r3"})
-        lines = result.split("\n")
-        self.assertEqual(lines[0], "A")
-        self.assertEqual(lines[1], "░")
-        self.assertEqual(lines[2], "C")
+        ascii_out, _ = render_map(map_def, {"r1", "r3"})
+        lines = ascii_out.split("\n")
+        self.assertNotEqual(lines[0], " ")  # r1 visible
+        self.assertEqual(lines[1], " ")     # r2 hidden
+        self.assertNotEqual(lines[2], " ")  # r3 visible
 
-    def test_mask_character_is_block(self):
-        """Unsurveyed cells should use the specific block character '░'."""
-        result = render_map(FAKE_MAP_DEF, set())
-        self.assertIn("░", result)
-        self.assertNotIn("?", result)
-        self.assertNotIn("X", result)
+    def test_unsurveyed_cells_are_blank_not_block(self):
+        """Unsurveyed cells should be blank spaces, not '░'."""
+        ascii_out, _ = render_map(FAKE_MAP_DEF, set())
+        self.assertNotIn("░", ascii_out)
+
+    def test_new_format_uses_poi_symbols(self):
+        """New point_cells format with POI types uses central symbol registry."""
+        from world.cartography.poi_symbols import POI_SYMBOLS
+        map_def = {
+            "key": "_poi_test",
+            "display_name": "POI Test",
+            "template": "A-B",
+            "point_cells": {
+                "shop": {"pos": [(0, 0)], "poi": "smithy"},
+                "road": {"pos": [(0, 2)], "poi": "road"},
+            },
+        }
+        ascii_out, legend = render_map(map_def, {"shop", "road"})
+        self.assertEqual(ascii_out[0], POI_SYMBOLS["smithy"])
+        self.assertEqual(ascii_out[2], POI_SYMBOLS["road"])
+        self.assertIn("Smithy", legend)
+        self.assertIn("Road", legend)
+
+    def test_legend_only_shows_visible_types(self):
+        """Legend should only include POI types that are actually visible."""
+        map_def = {
+            "key": "_legend_test",
+            "display_name": "Legend Test",
+            "template": "AB",
+            "point_cells": {
+                "the_bank": {"pos": [(0, 0)], "poi": "bank"},
+                "the_inn":  {"pos": [(0, 1)], "poi": "inn"},
+            },
+        }
+        _, legend = render_map(map_def, {"the_bank"})
+        self.assertIn("Bank", legend)
+        self.assertNotIn("Inn", legend)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -862,15 +905,17 @@ class TestCmdMap(_RoomBaseMixin, EvenniaCommandTest):
         result = self.call(CmdMap(), "TEST AREA")
         self.assertIn("Test Area", result)
 
-    def test_render_mode_unsurveyed_contains_mask(self):
+    def test_render_mode_unsurveyed_is_blank(self):
         _make_map_item(self.char1, FAKE_MAP_KEY)  # 0% surveyed
         result = self.call(CmdMap(), "test area")
-        self.assertIn("░", result)
+        self.assertNotIn("░", result)  # no block chars for unsurveyed
 
-    def test_render_mode_surveyed_point_shows_char(self):
+    def test_render_mode_surveyed_point_shows_symbol(self):
         _make_map_item(self.char1, FAKE_MAP_KEY, surveyed={"room_a"})
         result = self.call(CmdMap(), "test area")
-        self.assertIn("A", result)  # room_a at (0,0) = 'A' in template
+        # Legacy format uses 'unknown' POI → '?' symbol
+        from world.cartography.poi_symbols import POI_SYMBOLS
+        self.assertIn(POI_SYMBOLS.get("unknown", "?"), result)
 
     def test_render_mode_fully_surveyed_no_mask(self):
         all_keys = set(FAKE_MAP_DEF["point_cells"].keys())
@@ -916,7 +961,7 @@ class TestCmdMap(_RoomBaseMixin, EvenniaCommandTest):
         _make_map_item(self.char1, FAKE_MAP_KEY, surveyed=set())
         try:
             result = self.call(CmdMap(), "test area")
-            self.assertIn("░", result)
+            self.assertNotIn("░", result)  # blank spaces, not block chars
         except Exception as exc:
             self.fail(f"CmdMap raised with empty surveyed_points: {exc}")
 

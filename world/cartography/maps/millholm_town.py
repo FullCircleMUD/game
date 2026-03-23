@@ -45,31 +45,31 @@ _TEMPLATE = (
     "                G                "
 )
 
-# Map each point_key to a list of (row, col) positions in the template.
-# All single-character room cells — one cell per room.
+# Map each point_key to grid position(s) and POI type.
+# POI symbols are resolved at render time from poi_symbols.py.
 _POINT_CELLS = {
-    "cemetery":       [(0,  16)],
-    "cemetery_gates": [(2,  16)],
-    "north_road":     [(4,  16)],
-    "sq_nw":          [(6,  12)],
-    "sq_n":           [(6,  16)],
-    "sq_ne":          [(6,  20)],
-    "sq_w":           [(8,  12)],
-    "sq_center":      [(8,  16)],
-    "sq_e":           [(8,  20)],
-    "sq_sw":          [(10, 12)],
-    "sq_s":           [(10, 16)],
-    "sq_se":          [(10, 20)],
-    "south_road":     [(12, 16)],
-    "mid_south_road": [(14, 16)],
-    "far_south_road": [(16, 16)],
-    "south_gate":     [(18, 16)],
-    "road_far_west":  [(8,  0)],
-    "road_west":      [(8,  4)],
-    "road_mid_west":  [(8,  8)],
-    "road_mid_east":  [(8,  24)],
-    "road_east":      [(8,  28)],
-    "road_far_east":  [(8,  32)],
+    "cemetery":       {"pos": [(0,  16)], "poi": "cemetery"},
+    "cemetery_gates": {"pos": [(2,  16)], "poi": "gate"},
+    "north_road":     {"pos": [(4,  16)], "poi": "road"},
+    "sq_nw":          {"pos": [(6,  12)], "poi": "square"},
+    "sq_n":           {"pos": [(6,  16)], "poi": "square"},
+    "sq_ne":          {"pos": [(6,  20)], "poi": "square"},
+    "sq_w":           {"pos": [(8,  12)], "poi": "square"},
+    "sq_center":      {"pos": [(8,  16)], "poi": "market"},
+    "sq_e":           {"pos": [(8,  20)], "poi": "square"},
+    "sq_sw":          {"pos": [(10, 12)], "poi": "square"},
+    "sq_s":           {"pos": [(10, 16)], "poi": "square"},
+    "sq_se":          {"pos": [(10, 20)], "poi": "square"},
+    "south_road":     {"pos": [(12, 16)], "poi": "road"},
+    "mid_south_road": {"pos": [(14, 16)], "poi": "road"},
+    "far_south_road": {"pos": [(16, 16)], "poi": "road"},
+    "south_gate":     {"pos": [(18, 16)], "poi": "gate"},
+    "road_far_west":  {"pos": [(8,  0)],  "poi": "zone_exit"},
+    "road_west":      {"pos": [(8,  4)],  "poi": "road"},
+    "road_mid_west":  {"pos": [(8,  8)],  "poi": "road"},
+    "road_mid_east":  {"pos": [(8,  24)], "poi": "road"},
+    "road_east":      {"pos": [(8,  28)], "poi": "road"},
+    "road_far_east":  {"pos": [(8,  32)], "poi": "zone_exit"},
 }
 
 register_map({

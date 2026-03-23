@@ -23,21 +23,21 @@ _TEMPLATE = (
 )
 
 _POINT_CELLS = {
-    "mine_entrance":     [(1, 2)],   # also tagged millholm_region:deep_woods
-    "entry_shaft":       [(2, 2)],
-    "copper_drift":      [(2, 6)],
-    "copper_seam":       [(2, 10)],
-    "timbered_corridor": [(3, 6)],
-    "ore_cart_track":    [(3, 10)],
-    "kobold_lookout":    [(4, 6)],
-    "flooded_gallery":   [(4, 10)],
-    "descent_shaft":     [(4, 2)],
-    "lower_junction":    [(5, 2)],
-    "tin_seam":          [(5, 6)],
-    "tin_vein":          [(5, 10)],
-    "kobold_warren":     [(5, 14)],
-    "ancient_passage":   [(6, 2)],
-    "sealed_door":       [(6, 6)],
+    "mine_entrance":     {"pos": [(1, 2)],   "poi": "gate"},      # also tagged millholm_region:deep_woods
+    "entry_shaft":       {"pos": [(2, 2)],   "poi": "shaft"},
+    "copper_drift":      {"pos": [(2, 6)],   "poi": "mine"},
+    "copper_seam":       {"pos": [(2, 10)],  "poi": "mine"},
+    "timbered_corridor": {"pos": [(3, 6)],   "poi": "tunnel"},
+    "ore_cart_track":    {"pos": [(3, 10)],  "poi": "tunnel"},
+    "kobold_lookout":    {"pos": [(4, 6)],   "poi": "lair"},
+    "flooded_gallery":   {"pos": [(4, 10)],  "poi": "dead_end"},
+    "descent_shaft":     {"pos": [(4, 2)],   "poi": "shaft"},
+    "lower_junction":    {"pos": [(5, 2)],   "poi": "crossroads"},
+    "tin_seam":          {"pos": [(5, 6)],   "poi": "mine"},
+    "tin_vein":          {"pos": [(5, 10)],  "poi": "mine"},
+    "kobold_warren":     {"pos": [(5, 14)],  "poi": "lair"},
+    "ancient_passage":   {"pos": [(6, 2)],   "poi": "tunnel"},
+    "sealed_door":       {"pos": [(6, 6)],   "poi": "dead_end"},
 }
 
 register_map({
