@@ -58,6 +58,10 @@ class Rabbit(CombatMob):
         if not self.is_alive or not self.location:
             return
 
+        # In combat the combat handler drives behaviour — don't bypass it
+        if self.scripts.get("combat_handler"):
+            return
+
         threats = [
             obj for obj in self.location.contents
             if obj != self and self._is_threat(obj)
@@ -66,7 +70,7 @@ class Rabbit(CombatMob):
             return
 
         self.location.msg_contents(
-            f"A {self.key} bolts away in fright!",
+            "A rabbit bolts away in fright!",
             from_obj=self, exclude=[self],
         )
         self.flee_to_random_room()
