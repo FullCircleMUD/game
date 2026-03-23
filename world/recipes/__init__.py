@@ -5,6 +5,7 @@ from world.recipes.tailoring import *       # noqa: F401,F403
 from world.recipes.jewellery import *      # noqa: F401,F403
 from world.recipes.alchemy import *        # noqa: F401,F403
 from world.recipes.enchanting import *     # noqa: F401,F403
+from world.recipes.shipwright import *    # noqa: F401,F403
 
 # Auto-collect all RECIPE_ dicts into lookup
 import sys as _sys

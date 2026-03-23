@@ -15,7 +15,9 @@ Usage (from Evennia):
 
 from evennia import ObjectDB, create_object
 
+from enums.room_crafting_type import RoomCraftingType
 from enums.terrain_type import TerrainType
+from typeclasses.terrain.rooms.room_crafting import RoomCrafting
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from utils.exit_helpers import connect
 
@@ -198,5 +200,32 @@ def test_area_gateway():
         },
     ]
     print("  Linked: Town Dock <-> Beach Dock (BASIC ship + 1 bread)")
+
+    # ── Shipyard: east of Town Dock — test crafting room ──────────
+    shipyard = _find_room("The Shipyard")
+    if not shipyard:
+        shipyard = create_object(
+            RoomCrafting,
+            key="The Shipyard",
+        )
+        shipyard.db.desc = (
+            "A sprawling open-air workshop dominates the waterfront. Timber "
+            "frames rise like the ribs of great beasts, and the air is thick "
+            "with the smell of pitch and fresh-cut wood. Heavy chains dangle "
+            "from overhead cranes, and workers' tools line the walls."
+        )
+        shipyard.db.crafting_type = RoomCraftingType.SHIPYARD.value
+        shipyard.db.mastery_level = 5  # up to GRANDMASTER
+        shipyard.db.craft_cost = 10
+        shipyard.tags.add("test_economic_zone", category="zone")
+        shipyard.tags.add("resource_district", category="district")
+        shipyard.set_terrain(TerrainType.COASTAL.value)
+        shipyard.db.always_lit = True
+        print(f"  Created shipyard: The Shipyard {shipyard.dbref}")
+
+        connect(town_dock, shipyard, "east",
+                desc_ab="a sprawling shipyard", desc_ba="the town dock")
+    else:
+        print(f"  Shipyard already exists: {shipyard.dbref}")
 
     print("\n=== Gateway Rooms Done ===\n")

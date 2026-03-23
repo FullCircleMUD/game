@@ -24,3 +24,5 @@ class RoomCraftingType(Enum):
 
     WIZARDS_WORKSHOP = "wizards_workshop" # enchanting items - SKILL RELATED (mage only)
 
+    SHIPYARD = "shipyard" # build and repair ships - SKILL RELATED (shipwright)
+

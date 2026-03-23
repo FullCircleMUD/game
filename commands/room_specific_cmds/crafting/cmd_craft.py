@@ -64,6 +64,7 @@ _VERB_MAP = {
     RoomCraftingType.APOTHECARY.value: "brew",
     RoomCraftingType.JEWELLER.value: "craft",
     RoomCraftingType.WIZARDS_WORKSHOP.value: "enchant",
+    RoomCraftingType.SHIPYARD.value: "build",
 }
 
 # Gerund forms for progress messages
@@ -75,6 +76,7 @@ _GERUND_MAP = {
     RoomCraftingType.APOTHECARY.value: "Brewing",
     RoomCraftingType.JEWELLER.value: "Crafting",
     RoomCraftingType.WIZARDS_WORKSHOP.value: "Enchanting",
+    RoomCraftingType.SHIPYARD.value: "Building",
 }
 
 
@@ -84,7 +86,7 @@ class CmdCraft(Command):
 
     Usage:
         craft <recipe name>
-        forge / carve / sew / brew / enchant <recipe name>
+        forge / carve / sew / brew / enchant / build <recipe name>
 
     You must know the recipe (learn it from a recipe scroll first) and
     be in the correct type of crafting room. Type 'available' to see what
@@ -102,6 +104,7 @@ class CmdCraft(Command):
         "sew",
         "brew", "br", "bre",
         "enchant", "enc", "ench", "en",
+        "build", "bu", "bui", "buil",
     ]
     locks = "cmd:all()"
     help_category = "Crafting"
