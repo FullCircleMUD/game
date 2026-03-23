@@ -117,6 +117,7 @@ class ZoneSpawnScript(DefaultScript):
             ObjectDB.objects.filter(
                 db_tags__db_key=area_tag,
                 db_tags__db_category="mob_area",
+                db_typeclass_path__contains="rooms.",
             )
         )
         if not rooms:
