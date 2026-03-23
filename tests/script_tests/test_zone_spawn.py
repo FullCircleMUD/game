@@ -95,13 +95,16 @@ class TestZoneSpawnScript(EvenniaTest):
         self.assertEqual(mobs[0].key, "a rabbit")
 
     def test_spawn_mob_sets_area_tag(self):
-        """Spawned mob gets the area_tag from the rule."""
+        """Spawned mob gets the area_tag from the rule as a mob_area tag."""
         self.script._spawn_mob(self.rule, self.room1)
         mob = [
             obj for obj in self.room1.contents
             if obj.typeclass_path == self.rule["typeclass"]
         ][0]
-        self.assertEqual(mob.area_tag, "test_area")
+        self.assertIn(
+            "test_area",
+            mob.tags.get(category="mob_area", return_list=True),
+        )
 
     def test_spawn_mob_sets_desc(self):
         """Spawned mob gets the description from the rule."""

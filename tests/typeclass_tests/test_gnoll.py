@@ -189,7 +189,7 @@ class TestGnollRetreat(EvenniaTest):
         )
         self.gnoll.is_alive = True
         self.gnoll.hp = 5  # 12.5% — below 25%
-        self.gnoll.area_tag = None  # allow free movement in tests
+        self.gnoll.tags.clear(category="mob_area")  # allow free movement in tests
 
     def test_retreat_flees(self):
         """Wounded gnoll should flee to adjacent room."""

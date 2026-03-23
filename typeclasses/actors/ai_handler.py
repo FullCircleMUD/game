@@ -95,7 +95,8 @@ class AIHandler:
         returns all traversable exits (no restriction).
         """
         mob = self.obj
-        area_tag = getattr(mob, "area_tag", None)
+        area_tags = mob.tags.get(category="mob_area", return_list=True)
+        area_tag = area_tags[0] if area_tags else None
         if not mob.location:
             return []
 

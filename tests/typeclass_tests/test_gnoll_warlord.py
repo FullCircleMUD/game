@@ -66,7 +66,7 @@ class TestGnollWarlordBehavior(EvenniaTest):
         )
         self.boss.is_alive = True
         self.boss.hp = 75
-        self.boss.area_tag = None
+        self.boss.tags.clear(category="mob_area")
 
     @patch("combat.combat_utils.execute_attack")
     def test_rampage_inherited(self, mock_execute):

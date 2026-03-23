@@ -27,7 +27,7 @@ class TestKoboldPackCourage(EvenniaTest):
         )
         self.kobold1.is_alive = True
         self.kobold1.hp = 14
-        self.kobold1.area_tag = None  # allow free movement in tests
+        self.kobold1.tags.clear(category="mob_area")  # allow free movement in tests
 
     def test_kobold_stats(self):
         self.assertEqual(self.kobold1.hp_max, 14)

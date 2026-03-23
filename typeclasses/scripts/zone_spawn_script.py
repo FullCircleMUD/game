@@ -92,21 +92,16 @@ class ZoneSpawnScript(DefaultScript):
 
     def _count_living(self, rule):
         """Count living mobs matching a spawn rule (typeclass + area_tag)."""
-        typeclass = rule["typeclass"]
-        area_tag = rule["area_tag"]
-
-        mobs = ObjectDB.objects.filter(
-            db_typeclass_path=typeclass,
+        return ObjectDB.objects.filter(
+            db_typeclass_path=rule["typeclass"],
             db_tags__db_key=self.db.zone_key,
             db_tags__db_category="spawn_zone",
-        )
-
-        count = 0
-        for mob in mobs:
-            if getattr(mob, "area_tag", None) == area_tag:
-                if mob.location is not None:
-                    count += 1
-        return count
+        ).filter(
+            db_tags__db_key=rule["area_tag"],
+            db_tags__db_category="mob_area",
+        ).exclude(
+            db_location__isnull=True,
+        ).count()
 
     # ================================================================== #
     #  Room selection
@@ -134,14 +129,12 @@ class ZoneSpawnScript(DefaultScript):
 
         # Filter rooms that aren't full
         for room in rooms:
-            mob_count = sum(
-                1
-                for obj in room.contents
-                if (
-                    obj.typeclass_path == typeclass
-                    and getattr(obj, "area_tag", None) == area_tag
-                )
-            )
+            mob_count = ObjectDB.objects.filter(
+                db_typeclass_path=typeclass,
+                db_location=room,
+                db_tags__db_key=area_tag,
+                db_tags__db_category="mob_area",
+            ).count()
             if mob_count < max_per_room:
                 return room
 
@@ -159,8 +152,8 @@ class ZoneSpawnScript(DefaultScript):
             location=room,
         )
 
-        # Set area tag (used by AI for wander containment)
-        mob.area_tag = rule["area_tag"]
+        # Set area tag (used by AI for wander containment + population counting)
+        mob.tags.add(rule["area_tag"], category="mob_area")
 
         # Set description
         if rule.get("desc"):

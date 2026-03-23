@@ -63,7 +63,7 @@ class TestKoboldChieftainBehavior(EvenniaTest):
         )
         self.boss.is_alive = True
         self.boss.hp = 28
-        self.boss.area_tag = None
+        self.boss.tags.clear(category="mob_area")
 
     @patch("typeclasses.actors.mobs.aggressive_mob.delay")
     def test_ai_wander_does_not_move(self, mock_delay):

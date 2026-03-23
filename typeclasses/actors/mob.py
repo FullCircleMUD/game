@@ -43,9 +43,21 @@ class CombatMob(AIMixin, BaseNPC):
 
     # ── Spawn/Area ──
     spawn_room_id = AttributeProperty(None)
-    area_tag = AttributeProperty(None)
     respawn_delay = AttributeProperty(60)
     corpse_despawn_delay = AttributeProperty(300)  # 5 minutes
+
+    @property
+    def area_tag(self):
+        """Read area_tag from mob_area tag (indexed, used by AI wander + spawn counting)."""
+        tags = self.tags.get(category="mob_area", return_list=True)
+        return tags[0] if tags else None
+
+    @area_tag.setter
+    def area_tag(self, value):
+        """Set area_tag as a mob_area tag. Clears old tag first."""
+        self.tags.clear(category="mob_area")
+        if value:
+            self.tags.add(value, category="mob_area")
 
     # ── AI ──
     ai_tick_interval = AttributeProperty(10)

@@ -112,7 +112,7 @@ class TestMaxPerRoom(EvenniaTest):
         self.wolf1.is_alive = True
         self.wolf1.hp = 12
         # Clear area_tag so exits aren't filtered by area
-        self.wolf1.area_tag = None
+        self.wolf1.tags.clear(category="mob_area")
 
     def test_wander_blocked_when_same_type_at_max(self):
         """Wolf should not wander into room that already has a wolf."""
@@ -150,7 +150,7 @@ class TestMaxPerRoom(EvenniaTest):
             location=self.room1,
         )
         mob.is_alive = True
-        mob.area_tag = None
+        mob.tags.clear(category="mob_area")
         self.assertEqual(mob.max_per_room, 0)
 
         # Put another goblin in room2

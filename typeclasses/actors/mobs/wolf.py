@@ -46,8 +46,11 @@ class Wolf(AggressiveMob):
     respawn_delay = AttributeProperty(120)
 
     # ── Area ──
-    area_tag = AttributeProperty("woods_wolves")
     den_room_tag = AttributeProperty("woods_wolves")
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("woods_wolves", category="mob_area")
 
     def at_new_arrival(self, arriving_obj):
         """Aggro players (via super) and also hunt rabbits."""
