@@ -615,7 +615,7 @@ def build_millholm_town():
             ("details", {
                 "maps": (
                     "Trade maps showing routes across the continent — "
-                    "Millholm to Ironreach, Millholm to the coast. "
+                    "Millholm to Ironback Peaks, Millholm to the coast. "
                     "Distances and travel times are annotated in a precise "
                     "hand. Some routes have been crossed out and redrawn."
                 ),

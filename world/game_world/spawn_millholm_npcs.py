@@ -375,7 +375,7 @@ def _spawn_thief_guildmaster():
     npc.guild_class = "thief"
     npc.multi_class_quest_key = "thief_initiation"
     npc.max_advance_level = 5
-    npc.next_guildmaster_hint = "the Grandmaster of Shadows in Eastport"
+    npc.next_guildmaster_hint = "the Grandmaster of Shadows in Saltspray Bay"
     npc.db.desc = (
         "A tall, lithe woman draped in dark silk that seems to drink the "
         "light. Her black hair is pulled back from an angular face dominated "

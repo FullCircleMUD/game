@@ -1,5 +1,5 @@
 """
-Millholm Southern District — the countryside and borderlands beyond the south gate.
+Millholm Southern District — the countryside and Shadowsward beyond the south gate.
 
 Builds ~24 rooms across five sections:
 - Countryside (4 rooms): Countryside Road, Farmstead Fork, Bandit Holdfast,
@@ -10,7 +10,7 @@ Builds ~24 rooms across five sections:
   Farmstead, Gnoll Camp, Gnoll Lookout
 - Barrow Underground (5 rooms): Barrow Hill (hidden entrance), Barrow
   Entrance, Bone-Strewn Passage, Ancient Catacombs, Necromancer's Study
-- Borderlands (2 rooms): Southern Approach, Borderlands Gate (zone exit)
+- Shadowsward (2 rooms): Southern Approach, Shadowsward Gate (zone exit)
 
 The district has two entrances:
 - North: from town_rooms["south_gate"] (wired in build_game_world.py)
@@ -424,7 +424,7 @@ def build_millholm_southern():
             "enough to stand on. The gnolls who built it were strong "
             "but not skilled — the whole structure creaks and sways "
             "in the wind. It gives a commanding view south, toward "
-            "the borderlands."
+            "the Shadowsward."
         ),
     }
 
@@ -617,7 +617,7 @@ def build_millholm_southern():
         ),
     }
 
-    # ── Borderlands (2 rooms) ────────────────────────────────────────
+    # ── Shadowsward (2 rooms) ──────────────────────────────────────────
 
     rooms["southern_approach"] = create_object(
         RoomBase,
@@ -636,9 +636,9 @@ def build_millholm_southern():
         ],
     )
 
-    rooms["borderlands_gate"] = create_object(
+    rooms["shadowsward_gate"] = create_object(
         RoomBase,
-        key="Borderlands Gate",
+        key="Shadowsward Gate",
         attributes=[
             ("desc",
              "A crumbling stone gatehouse marks the southern boundary "
@@ -646,14 +646,14 @@ def build_millholm_southern():
              "in its half-lowered position, leaving a gap beneath "
              "that a person could squeeze through — but beyond it, "
              "the road descends into lands that Millholm's maps do "
-             "not cover. The borderlands stretch to the horizon, "
+             "not cover. The Shadowsward stretches to the horizon, "
              "wild and uncharted. A weathered stone marker beside "
              "the gate reads: 'HERE ENDS THE PROTECTION OF THE "
              "MILLHOLM GUARD.' Someone has scratched beneath it: "
              "'and here begins the fun.'"),
         ],
     )
-    rooms["borderlands_gate"].details = {
+    rooms["shadowsward_gate"].details = {
         "portcullis": (
             "Rusted iron bars, thick as a man's wrist, frozen in "
             "place by decades of corrosion. The gap beneath is just "
@@ -705,7 +705,7 @@ def build_millholm_southern():
 
     # ── Gnoll Territory ──────────────────────────────────────────────
     # Path continues south: moonpetal grid → grasslands → hunting grounds
-    # → gnoll camp → lookout → borderlands
+    # → gnoll camp → lookout → shadowsward
     connect(mp_grid[0][0], rooms["wild_grasslands"], "south")
     connect(rooms["wild_grasslands"], rooms["gnoll_hunting_grounds"], "south")
     connect(rooms["gnoll_hunting_grounds"], rooms["ravaged_farmstead"], "west")
@@ -749,10 +749,10 @@ def build_millholm_southern():
     connect(rooms["ancient_catacombs"], rooms["necromancers_study"], "south")
     exit_count += 6
 
-    # ── Borderlands ──────────────────────────────────────────────────
+    # ── Shadowsward ────────────────────────────────────────────────────
     # Path continues south past gnoll territory
     connect(rooms["gnoll_lookout"], rooms["southern_approach"], "south")
-    connect(rooms["southern_approach"], rooms["borderlands_gate"], "south")
+    connect(rooms["southern_approach"], rooms["shadowsward_gate"], "south")
     exit_count += 4
 
     print(f"  Created {exit_count} exits.")
@@ -798,9 +798,9 @@ def build_millholm_southern():
     for key in underground_keys:
         rooms[key].set_terrain(TerrainType.UNDERGROUND.value)
 
-    # Borderlands — plains terrain
+    # Shadowsward — plains terrain
     rooms["southern_approach"].set_terrain(TerrainType.PLAINS.value)
-    rooms["borderlands_gate"].set_terrain(TerrainType.PLAINS.value)
+    rooms["shadowsward_gate"].set_terrain(TerrainType.PLAINS.value)
 
     print("  Tagged all rooms with zone, district, and terrain.")
 
@@ -818,7 +818,7 @@ def build_millholm_southern():
     # ══════════════════════════════════════════════════════════════════
     # countryside_road: connects north to town_rooms["south_gate"] (wired in build_game_world.py)
     # countryside_road: connects west to farm_rooms["south_fork_end"] (wired in build_game_world.py)
-    # borderlands_gate: future zone transition (SKILLED cartography required)
+    # shadowsward_gate: future zone transition (SKILLED cartography required)
     # necromancers_study: future NPC placement (necromancy trainer, non-lethal quest)
     # bandit rooms: future bandit mob spawns
     # bone_passage: future undead mob spawns (escaped experiments)
