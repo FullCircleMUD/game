@@ -139,16 +139,20 @@ def force_drop_weapon(target, weapon=None):
 #  Protect — intercept check
 # ================================================================== #
 
-def _check_intercept(target):
+def _check_intercept(target, target_allies=None):
     """
     Check if any ally is protecting this target and roll for intercept.
 
     Scans allies' combat handlers for anyone with protecting == target.id.
     Multiple protectors each roll independently; first success wins.
 
+    Args:
+        target: the defender being attacked
+        target_allies: pre-computed allies list (avoids redundant get_sides call)
+
     Returns the intercepting protector, or None.
     """
-    allies, _ = get_sides(target)
+    allies = target_allies if target_allies is not None else get_sides(target)[0]
     for ally in allies:
         if ally == target or ally.location != target.location:
             continue
@@ -174,7 +178,7 @@ def _check_intercept(target):
 #  Reach Counters — spear allies counter-attack when target is hit
 # ================================================================== #
 
-def _check_reach_counters(attacker, target):
+def _check_reach_counters(attacker, target, target_allies=None):
     """
     After a hit lands, check if the target's allies can counter-attack
     with reach weapons (spear mastery).
@@ -182,11 +186,16 @@ def _check_reach_counters(attacker, target):
     Each ally with reach_counters_remaining > 0 fires a free attack
     against the attacker. Counter-attacks use _is_riposte=True to
     prevent parry and cascading counters.
+
+    Args:
+        attacker: the attacker who just landed a hit
+        target: the defender who was hit
+        target_allies: pre-computed allies list (avoids redundant get_sides call)
     """
     if getattr(attacker, "hp", 0) <= 0:
         return
 
-    allies, _ = get_sides(target)
+    allies = target_allies if target_allies is not None else get_sides(target)[0]
     for ally in allies:
         if ally == target or ally.location != target.location:
             continue
@@ -458,7 +467,9 @@ def execute_attack(attacker, target, _is_riposte=False,
             )
 
         # --- 8b. Protect intercept check ---
-        protector = _check_intercept(target)
+        # Pre-compute target's allies once — reused by intercept and reach counters
+        _target_allies, _ = get_sides(target)
+        protector = _check_intercept(target, target_allies=_target_allies)
         if protector:
             attacker.msg(
                 f"|y{protector.key} jumps in front of {target.key}, "
@@ -526,7 +537,7 @@ def execute_attack(attacker, target, _is_riposte=False,
 
         # --- 11b. Reach counters from target's allies (spear mastery) ---
         if not _is_riposte:
-            _check_reach_counters(attacker, target)
+            _check_reach_counters(attacker, target, target_allies=_target_allies)
     else:
         # --- 12. Miss hooks ---
         if weapon:
