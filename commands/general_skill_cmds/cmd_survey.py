@@ -31,6 +31,7 @@ class CmdSurvey(Command):
     """
 
     key = "survey"
+    aliases = ["sur", "surv"]
     help_category = "Exploration"
 
     def func(self):
