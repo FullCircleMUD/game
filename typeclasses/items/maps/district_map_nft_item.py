@@ -61,6 +61,10 @@ class DistrictMapNFTItem(BaseNFTItem):
         from world.cartography.map_registry import get_map
         map_def = get_map(self.map_key)
         name = map_def["display_name"] if map_def else (self.map_key or "Unknown Area")
+        # Self-heal: update key from generic "DistrictMap" to searchable name
+        expected_key = f"map of {name}".lower()
+        if self.key != expected_key:
+            self.key = expected_key
         pct = self.completion_pct
         display = f"Map: {name} {pct}%"
         if looker and self.locks.check_lockstring(looker, "perm(Builder)"):
