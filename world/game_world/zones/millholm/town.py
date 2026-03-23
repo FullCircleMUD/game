@@ -2008,28 +2008,47 @@ def build_millholm_town():
     # Tag convention: room.tags.add("<map_key>:<point_key>", category="map_cell")
     # millholm_town map — all exterior/street rooms
     _town_map_tags = {
+        # ── Cemetery / North ──
         "cemetery":       "millholm_town:cemetery",
         "cemetery_gates": "millholm_town:cemetery_gates",
         "north_road":     "millholm_town:north_road",
-        "sq_nw":          "millholm_town:sq_nw",
-        "sq_n":           "millholm_town:sq_n",
-        "sq_ne":          "millholm_town:sq_ne",
-        "sq_w":           "millholm_town:sq_w",
-        "sq_center":      "millholm_town:sq_center",
-        "sq_e":           "millholm_town:sq_e",
-        "sq_sw":          "millholm_town:sq_sw",
-        "sq_s":           "millholm_town:sq_s",
-        "sq_se":          "millholm_town:sq_se",
-        "south_road":     "millholm_town:south_road",
-        "mid_south_road": "millholm_town:mid_south_road",
-        "far_south_road": "millholm_town:far_south_road",
-        "south_gate":     "millholm_town:south_gate",
+        # ── North-side shops ──
+        "textiles":       "millholm_town:textiles",
+        "smithy":         "millholm_town:smithy",
+        "woodshop":       "millholm_town:woodshop",
+        "stables":        "millholm_town:stables",
+        "bakery":         "millholm_town:bakery",
+        "apothecary":     "millholm_town:apothecary",
+        "jeweller":       "millholm_town:jeweller",
+        # ── The Old Trade Way + Market Square ──
         "road_far_west":  "millholm_town:road_far_west",
         "road_west":      "millholm_town:road_west",
         "road_mid_west":  "millholm_town:road_mid_west",
-        "road_mid_east":  "millholm_town:road_mid_east",
+        "sq_w":           "millholm_town:sq_w",
+        "sq_center":      "millholm_town:sq_center",
+        "sq_e":           "millholm_town:sq_e",
         "road_east":      "millholm_town:road_east",
+        "road_mid_east":  "millholm_town:road_mid_east",
         "road_far_east":  "millholm_town:road_far_east",
+        # ── South-side shops ──
+        "elena_house":    "millholm_town:elena_house",
+        "abandoned_house":"millholm_town:abandoned_house",
+        "gareth_house":   "millholm_town:gareth_house",
+        "general_store":  "millholm_town:general_store",
+        "shrine":         "millholm_town:shrine",
+        "bank":           "millholm_town:bank",
+        "mages_guild":    "millholm_town:mages_guild",
+        "inn":            "millholm_town:inn",
+        "leathershop":    "millholm_town:leathershop",
+        # ── South road ──
+        "south_road":     "millholm_town:south_road",
+        "beggars_alley":  "millholm_town:beggars_alley",
+        "mid_south_road": "millholm_town:mid_south_road",
+        "warriors_guild": "millholm_town:warriors_guild",
+        "broken_crown":   "millholm_town:broken_crown",
+        "far_south_road": "millholm_town:far_south_road",
+        "gaol":           "millholm_town:gaol",
+        "south_gate":     "millholm_town:south_gate",
     }
     for room_key, tag in _town_map_tags.items():
         rooms[room_key].tags.add(tag, category="map_cell")
