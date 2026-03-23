@@ -31,6 +31,7 @@ from commands.all_char_cmds.cmd_override_drop import CmdDrop
 from commands.all_char_cmds.cmd_override_give import CmdGive
 from commands.all_char_cmds.cmd_override_look import CmdLook
 from commands.all_char_cmds.cmd_override_inventory import CmdInventory
+from commands.all_char_cmds.cmd_override_help import CmdHelp
 
 # new custom commands
 from commands.all_char_cmds.cmd_skills import CmdSkills
@@ -84,6 +85,7 @@ from commands.all_char_cmds.cmd_wield import CmdWield
 from commands.all_char_cmds.cmd_hold import CmdHold
 from commands.all_char_cmds.cmd_remove import CmdRemove
 from commands.all_char_cmds.cmd_equipment import CmdEquipment
+from commands.all_char_cmds.cmd_owned import CmdOwned
 from commands.all_char_cmds.cmd_loot import CmdLoot
 from commands.all_char_cmds.cmd_follow import CmdFollow, CmdUnfollow, CmdNofollow, CmdGroup
 from commands.all_char_cmds.cmd_gtell import CmdGtell
@@ -117,6 +119,7 @@ class CmdSetCharacterCustom(CmdSet):
 
         # DEFAULT COMMANDS AVAILABLE FOR OVERRIDE
         #CmdHome
+        self.add(CmdHelp())
         self.add(CmdLook())
         self.add(CmdNick())
         self.add(CmdInventory())
@@ -149,6 +152,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdHold())
         self.add(CmdRemove())
         self.add(CmdEquipment())
+        self.add(CmdOwned())
         self.add(CmdLoot())
         self.add(CmdRemort())
         self.add(CmdQuests())
