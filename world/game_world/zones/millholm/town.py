@@ -1985,6 +1985,15 @@ def build_millholm_town():
 
     print("  Set permanent lighting on town streets, shops, and inn.")
 
+    # ── Weather exposure — outdoor rooms feel the weather ────────────
+    # URBAN terrain defaults to sheltered (muffled indoor sounds).
+    # Streets, square, and open alleys are exposed to the sky.
+    outdoor_exposed = lit_streets + [rooms["beggars_alley"]]
+    for room in outdoor_exposed:
+        room.sheltered = False
+
+    print("  Set sheltered=False on outdoor streets and alleys.")
+
     # ══════════════════════════════════════════════════════════════════
     # 4. FUTURE CONNECTION NOTES
     # ══════════════════════════════════════════════════════════════════
