@@ -184,27 +184,41 @@ def _spawn_mara():
         key="Mara Brightwater",
         location=room,
     )
+    # Add shop commands
+    from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
+    npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
+    npc.db.tradeable_resources = [12, 14, 15, 17]  # Moonpetal, Bloodmoss, Windroot, Ogre's Cap
+    npc.db.shop_name = "The Mortar and Pestle"
     npc.quest_key = "mara_moonpetal"
     npc.llm_prompt_file = "mara.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
     npc.trainable_skills = ["alchemy"]
-    npc.trainer_masteries = {"alchemy": 1}  # high-demand skill — BASIC cap in Millholm
+    npc.trainer_masteries = {"alchemy": 1}  # BASIC cap in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
-        "A slender woman in her forties with sharp, dark eyes and "
-        "ink-stained fingers. Her hair is pulled back in a severe bun, "
-        "and she smells of dried lavender and something sharper — "
-        "chemical, mineral. She speaks precisely, choosing each word "
-        "the way she measures each ingredient. She notices things about "
-        "people that they'd rather she didn't, and mentions them "
-        "without malice or apology."
+        "A slender, distracted woman in her forties with ink-stained "
+        "fingers and a habit of trailing off mid-sentence when something "
+        "catches her attention. She talks to her herbs constantly — not "
+        "baby talk, but the kind of muttered commentary you'd give a "
+        "difficult colleague. 'Not yet, Bloodmoss. You're not ready.' "
+        "She can smell where you've been. Not metaphorically — literally. "
+        "'You've been in the sewers. Probably the eastern branch, judging "
+        "by the mildew note.' She says this as a neutral observation, "
+        "the way someone might comment on the weather. She has strong "
+        "opinions about herb combinations and gets quietly, precisely "
+        "offended when people use them wrong. She has almost no small "
+        "talk. She is not unfriendly — she simply considers social "
+        "niceties to be an imprecise use of time. She is the only person "
+        "in Millholm who refers to Moonpetal by its full taxonomic name, "
+        "which she made up herself."
     )
     npc.db.desc = (
         "A slender woman stands at a workbench crowded with glass vials "
         "and ceramic bowls, grinding something in a heavy stone mortar "
-        "with unhurried, circular strokes. Her dark eyes flick up — "
-        "appraising, clinical — then return to her work."
+        "with unhurried, circular strokes. She appears to be having a "
+        "quiet argument with a bundle of dried herbs. Her dark eyes "
+        "flick up — appraising, clinical — then return to her work."
     )
     print(f"  Spawned herbalist 'Mara Brightwater' in {room.key} ({room.dbref})")
     return npc

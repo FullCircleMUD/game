@@ -1043,9 +1043,14 @@ def build_millholm_town():
     )
 
     rooms["distillery"] = create_object(
-        RoomBase,
+        RoomProcessing,
         key="Millholm Distillery",
         attributes=[
+            ("processing_type", "distillery"),
+            ("process_cost", 1),
+            ("recipes", [
+                {"inputs": {12: 1}, "output": 13, "amount": 1, "cost": 1},
+            ]),
             ("max_height", 0),
             ("max_depth", 0),
             ("desc",

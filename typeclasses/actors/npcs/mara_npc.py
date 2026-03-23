@@ -13,8 +13,7 @@ Prompt states:
     Level < 3, quest done   → warm, understated gratitude
 
 quest_key is set per instance (via spawn script) to "mara_moonpetal".
-Trains alchemy to BASIC level (mastery 1) — high-demand skill, capped
-in Millholm per world design.
+Trains alchemy to BASIC level (mastery 1) — capped in Millholm per world design.
 Short-term memory only (no vector embeddings).
 """
 
@@ -31,8 +30,11 @@ _MARA_KNOWLEDGE = (
     "You're quiet and precise, choosing your words carefully. You notice "
     "things other people miss — what someone ate, where they've been, "
     "whether they're sleeping well. It unsettles people sometimes. You "
-    "don't mind. You train apprentices in basic alchemy when they show "
-    "the patience for it."
+    "don't mind. You sell herbs — Moonpetal, Bloodmoss, Windroot, and "
+    "Ogre's Cap — at market rates. If someone asks what you stock or "
+    "wants to buy, tell them to type |wbrowse|n to see current prices. "
+    "You train apprentices in basic alchemy when they show the patience "
+    "for it — |wtrain|n to get started."
 )
 
 _COMMON_RULES = (
@@ -89,7 +91,7 @@ QUEST_DONE_CONTEXT = (
     "a quiet 'the child is better, thanks to you' means more from you "
     "than a parade would from someone else. If they want to learn "
     "alchemy, you can teach them the basics — tell them to type "
-    "|wtrain|n.\n\n"
+    "|wtrain|n. If they need herbs, tell them to type |wbrowse|n.\n\n"
     f"{_COMMON_RULES}"
 )
 
@@ -99,7 +101,8 @@ GENERIC_CONTEXT = (
     "YOUR GOAL: Be your usual quiet, observant self. You might notice "
     "something about them and comment on it. If they want to learn "
     "alchemy, you can teach them the basics — tell them to type "
-    "|wtrain|n. You're not unfriendly, just... precise.\n\n"
+    "|wtrain|n. If they need herbs, tell them to type |wbrowse|n. "
+    "You're not unfriendly, just... precise.\n\n"
     f"{_COMMON_RULES}"
 )
 
