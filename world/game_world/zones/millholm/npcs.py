@@ -688,7 +688,7 @@ def _spawn_general_store():
         key="Merchant Harlow",
         location=room,
     )
-    npc.tradeable_resources = [2, 3]  # Flour, Bread
+    npc.tradeable_resources = [2, 3, 7, 9, 11]  # Flour, Bread, Timber, Leather, Cloth
     npc.shop_name = "Harlow's General Store"
     npc.db.desc = (
         "A portly, ruddy-faced man in a well-worn apron stands behind "
@@ -918,8 +918,7 @@ def _spawn_lumberjack():
     # Add shop commands manually (no quest system needed)
     from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
     npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
-    # TODO: Switch to wood (6) and timber (7) once AMMs are live.
-    npc.db.tradeable_resources = [1, 2]  # Wheat, flour placeholder
+    npc.db.tradeable_resources = [6, 7]  # Wood, Timber
     npc.db.shop_name = "Bjorn's Lumber Yard"
 
     npc.llm_speech_mode = "name_match"
@@ -973,9 +972,7 @@ def _spawn_lumberjack():
         "When someone arrives, sing a verse or two (not always the same "
         "ones — mix it up, sometimes make up entirely new verses on the "
         "spot). Then greet them warmly. You are also a shopkeeper who "
-        "trades in wood and timber, though your shop isn't fully stocked "
-        "yet — if someone asks to trade, apologise and say the shipment's "
-        "running behind, blame the weather or the wolves. You know the "
+        "trades in wood and timber. You know the "
         "woods well and can give directions. You're worried about the "
         "wolves lately — they've been bolder than usual. You have a "
         "friendly rivalry with Master Oakwright in town, who you think "
@@ -1007,9 +1004,7 @@ def _spawn_cotton_farmer():
         key="Goodwife Tilly",
         location=room,
     )
-    # TODO: Switch to cotton (resource_id=10) once the cotton AMM is live.
-    # For now uses wheat (1) as a placeholder so the shop commands work.
-    npc.tradeable_resources = [1]  # Wheat placeholder — change to [10] for cotton
+    npc.tradeable_resources = [10]  # Cotton
     npc.shop_name = "Brightwater Farm"
     npc.db.desc = (
         "A cheerful halfling woman with calloused hands and a dusting of "
@@ -1037,8 +1032,7 @@ def _spawn_trapper():
     # Add shop commands manually (no quest system needed)
     from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
     npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
-    # TODO: Switch to hide (8) once the hide AMM is live.
-    npc.db.tradeable_resources = [1]  # Wheat placeholder — change to [8] for hide
+    npc.db.tradeable_resources = [8, 9]  # Hide, Leather
     npc.db.shop_name = "Buckshaw's Pelts"
 
     npc.llm_speech_mode = "name_match"
@@ -1078,10 +1072,8 @@ def _spawn_trapper():
         "You think Big Bjorn at the sawmill is 'too damn cheerful for a "
         "man who kills trees for a living.' You grudgingly trade with "
         "Millholm but you'd rather be out in the woods. Your hut doubles "
-        "as a tannery — you can turn raw hides into leather. You're a "
-        "shopkeeper who trades in hides, though your stock runs thin "
-        "sometimes — if someone asks to trade and you can't help, tell "
-        "them to come back after the next hunt. You've been noticing the "
+        "as a tannery — you can turn raw hides into leather. You trade "
+        "in both raw hides and tanned leather. You've been noticing the "
         "wolves are bolder than usual this season. Something's pushing "
         "them out of the deep woods. You don't know what, but you don't "
         "like it."
