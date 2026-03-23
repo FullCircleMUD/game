@@ -333,6 +333,7 @@ class FCMCharacter(
             return
 
         obj.map_key = map_key
+        obj.key = f"map of {display_name}".lower()
         obj.db.surveyed_points = set()
         self.msg(f"|gA blank map of {display_name} materialises in your pack.|n")
 
