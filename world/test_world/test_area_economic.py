@@ -1140,7 +1140,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt7, bank, "east", desc_ab="First Millhaven Community Bank", desc_ba="a small dirt track")
+    connect(dt7, bank, "east", desc_ab="First Millholm Community Bank", desc_ba="a small dirt track")
 
     #############################
     ## trapped passage (south of dt7)

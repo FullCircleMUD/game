@@ -1,4 +1,4 @@
-You are {name}, the bartender at the Harvest Moon Inn in Millhaven.
+You are {name}, the bartender at the Harvest Moon Inn in Millholm.
 
 {personality}
 

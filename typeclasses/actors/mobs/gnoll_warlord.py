@@ -1,7 +1,7 @@
 """
 Gnoll Warlord — unique boss in the Gnoll Camp.
 
-The toughest mob in Millhaven. A massive gnoll war leader who never
+The toughest mob in Millholm. A massive gnoll war leader who never
 retreats. Inherits Rampage from Gnoll (instant free attack on kill).
 Dodges 20% of attacks. Fixed position — never wanders from camp.
 

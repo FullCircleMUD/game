@@ -1,13 +1,13 @@
 """
-Create zone spawn scripts and boss mobs for the Millhaven game world.
+Create zone spawn scripts and boss mobs for the Millholm game world.
 
-Run AFTER the Millhaven world builder has created rooms with mob_area tags.
+Run AFTER the Millholm world builder has created rooms with mob_area tags.
 Each zone gets a ZoneSpawnScript that reads its JSON config and maintains
 mob populations automatically. Unique boss mobs are spawned directly
 (they manage their own respawn via is_unique=True).
 
 Usage (from Evennia):
-    @py from world.game_world.spawn_millhaven_mobs import spawn_millhaven_mobs; spawn_millhaven_mobs()
+    @py from world.game_world.spawn_millholm_mobs import spawn_millholm_mobs; spawn_millholm_mobs()
 """
 
 from evennia import ObjectDB
@@ -27,44 +27,44 @@ def _find_room(key):
     return results.first() if results.exists() else None
 
 
-def spawn_millhaven_mobs():
-    """Create zone spawn scripts and boss mobs for all Millhaven zones."""
-    print("--- Creating Millhaven Spawn Scripts ---")
+def spawn_millholm_mobs():
+    """Create zone spawn scripts and boss mobs for all Millholm zones."""
+    print("--- Creating Millholm Spawn Scripts ---")
 
-    script = ZoneSpawnScript.create_for_zone("millhaven_farms")
+    script = ZoneSpawnScript.create_for_zone("millholm_farms")
     if script:
         print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
     else:
-        print("  [!] Failed to create millhaven_farms spawn script")
+        print("  [!] Failed to create millholm_farms spawn script")
 
-    script = ZoneSpawnScript.create_for_zone("millhaven_woods")
+    script = ZoneSpawnScript.create_for_zone("millholm_woods")
     if script:
         print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
     else:
-        print("  [!] Failed to create millhaven_woods spawn script")
+        print("  [!] Failed to create millholm_woods spawn script")
 
-    script = ZoneSpawnScript.create_for_zone("millhaven_sewers")
+    script = ZoneSpawnScript.create_for_zone("millholm_sewers")
     if script:
         print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
     else:
-        print("  [!] Failed to create millhaven_sewers spawn script")
+        print("  [!] Failed to create millholm_sewers spawn script")
 
-    script = ZoneSpawnScript.create_for_zone("millhaven_mine")
+    script = ZoneSpawnScript.create_for_zone("millholm_mine")
     if script:
         print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
     else:
-        print("  [!] Failed to create millhaven_mine spawn script")
+        print("  [!] Failed to create millholm_mine spawn script")
 
-    script = ZoneSpawnScript.create_for_zone("millhaven_southern")
+    script = ZoneSpawnScript.create_for_zone("millholm_southern")
     if script:
         print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
     else:
-        print("  [!] Failed to create millhaven_southern spawn script")
+        print("  [!] Failed to create millholm_southern spawn script")
 
     # ── Boss Mobs ──
     _spawn_bosses()
 
-    print("--- Millhaven spawn script creation complete ---")
+    print("--- Millholm spawn script creation complete ---")
 
 
 def _spawn_bosses():

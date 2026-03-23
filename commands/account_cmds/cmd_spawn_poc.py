@@ -2,7 +2,7 @@
 Proof-of-concept command to test the resource spawn algorithm.
 
 Hardwires input values and runs the spawn calculation against
-real Millhaven wheat rooms to verify distribution works end-to-end.
+real Millholm wheat rooms to verify distribution works end-to-end.
 
 Usage (OOC, superuser only):
     spawnpoc            — run with default hardwired values

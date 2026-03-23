@@ -14,7 +14,7 @@ Prompt states:
 
 quest_key is set per instance (via spawn script) to "mara_moonpetal".
 Trains alchemy to BASIC level (mastery 1) — high-demand skill, capped
-in Millhaven per world design.
+in Millholm per world design.
 Short-term memory only (no vector embeddings).
 """
 
@@ -25,7 +25,7 @@ from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrain
 
 _MARA_KNOWLEDGE = (
     "You are Mara Brightwater, the herbalist and alchemist at The Mortar "
-    "and Pestle in Millhaven. You've studied plants and their properties "
+    "and Pestle in Millholm. You've studied plants and their properties "
     "your whole life. You talk about herbs the way other people talk about "
     "friends — each one has a personality, a temperament, preferences. "
     "You're quiet and precise, choosing your words carefully. You notice "

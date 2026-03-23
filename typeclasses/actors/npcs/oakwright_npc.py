@@ -23,7 +23,7 @@ from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrain
 # ── Shared knowledge block ────────────────────────────────────────────
 
 _OAKWRIGHT_KNOWLEDGE = (
-    "You are Master Oakwright, the carpenter at your woodshop in Millhaven. "
+    "You are Master Oakwright, the carpenter at your woodshop in Millholm. "
     "You've been working wood for over thirty years. You buy timber from "
     "the sawmill and craft furniture, tools, and building materials for "
     "the town. You also train apprentices in carpentry. You're a reserved, "

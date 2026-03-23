@@ -10,7 +10,7 @@ One script instance per zone. Common mobs are deleted on death —
 the script handles all respawning via fresh object creation.
 
 Usage (from world builder):
-    ZoneSpawnScript.create_for_zone("millhaven_farms")
+    ZoneSpawnScript.create_for_zone("millholm_farms")
 """
 
 import json

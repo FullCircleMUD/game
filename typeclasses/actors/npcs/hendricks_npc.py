@@ -14,7 +14,7 @@ Prompt states:
 
 quest_key is set per instance (via spawn script) to "hendricks_ore".
 Trains blacksmithing to BASIC level (mastery 1) — high-demand skill,
-capped in Millhaven per world design.
+capped in Millholm per world design.
 Short-term memory only (no vector embeddings).
 """
 
@@ -24,7 +24,7 @@ from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrain
 # ── Shared knowledge block ────────────────────────────────────────────
 
 _HENDRICKS_KNOWLEDGE = (
-    "You are Old Hendricks, the blacksmith at your smithy in Millhaven. "
+    "You are Old Hendricks, the blacksmith at your smithy in Millholm. "
     "You've worked the forge for over forty years — learned from your "
     "mentor, a dwarf named Korgan who trained in Ironreach. Everything "
     "you make, you measure against what Korgan could do, and it's never "
@@ -40,7 +40,7 @@ _COMMON_RULES = (
     "RULES:\n"
     "- Stay in character. You ARE {name}, the blacksmith.\n"
     "- Keep responses to 1 sentence, sometimes just a word or a grunt. "
-    "You are the most laconic person in Millhaven.\n"
+    "You are the most laconic person in Millholm.\n"
     "- You may use *emotes* (e.g. *grunts*, *turns back to the anvil*, "
     "*squints at the ore critically*).\n"
     "- When suggesting commands, format them as |w<command>|n.\n"

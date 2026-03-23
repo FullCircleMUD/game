@@ -8,7 +8,7 @@ Solo kobolds flee. Cornered kobolds (no valid exit) fight desperately.
 Mid-combat check: if allies die and the kobold loses pack courage, it
 attempts to flee on its next AI tick.
 
-Designed for the Millhaven Mine — L2 mobs, individually weak but
+Designed for the Millholm Mine — L2 mobs, individually weak but
 dangerous in groups of 2-3.
 """
 

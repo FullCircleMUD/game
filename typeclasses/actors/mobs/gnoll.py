@@ -1,7 +1,7 @@
 """
 Gnoll — aggressive raider with Rampage ability.
 
-The toughest standard mob in the Millhaven southern plains. Gnolls are
+The toughest standard mob in the Millholm southern plains. Gnolls are
 brutal fighters that become more dangerous as they kill — when a gnoll
 slays a target, it immediately attacks the next enemy with zero delay
 (Rampage).

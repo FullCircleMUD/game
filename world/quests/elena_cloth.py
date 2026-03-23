@@ -30,7 +30,7 @@ class ElenaClothQuest(FCMQuest):
         "Elena Copperkettle is in a panic — the mayor's daughter's "
         "wedding is this weekend and she's three bolts of cloth short "
         "for the dress. She needs 3 Cloth urgently. Cotton can be "
-        "woven into cloth at the loom in Millhaven Textiles."
+        "woven into cloth at the loom in Millholm Textiles."
     )
     quest_type = "side"
     start_step = "deliver_cloth"
@@ -40,7 +40,7 @@ class ElenaClothQuest(FCMQuest):
 
     help_deliver_cloth = (
         "Bring 3 Cloth to Elena Copperkettle at her cottage. "
-        "Cloth can be woven from cotton at the loom in Millhaven Textiles."
+        "Cloth can be woven from cotton at the loom in Millholm Textiles."
     )
     help_completed = (
         "You saved Elena from disaster. The wedding dress will be "

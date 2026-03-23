@@ -1,5 +1,5 @@
 """
-Build the game world — the real Millhaven zone.
+Build the game world — the real Millholm zone.
 
 Usage (from Evennia shell / @py):
     from world.game_world.build_game_world import build_game_world
@@ -14,16 +14,16 @@ from typeclasses.terrain.exits.quest_dungeon_trigger_exit import (
     QuestDungeonTriggerExit,
 )
 from utils.exit_helpers import connect_door
-from world.game_world.millhaven_faerie_hollow import build_faerie_hollow
-from world.game_world.millhaven_farms import build_millhaven_farms
-from world.game_world.millhaven_fixtures import place_millhaven_fixtures
-from world.game_world.spawn_millhaven_mobs import spawn_millhaven_mobs
-from world.game_world.spawn_millhaven_npcs import spawn_millhaven_npcs
-from world.game_world.millhaven_mine import build_millhaven_mine
-from world.game_world.millhaven_sewers import build_millhaven_sewers
-from world.game_world.millhaven_southern import build_millhaven_southern
-from world.game_world.millhaven_town import build_millhaven_town
-from world.game_world.millhaven_woods import build_millhaven_woods
+from world.game_world.millholm_faerie_hollow import build_faerie_hollow
+from world.game_world.millholm_farms import build_millholm_farms
+from world.game_world.millholm_fixtures import place_millholm_fixtures
+from world.game_world.spawn_millholm_mobs import spawn_millholm_mobs
+from world.game_world.spawn_millholm_npcs import spawn_millholm_npcs
+from world.game_world.millholm_mine import build_millholm_mine
+from world.game_world.millholm_sewers import build_millholm_sewers
+from world.game_world.millholm_southern import build_millholm_southern
+from world.game_world.millholm_town import build_millholm_town
+from world.game_world.millholm_woods import build_millholm_woods
 
 
 RECYCLE_BIN_KEY = "nft_recycle_bin"
@@ -61,17 +61,17 @@ def build_game_world():
     )
 
     # Build districts
-    print("[1] Building Millhaven Town...")
-    town_rooms = build_millhaven_town()
+    print("[1] Building Millholm Town...")
+    town_rooms = build_millholm_town()
 
-    print("[2] Building Millhaven Farms...")
-    farm_rooms = build_millhaven_farms(town_rooms)
+    print("[2] Building Millholm Farms...")
+    farm_rooms = build_millholm_farms(town_rooms)
 
-    print("[3] Building Millhaven Woods...")
-    woods_rooms = build_millhaven_woods(town_rooms)
+    print("[3] Building Millholm Woods...")
+    woods_rooms = build_millholm_woods(town_rooms)
 
-    print("[4] Building Millhaven Sewers...")
-    sewer_rooms = build_millhaven_sewers()
+    print("[4] Building Millholm Sewers...")
+    sewer_rooms = build_millholm_sewers()
 
     # ── Cross-district hidden doors (town ↔ sewers) ───────────────────
     print("[4a] Connecting cellar stairwell → sewer entrance (hidden)...")
@@ -150,8 +150,8 @@ def build_game_world():
     cellar_return.set_direction("north")
 
     # Abandoned Mine (static district — clearing ↔ mine passages wired below)
-    print("[5] Building Millhaven Abandoned Mine...")
-    mine_rooms = build_millhaven_mine()
+    print("[5] Building Millholm Abandoned Mine...")
+    mine_rooms = build_millholm_mine()
 
     # Faerie Hollow (deep woods clearing + invisible faerie entrance)
     print("[6] Building Faerie Hollow...")
@@ -220,8 +220,8 @@ def build_game_world():
     trigger_from_mine.dungeon_destination_room_id = clearing_room.id
 
     # Southern District (rougher town, countryside, moonpetal fields, gnoll territory, barrow)
-    print("[7] Building Millhaven Southern District...")
-    southern_rooms = build_millhaven_southern()
+    print("[7] Building Millholm Southern District...")
+    southern_rooms = build_millholm_southern()
 
     # ── Cross-district connections (town/farms → southern) ───────────
     from utils.exit_helpers import connect
@@ -233,12 +233,12 @@ def build_game_world():
     connect(farm_rooms["south_fork_end"], southern_rooms["countryside_road"], "east")
 
     # World fixtures (signs, monuments, interactables)
-    place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms)
+    place_millholm_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms)
 
     # NPCs
-    spawn_millhaven_npcs()
+    spawn_millholm_npcs()
 
     # Mobs
-    spawn_millhaven_mobs()
+    spawn_millholm_mobs()
 
     print("=== GAME WORLD BUILD COMPLETE ===")

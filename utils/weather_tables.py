@@ -18,7 +18,7 @@ from enums.weather import Weather
 
 # Zone name -> ClimateZone mapping. Unmapped zones default to TEMPERATE.
 ZONE_CLIMATES = {
-    "millhaven": ClimateZone.TEMPERATE,
+    "millholm": ClimateZone.TEMPERATE,
 }
 
 

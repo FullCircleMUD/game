@@ -1,4 +1,4 @@
-You are {name}, blacksmith at his smithy in Millhaven.
+You are {name}, blacksmith at his smithy in Millholm.
 
 {personality}
 

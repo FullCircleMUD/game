@@ -1,5 +1,5 @@
 """
-Millhaven Town — the central hub of the Millhaven zone.
+Millholm Town — the central hub of the Millholm zone.
 
 Builds rooms and exits for the town district including:
 - The Old Trade Way (east-west road, 9 segments + 3x3 market square)
@@ -16,8 +16,8 @@ Builds rooms and exits for the town district including:
 - District intersection points (farms, woods, sewers, southern district)
 
 Usage:
-    from world.game_world.millhaven_town import build_millhaven_town
-    build_millhaven_town()
+    from world.game_world.millholm_town import build_millholm_town
+    build_millholm_town()
 """
 
 from evennia import create_object, ObjectDB
@@ -34,12 +34,12 @@ from utils.exit_helpers import connect, connect_door
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT = "millhaven_town"
+ZONE = "millholm"
+DISTRICT = "millholm_town"
 
 
-def build_millhaven_town():
-    """Build the Millhaven Town district and connect Limbo to the inn."""
+def build_millholm_town():
+    """Build the Millholm Town district and connect Limbo to the inn."""
 
     limbo = ObjectDB.objects.get(id=2)
     rooms = {}
@@ -208,10 +208,10 @@ def build_millhaven_town():
         ],
     )
 
-    # ── Millhaven Textiles (Crafting — tailor) ───────────────────────
+    # ── Millholm Textiles (Crafting — tailor) ───────────────────────
     rooms["textiles"] = create_object(
         RoomCrafting,
-        key="Millhaven Textiles",
+        key="Millholm Textiles",
         attributes=[
             ("crafting_type", "tailor"),
             ("mastery_level", 2),  # MasteryLevel.SKILLED
@@ -467,7 +467,7 @@ def build_millhaven_town():
         key="The Crossroads",
         attributes=[
             ("desc",
-             "The heart of Millhaven, where the Old Trade Way crosses the "
+             "The heart of Millholm, where the Old Trade Way crosses the "
              "north-south road. Foot traffic flows in all four directions — "
              "farmers heading to market, merchants hauling goods, children "
              "darting between legs. The cobblestones here are worn to a "
@@ -512,7 +512,7 @@ def build_millhaven_town():
         attributes=[
             ("desc",
              "A weathered stone monument stands in this corner of the square, "
-             "commemorating Millhaven's founding. Fresh flowers at its base "
+             "commemorating Millholm's founding. Fresh flowers at its base "
              "suggest someone still tends the memorial. The ornate doors of "
              "the Shrine of the First Harvest face the monument from the "
              "south, and the general store's shopfront opens to the west."),
@@ -520,7 +520,7 @@ def build_millhaven_town():
                 "monument": (
                     "A stone monument about eight feet tall, carved from local "
                     "granite. Bronze plaques at its base tell the story of "
-                    "Millhaven's founding: how a dwarven miller and a halfling "
+                    "Millholm's founding: how a dwarven miller and a halfling "
                     "farmer established a settlement where the river met the "
                     "trade road. The names of the founding families are listed "
                     "below — Stonefield, Brightwater, Goldwheat, and Ironhand. "
@@ -529,7 +529,7 @@ def build_millhaven_town():
                 "flowers": (
                     "A small posy of wildflowers laid at the base of the "
                     "monument. They're fresh — placed this morning, perhaps. "
-                    "Someone in Millhaven still remembers the founders."
+                    "Someone in Millholm still remembers the founders."
                 ),
                 "plaques": (
                     "Bronze plaques set into the granite base, green with age. "
@@ -548,7 +548,7 @@ def build_millhaven_town():
         attributes=[
             ("desc",
              "The south side of the market square narrows into a road that "
-             "leads deeper into the southern reaches of Millhaven. The "
+             "leads deeper into the southern reaches of Millholm. The "
              "buildings here are more tightly packed, the road shaded by "
              "upper storeys that lean toward each other overhead. The alchemist's "
              "door is set into a crooked building to the west, its sign "
@@ -615,7 +615,7 @@ def build_millhaven_town():
             ("details", {
                 "maps": (
                     "Trade maps showing routes across the continent — "
-                    "Millhaven to Ironreach, Millhaven to the coast. "
+                    "Millholm to Ironreach, Millholm to the coast. "
                     "Distances and travel times are annotated in a precise "
                     "hand. Some routes have been crossed out and redrawn."
                 ),
@@ -680,17 +680,17 @@ def build_millhaven_town():
         attributes=[
             ("desc",
              "The trade road stretches westward, leaving the last buildings "
-             "of Millhaven behind. Rolling farmland opens up ahead, golden "
+             "of Millholm behind. Rolling farmland opens up ahead, golden "
              "wheat fields and grazing livestock visible in the distance. "
              "A weathered signpost marks the town boundary."),
             ("details", {
                 "signpost": (
-                    "A weathered wooden signpost. One arm reads 'Millhaven' "
+                    "A weathered wooden signpost. One arm reads 'Millholm' "
                     "pointing east, the other 'Farms' pointing west. Bird "
                     "droppings streak the top."
                 ),
                 "sign": (
-                    "A weathered wooden signpost. One arm reads 'Millhaven' "
+                    "A weathered wooden signpost. One arm reads 'Millholm' "
                     "pointing east, the other 'Farms' pointing west. Bird "
                     "droppings streak the top."
                 ),
@@ -781,7 +781,7 @@ def build_millhaven_town():
 
     rooms["cemetery"] = create_object(
         RoomCemetery,
-        key="Millhaven Cemetery",
+        key="Millholm Cemetery",
         attributes=[
             ("bind_cost", 1),
             ("desc",
@@ -831,7 +831,7 @@ def build_millhaven_town():
              "until the sky is just a strip overhead. The cobblestones are "
              "slick with runoff from the eaves. The air is cooler here, "
              "shaded and slightly damp. The road continues south into parts "
-             "of Millhaven you haven't explored yet."),
+             "of Millholm you haven't explored yet."),
         ],
     )
 
@@ -868,7 +868,7 @@ def build_millhaven_town():
         key="South Gate",
         attributes=[
             ("desc",
-             "The southern wall of Millhaven rises here — ten feet of "
+             "The southern wall of Millholm rises here — ten feet of "
              "rough stone topped with wooden palisades, built more to "
              "keep wildlife out than to withstand a siege. A wide gate "
              "of iron-banded oak stands open, flanked by squat guard "
@@ -937,7 +937,7 @@ def build_millhaven_town():
 
     rooms["gaol"] = create_object(
         RoomBase,
-        key="Millhaven Gaol",
+        key="Millholm Gaol",
         attributes=[
             ("desc",
              "A squat stone building with barred windows and a heavy "
@@ -954,7 +954,7 @@ def build_millhaven_town():
             "Iron bars set into stone, with straw pallets and wooden "
             "buckets for furnishing. The occupied cells hold petty "
             "thieves and drunks, mostly — the real criminals in "
-            "Millhaven don't get caught."
+            "Millholm don't get caught."
         ),
         "guard": (
             "A heavyset man in a stained tabard, more interested in "
@@ -1005,7 +1005,7 @@ def build_millhaven_town():
              "The trade road continues east past quieter establishments. "
              "The sharp, herbal smell of an apothecary drifts from the "
              "north, while a modest stone building to the south bears "
-             "the sign of the Millhaven Post — a quill crossed with a "
+             "the sign of the Millholm Post — a quill crossed with a "
              "sealed letter."),
         ],
     )
@@ -1014,7 +1014,7 @@ def build_millhaven_town():
 
     rooms["post_office"] = create_object(
         RoomPostOffice,
-        key="Millhaven Post Office",
+        key="Millholm Post Office",
         attributes=[
             ("desc",
              "A tidy stone building with a polished wooden counter "
@@ -1044,7 +1044,7 @@ def build_millhaven_town():
 
     rooms["distillery"] = create_object(
         RoomBase,
-        key="Millhaven Distillery",
+        key="Millholm Distillery",
         attributes=[
             ("max_height", 0),
             ("max_depth", 0),
@@ -1111,7 +1111,7 @@ def build_millhaven_town():
     # ── Stables ──────────────────────────────────────────────────────
     rooms["stables"] = create_object(
         RoomBase,
-        key="Millhaven Stables",
+        key="Millholm Stables",
         attributes=[
             ("max_height", 0),
             ("max_depth", 0),
@@ -1341,7 +1341,7 @@ def build_millhaven_town():
     # ── Order of the Golden Scale (Bank) ─────────────────────────────
     rooms["bank"] = create_object(
         RoomBank,
-        key="Order of the Golden Scale - Millhaven Branch",
+        key="Order of the Golden Scale - Millholm Branch",
         attributes=[
             ("desc",
              "Polished marble floors reflect ornate chandeliers overhead. "
@@ -1398,10 +1398,10 @@ def build_millhaven_town():
         ],
     )
 
-    # ── Millhaven General Store ──────────────────────────────────────
+    # ── Millholm General Store ──────────────────────────────────────
     rooms["general_store"] = create_object(
         RoomBase,
-        key="Millhaven General Store",
+        key="Millholm General Store",
         attributes=[
             ("max_height", 0),
             ("max_depth", 0),
@@ -1902,7 +1902,7 @@ def build_millhaven_town():
 
     # ── Combat flags ─────────────────────────────────────────────────
     # RoomBase defaults: allow_combat=True, allow_pvp=False, allow_death=True.
-    # All no-combat rooms in Millhaven Town.
+    # All no-combat rooms in Millholm Town.
     # Rooms using specialised typeclasses already have allow_combat=False
     # via their class definition — listed here as comments for reference:
     #   RoomInn:        inn
@@ -1919,7 +1919,7 @@ def build_millhaven_town():
         rooms["barracks"],          # attached to warriors guild
         rooms["shrine"],            # Shrine of the First Harvest
         rooms["priest_quarters"],   # attached to shrine
-        rooms["stables"],           # Millhaven Stables
+        rooms["stables"],           # Millholm Stables
         rooms["beggars_alley"],     # quest NPC Old Silas lives here
         rooms["general_store"],     # shop
     ]
@@ -1983,12 +1983,45 @@ def build_millhaven_town():
     # ══════════════════════════════════════════════════════════════════
     # 4. FUTURE CONNECTION NOTES
     # ══════════════════════════════════════════════════════════════════
-    # road_far_west → will connect west to Millhaven Farms district
-    # road_far_east → will connect east to Industries / Millhaven Woods
-    # cellar_stairwell → connects west (hidden) to Millhaven Sewers (build_game_world.py)
+    # road_far_west → will connect west to Millholm Farms district
+    # road_far_east → will connect east to Industries / Millholm Woods
+    # cellar_stairwell → connects west (hidden) to Millholm Sewers (build_game_world.py)
     # cellar_stairwell → connects south via QuestDungeonTriggerExit (rat cellar quest)
-    # abandoned_house → will connect down (hidden) to Millhaven Sewers
+    # abandoned_house → will connect down (hidden) to Millholm Sewers
     # south_gate → connects south to Southern District (build_game_world.py)
 
-    print("  Millhaven Town complete.\n")
+    # ── District map cell tags ────────────────────────────────────────
+    # Tag convention: room.tags.add("<map_key>:<point_key>", category="map_cell")
+    # millholm_town map — all exterior/street rooms
+    _town_map_tags = {
+        "cemetery":       "millholm_town:cemetery",
+        "cemetery_gates": "millholm_town:cemetery_gates",
+        "north_road":     "millholm_town:north_road",
+        "sq_nw":          "millholm_town:sq_nw",
+        "sq_n":           "millholm_town:sq_n",
+        "sq_ne":          "millholm_town:sq_ne",
+        "sq_w":           "millholm_town:sq_w",
+        "sq_center":      "millholm_town:sq_center",
+        "sq_e":           "millholm_town:sq_e",
+        "sq_sw":          "millholm_town:sq_sw",
+        "sq_s":           "millholm_town:sq_s",
+        "sq_se":          "millholm_town:sq_se",
+        "south_road":     "millholm_town:south_road",
+        "mid_south_road": "millholm_town:mid_south_road",
+        "far_south_road": "millholm_town:far_south_road",
+        "south_gate":     "millholm_town:south_gate",
+        "road_far_west":  "millholm_town:road_far_west",
+        "road_west":      "millholm_town:road_west",
+        "road_mid_west":  "millholm_town:road_mid_west",
+        "road_mid_east":  "millholm_town:road_mid_east",
+        "road_east":      "millholm_town:road_east",
+        "road_far_east":  "millholm_town:road_far_east",
+    }
+    for room_key, tag in _town_map_tags.items():
+        rooms[room_key].tags.add(tag, category="map_cell")
+    # sq_center is also the region-level town marker
+    rooms["sq_center"].tags.add("millholm_region:millholm_town", category="map_cell")
+    print(f"  Tagged {len(_town_map_tags)} town rooms with map_cell tags.")
+
+    print("  Millholm Town complete.\n")
     return rooms

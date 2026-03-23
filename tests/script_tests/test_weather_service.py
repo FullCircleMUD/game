@@ -57,7 +57,7 @@ class TestGetClimateForZone(EvenniaTest):
         pass
 
     def test_known_zone(self):
-        self.assertEqual(get_climate_for_zone("millhaven"), ClimateZone.TEMPERATE)
+        self.assertEqual(get_climate_for_zone("millholm"), ClimateZone.TEMPERATE)
 
     def test_unknown_zone_defaults_temperate(self):
         self.assertEqual(get_climate_for_zone("unknown_zone"), ClimateZone.TEMPERATE)
@@ -78,7 +78,7 @@ class TestGetWeather(EvenniaTest):
 
         with patch("typeclasses.scripts.weather_service.GLOBAL_SCRIPTS") as mock_gs:
             mock_gs.weather_service = None
-            result = get_weather("millhaven")
+            result = get_weather("millholm")
             self.assertEqual(result, Weather.CLEAR)
 
     def test_untracked_zone_returns_clear(self):
@@ -97,10 +97,10 @@ class TestGetWeather(EvenniaTest):
         from typeclasses.scripts.weather_service import get_weather
 
         service = MagicMock()
-        service.db.zone_weather = {"millhaven": Weather.STORM.value}
+        service.db.zone_weather = {"millholm": Weather.STORM.value}
         with patch("typeclasses.scripts.weather_service.GLOBAL_SCRIPTS") as mock_gs:
             mock_gs.weather_service = service
-            result = get_weather("millhaven")
+            result = get_weather("millholm")
             self.assertEqual(result, Weather.STORM)
 
 

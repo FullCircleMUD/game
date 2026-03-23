@@ -28,7 +28,7 @@ class MaraMoonpetalQuest(FCMQuest):
     key = "mara_moonpetal"
     name = "Moonpetal for the Remedy"
     desc = (
-        "A child in Millhaven has come down with marsh fever. Mara "
+        "A child in Millholm has come down with marsh fever. Mara "
         "Brightwater needs 3 fresh Moonpetal to brew the remedy, but "
         "her supply wilted and she can't leave the shop — the poultice "
         "needs constant tending. Moonpetal grows in the fields south "
@@ -72,6 +72,6 @@ class MaraMoonpetalQuest(FCMQuest):
         """Notify the player."""
         self.quester.msg(
             "\n|yQuest Complete: Moonpetal for the Remedy|n\n"
-            "The remedy is brewed. A child in Millhaven will sleep "
+            "The remedy is brewed. A child in Millholm will sleep "
             "soundly tonight."
         )

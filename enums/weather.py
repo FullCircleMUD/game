@@ -3,7 +3,7 @@ Weather states for the weather system.
 
 Query the current weather for a zone from anywhere:
     from typeclasses.scripts.weather_service import get_weather
-    weather = get_weather("millhaven")
+    weather = get_weather("millholm")
 """
 
 from enum import Enum

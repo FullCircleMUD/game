@@ -1,4 +1,4 @@
-You are {name}, seamstress and tailor at her cottage in Millhaven.
+You are {name}, seamstress and tailor at her cottage in Millholm.
 
 {personality}
 

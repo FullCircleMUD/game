@@ -1,5 +1,5 @@
 """
-Millhaven Sewers — the underground district beneath Millhaven Town.
+Millholm Sewers — the underground district beneath Millholm Town.
 
 Builds ~26 rooms including:
 - Sewer proper (18 rooms): a winding drain system with 5 dead ends
@@ -13,8 +13,8 @@ Cross-district hidden doors (cellar→sewer entrance, abandoned house→old cist
 are created in build_game_world.py after both districts are built.
 
 Usage:
-    from world.game_world.millhaven_sewers import build_millhaven_sewers
-    build_millhaven_sewers()
+    from world.game_world.millholm_sewers import build_millholm_sewers
+    build_millholm_sewers()
 """
 
 from evennia import create_object
@@ -25,8 +25,8 @@ from utils.exit_helpers import connect, connect_door
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT = "millhaven_sewers"
+ZONE = "millholm"
+DISTRICT = "millholm_sewers"
 
 
 def _tag_room(room, terrain):
@@ -36,8 +36,8 @@ def _tag_room(room, terrain):
     room.set_terrain(terrain)
 
 
-def build_millhaven_sewers():
-    """Build the Millhaven Sewers district and return a dict of key rooms."""
+def build_millholm_sewers():
+    """Build the Millholm Sewers district and return a dict of key rooms."""
     rooms = {}
 
     # ====================================================================
@@ -358,7 +358,7 @@ def build_millhaven_sewers():
             "oil lamps and a few stolen candelabras. Rough wooden tables and "
             "benches fill the centre, while tapestries — clearly pilfered "
             "from wealthy homes — cover the stone walls. A large map of "
-            "Millhaven is pinned to a board near the east exit, covered in "
+            "Millholm is pinned to a board near the east exit, covered in "
             "markings and notations. This is clearly the common room of an "
             "organised group.",
         )],
@@ -533,6 +533,34 @@ def build_millhaven_sewers():
         rooms[key].tags.add("sewer_rats", category="mob_area")
     print(f"  Tagged {len(sewer_mob_keys)} rooms with mob_area=sewer_rats.")
 
+    # ── District map cell tags ────────────────────────────────────────
+    # Tag sewer rooms for the millholm_sewers district map.
+    # Note: bricked_up_passage room → "bricked_passage" point_key in the map stub.
+    _sewer_map_tags = {
+        "sewer_entrance":      "millholm_sewers:sewer_entrance",
+        "main_drain":          "millholm_sewers:main_drain",
+        "drain_junction":      "millholm_sewers:drain_junction",
+        "flooded_tunnel":      "millholm_sewers:flooded_tunnel",
+        "deep_sewer":          "millholm_sewers:deep_sewer",
+        "overflow_chamber":    "millholm_sewers:overflow_chamber",
+        "crumbling_wall":      "millholm_sewers:crumbling_wall",
+        "blocked_grate":       "millholm_sewers:blocked_grate",
+        "rat_nest":            "millholm_sewers:rat_nest",
+        "collapsed_section":   "millholm_sewers:collapsed_section",
+        "old_cistern":         "millholm_sewers:old_cistern",
+        "waterlogged_passage": "millholm_sewers:waterlogged_passage",
+        "fungal_grotto":       "millholm_sewers:fungal_grotto",
+        "narrow_crawlway":     "millholm_sewers:narrow_crawlway",
+        "ancient_drain":       "millholm_sewers:ancient_drain",
+        "submerged_alcove":    "millholm_sewers:submerged_alcove",
+        "bricked_up_passage":  "millholm_sewers:bricked_passage",
+    }
+    for room_key, tag in _sewer_map_tags.items():
+        rooms[room_key].tags.add(tag, category="map_cell")
+    # sewer_entrance is also the region-level sewers marker
+    rooms["sewer_entrance"].tags.add("millholm_region:millholm_sewers", category="map_cell")
+    print(f"  Tagged {len(_sewer_map_tags)} sewer rooms with map_cell tags.")
+
     # ── Room count summary ─────────────────────────────────────────────
-    print(f"  Millhaven Sewers complete — {len(rooms)} rooms.\n")
+    print(f"  Millholm Sewers complete — {len(rooms)} rooms.\n")
     return rooms

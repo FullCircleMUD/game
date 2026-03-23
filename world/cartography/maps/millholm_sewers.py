@@ -12,7 +12,7 @@ from world.cartography.map_registry import register_map
 
 # Stub template — real art to be designed with sewer layout.
 _TEMPLATE = (
-    "      [MILLHAVEN SEWERS]      \n"
+    "      [MILLHOLM SEWERS]      \n"
     "  .   .   .   .   .   .   .  \n"
     "  .   .   .   .   .   .   .  \n"
     "  .   .   .   .   .   .   .  \n"

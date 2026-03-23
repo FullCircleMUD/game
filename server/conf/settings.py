@@ -191,8 +191,8 @@ HUNGER_TICK_INTERVAL = 1200 # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAE D
 # 'XX' = unknown (fail-closed → Variant A)
 # Remove or guard with `if DEBUG:` before production deploy — Cloudflare
 # header takes precedence whenever it is present.
-DEV_GEO_COUNTRY = 'PY'
-#DEV_GEO_COUNTRY = 'US'
+#DEV_GEO_COUNTRY = 'PY'
+DEV_GEO_COUNTRY = 'US'
 
 # Community links — update here when these change, no template edits needed.
 DISCORD_URL = 'https://discord.gg/j8b5GkysM3'

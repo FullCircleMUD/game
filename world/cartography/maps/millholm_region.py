@@ -18,7 +18,7 @@ from world.cartography.map_registry import register_map
 # Minimal stub template — real art to be designed once region is fully built.
 # 33 cols × 9 rows placeholder.
 _TEMPLATE = (
-    "           [MILLHAVEN REGION]   \n"
+    "           [MILLHOLM REGION]   \n"
     "  farm  .  town .  woods  .  .  \n"
     "    .   .   .   .   .   .   .   \n"
     "  south .  .   .   .   .   .   \n"

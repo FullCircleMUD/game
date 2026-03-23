@@ -1,5 +1,5 @@
 """
-Millhaven world fixtures — signs, monuments, fountains, and other
+Millholm world fixtures — signs, monuments, fountains, and other
 interactable objects placed into already-built rooms.
 
 Called after all district builders have run, so rooms already exist.
@@ -12,8 +12,8 @@ town signposts) have been converted to lightweight room details (the
 full DB objects remain as fixtures here.
 
 Usage:
-    from world.game_world.millhaven_fixtures import place_millhaven_fixtures
-    place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms)
+    from world.game_world.millholm_fixtures import place_millholm_fixtures
+    place_millholm_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms)
 """
 
 from evennia import create_object
@@ -23,8 +23,8 @@ from typeclasses.world_objects.jobs_board import JobsBoard
 from typeclasses.world_objects.sign import WorldSign
 
 
-def place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
-    """Place world fixtures into already-built Millhaven rooms."""
+def place_millholm_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
+    """Place world fixtures into already-built Millholm rooms."""
     print("[5] Placing world fixtures...")
     count = 0
 
@@ -89,7 +89,7 @@ def place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
         location=farm_rooms["farm_road_crossroads"],
         nohome=True,
     )
-    crossroads_sign.sign_text = "Millhaven East / Farms West"
+    crossroads_sign.sign_text = "Millholm East / Farms West"
     crossroads_sign.sign_style = "post"
     count += 1
 
@@ -101,7 +101,7 @@ def place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
     )
     mile_marker.db.desc = (
         "A squat stone pillar, barely knee-height, carved with the words "
-        "'Millhaven 2 leagues'. Lichen has crept across the lettering, "
+        "'Millholm 2 leagues'. Lichen has crept across the lettering, "
         "and the stone is chipped from years of cart wheels clipping its "
         "corner. A small snail traces a silver path across the top."
     )
@@ -114,7 +114,7 @@ def place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
         location=farm_rooms["bw_track"],
         nohome=True,
     )
-    bw_sign.sign_text = "Brightwater Farm — Finest Cotton in Millhaven"
+    bw_sign.sign_text = "Brightwater Farm — Finest Cotton in Millholm"
     bw_sign.sign_style = "hanging"
     count += 1
 
@@ -231,7 +231,7 @@ def place_millhaven_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
     thief_map.db.desc = (
         "A large piece of tanned leather is stretched across the wall, "
         "marked with charcoal and ink. It shows a rough layout of "
-        "Millhaven's streets, with certain buildings circled and "
+        "Millholm's streets, with certain buildings circled and "
         "annotated in thieves' cant. Red marks indicate guard patrol "
         "routes, and small X's mark what might be hidden entrance points. "
         "Several pins hold scraps of parchment with notes — job details, "

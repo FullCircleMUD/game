@@ -1,5 +1,5 @@
 """
-Millhaven Faerie Hollow — a small hidden district in the deep woods.
+Millholm Faerie Hollow — a small hidden district in the deep woods.
 
 Builds ~5 rooms:
 - Deep Woods Clearing: static midpoint between two procedural deep woods
@@ -23,7 +23,7 @@ Connection points:
   (wired in build_game_world.py via DungeonTriggerExits)
 
 Usage:
-    from world.game_world.millhaven_faerie_hollow import build_faerie_hollow
+    from world.game_world.millholm_faerie_hollow import build_faerie_hollow
     build_faerie_hollow()
 """
 
@@ -38,9 +38,9 @@ from utils.exit_helpers import connect
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT_CLEARING = "millhaven_deep_woods"
-DISTRICT_HOLLOW = "millhaven_faerie_hollow"
+ZONE = "millholm"
+DISTRICT_CLEARING = "millholm_deep_woods"
+DISTRICT_HOLLOW = "millholm_faerie_hollow"
 
 
 def build_faerie_hollow():
@@ -314,5 +314,11 @@ def build_faerie_hollow():
     # faerie_hollow: future faerie NPC spawns, gift/quest mechanics
     # moonlit_glade: offering altar — future quest interaction point
 
-    print("  Millhaven Faerie Hollow complete.\n")
+    # ── District map cell tags ────────────────────────────────────────
+    # deep_woods_clearing is the shared region "deep_woods" marker —
+    # both this room and the miners_camp reveal the same vague cell.
+    rooms["deep_woods_clearing"].tags.add("millholm_region:deep_woods", category="map_cell")
+    print("  Tagged deep_woods_clearing with millholm_region:deep_woods map_cell tag.")
+
+    print("  Millholm Faerie Hollow complete.\n")
     return rooms

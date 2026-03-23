@@ -13,7 +13,7 @@ from world.cartography.map_registry import register_map
 
 # Stub template — real art to be designed with mine layout.
 _TEMPLATE = (
-    "      [MILLHAVEN MINE]        \n"
+    "      [MILLHOLM MINE]        \n"
     "  .   .   .   .   .   .   .  \n"
     "  .   .   .   .   .   .   .  \n"
     "  .   .   .   .   .   .   .  \n"

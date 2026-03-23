@@ -1,5 +1,5 @@
 """
-Millhaven Southern District — the countryside and borderlands beyond the south gate.
+Millholm Southern District — the countryside and borderlands beyond the south gate.
 
 Builds ~24 rooms across five sections:
 - Countryside (4 rooms): Countryside Road, Farmstead Fork, Bandit Holdfast,
@@ -24,8 +24,8 @@ Ancient Builders glyphs in the catacombs connect to the same arc as the
 mine's sealed door and the deep sewer passages.
 
 Usage:
-    from world.game_world.millhaven_southern import build_millhaven_southern
-    build_millhaven_southern()
+    from world.game_world.millholm_southern import build_millholm_southern
+    build_millholm_southern()
 """
 
 from evennia import create_object
@@ -37,13 +37,13 @@ from utils.exit_helpers import connect, connect_door
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT = "millhaven_southern"
+ZONE = "millholm"
+DISTRICT = "millholm_southern"
 
 
-def build_millhaven_southern():
+def build_millholm_southern():
     """
-    Build the Millhaven Southern District.
+    Build the Millholm Southern District.
 
     Returns:
         dict of room key → room object. Key rooms for cross-district
@@ -191,7 +191,7 @@ def build_millhaven_southern():
             "blooms with silvery petals that seem to glow faintly "
             "from within. They open at dusk and close at dawn, but "
             "even in daylight their luminous quality is visible. "
-            "The alchemists of Millhaven depend on these fields."
+            "The alchemists of Millholm depend on these fields."
         ),
     }
 
@@ -642,14 +642,14 @@ def build_millhaven_southern():
         attributes=[
             ("desc",
              "A crumbling stone gatehouse marks the southern boundary "
-             "of Millhaven's territory. The iron portcullis is rusted "
+             "of Millholm's territory. The iron portcullis is rusted "
              "in its half-lowered position, leaving a gap beneath "
              "that a person could squeeze through — but beyond it, "
-             "the road descends into lands that Millhaven's maps do "
+             "the road descends into lands that Millholm's maps do "
              "not cover. The borderlands stretch to the horizon, "
              "wild and uncharted. A weathered stone marker beside "
              "the gate reads: 'HERE ENDS THE PROTECTION OF THE "
-             "MILLHAVEN GUARD.' Someone has scratched beneath it: "
+             "MILLHOLM GUARD.' Someone has scratched beneath it: "
              "'and here begins the fun.'"),
         ],
     )
@@ -662,7 +662,7 @@ def build_millhaven_southern():
             "would pass this way unprepared."
         ),
         "marker": (
-            "A stone pillar carved with the seal of Millhaven — a "
+            "A stone pillar carved with the seal of Millholm — a "
             "sheaf of wheat crossed with a pickaxe. The official "
             "warning is carved in formal script. The graffiti below "
             "is scratched in a looser hand, the work of an adventurer "
@@ -823,5 +823,10 @@ def build_millhaven_southern():
     # bandit rooms: future bandit mob spawns
     # bone_passage: future undead mob spawns (escaped experiments)
 
-    print("  Millhaven Southern District complete.\n")
+    # ── District map cell tags ────────────────────────────────────────
+    # countryside_road is the region-level southern marker
+    rooms["countryside_road"].tags.add("millholm_region:millholm_southern", category="map_cell")
+    print("  Tagged countryside_road with millholm_region:millholm_southern map_cell tag.")
+
+    print("  Millholm Southern District complete.\n")
     return rooms

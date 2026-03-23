@@ -1,5 +1,5 @@
 """
-Millhaven Farms — the agricultural district west of Millhaven Town.
+Millholm Farms — the agricultural district west of Millholm Town.
 
 Builds ~67 rooms including:
 - The Old Trade Way (10 road segments, continuing west from town)
@@ -8,14 +8,14 @@ Builds ~67 rooms including:
 - Brightwater Cotton Farm (farmyard, cotton barn, 3x3 cotton field grid,
   underground tunnel network)
 - Abandoned Farm (ruined buildings, 4x2 overgrown field grid)
-- Millhaven Windmill (RoomProcessing — wheat to flour)
+- Millholm Windmill (RoomProcessing — wheat to flour)
 
 Goldwheat wheat fields are RoomHarvesting (resource_id=1, harvest command).
 Cotton fields are RoomHarvesting (resource_id=10, pick command).
 
 Usage:
-    from world.game_world.millhaven_farms import build_millhaven_farms
-    build_millhaven_farms(town_rooms)
+    from world.game_world.millholm_farms import build_millholm_farms
+    build_millholm_farms(town_rooms)
 """
 
 from evennia import create_object
@@ -30,16 +30,16 @@ from utils.exit_helpers import connect, connect_door
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT = "millhaven_farms"
+ZONE = "millholm"
+DISTRICT = "millholm_farms"
 
 
-def build_millhaven_farms(town_rooms):
+def build_millholm_farms(town_rooms):
     """
-    Build the Millhaven Farms district.
+    Build the Millholm Farms district.
 
     Args:
-        town_rooms: Dict of room objects from build_millhaven_town().
+        town_rooms: Dict of room objects from build_millholm_town().
                     Needs town_rooms["road_far_west"] as connection point.
     """
 
@@ -57,7 +57,7 @@ def build_millhaven_farms(town_rooms):
         attributes=[
             ("desc",
              "The cobblestones give way to hard-packed earth as the trade road "
-             "leaves Millhaven behind. Dry-stone walls line both sides, marking "
+             "leaves Millholm behind. Dry-stone walls line both sides, marking "
              "the boundaries of the first farmsteads. Cart ruts are worn deep "
              "into the road from generations of harvest wagons."),
         ],
@@ -107,7 +107,7 @@ def build_millhaven_farms(town_rooms):
         attributes=[
             ("desc",
              "The road climbs a gentle rise here, offering a commanding view "
-             "of the surrounding farmland. To the east, Millhaven's rooftops "
+             "of the surrounding farmland. To the east, Millholm's rooftops "
              "are visible above the treeline. Westward, more farms dot the "
              "landscape, their fields stretching to the horizon."),
         ],
@@ -163,10 +163,10 @@ def build_millhaven_farms(town_rooms):
         ],
     )
 
-    # ── Millhaven Windmill (RoomProcessing — wheat → flour) ────────
+    # ── Millholm Windmill (RoomProcessing — wheat → flour) ────────
     rooms["windmill"] = create_object(
         RoomProcessing,
-        key="Millhaven Windmill",
+        key="Millholm Windmill",
         attributes=[
             ("processing_type", "windmill"),
             ("process_cost", 1),
@@ -202,7 +202,7 @@ def build_millhaven_farms(town_rooms):
 
     rooms["weaving_house"] = create_object(
         RoomProcessing,
-        key="Millhaven Weaving House",
+        key="Millholm Weaving House",
         attributes=[
             ("processing_type", "loom"),
             ("process_cost", 1),
@@ -892,7 +892,7 @@ def build_millhaven_farms(town_rooms):
 
     exit_count = 0
 
-    # ── Connect to Millhaven Town ──────────────────────────────────
+    # ── Connect to Millholm Town ──────────────────────────────────
     connect(town_rooms["road_far_west"], rooms["farm_road_1"], "west")
     exit_count += 2
 
@@ -1236,5 +1236,10 @@ def build_millhaven_farms(town_rooms):
     # south_fork_end → connects up from bw_exit (halfling tunnel)
     # abandoned farm fields → potential dungeon entrance underground
 
-    print("  Millhaven Farms complete.\n")
+    # ── District map cell tags ────────────────────────────────────────
+    # farm_road_1 is the region-level farms marker (first road from town)
+    rooms["farm_road_1"].tags.add("millholm_region:millholm_farms", category="map_cell")
+    print("  Tagged farm_road_1 with millholm_region:millholm_farms map_cell tag.")
+
+    print("  Millholm Farms complete.\n")
     return rooms

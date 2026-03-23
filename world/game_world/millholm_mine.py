@@ -1,5 +1,5 @@
 """
-Millhaven Abandoned Mine — a static mine district reached via the Deep Woods.
+Millholm Abandoned Mine — a static mine district reached via the Deep Woods.
 
 Builds ~17 rooms:
 - Surface (3 rooms): Miners' Camp (hub), Windroot Hollow (harvest), Mine Entrance
@@ -19,8 +19,8 @@ Connection points:
 - sealed_door: future content hook (deeper underground / pre-human ruins)
 
 Usage:
-    from world.game_world.millhaven_mine import build_millhaven_mine
-    build_millhaven_mine()
+    from world.game_world.millholm_mine import build_millholm_mine
+    build_millholm_mine()
 """
 
 from evennia import create_object
@@ -32,11 +32,11 @@ from utils.exit_helpers import connect
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT = "millhaven_mine"
+ZONE = "millholm"
+DISTRICT = "millholm_mine"
 
 
-def build_millhaven_mine():
+def build_millholm_mine():
     """
     Build the Abandoned Mine district.
 
@@ -499,7 +499,7 @@ def build_millhaven_mine():
         "patterns": (
             "Interlocking circles and angular spirals, carved with a "
             "steady hand and inhuman patience. The same motifs appear "
-            "in the deep sewers beneath Millhaven — whoever built this "
+            "in the deep sewers beneath Millholm — whoever built this "
             "passage also built those tunnels. How deep does it go?"
         ),
     }
@@ -633,5 +633,32 @@ def build_millhaven_mine():
     # sealed_door: future content — pre-human underground ruins
     # flooded_gallery: possible hidden underwater passage (future)
 
-    print("  Millhaven Abandoned Mine complete.\n")
+    # ── District map cell tags ────────────────────────────────────────
+    _mine_map_tags = {
+        "mine_entrance":     "millholm_mine:mine_entrance",
+        "entry_shaft":       "millholm_mine:entry_shaft",
+        "copper_drift":      "millholm_mine:copper_drift",
+        "copper_seam":       "millholm_mine:copper_seam",
+        "timbered_corridor": "millholm_mine:timbered_corridor",
+        "ore_cart_track":    "millholm_mine:ore_cart_track",
+        "kobold_lookout":    "millholm_mine:kobold_lookout",
+        "flooded_gallery":   "millholm_mine:flooded_gallery",
+        "descent_shaft":     "millholm_mine:descent_shaft",
+        "lower_junction":    "millholm_mine:lower_junction",
+        "tin_seam":          "millholm_mine:tin_seam",
+        "tin_vein":          "millholm_mine:tin_vein",
+        "kobold_warren":     "millholm_mine:kobold_warren",
+        "ancient_passage":   "millholm_mine:ancient_passage",
+        "sealed_door":       "millholm_mine:sealed_door",
+    }
+    for room_key, tag in _mine_map_tags.items():
+        rooms[room_key].tags.add(tag, category="map_cell")
+    # mine_entrance is also shown on the mine section of the region map
+    rooms["mine_entrance"].tags.add("millholm_region:millholm_mine", category="map_cell")
+    # miners_camp is the shared "deep_woods" marker on the region map
+    # (both faerie hollow clearing and miners camp reveal the same vague cell)
+    rooms["miners_camp"].tags.add("millholm_region:deep_woods", category="map_cell")
+    print(f"  Tagged {len(_mine_map_tags)} mine rooms with map_cell tags.")
+
+    print("  Millholm Abandoned Mine complete.\n")
     return rooms

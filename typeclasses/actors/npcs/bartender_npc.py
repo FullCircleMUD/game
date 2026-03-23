@@ -29,7 +29,7 @@ from typeclasses.mixins.quest_giver import QuestGiverMixin
 # ── Shared knowledge block (town info Rowan always knows) ──────────
 
 _TOWN_KNOWLEDGE = (
-    "You run the Harvest Moon Inn in Millhaven. You serve ale for 2 gold "
+    "You run the Harvest Moon Inn in Millholm. You serve ale for 2 gold "
     "and stew for 3. Rooms cost 10 per night. The town has a Warriors "
     "Guild, Thieves Guild, Mages Guild, and Temple for clerics. There's "
     "a blacksmith, jeweller, carpenter, leatherworker, apothecary, and "

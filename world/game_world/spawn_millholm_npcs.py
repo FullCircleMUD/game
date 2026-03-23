@@ -1,10 +1,10 @@
 """
-Spawn NPCs into the Millhaven game world.
+Spawn NPCs into the Millholm game world.
 
-Run AFTER the Millhaven world builder has created rooms.
+Run AFTER the Millholm world builder has created rooms.
 
 Usage (from Evennia):
-    @py from world.game_world.spawn_millhaven_npcs import spawn_millhaven_npcs; spawn_millhaven_npcs()
+    @py from world.game_world.spawn_millholm_npcs import spawn_millholm_npcs; spawn_millholm_npcs()
 """
 
 from evennia import ObjectDB
@@ -46,7 +46,7 @@ def _spawn_bartender():
         "A warm, broad-shouldered innkeeper in his forties with laugh lines "
         "around his eyes and a booming voice that carries over the din. He's "
         "been running the Harvest Moon for twenty years and knows everyone in "
-        "Millhaven by name. He's the first friendly face new adventurers see "
+        "Millholm by name. He's the first friendly face new adventurers see "
         "and takes pride in pointing them in the right direction."
     )
     # Knowledge is now injected per-player via BartenderNPC._build_quest_context()
@@ -81,7 +81,7 @@ def _spawn_baker():
     npc.llm_personality = (
         "A stocky, flour-dusted baker in his fifties with thick forearms "
         "and a ruddy face. He speaks plainly and takes enormous pride in "
-        "his bread — the best in Millhaven, he'll tell anyone who listens. "
+        "his bread — the best in Millholm, he'll tell anyone who listens. "
         "He's a simple, honest man who works hard and expects the same of "
         "others. Quick to smile, slow to anger, and always smells faintly "
         "of fresh-baked bread."
@@ -156,7 +156,7 @@ def _spawn_elena():
         "A wiry woman in her thirties with pins stuck in her sleeves, "
         "thread tangled in her auburn hair, and a measuring tape draped "
         "permanently around her neck. She talks at twice the speed of "
-        "anyone else in Millhaven, changes subject without warning, and "
+        "anyone else in Millholm, changes subject without warning, and "
         "is always in the middle of at least three projects. She's "
         "genuinely talented — when she can stop panicking long enough "
         "to finish something, her work is the finest in the region."
@@ -189,7 +189,7 @@ def _spawn_mara():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
     npc.trainable_skills = ["alchemy"]
-    npc.trainer_masteries = {"alchemy": 1}  # high-demand skill — BASIC cap in Millhaven
+    npc.trainer_masteries = {"alchemy": 1}  # high-demand skill — BASIC cap in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
         "A slender woman in her forties with sharp, dark eyes and "
@@ -226,7 +226,7 @@ def _spawn_torben():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
     npc.trainable_skills = ["leatherworking"]
-    npc.trainer_masteries = {"leatherworking": 2}  # trainable to SKILLED in Millhaven
+    npc.trainer_masteries = {"leatherworking": 2}  # trainable to SKILLED in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
         "A broad, thick-fingered man in his fifties with a leather "
@@ -264,7 +264,7 @@ def _spawn_hendricks():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
     npc.trainable_skills = ["blacksmithing"]
-    npc.trainer_masteries = {"blacksmithing": 1}  # high-demand skill — BASIC cap in Millhaven
+    npc.trainer_masteries = {"blacksmithing": 1}  # high-demand skill — BASIC cap in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
         "A barrel-chested man in his sixties with arms like knotted "
@@ -609,12 +609,12 @@ def _spawn_beggar():
     )
     npc.llm_knowledge = (
         "You live in Beggar's Alley behind the Shrine of the First "
-        "Harvest in Millhaven. You were a soldier once — fought in a "
+        "Harvest in Millholm. You were a soldier once — fought in a "
         "border war years ago. You lost your family to plague while you "
         "were away fighting. You came back to nothing. Brother Aldric "
         "from the temple is kind to you — brings food when he can. The "
         "other beggars come and go but you've been here the longest. You "
-        "know every back alley and hidden corner of Millhaven. You've "
+        "know every back alley and hidden corner of Millholm. You've "
         "seen strange things going in and out of the sewers at night."
     )
     npc.db.desc = (
@@ -656,7 +656,7 @@ def _spawn_jeweller():
         "setting and a lazy one. She collects interesting stones."
     )
     npc.llm_knowledge = (
-        "You are Gemma, the jeweller of Millhaven. You run The Gilded "
+        "You are Gemma, the jeweller of Millholm. You run The Gilded "
         "Setting on the Old Trade Way. You work with pewter, copper, and "
         "silver — no gold metal, it gets confused with gold coins. You "
         "can train apprentices in basic jewellery skills. You buy gems "
@@ -678,9 +678,9 @@ def _spawn_jeweller():
 
 def _spawn_general_store():
     """Spawn the general store shopkeeper."""
-    room = _find_room("Millhaven General Store")
+    room = _find_room("Millholm General Store")
     if not room:
-        print("  [!] Room 'Millhaven General Store' not found — skipping shopkeeper")
+        print("  [!] Room 'Millholm General Store' not found — skipping shopkeeper")
         return None
 
     npc = create.create_object(
@@ -720,7 +720,7 @@ def _spawn_wheat_farmer():
         "leans against the doorframe, surveying her fields with quiet "
         "pride. Her sun-browned face is creased with smile lines and "
         "her thick fingers are permanently stained with earth. She grows "
-        "the best wheat in Millhaven and she knows it — but she's not "
+        "the best wheat in Millholm and she knows it — but she's not "
         "above a fair haggle."
     )
     print(f"  Spawned farmer 'Farmer Bramble' in {room.key} ({room.dbref})")
@@ -756,7 +756,7 @@ def _spawn_broken_crown_barkeep():
     )
     npc.llm_knowledge = (
         "You are Gerta, owner and barkeep of The Broken Crown, the roughest "
-        "tavern in Millhaven's south end. You've run this place for thirty "
+        "tavern in Millholm's south end. You've run this place for thirty "
         "years. Your late husband Aldric won it in a card game and died two "
         "weeks later — you suspect foul play but never proved it. You kept "
         "the tavern out of spite and made it your own. The cracked wooden "
@@ -789,10 +789,10 @@ def _spawn_broken_crown_barkeep():
 
 
 def _spawn_gaoler():
-    """Spawn Grubb the gaoler in the Millhaven Gaol."""
-    room = _find_room("Millhaven Gaol")
+    """Spawn Grubb the gaoler in the Millholm Gaol."""
+    room = _find_room("Millholm Gaol")
     if not room:
-        print("  [!] Room 'Millhaven Gaol' not found — skipping gaoler")
+        print("  [!] Room 'Millholm Gaol' not found — skipping gaoler")
         return None
 
     npc = create.create_object(
@@ -818,7 +818,7 @@ def _spawn_gaoler():
         "next door — she once threw a drunk through his wall."
     )
     npc.llm_knowledge = (
-        "You are Grubb, the gaoler of Millhaven. You've held this post "
+        "You are Grubb, the gaoler of Millholm. You've held this post "
         "for fifteen years because nobody else wants it. Your gaol holds "
         "petty thieves, drunks, brawlers, and the occasional pickpocket. "
         "The real criminals — smugglers, guild thieves, anyone with "
@@ -879,13 +879,13 @@ def _spawn_fence():
     npc.llm_knowledge = (
         "You are Ratwick, a fence — a dealer in stolen and questionable "
         "goods. You operate out of The Broken Crown tavern on the rough "
-        "south end of Millhaven. You buy items of dubious origin from "
+        "south end of Millholm. You buy items of dubious origin from "
         "thieves and adventurers and resell them discreetly. You don't "
         "have a shop sign — word of mouth only. You know the thieves' "
         "guild exists but you're not a member. You pay Shadow Mistress "
         "Vex a cut to operate. The town guards tolerate you because you "
         "occasionally tip them off about bigger fish. You know every "
-        "shady character in Millhaven. You're terrified of the jailer "
+        "shady character in Millholm. You're terrified of the jailer "
         "next door — you can hear the prisoners through the wall and it "
         "keeps you honest. Sort of. You can't actually buy or sell "
         "anything yet — your shop isn't set up. If someone asks to trade, "
@@ -904,10 +904,10 @@ def _spawn_fence():
 
 
 def _spawn_lumberjack():
-    """Spawn Big Bjorn the lumberjack at the Millhaven Sawmill."""
-    room = _find_room("Millhaven Sawmill")
+    """Spawn Big Bjorn the lumberjack at the Millholm Sawmill."""
+    room = _find_room("Millholm Sawmill")
     if not room:
-        print("  [!] Room 'Millhaven Sawmill' not found — skipping lumberjack")
+        print("  [!] Room 'Millholm Sawmill' not found — skipping lumberjack")
         return None
 
     npc = create.create_object(
@@ -942,7 +942,7 @@ def _spawn_lumberjack():
     )
     npc.llm_knowledge = (
         "You are Big Bjorn, the lumberjack and sawmill operator at the "
-        "Millhaven Sawmill in the northern woods. You cut down trees and "
+        "Millholm Sawmill in the northern woods. You cut down trees and "
         "saw them into timber. You love your job more than anything. "
         "When someone enters the sawmill, you sing a verse or two of your "
         "favourite song to welcome them. The song goes like this (but you "
@@ -1062,7 +1062,7 @@ def _spawn_trapper():
     )
     npc.llm_knowledge = (
         "You are Old Buckshaw, a trapper and hide trader who lives alone "
-        "in a rough hut deep in the southern woods outside Millhaven. You "
+        "in a rough hut deep in the southern woods outside Millholm. You "
         "have lived out here for decades. You trap wolves, foxes, rabbits, "
         "and deer. You tan the hides yourself at your hut — scraping, "
         "salting, smoking — and come into town once or twice a season to "
@@ -1077,7 +1077,7 @@ def _spawn_trapper():
         "them — you consider them the only honest creatures in the forest. "
         "You think Big Bjorn at the sawmill is 'too damn cheerful for a "
         "man who kills trees for a living.' You grudgingly trade with "
-        "Millhaven but you'd rather be out in the woods. Your hut doubles "
+        "Millholm but you'd rather be out in the woods. Your hut doubles "
         "as a tannery — you can turn raw hides into leather. You're a "
         "shopkeeper who trades in hides, though your stock runs thin "
         "sometimes — if someone asks to trade and you can't help, tell "
@@ -1099,9 +1099,9 @@ def _spawn_trapper():
     return npc
 
 
-def spawn_millhaven_npcs():
-    """Spawn all Millhaven NPCs."""
-    print("--- Spawning Millhaven NPCs ---")
+def spawn_millholm_npcs():
+    """Spawn all Millholm NPCs."""
+    print("--- Spawning Millholm NPCs ---")
     _spawn_bartender()
     _spawn_baker()
     _spawn_oakwright()
@@ -1131,4 +1131,4 @@ def spawn_millhaven_npcs():
     _spawn_fence()
     # ── Quest NPCs ──
     _spawn_beggar()
-    print("--- Millhaven NPC spawning complete ---")
+    print("--- Millholm NPC spawning complete ---")

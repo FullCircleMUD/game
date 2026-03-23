@@ -23,7 +23,7 @@ from typeclasses.actors.npcs.quest_giving_shopkeeper import QuestGivingShopkeepe
 # ── Shared knowledge block ────────────────────────────────────────────
 
 _BAKER_KNOWLEDGE = (
-    "You are Bron, the baker at the Goldencrust Bakery in Millhaven. "
+    "You are Bron, the baker at the Goldencrust Bakery in Millholm. "
     "You've been baking for over twenty years. You buy flour from the "
     "Goldwheat Farm windmill and bake bread for the town. Your bakery "
     "also sells flour and bread to adventurers. You're a simple, "
@@ -89,7 +89,7 @@ GENERIC_CONTEXT = (
     f"What you know:\n{_BAKER_KNOWLEDGE}\n\n"
     "CURRENT SITUATION: This is a regular visitor. No special agenda.\n"
     "YOUR GOAL: Be a friendly baker who takes pride in his bread. "
-    "Try to sell them some — your bread is the best in Millhaven and "
+    "Try to sell them some — your bread is the best in Millholm and "
     "you'll tell anyone who listens. They can type |wlist|n to see "
     "what you have for sale. Chat about baking, the weather, town "
     "gossip. Just be Bron.\n\n"

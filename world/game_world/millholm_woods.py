@@ -1,5 +1,5 @@
 """
-Millhaven Woods — the forest district east of Millhaven Town.
+Millholm Woods — the forest district east of Millholm Town.
 
 Builds ~93 rooms including:
 - Forest Path East (interface room connecting to town's road_far_east)
@@ -19,8 +19,8 @@ Builds ~93 rooms including:
   - North: procedural passage to deep_woods_clearing (wired in build_game_world)
 
 Usage:
-    from world.game_world.millhaven_woods import build_millhaven_woods
-    build_millhaven_woods(town_rooms)
+    from world.game_world.millholm_woods import build_millholm_woods
+    build_millholm_woods(town_rooms)
 """
 
 from evennia import create_object
@@ -34,8 +34,8 @@ from utils.exit_helpers import connect
 
 
 # ── Zone / district constants ─────────────────────────────────────────
-ZONE = "millhaven"
-DISTRICT = "millhaven_woods"
+ZONE = "millholm"
+DISTRICT = "millholm_woods"
 
 # ── 10×6 Southern Woods grid room data ────────────────────────────────
 # Each entry: (room_key, long_description)
@@ -279,12 +279,12 @@ def _self_loop(room, direction, desc=None):
     return exit_obj
 
 
-def build_millhaven_woods(town_rooms):
+def build_millholm_woods(town_rooms):
     """
-    Build the Millhaven Woods district.
+    Build the Millholm Woods district.
 
     Args:
-        town_rooms: Dict of room objects from build_millhaven_town().
+        town_rooms: Dict of room objects from build_millholm_town().
                     Needs town_rooms["road_far_east"] as connection point.
     """
 
@@ -302,7 +302,7 @@ def build_millhaven_woods(town_rooms):
         attributes=[
             ("desc",
              "The eastern extension of the trade road enters the edge of "
-             "Millhaven Woods, where towering oak and maple trees begin to "
+             "Millholm Woods, where towering oak and maple trees begin to "
              "crowd the roadway. Dappled sunlight filters through the "
              "canopy, creating shifting patterns on the packed earth path. "
              "The sounds of the town fade behind, replaced by rustling "
@@ -517,7 +517,7 @@ def build_millhaven_woods(town_rooms):
 
     rooms["sawmill"] = create_object(
         RoomProcessing,
-        key="Millhaven Sawmill",
+        key="Millholm Sawmill",
         attributes=[
             ("processing_type", "sawmill"),
             ("process_cost", 1),
@@ -548,7 +548,7 @@ def build_millhaven_woods(town_rooms):
 
     rooms["smelter"] = create_object(
         RoomProcessing,
-        key="Millhaven Smelter",
+        key="Millholm Smelter",
         attributes=[
             ("processing_type", "smelter"),
             ("process_cost", 2),
@@ -830,7 +830,7 @@ def build_millhaven_woods(town_rooms):
 
     exit_count = 0
 
-    # ── Connect to Millhaven Town ──────────────────────────────────
+    # ── Connect to Millholm Town ──────────────────────────────────
     connect(town_rooms["road_far_east"], rooms["forest_path_east"], "east")
     exit_count += 2
 
@@ -995,5 +995,10 @@ def build_millhaven_woods(town_rooms):
     # Procedural passages 3 & 4 (clearing ↔ miners_camp) wired in build_game_world.py
     # Grid POI rooms (Trapper's Hut, Fox Earth) → future mob spawns
 
-    print("  Millhaven Woods complete.\n")
+    # ── District map cell tags ────────────────────────────────────────
+    # forest_path_east is the region-level woods marker (forest entry from town)
+    rooms["forest_path_east"].tags.add("millholm_region:millholm_woods", category="map_cell")
+    print("  Tagged forest_path_east with millholm_region:millholm_woods map_cell tag.")
+
+    print("  Millholm Woods complete.\n")
     return rooms

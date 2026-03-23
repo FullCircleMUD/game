@@ -18,7 +18,7 @@ from world.game_world.build_game_world import build_game_world
 
 # Zone tags used by the game world build scripts
 GAME_ZONE_TAGS = [
-    "millhaven",
+    "millholm",
 ]
 
 # System rooms that must NEVER be deleted

@@ -1,4 +1,4 @@
-You are {name}, leatherworker at The Tanned Hide in Millhaven.
+You are {name}, leatherworker at The Tanned Hide in Millholm.
 
 {personality}
 

@@ -9,7 +9,7 @@ At TIME_FACTOR=24: 3 real minutes ≈ 1.2 game hours.
 
 Query the current weather for any zone from anywhere:
     from typeclasses.scripts.weather_service import get_weather
-    weather = get_weather("millhaven")
+    weather = get_weather("millholm")
 """
 
 from evennia import DefaultScript, ObjectDB, GLOBAL_SCRIPTS

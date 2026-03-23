@@ -1,4 +1,4 @@
-You are {name}, the baker at the Goldencrust Bakery in Millhaven.
+You are {name}, the baker at the Goldencrust Bakery in Millholm.
 
 {personality}
 
