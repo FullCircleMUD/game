@@ -83,6 +83,7 @@ _RECIPE_TC = "typeclasses.items.consumables.crafting_recipe_nft_item.CraftingRec
 _SPELL_SCROLL_TC = "typeclasses.items.consumables.spell_scroll_nft_item.SpellScrollNFTItem"
 _TORCH_TC = "typeclasses.items.holdables.torch_nft_item.TorchNFTItem"
 _LANTERN_TC = "typeclasses.items.holdables.lantern_nft_item.LanternNFTItem"
+_DISTRICT_MAP_TC = "typeclasses.items.maps.district_map_nft_item.DistrictMapNFTItem"
 
 NFT_ITEM_TYPES = [
     # ── Weapons ──
@@ -203,6 +204,8 @@ NFT_ITEM_TYPES = [
     {"name": "Galleon", "typeclass": _BASE_TC, "prototype_key": None, "description": "A massive multi-decked ship, the pinnacle of naval architecture."},
     # ── Enchanted Gems ──
     {"name": "Enchanted Ruby", "typeclass": _BASE_TC, "prototype_key": "enchanted_ruby", "description": "A ruby pulsing with arcane energy. Its enchantment is hidden within."},
+    # ── Maps ──
+    {"name": "DistrictMap", "typeclass": _DISTRICT_MAP_TC, "prototype_key": "district_map", "description": "A parchment district map. Survey rooms to fill it in; trade it as an NFT."},
     # ── Recipe Scrolls ──
     {"name": "Training Longsword Recipe", "typeclass": _RECIPE_TC, "prototype_key": "training_longsword_recipe", "description": "A scroll detailing how to carve a training longsword from timber."},
     {"name": "Wooden Shield Recipe", "typeclass": _RECIPE_TC, "prototype_key": "wooden_shield_recipe", "description": "A scroll showing how to shape timber into a sturdy round shield."},

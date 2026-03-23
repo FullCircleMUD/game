@@ -12,3 +12,4 @@ from world.prototypes.containers import *   # noqa: F401,F403
 from world.prototypes.consumables import *  # noqa: F401,F403
 from world.prototypes.components import *   # noqa: F401,F403
 from world.prototypes.gems import *        # noqa: F401,F403
+from world.prototypes.maps import *        # noqa: F401,F403

@@ -172,6 +172,10 @@ class FCMCharacter(
                 if obj != self and hasattr(obj, "at_llm_player_arrive"):
                     obj.at_llm_player_arrive(self)
 
+        # District map auto-creation for cartographers
+        if self.location and getattr(self, "is_pc", False):
+            self._check_map_autocreation()
+
         # Don't cascade followers on follow moves or teleports.
         # Teleport suppression prevents followers auto-following into
         # dungeons, death respawns, etc. Group dungeon entry explicitly
@@ -288,6 +292,57 @@ class FCMCharacter(
             and (true_sight_detects_traps or passive_dc >= room.trap_find_dc)
         ):
             room.detect_trap(self)
+
+    # ── District map auto-creation ────────────────────────────────────
+
+    def _check_map_autocreation(self):
+        """
+        Spawn a blank district map NFT when entering a tagged room
+        without that map in inventory.
+
+        Only fires for characters with CARTOGRAPHY BASIC+.
+        """
+        from enums.mastery_level import MasteryLevel
+        from enums.skills_enum import skills
+        from world.cartography.map_registry import get_map_keys_for_room
+
+        mastery_levels = self.db.general_skill_mastery_levels or {}
+        cart_level = mastery_levels.get(skills.CARTOGRAPHY.value, 0)
+        if cart_level < MasteryLevel.BASIC.value:
+            return
+
+        for map_key, _point_key in get_map_keys_for_room(self.location):
+            if not self._get_map_from_inventory(map_key):
+                self._spawn_blank_map(map_key)
+
+    def _spawn_blank_map(self, map_key):
+        """Create a blank DistrictMapNFTItem and place it in this character's inventory."""
+        from typeclasses.items.base_nft_item import BaseNFTItem
+        from world.cartography.map_registry import get_map
+
+        map_def = get_map(map_key)
+        display_name = map_def["display_name"] if map_def else map_key
+
+        try:
+            token_id, _chain_id, _contract_address = BaseNFTItem.assign_to_blank_token("DistrictMap")
+        except Exception:
+            return  # No blank tokens available — silently skip
+
+        obj = BaseNFTItem.spawn_into(token_id, self)
+        if obj is None:
+            return
+
+        obj.map_key = map_key
+        obj.db.surveyed_points = set()
+        self.msg(f"|gA blank map of {display_name} materialises in your pack.|n")
+
+    def _get_map_from_inventory(self, map_key):
+        """Return the first DistrictMapNFTItem in inventory with matching map_key, or None."""
+        from typeclasses.items.maps.district_map_nft_item import DistrictMapNFTItem
+        for item in self.contents:
+            if isinstance(item, DistrictMapNFTItem) and item.map_key == map_key:
+                return item
+        return None
 
     #########################################################
     # Character death
