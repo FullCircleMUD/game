@@ -1,5 +1,4 @@
-from evennia import DefaultScript
-from evennia import ObjectDB
+from evennia import DefaultScript, SESSION_HANDLER
 from django.conf import settings
 from enums.hunger_level import HungerLevel
 
@@ -21,15 +20,14 @@ class HungerService(DefaultScript):
         """
         This is called every `interval` seconds
         """
-        for char in ObjectDB.objects.filter(db_typeclass_path__contains="Character"):
+        for session in SESSION_HANDLER.get_sessions():
+            char = session.get_puppet()
+            if not char:
+                continue
 
             # Superuser is exempt from hunger
             account = char.account
             if account and account.is_superuser:
-                continue
-
-            # Skip unpuppeted characters (quit but account still logged in)
-            if not char.has_account:
                 continue
 
             # Skip characters without hunger_level

@@ -1,5 +1,4 @@
-from evennia import DefaultScript
-from evennia import ObjectDB
+from evennia import DefaultScript, SESSION_HANDLER
 from enums.hunger_level import HungerLevel
 import math
 
@@ -23,10 +22,9 @@ class RegenerationService(DefaultScript):
         """
         This is called every `interval` seconds
         """
-        for char in ObjectDB.objects.filter(db_typeclass_path__contains="Character"):
-
-            # Skip unpuppeted characters (quit but account still logged in)
-            if not char.has_account:
+        for session in SESSION_HANDLER.get_sessions():
+            char = session.get_puppet()
+            if not char:
                 continue
 
             # Skip characters without hunger_level

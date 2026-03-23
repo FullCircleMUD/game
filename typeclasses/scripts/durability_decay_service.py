@@ -10,7 +10,7 @@ Combat wear (1 per hit/parry) is additive on top of this.
 
 from datetime import datetime
 
-from evennia import DefaultScript, ObjectDB
+from evennia import DefaultScript, SESSION_HANDLER
 from evennia.utils.gametime import gametime
 from evennia.utils.utils import delay
 
@@ -54,11 +54,9 @@ class DurabilityDecayService(DefaultScript):
         # Gather IC characters, then stagger processing so we don't
         # block the reactor if the player count is large.
         ic_chars = [
-            char
-            for char in ObjectDB.objects.filter(
-                db_typeclass_path__contains="Character"
-            )
-            if char.has_account and char.sessions.count()
+            session.get_puppet()
+            for session in SESSION_HANDLER.get_sessions()
+            if session.get_puppet()
         ]
 
         for i, char in enumerate(ic_chars):
