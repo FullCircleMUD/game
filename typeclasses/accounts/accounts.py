@@ -576,17 +576,12 @@ Leave Character / Game      |gquit|n
         if session is not None:
             import hashlib
             from datetime import datetime, timezone as _tz
-            from evennia.utils import logger as _logger
 
             raw_addr = getattr(session, "address", None)
             ip_str = str(raw_addr[0]) if isinstance(raw_addr, (list, tuple)) else str(raw_addr or "unknown")
             ip_hash = hashlib.sha256(ip_str.encode()).hexdigest()
 
             server_data = getattr(session, "server_data", None) or {}
-            _logger.log_info(
-                f"[GEO] at_post_login: sessid={getattr(session, 'sessid', '?')} "
-                f"server_data={server_data!r}"
-            )
             country = server_data.get("geo_country", "XX") or "XX"
 
             entry = {
