@@ -35,7 +35,9 @@ class BakersFlourQuest(FCMQuest):
     start_step = "deliver_flour"
     reward_xp = 100
     reward_gold = 4
+    reward_bread = 1
     repeatable = False
+    account_cap = 10
 
     help_deliver_flour = (
         "Bring 3 Flour to Bron at the Goldencrust Bakery. "

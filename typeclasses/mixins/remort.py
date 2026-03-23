@@ -66,6 +66,9 @@ class RemortMixin:
             if amount > 0:
                 self.transfer_resource_to(account_bank, rid, amount)
 
+        # --- Wipe quests (allows restart of starter quests on remort) ---
+        self.attributes.clear(category="fcm_quests")
+
         # --- Wipe spells (granted only — learned persist) ---
         self.revoke_all_granted_spells()
         self.db.memorised_spells = {}

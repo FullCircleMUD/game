@@ -26,7 +26,9 @@ class RatCellarQuest(FCMQuest):
     start_step = "clear_cellar"
     reward_xp = 100
     reward_gold = 10
+    reward_bread = 1
     repeatable = False
+    account_cap = 10
 
     help_clear_cellar = (
         "Enter the cellar beneath the Harvest Moon Inn and defeat "

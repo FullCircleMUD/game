@@ -42,6 +42,7 @@ class HendricksOreQuest(FCMQuest):
     reward_xp = 250
     reward_gold = 10
     repeatable = False
+    account_cap = 10
 
     help_deliver_ingots = (
         "Bring 3 Bronze Ingots to Old Hendricks at his smithy. "

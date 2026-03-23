@@ -36,7 +36,9 @@ class ElenaClothQuest(FCMQuest):
     start_step = "deliver_cloth"
     reward_xp = 100
     reward_gold = 5
+    reward_bread = 1
     repeatable = False
+    account_cap = 10
 
     help_deliver_cloth = (
         "Bring 3 Cloth to Elena Copperkettle at her cottage. "

@@ -84,7 +84,8 @@ class CmdNPCQuest(Command):
             return
         can_accept, reason = quest_class.can_accept(caller)
         if not can_accept:
-            caller.msg(f"|r{reason}|n")
+            if reason:
+                caller.msg(f"|r{reason}|n")
             return
         quest = caller.quests.add(quest_class)
         caller.msg(f"|gYou have accepted the quest: {quest_class.name}|n")
@@ -126,7 +127,8 @@ class CmdNPCQuest(Command):
             can_accept, reason = quest_class.can_accept(caller)
             if can_accept:
                 lines.append("Type |wquest accept|n to begin this quest.")
-            else:
+            elif reason:
+                # Empty reason = silently suppressed (e.g. account cap reached)
                 lines.append(f"|r{reason}|n")
 
         caller.msg("\n".join(lines))

@@ -34,7 +34,9 @@ class OakwrightTimberQuest(FCMQuest):
     start_step = "deliver_timber"
     reward_xp = 100
     reward_gold = 5
+    reward_bread = 1
     repeatable = False
+    account_cap = 10
 
     help_deliver_timber = (
         "Bring 4 Timber to Master Oakwright at his Woodshop. "

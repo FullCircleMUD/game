@@ -39,8 +39,13 @@ class FCMQuest:
     start_step = "start"
     reward_xp = 0
     reward_gold = 0
+    reward_bread = 0   # Bread (resource ID 3) awarded on completion
     prerequisites = []
     repeatable = False
+    # Account-level cap: max completions per account across all characters/remorts.
+    # None = uncapped. Set to an integer (e.g. 10) on starter quests to prevent
+    # create-delete farming. Checked silently — capped players see no offer.
+    account_cap = None
 
     # Default help strings (can be overridden per step)
     help_start = "Begin your quest."
@@ -117,7 +122,19 @@ class FCMQuest:
 
         Returns:
             (bool, str): (can_accept, reason_if_not)
+            A False with an empty reason string means silently suppressed
+            (account cap reached) — the caller should show no message.
         """
+        # Account-level cap check — silent suppression (no error shown to player)
+        if cls.account_cap is not None:
+            account = getattr(character, "account", None)
+            if account:
+                counts = account.attributes.get(
+                    "quest_completion_counts", default={}
+                ) or {}
+                if counts.get(cls.key, 0) >= cls.account_cap:
+                    return (False, "")
+
         for prereq_key in cls.prerequisites:
             if not character.quests.is_completed(prereq_key):
                 from world.quests import get_quest
@@ -159,6 +176,21 @@ class FCMQuest:
             self.quester.at_gain_experience_points(self.reward_xp)
         if self.reward_gold and hasattr(self.quester, "receive_gold_from_reserve"):
             self.quester.receive_gold_from_reserve(self.reward_gold)
+        if self.reward_bread and hasattr(self.quester, "receive_resource_from_reserve"):
+            self.quester.receive_resource_from_reserve(3, self.reward_bread)
+            self.quester.msg(
+                f"|gYou receive {self.reward_bread} "
+                f"{'Bread' if self.reward_bread == 1 else 'Breads'}.|n"
+            )
+        # Increment account-level completion counter (for starter quest caps)
+        if self.__class__.account_cap is not None:
+            account = getattr(self.quester, "account", None)
+            if account:
+                counts = account.attributes.get(
+                    "quest_completion_counts", default={}
+                ) or {}
+                counts[self.key] = counts.get(self.key, 0) + 1
+                account.attributes.add("quest_completion_counts", counts)
 
     def on_complete(self):
         """Called on completion. Override for custom logic."""

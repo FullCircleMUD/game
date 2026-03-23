@@ -38,7 +38,9 @@ class MaraMoonpetalQuest(FCMQuest):
     start_step = "deliver_moonpetal"
     reward_xp = 150
     reward_gold = 5
+    reward_bread = 1
     repeatable = False
+    account_cap = 10
 
     help_deliver_moonpetal = (
         "Bring 3 Moonpetal to Mara Brightwater at The Mortar and Pestle. "
