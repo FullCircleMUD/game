@@ -324,9 +324,9 @@ class FCMCharacter(
         display_name = map_def["display_name"] if map_def else map_key
 
         try:
-            token_id, _chain_id, _contract_address = BaseNFTItem.assign_to_blank_token("DistrictMap")
+            token_id = BaseNFTItem.assign_to_blank_token("DistrictMap")
         except Exception:
-            return  # No blank tokens available — silently skip
+            return  # No blank tokens available or DistrictMap type missing
 
         obj = BaseNFTItem.spawn_into(token_id, self)
         if obj is None:
