@@ -1,7 +1,6 @@
 from commands.class_skill_cmdsets.cmdset_base_char_class import CmdSetBaseCharClass
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_dodge import CmdDodge
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_assist import CmdAssist
-from commands.class_skill_cmdsets.class_skill_cmds.cmd_build import CmdBuild
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_sail import CmdSail
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_explore import CmdExplore
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_tame import CmdTame
@@ -19,7 +18,6 @@ class CmdSetGeneralSkills(CmdSetBaseCharClass):
     cmds = [
         CmdDodge,
         CmdAssist,
-        CmdBuild,
         CmdSail,
         CmdExplore,
         CmdTame,
