@@ -83,10 +83,10 @@ _POINT_CELLS = {
     # ── South road ──
     "shrine":          {"pos": [(7,  8)], "poi": "temple"},
     "south_road":      {"pos": [(7, 10)], "poi": "road"},
-    "warriors_guild":  {"pos": [(7, 12)], "poi": "guild"},
+    "warriors_guild":  {"pos": [(8, 12)], "poi": "guild"},
     "beggars_alley":   {"pos": [(8,  8)], "poi": "road"},
     "mid_south_road":  {"pos": [(8, 10)], "poi": "road"},
-    "mages_guild":     {"pos": [(8, 12)], "poi": "guild"},
+    "mages_guild":     {"pos": [(7, 12)], "poi": "guild"},
     "broken_crown":    {"pos": [(9,  8)], "poi": "inn"},
     "far_south_road":  {"pos": [(9, 10)], "poi": "road"},
     "gaol":            {"pos": [(9, 12)], "poi": "gaol"},
