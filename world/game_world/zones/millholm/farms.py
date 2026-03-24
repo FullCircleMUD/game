@@ -1236,10 +1236,44 @@ def build_millholm_farms(town_rooms):
     # south_fork_end → connects up from bw_exit (halfling tunnel)
     # abandoned farm fields → potential dungeon entrance underground
 
-    # ── District map cell tags ────────────────────────────────────────
-    # farm_road_1 is the region-level farms marker (first road from town)
-    rooms["farm_road_1"].tags.add("millholm_region:millholm_farms", category="map_cell")
-    print("  Tagged farm_road_1 with millholm_region:millholm_farms map_cell tag.")
+    # ── Region map cell tags ────────────────────────────────────────
+    _rt = "millholm_region"
+
+    # Windmill (western terminus)
+    rooms["windmill"].tags.add(f"{_rt}:windmill", category="map_cell")
+
+    # Farm road (E-W): split into 4 chunks matching region cells
+    for key in ["farm_road_1", "farm_road_2"]:
+        rooms[key].tags.add(f"{_rt}:farm_road_w", category="map_cell")
+    for key in ["farm_road_meadow", "farm_road_oak", "farm_road_hill"]:
+        rooms[key].tags.add(f"{_rt}:farm_road_mid", category="map_cell")
+    for key in ["farm_road_crossroads", "farm_road_west"]:
+        rooms[key].tags.add(f"{_rt}:farm_road_e", category="map_cell")
+    for key in ["farm_road_cotton", "farm_road_mill"]:
+        rooms[key].tags.add(f"{_rt}:farm_road_far_e", category="map_cell")
+
+    # Wheat farm → region "wheat_farm" cell
+    for key in ["gw_lane", "gw_garden", "gw_homestead", "gw_barn"]:
+        rooms[key].tags.add(f"{_rt}:wheat_farm", category="map_cell")
+    for row in gw_grid:
+        for room in row:
+            room.tags.add(f"{_rt}:wheat_farm", category="map_cell")
+
+    # Cotton farm → region "cotton_farm" cell
+    for key in ["bw_track", "bw_yard", "bw_barn", "bw_shed", "bw_well",
+                "bw_farmhouse", "bw_field_nw", "bw_field_n", "bw_field_ne",
+                "bw_field_w", "bw_field_center", "bw_field_e",
+                "bw_field_sw", "bw_field_s", "bw_field_se"]:
+        rooms[key].tags.add(f"{_rt}:cotton_farm", category="map_cell")
+
+    # South fork road → region "south_fork" cell
+    for key in ["south_fork_1", "south_fork_2", "south_fork_3", "south_fork_end"]:
+        rooms[key].tags.add(f"{_rt}:south_fork", category="map_cell")
+    # Weaving house spur
+    for key in ["weavers_track", "weaving_house"]:
+        rooms[key].tags.add(f"{_rt}:south_fork", category="map_cell")
+
+    print(f"  Tagged farms rooms with {_rt} map_cell tags.")
 
     print("  Millholm Farms complete.\n")
     return rooms

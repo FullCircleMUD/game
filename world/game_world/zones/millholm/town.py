@@ -2058,9 +2058,33 @@ def build_millholm_town():
     }
     for room_key, tag in _town_map_tags.items():
         rooms[room_key].tags.add(tag, category="map_cell")
-    # sq_center is also the region-level town marker
-    rooms["sq_center"].tags.add("millholm_region:millholm_town", category="map_cell")
-    print(f"  Tagged {len(_town_map_tags)} town rooms with map_cell tags.")
+    # ── Region map cell tags (3x3 town block) ──
+    _rt = "millholm_region"
+    # Top row: town_nw, town_n, town_ne
+    for key in ["textiles", "smithy", "woodshop", "sq_nw", "inn"]:
+        rooms[key].tags.add(f"{_rt}:town_nw", category="map_cell")
+    for key in ["sq_n", "north_road", "cemetery_gates", "cemetery"]:
+        rooms[key].tags.add(f"{_rt}:town_n", category="map_cell")
+    for key in ["sq_ne", "stables", "bakery", "apothecary", "jeweller"]:
+        rooms[key].tags.add(f"{_rt}:town_ne", category="map_cell")
+    # Middle row: town_w, town_center, town_e
+    for key in ["road_far_west", "road_west", "road_mid_west", "sq_w",
+                "elena_house", "abandoned_house", "general_store"]:
+        rooms[key].tags.add(f"{_rt}:town_w", category="map_cell")
+    for key in ["sq_center", "sq_sw", "sq_s", "sq_se",
+                "south_road", "shrine"]:
+        rooms[key].tags.add(f"{_rt}:town_center", category="map_cell")
+    for key in ["sq_e", "road_east", "road_mid_east", "road_far_east",
+                "bank", "post_office", "leathershop"]:
+        rooms[key].tags.add(f"{_rt}:town_e", category="map_cell")
+    # Bottom row: town_sw, town_s, town_se
+    for key in ["beggars_alley", "broken_crown"]:
+        rooms[key].tags.add(f"{_rt}:town_sw", category="map_cell")
+    for key in ["mid_south_road", "far_south_road", "south_gate"]:
+        rooms[key].tags.add(f"{_rt}:town_s", category="map_cell")
+    for key in ["warriors_guild", "mages_guild", "gaol"]:
+        rooms[key].tags.add(f"{_rt}:town_se", category="map_cell")
+    print(f"  Tagged {len(_town_map_tags)} town rooms with map_cell tags (district + region).")
 
     print("  Millholm Town complete.\n")
     return rooms

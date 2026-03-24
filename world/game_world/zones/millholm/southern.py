@@ -823,10 +823,40 @@ def build_millholm_southern():
     # bandit rooms: future bandit mob spawns
     # bone_passage: future undead mob spawns (escaped experiments)
 
-    # ── District map cell tags ────────────────────────────────────────
-    # countryside_road is the region-level southern marker
-    rooms["countryside_road"].tags.add("millholm_region:millholm_southern", category="map_cell")
-    print("  Tagged countryside_road with millholm_region:millholm_southern map_cell tag.")
+    # ── Region map cell tags ────────────────────────────────────────
+    _rt = "millholm_region"
+
+    # South road column (west branch from farm fork)
+    rooms["countryside_road"].tags.add(f"{_rt}:south_road_1", category="map_cell")
+    rooms["farmstead_fork"].tags.add(f"{_rt}:south_road_2", category="map_cell")
+
+    # Bandits
+    rooms["bandit_holdfast"].tags.add(f"{_rt}:bandits", category="map_cell")
+    rooms["bandit_camp"].tags.add(f"{_rt}:bandits", category="map_cell")
+
+    # Moonpetal fields
+    rooms["moonpetal_approach"].tags.add(f"{_rt}:moonpetal_fields", category="map_cell")
+    for row in mp_grid:
+        for room in row:
+            room.tags.add(f"{_rt}:moonpetal_fields", category="map_cell")
+
+    # Gnoll territory
+    rooms["wild_grasslands"].tags.add(f"{_rt}:gnoll_territory", category="map_cell")
+    rooms["gnoll_hunting_grounds"].tags.add(f"{_rt}:gnoll_territory", category="map_cell")
+    rooms["gnoll_camp"].tags.add(f"{_rt}:gnoll_territory", category="map_cell")
+    rooms["gnoll_lookout"].tags.add(f"{_rt}:gnoll_territory", category="map_cell")
+
+    # Ravaged farmstead
+    rooms["ravaged_farmstead"].tags.add(f"{_rt}:ravaged_farmstead", category="map_cell")
+
+    # Barrow hill (hidden — will only reveal when player finds it)
+    rooms["barrow_hill"].tags.add(f"{_rt}:barrow_hill", category="map_cell")
+
+    # Shadowsward approach and gate
+    rooms["southern_approach"].tags.add(f"{_rt}:south_approach_e", category="map_cell")
+    rooms["shadowsward_gate"].tags.add(f"{_rt}:shadowsward_gate", category="map_cell")
+
+    print(f"  Tagged southern rooms with {_rt} map_cell tags.")
 
     print("  Millholm Southern District complete.\n")
     return rooms

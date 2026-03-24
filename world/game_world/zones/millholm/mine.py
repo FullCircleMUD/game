@@ -653,12 +653,20 @@ def build_millholm_mine():
     }
     for room_key, tag in _mine_map_tags.items():
         rooms[room_key].tags.add(tag, category="map_cell")
-    # mine_entrance is also shown on the mine section of the region map
-    rooms["mine_entrance"].tags.add("millholm_region:millholm_mine", category="map_cell")
-    # miners_camp is the shared "deep_woods" marker on the region map
-    # (both faerie hollow clearing and miners camp reveal the same vague cell)
-    rooms["miners_camp"].tags.add("millholm_region:deep_woods", category="map_cell")
-    print(f"  Tagged {len(_mine_map_tags)} mine rooms with map_cell tags.")
+    # ── Region map cell tags ──
+    _rt = "millholm_region"
+    # Mine entrance → region mine cell
+    rooms["mine_entrance"].tags.add(f"{_rt}:mine_entrance", category="map_cell")
+    for key in ["entry_shaft", "copper_drift", "copper_seam", "timbered_corridor",
+                "ore_cart_track", "kobold_lookout", "flooded_gallery", "descent_shaft",
+                "lower_junction", "tin_seam", "tin_vein", "kobold_warren",
+                "ancient_passage", "sealed_door"]:
+        rooms[key].tags.add(f"{_rt}:mine_dungeon", category="map_cell")
+    # Windroot hollow → region farm (harvesting) cell
+    rooms["windroot_hollow"].tags.add(f"{_rt}:windroot_hollow", category="map_cell")
+    # Miners camp → deep woods NE (shared with faerie clearing)
+    rooms["miners_camp"].tags.add(f"{_rt}:deep_woods_ne", category="map_cell")
+    print(f"  Tagged {len(_mine_map_tags)} mine rooms with map_cell tags (district + region).")
 
     print("  Millholm Abandoned Mine complete.\n")
     return rooms

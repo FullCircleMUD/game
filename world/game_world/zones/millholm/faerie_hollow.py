@@ -314,11 +314,14 @@ def build_faerie_hollow():
     # faerie_hollow: future faerie NPC spawns, gift/quest mechanics
     # moonlit_glade: offering altar — future quest interaction point
 
-    # ── District map cell tags ────────────────────────────────────────
-    # deep_woods_clearing is the shared region "deep_woods" marker —
-    # both this room and the miners_camp reveal the same vague cell.
-    rooms["deep_woods_clearing"].tags.add("millholm_region:deep_woods", category="map_cell")
-    print("  Tagged deep_woods_clearing with millholm_region:deep_woods map_cell tag.")
+    # ── Region map cell tags ────────────────────────────────────────
+    _rt = "millholm_region"
+    # Clearing is a shared deep_woods marker (also tagged from mine)
+    rooms["deep_woods_clearing"].tags.add(f"{_rt}:deep_woods_nw", category="map_cell")
+    # Faerie hollow rooms → mystery marker
+    for key in ["shimmering_threshold", "faerie_hollow", "moonlit_glade", "crystalline_grotto"]:
+        rooms[key].tags.add(f"{_rt}:faerie_hollow", category="map_cell")
+    print(f"  Tagged faerie hollow rooms with {_rt} map_cell tags.")
 
     print("  Millholm Faerie Hollow complete.\n")
     return rooms

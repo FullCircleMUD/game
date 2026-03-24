@@ -995,10 +995,70 @@ def build_millholm_woods(town_rooms):
     # Procedural passages 3 & 4 (clearing ↔ miners_camp) wired in build_game_world.py
     # Grid POI rooms (Trapper's Hut, Fox Earth) → future mob spawns
 
-    # ── District map cell tags ────────────────────────────────────────
-    # forest_path_east is the region-level woods marker (forest entry from town)
-    rooms["forest_path_east"].tags.add("millholm_region:millholm_woods", category="map_cell")
-    print("  Tagged forest_path_east with millholm_region:millholm_woods map_cell tag.")
+    # ── Region map cell tags ────────────────────────────────────────
+    # Woods path (north of road): 3 cells covering main path rooms
+    _region_tag = "millholm_region"
+    _path_keys = [
+        "forest_path_east", "edge_of_woods", "birch_stand", "mossy_bend",
+        "creekside_crossing", "tall_canopy", "shadowed_hollow",
+        "split_trunk_oak", "fern_carpet", "hunters_lookout", "tumbled_stones",
+        "thicket_gate", "windbreak_slope", "rolling_rise", "open_scrub",
+        "low_hill_crest", "scattered_groves", "wooded_foothills",
+    ]
+    # Split path into 3 chunks for woods_path_w, woods_path_mid, woods_path_e
+    for key in _path_keys[:6]:
+        rooms[key].tags.add(f"{_region_tag}:woods_path_w", category="map_cell")
+    for key in _path_keys[6:12]:
+        rooms[key].tags.add(f"{_region_tag}:woods_path_mid", category="map_cell")
+    for key in _path_keys[12:]:
+        rooms[key].tags.add(f"{_region_tag}:woods_path_e", category="map_cell")
+
+    # Sawmill and smelter
+    rooms["sawmill"].tags.add(f"{_region_tag}:sawmill", category="map_cell")
+    rooms["northern_track"].tags.add(f"{_region_tag}:sawmill", category="map_cell")
+    rooms["smelter"].tags.add(f"{_region_tag}:smelter", category="map_cell")
+    rooms["southern_track"].tags.add(f"{_region_tag}:smelter", category="map_cell")
+
+    # Woods road (main E-W through woods, on the road row)
+    rooms["forest_path_east"].tags.add(f"{_region_tag}:woods_road_w", category="map_cell")
+    rooms["edge_of_woods"].tags.add(f"{_region_tag}:woods_road_w", category="map_cell")
+    for key in _path_keys[4:8]:
+        rooms[key].tags.add(f"{_region_tag}:woods_road_mid", category="map_cell")
+    for key in _path_keys[8:13]:
+        rooms[key].tags.add(f"{_region_tag}:woods_road_e", category="map_cell")
+    for key in _path_keys[13:]:
+        rooms[key].tags.add(f"{_region_tag}:woods_road_far_e", category="map_cell")
+
+    # Southern woods grid: 10x6 → 9 region cells (3x3 chunks)
+    # Chunk mapping: cols 0-2 = west, 3-6 = mid, 7-9 = east
+    #                rows 0-1 = north, 2-3 = mid, 4-5 = south
+    _grid_chunks = {
+        "woods_south_w":  [(r, c) for r in range(0, 2) for c in range(0, 3)],
+        "woods_south_mid":[(r, c) for r in range(0, 2) for c in range(3, 7)],
+        "woods_south_e":  [(r, c) for r in range(0, 2) for c in range(7, 10)],
+        "woods_deep_sw":  [(r, c) for r in range(2, 4) for c in range(0, 3)],
+        "tannery":        [(r, c) for r in range(2, 4) for c in range(3, 7)],
+        "woods_deep_se":  [(r, c) for r in range(2, 4) for c in range(7, 10)],
+        "woods_far_sw":   [(r, c) for r in range(4, 6) for c in range(0, 3)],
+        "woods_far_mid":  [(r, c) for r in range(4, 6) for c in range(3, 7)],
+        "woods_far_se":   [(r, c) for r in range(4, 6) for c in range(7, 10)],
+    }
+    for cell_key, positions in _grid_chunks.items():
+        for r, c in positions:
+            grid[r][c].tags.add(f"{_region_tag}:{cell_key}", category="map_cell")
+
+    # Northern woods → deep woods cells
+    for nw_room in northern_woods[:5]:
+        nw_room.tags.add(f"{_region_tag}:deep_woods_sw", category="map_cell")
+    for nw_room in northern_woods[5:]:
+        nw_room.tags.add(f"{_region_tag}:deep_woods_se", category="map_cell")
+    rooms["deep_woods_entry"].tags.add(f"{_region_tag}:deep_woods_se", category="map_cell")
+
+    # Woods exit (zone boundary)
+    rooms["wooded_foothills"].tags.add(f"{_region_tag}:woods_exit", category="map_cell")
+
+    _region_count = sum(len(v) for v in _grid_chunks.values()) + len(northern_woods) + 30
+    print(f"  Tagged ~{_region_count} woods rooms with millholm_region map_cell tags.")
 
     print("  Millholm Woods complete.\n")
     return rooms
