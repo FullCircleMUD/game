@@ -25,18 +25,18 @@ ACTIVE_ZONES = [
     "ironback_peaks",    # BASIC cartography — scaffold
     "cloverfen",         # BASIC cartography — scaffold
     "shadowsward",       # SKILLED cartography — scaffold (temp endpoint)
-    "saltspray_bay",     # SKILLED cartography — scaffold (temp endpoint)
-    # "teotlan_ruin",      # BASIC sea island — not yet built
-    # "calenport",         # BASIC sea island — not yet built
-    # "bayou",             # SKILLED cartography — not yet built
-    # "kashoryu",          # SKILLED sea / EXPERT overland — not yet built
-    # "port_shadowmere",   # SKILLED sea — not yet built
-    # "amber_shore",       # SKILLED sea — not yet built
+    "saltspray_bay",     # SKILLED cartography — scaffold
+    "bayou",             # SKILLED cartography — scaffold
+    "kashoryu",          # SKILLED sea / EXPERT overland — scaffold
+    "aethenveil",        # MASTER cartography — scaffold (temp endpoint)
+    "teotlan_ruin",      # BASIC sea island — scaffold
+    "calenport",         # SKILLED sea island — scaffold
+    "port_shadowmere",   # SKILLED sea — scaffold
+    "amber_shore",       # SKILLED sea — scaffold
+    "arcane_sanctum",    # EXPERT sea — scaffold
+    "oldbone_island",    # EXPERT sea — scaffold
     # "shadowroot",        # EXPERT cartography — not yet built
     # "scalded_waste",     # EXPERT cartography — not yet built
-    # "arcane_sanctum",    # EXPERT sea — not yet built
-    # "oldbone_island",    # EXPERT sea — not yet built
-    # "aethenveil",        # MASTER cartography — not yet built
     # "zharavan",          # MASTER cartography — not yet built
     # "guildmere_island",  # MASTER sea — not yet built
     # "atlantis",          # MASTER dive (from Guildmere Island) — not yet built
@@ -98,17 +98,38 @@ def deploy_world():
     from world.game_world.zones.saltspray_bay.soft_deploy import build_zone as build_saltspray
     saltspray = build_saltspray()
 
+    from world.game_world.zones.bayou.soft_deploy import build_zone as build_bayou
+    bayou = build_bayou()
+
+    from world.game_world.zones.kashoryu.soft_deploy import build_zone as build_kashoryu
+    kashoryu = build_kashoryu()
+
+    from world.game_world.zones.aethenveil.soft_deploy import build_zone as build_aethenveil
+    aethenveil = build_aethenveil()
+
+    from world.game_world.zones.teotlan_ruin.soft_deploy import build_zone as build_teotlan
+    teotlan = build_teotlan()
+
+    from world.game_world.zones.calenport.soft_deploy import build_zone as build_calenport
+    calenport = build_calenport()
+
+    from world.game_world.zones.port_shadowmere.soft_deploy import build_zone as build_shadowmere
+    shadowmere = build_shadowmere()
+
+    from world.game_world.zones.amber_shore.soft_deploy import build_zone as build_amber
+    amber = build_amber()
+
+    from world.game_world.zones.arcane_sanctum.soft_deploy import build_zone as build_sanctum
+    sanctum = build_sanctum()
+
+    from world.game_world.zones.oldbone_island.soft_deploy import build_zone as build_oldbone
+    oldbone = build_oldbone()
+
     # Uncomment as zones are built:
-    # from world.game_world.zones.bayou.soft_deploy import build_zone as build_bayou
-    # bayou = build_bayou()
-    # from world.game_world.zones.kashoryu.soft_deploy import build_zone as build_kashoryu
-    # kashoryu = build_kashoryu()
     # from world.game_world.zones.shadowroot.soft_deploy import build_zone as build_shadowroot
     # shadowroot = build_shadowroot()
     # from world.game_world.zones.scalded_waste.soft_deploy import build_zone as build_scalded_waste
     # scalded_waste = build_scalded_waste()
-    # from world.game_world.zones.aethenveil.soft_deploy import build_zone as build_aethenveil
-    # aethenveil = build_aethenveil()
     # from world.game_world.zones.zharavan.soft_deploy import build_zone as build_zharavan
     # zharavan = build_zharavan()
     # from world.game_world.zones.guildmere_island.soft_deploy import build_zone as build_guildmere
@@ -236,7 +257,6 @@ def deploy_world():
     ]
 
     # ── Cloverfen E gate (SKILLED) ─────────────────────────────────────
-    # Destination: Saltspray Bay W gate
     cloverfen["e_gate"].destinations = [
         {
             "key": "saltspray_bay",
@@ -253,8 +273,24 @@ def deploy_world():
         },
     ]
 
+    # ── Cloverfen S gate (SKILLED) ─────────────────────────────────────
+    cloverfen["s_gate"].destinations = [
+        {
+            "key": "bayou",
+            "label": "The Bayou",
+            "destination": bayou["n_gate"],
+            "travel_description": (
+                "The road south grows softer as hedgerows give way to "
+                "reeds and willows. The air thickens with humidity and "
+                "the drone of insects heralds the swamp ahead."
+            ),
+            "conditions": {"food_cost": 2},
+            "hidden": True,
+            "explore_chance": 20,
+        },
+    ]
+
     # ── Saltspray Bay W gate (SKILLED) ─────────────────────────────────
-    # Destinations: Ironback Peaks S gate, Cloverfen E gate
     saltspray["w_gate"].destinations = [
         {
             "key": "ironback_peaks",
@@ -284,8 +320,280 @@ def deploy_world():
         },
     ]
 
+    # ── Saltspray Bay S gate (SKILLED) ─────────────────────────────────
+    saltspray["s_gate"].destinations = [
+        {
+            "key": "bayou",
+            "label": "The Bayou",
+            "destination": bayou["n_gate"],
+            "travel_description": (
+                "The coast road leads south past sandstone cliffs into "
+                "warmer, more humid country. The vegetation thickens as "
+                "the Bayou approaches."
+            ),
+            "conditions": {"food_cost": 2},
+            "hidden": True,
+            "explore_chance": 20,
+        },
+    ]
+
+    # ── Saltspray Bay dock (sea routes) ────────────────────────────────
+    saltspray["dock"].destinations = [
+        {
+            "key": "teotlan_ruin",
+            "label": "Teotlan Ruin",
+            "destination": teotlan["dock"],
+            "travel_description": "You sail south to the jungle ruins of Teotlan.",
+            "conditions": {"food_cost": 3, "boat_level": 1},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "amber_shore",
+            "label": "Amber Shore",
+            "destination": amber["dock"],
+            "travel_description": "You sail to the plague-touched colony of Amber Shore.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "port_shadowmere",
+            "label": "Port Shadowmere",
+            "destination": shadowmere["dock"],
+            "travel_description": "You sail into the perpetual twilight of Port Shadowmere.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "calenport",
+            "label": "Calenport",
+            "destination": calenport["dock"],
+            "travel_description": "You sail to the pirate haven of Calenport.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "kashoryu",
+            "label": "Kashoryu",
+            "destination": kashoryu["dock"],
+            "travel_description": "You sail the long coastal route to the tropical city of Kashoryu.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "arcane_sanctum",
+            "label": "The Arcane Sanctum",
+            "destination": sanctum["dock"],
+            "travel_description": "You sail into open ocean toward the mist-shrouded Arcane Sanctum.",
+            "conditions": {"food_cost": 8, "boat_level": 3},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "oldbone_island",
+            "label": "Oldbone Island",
+            "destination": oldbone["dock"],
+            "travel_description": "You sail to the primordial shores of Oldbone Island.",
+            "conditions": {"food_cost": 8, "boat_level": 3},
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Bayou N gate (SKILLED) ─────────────────────────────────────────
+    bayou["n_gate"].destinations = [
+        {
+            "key": "cloverfen",
+            "label": "Cloverfen",
+            "destination": cloverfen["s_gate"],
+            "travel_description": (
+                "You leave the swamp behind as the ground firms and "
+                "the air clears. Neat halfling hedgerows appear ahead."
+            ),
+            "conditions": {"food_cost": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "saltspray_bay",
+            "label": "Saltspray Bay",
+            "destination": saltspray["s_gate"],
+            "travel_description": (
+                "The coastal path leads north out of the swamp. Salt "
+                "air and the cry of gulls signal Saltspray Bay."
+            ),
+            "conditions": {"food_cost": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Bayou S gate (EXPERT / MASTER) ─────────────────────────────────
+    bayou["s_gate"].destinations = [
+        {
+            "key": "kashoryu",
+            "label": "Kashoryu",
+            "destination": kashoryu["n_gate"],
+            "travel_description": (
+                "You push south through thinning swamp into dense jungle. "
+                "The trail grows warmer and greener until temple spires "
+                "appear through the canopy."
+            ),
+            "conditions": {"food_cost": 4},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "aethenveil",
+            "label": "Aethenveil",
+            "destination": aethenveil["ne_gate"],
+            "travel_description": (
+                "You follow an ancient trail southwest through deepening "
+                "forest. The trees grow taller and silver-barked, and the "
+                "air takes on an ageless stillness."
+            ),
+            "conditions": {"food_cost": 4},
+            "hidden": True, "explore_chance": 10,
+        },
+    ]
+
+    # ── Kashoryu N gate (EXPERT / MASTER) ──────────────────────────────
+    kashoryu["n_gate"].destinations = [
+        {
+            "key": "bayou",
+            "label": "The Bayou",
+            "destination": bayou["s_gate"],
+            "travel_description": (
+                "The jungle trail leads north into swampland. The ground "
+                "softens and strange lights flicker in the mist ahead."
+            ),
+            "conditions": {"food_cost": 4},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "aethenveil",
+            "label": "Aethenveil",
+            "destination": aethenveil["ne_gate"],
+            "travel_description": (
+                "You take the western trail through ancient forest. The "
+                "jungle gives way to silver-barked elven woods, and "
+                "carved waymarkers guide your path."
+            ),
+            "conditions": {"food_cost": 3},
+            "hidden": True, "explore_chance": 10,
+        },
+    ]
+
+    # ── Kashoryu dock (sea routes) ─────────────────────────────────────
+    kashoryu["dock"].destinations = [
+        {
+            "key": "teotlan_ruin",
+            "label": "Teotlan Ruin",
+            "destination": teotlan["dock"],
+            "travel_description": "You sail north to the jungle ruins of Teotlan.",
+            "conditions": {"food_cost": 3, "boat_level": 1},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "amber_shore",
+            "label": "Amber Shore",
+            "destination": amber["dock"],
+            "travel_description": "You sail to the plague-touched colony of Amber Shore.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "port_shadowmere",
+            "label": "Port Shadowmere",
+            "destination": shadowmere["dock"],
+            "travel_description": "You sail into the perpetual twilight of Port Shadowmere.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "calenport",
+            "label": "Calenport",
+            "destination": calenport["dock"],
+            "travel_description": "You sail to the pirate haven of Calenport.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "saltspray_bay",
+            "label": "Saltspray Bay",
+            "destination": saltspray["dock"],
+            "travel_description": "You sail the long coastal route to Saltspray Bay.",
+            "conditions": {"food_cost": 6, "boat_level": 2},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "arcane_sanctum",
+            "label": "The Arcane Sanctum",
+            "destination": sanctum["dock"],
+            "travel_description": "You sail into open ocean toward the mist-shrouded Arcane Sanctum.",
+            "conditions": {"food_cost": 8, "boat_level": 3},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "oldbone_island",
+            "label": "Oldbone Island",
+            "destination": oldbone["dock"],
+            "travel_description": "You sail to the primordial shores of Oldbone Island.",
+            "conditions": {"food_cost": 8, "boat_level": 3},
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Aethenveil NE gate (MASTER) — temp endpoint ────────────────────
+    aethenveil["ne_gate"].destinations = [
+        {
+            "key": "bayou",
+            "label": "The Bayou",
+            "destination": bayou["s_gate"],
+            "travel_description": (
+                "You leave the ancient forest, the silver trees thinning "
+                "as the trail descends into warmer, wetter country."
+            ),
+            "conditions": {"food_cost": 4},
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "kashoryu",
+            "label": "Kashoryu",
+            "destination": kashoryu["n_gate"],
+            "travel_description": (
+                "The eastern trail leads through thinning elven forest "
+                "into tropical jungle. Temple spires appear ahead."
+            ),
+            "conditions": {"food_cost": 3},
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Sea island docks (return routes to both ports) ─────────────────
+    _island_return_routes = {
+        "teotlan_ruin": (teotlan, "Teotlan Ruin", 3, 1),
+        "amber_shore": (amber, "Amber Shore", 6, 2),
+        "port_shadowmere": (shadowmere, "Port Shadowmere", 6, 2),
+        "calenport": (calenport, "Calenport", 6, 2),
+        "arcane_sanctum": (sanctum, "The Arcane Sanctum", 8, 3),
+        "oldbone_island": (oldbone, "Oldbone Island", 8, 3),
+    }
+    for zone_key, (zone, name, food, boat) in _island_return_routes.items():
+        zone["dock"].destinations = [
+            {
+                "key": "saltspray_bay",
+                "label": "Saltspray Bay",
+                "destination": saltspray["dock"],
+                "travel_description": f"You sail from {name} back to Saltspray Bay.",
+                "conditions": {"food_cost": food, "boat_level": boat},
+                "hidden": True, "explore_chance": 20,
+            },
+            {
+                "key": "kashoryu",
+                "label": "Kashoryu",
+                "destination": kashoryu["dock"],
+                "travel_description": f"You sail from {name} to the tropical harbour of Kashoryu.",
+                "conditions": {"food_cost": food, "boat_level": boat},
+                "hidden": True, "explore_chance": 20,
+            },
+        ]
+
     # ── Millholm south gate (SKILLED) ──────────────────────────────────
-    # Destination: Shadowsward NE gate
     millholm["shadowsward_gate"].destinations = [
         {
             "key": "shadowsward",
@@ -302,8 +610,7 @@ def deploy_world():
         },
     ]
 
-    # ── Shadowsward NE gate (SKILLED) ──────────────────────────────────
-    # Destination: Millholm south gate
+    # ── Shadowsward NE gate (SKILLED) — temp endpoint ──────────────────
     shadowsward["ne_gate"].destinations = [
         {
             "key": "millholm",
@@ -323,18 +630,13 @@ def deploy_world():
     print("  All cross-zone destinations wired.")
 
     # ── Future cross-zone connections (uncomment as zones are built) ──
-    # Cloverfen → Bayou (SKILLED)
-    # Saltspray Bay → Bayou (SKILLED)
-    # Saltspray Bay dock → sea routes (SKILLED+)
     # Shadowsward → Shadowroot (EXPERT)
     # Shadowsward → Scalded Waste (EXPERT)
-    # Bayou → Kashoryu (EXPERT)
-    # Kashoryu dock → sea routes (SKILLED+)
     # Scalded Waste → Aethenveil (MASTER)
     # Scalded Waste → Zharavan (MASTER, hidden)
-    # Aethenveil → Kashoryu (MASTER)
     # Guildmere Island → Atlantis (MASTER, dive)
     # Guildmere Island dock → Vaathari (GM)
+    # Kashoryu → Solendra (GM, hidden southern dock)
 
     print("=== WORLD DEPLOY COMPLETE ===\n")
 

@@ -3,12 +3,14 @@ Saltspray Bay Zone — soft deploy script.
 
 Cartography tier: SKILLED
 Access: Overland from Ironback Peaks or Cloverfen (W gate)
+        Sea routes from dock (E gate)
 
-Scaffold: 2 rooms (1 gateway + 1 normal room). Temporary endpoint —
-more gateways (dock, overland south) will be added when expanding.
+Scaffold: 5 rooms (3 gateways + 2 connecting rooms).
 
 Gateway keys:
-    "w_gate"  — toward Ironback Peaks / Cloverfen (SKILLED cartography)
+    "w_gate"   — toward Ironback Peaks / Cloverfen (SKILLED cartography)
+    "s_gate"   — toward The Bayou (SKILLED cartography)
+    "dock"     — sea routes to islands and Kashoryu
 """
 
 from evennia import create_object
@@ -34,7 +36,7 @@ def build_zone():
 
     rooms = {}
 
-    # ── Gateway ───────────────────────────────────────────────────────
+    # ── Gateways ──────────────────────────────────────────────────────
 
     rooms["w_gate"] = create_object(
         RoomGateway,
@@ -48,23 +50,63 @@ def build_zone():
         ],
     )
 
-    # ── Placeholder room ──────────────────────────────────────────────
+    rooms["s_gate"] = create_object(
+        RoomGateway,
+        key="Southern Coast Road",
+        attributes=[
+            ("desc",
+             "The coastal road turns south here, winding along sandstone "
+             "cliffs above crashing surf. The air grows warmer and more "
+             "humid as the road trends toward the tropics. Seabirds wheel "
+             "overhead."),
+        ],
+    )
+
+    rooms["dock"] = create_object(
+        RoomGateway,
+        key="Saltspray Bay Docks",
+        attributes=[
+            ("desc",
+             "The great harbour of Saltspray Bay stretches before you, "
+             "a forest of masts and rigging. Merchant vessels from distant "
+             "lands crowd the wharves, their crews shouting in a dozen "
+             "tongues. The harbourmaster's office overlooks it all from "
+             "a stone tower."),
+        ],
+    )
+
+    # ── Connecting rooms ──────────────────────────────────────────────
 
     rooms["harbour_road"] = create_object(
         RoomBase,
         key="Harbour Road",
         attributes=[
             ("desc",
-             "A wide cobbled road winds down toward the harbour. "
-             "Warehouses and chandleries line the way, their doors "
+             "A wide cobbled road winds through the heart of Saltspray "
+             "Bay. Warehouses and chandleries line the way, their doors "
              "propped open to catch the sea breeze. The bustle of a "
              "thriving port town surrounds you."),
         ],
     )
 
+    rooms["market_square"] = create_object(
+        RoomBase,
+        key="Saltspray Market Square",
+        attributes=[
+            ("desc",
+             "An open market square bustles with trade. Stalls sell "
+             "exotic spices, bolts of silk, and strange fruits from "
+             "distant shores. The harbour is visible down the hill "
+             "to the east, and roads lead west and south."),
+        ],
+    )
+
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["w_gate"], rooms["harbour_road"], "east")
+    connect(rooms["w_gate"], rooms["market_square"], "east")
+    connect(rooms["market_square"], rooms["s_gate"], "south")
+    connect(rooms["market_square"], rooms["harbour_road"], "east")
+    connect(rooms["harbour_road"], rooms["dock"], "east")
 
     # ── Tags ──────────────────────────────────────────────────────────
 
@@ -73,10 +115,15 @@ def build_zone():
         room.tags.add(DISTRICT, category="district")
         room.set_terrain(TerrainType.COASTAL.value)
 
-    print("  Saltspray Bay scaffold complete (2 rooms).\n")
+    rooms["market_square"].set_terrain(TerrainType.URBAN.value)
+    rooms["harbour_road"].set_terrain(TerrainType.URBAN.value)
+
+    print("  Saltspray Bay scaffold complete (5 rooms).\n")
 
     return {
         "w_gate": rooms["w_gate"],
+        "s_gate": rooms["s_gate"],
+        "dock": rooms["dock"],
     }
 
 

@@ -4,11 +4,12 @@ Cloverfen Zone — soft deploy script.
 Cartography tier: BASIC
 Access: Overland from Millholm (NW gate), overland to Saltspray Bay (E gate)
 
-Scaffold: 3 rooms (2 gateways + 1 connecting room).
+Scaffold: 4 rooms (3 gateways + 1 connecting room).
 
 Gateway keys:
     "nw_gate"  — toward Millholm / Ironback Peaks (BASIC cartography)
     "e_gate"   — toward Saltspray Bay (SKILLED cartography)
+    "s_gate"   — toward The Bayou (SKILLED cartography)
 """
 
 from evennia import create_object
@@ -60,6 +61,18 @@ def build_zone():
         ],
     )
 
+    rooms["s_gate"] = create_object(
+        RoomGateway,
+        key="Southern Fen Road",
+        attributes=[
+            ("desc",
+             "The road south leaves the tidy halfling farmland behind. "
+             "The ground grows softer underfoot, and the hedgerows give "
+             "way to tall reeds and willows. A faint mist hangs in the "
+             "air — the Bayou is not far."),
+        ],
+    )
+
     # ── Connecting room ───────────────────────────────────────────────
 
     rooms["halfling_green"] = create_object(
@@ -78,6 +91,7 @@ def build_zone():
 
     connect(rooms["nw_gate"], rooms["halfling_green"], "southeast")
     connect(rooms["halfling_green"], rooms["e_gate"], "east")
+    connect(rooms["halfling_green"], rooms["s_gate"], "south")
 
     # ── Tags ──────────────────────────────────────────────────────────
 
@@ -86,11 +100,12 @@ def build_zone():
         room.tags.add(DISTRICT, category="district")
         room.set_terrain(TerrainType.PLAINS.value)
 
-    print("  Cloverfen scaffold complete (3 rooms).\n")
+    print("  Cloverfen scaffold complete (4 rooms).\n")
 
     return {
         "nw_gate": rooms["nw_gate"],
         "e_gate": rooms["e_gate"],
+        "s_gate": rooms["s_gate"],
     }
 
 
