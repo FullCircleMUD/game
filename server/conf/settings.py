@@ -131,6 +131,9 @@ XAMAN_API_SECRET = "PLACEHOLDER"
 # Public-facing website URL — used for in-game ToS links and compliance notices.
 GAME_WEBSITE_URL = "https://fcmud.world"
 
+# NFT image base URL — convention: {base_url}{prototype_key}.png
+NFT_IMAGE_BASE_URL = "https://njqdijnpujooixoehbms.supabase.co/storage/v1/object/public/FCMImages/"
+
 # Terms of Service version string. Bump this when the ToS changes.
 # Future: at_account_login can check account.db.tos_version != TOS_VERSION
 # and force re-acceptance before play is permitted.
