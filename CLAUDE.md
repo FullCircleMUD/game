@@ -544,7 +544,7 @@ The base typeclass for all blockchain-backed NFT items. Inherits `HiddenObjectMi
 ### Subclasses
 
 - `TakeableNFTItem` — can be picked up (default `get: true()`)
-- `UntakeableNFTItem` — cannot be picked up (overrides to `get: false()`)
+- `WorldAnchoredNFTItem` — cannot be picked up (overrides to `get: false()`)
 - `WearableNFTItem` — base for armor/clothing/jewelry. `at_wear(wearer)` / `at_remove(wearer)` hooks apply/remove data-driven effects. `wearslot`, `wear_effects`, `max_durability`, `durability` AttributeProperties.
 - `HoldableNFTItem` — base for shields/torches/orbs. `at_hold(holder)` / `at_remove(holder)` hooks apply/remove data-driven effects. `wear_effects`, `max_durability`, `durability`.
 - `WeaponNFTItem` — weapon base class with mastery-scaled damage dicts. `at_wield(wielder)` / `at_remove(wielder)` hooks apply/remove data-driven effects.

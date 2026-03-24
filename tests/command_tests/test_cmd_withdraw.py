@@ -170,9 +170,9 @@ class TestCmdWithdrawNFT(EvenniaCommandTest):
         self.call(CmdWithdraw(), "999", "No item with ID #999")
 
     def test_withdraw_untakeable_nft(self):
-        """withdraw an UntakeableNFTItem should be blocked."""
+        """withdraw an WorldAnchoredNFTItem should be blocked."""
         horse = create.create_object(
-            "typeclasses.items.untakeables.untakeable_nft_item.UntakeableNFTItem",
+            "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
             key="Horse",
             nohome=True,
         )

@@ -26,7 +26,7 @@ from django.conf import settings
 
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 from typeclasses.items.base_nft_item import BaseNFTItem
-from typeclasses.items.untakeables.untakeable_nft_item import UntakeableNFTItem
+from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
 from utils.item_parse import parse_item_args
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
@@ -96,7 +96,7 @@ class CmdWithdraw(Command):
             caller.msg(f"No item with ID #{token_id} in your bank.")
             return
 
-        if isinstance(nft_item, UntakeableNFTItem):
+        if isinstance(nft_item, WorldAnchoredNFTItem):
             caller.msg("That item cannot be withdrawn at a bank.")
             return
 
@@ -129,7 +129,7 @@ class CmdWithdraw(Command):
             caller.msg("That item cannot be withdrawn.")
             return
 
-        if isinstance(obj, UntakeableNFTItem):
+        if isinstance(obj, WorldAnchoredNFTItem):
             caller.msg("That item cannot be withdrawn at a bank.")
             return
 

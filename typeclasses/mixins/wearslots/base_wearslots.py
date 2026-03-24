@@ -364,10 +364,18 @@ class BaseWearslotsMixin:
 
     def get_carried(self):
         """
-        Get items in contents that are NOT currently worn/equipped.
+        Get items in contents that are NOT currently worn/equipped and are NOT
+        owned objects (WorldAnchoredNFTItem — ships, mounts, pets, property).
+
+        Owned objects live in contents for ownership tracking but are invisible
+        to inventory. Use the `owned` command to list them.
 
         Returns:
-            list — Evennia objects in contents that aren't in any wearslot
+            list — Evennia objects in contents that aren't worn or owned
         """
+        from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
         worn = set(v for v in (self.db.wearslots or {}).values() if v is not None)
-        return [obj for obj in self.contents if obj not in worn]
+        return [
+            obj for obj in self.contents
+            if obj not in worn and not isinstance(obj, WorldAnchoredNFTItem)
+        ]

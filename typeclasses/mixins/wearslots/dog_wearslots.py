@@ -6,7 +6,7 @@ the BaseWearslotsMixin pattern extends to different creature types
 with their own slot enums.
 
 Usage:
-    class NFTPetDog(DogWearslotsMixin, UntakeableNFTItem):
+    class NFTPetDog(DogWearslotsMixin, WorldAnchoredNFTItem):
         def at_object_creation(self):
             super().at_object_creation()
             self.at_wearslots_init()

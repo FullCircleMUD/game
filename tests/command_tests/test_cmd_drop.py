@@ -128,10 +128,10 @@ class TestCmdDropObject(EvenniaCommandTest):
         """drop item you don't have should show error."""
         self.call(CmdDrop(), "banana", "You aren't carrying banana.")
 
-    def test_drop_untakeable_nft_item(self):
-        """drop should refuse to drop an UntakeableNFTItem."""
+    def test_drop_world_anchored_nft_item(self):
+        """drop should refuse to drop an WorldAnchoredNFTItem."""
         mount = create.create_object(
-            "typeclasses.items.untakeables.untakeable_nft_item.UntakeableNFTItem",
+            "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
             key="horse",
             nohome=True,
         )

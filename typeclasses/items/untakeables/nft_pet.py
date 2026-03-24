@@ -19,10 +19,10 @@ Future:
     - Only one active pet at a time (enforced by active_pet attribute)
 """
 
-from typeclasses.items.untakeables.untakeable_nft_item import UntakeableNFTItem
+from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
 
 
-class PetNFTItem(UntakeableNFTItem):
+class PetNFTItem(WorldAnchoredNFTItem):
     """
     An NFT pet that follows its owner in the game world.
 

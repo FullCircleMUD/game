@@ -159,7 +159,7 @@ class TestCmdBalanceUntakeableItems(EvenniaCommandTest):
 
         # Create an untakeable NFT in the bank (bypass hooks)
         self.horse = create.create_object(
-            "typeclasses.items.untakeables.untakeable_nft_item.UntakeableNFTItem",
+            "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
             key="Horse",
             nohome=True,
         )

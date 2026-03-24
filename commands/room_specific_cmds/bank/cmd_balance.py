@@ -14,7 +14,7 @@ from django.conf import settings
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from typeclasses.items.base_nft_item import BaseNFTItem
-from typeclasses.items.untakeables.untakeable_nft_item import UntakeableNFTItem
+from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -72,8 +72,8 @@ class CmdBalance(Command):
         resources = bank.db.resources or {}
         nft_items = [obj for obj in bank.contents if isinstance(obj, BaseNFTItem)]
 
-        takeable_items = [obj for obj in nft_items if not isinstance(obj, UntakeableNFTItem)]
-        untakeable_items = [obj for obj in nft_items if isinstance(obj, UntakeableNFTItem)]
+        takeable_items = [obj for obj in nft_items if not isinstance(obj, WorldAnchoredNFTItem)]
+        untakeable_items = [obj for obj in nft_items if isinstance(obj, WorldAnchoredNFTItem)]
 
         has_anything = gold > 0 or any(v > 0 for v in resources.values()) or takeable_items
         has_untakeables = bool(untakeable_items)

@@ -139,17 +139,17 @@ class TestCmdGiveObject(EvenniaCommandTest):
         """give item you don't have should show error."""
         self.call(CmdGive(), "banana to Char2", "You aren't carrying banana.")
 
-    def test_give_untakeable_nft_item(self):
-        """give should refuse to give an UntakeableNFTItem."""
+    def test_give_world_anchored_nft_item(self):
+        """give should succeed for WorldAnchoredNFTItem (ownership transfer)."""
         mount = create.create_object(
-            "typeclasses.items.untakeables.untakeable_nft_item.UntakeableNFTItem",
+            "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
             key="horse",
             nohome=True,
         )
         mount.db_location = self.char1
         mount.save(update_fields=["db_location"])
-        self.call(CmdGive(), "horse to Char2", "You can't give")
-        self.assertEqual(mount.location, self.char1)
+        self.call(CmdGive(), "horse to Char2", "You give")
+        self.assertEqual(mount.location, self.char2)
 
 
 class TestCmdGiveAll(EvenniaCommandTest):

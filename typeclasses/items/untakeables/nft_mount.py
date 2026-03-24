@@ -20,10 +20,10 @@ Future:
     - Mount stamina / fatigue system
 """
 
-from typeclasses.items.untakeables.untakeable_nft_item import UntakeableNFTItem
+from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
 
 
-class MountNFTItem(UntakeableNFTItem):
+class MountNFTItem(WorldAnchoredNFTItem):
     """
     An NFT mount that a character can ride.
 

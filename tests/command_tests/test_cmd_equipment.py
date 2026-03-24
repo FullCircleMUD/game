@@ -187,7 +187,7 @@ class TestCmdWield(EvenniaCommandTest):
     def test_wield_weapon_success(self):
         """Wielding a weapon should succeed."""
         _make_weapon("Iron Longsword", self.char1)
-        self.call(CmdWield(), "Iron Longsword", "You wear Iron Longsword")
+        self.call(CmdWield(), "Iron Longsword", "You wield Iron Longsword")
 
     def test_wield_non_weapon_rejected(self):
         """Wielding a non-weapon should fail."""
@@ -225,7 +225,7 @@ class TestCmdHold(EvenniaCommandTest):
     def test_hold_holdable_success(self):
         """Holding a holdable item should succeed."""
         _make_holdable("Iron Shield", self.char1)
-        self.call(CmdHold(), "Iron Shield", "You wear Iron Shield")
+        self.call(CmdHold(), "Iron Shield", "You hold Iron Shield")
 
     def test_hold_non_holdable_rejected(self):
         """Holding a non-holdable should fail."""

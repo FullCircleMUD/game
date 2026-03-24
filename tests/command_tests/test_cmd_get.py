@@ -129,10 +129,10 @@ class TestCmdGetObject(EvenniaCommandTest):
         """get nonexistent object should show not found."""
         self.call(CmdGet(), "banana", "Could not find 'banana'.")
 
-    def test_get_untakeable_nft_item(self):
-        """get should refuse to pick up an UntakeableNFTItem."""
+    def test_get_world_anchored_nft_item(self):
+        """get should refuse to pick up an WorldAnchoredNFTItem."""
         mount = create.create_object(
-            "typeclasses.items.untakeables.untakeable_nft_item.UntakeableNFTItem",
+            "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
             key="horse",
             location=self.room1,
         )
