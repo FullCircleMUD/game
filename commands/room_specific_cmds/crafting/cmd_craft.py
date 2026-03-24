@@ -293,7 +293,7 @@ class CmdCraft(Command):
             f"\n\n{verb.capitalize()} {recipe['name']}? Y/[N]"
         )
 
-        if answer.lower() not in ("y", "yes"):
+        if not answer or answer.lower() not in ("y", "yes"):
             caller.msg("Crafting cancelled.")
             return
 
@@ -311,35 +311,35 @@ class CmdCraft(Command):
             resource_split[res_id] = (from_inv, from_bank)
 
         if nft_ingredients:
-            equipped = set()
-            wearslots = caller.db.wearslots
-            if wearslots:
-                equipped = {v for v in wearslots.values() if v is not None}
+                equipped = set()
+                wearslots = caller.db.wearslots
+                if wearslots:
+                    equipped = {v for v in wearslots.values() if v is not None}
 
-            nft_to_consume = {}
-            for proto_key, needed in nft_ingredients.items():
-                owned = [
-                    obj for obj in caller.contents
-                    if (getattr(obj, "db", None)
-                        and getattr(obj.db, "prototype_key", None) == proto_key
-                        and obj not in equipped)
-                ]
-                if len(owned) < needed:
-                    caller.msg("You no longer have the required materials.")
-                    return
-                nft_to_consume[proto_key] = owned[:needed]
+                nft_to_consume = {}
+                for proto_key, needed in nft_ingredients.items():
+                    owned = [
+                        obj for obj in caller.contents
+                        if (getattr(obj, "db", None)
+                            and getattr(obj.db, "prototype_key", None) == proto_key
+                            and obj not in equipped)
+                    ]
+                    if len(owned) < needed:
+                        caller.msg("You no longer have the required materials.")
+                        return
+                    nft_to_consume[proto_key] = owned[:needed]
 
         if not caller.has_gold(total_gold):
             caller.msg("You no longer have enough gold.")
             return
 
         # --- Consume resource ingredients (inventory first, bank remainder) ---
+        # Bank resources: transfer to character first, then sink from character.
         for res_id, needed in ingredients.items():
             from_inv, from_bank = resource_split.get(res_id, (needed, 0))
-            if from_inv > 0:
-                caller.return_resource_to_sink(res_id, from_inv)
             if from_bank > 0:
-                bank.return_resource_to_sink(res_id, from_bank)
+                bank.transfer_resource_to(caller, res_id, from_bank)
+            caller.return_resource_to_sink(res_id, needed)
 
         # --- Consume NFT item ingredients ---
         consumed_nft_info = []  # (item_type_name,) for refund on failure
