@@ -925,15 +925,12 @@ def _spawn_lumberjack():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
         key="Big Bjorn",
         location=room,
     )
-    # Add shop commands manually (no quest system needed)
-    from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
-    npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
-    npc.db.tradeable_resources = [6, 7]  # Wood, Timber
-    npc.db.shop_name = "Bjorn's Lumber Yard"
+    npc.tradeable_resources = [6, 7]  # Wood, Timber
+    npc.shop_name = "Bjorn's Lumber Yard"
 
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
@@ -1039,15 +1036,12 @@ def _spawn_trapper():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
         key="Old Buckshaw",
         location=room,
     )
-    # Add shop commands manually (no quest system needed)
-    from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
-    npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
-    npc.db.tradeable_resources = [8, 9]  # Hide, Leather
-    npc.db.shop_name = "Buckshaw's Pelts"
+    npc.tradeable_resources = [8, 9]  # Hide, Leather
+    npc.shop_name = "Buckshaw's Pelts"
 
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
