@@ -59,9 +59,19 @@ class CmdGive(NumberedTargetCommand):
     def func(self):
         caller = self.caller
 
-        if not self.args or not self.rhs:
+        if not self.args:
             caller.msg("Usage: give <item> to <target>")
             return
+
+        # Fallback: if no "to" or "=" splitter matched, treat the last
+        # word as the target (e.g. "give sword bob").
+        if not self.rhs:
+            parts = self.args.rsplit(None, 1)
+            if len(parts) == 2:
+                self.lhs, self.rhs = parts
+            else:
+                caller.msg("Usage: give <item> to <target>")
+                return
 
         # ---------------------------------------------------------- #
         #  Find and validate the target
