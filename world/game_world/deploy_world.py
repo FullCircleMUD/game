@@ -410,8 +410,8 @@ def deploy_world():
             "label": "Amber Shore",
             "destination": amber["dock"],
             "travel_description": "You sail to the plague-touched colony of Amber Shore.",
-            "conditions": {"food_cost": 6, "boat_level": 2},
-            "required_cartography_tier": _SKILLED,
+            "conditions": {"food_cost": 3, "boat_level": 1},
+            "required_cartography_tier": _BASIC,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -564,8 +564,8 @@ def deploy_world():
             "label": "Amber Shore",
             "destination": amber["dock"],
             "travel_description": "You sail to the plague-touched colony of Amber Shore.",
-            "conditions": {"food_cost": 6, "boat_level": 2},
-            "required_cartography_tier": _SKILLED,
+            "conditions": {"food_cost": 3, "boat_level": 1},
+            "required_cartography_tier": _BASIC,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -647,7 +647,7 @@ def deploy_world():
     # required_cartography_tier matches the island's tier
     _island_return_routes = {
         "teotlan_ruin": (teotlan, "Teotlan Ruin", 3, 1, _BASIC),
-        "amber_shore": (amber, "Amber Shore", 6, 2, _SKILLED),
+        "amber_shore": (amber, "Amber Shore", 3, 1, _BASIC),
         "port_shadowmere": (shadowmere, "Port Shadowmere", 6, 2, _SKILLED),
         "calenport": (calenport, "Calenport", 6, 2, _SKILLED),
         "arcane_sanctum": (sanctum, "The Arcane Sanctum", 8, 3, _EXPERT),
