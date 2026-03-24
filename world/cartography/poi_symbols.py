@@ -38,11 +38,15 @@ POI_SYMBOLS = {
     "mine":        "m",
     "lair":        "!",
     # Region overview
-    "town":        "T",
-    "farm":        "F",
-    "woods":       "W",
-    "district":    "d",
-    "unknown":     "?",
+    "town":            "T",
+    "farm":            "F",
+    "woods":           "W",
+    "district":        "d",
+    "unknown":         "?",
+    "resource_processing": "R",
+    "region_mine":     "M",
+    "region_dungeon":  "D",
+    "zone_boundary":   "Z",
 }
 
 # POI type → legend display name
@@ -78,6 +82,10 @@ POI_NAMES = {
     "town":        "Town",
     "farm":        "Farm",
     "woods":       "Woods",
-    "district":    "District",
-    "unknown":     "Unknown",
+    "district":            "District",
+    "unknown":             "Unknown",
+    "resource_processing": "Processing",
+    "region_mine":         "Mine",
+    "region_dungeon":      "Dungeon",
+    "zone_boundary":       "Zone Exit",
 }
