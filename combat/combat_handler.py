@@ -62,6 +62,24 @@ class CombatHandler(DefaultScript):
         self.obj.position = "fighting"
         self.obj.msg("|rYou enter combat!|n")
 
+    def auto_attack_first_enemy(self):
+        """Auto-queue repeating attack on the first enemy from get_sides().
+        Called after all combat handlers are created so sides are populated."""
+        if self.action_dict and self.action_dict.get("key") == "attack":
+            return  # already has an attack queued
+        from combat.combat_utils import get_weapon, get_sides
+        _, enemies = get_sides(self.obj)
+        if enemies:
+            weapon = get_weapon(self.obj)
+            speed = getattr(weapon, "speed", 1.0) if weapon else 1.0
+            dt = max(2, int(4 / speed))
+            self.queue_action({
+                "key": "attack",
+                "target": enemies[0],
+                "dt": dt,
+                "repeat": True,
+            })
+
     def stop_combat(self):
         """Fire at_combat_end, clean up combat effects, stop ticker, delete handler."""
         from combat.combat_utils import get_weapon
@@ -206,9 +224,20 @@ class CombatHandler(DefaultScript):
                                         hit_modifier=offhand_penalty,
                                     )
                 else:
-                    # Target gone or dead — stop attacking
-                    self.obj.msg("|yYour target is no longer here.|n")
-                    self.queue_action({"key": "hold", "dt": 0})
+                    # Target gone or dead — auto-retarget next enemy
+                    from combat.combat_utils import get_sides
+                    _, remaining_enemies = get_sides(self.obj)
+                    if remaining_enemies:
+                        new_target = remaining_enemies[0]
+                        self.obj.msg(
+                            f"|yYou turn to attack "
+                            f"{new_target.get_display_name(self.obj)}!|n"
+                        )
+                        action["target"] = new_target
+                        self.obj.ndb.combat_target = new_target
+                    else:
+                        # No enemies left — _check_stop_combat() will clean up
+                        self.queue_action({"key": "hold", "dt": 0})
 
                 if not action.get("repeat", False):
                     self.queue_action({"key": "hold", "dt": 0})
