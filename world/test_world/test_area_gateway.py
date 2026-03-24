@@ -102,7 +102,7 @@ def test_area_gateway():
                 "Soon the sound of waves reaches your ears."
             ),
             "conditions": {"food_cost": 1},
-            "hidden": False,
+            "hidden": True,
         },
     ]
     coastal_trail.destinations = [
@@ -116,7 +116,7 @@ def test_area_gateway():
                 "before opening onto a dusty dirt road."
             ),
             "conditions": {"food_cost": 1},
-            "hidden": False,
+            "hidden": True,
         },
     ]
     print("  Linked: Bush Track <-> Coastal Trail (1 bread)")
@@ -182,7 +182,7 @@ def test_area_gateway():
                 "ahead. Before long, a sandy beach comes into view."
             ),
             "conditions": {"boat_level": 1, "food_cost": 1},
-            "hidden": False,
+            "hidden": True,
         },
     ]
     beach_dock.destinations = [
@@ -196,7 +196,7 @@ def test_area_gateway():
                 "as you approach, and you tie off at the jetty."
             ),
             "conditions": {"boat_level": 1, "food_cost": 1},
-            "hidden": False,
+            "hidden": True,
         },
     ]
     print("  Linked: Town Dock <-> Beach Dock (BASIC ship + 1 bread)")
