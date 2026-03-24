@@ -14,6 +14,7 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
     BREAD_RESOURCE_ID,
     validate_conditions,
     is_destination_visible,
+    _best_party_skill,
 )
 
 
@@ -40,14 +41,21 @@ class CmdExplore(Command):
 
         # Collect hidden destinations the caller hasn't discovered
         # and meets non-food conditions for
+        from enums.skills_enum import skills
+        party_carto = _best_party_skill(caller, skills.CARTOGRAPHY.value)
+
         explorable = []
         for dest in destinations:
-            if not dest.get("hidden", False):
+            if not dest.get("hidden", True):
                 continue
             # Already visible (discovered or has chart) → skip
             if is_destination_visible(caller, dest, room):
                 continue
-            # Check non-food, non-gold conditions
+            # Cartography mastery gate — route invisible without sufficient tier
+            req_carto = dest.get("required_cartography_tier", 0)
+            if req_carto and party_carto < req_carto:
+                continue
+            # Check non-food, non-gold conditions (boat_level, etc.)
             conditions = dict(dest.get("conditions", {}))
             conditions.pop("food_cost", None)
             conditions.pop("gold_cost", None)

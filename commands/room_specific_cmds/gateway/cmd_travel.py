@@ -40,6 +40,17 @@ def _check_water_breathing(caller, conditions):
     return True, ""
 
 
+def _best_party_skill(caller, skill_key):
+    """Return the highest mastery level for skill_key across caller + party."""
+    best = (caller.db.skill_mastery_levels or {}).get(skill_key, 0)
+    leader = caller.get_group_leader()
+    if leader and leader.location == caller.location:
+        best = max(best, (leader.db.skill_mastery_levels or {}).get(skill_key, 0))
+    for f in (leader.get_followers(same_room=True) if leader else []):
+        best = max(best, (f.db.skill_mastery_levels or {}).get(skill_key, 0))
+    return best
+
+
 def _check_boat_level(caller, conditions):
     req = conditions.get("boat_level")
     if req:
@@ -111,12 +122,12 @@ def is_destination_visible(caller, dest, gateway):
     """
     Check if a destination is visible to the caller or their party.
 
-    Visibility rules:
+    Visibility rules (hidden defaults to True):
     1. hidden=False → always visible (test routes, non-gated destinations)
     2. Route map NFT in caller or party member inventory → visible
     3. Chart item (boss loot) with matching discover_item_tag → visible
     """
-    if not dest.get("hidden", False):
+    if not dest.get("hidden", True):
         return True
 
     dest_key = dest.get("key", "")

@@ -13,7 +13,14 @@ To redeploy a single zone without touching others, use that zone's own script:
 
 from evennia import create_object, search_object
 
+from enums.mastery_level import MasteryLevel
 from world.game_world.zone_utils import clean_zone
+
+# Shorthand for route conditions
+_BASIC = MasteryLevel.BASIC.value
+_SKILLED = MasteryLevel.SKILLED.value
+_EXPERT = MasteryLevel.EXPERT.value
+_MASTER = MasteryLevel.MASTER.value
 
 RECYCLE_BIN_KEY = "nft_recycle_bin"
 PURGATORY_KEY = "Purgatory"
@@ -146,7 +153,6 @@ def deploy_world():
     print("[WIRING] Setting cross-zone gateway destinations...")
 
     # ── Millholm east gate (BASIC) ─────────────────────────────────────
-    # Destinations: Ironback Peaks SW gate, Cloverfen NW gate
     millholm["east_gate"].destinations = [
         {
             "key": "ironback_peaks",
@@ -158,6 +164,7 @@ def deploy_world():
                 "peaks loom above you."
             ),
             "conditions": {"food_cost": 3},
+            "required_cartography_tier": _BASIC,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -171,13 +178,13 @@ def deploy_world():
                 "enter halfling country."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _BASIC,
             "hidden": True,
             "explore_chance": 20,
         },
     ]
 
     # ── Ironback Peaks SW gate (BASIC) ─────────────────────────────────
-    # Destinations: Millholm east gate, Cloverfen NW gate
     ironback["sw_gate"].destinations = [
         {
             "key": "millholm",
@@ -189,6 +196,7 @@ def deploy_world():
                 "spread before you."
             ),
             "conditions": {"food_cost": 3},
+            "required_cartography_tier": _BASIC,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -202,14 +210,28 @@ def deploy_world():
                 "mountain air."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _BASIC,
             "hidden": True,
             "explore_chance": 20,
         },
     ]
 
-    # ── Ironback Peaks S gate (SKILLED) ────────────────────────────────
-    # Destination: Saltspray Bay W gate
+    # ── Ironback Peaks S gate (BASIC / SKILLED) ─────────────────────────
     ironback["s_gate"].destinations = [
+        {
+            "key": "cloverfen",
+            "label": "Cloverfen",
+            "destination": cloverfen["e_gate"],
+            "travel_description": (
+                "The trail descends from the southern peaks into open "
+                "lowland. The air warms and tidy hedgerows appear as "
+                "you enter the pastoral halfling country of Cloverfen."
+            ),
+            "conditions": {"food_cost": 2},
+            "required_cartography_tier": _BASIC,
+            "hidden": True,
+            "explore_chance": 20,
+        },
         {
             "key": "saltspray_bay",
             "label": "Saltspray Bay",
@@ -220,13 +242,13 @@ def deploy_world():
                 "the harbour spreads below."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
     ]
 
-    # ── Cloverfen NW gate (BASIC) ──────────────────────────────────────
-    # Destinations: Millholm east gate, Ironback Peaks SW gate
+    # ── Cloverfen NW gate (BASIC / SKILLED) ─────────────────────────────
     cloverfen["nw_gate"].destinations = [
         {
             "key": "millholm",
@@ -238,6 +260,7 @@ def deploy_world():
                 "horizon — Millholm is close."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _BASIC,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -251,13 +274,42 @@ def deploy_world():
                 "with every step."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _BASIC,
+            "hidden": True,
+            "explore_chance": 20,
+        },
+        {
+            "key": "shadowsward",
+            "label": "The Shadowsward",
+            "destination": shadowsward["ne_gate"],
+            "travel_description": (
+                "You strike out westward across open country. The "
+                "hedgerows thin and the land flattens into wind-scoured "
+                "grassland. Distant watchtowers mark the frontier ahead."
+            ),
+            "conditions": {"food_cost": 3},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
     ]
 
-    # ── Cloverfen E gate (SKILLED) ─────────────────────────────────────
+    # ── Cloverfen E gate (BASIC / SKILLED) ───────────────────────────────
     cloverfen["e_gate"].destinations = [
+        {
+            "key": "ironback_peaks",
+            "label": "Ironback Peaks",
+            "destination": ironback["s_gate"],
+            "travel_description": (
+                "The road climbs north from the halfling plains into "
+                "rising foothills. The air cools and the iron-grey "
+                "peaks grow steadily larger."
+            ),
+            "conditions": {"food_cost": 2},
+            "required_cartography_tier": _BASIC,
+            "hidden": True,
+            "explore_chance": 20,
+        },
         {
             "key": "saltspray_bay",
             "label": "Saltspray Bay",
@@ -268,6 +320,7 @@ def deploy_world():
                 "masts of Saltspray Bay appear."
             ),
             "conditions": {"food_cost": 3},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -285,6 +338,7 @@ def deploy_world():
                 "the drone of insects heralds the swamp ahead."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -302,6 +356,7 @@ def deploy_world():
                 "steadily larger."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -315,6 +370,7 @@ def deploy_world():
                 "round doors signal halfling lands ahead."
             ),
             "conditions": {"food_cost": 3},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -332,6 +388,7 @@ def deploy_world():
                 "the Bayou approaches."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -345,6 +402,7 @@ def deploy_world():
             "destination": teotlan["dock"],
             "travel_description": "You sail south to the jungle ruins of Teotlan.",
             "conditions": {"food_cost": 3, "boat_level": 1},
+            "required_cartography_tier": _BASIC,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -353,6 +411,7 @@ def deploy_world():
             "destination": amber["dock"],
             "travel_description": "You sail to the plague-touched colony of Amber Shore.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -361,6 +420,7 @@ def deploy_world():
             "destination": shadowmere["dock"],
             "travel_description": "You sail into the perpetual twilight of Port Shadowmere.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -369,6 +429,7 @@ def deploy_world():
             "destination": calenport["dock"],
             "travel_description": "You sail to the pirate haven of Calenport.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -377,6 +438,7 @@ def deploy_world():
             "destination": kashoryu["dock"],
             "travel_description": "You sail the long coastal route to the tropical city of Kashoryu.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -385,6 +447,7 @@ def deploy_world():
             "destination": sanctum["dock"],
             "travel_description": "You sail into open ocean toward the mist-shrouded Arcane Sanctum.",
             "conditions": {"food_cost": 8, "boat_level": 3},
+            "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -393,6 +456,7 @@ def deploy_world():
             "destination": oldbone["dock"],
             "travel_description": "You sail to the primordial shores of Oldbone Island.",
             "conditions": {"food_cost": 8, "boat_level": 3},
+            "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
     ]
@@ -408,6 +472,7 @@ def deploy_world():
                 "the air clears. Neat halfling hedgerows appear ahead."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -419,6 +484,7 @@ def deploy_world():
                 "air and the cry of gulls signal Saltspray Bay."
             ),
             "conditions": {"food_cost": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
     ]
@@ -435,6 +501,7 @@ def deploy_world():
                 "appear through the canopy."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -447,6 +514,7 @@ def deploy_world():
                 "air takes on an ageless stillness."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _MASTER,
             "hidden": True, "explore_chance": 10,
         },
     ]
@@ -462,6 +530,7 @@ def deploy_world():
                 "softens and strange lights flicker in the mist ahead."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -474,6 +543,7 @@ def deploy_world():
                 "carved waymarkers guide your path."
             ),
             "conditions": {"food_cost": 3},
+            "required_cartography_tier": _MASTER,
             "hidden": True, "explore_chance": 10,
         },
     ]
@@ -486,6 +556,7 @@ def deploy_world():
             "destination": teotlan["dock"],
             "travel_description": "You sail north to the jungle ruins of Teotlan.",
             "conditions": {"food_cost": 3, "boat_level": 1},
+            "required_cartography_tier": _BASIC,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -494,6 +565,7 @@ def deploy_world():
             "destination": amber["dock"],
             "travel_description": "You sail to the plague-touched colony of Amber Shore.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -502,6 +574,7 @@ def deploy_world():
             "destination": shadowmere["dock"],
             "travel_description": "You sail into the perpetual twilight of Port Shadowmere.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -510,6 +583,7 @@ def deploy_world():
             "destination": calenport["dock"],
             "travel_description": "You sail to the pirate haven of Calenport.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -518,6 +592,7 @@ def deploy_world():
             "destination": saltspray["dock"],
             "travel_description": "You sail the long coastal route to Saltspray Bay.",
             "conditions": {"food_cost": 6, "boat_level": 2},
+            "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -526,6 +601,7 @@ def deploy_world():
             "destination": sanctum["dock"],
             "travel_description": "You sail into open ocean toward the mist-shrouded Arcane Sanctum.",
             "conditions": {"food_cost": 8, "boat_level": 3},
+            "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -534,6 +610,7 @@ def deploy_world():
             "destination": oldbone["dock"],
             "travel_description": "You sail to the primordial shores of Oldbone Island.",
             "conditions": {"food_cost": 8, "boat_level": 3},
+            "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
     ]
@@ -549,6 +626,7 @@ def deploy_world():
                 "as the trail descends into warmer, wetter country."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _MASTER,
             "hidden": True, "explore_chance": 20,
         },
         {
@@ -560,20 +638,22 @@ def deploy_world():
                 "into tropical jungle. Temple spires appear ahead."
             ),
             "conditions": {"food_cost": 3},
+            "required_cartography_tier": _MASTER,
             "hidden": True, "explore_chance": 20,
         },
     ]
 
     # ── Sea island docks (return routes to both ports) ─────────────────
+    # required_cartography_tier matches the island's tier
     _island_return_routes = {
-        "teotlan_ruin": (teotlan, "Teotlan Ruin", 3, 1),
-        "amber_shore": (amber, "Amber Shore", 6, 2),
-        "port_shadowmere": (shadowmere, "Port Shadowmere", 6, 2),
-        "calenport": (calenport, "Calenport", 6, 2),
-        "arcane_sanctum": (sanctum, "The Arcane Sanctum", 8, 3),
-        "oldbone_island": (oldbone, "Oldbone Island", 8, 3),
+        "teotlan_ruin": (teotlan, "Teotlan Ruin", 3, 1, _BASIC),
+        "amber_shore": (amber, "Amber Shore", 6, 2, _SKILLED),
+        "port_shadowmere": (shadowmere, "Port Shadowmere", 6, 2, _SKILLED),
+        "calenport": (calenport, "Calenport", 6, 2, _SKILLED),
+        "arcane_sanctum": (sanctum, "The Arcane Sanctum", 8, 3, _EXPERT),
+        "oldbone_island": (oldbone, "Oldbone Island", 8, 3, _EXPERT),
     }
-    for zone_key, (zone, name, food, boat) in _island_return_routes.items():
+    for zk, (zone, name, food, boat, carto) in _island_return_routes.items():
         zone["dock"].destinations = [
             {
                 "key": "saltspray_bay",
@@ -581,6 +661,7 @@ def deploy_world():
                 "destination": saltspray["dock"],
                 "travel_description": f"You sail from {name} back to Saltspray Bay.",
                 "conditions": {"food_cost": food, "boat_level": boat},
+                "required_cartography_tier": carto,
                 "hidden": True, "explore_chance": 20,
             },
             {
@@ -589,6 +670,7 @@ def deploy_world():
                 "destination": kashoryu["dock"],
                 "travel_description": f"You sail from {name} to the tropical harbour of Kashoryu.",
                 "conditions": {"food_cost": food, "boat_level": boat},
+                "required_cartography_tier": carto,
                 "hidden": True, "explore_chance": 20,
             },
         ]
@@ -605,6 +687,7 @@ def deploy_world():
                 "grassland, and distant watchtowers dot the horizon."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
@@ -622,6 +705,21 @@ def deploy_world():
                 "gatehouse of Millholm's southern boundary appears."
             ),
             "conditions": {"food_cost": 4},
+            "required_cartography_tier": _SKILLED,
+            "hidden": True,
+            "explore_chance": 20,
+        },
+        {
+            "key": "cloverfen",
+            "label": "Cloverfen",
+            "destination": cloverfen["nw_gate"],
+            "travel_description": (
+                "You head east across the frontier plains. The grass "
+                "grows greener and neatly tended hedgerows appear — "
+                "halfling country welcomes you."
+            ),
+            "conditions": {"food_cost": 3},
+            "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
         },
