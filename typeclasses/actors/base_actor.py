@@ -147,7 +147,10 @@ class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
         pos = self.position or "standing"
 
         if self.room_description:
-            base = self.room_description.replace("{name}", self.key)
+            if "{name}" in self.room_description:
+                base = self.room_description.replace("{name}", self.key)
+            else:
+                base = f"{self.key} {self.room_description}"
             if pos == "standing":
                 return base
             # Append position for non-standing with custom desc
