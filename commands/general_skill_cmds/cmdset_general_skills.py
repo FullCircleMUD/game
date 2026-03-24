@@ -2,7 +2,6 @@ from commands.class_skill_cmdsets.cmdset_base_char_class import CmdSetBaseCharCl
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_dodge import CmdDodge
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_assist import CmdAssist
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_sail import CmdSail
-from commands.class_skill_cmdsets.class_skill_cmds.cmd_explore import CmdExplore
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_tame import CmdTame
 from commands.room_specific_cmds.crafting.cmd_repair import CmdRepair
 from commands.general_skill_cmds.cmd_survey import CmdSurvey
@@ -19,7 +18,6 @@ class CmdSetGeneralSkills(CmdSetBaseCharClass):
         CmdDodge,
         CmdAssist,
         CmdSail,
-        CmdExplore,
         CmdTame,
         CmdRepair,
         CmdSurvey,
