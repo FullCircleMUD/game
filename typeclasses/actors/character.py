@@ -759,6 +759,12 @@ class FCMCharacter(
             return results.first()
         return None
 
+    def get_display_things(self, looker, **kwargs):
+        """Hide inventory from non-Builder lookers (staff/admin only)."""
+        if looker and looker.locks.check_lockstring(looker, "perm(Builder)"):
+            return super().get_display_things(looker, **kwargs)
+        return ""
+
     def at_object_creation(self):
         """
         Called once when the object is first created.
