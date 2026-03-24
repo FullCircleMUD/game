@@ -205,11 +205,11 @@ class TestRenderMap(EvenniaTest):
         self.assertEqual(lines[1][0], " ")     # room_c hidden
         self.assertNotEqual(lines[1][1], " ")  # room_d visible
 
-    def test_structural_chars_hidden_when_no_visible_neighbors(self):
+    def test_structural_dashes_hidden_when_no_visible_neighbors(self):
         map_def = {
             "key": "_struct_test",
             "display_name": "Struct",
-            "template": "-A-\n|B|",
+            "template": "-A-\n-B-",
             "point_cells": {
                 "pt_a": [(0, 1)],
                 "pt_b": [(1, 1)],
@@ -217,7 +217,7 @@ class TestRenderMap(EvenniaTest):
         }
         ascii_out, _ = render_map(map_def, set())
         lines = ascii_out.split("\n")
-        # No visible point cells → structural chars hidden
+        # No visible point cells → structural dashes hidden
         self.assertEqual(lines[0], "   ")
         self.assertEqual(lines[1], "   ")
 
@@ -817,6 +817,128 @@ class TestCmdSurveyMultiMap(_RoomBaseMixin, EvenniaCommandTest):
         result = self.call(CmdSurvey(), "")
         self.assertIn("Test Area", result)
         self.assertIn("Test Region", result)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  7b. CmdSurvey — Scale-Aware Adjacent Revelation
+# ══════════════════════════════════════════════════════════════════════════
+
+SCALE_DISTRICT_MAP = {
+    "key": "_test_scale_district",
+    "display_name": "Scale District",
+    "scale": "district",
+    "template": ".-.",
+    "point_cells": {
+        "center": {"pos": [(0, 0)], "poi": "road"},
+        "east":   {"pos": [(0, 2)], "poi": "road"},
+    },
+}
+
+SCALE_REGION_MAP = {
+    "key": "_test_scale_region",
+    "display_name": "Scale Region",
+    "scale": "region",
+    "template": ". .",
+    "point_cells": {
+        "area_a": {"pos": [(0, 0)], "poi": "town"},
+        "area_b": {"pos": [(0, 2)], "poi": "woods"},
+    },
+}
+
+
+class TestCmdSurveyScale(_RoomBaseMixin, EvenniaCommandTest):
+    """Tests for scale-aware survey — district reveals adjacents, region does not."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        MAP_REGISTRY[SCALE_DISTRICT_MAP["key"]] = dict(SCALE_DISTRICT_MAP)
+        MAP_REGISTRY[SCALE_REGION_MAP["key"]] = dict(SCALE_REGION_MAP)
+        _set_cart(self.char1, MasteryLevel.BASIC)
+
+        # room1 tagged as "center" on district map and "area_a" on region map
+        self.room1.tags.add(f"{SCALE_DISTRICT_MAP['key']}:center", category="map_cell")
+        self.room1.tags.add(f"{SCALE_REGION_MAP['key']}:area_a", category="map_cell")
+
+        # room2 is adjacent (east exit) — tagged as "east" on district and "area_b" on region
+        self.room2.tags.add(f"{SCALE_DISTRICT_MAP['key']}:east", category="map_cell")
+        self.room2.tags.add(f"{SCALE_REGION_MAP['key']}:area_b", category="map_cell")
+
+        # Create exit from room1 → room2
+        create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="east",
+            location=self.room1,
+            destination=self.room2,
+        )
+
+        self.district_map = _make_map_item(self.char1, SCALE_DISTRICT_MAP["key"])
+        self.region_map = _make_map_item(self.char1, SCALE_REGION_MAP["key"])
+
+    def tearDown(self):
+        MAP_REGISTRY.pop(SCALE_DISTRICT_MAP["key"], None)
+        MAP_REGISTRY.pop(SCALE_REGION_MAP["key"], None)
+        super().tearDown()
+
+    def test_district_survey_reveals_adjacent(self):
+        """District-scale survey reveals the adjacent room's cell."""
+        _finish_survey(
+            self.char1,
+            [(self.district_map, "center")],
+            self.room1.id,
+        )
+        self.assertIn("center", self.district_map.surveyed_points)
+        self.assertIn("east", self.district_map.surveyed_points)
+
+    def test_region_survey_does_not_reveal_adjacent(self):
+        """Region-scale survey reveals only the current cell, not adjacent."""
+        _finish_survey(
+            self.char1,
+            [(self.region_map, "area_a")],
+            self.room1.id,
+        )
+        self.assertIn("area_a", self.region_map.surveyed_points)
+        self.assertNotIn("area_b", self.region_map.surveyed_points)
+
+    def test_no_scale_field_defaults_to_district_behaviour(self):
+        """Map without scale field defaults to district (reveals adjacents)."""
+        no_scale_map = {
+            "key": "_test_no_scale",
+            "display_name": "No Scale",
+            "template": ".-.",
+            "point_cells": {
+                "here": {"pos": [(0, 0)], "poi": "road"},
+                "there": {"pos": [(0, 2)], "poi": "road"},
+            },
+        }
+        MAP_REGISTRY[no_scale_map["key"]] = no_scale_map
+        self.room1.tags.add(f"{no_scale_map['key']}:here", category="map_cell")
+        self.room2.tags.add(f"{no_scale_map['key']}:there", category="map_cell")
+        map_item = _make_map_item(self.char1, no_scale_map["key"])
+
+        _finish_survey(self.char1, [(map_item, "here")], self.room1.id)
+        self.assertIn("here", map_item.surveyed_points)
+        self.assertIn("there", map_item.surveyed_points)
+
+        MAP_REGISTRY.pop(no_scale_map["key"], None)
+
+    def test_mixed_scale_survey_reveals_district_not_region(self):
+        """Room on both maps: district adjacent revealed, region adjacent not."""
+        _finish_survey(
+            self.char1,
+            [(self.district_map, "center"), (self.region_map, "area_a")],
+            self.room1.id,
+        )
+        # District: both cells revealed
+        self.assertIn("east", self.district_map.surveyed_points)
+        # Region: only current cell
+        self.assertNotIn("area_b", self.region_map.surveyed_points)
 
 
 # ══════════════════════════════════════════════════════════════════════════

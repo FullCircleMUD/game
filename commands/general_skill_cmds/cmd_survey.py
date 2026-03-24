@@ -113,7 +113,7 @@ def _finish_survey(caller, targets, room_id):
     for map_nft, point_key in targets:
         map_nft.surveyed_points.add(point_key)
 
-    # Reveal adjacent rooms (one step in every direction)
+    # Reveal adjacent rooms — district-scale maps only
     map_nfts_by_key = {map_nft.map_key: map_nft for map_nft, _ in targets}
     for exit_obj in caller.location.exits:
         dest = exit_obj.destination
@@ -121,8 +121,12 @@ def _finish_survey(caller, targets, room_id):
             continue
         for adj_map_key, adj_point_key in get_map_keys_for_room(dest):
             map_nft = map_nfts_by_key.get(adj_map_key)
-            if map_nft:
-                map_nft.surveyed_points.add(adj_point_key)
+            if not map_nft:
+                continue
+            adj_map_def = get_map(adj_map_key)
+            if adj_map_def and adj_map_def.get("scale") == "region":
+                continue
+            map_nft.surveyed_points.add(adj_point_key)
 
     # Persist and report
     updated = []

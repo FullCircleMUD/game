@@ -32,13 +32,13 @@ _TEMPLATE = (
     "          .          \n"  # row 0
     "          .          \n"  # row 1
     "          .          \n"  # row 2
-    "        . . .        \n"  # row 3
-    "  . . . . . . . . .  \n"  # row 4
+    "        .-.-.        \n"  # row 3
+    "  .-.-.-.-.-.-.-.-.  \n"  # row 4
     ".-.-.-.-.-.-.-.-.-.-.\n"  # row 5
-    "  . . . . . . . . .  \n"  # row 6
-    "        . . .        \n"  # row 7
-    "        . . .        \n"  # row 8
-    "        . . .        \n"  # row 9
+    "  .-.-.-.-.-.-.-.-.  \n"  # row 6
+    "        .-.-.        \n"  # row 7
+    "        .-.-.        \n"  # row 8
+    "        .-.-.        \n"  # row 9
     "          .          "    # row 10
 )
 
@@ -96,6 +96,7 @@ _POINT_CELLS = {
 register_map({
     "key":          "millholm_town",
     "display_name": "Millholm Town",
+    "scale":        "district",
     "template":     _TEMPLATE,
     "point_cells":  _POINT_CELLS,
 })

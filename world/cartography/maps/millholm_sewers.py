@@ -44,6 +44,7 @@ _POINT_CELLS = {
 register_map({
     "key":          "millholm_sewers",
     "display_name": "Millholm Sewers",
+    "scale":        "district",
     "template":     _TEMPLATE,
     "point_cells":  _POINT_CELLS,
 })

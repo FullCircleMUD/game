@@ -42,6 +42,7 @@ _POINT_CELLS = {
 register_map({
     "key":          "millholm_region",
     "display_name": "Millholm Region",
+    "scale":        "region",
     "template":     _TEMPLATE,
     "point_cells":  _POINT_CELLS,
 })

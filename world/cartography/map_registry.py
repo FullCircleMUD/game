@@ -5,6 +5,7 @@ Each map definition is a dict:
     {
         "key":         str,             # unique map key (e.g. "millholm_town")
         "display_name": str,            # shown in inventory (e.g. "Millholm Town")
+        "scale":       str,             # "district" or "region" (controls survey behaviour)
         "template":    str,             # full ASCII string, newline-separated rows
         "point_cells": dict,            # {point_key: {"pos": [(row,col),...], "poi": str}}
     }
@@ -87,10 +88,10 @@ def render_map(map_def, surveyed_points):
     """
     Build the ASCII display string for a map, masking unsurveyed cells.
 
-    Unsurveyed point cells are replaced with spaces. Structural characters
-    (dashes, pipes) only render if at least one adjacent point cell is
-    visible. POI symbols are looked up from the central registry at render
-    time — the template characters at cell positions are ignored.
+    Unsurveyed point cells are replaced with spaces. Structural dashes
+    only render if at least one adjacent point cell is visible. POI symbols
+    are looked up from the central registry at render time — the template
+    characters at cell positions are ignored.
 
     Args:
         map_def:         The map definition dict from MAP_REGISTRY.
@@ -131,8 +132,8 @@ def render_map(map_def, surveyed_points):
                     visible_poi_types.add(poi_type)
                 else:
                     rendered.append(" ")
-            elif char in ("-", "|"):
-                # Structural: only show if an adjacent point cell is visible
+            elif char == "-":
+                # Structural dash: only show if an adjacent point cell is visible
                 if _has_visible_neighbor(row_idx, col_idx, char,
                                         all_positions, visible_positions):
                     rendered.append(char)
@@ -157,18 +158,14 @@ def render_map(map_def, surveyed_points):
 
 def _has_visible_neighbor(row, col, char, all_positions, visible_positions):
     """
-    Check if a structural character connects to at least one visible point cell.
+    Check if a structural dash connects to at least one visible point cell.
 
-    Walks in both directions along the structural axis (left/right for '-',
-    up/down for '|') until hitting a point cell. Shows the character if at
+    Walks left and right until hitting a point cell. Shows the dash if at
     least one connected point cell is visible.
     """
-    if char == "-":
-        directions = [(0, -1), (0, 1)]
-    elif char == "|":
-        directions = [(-1, 0), (1, 0)]
-    else:
+    if char != "-":
         return True
+    directions = [(0, -1), (0, 1)]
 
     for dr, dc in directions:
         r, c = row + dr, col + dc

@@ -43,6 +43,7 @@ _POINT_CELLS = {
 register_map({
     "key":          "millholm_mine",
     "display_name": "Millholm Mine",
+    "scale":        "district",
     "template":     _TEMPLATE,
     "point_cells":  _POINT_CELLS,
 })
