@@ -137,7 +137,7 @@ class FCMCharacter(
             results.extend(f.get_followers(same_room=same_room))
         return results
 
-    def at_pre_move(self, destination, **kwargs):
+    def at_pre_move(self, destination, move_type="move", **kwargs):
         """Check movement blockers before moving."""
         if self.ndb.is_processing:
             self.msg("You can't leave in the middle of a job! Wait for it to finish.")
@@ -152,11 +152,19 @@ class FCMCharacter(
                 if msg:
                     self.msg(msg)
                 return False
-        return super().at_pre_move(destination, **kwargs)
+        # Movement point cost — normal moves and follows (not teleport, etc.)
+        if move_type in ("move", "follow") and self.move < 1:
+            self.msg("You are too exhausted to move.")
+            return False
+        return super().at_pre_move(destination, move_type=move_type, **kwargs)
 
     def at_post_move(self, source_location, move_type="move", **kwargs):
-        """Auto-move followers when this character moves."""
+        """Deduct movement and auto-move followers when this character moves."""
         super().at_post_move(source_location, move_type=move_type, **kwargs)
+
+        # Deduct 1 movement point for normal moves and follows
+        if move_type in ("move", "follow"):
+            self.move = max(0, self.move - 1)
 
         # HIDDEN movement check — stealth vs best perceiver on room entry
         if self.has_condition(Condition.HIDDEN) and self.location:
