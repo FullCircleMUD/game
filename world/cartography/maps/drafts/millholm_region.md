@@ -18,28 +18,40 @@ in the woods covers more ground than a cell in the town centre.
 ## Draft Layout
 
 ```
-                        ?               ?
-                        |               |
-            F---F---F---T---W---W---W---W
-            |                           |
-            F                           W
-            |                           |
-            S---S-------S               ~
-                        |
-                        S
-                        |
-                        S
-```
+                                 F
+                           ~  ~  M--D
+                  C        ~  ?  ~
+   F     F     T  T  T  R  ~  ~  ~ 
+R--#--#--#--#--T--T--T--#--#--#--#--#--Z
+      #        T  T  T  R  ~  ~  ~    
+      #--?        #        ~  R  ~
+      #           #        ~  ~  ~
+      #           F
+      #           #
+      #        ?--~--?
+      #           #
+      #--#--#--#--#
+                  Z          
 
-## Key
+
+
+## Out of Town / Regional Map Key
+
+## this will be harder then an in town key because much of what is shown in town will be standard but there may be significant variability in ouf ot town maps so some legend symbols may have to be generalised to cover serveral possibly meansings
 
 ```
-T = Town (Millholm Town district centre)
-F = Farms (Millholm Farms — road, windmill, cotton farm, wheat farm)
-W = Woods (Millholm Woods — forest path, sawmill, smelter, southern grid)
-S = Southern (Millholm Southern — rougher town, gnoll territory, moonpetal, barrows)
-~ = Deep Woods (clearing — hub for mine and faerie hollow)
-? = Hidden/special (Sewers below town, Faerie Hollow, Mine)
+# = Roads (out of town)
+T = Town / Village / City
+C = Cemetary
+F = Farm / Resource Harvesting
+M = Mine
+R = Resource Processing
+~ = Woods / Forest / Wilderness
+? = Place of interest
+D = Dungeon
+Z = Zone Exit
+
+
 ```
 
 ## Notes
@@ -56,8 +68,18 @@ S = Southern (Millholm Southern — rougher town, gnoll territory, moonpetal, ba
 ## Concerns / Questions
 
 1. Should the sewers appear on this map at all? They're hidden and underground. Maybe omit entirely and let the sewer district map handle it.
+
+no...
+
+
 2. The deep woods procedural passage means you can't just walk north from the woods — should the connection be shown as a gap (no dash) or a special symbol?
+
+yes
+
 3. Faerie Hollow requires DETECT_INVIS to enter — should it appear on the region map or be a mystery?
+
+only if they survey in one of the squares of the fairie hollow
+
 4. How many cells should each district get? Current thinking:
    - Town: 1 cell (it has its own detailed map)
    - Farms: 3 cells (road west, wheat farm area, cotton farm area)
@@ -66,3 +88,5 @@ S = Southern (Millholm Southern — rougher town, gnoll territory, moonpetal, ba
    - Deep Woods: 1 cell (clearing hub)
    - Mine: 1 cell (shown as ? — discovered by exploring)
    - Faerie Hollow: 1 cell (shown as ? — discovered by exploring)
+
+already addressed

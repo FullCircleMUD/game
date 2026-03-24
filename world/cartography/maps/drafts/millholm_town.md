@@ -5,25 +5,17 @@ Reference document matching the implemented map in `millholm_town.py`.
 ## Layout
 
 ```
-              C
-              |
-              @
-              |
-              #
-              |
-            I # H
-            | | |
-      T S W # # # B A J
-    X-#-#-#-#-#-#-#-#-#-X
-      h h * # # # $ P L
-            | | |
-            + # G
-            | | |
-            # # G
-            | | |
-            I # g
-              |
-              @
+            C
+            @
+            #
+          I-#-H
+    T-S-W-#-#-#-B-A-J
+  X-#-#-#-#-#-#-#-#-#-X
+    h-h-*-#-#-#-$-P-L
+          +-#-G
+          #-#-G
+          I-#-g
+            @
 ```
 
 ## Legend
