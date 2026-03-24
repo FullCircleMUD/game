@@ -47,9 +47,9 @@ ACTIVE_ZONES = [
     "shadowroot",        # EXPERT cartography — scaffold
     "scalded_waste",     # MASTER cartography — scaffold
     "zharavan",          # GRANDMASTER cartography — scaffold
-    # "guildmere_island",  # MASTER sea — not yet built
-    # "atlantis",          # MASTER dive (from Guildmere Island) — not yet built
-    # "vaathari",          # GRANDMASTER sea — not yet built
+    "guildmere_island",  # MASTER sea — scaffold
+    "atlantis",          # MASTER dive (from Guildmere Island) — scaffold
+    "vaathari",          # GRANDMASTER sea — scaffold
 ]
 
 
@@ -146,11 +146,14 @@ def deploy_world():
     from world.game_world.zones.zharavan.soft_deploy import build_zone as build_zharavan
     zharavan = build_zharavan()
 
-    # Uncomment as zones are built:
-    # from world.game_world.zones.guildmere_island.soft_deploy import build_zone as build_guildmere
-    # guildmere = build_guildmere()
-    # from world.game_world.zones.atlantis.soft_deploy import build_zone as build_atlantis
-    # atlantis = build_atlantis()
+    from world.game_world.zones.guildmere_island.soft_deploy import build_zone as build_guildmere
+    guildmere = build_guildmere()
+
+    from world.game_world.zones.atlantis.soft_deploy import build_zone as build_atlantis
+    atlantis = build_atlantis()
+
+    from world.game_world.zones.vaathari.soft_deploy import build_zone as build_vaathari
+    vaathari = build_vaathari()
     # from world.game_world.zones.vaathari.soft_deploy import build_zone as build_vaathari
     # vaathari = build_vaathari()
 
@@ -917,11 +920,121 @@ def deploy_world():
         },
     ]
 
-    print("  All cross-zone destinations wired.")
+    # ── Arcane Sanctum → Guildmere (append to existing destinations) ──
+    sanctum["dock"].destinations = sanctum["dock"].destinations + [
+        {
+            "key": "guildmere_island",
+            "label": "Guildmere Island",
+            "destination": guildmere["dock"],
+            "travel_description": "You sail beyond the mists toward the fabled island of Guildmere.",
+            "conditions": {"food_cost": 10, "boat_level": 4},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
 
-    # ── Future cross-zone connections (uncomment as zones are built) ──
-    # Guildmere Island → Atlantis (MASTER, dive)
-    # Guildmere Island dock → Vaathari (GM)
+    # ── Oldbone Island → Guildmere (append to existing destinations) ──
+    oldbone["dock"].destinations = oldbone["dock"].destinations + [
+        {
+            "key": "guildmere_island",
+            "label": "Guildmere Island",
+            "destination": guildmere["dock"],
+            "travel_description": "You sail from the primordial shores toward the distant gleam of Guildmere.",
+            "conditions": {"food_cost": 10, "boat_level": 4},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Guildmere Island dock (MASTER / GM sea routes) ─────────────────
+    guildmere["dock"].destinations = [
+        {
+            "key": "arcane_sanctum",
+            "label": "The Arcane Sanctum",
+            "destination": sanctum["dock"],
+            "travel_description": "You sail from Guildmere into the mist-shrouded waters of the Arcane Sanctum.",
+            "conditions": {"food_cost": 10, "boat_level": 4},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "oldbone_island",
+            "label": "Oldbone Island",
+            "destination": oldbone["dock"],
+            "travel_description": "You sail from Guildmere to the primordial shores of Oldbone Island.",
+            "conditions": {"food_cost": 10, "boat_level": 4},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "vaathari",
+            "label": "Vaathari",
+            "destination": vaathari["dock"],
+            "travel_description": (
+                "You set course across the open ocean. The crossing is "
+                "long and treacherous — the sea grows dark and strange, "
+                "and the stars shift overhead. After days at sea, a "
+                "continent that should not exist rises from the horizon."
+            ),
+            "conditions": {"food_cost": 10, "boat_level": 5},
+            "required_cartography_tier": _GRANDMASTER,
+            "hidden": True, "explore_chance": 10,
+        },
+    ]
+
+    # ── Guildmere Island N gate → Atlantis (MASTER, dive) ──────────────
+    guildmere["n_gate"].destinations = [
+        {
+            "key": "atlantis",
+            "label": "Atlantis",
+            "destination": atlantis["s_gate"],
+            "travel_description": (
+                "You dive from the coral beach into the deep. The water "
+                "is warm and impossibly clear. An underwater cave mouth "
+                "yawns below, glowing with bioluminescent light. You "
+                "swim down into the depths."
+            ),
+            "conditions": {"food_cost": 0, "water_breathing": True},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Atlantis S gate → Guildmere (MASTER) ───────────────────────────
+    atlantis["s_gate"].destinations = [
+        {
+            "key": "guildmere_island",
+            "label": "Guildmere Island",
+            "destination": guildmere["n_gate"],
+            "travel_description": (
+                "You swim upward through the coral passage, the water "
+                "brightening as you rise. The surface breaks above you "
+                "and you haul yourself onto the coral beach of Guildmere."
+            ),
+            "conditions": {"food_cost": 0, "water_breathing": True},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Vaathari dock → Guildmere (GM) ─────────────────────────────────
+    vaathari["dock"].destinations = [
+        {
+            "key": "guildmere_island",
+            "label": "Guildmere Island",
+            "destination": guildmere["dock"],
+            "travel_description": (
+                "You set sail from the black stone quay back across the "
+                "open ocean. The strange stars fade as familiar waters "
+                "return, and Guildmere's white harbour appears at last."
+            ),
+            "conditions": {"food_cost": 10, "boat_level": 5},
+            "required_cartography_tier": _GRANDMASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    print("  All cross-zone destinations wired.")
 
     print("=== WORLD DEPLOY COMPLETE ===\n")
 

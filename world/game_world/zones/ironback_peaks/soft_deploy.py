@@ -83,7 +83,7 @@ def build_zone():
     for room in rooms.values():
         room.tags.add(ZONE_KEY, category="zone")
         room.tags.add(DISTRICT, category="district")
-        room.set_terrain(TerrainType.MOUNTAINS.value)
+        room.set_terrain(TerrainType.MOUNTAIN.value)
 
     print("  Ironback Peaks scaffold complete (3 rooms).\n")
 
