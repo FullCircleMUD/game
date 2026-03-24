@@ -11,7 +11,6 @@ Query the current phase from anywhere:
     phase = get_time_of_day()
 """
 
-from datetime import datetime
 
 from evennia import DefaultScript, ObjectDB
 from evennia.utils.gametime import gametime
@@ -35,7 +34,7 @@ _TRANSITION_MESSAGES = {
 def get_game_hour():
     """Return the current game hour (0–23)."""
     game_timestamp = gametime(absolute=True)
-    return datetime.fromtimestamp(game_timestamp).hour
+    return int(game_timestamp / 3600) % 24
 
 
 def get_time_of_day():
