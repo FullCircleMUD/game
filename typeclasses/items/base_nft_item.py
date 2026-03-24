@@ -38,7 +38,7 @@ Subclass hierarchy:
     │   ├── WeaponNFTItem
     │   ├── ArmorNFTItem   (future)
     │   └── ...
-    └── UntakeableNFTItem  — items with specialised commands (mounts, pets, property)
+    └── WorldAnchoredNFTItem  — items with specialised commands (mounts, pets, property)
         ├── MountNFTItem   (future)
         ├── PetNFTItem     (future)
         └── ...
@@ -74,6 +74,7 @@ class BaseNFTItem(HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
     contract_address = AttributeProperty(None)
     weight = AttributeProperty(0.0)
     identify_mastery_gate = AttributeProperty(1)  # tier required to identify (1=BASIC)
+    ground_description = AttributeProperty("")  # e.g. "A rusty sword lies here."
 
     # ================================================================== #
     #  Evennia Hooks
@@ -85,7 +86,7 @@ class BaseNFTItem(HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
         self.at_hidden_init()
         # NOTE: get lock is NOT set here — subclasses determine takeability.
         # TakeableNFTItem inherits Evennia's default get:true().
-        # UntakeableNFTItem overrides with get:false().
+        # WorldAnchoredNFTItem overrides with get:false().
         #
         # AttributeProperty values (token_id, etc.) are not yet available
         # here — Evennia sets attributes from create_object() AFTER this hook.
@@ -710,75 +711,6 @@ class BaseNFTItem(HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
         """Look up an NFTGameState row by token_id."""
         from blockchain.xrpl.services.nft import NFTService
         return NFTService.get_nft(token_id, chain_id, contract_address)
-
-    @staticmethod
-    def get_character_ships(character):
-        """
-        Return all ship NFTGameState rows owned by this character.
-
-        Returns a queryset of NFTGameState objects with item_type prefetched,
-        ordered by ship tier (ascending) then nftoken_id.
-        """
-        from blockchain.xrpl.models import NFTGameState
-        from enums.ship_type import ShipType
-
-        wallet = BaseNFTItem._get_wallet(character)
-        char_key = BaseNFTItem._get_character_key(character)
-        if not wallet or not char_key:
-            return NFTGameState.objects.none()
-
-        ship_names = [s.item_type_name for s in ShipType]
-        return NFTGameState.objects.filter(
-            owner_in_game=wallet,
-            location="CHARACTER",
-            character_key=char_key,
-            item_type__name__in=ship_names,
-        ).select_related("item_type").order_by("item_type__name", "nftoken_id")
-
-    @staticmethod
-    def get_qualifying_ships(character, min_tier):
-        """
-        Return ships owned by character that meet a minimum tier requirement.
-
-        Args:
-            character: FCMCharacter to check
-            min_tier: minimum MasteryLevel value (int) required
-
-        Returns list of NFTMirror objects.
-        """
-        from enums.ship_type import ShipType
-
-        all_ships = BaseNFTItem.get_character_ships(character)
-        qualifying = []
-        for ship in all_ships:
-            try:
-                tier = ShipType[ship.item_type.name.upper()].value
-            except KeyError:
-                continue
-            if tier >= min_tier:
-                qualifying.append(ship)
-        return qualifying
-
-    @staticmethod
-    def get_best_ship_tier(character):
-        """
-        Query NFTMirror for the best ship tier owned by this character.
-
-        Returns MasteryLevel value (int) or 0 if no ships owned.
-        Used by _check_boat_level in cmd_travel for quick validation.
-        """
-        from enums.ship_type import ShipType
-
-        all_ships = BaseNFTItem.get_character_ships(character)
-        best = 0
-        for ship in all_ships:
-            try:
-                tier = ShipType[ship.item_type.name.upper()].value
-            except KeyError:
-                continue
-            if tier > best:
-                best = tier
-        return best
 
     def _log_error(self, operation, err):
         """Log a mirror update failure. Centralized for consistent formatting."""

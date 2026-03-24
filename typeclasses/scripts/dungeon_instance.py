@@ -25,6 +25,7 @@ from django.utils import timezone
 from evennia import AttributeProperty, DefaultScript, ScriptDB, create_object
 from evennia.utils.search import search_tag
 
+from utils.exit_helpers import OPPOSITES
 from world.dungeons import get_dungeon_template
 
 
@@ -34,13 +35,6 @@ DIRECTION_VECTORS = {
     "south": (0, -1),
     "east": (1, 0),
     "west": (-1, 0),
-}
-
-OPPOSITE_DIRECTION = {
-    "north": "south",
-    "south": "north",
-    "east": "west",
-    "west": "east",
 }
 
 
@@ -224,7 +218,7 @@ class DungeonInstanceScript(DefaultScript):
         self.db.unvisited_exits = unvisited
 
         # Create return exit back to source room
-        opposite = OPPOSITE_DIRECTION.get(exit_obj.direction, "back")
+        opposite = OPPOSITES.get(exit_obj.direction, "back")
         self._create_exit(
             new_room, exit_obj.location, opposite, is_return=True
         )
@@ -288,7 +282,7 @@ class DungeonInstanceScript(DefaultScript):
         self.db.unvisited_exits = unvisited
 
     def _create_exit(self, source, destination, direction, is_return=False):
-        """Create a single DungeonExit."""
+        """Create a single DungeonExit with direction aliases."""
         from typeclasses.terrain.exits.dungeon_exit import DungeonExit
 
         exit_obj = create_object(
@@ -298,7 +292,7 @@ class DungeonInstanceScript(DefaultScript):
             destination=destination,
         )
         exit_obj.dungeon_instance_id = self.id
-        exit_obj.direction = direction
+        exit_obj.set_direction(direction)
         exit_obj.is_return_exit = is_return
         exit_obj.tags.add(self.instance_key, category="dungeon_exit")
         return exit_obj

@@ -580,8 +580,19 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             if not hasattr(thing, "is_visible_to") or thing.is_visible_to(looker)
         ]
 
-        grouped_things = defaultdict(list)
+        # Separate items with ground descriptions (full sentences) from
+        # bare-name items (grouped and comma-separated).
+        ground_sentences = []
+        bare_things = []
         for thing in things:
+            gdesc = getattr(thing, "ground_description", "")
+            if gdesc:
+                ground_sentences.append(gdesc)
+            else:
+                bare_things.append(thing)
+
+        grouped_things = defaultdict(list)
+        for thing in bare_things:
             grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
 
         thing_names = []
@@ -595,14 +606,14 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # Append any fungibles (gold, resources) visible in the room
         fungible_display = self.get_room_fungible_display()
 
-        if thing_names and fungible_display:
-            return f"{thing_names}\n{fungible_display}"
-        elif fungible_display:
-            return fungible_display
-        elif thing_names:
-            return f"{thing_names}"
-        else:
-            return ""
+        parts = []
+        if ground_sentences:
+            parts.append("\n".join(ground_sentences))
+        if thing_names:
+            parts.append(thing_names)
+        if fungible_display:
+            parts.append(fungible_display)
+        return "\n".join(parts) if parts else ""
 
     def get_display_footer(self, looker, **kwargs):
         """

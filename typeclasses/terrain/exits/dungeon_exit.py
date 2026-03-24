@@ -9,16 +9,20 @@ actual destination room. The exit is then permanently linked.
 
 Forward exits are gated by the `not_clear` tag on the source room,
 so players must clear encounters before proceeding.
+
+Inherits from ExitVerticalAware to gain direction aliases, height
+checks, and proper exit display formatting.
 """
 
-from evennia import AttributeProperty, DefaultExit
+from evennia import AttributeProperty
+
+from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 
 
-class DungeonExit(DefaultExit):
+class DungeonExit(ExitVerticalAware):
     """Exit in a procedural dungeon with lazy room creation."""
 
     dungeon_instance_id = AttributeProperty(None)
-    direction = AttributeProperty("north")
     is_return_exit = AttributeProperty(False)
 
     def at_traverse(self, traversing_object, target_location, **kwargs):
