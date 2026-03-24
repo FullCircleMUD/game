@@ -12,6 +12,13 @@ from evennia.utils.test_resources import EvenniaCommandTest
 from commands.room_specific_cmds.gateway.cmd_travel import CmdTravel
 
 
+def _instant_delay(seconds, callback, *args, **kwargs):
+    """Mock for utils.delay — executes callback immediately."""
+    callback(*args, **kwargs)
+
+
+PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
@@ -26,6 +33,8 @@ class TestCmdTravel(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self._delay_patcher = patch(PATCH_DELAY, side_effect=_instant_delay)
+        self._delay_patcher.start()
         self.account.attributes.add("wallet_address", WALLET_A)
         self.char1.db.gold = 100
         self.char1.db.resources = {3: 10}  # 10 bread
@@ -35,6 +44,10 @@ class TestCmdTravel(EvenniaCommandTest):
             "typeclasses.terrain.rooms.room_gateway.RoomGateway",
             key="Destination Gateway",
         )
+
+    def tearDown(self):
+        self._delay_patcher.stop()
+        super().tearDown()
 
     def _set_destinations(self, destinations):
         """Set destinations on room1."""

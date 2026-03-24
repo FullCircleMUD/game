@@ -15,6 +15,8 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
     validate_conditions,
     is_destination_visible,
     _best_party_skill,
+    _delayed_travel,
+    _EXPLORE_MESSAGES,
 )
 
 
@@ -36,6 +38,10 @@ class CmdExplore(Command):
     def func(self):
         caller = self.caller
         room = caller.location
+
+        if caller.ndb.is_processing:
+            caller.msg("You are already busy. Wait until your current task finishes.")
+            return
 
         destinations = room.destinations if hasattr(room, "destinations") else []
 
@@ -108,7 +114,7 @@ class CmdExplore(Command):
         )
 
     def _discover(self, caller, room, dest, days):
-        """Handle successful discovery — spawn a route map NFT."""
+        """Handle successful discovery — spawn route map NFT, then travel."""
         dest_key = dest.get("key", "")
         gateway_key = room.key
         label = dest.get("label", "an unknown place")
@@ -122,13 +128,11 @@ class CmdExplore(Command):
                 obj.route_key = f"{gateway_key}:{dest_key}"
                 obj.departure_name = room.key
                 obj.destination_name = label
-                # Update key for searchability
                 obj.key = f"route map to {label}".lower()
                 caller.msg(
                     f"|gA route map to {label} materialises in your pack.|n"
                 )
         except Exception as exc:
-            # Fallback — don't block discovery if NFT spawn fails
             caller.msg(
                 f"|y[Warning] Route map could not be created: {exc}. "
                 f"You discovered the route but received no map.|n"
@@ -147,17 +151,11 @@ class CmdExplore(Command):
             caller.msg("But the way forward is blocked... (destination not connected)")
             return
 
-        # Departure message
-        room.msg_contents(
-            f"{caller.key} sets off exploring and disappears from view.",
-            exclude=[caller],
-        )
+        def _arrive():
+            caller.move_to(destination_room, quiet=True, move_type="teleport")
+            destination_room.msg_contents(
+                f"{caller.key} arrives, looking weathered from their journey.",
+                exclude=[caller],
+            )
 
-        # Teleport
-        caller.move_to(destination_room, quiet=True, move_type="teleport")
-
-        # Arrival message
-        destination_room.msg_contents(
-            f"{caller.key} arrives, looking weathered from their journey.",
-            exclude=[caller],
-        )
+        _delayed_travel(caller, room, dest, _EXPLORE_MESSAGES, _arrive)

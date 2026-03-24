@@ -15,17 +15,26 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 
-PATCH_BEST_TIER = "typeclasses.items.base_nft_item.BaseNFTItem.get_best_ship_tier"
+PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+
+
+def _instant_delay(seconds, callback, *args, **kwargs):
+    """Mock for utils.delay — executes callback immediately."""
+    callback(*args, **kwargs)
+
+
+# Patch the module-level helper in cmd_sail (not the old BaseNFTItem static methods)
 PATCH_QUALIFYING = (
-    "typeclasses.items.base_nft_item.BaseNFTItem.get_qualifying_ships"
+    "commands.class_skill_cmdsets.class_skill_cmds.cmd_sail._get_qualifying_ships"
 )
 
 
-def _mock_ship(name, token_id):
-    """Create a mock NFTMirror row for ship tests."""
+def _mock_ship(key, tier):
+    """Create a mock ShipNFTItem for sail tests."""
     ship = MagicMock()
-    ship.item_type.name = name
-    ship.token_id = token_id
+    ship.key = key
+    ship.ship_tier = tier
+    ship.arrive_at_dock = MagicMock()
     return ship
 
 
@@ -124,6 +133,8 @@ class TestSailSuccess(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self._delay_patcher = patch(PATCH_DELAY, side_effect=_instant_delay)
+        self._delay_patcher.start()
         self.dest_room = create.create_object(
             RoomGateway, key="Far Dock",
         )
@@ -144,6 +155,7 @@ class TestSailSuccess(EvenniaCommandTest):
         self.char1.db.resources = {3: 5}
 
     def tearDown(self):
+        self._delay_patcher.stop()
         if self.dest_room:
             self.dest_room.delete()
         if self.dest_room2:
@@ -155,35 +167,35 @@ class TestSailSuccess(EvenniaCommandTest):
             char.db.skill_mastery_levels = {}
         char.db.skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_sail_single_ship_auto(self, mock_ships):
         """Single qualifying ship auto-selects and sails."""
         result = self.call(CmdSail(), "")
-        self.assertIn("Cog", result)
-        self.assertIn("NFT #100", result)
+        self.assertIn("board your Cog", result)
+        self.assertIn("sail away", result)
         self.assertEqual(self.char1.location, self.dest_room)
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_sail_named_destination(self, mock_ships):
         """Sail to a named destination."""
         result = self.call(CmdSail(), "far_dock")
         self.assertIn("sail away", result)
         self.assertEqual(self.char1.location, self.dest_room)
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_sail_label_prefix(self, mock_ships):
         """Match by label prefix."""
         result = self.call(CmdSail(), "The Far")
         self.assertIn("sail away", result)
         self.assertEqual(self.char1.location, self.dest_room)
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_sail_no_match(self, mock_ships):
         """No destination matches input."""
         result = self.call(CmdSail(), "nowhere")
         self.assertIn("No known destination", result)
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_list_destinations(self, mock_ships):
         """Multiple destinations lists them."""
         self.room1.destinations.append(
@@ -214,6 +226,8 @@ class TestSailShipSelection(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self._delay_patcher = patch(PATCH_DELAY, side_effect=_instant_delay)
+        self._delay_patcher.start()
         self.dest_room = create.create_object(
             RoomGateway, key="Far Dock",
         )
@@ -229,13 +243,15 @@ class TestSailShipSelection(EvenniaCommandTest):
         ]
         self._set_seamanship(self.char1, MasteryLevel.BASIC)
         self.char1.db.resources = {3: 5}
+        # Use distinct ship names so we can assert which ship was selected
         self.multi_ships = [
-            _mock_ship("Cog", 100),
-            _mock_ship("Cog", 200),
-            _mock_ship("Caravel", 300),
+            _mock_ship("Grey Widow", 1),
+            _mock_ship("Sea Dragon", 1),
+            _mock_ship("Blue Pearl", 2),
         ]
 
     def tearDown(self):
+        self._delay_patcher.stop()
         if self.dest_room:
             self.dest_room.delete()
         super().tearDown()
@@ -251,39 +267,34 @@ class TestSailShipSelection(EvenniaCommandTest):
         mock_ships.return_value = self.multi_ships
         result = self.call(CmdSail(), "far_dock")
         self.assertIn("Choose Your Ship", result)
-        self.assertIn("Cog", result)
-        self.assertIn("NFT #100", result)
-        self.assertIn("NFT #200", result)
-        self.assertIn("Caravel", result)
-        self.assertIn("NFT #300", result)
+        self.assertIn("Grey Widow", result)
+        self.assertIn("Sea Dragon", result)
+        self.assertIn("Blue Pearl", result)
         # Player should NOT have moved
         self.assertEqual(self.char1.location, self.room1)
 
     @patch(PATCH_QUALIFYING)
     def test_select_ship_by_number(self, mock_ships):
-        """Sail with a specific ship choice."""
+        """Sail with a specific ship choice (ship #2 = Sea Dragon)."""
         mock_ships.return_value = self.multi_ships
         result = self.call(CmdSail(), "far_dock 2")
-        self.assertIn("Cog", result)
-        self.assertIn("NFT #200", result)
+        self.assertIn("Sea Dragon", result)
         self.assertEqual(self.char1.location, self.dest_room)
 
     @patch(PATCH_QUALIFYING)
     def test_select_first_ship(self, mock_ships):
-        """Selecting ship 1 works."""
+        """Selecting ship 1 works (Grey Widow)."""
         mock_ships.return_value = self.multi_ships
         result = self.call(CmdSail(), "far_dock 1")
-        self.assertIn("Cog", result)
-        self.assertIn("NFT #100", result)
+        self.assertIn("Grey Widow", result)
         self.assertEqual(self.char1.location, self.dest_room)
 
     @patch(PATCH_QUALIFYING)
     def test_select_last_ship(self, mock_ships):
-        """Selecting the last ship works."""
+        """Selecting the last ship works (Blue Pearl)."""
         mock_ships.return_value = self.multi_ships
         result = self.call(CmdSail(), "far_dock 3")
-        self.assertIn("Caravel", result)
-        self.assertIn("NFT #300", result)
+        self.assertIn("Blue Pearl", result)
         self.assertEqual(self.char1.location, self.dest_room)
 
     @patch(PATCH_QUALIFYING)
@@ -315,6 +326,8 @@ class TestSailCosts(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self._delay_patcher = patch(PATCH_DELAY, side_effect=_instant_delay)
+        self._delay_patcher.start()
         self.dest_room = create.create_object(
             RoomGateway, key="Far Dock",
         )
@@ -331,6 +344,7 @@ class TestSailCosts(EvenniaCommandTest):
         self._set_seamanship(self.char1, MasteryLevel.BASIC)
 
     def tearDown(self):
+        self._delay_patcher.stop()
         if self.dest_room:
             self.dest_room.delete()
         super().tearDown()
@@ -340,14 +354,14 @@ class TestSailCosts(EvenniaCommandTest):
             char.db.skill_mastery_levels = {}
         char.db.skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_bread_consumed(self, mock_ships):
         """Bread is consumed after sailing."""
         self.char1.db.resources = {3: 5}
         self.call(CmdSail(), "")
         self.assertEqual(self.char1.db.resources[3], 3)  # 5 - 2 = 3
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_insufficient_bread(self, mock_ships):
         """Not enough bread blocks sailing."""
         self.char1.db.resources = {3: 1}  # need 2
@@ -355,7 +369,7 @@ class TestSailCosts(EvenniaCommandTest):
         self.assertIn("bread", result)
         self.assertEqual(self.char1.location, self.room1)
 
-    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 100)])
+    @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     @patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_sail.consume_costs")
     def test_gold_consumed(self, mock_consume, mock_ships):
         """Gold cost destination calls consume_costs and teleports."""
@@ -378,23 +392,34 @@ class TestCheckBoatLevel(EvenniaCommandTest):
     def create_script(self):
         pass
 
-    @patch(PATCH_BEST_TIER, return_value=3)
-    def test_check_passes(self, mock_tier):
+    def _add_ship(self, tier):
+        """Add a ShipNFTItem to char1 without triggering blockchain hooks."""
+        ship = create.create_object(
+            "typeclasses.items.untakeables.ship_nft_item.ShipNFTItem",
+            key=f"Test Ship T{tier}",
+            nohome=True,
+        )
+        ship.db.ship_tier = tier
+        ship.db_location = self.char1
+        ship.save(update_fields=["db_location"])
+        return ship
+
+    def test_check_passes(self):
         """Ship tier meets requirement."""
+        self._add_ship(3)
         ok, msg = _check_boat_level(self.char1, {"boat_level": 2})
         self.assertTrue(ok)
         self.assertEqual(msg, "")
 
-    @patch(PATCH_BEST_TIER, return_value=0)
-    def test_check_fails_no_ship(self, mock_tier):
+    def test_check_fails_no_ship(self):
         """No ships owned."""
         ok, msg = _check_boat_level(self.char1, {"boat_level": 1})
         self.assertFalse(ok)
         self.assertIn("don't own any ships", msg)
 
-    @patch(PATCH_BEST_TIER, return_value=1)
-    def test_check_fails_low_tier(self, mock_tier):
+    def test_check_fails_low_tier(self):
         """Ship tier below requirement shows both tier names."""
+        self._add_ship(1)
         ok, msg = _check_boat_level(self.char1, {"boat_level": 3})
         self.assertFalse(ok)
         self.assertIn("EXPERT", msg)  # needed

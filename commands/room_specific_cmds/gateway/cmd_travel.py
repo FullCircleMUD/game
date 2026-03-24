@@ -7,9 +7,52 @@ Usage:
 """
 
 from evennia import Command
+from evennia.utils import delay
 
 
 BREAD_RESOURCE_ID = 3
+
+# ── Travel delay configuration ─────────────────────────────────────────
+TRAVEL_TICK_SECONDS = 2
+
+_TRAVEL_MESSAGES = [
+    "The road stretches ahead, winding through unfamiliar lands...",
+    "You grow weary from days of travel, but press on...",
+]
+
+_SEA_MESSAGES = [
+    "The sails catch the wind and the harbour shrinks behind you...",
+    "Days pass on open water. The horizon is endless...",
+]
+
+_EXPLORE_MESSAGES = [
+    "You push into uncharted territory, marking your trail...",
+    "The landscape shifts as you venture further from known paths...",
+]
+
+
+def _delayed_travel(caller, room, dest, messages, on_arrive):
+    """
+    Show staggered travel messages then call on_arrive().
+
+    Uses the same ndb.is_processing / delay() pattern as crafting.
+    """
+    caller.ndb.is_processing = True
+    label = dest.get("label", "parts unknown")
+    room.msg_contents(
+        f"{caller.key} sets off on their journey to {label}.",
+        exclude=[caller],
+    )
+
+    def _tick(step):
+        if step < len(messages):
+            caller.msg(messages[step])
+            delay(TRAVEL_TICK_SECONDS, _tick, step + 1)
+        else:
+            caller.ndb.is_processing = False
+            on_arrive()
+
+    delay(TRAVEL_TICK_SECONDS, _tick, 0)
 
 
 # ── Condition validators ─────────────────────────────────────────────
@@ -244,7 +287,11 @@ class CmdTravel(Command):
         return " — " + ", ".join(parts)
 
     def _do_travel(self, caller, room, dest):
-        """Validate conditions, consume costs, and teleport."""
+        """Validate conditions, consume costs, and teleport with delay."""
+        if caller.ndb.is_processing:
+            caller.msg("You are already busy. Wait until your current task finishes.")
+            return
+
         conditions = dest.get("conditions", {})
 
         # Validate
@@ -258,25 +305,18 @@ class CmdTravel(Command):
             caller.msg("This destination's gateway is not connected.")
             return
 
-        # Consume costs
+        # Consume costs upfront
         consume_costs(caller, conditions)
 
         # Narrative
         travel_desc = dest.get("travel_description", "You set off on your journey...")
         caller.msg(f"\n{travel_desc}")
 
-        # Departure message
-        label = dest.get("label", "parts unknown")
-        room.msg_contents(
-            f"{caller.key} sets off on their journey to {label}.",
-            exclude=[caller],
-        )
+        def _arrive():
+            caller.move_to(destination_room, quiet=True, move_type="teleport")
+            destination_room.msg_contents(
+                f"{caller.key} arrives from their journey.",
+                exclude=[caller],
+            )
 
-        # Teleport
-        caller.move_to(destination_room, quiet=True, move_type="teleport")
-
-        # Arrival message
-        destination_room.msg_contents(
-            f"{caller.key} arrives from their journey.",
-            exclude=[caller],
-        )
+        _delayed_travel(caller, room, dest, _TRAVEL_MESSAGES, _arrive)

@@ -13,6 +13,12 @@ from commands.room_specific_cmds.gateway.cmd_explore import CmdExplore
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+
+
+def _instant_delay(seconds, callback, *args, **kwargs):
+    """Mock for utils.delay — executes callback immediately."""
+    callback(*args, **kwargs)
 
 
 class TestCmdExplore(EvenniaCommandTest):
@@ -26,6 +32,8 @@ class TestCmdExplore(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self._delay_patcher = patch(PATCH_DELAY, side_effect=_instant_delay)
+        self._delay_patcher.start()
         self.account.attributes.add("wallet_address", WALLET_A)
         self.char1.db.gold = 100
         self.char1.db.resources = {3: 5}  # 5 bread
@@ -34,6 +42,10 @@ class TestCmdExplore(EvenniaCommandTest):
             "typeclasses.terrain.rooms.room_gateway.RoomGateway",
             key="Hidden Cove",
         )
+
+    def tearDown(self):
+        self._delay_patcher.stop()
+        super().tearDown()
 
     def _hidden_dest(self, explore_chance=20, conditions=None):
         """Return a standard hidden destination config."""

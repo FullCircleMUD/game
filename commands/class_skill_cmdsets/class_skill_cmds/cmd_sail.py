@@ -8,7 +8,8 @@ Usage:
 
 Requires SEAMANSHIP skill (general, all classes). The dock room must be a
 RoomGateway with destinations that have a ``boat_level`` condition set.
-The player must own a ship of sufficient tier (queried via BaseNFTItem).
+The player must own a ShipNFTItem in their contents with a sufficient
+ship_tier (1–5 matching BASIC–GRANDMASTER).
 """
 
 from enums.mastery_level import MasteryLevel
@@ -18,8 +19,19 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
     validate_conditions,
     consume_costs,
     is_destination_visible,
+    _delayed_travel,
+    _SEA_MESSAGES,
 )
 from .cmd_skill_base import CmdSkillBase
+
+
+def _get_qualifying_ships(character, min_tier):
+    """Return ShipNFTItem objects from character.contents with ship_tier >= min_tier."""
+    from typeclasses.items.untakeables.ship_nft_item import ShipNFTItem
+    return [
+        obj for obj in character.contents
+        if isinstance(obj, ShipNFTItem) and obj.ship_tier >= min_tier
+    ]
 
 
 class CmdSail(CmdSkillBase):
@@ -59,6 +71,10 @@ class CmdSail(CmdSkillBase):
     def _do_sail(self):
         caller = self.caller
         room = caller.location
+
+        if caller.ndb.is_processing:
+            caller.msg("You are already busy. Wait until your current task finishes.")
+            return
 
         destinations = getattr(room, "destinations", None)
         if not destinations:
@@ -115,8 +131,6 @@ class CmdSail(CmdSkillBase):
 
     def _prepare_voyage(self, caller, room, dest, ship_choice=None):
         """Validate conditions, select ship, and execute voyage."""
-        from typeclasses.items.base_nft_item import BaseNFTItem
-
         conditions = dest.get("conditions", {})
         required_tier = conditions.get("boat_level", 0)
 
@@ -132,8 +146,8 @@ class CmdSail(CmdSkillBase):
             caller.msg("This route's destination is not connected.")
             return
 
-        # Get qualifying ships
-        qualifying = BaseNFTItem.get_qualifying_ships(caller, required_tier)
+        # Get qualifying ships from character contents
+        qualifying = _get_qualifying_ships(caller, required_tier)
         if not qualifying:
             needed = MasteryLevel(required_tier).name
             caller.msg(
@@ -145,36 +159,28 @@ class CmdSail(CmdSkillBase):
         # Single ship — auto-select
         if len(qualifying) == 1:
             ship = qualifying[0]
-            caller.msg(
-                f"You board your {ship.item_type.name} "
-                f"(NFT #{ship.token_id})."
-            )
-            self._execute_voyage(caller, room, dest)
+            caller.msg(f"You board your {ship.key}.")
+            self._execute_voyage(caller, room, dest, ship)
             return
 
         # Multiple ships — need a choice
         if ship_choice is None:
-            # Show ship list
             self._list_ships(caller, qualifying, dest)
             return
 
         # Validate choice
         if ship_choice < 1 or ship_choice > len(qualifying):
             caller.msg(
-                f"Invalid choice. Enter a number between "
-                f"1 and {len(qualifying)}."
+                f"Invalid choice. Enter a number between 1 and {len(qualifying)}."
             )
             return
 
         ship = qualifying[ship_choice - 1]
-        caller.msg(
-            f"You board your {ship.item_type.name} "
-            f"(NFT #{ship.token_id})."
-        )
-        self._execute_voyage(caller, room, dest)
+        caller.msg(f"You board your {ship.key}.")
+        self._execute_voyage(caller, room, dest, ship)
 
-    def _execute_voyage(self, caller, room, dest):
-        """Consume costs and teleport."""
+    def _execute_voyage(self, caller, room, dest, ship):
+        """Consume costs, show travel delay, teleport, update ship location."""
         conditions = dest.get("conditions", {})
         consume_costs(caller, conditions)
 
@@ -183,19 +189,17 @@ class CmdSail(CmdSkillBase):
         )
         caller.msg(f"\n{travel_desc}")
 
-        label = dest.get("label", "open waters")
-        room.msg_contents(
-            f"{caller.key} sets sail for {label}.",
-            exclude=[caller],
-        )
-
         destination_room = dest["destination"]
-        caller.move_to(destination_room, quiet=True, move_type="teleport")
 
-        destination_room.msg_contents(
-            f"{caller.key} arrives by ship.",
-            exclude=[caller],
-        )
+        def _arrive():
+            caller.move_to(destination_room, quiet=True, move_type="teleport")
+            destination_room.msg_contents(
+                f"{caller.key} arrives by ship.",
+                exclude=[caller],
+            )
+            ship.arrive_at_dock(destination_room)
+
+        _delayed_travel(caller, room, dest, _SEA_MESSAGES, _arrive)
 
     def _list_destinations(self, caller, sail_dests):
         """List available sea routes."""
@@ -212,10 +216,11 @@ class CmdSail(CmdSkillBase):
         dest_key = dest.get("key", "")
         caller.msg("\n|c--- Choose Your Ship ---|n")
         for i, ship in enumerate(qualifying, 1):
-            tier = ShipType[ship.item_type.name.upper()]
-            caller.msg(
-                f"  {i}. {ship.item_type.name} (NFT #{ship.token_id})"
-            )
+            try:
+                tier_name = ShipType(ship.ship_tier).item_type_name
+            except (ValueError, KeyError):
+                tier_name = "Unknown"
+            caller.msg(f"  {i}. {ship.key} ({tier_name})")
         caller.msg(
             f"\nUse |wsail {dest_key} <number>|n to set sail."
         )
