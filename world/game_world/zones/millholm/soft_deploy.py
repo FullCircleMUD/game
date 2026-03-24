@@ -46,6 +46,7 @@ def build_zone():
     are built.
 
     Gateway keys:
+        "east_gate"          — eastern exit toward Ironback Peaks / Cloverfen (BASIC)
         "shadowsward_gate"   — southern exit toward The Shadowsward (SKILLED)
     """
     print("=== BUILDING MILLHOLM ZONE ===\n")
@@ -221,6 +222,7 @@ def build_zone():
     # Return gateway rooms for cross-zone wiring in deploy_world.py.
     # Exits will be added to these rooms when adjacent zones are built.
     return {
+        "east_gate": woods_rooms["east_gate"],
         "shadowsward_gate": southern_rooms["shadowsward_gate"],
     }
 

@@ -28,6 +28,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.terrain.rooms.room_base import RoomBase
+from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from utils.exit_helpers import connect
@@ -502,6 +503,21 @@ def build_millholm_woods(town_rooms):
         ],
     )
 
+    # ── East Gate (zone transition to Ironback Peaks / Cloverfen) ──
+
+    rooms["east_gate"] = create_object(
+        RoomGateway,
+        key="Eastern Crossroads",
+        attributes=[
+            ("desc",
+             "The wooded path opens onto a windswept crossroads where "
+             "the land rises toward distant mountains to the northeast "
+             "and gentler rolling plains spread south. A weathered "
+             "signpost stands at the fork, its arms pointing toward "
+             "civilisation in both directions."),
+        ],
+    )
+
     # ── Sawmill spur (north of Edge of Woods) ──────────────────────
 
     rooms["northern_track"] = create_object(
@@ -858,6 +874,10 @@ def build_millholm_woods(town_rooms):
         connect(rooms[key_a], rooms[key_b], direction)
         exit_count += 2
 
+    # ── East gate (zone boundary) ─────────────────────────────────
+    connect(rooms["wooded_foothills"], rooms["east_gate"], "east")
+    exit_count += 2
+
     # ── Sawmill spur ───────────────────────────────────────────────
     connect(rooms["edge_of_woods"], rooms["northern_track"], "north")
     connect(rooms["northern_track"], rooms["sawmill"], "north")
@@ -1054,8 +1074,10 @@ def build_millholm_woods(town_rooms):
         nw_room.tags.add(f"{_region_tag}:deep_woods_se", category="map_cell")
     rooms["deep_woods_entry"].tags.add(f"{_region_tag}:deep_woods_se", category="map_cell")
 
-    # Woods exit (zone boundary)
+    # Woods exit and east gate (zone boundary)
     rooms["wooded_foothills"].tags.add(f"{_region_tag}:woods_exit", category="map_cell")
+    rooms["east_gate"].set_terrain(TerrainType.PLAINS.value)
+    rooms["east_gate"].tags.add(f"{_region_tag}:east_gate", category="map_cell")
 
     _region_count = sum(len(v) for v in _grid_chunks.values()) + len(northern_woods) + 30
     print(f"  Tagged ~{_region_count} woods rooms with millholm_region map_cell tags.")

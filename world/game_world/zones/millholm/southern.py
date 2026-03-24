@@ -32,6 +32,7 @@ from evennia import create_object
 
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
+from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from utils.exit_helpers import connect, connect_door
 
@@ -637,7 +638,7 @@ def build_millholm_southern():
     )
 
     rooms["shadowsward_gate"] = create_object(
-        RoomBase,
+        RoomGateway,
         key="Shadowsward Gate",
         attributes=[
             ("desc",
