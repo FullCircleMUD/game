@@ -1712,9 +1712,15 @@ def build_millholm_town():
     )
     exit_count += 2
 
-    # Bank — Post Office (east)
-    connect(rooms["bank"], rooms["post_office"], "east",
-            desc_ab="the post office", desc_ba="the bank")
+    # road_mid_east — Post Office (south door)
+    connect_door(
+        rooms["road_mid_east"], rooms["post_office"], "south",
+        key="a sturdy oak door",
+        closed_ab="A sturdy oak door with a brass letterbox leads south.",
+        open_ab="A tidy counter and wall of pigeon-holes are visible through the open door.",
+        closed_ba="A sturdy oak door leads north to the trade road.",
+        open_ba="The trade road is visible through the open door.",
+    )
     exit_count += 2
 
     # road_far_east — Jeweller (north door)
