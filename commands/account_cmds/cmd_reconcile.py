@@ -17,11 +17,11 @@ class CmdReconcile(Command):
     Compare vault on-chain balances against game database totals.
 
     Read-only check — no changes made. For each currency shows:
-      On-Chain    — actual vault balance on XRPL ledger
+      Vault       — actual vault wallet balance on XRPL ledger
       Reserve     — game DB reserve (unallocated)
       Distributed — CHARACTER + ACCOUNT + SPAWNED (in-play)
       Sink        — consumed assets awaiting reallocation
-      Delta       — On-Chain - (Reserve + Distributed + Sink)
+      Delta       — Vault - (Reserve + Distributed + Sink)
 
     Delta should be zero. Positive = vault has uncounted assets
     (recent minting or AMM liquidity change). Negative = accounting
@@ -65,7 +65,7 @@ def _on_reconcile_complete(caller, rows):
 
     # Header
     caller.msg(
-        f"\n {'Currency':<14s} {'On-Chain':>12s} {'Reserve':>12s} "
+        f"\n {'Currency':<14s} {'Vault':>12s} {'Reserve':>12s} "
         f"{'Distrib':>12s} {'Sink':>12s} {'Delta':>12s}"
     )
     caller.msg(f" {'-' * 14} {'-' * 12} {'-' * 12} {'-' * 12} {'-' * 12} {'-' * 12}")
@@ -95,11 +95,11 @@ def _on_reconcile_complete(caller, rows):
 
     caller.msg("")
     caller.msg(
-        " Delta = On-Chain - (Reserve + Distributed + Sink). "
+        " Delta = Vault - (Reserve + Distributed + Sink). "
         "Should be 0."
     )
     caller.msg(
-        " |gPositive|n = uncounted vault assets (minting, AMM liquidity). "
+        " |gPositive|n = uncounted vault wallet assets (minting, AMM liquidity). "
         "|rNegative|n = accounting bug."
     )
 
