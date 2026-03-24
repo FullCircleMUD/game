@@ -198,8 +198,7 @@ class CmdCraft(Command):
         resource_split = {}  # {res_id: (from_inv, from_bank)}
 
         if bank_funded and caller.account:
-            from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
-            bank = ensure_bank(caller.account)
+            bank = caller.account.db.bank  # None if no bank exists yet
 
         missing = []
         for res_id, needed in ingredients.items():
