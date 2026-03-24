@@ -191,15 +191,35 @@ class CmdCraft(Command):
             )
             return
 
-        # --- Check resource ingredients ---
+        # --- Check resource ingredients (bank-funded if flagged) ---
         ingredients = recipe.get("ingredients", {})
+        bank_funded = recipe.get("bank_funded", False)
+        bank = None
+        resource_split = {}  # {res_id: (from_inv, from_bank)}
+
+        if bank_funded and caller.account:
+            from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
+            bank = ensure_bank(caller.account)
+
         missing = []
         for res_id, needed in ingredients.items():
-            available = caller.get_resource(res_id)
-            if available < needed:
+            inv_available = caller.get_resource(res_id)
+            bank_available = bank.get_resource(res_id) if bank else 0
+            total = inv_available + bank_available
+            if total < needed:
                 rt = get_resource_type(res_id)
                 name = rt["name"] if rt else f"Resource #{res_id}"
-                missing.append(f"{needed} {name} (have {available})")
+                if bank_funded:
+                    missing.append(
+                        f"{needed} {name} (have {inv_available} carried"
+                        f" + {bank_available} banked = {total})"
+                    )
+                else:
+                    missing.append(f"{needed} {name} (have {inv_available})")
+            else:
+                from_inv = min(inv_available, needed)
+                from_bank = needed - from_inv
+                resource_split[res_id] = (from_inv, from_bank)
 
         # --- Check NFT item ingredients ---
         nft_ingredients = recipe.get("nft_ingredients", {})
@@ -249,7 +269,13 @@ class CmdCraft(Command):
         for res_id, needed in ingredients.items():
             rt = get_resource_type(res_id)
             name = rt["name"] if rt else f"Resource #{res_id}"
-            ingredient_lines.append(f"  {needed} {name}")
+            from_inv, from_bank = resource_split.get(res_id, (needed, 0))
+            if from_bank > 0:
+                ingredient_lines.append(
+                    f"  {needed} {name} ({from_inv} carried + {from_bank} from bank)"
+                )
+            else:
+                ingredient_lines.append(f"  {needed} {name}")
         for proto_key, needed in nft_ingredients.items():
             display = proto_key.replace("_", " ").title()
             ingredient_lines.append(f"  {needed} {display} (item)")
@@ -273,10 +299,17 @@ class CmdCraft(Command):
             return
 
         # --- Re-validate after confirmation (resources could change) ---
+        resource_split = {}  # rebuild split with current amounts
         for res_id, needed in ingredients.items():
-            if caller.get_resource(res_id) < needed:
+            inv_available = caller.get_resource(res_id)
+            bank_available = bank.get_resource(res_id) if bank else 0
+            total = inv_available + bank_available if bank_funded else inv_available
+            if total < needed:
                 caller.msg("You no longer have the required materials.")
                 return
+            from_inv = min(inv_available, needed)
+            from_bank = needed - from_inv
+            resource_split[res_id] = (from_inv, from_bank)
 
         if nft_ingredients:
             equipped = set()
@@ -301,9 +334,13 @@ class CmdCraft(Command):
             caller.msg("You no longer have enough gold.")
             return
 
-        # --- Consume resource ingredients ---
+        # --- Consume resource ingredients (inventory first, bank remainder) ---
         for res_id, needed in ingredients.items():
-            caller.return_resource_to_sink(res_id, needed)
+            from_inv, from_bank = resource_split.get(res_id, (needed, 0))
+            if from_inv > 0:
+                caller.return_resource_to_sink(res_id, from_inv)
+            if from_bank > 0:
+                bank.return_resource_to_sink(res_id, from_bank)
 
         # --- Consume NFT item ingredients ---
         consumed_nft_info = []  # (item_type_name,) for refund on failure

@@ -14,4 +14,5 @@ RECIPE_CARAVEL = {
         24: 20,   # 20 Copper Ingot
     },
     "output_prototype": "caravel",
+    "bank_funded": True,
 }

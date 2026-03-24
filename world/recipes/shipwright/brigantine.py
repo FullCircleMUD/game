@@ -15,4 +15,5 @@ RECIPE_BRIGANTINE = {
         5: 20,    # 20 Iron Ingot
     },
     "output_prototype": "brigantine",
+    "bank_funded": True,
 }

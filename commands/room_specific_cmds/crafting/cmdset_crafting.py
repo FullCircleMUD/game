@@ -4,6 +4,7 @@ from commands.room_specific_cmds.crafting.cmd_craft import CmdCraft
 from commands.room_specific_cmds.crafting.cmd_available import CmdAvailable
 from commands.room_specific_cmds.crafting.cmd_inset import CmdInset
 from commands.room_specific_cmds.crafting.cmd_repair import CmdRepair
+from commands.room_specific_cmds.crafting.cmd_stockpile import CmdStockpile
 
 
 class CmdSetCrafting(CmdSet):
@@ -15,3 +16,4 @@ class CmdSetCrafting(CmdSet):
         self.add(CmdAvailable())
         self.add(CmdInset())
         self.add(CmdRepair())
+        self.add(CmdStockpile())

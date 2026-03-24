@@ -13,4 +13,5 @@ RECIPE_COG = {
         11: 10,   # 10 Cloth
     },
     "output_prototype": "cog",
+    "bank_funded": True,
 }
