@@ -606,6 +606,20 @@ def enter_combat(combatant, target):
                 if member.location == room and getattr(member, "hp", 0) > 0:
                     _get_or_create_handler(member)
 
+    # Auto-queue attack on first enemy for all combatants who don't
+    # already have an action. Must happen after all handlers exist so
+    # get_sides() can see everyone.
+    all_in_combat = [
+        obj for obj in room.contents
+        if getattr(obj, "hp", None) is not None
+        and obj.hp > 0
+        and obj.scripts.get("combat_handler")
+    ]
+    for obj in all_in_combat:
+        handlers = obj.scripts.get("combat_handler")
+        if handlers:
+            handlers[0].auto_attack_first_enemy()
+
     return True
 
 
