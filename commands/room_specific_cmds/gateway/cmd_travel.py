@@ -43,9 +43,12 @@ def _check_water_breathing(caller, conditions):
 def _check_boat_level(caller, conditions):
     req = conditions.get("boat_level")
     if req:
-        from typeclasses.items.base_nft_item import BaseNFTItem
+        from typeclasses.items.untakeables.ship_nft_item import ShipNFTItem
         from enums.mastery_level import MasteryLevel
-        best_tier = BaseNFTItem.get_best_ship_tier(caller)
+        best_tier = max(
+            (obj.ship_tier for obj in caller.contents if isinstance(obj, ShipNFTItem)),
+            default=0,
+        )
         if best_tier < req:
             needed = MasteryLevel(req).name
             if best_tier == 0:
@@ -105,25 +108,50 @@ def consume_costs(caller, conditions):
 
 
 def is_destination_visible(caller, dest, gateway):
-    """Check if a destination is visible to the caller."""
+    """
+    Check if a destination is visible to the caller or their party.
+
+    Visibility rules:
+    1. hidden=False → always visible (test routes, non-gated destinations)
+    2. Route map NFT in caller or party member inventory → visible
+    3. Chart item (boss loot) with matching discover_item_tag → visible
+    """
     if not dest.get("hidden", False):
         return True
 
-    # Check discovery tag
     dest_key = dest.get("key", "")
     gateway_key = gateway.key
-    discovery_tag = f"discovered:{gateway_key}:{dest_key}"
-    if caller.tags.get(discovery_tag, category="discovery"):
-        return True
+    route_key = f"{gateway_key}:{dest_key}"
 
-    # Check for chart item in inventory
-    item_tag = dest.get("discover_item_tag")
-    if item_tag:
-        for obj in caller.contents:
-            if obj.tags.get(item_tag, category="chart"):
+    # Check caller + party for a route map NFT matching this route
+    from typeclasses.items.maps.route_map_nft_item import RouteMapNFTItem
+    party = _get_party_members(caller)
+    for member in party:
+        for obj in member.contents:
+            if isinstance(obj, RouteMapNFTItem) and obj.route_key == route_key:
                 return True
 
+    # Check for chart item (boss loot) in caller inventory
+    item_tag = dest.get("discover_item_tag")
+    if item_tag:
+        for member in party:
+            for obj in member.contents:
+                if obj.tags.get(item_tag, category="chart"):
+                    return True
+
     return False
+
+
+def _get_party_members(caller):
+    """Return caller + group members in the same room."""
+    members = [caller]
+    if hasattr(caller, "get_group_leader"):
+        leader = caller.get_group_leader()
+        if leader:
+            members = [leader] + leader.get_followers(same_room=True)
+            if caller not in members:
+                members.append(caller)
+    return members
 
 
 class CmdTravel(Command):

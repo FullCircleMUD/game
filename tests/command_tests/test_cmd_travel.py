@@ -254,9 +254,16 @@ class TestCmdTravel(EvenniaCommandTest):
                 "hidden": True,
             },
         ])
-        # Add discovery tag
-        discovery_tag = f"discovered:{self.room1.key}:secret"
-        self.char1.tags.add(discovery_tag, category="discovery")
+        # Add route map NFT to inventory
+        from evennia.utils import create
+        route_map = create.create_object(
+            "typeclasses.items.maps.route_map_nft_item.RouteMapNFTItem",
+            key="route map to secret island",
+            nohome=True,
+        )
+        route_map.route_key = f"{self.room1.key}:secret"
+        route_map.db_location = self.char1
+        route_map.save(update_fields=["db_location"])
 
         self.call(CmdTravel(), "", "Found it!")
         self.assertEqual(self.char1.location, self.dest_room)

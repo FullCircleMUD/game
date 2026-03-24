@@ -78,12 +78,14 @@ _HOLDABLE_TC = "typeclasses.items.holdables.holdable_nft_item.HoldableNFTItem"
 _CONTAINER_TC = "typeclasses.items.containers.container_nft_item.ContainerNFTItem"
 _WEARABLE_CONTAINER_TC = "typeclasses.items.containers.wearable_container_nft_item.WearableContainerNFTItem"
 _BASE_TC = "typeclasses.items.base_nft_item.BaseNFTItem"
+_SHIP_TC = "typeclasses.items.untakeables.ship_nft_item.ShipNFTItem"
 _POTION_TC = "typeclasses.items.consumables.potion_nft_item.PotionNFTItem"
 _RECIPE_TC = "typeclasses.items.consumables.crafting_recipe_nft_item.CraftingRecipeNFTItem"
 _SPELL_SCROLL_TC = "typeclasses.items.consumables.spell_scroll_nft_item.SpellScrollNFTItem"
 _TORCH_TC = "typeclasses.items.holdables.torch_nft_item.TorchNFTItem"
 _LANTERN_TC = "typeclasses.items.holdables.lantern_nft_item.LanternNFTItem"
 _DISTRICT_MAP_TC = "typeclasses.items.maps.district_map_nft_item.DistrictMapNFTItem"
+_ROUTE_MAP_TC = "typeclasses.items.maps.route_map_nft_item.RouteMapNFTItem"
 
 NFT_ITEM_TYPES = [
     # ── Weapons ──
@@ -197,15 +199,16 @@ NFT_ITEM_TYPES = [
     {"name": "Spellweaver's Bangle", "typeclass": _WEARABLE_TC, "prototype_key": "spellweavers_bangle", "description": "A copper bangle crackling with faint arcane sparks."},
     {"name": "Truewatch Studs", "typeclass": _WEARABLE_TC, "prototype_key": "truewatch_studs", "description": "Copper studs enchanted to sharpen the wearer's awareness."},
     # ── Ships ──
-    {"name": "Cog", "typeclass": _BASE_TC, "prototype_key": None, "description": "A small, sturdy single-masted trading vessel."},
-    {"name": "Caravel", "typeclass": _BASE_TC, "prototype_key": None, "description": "A nimble two-masted ship capable of coastal voyages."},
-    {"name": "Brigantine", "typeclass": _BASE_TC, "prototype_key": None, "description": "A fast two-masted vessel with square and lateen rigging."},
-    {"name": "Carrack", "typeclass": _BASE_TC, "prototype_key": None, "description": "A large three-masted merchant vessel built for long voyages."},
-    {"name": "Galleon", "typeclass": _BASE_TC, "prototype_key": None, "description": "A massive multi-decked ship, the pinnacle of naval architecture."},
+    {"name": "Cog",        "typeclass": _SHIP_TC, "prototype_key": "cog",        "default_metadata": {"ship_tier": 1}, "description": "A small, sturdy single-masted trading vessel."},
+    {"name": "Caravel",    "typeclass": _SHIP_TC, "prototype_key": "caravel",    "default_metadata": {"ship_tier": 2}, "description": "A nimble two-masted ship capable of coastal voyages."},
+    {"name": "Brigantine", "typeclass": _SHIP_TC, "prototype_key": "brigantine", "default_metadata": {"ship_tier": 3}, "description": "A fast two-masted vessel with square and lateen rigging."},
+    {"name": "Carrack",    "typeclass": _SHIP_TC, "prototype_key": "carrack",    "default_metadata": {"ship_tier": 4}, "description": "A large three-masted merchant vessel built for long voyages."},
+    {"name": "Galleon",    "typeclass": _SHIP_TC, "prototype_key": "galleon",    "default_metadata": {"ship_tier": 5}, "description": "A massive multi-decked ship, the pinnacle of naval architecture."},
     # ── Enchanted Gems ──
     {"name": "Enchanted Ruby", "typeclass": _BASE_TC, "prototype_key": "enchanted_ruby", "description": "A ruby pulsing with arcane energy. Its enchantment is hidden within."},
     # ── Maps ──
     {"name": "DistrictMap", "typeclass": _DISTRICT_MAP_TC, "prototype_key": "district_map", "description": "A parchment district map. Survey rooms to fill it in; trade it as an NFT."},
+    {"name": "RouteMap", "typeclass": _ROUTE_MAP_TC, "prototype_key": "route_map", "description": "A chart showing a discovered route between two locations."},
     # ── Recipe Scrolls ──
     {"name": "Training Longsword Recipe", "typeclass": _RECIPE_TC, "prototype_key": "training_longsword_recipe", "description": "A scroll detailing how to carve a training longsword from timber."},
     {"name": "Wooden Shield Recipe", "typeclass": _RECIPE_TC, "prototype_key": "wooden_shield_recipe", "description": "A scroll showing how to shape timber into a sturdy round shield."},

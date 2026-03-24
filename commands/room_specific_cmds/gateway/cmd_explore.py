@@ -100,14 +100,31 @@ class CmdExplore(Command):
         )
 
     def _discover(self, caller, room, dest, days):
-        """Handle successful discovery."""
+        """Handle successful discovery — spawn a route map NFT."""
         dest_key = dest.get("key", "")
         gateway_key = room.key
         label = dest.get("label", "an unknown place")
 
-        # Add permanent discovery tag
-        discovery_tag = f"discovered:{gateway_key}:{dest_key}"
-        caller.tags.add(discovery_tag, category="discovery")
+        # Spawn route map NFT
+        from typeclasses.items.base_nft_item import BaseNFTItem
+        try:
+            token_id, _, _ = BaseNFTItem.assign_to_blank_token("RouteMap")
+            obj = BaseNFTItem.spawn_into(token_id, caller)
+            if obj:
+                obj.route_key = f"{gateway_key}:{dest_key}"
+                obj.departure_name = room.key
+                obj.destination_name = label
+                # Update key for searchability
+                obj.key = f"route map to {label}".lower()
+                caller.msg(
+                    f"|gA route map to {label} materialises in your pack.|n"
+                )
+        except Exception as exc:
+            # Fallback — don't block discovery if NFT spawn fails
+            caller.msg(
+                f"|y[Warning] Route map could not be created: {exc}. "
+                f"You discovered the route but received no map.|n"
+            )
 
         # Narrative
         travel_desc = dest.get(
