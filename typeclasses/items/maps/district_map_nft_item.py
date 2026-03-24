@@ -56,6 +56,20 @@ class DistrictMapNFTItem(BaseNFTItem):
         surveyed = len(self.surveyed_points)
         return round((surveyed / total) * 100)
 
+    def return_appearance(self, looker, **kwargs):
+        """Override appearance to show map-specific desc with usage hint."""
+        from world.cartography.map_registry import get_map
+        map_def = get_map(self.map_key)
+        name = map_def["display_name"] if map_def else (self.map_key or "Unknown Area")
+        pct = self.completion_pct
+        header = self.get_display_name(looker, **kwargs)
+        desc = (
+            f"A parchment map of {name}, {pct}% complete. "
+            "Careful cartographic notation marks the surveyed areas.\n"
+            f"|wType '|ymap {name.lower()}|w' to view it.|n"
+        )
+        return f"{header}\n{desc}"
+
     def get_display_name(self, looker=None, **kwargs):
         """Always shows 'Map: <Area> <pct>%' — e.g. 'Map: Millholm Town 37%'."""
         from world.cartography.map_registry import get_map

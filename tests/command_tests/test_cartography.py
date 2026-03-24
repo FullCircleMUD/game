@@ -620,7 +620,7 @@ class TestCmdSurveyGates(_RoomBaseMixin, EvenniaCommandTest):
         _set_cart(self.char1, MasteryLevel.BASIC)
         self.room1.tags.add(f"{FAKE_MAP_KEY}:room_a", category="map_cell")
         result = self.call(CmdSurvey(), "")
-        self.assertIn("already mapped everything", result)
+        self.assertIn("nothing to map here", result)
 
     def test_all_points_already_surveyed(self):
         _set_cart(self.char1, MasteryLevel.BASIC)
@@ -634,7 +634,7 @@ class TestCmdSurveyGates(_RoomBaseMixin, EvenniaCommandTest):
         _set_cart(self.char1, MasteryLevel.BASIC)
         self.room1.tags.add("unregistered_map:some_point", category="map_cell")
         result = self.call(CmdSurvey(), "")
-        self.assertIn("already mapped everything", result)
+        self.assertIn("nothing to map here", result)
 
 
 # ══════════════════════════════════════════════════════════════════════════

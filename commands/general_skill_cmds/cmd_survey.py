@@ -60,19 +60,44 @@ class CmdSurvey(Command):
             caller.msg("There's nothing notable to map here.")
             return
 
-        # Collect all (map_nft, point_key) pairs for unsurveyed points
+        # Collect all (map_nft, point_key) pairs — include already-surveyed
+        # rooms so adjacent revelation still fires on re-survey.
         targets = []
         for map_key, point_key in room_map_pairs:
             map_nft = self._get_map(caller, map_key)
             if map_nft is None:
                 continue
-            if point_key in map_nft.surveyed_points:
-                continue
             targets.append((map_nft, point_key))
 
         if not targets:
-            caller.msg("You've already mapped everything notable here.")
+            caller.msg("There's nothing to map here.")
             return
+
+        # Check if re-surveying would reveal any new adjacent cells.
+        # If current room AND all adjacents are already surveyed, skip.
+        from world.cartography.map_registry import get_map_keys_for_room as _get_keys, get_map
+        has_new = any(pk not in nft.surveyed_points for nft, pk in targets)
+        if not has_new:
+            # Check adjacents for district-scale maps
+            for exit_obj in room.exits:
+                dest = exit_obj.destination
+                if not dest:
+                    continue
+                for adj_map_key, adj_pk in _get_keys(dest):
+                    adj_nft = self._get_map(caller, adj_map_key)
+                    if not adj_nft:
+                        continue
+                    adj_map_def = get_map(adj_map_key)
+                    if adj_map_def and adj_map_def.get("scale") == "region":
+                        continue
+                    if adj_pk not in adj_nft.surveyed_points:
+                        has_new = True
+                        break
+                if has_new:
+                    break
+            if not has_new:
+                caller.msg("You've already mapped everything notable here.")
+                return
 
         # Notify room
         caller.msg(
