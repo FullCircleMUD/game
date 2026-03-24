@@ -5,11 +5,10 @@ Cartography tier: SKILLED
 Access: Overland from Ironback Peaks or Cloverfen (W gate)
         Sea routes from dock (E gate)
 
-Scaffold: 5 rooms (3 gateways + 2 connecting rooms).
+Scaffold: 4 rooms (2 gateways + 2 connecting rooms).
 
 Gateway keys:
-    "w_gate"   — toward Ironback Peaks / Cloverfen (SKILLED cartography)
-    "s_gate"   — toward The Bayou (SKILLED cartography)
+    "w_gate"   — toward Ironback Peaks / Cloverfen / Bayou (SKILLED cartography)
     "dock"     — sea routes to islands and Kashoryu
 """
 
@@ -47,18 +46,6 @@ def build_zone():
              "Saltspray Bay spreads before you. Masts crowd the wharves "
              "below, and the tang of salt and tar carries on the breeze. "
              "The road descends toward the city gates."),
-        ],
-    )
-
-    rooms["s_gate"] = create_object(
-        RoomGateway,
-        key="Southern Coast Road",
-        attributes=[
-            ("desc",
-             "The coastal road turns south here, winding along sandstone "
-             "cliffs above crashing surf. The air grows warmer and more "
-             "humid as the road trends toward the tropics. Seabirds wheel "
-             "overhead."),
         ],
     )
 
@@ -104,7 +91,6 @@ def build_zone():
     # ── Exits ─────────────────────────────────────────────────────────
 
     connect(rooms["w_gate"], rooms["market_square"], "east")
-    connect(rooms["market_square"], rooms["s_gate"], "south")
     connect(rooms["market_square"], rooms["harbour_road"], "east")
     connect(rooms["harbour_road"], rooms["dock"], "east")
 
@@ -118,11 +104,10 @@ def build_zone():
     rooms["market_square"].set_terrain(TerrainType.URBAN.value)
     rooms["harbour_road"].set_terrain(TerrainType.URBAN.value)
 
-    print("  Saltspray Bay scaffold complete (5 rooms).\n")
+    print("  Saltspray Bay scaffold complete (4 rooms).\n")
 
     return {
         "w_gate": rooms["w_gate"],
-        "s_gate": rooms["s_gate"],
         "dock": rooms["dock"],
     }
 

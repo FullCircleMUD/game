@@ -4,11 +4,11 @@ The Shadowsward Zone — soft deploy script.
 Cartography tier: SKILLED
 Access: Overland from Millholm (NE gate)
 
-Scaffold: 2 rooms (1 gateway + 1 normal room). Temporary endpoint —
-more gateways (toward Shadowroot, Scalded Waste) will be added when expanding.
+Scaffold: 3 rooms (2 gateways + 1 normal room).
 
 Gateway keys:
-    "ne_gate"  — toward Millholm (SKILLED cartography)
+    "ne_gate"  — toward Millholm / Cloverfen (SKILLED cartography)
+    "s_gate"   — toward Shadowroot / Aethenveil (EXPERT / MASTER cartography)
 """
 
 from evennia import create_object
@@ -49,6 +49,18 @@ def build_zone():
         ],
     )
 
+    rooms["s_gate"] = create_object(
+        RoomGateway,
+        key="Southern Frontier",
+        attributes=[
+            ("desc",
+             "The watchtowers thin out here at the southern edge of the "
+             "Shadowsward. Beyond the last palisade, the grassland gives "
+             "way to darker terrain — blackened forest to the west and "
+             "shimmering haze to the south."),
+        ],
+    )
+
     # ── Placeholder room ──────────────────────────────────────────────
 
     rooms["watchtower_road"] = create_object(
@@ -66,6 +78,7 @@ def build_zone():
     # ── Exits ─────────────────────────────────────────────────────────
 
     connect(rooms["ne_gate"], rooms["watchtower_road"], "south")
+    connect(rooms["watchtower_road"], rooms["s_gate"], "south")
 
     # ── Tags ──────────────────────────────────────────────────────────
 
@@ -74,10 +87,11 @@ def build_zone():
         room.tags.add(DISTRICT, category="district")
         room.set_terrain(TerrainType.PLAINS.value)
 
-    print("  The Shadowsward scaffold complete (2 rooms).\n")
+    print("  The Shadowsward scaffold complete (3 rooms).\n")
 
     return {
         "ne_gate": rooms["ne_gate"],
+        "s_gate": rooms["s_gate"],
     }
 
 

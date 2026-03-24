@@ -21,6 +21,7 @@ _BASIC = MasteryLevel.BASIC.value
 _SKILLED = MasteryLevel.SKILLED.value
 _EXPERT = MasteryLevel.EXPERT.value
 _MASTER = MasteryLevel.MASTER.value
+_GRANDMASTER = MasteryLevel.GRANDMASTER.value
 
 RECYCLE_BIN_KEY = "nft_recycle_bin"
 PURGATORY_KEY = "Purgatory"
@@ -31,20 +32,21 @@ ACTIVE_ZONES = [
     "millholm",
     "ironback_peaks",    # BASIC cartography — scaffold
     "cloverfen",         # BASIC cartography — scaffold
-    "shadowsward",       # SKILLED cartography — scaffold (temp endpoint)
+    "shadowsward",       # SKILLED cartography — scaffold
     "saltspray_bay",     # SKILLED cartography — scaffold
     "bayou",             # SKILLED cartography — scaffold
     "kashoryu",          # SKILLED sea / EXPERT overland — scaffold
-    "aethenveil",        # MASTER cartography — scaffold (temp endpoint)
+    "aethenveil",        # MASTER cartography — scaffold
     "teotlan_ruin",      # BASIC sea island — scaffold
     "calenport",         # SKILLED sea island — scaffold
     "port_shadowmere",   # SKILLED sea — scaffold
-    "amber_shore",       # SKILLED sea — scaffold
+    "amber_shore",       # BASIC sea — scaffold
     "arcane_sanctum",    # EXPERT sea — scaffold
     "oldbone_island",    # EXPERT sea — scaffold
-    # "shadowroot",        # EXPERT cartography — not yet built
-    # "scalded_waste",     # EXPERT cartography — not yet built
-    # "zharavan",          # MASTER cartography — not yet built
+    "solendra",          # GRANDMASTER sea — scaffold
+    "shadowroot",        # EXPERT cartography — scaffold
+    "scalded_waste",     # MASTER cartography — scaffold
+    "zharavan",          # GRANDMASTER cartography — scaffold
     # "guildmere_island",  # MASTER sea — not yet built
     # "atlantis",          # MASTER dive (from Guildmere Island) — not yet built
     # "vaathari",          # GRANDMASTER sea — not yet built
@@ -132,13 +134,19 @@ def deploy_world():
     from world.game_world.zones.oldbone_island.soft_deploy import build_zone as build_oldbone
     oldbone = build_oldbone()
 
+    from world.game_world.zones.solendra.soft_deploy import build_zone as build_solendra
+    solendra = build_solendra()
+
+    from world.game_world.zones.shadowroot.soft_deploy import build_zone as build_shadowroot
+    shadowroot = build_shadowroot()
+
+    from world.game_world.zones.scalded_waste.soft_deploy import build_zone as build_scalded_waste
+    scalded_waste = build_scalded_waste()
+
+    from world.game_world.zones.zharavan.soft_deploy import build_zone as build_zharavan
+    zharavan = build_zharavan()
+
     # Uncomment as zones are built:
-    # from world.game_world.zones.shadowroot.soft_deploy import build_zone as build_shadowroot
-    # shadowroot = build_shadowroot()
-    # from world.game_world.zones.scalded_waste.soft_deploy import build_zone as build_scalded_waste
-    # scalded_waste = build_scalded_waste()
-    # from world.game_world.zones.zharavan.soft_deploy import build_zone as build_zharavan
-    # zharavan = build_zharavan()
     # from world.game_world.zones.guildmere_island.soft_deploy import build_zone as build_guildmere
     # guildmere = build_guildmere()
     # from world.game_world.zones.atlantis.soft_deploy import build_zone as build_atlantis
@@ -324,10 +332,6 @@ def deploy_world():
             "hidden": True,
             "explore_chance": 20,
         },
-    ]
-
-    # ── Cloverfen S gate (SKILLED) ─────────────────────────────────────
-    cloverfen["s_gate"].destinations = [
         {
             "key": "bayou",
             "label": "The Bayou",
@@ -337,7 +341,7 @@ def deploy_world():
                 "reeds and willows. The air thickens with humidity and "
                 "the drone of insects heralds the swamp ahead."
             ),
-            "conditions": {"food_cost": 2},
+            "conditions": {"food_cost": 4},
             "required_cartography_tier": _SKILLED,
             "hidden": True,
             "explore_chance": 20,
@@ -374,10 +378,6 @@ def deploy_world():
             "hidden": True,
             "explore_chance": 20,
         },
-    ]
-
-    # ── Saltspray Bay S gate (SKILLED) ─────────────────────────────────
-    saltspray["s_gate"].destinations = [
         {
             "key": "bayou",
             "label": "The Bayou",
@@ -466,19 +466,19 @@ def deploy_world():
         {
             "key": "cloverfen",
             "label": "Cloverfen",
-            "destination": cloverfen["s_gate"],
+            "destination": cloverfen["e_gate"],
             "travel_description": (
                 "You leave the swamp behind as the ground firms and "
                 "the air clears. Neat halfling hedgerows appear ahead."
             ),
-            "conditions": {"food_cost": 2},
+            "conditions": {"food_cost": 4},
             "required_cartography_tier": _SKILLED,
             "hidden": True, "explore_chance": 20,
         },
         {
             "key": "saltspray_bay",
             "label": "Saltspray Bay",
-            "destination": saltspray["s_gate"],
+            "destination": saltspray["w_gate"],
             "travel_description": (
                 "The coastal path leads north out of the swamp. Salt "
                 "air and the cry of gulls signal Saltspray Bay."
@@ -613,9 +613,18 @@ def deploy_world():
             "required_cartography_tier": _EXPERT,
             "hidden": True, "explore_chance": 20,
         },
+        {
+            "key": "solendra",
+            "label": "Solendra",
+            "destination": solendra["dock"],
+            "travel_description": "You sail south beyond all known charts into uncharted waters. After days at sea, a coastline of white stone and coral appears.",
+            "conditions": {"food_cost": 15, "boat_level": 5},
+            "required_cartography_tier": _GRANDMASTER,
+            "hidden": True, "explore_chance": 20,
+        },
     ]
 
-    # ── Aethenveil NE gate (MASTER) — temp endpoint ────────────────────
+    # ── Aethenveil NE gate (MASTER) ──────────────────────────────────
     aethenveil["ne_gate"].destinations = [
         {
             "key": "bayou",
@@ -639,6 +648,176 @@ def deploy_world():
             ),
             "conditions": {"food_cost": 3},
             "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Aethenveil W gate (MASTER) ────────────────────────────────────
+    aethenveil["w_gate"].destinations = [
+        {
+            "key": "shadowsward",
+            "label": "The Shadowsward",
+            "destination": shadowsward["s_gate"],
+            "travel_description": (
+                "You leave the silver forest behind and cross open "
+                "country northward. The land flattens into wind-scoured "
+                "grassland, and the watchtowers of the Shadowsward "
+                "appear on the horizon."
+            ),
+            "conditions": {"food_cost": 7},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "scalded_waste",
+            "label": "Scalded Waste",
+            "destination": scalded_waste["n_gate"],
+            "travel_description": (
+                "The trail leads northwest through thinning forest into "
+                "increasingly arid terrain. The ground cracks and pales "
+                "as the heat builds, and soon the blistered expanse of "
+                "the Scalded Waste stretches before you."
+            ),
+            "conditions": {"food_cost": 7},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Shadowsward S gate (EXPERT / MASTER) ──────────────────────────
+    shadowsward["s_gate"].destinations = [
+        {
+            "key": "shadowroot",
+            "label": "Shadowroot",
+            "destination": shadowroot["e_gate"],
+            "travel_description": (
+                "You leave the frontier behind and head west into "
+                "darkening forest. The trees grow twisted and blackened, "
+                "their canopy blotting out the sky."
+            ),
+            "conditions": {"food_cost": 5},
+            "required_cartography_tier": _EXPERT,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "aethenveil",
+            "label": "Aethenveil",
+            "destination": aethenveil["w_gate"],
+            "travel_description": (
+                "You strike south across the frontier into ancient "
+                "forest. The trees shift from twisted scrub to tall "
+                "silver-barked sentinels, and the air takes on an "
+                "ageless stillness."
+            ),
+            "conditions": {"food_cost": 7},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Shadowroot E gate (EXPERT / MASTER) ───────────────────────────
+    shadowroot["e_gate"].destinations = [
+        {
+            "key": "shadowsward",
+            "label": "The Shadowsward",
+            "destination": shadowsward["s_gate"],
+            "travel_description": (
+                "You emerge from the blighted forest into open grassland. "
+                "The watchtowers of the Shadowsward frontier stand ahead."
+            ),
+            "conditions": {"food_cost": 5},
+            "required_cartography_tier": _EXPERT,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "scalded_waste",
+            "label": "Scalded Waste",
+            "destination": scalded_waste["n_gate"],
+            "travel_description": (
+                "The trail leads south from the blighted forest into "
+                "increasingly barren terrain. The ground cracks and "
+                "whitens as the Scalded Waste opens before you."
+            ),
+            "conditions": {"food_cost": 5},
+            "required_cartography_tier": _EXPERT,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "aethenveil",
+            "label": "Aethenveil",
+            "destination": aethenveil["w_gate"],
+            "travel_description": (
+                "You head southeast through thinning blight into "
+                "healthier forest. The trees gradually take on silver "
+                "bark, and elven waymarkers appear along the trail."
+            ),
+            "conditions": {"food_cost": 7},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Scalded Waste N gate (EXPERT / MASTER) ────────────────────────
+    scalded_waste["n_gate"].destinations = [
+        {
+            "key": "shadowroot",
+            "label": "Shadowroot",
+            "destination": shadowroot["e_gate"],
+            "travel_description": (
+                "You head north from the blistered waste into darkening "
+                "forest. The blackened, twisted trees of the Shadowroot "
+                "close in around you."
+            ),
+            "conditions": {"food_cost": 5},
+            "required_cartography_tier": _EXPERT,
+            "hidden": True, "explore_chance": 20,
+        },
+        {
+            "key": "aethenveil",
+            "label": "Aethenveil",
+            "destination": aethenveil["w_gate"],
+            "travel_description": (
+                "You head east from the waste, the terrain gradually "
+                "greening as you enter ancient forest. Silver-barked "
+                "trees and the scent of timeless air welcome you."
+            ),
+            "conditions": {"food_cost": 7},
+            "required_cartography_tier": _MASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Scalded Waste S gate (GRANDMASTER) ────────────────────────────
+    scalded_waste["s_gate"].destinations = [
+        {
+            "key": "zharavan",
+            "label": "Zharavan",
+            "destination": zharavan["ne_gate"],
+            "travel_description": (
+                "You follow a barely visible trail south through the "
+                "shimmering waste. The mirages part to reveal a narrow "
+                "pass between sheer cliffs — and beyond it, an impossible "
+                "hidden valley."
+            ),
+            "conditions": {"food_cost": 12},
+            "required_cartography_tier": _GRANDMASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
+    # ── Zharavan NE gate (GRANDMASTER) ────────────────────────────────
+    zharavan["ne_gate"].destinations = [
+        {
+            "key": "scalded_waste",
+            "label": "Scalded Waste",
+            "destination": scalded_waste["s_gate"],
+            "travel_description": (
+                "You pass through the narrow cleft in the cliffs and "
+                "back into the blistered wasteland. The hidden valley "
+                "vanishes behind you as if it were never there."
+            ),
+            "conditions": {"food_cost": 12},
+            "required_cartography_tier": _GRANDMASTER,
             "hidden": True, "explore_chance": 20,
         },
     ]
@@ -675,6 +854,19 @@ def deploy_world():
             },
         ]
 
+    # ── Solendra dock (return to Kashoryu only) ─────────────────────────
+    solendra["dock"].destinations = [
+        {
+            "key": "kashoryu",
+            "label": "Kashoryu",
+            "destination": kashoryu["dock"],
+            "travel_description": "You sail north from Solendra across open ocean back to the tropical harbour of Kashoryu.",
+            "conditions": {"food_cost": 15, "boat_level": 5},
+            "required_cartography_tier": _GRANDMASTER,
+            "hidden": True, "explore_chance": 20,
+        },
+    ]
+
     # ── Millholm south gate (SKILLED) ──────────────────────────────────
     millholm["shadowsward_gate"].destinations = [
         {
@@ -693,7 +885,7 @@ def deploy_world():
         },
     ]
 
-    # ── Shadowsward NE gate (SKILLED) — temp endpoint ──────────────────
+    # ── Shadowsward NE gate (SKILLED) ────────────────────────────────
     shadowsward["ne_gate"].destinations = [
         {
             "key": "millholm",
@@ -728,13 +920,8 @@ def deploy_world():
     print("  All cross-zone destinations wired.")
 
     # ── Future cross-zone connections (uncomment as zones are built) ──
-    # Shadowsward → Shadowroot (EXPERT)
-    # Shadowsward → Scalded Waste (EXPERT)
-    # Scalded Waste → Aethenveil (MASTER)
-    # Scalded Waste → Zharavan (MASTER, hidden)
     # Guildmere Island → Atlantis (MASTER, dive)
     # Guildmere Island dock → Vaathari (GM)
-    # Kashoryu → Solendra (GM, hidden southern dock)
 
     print("=== WORLD DEPLOY COMPLETE ===\n")
 

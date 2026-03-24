@@ -4,11 +4,11 @@ Aethenveil Zone — soft deploy script.
 Cartography tier: MASTER
 Access: Overland from Bayou / Kashoryu (NE gate)
 
-Scaffold: 2 rooms (1 gateway + 1 normal room). Temporary endpoint —
-more gateways (toward Scalded Waste, etc.) will be added when expanding.
+Scaffold: 3 rooms (2 gateways + 1 normal room).
 
 Gateway keys:
     "ne_gate"  — toward Bayou / Kashoryu (MASTER cartography)
+    "w_gate"   — toward Shadowsward / Scalded Waste (MASTER cartography)
 """
 
 from evennia import create_object
@@ -48,6 +48,18 @@ def build_zone():
         ],
     )
 
+    rooms["w_gate"] = create_object(
+        RoomGateway,
+        key="Western Passage",
+        attributes=[
+            ("desc",
+             "The silver forest grows sparse here, ancient trees thinning "
+             "to reveal a westward trail. The air loses its timeless "
+             "stillness, replaced by the dry scent of distant plains and "
+             "scorched earth. Few elven waymarkers remain this far out."),
+        ],
+    )
+
     # ── Placeholder room ──────────────────────────────────────────────
 
     rooms["silver_glade"] = create_object(
@@ -65,6 +77,7 @@ def build_zone():
     # ── Exits ─────────────────────────────────────────────────────────
 
     connect(rooms["ne_gate"], rooms["silver_glade"], "southwest")
+    connect(rooms["silver_glade"], rooms["w_gate"], "west")
 
     # ── Tags ──────────────────────────────────────────────────────────
 
@@ -73,10 +86,11 @@ def build_zone():
         room.tags.add(DISTRICT, category="district")
         room.set_terrain(TerrainType.FOREST.value)
 
-    print("  Aethenveil scaffold complete (2 rooms).\n")
+    print("  Aethenveil scaffold complete (3 rooms).\n")
 
     return {
         "ne_gate": rooms["ne_gate"],
+        "w_gate": rooms["w_gate"],
     }
 
 
