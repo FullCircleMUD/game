@@ -242,8 +242,8 @@ class TestCmdTravel(EvenniaCommandTest):
         result = self.call(CmdTravel(), "")
         self.assertIn("don't know of any destinations", result)
 
-    def test_travel_hidden_dest_with_discovery_tag(self):
-        """Discovered destination becomes visible."""
+    def test_travel_hidden_dest_with_route_map(self):
+        """Route map NFT in inventory reveals hidden destination."""
         self._set_destinations([
             {
                 "key": "secret",
