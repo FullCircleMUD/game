@@ -1,5 +1,5 @@
 """
-Tests for QuestGivingShopkeeper and BakerNPC.
+Tests for LLMShopkeeperNPC, QuestGivingShopkeeper, and BakerNPC.
 
 Covers: shop command injection, quest context selection, level gate,
 template variable injection, shopkeeper cmdset presence.
@@ -17,10 +17,91 @@ from typeclasses.actors.npcs.baker_npc import (
     QUEST_DONE_CONTEXT,
     QUEST_PITCH_CONTEXT,
 )
+from typeclasses.actors.npcs.llm_shopkeeper_npc import LLMShopkeeperNPC
 from typeclasses.actors.npcs.quest_giving_shopkeeper import (
     QuestGivingShopkeeper,
 )
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  LLMShopkeeperNPC (shop only, no quest infrastructure)
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestLLMShopkeeperNPC(EvenniaCommandTest):
+    """Test the LLMShopkeeperNPC typeclass — shop without quests."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.npc = create_object(
+            LLMShopkeeperNPC,
+            key="TestLLMShopkeeper",
+            location=self.room1,
+        )
+
+    def tearDown(self):
+        if self.npc and self.npc.pk:
+            self.npc.delete()
+        super().tearDown()
+
+    def test_has_shopkeeper_cmdset(self):
+        """ShopkeeperCmdSet should be attached on creation."""
+        cmdset_keys = [cs.key for cs in self.npc.cmdset.all()]
+        self.assertIn("ShopkeeperCmdSet", cmdset_keys)
+
+    def test_has_shop_name_attribute(self):
+        """shop_name should be accessible as a property (not just db)."""
+        self.assertEqual(self.npc.shop_name, "Shop")
+        self.npc.shop_name = "Test Shop"
+        self.assertEqual(self.npc.shop_name, "Test Shop")
+
+    def test_has_tradeable_resources_attribute(self):
+        """tradeable_resources should be accessible as a property."""
+        self.assertEqual(self.npc.tradeable_resources, [])
+        self.npc.tradeable_resources = [6, 7]
+        self.assertEqual(self.npc.tradeable_resources, [6, 7])
+
+    def test_shop_commands_in_context(self):
+        """Context variables should include shop_commands."""
+        context = self.npc._get_context_variables()
+        self.assertIn("shop_commands", context)
+        self.assertIn("SHOP COMMANDS", context["shop_commands"])
+
+    def test_no_quest_context_in_variables(self):
+        """LLMShopkeeperNPC should NOT have quest_context in variables."""
+        context = self.npc._get_context_variables()
+        self.assertNotIn("quest_context", context)
+
+    def test_no_quest_giver_mixin(self):
+        """LLMShopkeeperNPC should not have QuestGiverMixin methods."""
+        self.assertFalse(hasattr(self.npc, "quest_key"))
+
+    def test_vector_memory_disabled_by_default(self):
+        """Should default to no vector memory."""
+        self.assertFalse(self.npc.llm_use_vector_memory)
+
+    def test_shop_commands_lists_tradeable(self):
+        """shop_commands should list what the shop trades."""
+        self.npc.tradeable_resources = [6, 7]  # Wood, Timber
+        text = self.npc._build_shop_commands()
+        self.assertIn("Wood", text)
+        self.assertIn("Timber", text)
+
+    def test_shop_commands_empty_stock(self):
+        """shop_commands with no tradeable resources says nothing to trade."""
+        self.npc.tradeable_resources = []
+        text = self.npc._build_shop_commands()
+        self.assertIn("nothing to trade", text)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  QuestGivingShopkeeper (shop + quest)
+# ══════════════════════════════════════════════════════════════════════════
 
 class TestQuestGivingShopkeeper(EvenniaCommandTest):
     """Test the generic QuestGivingShopkeeper typeclass."""
