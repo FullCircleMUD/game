@@ -85,10 +85,10 @@ class CmdDrop(NumberedTargetCommand):
     #  Token ID lookup
     # ============================================================== #
 
-    def _drop_by_token_id(self, caller, token_id):
-        """Drop an NFT by token ID from inventory."""
+    def _drop_by_token_id(self, caller, item_id):
+        """Drop an NFT by item ID from inventory."""
         for obj in caller.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 if caller.is_worn(obj):
                     self.msg(f"You must remove {obj.key} first.")
                     return
@@ -103,7 +103,7 @@ class CmdDrop(NumberedTargetCommand):
                 else:
                     self.msg("That can't be dropped.")
                 return
-        self.msg(f"You aren't carrying an item with token ID #{token_id}.")
+        self.msg(f"You aren't carrying an item with ID #{item_id}.")
 
     # ============================================================== #
     #  Fungible drop

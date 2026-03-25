@@ -178,20 +178,20 @@ class CmdLoot(Command):
             exclude=[caller], from_obj=caller,
         )
 
-    def _loot_by_token_id(self, caller, corpse, token_id):
-        """Take an NFT item from a corpse by token ID."""
+    def _loot_by_token_id(self, caller, corpse, item_id):
+        """Take an NFT item from a corpse by item ID."""
         if not corpse.can_loot(caller):
             caller.msg("You cannot loot this corpse yet.")
             return
 
         item = None
         for obj in corpse.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 item = obj
                 break
 
         if not item:
-            caller.msg(f"No item with token ID #{token_id} on the corpse.")
+            caller.msg(f"No item with ID #{item_id} on the corpse.")
             return
 
         ok, msg = check_can_carry(caller, get_item_weight(item))

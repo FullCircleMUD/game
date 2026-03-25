@@ -162,21 +162,21 @@ class TestCmdJunkNFT(EvenniaCommandTest):
         self.sword.save(update_fields=["db_location"])
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
-    def test_junk_nft_by_token_id(self, mock_craft):
-        """junk #42 should call item.delete() → at_object_delete → NFTService.craft_input."""
-        self.call(CmdJunk(), f"#{TOKEN_ID}", inputs=["y"])
+    def test_junk_nft_by_item_id(self, mock_craft):
+        """junk #<id> should call item.delete() → at_object_delete → NFTService.craft_input."""
+        self.call(CmdJunk(), f"#{self.sword.id}", inputs=["y"])
         mock_craft.assert_called_once()
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
     def test_junk_nft_by_bare_number(self, mock_craft):
-        """junk 42 should also work (bare number = token ID)."""
-        self.call(CmdJunk(), str(TOKEN_ID), inputs=["y"])
+        """junk <id> should also work (bare number = item ID)."""
+        self.call(CmdJunk(), str(self.sword.id), inputs=["y"])
         mock_craft.assert_called_once()
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
     def test_junk_nft_removes_from_inventory(self, mock_craft):
         """After junking, item should be gone from inventory."""
-        self.call(CmdJunk(), f"#{TOKEN_ID}", inputs=["y"])
+        self.call(CmdJunk(), f"#{self.sword.id}", inputs=["y"])
         from typeclasses.items.base_nft_item import BaseNFTItem
         nft_contents = [
             obj for obj in self.char1.contents
@@ -187,7 +187,7 @@ class TestCmdJunkNFT(EvenniaCommandTest):
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
     def test_junk_nft_confirm_no_cancels(self, mock_craft):
         """Answering 'n' should cancel and leave item in inventory."""
-        self.call(CmdJunk(), f"#{TOKEN_ID}", inputs=["n"])
+        self.call(CmdJunk(), f"#{self.sword.id}", inputs=["n"])
         mock_craft.assert_not_called()
         self.assertIn(self.sword, self.char1.contents)
 

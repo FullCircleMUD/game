@@ -69,18 +69,18 @@ class CmdJunk(Command):
                 caller, parsed[1], parsed[2], parsed[3]
             )
 
-    def _junk_nft(self, caller, token_id):
-        """Junk an NFT item from inventory by token ID."""
+    def _junk_nft(self, caller, item_id):
+        """Junk an NFT item from inventory by item ID."""
         from typeclasses.items.base_nft_item import BaseNFTItem
 
         nft_item = None
         for obj in caller.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 nft_item = obj
                 break
 
         if nft_item is None:
-            caller.msg(f"You aren't carrying an item with ID #{token_id}.")
+            caller.msg(f"You aren't carrying an item with ID #{item_id}.")
             return
 
         if caller.is_worn(nft_item):

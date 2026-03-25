@@ -84,16 +84,16 @@ class CmdWithdraw(Command):
         else:  # type == "all"
             caller.msg("Withdraw what? Try: withdraw all gold, withdraw all wheat")
 
-    def _withdraw_nft(self, caller, bank, token_id):
-        """Withdraw an NFT from the bank by token ID."""
+    def _withdraw_nft(self, caller, bank, item_id):
+        """Withdraw an NFT from the bank by item ID."""
         nft_item = None
         for obj in bank.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 nft_item = obj
                 break
 
         if nft_item is None:
-            caller.msg(f"No item with ID #{token_id} in your bank.")
+            caller.msg(f"No item with ID #{item_id} in your bank.")
             return
 
         if isinstance(nft_item, WorldAnchoredNFTItem):

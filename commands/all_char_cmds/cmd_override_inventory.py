@@ -65,13 +65,13 @@ class CmdInventory(Command):
                 count = len(group)
                 label = f"  {name} ({count})" if count > 1 else f"  {name}"
                 if show_ids:
-                    token_ids = [
-                        obj.token_id for obj in group
+                    item_ids = [
+                        obj.id for obj in group
                         if getattr(obj, "token_id", None) is not None
                     ]
-                    if token_ids:
-                        ids_str = ", ".join(f"#{tid}" for tid in token_ids)
-                        label = f"{label}  |w[NFT {ids_str}]|n"
+                    if item_ids:
+                        ids_str = ", ".join(f"#{iid}" for iid in item_ids)
+                        label = f"{label}  |w[{ids_str}]|n"
                 item_lines.append(label)
 
             # Render individual items (with durability)
@@ -85,7 +85,7 @@ class CmdInventory(Command):
                 if condition:
                     label = f"{label}  ({condition})"
                 if show_ids and getattr(obj, "token_id", None) is not None:
-                    label = f"{label}  |w[NFT #{obj.token_id}]|n"
+                    label = f"{label}  |w[#{obj.id}]|n"
                 item_lines.append(label)
 
         # --- Resources (inline with items) ---

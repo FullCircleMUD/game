@@ -120,11 +120,11 @@ class CmdGive(NumberedTargetCommand):
     #  Token ID lookup
     # ============================================================== #
 
-    def _give_by_token_id(self, caller, target, token_id):
-        """Give an NFT by token ID to target."""
+    def _give_by_token_id(self, caller, target, item_id):
+        """Give an NFT by item ID to target."""
         target_name = target.get_display_name(caller)
         for obj in caller.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 if caller.is_worn(obj):
                     self.msg(f"You must remove {obj.key} first.")
                     return
@@ -144,7 +144,7 @@ class CmdGive(NumberedTargetCommand):
                 else:
                     caller.msg(f"You could not give that to {target_name}.")
                 return
-        self.msg(f"You aren't carrying an item with token ID #{token_id}.")
+        self.msg(f"You aren't carrying an item with ID #{item_id}.")
 
     # ============================================================== #
     #  Fungible give

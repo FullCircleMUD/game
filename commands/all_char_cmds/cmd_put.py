@@ -175,13 +175,13 @@ class CmdPut(Command):
     #  NFT by token ID
     # ============================================================== #
 
-    def _put_by_token_id(self, caller, container, token_id):
-        """Put an NFT by token ID into container."""
+    def _put_by_token_id(self, caller, container, item_id):
+        """Put an NFT by item ID into container."""
         for obj in caller.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 self._do_put_nft(caller, container, obj)
                 return
-        caller.msg(f"You aren't carrying an item with token ID #{token_id}.")
+        caller.msg(f"You aren't carrying an item with ID #{item_id}.")
 
     # ============================================================== #
     #  NFT by name

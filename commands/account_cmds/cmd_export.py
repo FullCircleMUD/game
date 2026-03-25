@@ -298,18 +298,18 @@ def _on_resource_sent(account, bank, amount, resource_id, resource_info,
 #  NFT
 # ================================================================== #
 
-def _export_nft(account, bank, wallet, token_id):
+def _export_nft(account, bank, wallet, item_id):
     """Start NFT export — prompt for confirmation."""
     from typeclasses.items.base_nft_item import BaseNFTItem
 
     nft_item = None
     for obj in bank.contents:
-        if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+        if isinstance(obj, BaseNFTItem) and obj.id == item_id:
             nft_item = obj
             break
 
     if nft_item is None:
-        account.msg(f"No item with ID #{token_id} in your bank.")
+        account.msg(f"No item with ID #{item_id} in your bank.")
         return
 
     nftoken_id = str(nft_item.token_id)
@@ -317,7 +317,7 @@ def _export_nft(account, bank, wallet, token_id):
     get_input(
         account,
         f"\n|c--- Export NFT ---|n"
-        f"\nSend |w{nft_item.key}|n (#{token_id}) to |w{wallet}|n?"
+        f"\nSend |w{nft_item.key}|n (#{item_id}) to |w{wallet}|n?"
         f"\nThis requires signing one transaction in Xaman."
         f"\n\n[Y]/N? ",
         lambda caller, prompt, result: _on_nft_confirmed(

@@ -156,11 +156,11 @@ class CmdGet(NumberedTargetCommand):
     #  Token ID lookup
     # ============================================================== #
 
-    def _get_by_token_id(self, caller, token_id):
-        """Pick up an NFT by token ID from the room."""
+    def _get_by_token_id(self, caller, item_id):
+        """Pick up an NFT by item ID from the room."""
         room = caller.location
         for obj in room.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 if not obj.access(caller, "get"):
                     self.msg(obj.db.get_err_msg or "You can't get that.")
                     return
@@ -179,7 +179,7 @@ class CmdGet(NumberedTargetCommand):
                 else:
                     self.msg("That can't be picked up.")
                 return
-        self.msg(f"No item with token ID #{token_id} here.")
+        self.msg(f"No item with ID #{item_id} here.")
 
     # ============================================================== #
     #  Fungible pickup
@@ -425,14 +425,14 @@ class CmdGet(NumberedTargetCommand):
     #  NFT by token ID from container
     # ============================================================== #
 
-    def _get_by_token_id_from_container(self, caller, container, token_id):
-        """Take an NFT by token ID from a container."""
+    def _get_by_token_id_from_container(self, caller, container, item_id):
+        """Take an NFT by item ID from a container."""
         for obj in container.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 self._do_get_from_container(caller, container, obj)
                 return
         caller.msg(
-            f"{container.key} doesn't contain an item with token ID #{token_id}."
+            f"{container.key} doesn't contain an item with ID #{item_id}."
         )
 
     # ============================================================== #

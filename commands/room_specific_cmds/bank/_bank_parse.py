@@ -1,14 +1,14 @@
 """
 Strict parse helper for irreversible/costly commands (junk, import, export).
 
-These commands require exact name or token ID — NO fuzzy matching.
+These commands require exact name or item ID — NO fuzzy matching.
 This prevents accidental destruction or gas-costing operations on the
 wrong item. For reversible commands (get, drop, give, deposit, withdraw,
 wear, wield, hold, remove), use utils.item_parse.parse_item_args() instead.
 
 Syntax:
     <fungible> [amount|all]    — gold/resource with optional amount (default 1)
-    <token_id>                 — NFT by token ID (number)
+    #<id>                      — NFT by Evennia object ID (number)
 """
 
 from blockchain.xrpl.currency_cache import get_all_resource_types
@@ -22,7 +22,7 @@ def parse_bank_args(args):
         args: raw argument string from the command
 
     Returns:
-        ("nft", token_id, None, None)           — NFT by token ID
+        ("nft", item_id, None, None)             — NFT by Evennia object ID
         ("gold", amount, None, None)             — gold (amount=1 default)
         ("resource", amount, resource_id, info)  — resource (amount=1 default)
         None                                     — no match
@@ -36,14 +36,14 @@ def parse_bank_args(args):
     words = args.split()
     first = words[0].lower()
 
-    # --- #<digits> → NFT token ID ---
+    # --- #<digits> → NFT by Evennia object ID ---
     if first.startswith("#") and first[1:].isdigit():
         return ("nft", int(first[1:]), None, None)
 
-    # --- Number first → NFT token ID ---
+    # --- Number first → NFT by Evennia object ID ---
     try:
-        token_id = int(first)
-        return ("nft", token_id, None, None)
+        item_id = int(first)
+        return ("nft", item_id, None, None)
     except ValueError:
         pass
 

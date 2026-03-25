@@ -216,26 +216,27 @@ class TestInventoryIdMode(EvenniaCommandTest):
         self.char1.db.gold = 0
         self.char1.db.resources = {}
 
-    def test_id_shows_nft_token_ids(self):
-        """'inventory id' should show [NFT #X] for each item."""
-        _make_item("Copper Necklace", location=self.char1, token_id=76)
+    def test_id_shows_nft_item_ids(self):
+        """'inventory id' should show [#<id>] for each item."""
+        item = _make_item("Copper Necklace", location=self.char1, token_id=76)
         result = self.call(CmdInventory(), "id")
-        self.assertIn("[NFT #76]", result)
+        self.assertIn(f"[#{item.id}]", result)
 
-    def test_id_shows_stacked_token_ids(self):
-        """Stacked items should show all token IDs on one line."""
-        _make_item("Copper Earring", location=self.char1, token_id=23)
-        _make_item("Copper Earring", location=self.char1, token_id=76)
+    def test_id_shows_stacked_item_ids(self):
+        """Stacked items should show all item IDs on one line."""
+        item1 = _make_item("Copper Earring", location=self.char1, token_id=23)
+        item2 = _make_item("Copper Earring", location=self.char1, token_id=76)
         result = self.call(CmdInventory(), "id")
-        self.assertIn("[NFT #23, #76]", result)
+        self.assertIn(f"#{item1.id}", result)
+        self.assertIn(f"#{item2.id}", result)
 
-    def test_id_shows_individual_token_ids(self):
-        """Items with durability should show token IDs individually."""
-        _make_wearable("Iron Helmet", location=self.char1, token_id=10, durability=100, max_durability=100)
-        _make_wearable("Iron Helmet", location=self.char1, token_id=11, durability=50, max_durability=100)
+    def test_id_shows_individual_item_ids(self):
+        """Items with durability should show item IDs individually."""
+        item1 = _make_wearable("Iron Helmet", location=self.char1, token_id=10, durability=100, max_durability=100)
+        item2 = _make_wearable("Iron Helmet", location=self.char1, token_id=11, durability=50, max_durability=100)
         result = self.call(CmdInventory(), "id")
-        self.assertIn("[NFT #10]", result)
-        self.assertIn("[NFT #11]", result)
+        self.assertIn(f"[#{item1.id}]", result)
+        self.assertIn(f"[#{item2.id}]", result)
 
     def test_id_shows_resource_ids(self):
         """'inventory id' should show [Resource #X] for resources."""

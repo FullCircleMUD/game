@@ -80,10 +80,10 @@ class CmdWield(Command):
                 exclude=[caller],
             )
 
-    def _find_by_token_id(self, caller, token_id):
-        """Find an NFT in caller's inventory by token ID."""
+    def _find_by_token_id(self, caller, item_id):
+        """Find an NFT in caller's inventory by item ID."""
         for obj in caller.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 return obj
-        caller.msg(f"You aren't carrying an item with token ID #{token_id}.")
+        caller.msg(f"You aren't carrying an item with ID #{item_id}.")
         return None

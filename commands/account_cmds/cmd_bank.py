@@ -77,7 +77,7 @@ class CmdBank(Command):
             lines.append("")
             lines.append("|wItems:|n")
             for obj in nft_items:
-                token_label = f" |w[#{obj.token_id}]|n" if obj.token_id else ""
+                token_label = f" |w[#{obj.id}]|n" if obj.token_id else ""
                 condition = (
                     obj.get_condition_label()
                     if hasattr(obj, "get_condition_label")

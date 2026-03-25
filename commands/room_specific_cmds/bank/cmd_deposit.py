@@ -80,16 +80,16 @@ class CmdDeposit(Command):
         else:  # type == "all"
             caller.msg("Deposit what? Try: deposit all gold, deposit all wheat")
 
-    def _deposit_nft(self, caller, bank, token_id):
-        """Deposit an NFT from inventory into the bank by token ID."""
+    def _deposit_nft(self, caller, bank, item_id):
+        """Deposit an NFT from inventory into the bank by item ID."""
         nft_item = None
         for obj in caller.contents:
-            if isinstance(obj, BaseNFTItem) and obj.token_id == token_id:
+            if isinstance(obj, BaseNFTItem) and obj.id == item_id:
                 nft_item = obj
                 break
 
         if nft_item is None:
-            caller.msg(f"You aren't carrying an item with ID #{token_id}.")
+            caller.msg(f"You aren't carrying an item with ID #{item_id}.")
             return
 
         if caller.is_worn(nft_item):
