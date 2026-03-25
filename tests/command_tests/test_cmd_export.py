@@ -6,9 +6,11 @@ fungible and NFT exports.
 Export is an account-level (OOC) command operating on the account bank.
 XRPL transaction functions and Xaman API calls are mocked.
 
-NOTE: EvenniaCommandTest.call() uses startswith matching for message
-assertions. Multi-msg commands concat with |, so assertions must match
-the FIRST msg sent after the last yield/input.
+The export command uses deferToThread for async XRPL calls.  In tests we
+patch deferToThread to execute synchronously so callbacks fire within the
+same call() invocation and self.call() can capture all output.
+
+evennia test --settings settings tests.command_tests.test_cmd_export
 """
 
 from unittest.mock import patch, MagicMock
@@ -16,10 +18,23 @@ from unittest.mock import patch, MagicMock
 from django.conf import settings
 from django.test import override_settings
 
+from twisted.internet import defer
+
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
 
 from commands.account_cmds.cmd_export import CmdExport
+
+
+def _sync_defer(func, *args, **kwargs):
+    """Run *func* synchronously and return an already-fired Deferred."""
+    d = defer.Deferred()
+    try:
+        result = func(*args, **kwargs)
+        d.callback(result)
+    except Exception as e:
+        d.errback(e)
+    return d
 
 
 VAULT = settings.XRPL_VAULT_ADDRESS
@@ -100,6 +115,7 @@ class TestExportGuards(ExportTestBase):
 #  Gold export tests
 # ================================================================== #
 
+@patch("commands.account_cmds.cmd_export.threads.deferToThread", _sync_defer)
 class TestExportGold(ExportTestBase):
     """Test gold export flow."""
 
@@ -122,12 +138,12 @@ class TestExportGold(ExportTestBase):
                                             mock_trust):
         """Successful gold export should call send_payment."""
         self.bank.db.gold = 100
-        self.call(
+        result = self.call(
             CmdExport(), "gold 50",
-            "Sending gold",
             caller=self.account,
             inputs=["y"],
         )
+        self.assertIn("Sending gold", result)
         mock_send.assert_called_once_with(
             WALLET_A, settings.XRPL_GOLD_CURRENCY_CODE, 50,
         )
@@ -159,12 +175,12 @@ class TestExportGold(ExportTestBase):
                                             mock_trust):
         """Answering 'n' to confirmation should cancel export."""
         self.bank.db.gold = 100
-        self.call(
+        result = self.call(
             CmdExport(), "gold 50",
-            "Export cancelled.",
             caller=self.account,
             inputs=["n"],
         )
+        self.assertIn("Export cancelled.", result)
         mock_send.assert_not_called()
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
@@ -175,12 +191,12 @@ class TestExportGold(ExportTestBase):
     def test_gold_export_all(self, mock_withdraw, mock_send, mock_trust):
         """export gold all should export all gold in the bank."""
         self.bank.db.gold = 200
-        self.call(
+        result = self.call(
             CmdExport(), "gold all",
-            "Sending gold",
             caller=self.account,
             inputs=["y"],
         )
+        self.assertIn("Sending gold", result)
         mock_send.assert_called_once_with(
             WALLET_A, settings.XRPL_GOLD_CURRENCY_CODE, 200,
         )
@@ -194,11 +210,11 @@ class TestExportGold(ExportTestBase):
                                               mock_trust_check):
         """Missing trust line should prompt Xaman TrustSet."""
         self.bank.db.gold = 100
-        self.call(
+        result = self.call(
             CmdExport(), "gold 50",
-            "Trust Line Required",
             caller=self.account,
         )
+        self.assertIn("Trust Line Required", result)
         mock_trustline.assert_called_once()
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
@@ -210,12 +226,12 @@ class TestExportGold(ExportTestBase):
                                                    mock_trust):
         """Transaction failure should not call withdraw."""
         self.bank.db.gold = 100
-        self.call(
+        result = self.call(
             CmdExport(), "gold 50",
-            "Sending gold",
             caller=self.account,
             inputs=["y"],
         )
+        self.assertIn("Sending gold", result)
         # Gold should still be in bank (withdraw never called)
         self.assertEqual(self.bank.db.gold, 100)
 
@@ -224,6 +240,7 @@ class TestExportGold(ExportTestBase):
 #  Resource export tests
 # ================================================================== #
 
+@patch("commands.account_cmds.cmd_export.threads.deferToThread", _sync_defer)
 class TestExportResource(ExportTestBase):
     """Test resource export flow."""
 
@@ -246,12 +263,12 @@ class TestExportResource(ExportTestBase):
                                             mock_trust):
         """Successful resource export should call send_payment and withdraw."""
         self.bank.db.resources = {1: 20}
-        self.call(
+        result = self.call(
             CmdExport(), "wheat 5",
-            "Sending",
             caller=self.account,
             inputs=["y"],
         )
+        self.assertIn("Sending", result)
         mock_send.assert_called_once()
         mock_withdraw.assert_called_once()
 
@@ -260,6 +277,7 @@ class TestExportResource(ExportTestBase):
 #  NFT export tests
 # ================================================================== #
 
+@patch("commands.account_cmds.cmd_export.threads.deferToThread", _sync_defer)
 class TestExportNFT(ExportTestBase):
     """Test NFT export flow."""
 
@@ -293,12 +311,12 @@ class TestExportNFT(ExportTestBase):
            return_value={"uuid": "U2", "deeplink": "https://x", "qr_url": ""})
     def test_nft_export_creates_sell_offer(self, mock_accept, mock_sell):
         """NFT export should create a sell offer from the vault."""
-        self.call(
+        result = self.call(
             CmdExport(), f"#{TOKEN_ID}",
-            "Creating NFT sell offer",
             caller=self.account,
             inputs=["y"],
         )
+        self.assertIn("Creating NFT sell offer", result)
         mock_sell.assert_called_once_with(str(TOKEN_ID), WALLET_A)
         mock_accept.assert_called_once_with("OFFER_ID_1")
 
@@ -309,12 +327,12 @@ class TestExportNFT(ExportTestBase):
            return_value={"uuid": "U2", "deeplink": "https://x", "qr_url": ""})
     def test_nft_export_confirm_no_cancels(self, mock_accept, mock_sell):
         """Answering 'n' to confirmation should cancel NFT export."""
-        self.call(
+        result = self.call(
             CmdExport(), f"#{TOKEN_ID}",
-            "Export cancelled.",
             caller=self.account,
             inputs=["n"],
         )
+        self.assertIn("Export cancelled.", result)
         mock_sell.assert_not_called()
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
@@ -322,10 +340,10 @@ class TestExportNFT(ExportTestBase):
            side_effect=Exception("XRPL error"))
     def test_nft_sell_offer_failure_preserves_item(self, mock_sell):
         """Sell offer failure should preserve the item in bank."""
-        self.call(
+        result = self.call(
             CmdExport(), f"#{TOKEN_ID}",
-            "Creating NFT sell offer",
             caller=self.account,
             inputs=["y"],
         )
+        self.assertIn("Creating NFT sell offer", result)
         self.assertIn(self.sword, self.bank.contents)
