@@ -126,6 +126,7 @@ DEEP_WOODS_PASSAGE = DungeonTemplate(
     allow_combat=True,
     allow_pvp=False,
     allow_death=False,
+    terrain_type="forest",
 )
 
 register_dungeon(DEEP_WOODS_PASSAGE)

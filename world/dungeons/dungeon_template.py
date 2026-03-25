@@ -14,11 +14,8 @@ Three instance modes:
     "group"  — leader + followers share one instance.
     "shared" — one instance at a time per entrance, anyone can join.
 
-Entry trigger is NOT defined here — it is determined by what the builder
-places in the world:
-    DungeonEntranceRoom → command-triggered ("enter dungeon")
-    DungeonTriggerExit  → movement-triggered (walk through exit)
-The same template can be used with either trigger mechanism.
+Entry is via DungeonTriggerExit — a world exit that creates/joins a
+dungeon instance when traversed. Players enter by walking, not by command.
 """
 
 from dataclasses import dataclass
@@ -82,3 +79,11 @@ class DungeonTemplate:
     empty_collapse_delay: int = 0
     """Seconds to keep a shared instance alive after all players leave.
     0 = collapse on next tick (default). Useful for shared mode."""
+
+    terrain_type: str = "dungeon"
+    """Terrain type tag for generated rooms (e.g. 'dungeon', 'forest',
+    'underground'). Applied via room.set_terrain() during room creation.
+    Controls lighting, weather exposure, and forage availability."""
+
+    always_lit: bool = False
+    """If True, dungeon rooms are permanently lit (no darkness checks)."""

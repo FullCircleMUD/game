@@ -38,11 +38,14 @@ def find_exit_target(caller, name):
     if target:
         if isinstance(target, list):
             target = target[0]
-        return target
+        if _is_visible(target, caller):
+            return target
 
     # Check exits (doors, gates, etc.)
     name_lower = name.lower()
     for ex in caller.location.exits:
+        if not _is_visible(ex, caller):
+            continue
         if name_lower in ex.key.lower():
             return ex
         if name_lower in [a.lower() for a in ex.aliases.all()]:
@@ -53,7 +56,7 @@ def find_exit_target(caller, name):
     if target:
         return target
 
-    caller.msg(f"You don't see '{name}' here.")
+    caller.msg(f"You don't see '{name}' here")
     return None
 
 
@@ -82,6 +85,8 @@ def _find_exit_by_direction(caller, name_lower):
 
         # Search exits with matching direction + name/alias
         for ex in caller.location.exits:
+            if not _is_visible(ex, caller):
+                continue
             ex_dir = getattr(ex, "direction", None)
             if ex_dir != direction:
                 continue
@@ -91,3 +96,15 @@ def _find_exit_by_direction(caller, name_lower):
                 return ex
 
     return None
+
+
+def _is_visible(obj, looker):
+    """
+    Check if an object is visible to the looker.
+
+    Filters hidden objects (undiscovered) and invisible objects
+    (requires DETECT_INVIS condition on the looker).
+    """
+    if hasattr(obj, "is_visible_to"):
+        return obj.is_visible_to(looker)
+    return True

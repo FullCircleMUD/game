@@ -1,7 +1,6 @@
 """
 Rats in the Cellar — the game's first combat quest.
 
-Auto-accepted when the player enters the cellar dungeon instance.
 Completes when the Rat King is killed (boss_killed event).
 Once per playthrough (repeatable=False, resets on remort).
 """

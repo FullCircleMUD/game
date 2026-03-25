@@ -73,8 +73,8 @@ class TestCellarRatStats(EvenniaCommandTest):
         from typeclasses.actors.mobs.rat_king import RatKing
 
         king = create_object(RatKing, key="test king")
-        self.assertEqual(king.hp, 15)
-        self.assertEqual(king.hp_max, 15)
+        self.assertEqual(king.hp, 10)
+        self.assertEqual(king.hp_max, 10)
         self.assertEqual(king.level, 2)
         self.assertEqual(king.size, "medium")
         self.assertEqual(king.damage_dice, "1d4")
@@ -200,7 +200,7 @@ class TestDefeatDestinationResolution(EvenniaCommandTest):
 # ------------------------------------------------------------------ #
 
 class TestQuestDungeonTriggerExit(EvenniaCommandTest):
-    """Test QuestDungeonTriggerExit routing behavior."""
+    """Test DungeonTriggerExit quest gating routing behavior."""
 
     character_typeclass = "typeclasses.actors.character.FCMCharacter"
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
@@ -242,8 +242,8 @@ class TestQuestDungeonTriggerExit(EvenniaCommandTest):
 
     def test_completed_quest_routes_to_fallback(self):
         """When quest is completed, exit should route to fallback room."""
-        from typeclasses.terrain.exits.quest_dungeon_trigger_exit import (
-            QuestDungeonTriggerExit,
+        from typeclasses.terrain.exits.dungeon_trigger_exit import (
+            DungeonTriggerExit,
         )
         from world.quests.rat_cellar import RatCellarQuest
 
@@ -253,7 +253,7 @@ class TestQuestDungeonTriggerExit(EvenniaCommandTest):
 
         # Create the exit
         trigger = create_object(
-            QuestDungeonTriggerExit,
+            DungeonTriggerExit,
             key="south",
             location=self.room1,
             destination=self.room1,
@@ -270,12 +270,12 @@ class TestQuestDungeonTriggerExit(EvenniaCommandTest):
 
     def test_no_quest_routes_to_fallback(self):
         """When quest not accepted, exit should route to fallback room."""
-        from typeclasses.terrain.exits.quest_dungeon_trigger_exit import (
-            QuestDungeonTriggerExit,
+        from typeclasses.terrain.exits.dungeon_trigger_exit import (
+            DungeonTriggerExit,
         )
 
         trigger = create_object(
-            QuestDungeonTriggerExit,
+            DungeonTriggerExit,
             key="south",
             location=self.room1,
             destination=self.room1,
@@ -294,8 +294,8 @@ class TestQuestDungeonTriggerExit(EvenniaCommandTest):
 
     def test_active_quest_enters_dungeon(self):
         """When quest is active, exit should create dungeon instance."""
-        from typeclasses.terrain.exits.quest_dungeon_trigger_exit import (
-            QuestDungeonTriggerExit,
+        from typeclasses.terrain.exits.dungeon_trigger_exit import (
+            DungeonTriggerExit,
         )
         from world.quests.rat_cellar import RatCellarQuest
 
@@ -303,7 +303,7 @@ class TestQuestDungeonTriggerExit(EvenniaCommandTest):
         self.char1.quests.add(RatCellarQuest)
 
         trigger = create_object(
-            QuestDungeonTriggerExit,
+            DungeonTriggerExit,
             key="south",
             location=self.room1,
             destination=self.room1,
@@ -317,7 +317,7 @@ class TestQuestDungeonTriggerExit(EvenniaCommandTest):
         # Character should be in a dungeon room (not room1 or fallback)
         self.assertNotEqual(self.char1.location, self.room1)
         self.assertNotEqual(self.char1.location, self.fallback_room)
-        self.assertEqual(self.char1.location.key, "Rat-Infested Cellar")
+        self.assertEqual(self.char1.location.key, "Dank Cellar")
 
 
 # ------------------------------------------------------------------ #

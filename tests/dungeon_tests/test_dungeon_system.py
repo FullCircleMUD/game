@@ -17,8 +17,8 @@ from evennia.utils import create
 from evennia.utils.search import search_tag
 from evennia.utils.test_resources import EvenniaCommandTest
 
-from commands.room_specific_cmds.dungeon.cmd_enter_dungeon import CmdEnterDungeon
 from commands.room_specific_cmds.dungeon.cmd_dungeon_exit import CmdExitDungeon
+from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
 from typeclasses.scripts.dungeon_instance import (
     DungeonInstanceScript,
     DIRECTION_VECTORS,
@@ -233,7 +233,7 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
         current_room = first_room
         for _ in range(3):  # boss_depth is 2, so within 3 moves we should hit it
             exits = current_room.contents_get(content_type="exit")
-            forward = [ex for ex in exits if not ex.is_return_exit]
+            forward = [ex for ex in exits if not getattr(ex, "is_return_exit", True)]
             if not forward:
                 break
             ex = forward[0]
@@ -304,13 +304,11 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
 #  Command tests
 # ------------------------------------------------------------------ #
 
-class TestCmdEnterDungeon(EvenniaCommandTest):
-    """Test the enter dungeon command."""
+class TestDungeonEntry(EvenniaCommandTest):
+    """Test dungeon entry via DungeonTriggerExit."""
 
     character_typeclass = "typeclasses.actors.character.FCMCharacter"
-    room_typeclass = (
-        "typeclasses.terrain.rooms.dungeon.dungeon_entrance_room.DungeonEntranceRoom"
-    )
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
     databases = "__all__"
 
     def create_script(self):
@@ -320,15 +318,21 @@ class TestCmdEnterDungeon(EvenniaCommandTest):
         super().setUp()
         DUNGEON_REGISTRY.clear()
         register_dungeon(TEST_TEMPLATE)
-        self.room1.dungeon_template_id = "test_dungeon"
+        self.trigger = create_object(
+            DungeonTriggerExit,
+            key="dark cave",
+            location=self.room1,
+            destination=self.room1,
+        )
+        self.trigger.dungeon_template_id = "test_dungeon"
 
     def tearDown(self):
         _cleanup_instances()
         super().tearDown()
 
     def test_enter_creates_instance(self):
-        """enter dungeon creates an instance and moves player."""
-        self.call(CmdEnterDungeon(), "dungeon")
+        """Traversing trigger exit creates an instance and moves player."""
+        self.trigger.at_traverse(self.char1, self.room1)
         # Player should have been moved to a dungeon room
         self.assertNotEqual(self.char1.location, self.room1)
         # Player should be tagged
@@ -339,7 +343,7 @@ class TestCmdEnterDungeon(EvenniaCommandTest):
     def test_enter_group_mode(self):
         """In group mode, leader + followers enter together."""
         self.char2.following = self.char1
-        self.call(CmdEnterDungeon(), "dungeon")
+        self.trigger.at_traverse(self.char1, self.room1)
         # Both should be in the dungeon
         self.assertNotEqual(self.char1.location, self.room1)
         self.assertEqual(self.char1.location, self.char2.location)
@@ -347,8 +351,7 @@ class TestCmdEnterDungeon(EvenniaCommandTest):
     def test_follower_cannot_enter(self):
         """Followers can't enter — only the leader can."""
         self.char1.following = self.char2
-        result = self.call(CmdEnterDungeon(), "dungeon")
-        self.assertIn("group leader", result)
+        self.trigger.at_traverse(self.char1, self.room1)
         # char1 should still be in entrance
         self.assertEqual(self.char1.location, self.room1)
 
@@ -558,9 +561,7 @@ class TestSharedInstanceMode(EvenniaCommandTest):
     """Test shared instance mode where multiple players join the same instance."""
 
     character_typeclass = "typeclasses.actors.character.FCMCharacter"
-    room_typeclass = (
-        "typeclasses.terrain.rooms.dungeon.dungeon_entrance_room.DungeonEntranceRoom"
-    )
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
     databases = "__all__"
 
     def create_script(self):
@@ -570,7 +571,13 @@ class TestSharedInstanceMode(EvenniaCommandTest):
         super().setUp()
         DUNGEON_REGISTRY.clear()
         register_dungeon(TEST_SHARED_TEMPLATE)
-        self.room1.dungeon_template_id = "test_shared"
+        self.trigger = create_object(
+            DungeonTriggerExit,
+            key="shared entrance",
+            location=self.room1,
+            destination=self.room1,
+        )
+        self.trigger.dungeon_template_id = "test_shared"
 
     def tearDown(self):
         _cleanup_instances()
@@ -579,11 +586,11 @@ class TestSharedInstanceMode(EvenniaCommandTest):
     def test_second_player_joins_existing(self):
         """Second player joins existing shared instance."""
         # First player enters
-        self.call(CmdEnterDungeon(), "dungeon", caller=self.char1)
+        self.trigger.at_traverse(self.char1, self.room1)
         self.assertNotEqual(self.char1.location, self.room1)
 
         # Second player enters — should join same instance
-        self.call(CmdEnterDungeon(), "dungeon", caller=self.char2)
+        self.trigger.at_traverse(self.char2, self.room1)
         self.assertNotEqual(self.char2.location, self.room1)
 
         # Both should be tagged with the same instance key
@@ -593,7 +600,7 @@ class TestSharedInstanceMode(EvenniaCommandTest):
 
     def test_shared_instance_persists_after_empty(self):
         """Shared instance with delay persists when all players leave."""
-        self.call(CmdEnterDungeon(), "dungeon", caller=self.char1)
+        self.trigger.at_traverse(self.char1, self.room1)
 
         from evennia import ScriptDB
 
@@ -633,8 +640,6 @@ class TestDungeonTriggerExit(EvenniaCommandTest):
         register_dungeon(TEST_PASSAGE_TEMPLATE)
 
         # Create a trigger exit in room1
-        from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
-
         self.trigger = create_object(
             DungeonTriggerExit,
             key="dark cave",

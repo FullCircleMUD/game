@@ -15,7 +15,6 @@ from evennia import create_object
 
 from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from typeclasses.terrain.exits.quest_dungeon_trigger_exit import QuestDungeonTriggerExit
 from utils.exit_helpers import connect, connect_door
 from world.game_world.zone_utils import clean_zone as _clean_zone
 from world.game_world.zones.millholm.faerie_hollow import build_faerie_hollow
@@ -65,14 +64,14 @@ def build_zone():
     sewer_rooms = build_millholm_sewers()
 
     # ── Cross-district hidden doors (town ↔ sewers) ──────────────────
-    print("[4a] Connecting cellar stairwell → sewer entrance (hidden)...")
+    print("[4a] Connecting cellar → sewer entrance (hidden)...")
     door_ab, _ = connect_door(
-        town_rooms["cellar_stairwell"],
+        town_rooms["cellar"],
         sewer_rooms["sewer_entrance"],
         "west",
         key="a concealed stone door",
         closed_ab=(
-            "The west wall of the stairwell appears to be solid stone, "
+            "The west wall of the cellar appears to be solid stone, "
             "though moisture seeps through some of the mortar joints."
         ),
         open_ab=(
@@ -83,8 +82,8 @@ def build_zone():
             "A heavy stone door blocks the passage east, fitted to look "
             "like part of the sewer wall."
         ),
-        open_ba="The stone door stands open, revealing a dimly lit stairwell.",
-        door_name="door",
+        open_ba="The stone door stands open, revealing a dimly lit cellar.",
+        door_name="stone door",
     )
     door_ab.is_hidden = True
     door_ab.find_dc = 16
@@ -115,30 +114,43 @@ def build_zone():
     door_ab2.is_hidden = True
     door_ab2.find_dc = 18
 
-    # ── Rat Cellar quest trigger ─────────────────────────────────────
-    print("[4c] Setting up Rat Cellar quest entrance...")
+    # ── Cellar access + Rat Cellar quest trigger ────────────────────
+    print("[4c] Setting up Cellar and Rat Cellar quest entrance...")
     import world.dungeons.templates.rat_cellar  # noqa: F401
 
-    cellar_trigger = create_object(
-        QuestDungeonTriggerExit,
+    # Door from stairwell down to the permanent cellar
+    connect_door(
+        town_rooms["cellar_stairwell"],
+        town_rooms["cellar"],
+        "south",
         key="a small wooden door",
-        location=town_rooms["cellar_stairwell"],
-        destination=town_rooms["cellar_stairwell"],
+        closed_ab=(
+            "A small wooden door leads south into the cellar."
+        ),
+        open_ab=(
+            "Cool, damp air drifts up through the open cellar door."
+        ),
+        closed_ba=(
+            "A small wooden door leads north to the stairwell."
+        ),
+        open_ba=(
+            "The stairwell is visible through the open door."
+        ),
+        door_name="door",
     )
-    cellar_trigger.aliases.add("s")
-    cellar_trigger.aliases.add("south")
-    cellar_trigger.aliases.add("door")
+
+    # Dungeon trigger exit from the permanent cellar into the procedural
+    # rat cellar dungeon. Quest-gated — only works when rat_cellar quest
+    # is active. Without the quest, the exit is visible but blocked.
+    cellar_trigger = create_object(
+        DungeonTriggerExit,
+        key="a dark passage",
+        location=town_rooms["cellar"],
+        destination=town_rooms["cellar"],  # self-referential
+    )
+    cellar_trigger.set_direction("south")
     cellar_trigger.dungeon_template_id = "rat_cellar"
     cellar_trigger.quest_key = "rat_cellar"
-    cellar_trigger.fallback_destination_id = town_rooms["cellar"].id
-
-    cellar_return = create_object(
-        ExitVerticalAware,
-        key="the cellar stairwell",
-        location=town_rooms["cellar"],
-        destination=town_rooms["cellar_stairwell"],
-    )
-    cellar_return.set_direction("north")
 
     # ── Mine and Faerie Hollow ───────────────────────────────────────
     print("[5] Building Millholm Abandoned Mine...")
@@ -161,8 +173,7 @@ def build_zone():
         location=entry_room,
         destination=entry_room,
     )
-    trigger_in.aliases.add("n")
-    trigger_in.aliases.add("north")
+    trigger_in.set_direction("north")
     trigger_in.dungeon_template_id = "deep_woods_passage"
     trigger_in.dungeon_destination_room_id = clearing_room.id
 
@@ -173,8 +184,7 @@ def build_zone():
         location=clearing_room,
         destination=clearing_room,
     )
-    trigger_out.aliases.add("w")
-    trigger_out.aliases.add("west")
+    trigger_out.set_direction("west")
     trigger_out.dungeon_template_id = "deep_woods_passage"
     trigger_out.dungeon_destination_room_id = entry_room.id
 
@@ -185,8 +195,7 @@ def build_zone():
         location=clearing_room,
         destination=clearing_room,
     )
-    trigger_to_mine.aliases.add("e")
-    trigger_to_mine.aliases.add("east")
+    trigger_to_mine.set_direction("east")
     trigger_to_mine.dungeon_template_id = "deep_woods_passage"
     trigger_to_mine.dungeon_destination_room_id = miners_camp.id
 
@@ -197,8 +206,7 @@ def build_zone():
         location=miners_camp,
         destination=miners_camp,
     )
-    trigger_from_mine.aliases.add("w")
-    trigger_from_mine.aliases.add("west")
+    trigger_from_mine.set_direction("west")
     trigger_from_mine.dungeon_template_id = "deep_woods_passage"
     trigger_from_mine.dungeon_destination_room_id = clearing_room.id
 

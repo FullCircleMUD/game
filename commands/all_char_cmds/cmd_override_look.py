@@ -1,5 +1,6 @@
 """
-FCM look command — adds darkness check, container inspection, and brief bypass.
+FCM look command — adds darkness check, container inspection, direction
+lookup, hidden/invisible filtering, room exclusion, and brief bypass.
 
 Overrides Evennia's default ``look`` to prevent inspecting objects/NPCs
 in the room when it's too dark to see.  Looking at the room itself still
@@ -8,11 +9,23 @@ Looking at items in your own inventory is always allowed.
 
 Also adds ``look in <container>`` syntax for viewing container contents.
 
+Direction lookups (``look n``, ``look south``, etc.) are intercepted
+early and handled as directional looks — they never hit the generic
+object search, avoiding substring ambiguity.
+
 Passes ``ignore_brief=True`` so that an explicit ``look`` always shows
 the full room description, even when the player has brief mode enabled.
 """
 
 from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
+
+from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+
+# Build set of all direction strings (abbreviations + full names)
+_DIRECTION_STRINGS = set()
+for _dir, _aliases in ExitVerticalAware.DIRECTION_ALIASES.items():
+    for _alias in _aliases:
+        _DIRECTION_STRINGS.add(_alias)
 
 
 class CmdLook(_EvenniaCmdLook):
@@ -22,6 +35,7 @@ class CmdLook(_EvenniaCmdLook):
     Usage:
         look
         look <obj>
+        look <direction>
         look in <container>
 
     Observes your location or objects in your vicinity.
@@ -43,6 +57,14 @@ class CmdLook(_EvenniaCmdLook):
                     self._look_in_container(caller, container_name)
                     return
 
+        # --- "look <direction>" — intercept before generic search ---
+        if self.args and caller.location:
+            lower = self.args.strip().lower()
+            if lower in _DIRECTION_STRINGS:
+                self._look_direction(caller, lower)
+                return
+
+        # --- Darkness check ---
         if self.args and caller.location:
             room = caller.location
             if hasattr(room, "is_dark") and room.is_dark(caller):
@@ -62,6 +84,17 @@ class CmdLook(_EvenniaCmdLook):
         if self.args and caller.location:
             # Quiet search — if a real object exists, let super() handle it
             found = caller.search(self.args, quiet=True)
+            if found:
+                target = found[0] if isinstance(found, list) else found
+                # Exclude the room itself from look targets
+                if target == caller.location:
+                    found = None
+                # Block hidden/invisible objects the caller can't see
+                elif (
+                    hasattr(target, "is_visible_to")
+                    and not target.is_visible_to(caller)
+                ):
+                    found = None
             if not found:
                 room = caller.location
                 details = getattr(room, "details", None)
@@ -80,7 +113,58 @@ class CmdLook(_EvenniaCmdLook):
                 self.msg(text=(desc, {"type": "look"}), options=None)
                 return
 
+        # Final guard — prevent super() from showing hidden/invis/room objects
+        if self.args and caller.location:
+            found = caller.search(self.args, quiet=True)
+            if found:
+                target = found[0] if isinstance(found, list) else found
+                if target == caller.location:
+                    caller.msg(f"You don't see '{self.args.strip()}' here.")
+                    return
+                if (
+                    hasattr(target, "is_visible_to")
+                    and not target.is_visible_to(caller)
+                ):
+                    caller.msg(f"You don't see '{self.args.strip()}' here")
+                    return
+
         super().func()
+
+    # ── Direction lookup ──────────────────────────────────────────────
+
+    def _look_direction(self, caller, direction_str):
+        """
+        Look in a compass direction. Finds the exit with that direction
+        and shows its details. Hidden/invisible exits are not revealed.
+        """
+        from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+
+        # Resolve abbreviation to canonical direction
+        canonical = None
+        for d, aliases in ExitVerticalAware.DIRECTION_ALIASES.items():
+            if direction_str in aliases:
+                canonical = d
+                break
+        if not canonical:
+            caller.msg("You see nothing special in that direction.")
+            return
+
+        # Find exit with this direction
+        for ex in caller.location.contents_get(content_type="exit"):
+            ex_dir = getattr(ex, "direction", None)
+            if ex_dir != canonical:
+                continue
+            # Check visibility
+            if hasattr(ex, "is_visible_to") and not ex.is_visible_to(caller):
+                break  # exit exists but is hidden — don't reveal
+            # Show exit details
+            desc = caller.at_look(ex)
+            self.msg(text=(desc, {"type": "look"}), options=None)
+            return
+
+        caller.msg("You see nothing special in that direction.")
+
+    # ── Container inspection ──────────────────────────────────────────
 
     def _look_in_container(self, caller, container_name):
         """Display contents of a container."""

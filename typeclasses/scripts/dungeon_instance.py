@@ -19,7 +19,6 @@ rooms, exits, mobs, and characters via Evennia tags.
 """
 
 import random
-import uuid
 
 from django.utils import timezone
 from evennia import AttributeProperty, DefaultScript, ScriptDB, create_object
@@ -48,6 +47,7 @@ class DungeonInstanceScript(DefaultScript):
     template_id = AttributeProperty(None)
     instance_key = AttributeProperty(None)
     entrance_room_id = AttributeProperty(None)
+    entrance_direction = AttributeProperty(None)  # direction player entered from
     destination_room_id = AttributeProperty(None)  # passage endpoint
     state = AttributeProperty("active")
     boss_defeated = AttributeProperty(False)
@@ -56,7 +56,6 @@ class DungeonInstanceScript(DefaultScript):
     emptied_at = AttributeProperty(None)  # shared mode: when last player left
 
     def at_script_creation(self):
-        self.key = self.instance_key or f"dungeon_{uuid.uuid4().hex[:8]}"
         self.interval = 60  # tick every minute
         self.persistent = True
         self.start_delay = True
@@ -126,6 +125,12 @@ class DungeonInstanceScript(DefaultScript):
             if dest_matches:
                 room.defeat_destination = dest_matches[0]
 
+        # Terrain and lighting — makes dungeon rooms consistent with world rooms
+        if hasattr(room, "set_terrain"):
+            room.set_terrain(template.terrain_type)
+        if template.always_lit:
+            room.always_lit = True
+
     # ------------------------------------------------------------------ #
     #  Instance initialisation — create first room and move players in
     # ------------------------------------------------------------------ #
@@ -134,8 +139,7 @@ class DungeonInstanceScript(DefaultScript):
         """
         Create the first room and move all characters into it.
 
-        Called by CmdEnterDungeon or DungeonTriggerExit after collecting
-        the group.
+        Called by DungeonTriggerExit after collecting the group.
         """
         self.add_characters(characters)
 
@@ -155,17 +159,18 @@ class DungeonInstanceScript(DefaultScript):
         # Create initial exits from the first room
         self._create_forward_exits(first_room, (0, 0))
 
-        # Passages get a return exit from room (0,0) back to the entrance
-        if template.dungeon_type == "passage" and self.entrance_room_id:
+        # Return exit from room (0,0) back to the entrance
+        if self.entrance_room_id:
             entrance = self.entrance_room
             if entrance:
-                self._create_passage_exit(first_room, entrance)
+                # Use the opposite of the entry direction for the return
+                return_dir = OPPOSITES.get(self.entrance_direction, "out") \
+                    if self.entrance_direction else "out"
+                self._create_passage_exit(first_room, entrance, return_dir)
 
         # Move characters in
         for char in characters:
             char.move_to(first_room, quiet=True, move_type="teleport")
-            char.msg(f"|y{template.name}|n")
-            char.msg(first_room.db.desc or "You enter the dungeon.")
 
     # ------------------------------------------------------------------ #
     #  Room creation (called by DungeonExit.at_traverse)
@@ -297,21 +302,23 @@ class DungeonInstanceScript(DefaultScript):
         exit_obj.tags.add(self.instance_key, category="dungeon_exit")
         return exit_obj
 
-    def _create_passage_exit(self, source_room, destination_room):
+    def _create_passage_exit(self, source_room, destination_room,
+                             direction="out"):
         """Create a DungeonPassageExit from a dungeon room to a world room."""
         from typeclasses.terrain.exits.dungeon_passage_exit import DungeonPassageExit
 
         passage_exit = create_object(
             DungeonPassageExit,
-            key="passage exit",
+            key=destination_room.key,
             location=source_room,
             destination=destination_room,
         )
         passage_exit.dungeon_instance_id = self.id
+        passage_exit.set_direction(direction)
         passage_exit.tags.add(self.instance_key, category="dungeon_exit")
         return passage_exit
 
-    def _create_terminal_passage_exit(self, terminal_room):
+    def _create_terminal_passage_exit(self, terminal_room, direction="out"):
         """Create the exit from the final passage room to the destination."""
         from evennia import ObjectDB
 
@@ -321,7 +328,7 @@ class DungeonInstanceScript(DefaultScript):
             dest_room = ObjectDB.objects.get(id=self.destination_room_id)
         except ObjectDB.DoesNotExist:
             return
-        self._create_passage_exit(terminal_room, dest_room)
+        self._create_passage_exit(terminal_room, dest_room, direction)
 
     # ------------------------------------------------------------------ #
     #  Boss defeated
@@ -332,11 +339,19 @@ class DungeonInstanceScript(DefaultScript):
         self.boss_defeated = True
         self.boss_defeated_at = timezone.now()
 
+        linger_mins = self.template.post_boss_linger_seconds // 60
+        linger_secs = self.template.post_boss_linger_seconds % 60
+        if linger_mins > 0:
+            unit = "minute" if linger_mins == 1 else "minutes"
+            time_str = f"{linger_mins} {unit}"
+        else:
+            unit = "second" if linger_secs == 1 else "seconds"
+            time_str = f"{linger_secs} {unit}"
+
         for char in self.get_characters():
             char.msg("|yThe dungeon begins to tremble...|n")
             char.msg(
-                f"|xYou have {self.template.post_boss_linger_seconds // 60} "
-                f"minutes before the dungeon collapses.|n"
+                f"|xYou have {time_str} before the dungeon collapses.|n"
             )
 
     # ------------------------------------------------------------------ #

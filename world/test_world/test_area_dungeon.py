@@ -3,8 +3,8 @@ Spawn a dungeon entrance in the Thieves Guild for playtesting.
 
 Run AFTER test_area_economic() has created the guild rooms.
 
-Creates a DungeonEntranceRoom linked to the Cave of Trials template,
-connected via a "down" exit from the Thieves Guild Entrance.
+Creates a room with a DungeonTriggerExit linked to the Cave of Trials
+template, connected via a "down" exit from the Thieves Guild Entrance.
 
 Usage (from Evennia):
     @py from world.test_world.test_area_dungeon import test_area_dungeon; test_area_dungeon()
@@ -13,8 +13,9 @@ Usage (from Evennia):
 from evennia import ObjectDB, create_object
 
 from enums.terrain_type import TerrainType
-from typeclasses.terrain.rooms.dungeon.dungeon_entrance_room import DungeonEntranceRoom
-from utils.exit_helpers import connect
+from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
+from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from typeclasses.terrain.rooms.room_base import RoomBase
 
 # Ensure the cave template is registered
 import world.dungeons.templates.cave_dungeon  # noqa: F401
@@ -47,9 +48,9 @@ def test_area_dungeon():
         print(f"  Dungeon entrance already exists: {existing.dbref}")
         return
 
-    # Create the dungeon entrance room
+    # Create the entrance room (a normal room with a trigger exit)
     entrance = create_object(
-        DungeonEntranceRoom,
+        RoomBase,
         key=ENTRANCE_KEY,
     )
     entrance.db.desc = (
@@ -59,20 +60,43 @@ def test_area_dungeon():
         "A crude sign is scratched into the stone: 'Cave of Trials'. "
         "Only the brave — or foolish — venture below."
     )
-    entrance.dungeon_template_id = "cave_of_trials"
 
     # Inherit zone/district from parent (Thieves Guild → guild_district)
     entrance.tags.add("test_economic_zone", category="zone")
     entrance.tags.add("guild_district", category="district")
     entrance.set_terrain(TerrainType.UNDERGROUND.value)
 
-    print(f"  Created dungeon entrance: {entrance.dbref}")
+    print(f"  Created dungeon entrance room: {entrance.dbref}")
 
-    # Bidirectional exits between Thieves Guild and dungeon entrance
-    connect(thieves_guild, entrance, "down",
-            desc_ab="a dark crack in the wall", desc_ba="Thieves Guild")
+    # Bidirectional exits between Thieves Guild and entrance room
+    exit_down = create_object(
+        ExitVerticalAware,
+        key="a dark crack in the wall",
+        location=thieves_guild,
+        destination=entrance,
+    )
+    exit_down.set_direction("down")
+
+    exit_up = create_object(
+        ExitVerticalAware,
+        key="Thieves Guild",
+        location=entrance,
+        destination=thieves_guild,
+    )
+    exit_up.set_direction("up")
     print("  Created exits: Thieves Guild <-> Dungeon Entrance")
 
+    # Create the dungeon trigger exit (walk into the cave)
+    trigger = create_object(
+        DungeonTriggerExit,
+        key="a dark cave",
+        location=entrance,
+        destination=entrance,  # self-referential
+    )
+    trigger.set_direction("down")
+    trigger.dungeon_template_id = "cave_of_trials"
+    print("  Created dungeon trigger exit: walk 'down' to enter Cave of Trials")
+
     print("\n=== Dungeon Entrance Done ===")
-    print("  Use 'enter dungeon' in The Cavern Mouth to start!")
-    print("  Navigate 5 rooms deep to reach BINGO!\n")
+    print("  Go 'down' from Thieves Guild to The Cavern Mouth.")
+    print("  Go 'down' again to enter the Cave of Trials!\n")

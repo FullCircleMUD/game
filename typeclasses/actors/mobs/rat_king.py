@@ -1,9 +1,9 @@
 """
 RatKing — mini-boss for the Harvest Moon cellar quest.
 
-Tougher than regular cellar rats. Engages on a longer delay so the
-smaller rats hit first. On death, fires quest completion event and
-triggers the dungeon instance boss-defeated timer.
+Tougher than regular cellar rats. Engages on a longer delay so
+the player has a moment to take in the room. On death, fires quest
+completion event and triggers the dungeon instance collapse timer.
 """
 
 import random
@@ -19,12 +19,12 @@ class RatKing(CombatMob):
 
     size = AttributeProperty("medium")
 
-    # ── Stats — level 2 mini-boss ──
-    hp = AttributeProperty(15)
-    hp_max = AttributeProperty(15)
+    # ── Stats — level 2, weakened mini-boss ──
+    hp = AttributeProperty(10)
+    hp_max = AttributeProperty(10)
     strength = AttributeProperty(10)
     dexterity = AttributeProperty(12)
-    constitution = AttributeProperty(12)
+    constitution = AttributeProperty(10)
     base_armor_class = AttributeProperty(11)
     armor_class = AttributeProperty(11)
     level = AttributeProperty(2)
@@ -34,6 +34,11 @@ class RatKing(CombatMob):
     attack_message = AttributeProperty("savagely bites")
     attack_delay_min = AttributeProperty(5)
     attack_delay_max = AttributeProperty(8)
+
+    # ── Display ──
+    room_description = AttributeProperty(
+        "{name} crouches here, red eyes gleaming above a crude crown of wire and bone."
+    )
 
     # ── Behavior ──
     is_aggressive_to_players = AttributeProperty(True)
@@ -85,6 +90,10 @@ class RatKing(CombatMob):
 
         if not room:
             return
+
+        # Check room clearance (removes not_clear tag if all mobs dead)
+        from typeclasses.actors.mobs.cellar_rat import _check_room_cleared
+        _check_room_cleared(room)
 
         # Find the dungeon instance via the room's tag
         instance_tag = room.tags.get(category="dungeon_room")

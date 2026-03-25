@@ -1,9 +1,9 @@
 """
-Rat Cellar — 1-room instanced dungeon for the Harvest Moon cellar quest.
+Rat Cellar — 2-room instanced dungeon for the Harvest Moon cellar quest.
 
-The game's first combat encounter. A solo instance spawns 3 cellar rats
-and a Rat King in a single room. No forward exits — the entire dungeon
-is one room that the player fights through.
+The game's first combat encounter. A solo instance with two rooms:
+  Room 1 (depth 0): 2 cellar rats. Gated — must clear before proceeding.
+  Room 2 (depth 1): The Rat King (boss). Quest completes on boss kill.
 
 No-death: defeated players teleport to the inn. Once per playthrough.
 """
@@ -15,10 +15,10 @@ from world.dungeons.dungeon_template import DungeonTemplate
 
 
 # ------------------------------------------------------------------ #
-#  Room generator
+#  Room descriptions
 # ------------------------------------------------------------------ #
 
-_CELLAR_DESC = (
+_ROOM1_DESC = (
     "A dank, low-ceilinged cellar beneath the inn. Broken barrels and "
     "rotting crates are piled against the walls. The floor is covered "
     "in gnaw marks, droppings, and scraps of chewed cloth. A chorus of "
@@ -26,42 +26,68 @@ _CELLAR_DESC = (
     "beady eyes glint in the darkness."
 )
 
+_ROOM2_DESC = (
+    "The cellar opens into a wider chamber, its walls slick with damp. "
+    "Gnawed bones and scraps of food litter the floor around a nest of "
+    "shredded cloth and straw. The squeaking here is louder, more "
+    "aggressive — and something much larger than a rat shifts in the "
+    "shadows."
+)
+
+
+# ------------------------------------------------------------------ #
+#  Room generator
+# ------------------------------------------------------------------ #
 
 def generate_rat_cellar_room(instance, depth, coords):
     """
-    Create the single rat cellar room and spawn all mobs.
+    Create a rat cellar room and spawn mobs based on depth.
 
-    Args:
-        instance: DungeonInstanceScript
-        depth: Manhattan distance from origin (always 0)
-        coords: (x, y) tuple (always (0, 0))
-    Returns:
-        DungeonRoom object
+    Depth 0: 2 cellar rats (encounter room — tagged not_clear).
+    Depth 1+: Boss room (Rat King spawned via boss_generator).
     """
     from typeclasses.actors.mobs.cellar_rat import CellarRat
-    from typeclasses.actors.mobs.rat_king import RatKing
     from typeclasses.terrain.rooms.dungeon.dungeon_room import DungeonRoom
 
-    room = create_object(DungeonRoom, key="Rat-Infested Cellar")
-    room.db.desc = _CELLAR_DESC
-    room.quest_tags = ["rat_cellar"]
+    if depth == 0:
+        # First room — rat encounter
+        room = create_object(DungeonRoom, key="Dank Cellar")
+        room.db.desc = _ROOM1_DESC
+        room.quest_tags = ["rat_cellar"]
 
-    # Spawn 3 regular rats
-    for _i in range(3):
-        rat = create_object(
-            CellarRat,
-            key="a cellar rat",
-            location=room,
-            nohome=True,
-        )
-        rat.db.desc = (
-            "A fat, mangy rat the size of a cat. Its fur is patchy "
-            "and its teeth are bared in a permanent snarl."
-        )
-        rat.tags.add(instance.instance_key, category="dungeon_mob")
-        rat.start_ai()
+        # Tag as not cleared — forward exits blocked until rats dead
+        room.tags.add("not_clear", category="dungeon_room")
 
-    # Spawn the Rat King (boss)
+        # Spawn 2 cellar rats
+        for _i in range(2):
+            rat = create_object(
+                CellarRat,
+                key="a cellar rat",
+                location=room,
+                nohome=True,
+            )
+            rat.db.desc = (
+                "A fat, mangy rat the size of a cat. Its fur is patchy "
+                "and its teeth are bared in a permanent snarl."
+            )
+            rat.tags.add(instance.instance_key, category="dungeon_mob")
+            rat.start_ai()
+    else:
+        # Boss room
+        room = create_object(DungeonRoom, key="Rat King's Lair")
+        room.db.desc = _ROOM2_DESC
+
+    return room
+
+
+# ------------------------------------------------------------------ #
+#  Boss generator
+# ------------------------------------------------------------------ #
+
+def generate_rat_king(instance, room):
+    """Spawn the Rat King in the boss room."""
+    from typeclasses.actors.mobs.rat_king import RatKing
+
     king = create_object(
         RatKing,
         key="the Rat King",
@@ -72,12 +98,11 @@ def generate_rat_cellar_room(instance, depth, coords):
         "An enormous rat, easily the size of a large dog. Its matted "
         "grey fur is scarred and patchy, and its yellowed teeth are "
         "as long as daggers. A crude crown of twisted wire and bone "
-        "sits atop its head. The other rats give it a wide berth."
+        "sits atop its head."
     )
     king.tags.add(instance.instance_key, category="dungeon_mob")
     king.start_ai()
-
-    return room
+    return king
 
 
 # ------------------------------------------------------------------ #
@@ -89,18 +114,20 @@ RAT_CELLAR = DungeonTemplate(
     name="The Rat Cellar",
     dungeon_type="instance",
     instance_mode="solo",
-    boss_depth=99,  # irrelevant — no forward exits created
-    max_unexplored_exits=0,
-    max_new_exits_per_room=0,
+    boss_depth=1,
+    max_unexplored_exits=1,
+    max_new_exits_per_room=1,
     instance_lifetime_seconds=1800,  # 30 minutes
     room_generator=generate_rat_cellar_room,
-    boss_generator=None,  # mobs spawned by room_generator
+    boss_generator=generate_rat_king,
     room_typeclass="typeclasses.terrain.rooms.dungeon.dungeon_room.DungeonRoom",
     allow_combat=True,
     allow_pvp=False,
     allow_death=False,
     defeat_destination_key="The Harvest Moon",
     post_boss_linger_seconds=60,  # 1 min after Rat King dies
+    terrain_type="underground",
+    always_lit=True,  # torchlit cellar
 )
 
 register_dungeon(RAT_CELLAR)

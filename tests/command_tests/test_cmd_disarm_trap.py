@@ -49,7 +49,7 @@ class TestCmdDisarmTrap(EvenniaCommandTest):
         self.call(CmdDisarmTrap(), "", "Disarm what?")
 
     def test_target_not_found(self):
-        self.call(CmdDisarmTrap(), "unicorn", "You don't see 'unicorn' here.")
+        self.call(CmdDisarmTrap(), "unicorn", "You don't see 'unicorn' here")
 
     # ── Room keyword targeting (pressure plates) ──
 

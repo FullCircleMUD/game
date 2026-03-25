@@ -1193,7 +1193,9 @@ def build_millholm_town():
              "goods are stacked in the corners. The yeasty aroma of "
              "fermenting brew mingles with the earthy smell of underground "
              "stone. Water drips steadily from somewhere in the shadows, "
-             "and the ceiling creaks with the footsteps of patrons above."),
+             "and the ceiling creaks with the footsteps of patrons above. "
+             "From somewhere to the south comes the sound of scratching "
+             "and high-pitched squeaking."),
             ("details", {
                 "barrels": (
                     "Oak barrels of various sizes, their staves dark with "
@@ -1839,7 +1841,7 @@ def build_millholm_town():
     connect(rooms["stairwell"], rooms["first_floor_stairwell"], "up",
             desc_ab="stairs leading to the first floor",
             desc_ba="stairs leading back down")
-    # NOTE: cellar_stairwell → cellar connection is now a QuestDungeonTriggerExit
+    # NOTE: cellar_stairwell → cellar connection is now a DungeonTriggerExit
     # created in build_game_world.py (rat cellar quest). Return exit from cellar
     # back to cellar_stairwell is also wired there.
     connect(rooms["first_floor_stairwell"], rooms["hallway"], "south",
@@ -1905,9 +1907,11 @@ def build_millholm_town():
     for room in indoor_rooms:
         room.set_terrain(TerrainType.URBAN.value)
 
-    # Cellar is underground
+    # Cellar and stairwell are underground but torchlit
     rooms["cellar"].set_terrain(TerrainType.UNDERGROUND.value)
+    rooms["cellar"].always_lit = True
     rooms["cellar_stairwell"].set_terrain(TerrainType.UNDERGROUND.value)
+    rooms["cellar_stairwell"].always_lit = True
 
     print("  Tagged all rooms with zone, district, and terrain.")
 
@@ -2005,8 +2009,8 @@ def build_millholm_town():
     # ══════════════════════════════════════════════════════════════════
     # road_far_west → will connect west to Millholm Farms district
     # road_far_east → will connect east to Industries / Millholm Woods
-    # cellar_stairwell → connects west (hidden) to Millholm Sewers (build_game_world.py)
-    # cellar_stairwell → connects south via QuestDungeonTriggerExit (rat cellar quest)
+    # cellar → connects west (hidden) to Millholm Sewers (soft_deploy.py)
+    # cellar_stairwell → connects south via DungeonTriggerExit (rat cellar quest)
     # abandoned_house → will connect down (hidden) to Millholm Sewers
     # south_gate → connects south to Southern District (build_game_world.py)
 

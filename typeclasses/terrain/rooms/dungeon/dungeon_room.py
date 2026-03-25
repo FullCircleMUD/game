@@ -1,11 +1,12 @@
 """
 DungeonRoom — procedurally generated room inside a dungeon instance.
 
-Extends RoomBase to get combat flags, FungibleInventoryMixin, and
-visibility filtering. Each room tracks its coordinates and instance.
+Extends RoomBase to get combat flags, FungibleInventoryMixin,
+visibility filtering, lighting, weather, and terrain integration.
+Each room tracks its coordinates and instance.
 
-The `not_clear` tag gates forward exit traversal (for future combat
-encounters — the room must be "cleared" before players can proceed).
+The ``not_clear`` tag (category ``dungeon_room``) gates forward exit
+traversal — players must clear all mobs before proceeding.
 """
 
 from evennia import AttributeProperty

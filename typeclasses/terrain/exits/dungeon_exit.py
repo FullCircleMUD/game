@@ -7,8 +7,9 @@ On creation, a DungeonExit's destination is set to its own location
 detects this and asks the DungeonInstanceScript to generate the
 actual destination room. The exit is then permanently linked.
 
-Forward exits are gated by the `not_clear` tag on the source room,
-so players must clear encounters before proceeding.
+Forward exits are gated by the ``not_clear`` tag on the source room —
+players must clear all mobs before proceeding. Return exits bypass
+this check so players can always retreat.
 
 Inherits from ExitVerticalAware to gain direction aliases, height
 checks, and proper exit display formatting.
@@ -29,9 +30,11 @@ class DungeonExit(ExitVerticalAware):
         """
         Called when someone tries to traverse this exit.
 
+        Forward exits are blocked while the source room has the not_clear
+        tag (encounter gating). Return exits always allow passage.
+
         If the exit still points back to its own location (lazy placeholder),
         ask the dungeon instance script to generate the real destination.
-        Forward exits are blocked while the source room has the not_clear tag.
         """
         # Gate forward exits on room clearance
         if not self.is_return_exit:

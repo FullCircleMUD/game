@@ -1,47 +1,127 @@
 """
 DungeonTriggerExit — a world exit that triggers dungeon entry on traversal.
 
-Movement-triggered alternative to DungeonEntranceRoom (command-triggered).
 Placed by builders as a normal exit; when a player walks through it, a
 dungeon instance is created (or joined) and the player is moved into the
-first dungeon room.
+first dungeon room. This is the sole entry mechanism for procedural
+dungeons — players enter by walking, not by typing a command.
 
-The entry trigger is determined by builder placement, not by the template.
-The same template can be used with either DungeonEntranceRoom (command)
-or DungeonTriggerExit (movement). This allows builders to choose the
-experience per entrance without changing the dungeon definition.
+Supports optional quest gating via ``quest_key`` and ``fallback_destination_id``.
+When a quest_key is set:
+  - Quest active (accepted, not completed) → creates dungeon instance.
+  - Quest not accepted or already completed → routes to fallback destination.
 
 Uses a self-referential destination (exit points back to its own location),
 the same pattern used by DungeonExit for lazy room creation. The real
 movement is handled entirely in at_traverse.
+
+Inherits from ExitBase (not ExitVerticalAware) for proper exit descriptions.
+Direction support is provided directly — ExitVerticalAware's vertical checks
+are not needed since this exit completely overrides at_traverse.
 """
 
-from evennia import AttributeProperty, DefaultExit
+from evennia import AttributeProperty
 from evennia.utils.create import create_script
 
+from typeclasses.terrain.exits.exit_base import ExitBase
 from world.dungeons import get_dungeon_template
 
 
-class DungeonTriggerExit(DefaultExit):
+class DungeonTriggerExit(ExitBase):
     """
     World exit that creates/joins a dungeon instance when traversed.
 
     Builder usage:
         trigger = create_object(
             DungeonTriggerExit,
-            key="dark cave",
+            key="a small wooden door",
             location=world_room,
             destination=world_room,  # self-referential
         )
+        trigger.set_direction("south")
         trigger.dungeon_template_id = "cave_of_trials"
         trigger.dungeon_destination_room_id = other_world_room.id  # passages
+
+        # Optional quest gating:
+        trigger.quest_key = "rat_cellar"
+        trigger.fallback_destination_id = permanent_cellar.id
     """
+
+    # ── Direction system (shared with ExitVerticalAware) ──────────────
+    DIRECTION_ALIASES = {
+        "north": ["n", "north"],
+        "south": ["s", "south"],
+        "east": ["e", "east"],
+        "west": ["w", "west"],
+        "northeast": ["ne", "northeast"],
+        "northwest": ["nw", "northwest"],
+        "southeast": ["se", "southeast"],
+        "southwest": ["sw", "southwest"],
+        "up": ["u", "up"],
+        "down": ["d", "down"],
+        "in": ["in"],
+        "out": ["out"],
+    }
+
+    direction = AttributeProperty("default")
+
+    def set_direction(self, direction):
+        """
+        Set the compass direction and auto-add direction aliases.
+
+        Args:
+            direction (str): A key from DIRECTION_ALIASES (e.g. "north").
+        """
+        self.direction = direction
+        aliases = self.DIRECTION_ALIASES.get(direction, [])
+        current = set(self.aliases.all())
+        for alias in aliases:
+            if alias not in current:
+                self.aliases.add(alias)
+
+    def get_display_name(self, looker=None, **kwargs):
+        """
+        Format the exit for room display.
+
+        If direction is set, returns "direction: description".
+        Otherwise falls back to desc or key.
+        """
+        desc = self.db.desc or self.key
+        if self.direction in self.DIRECTION_ALIASES:
+            return f"{self.direction}: {desc}"
+        return desc
+
+    # ── Dungeon attributes ────────────────────────────────────────────
 
     dungeon_template_id = AttributeProperty(None)
     dungeon_destination_room_id = AttributeProperty(None)  # passage endpoint
 
+    # ── Quest gating (optional) ───────────────────────────────────────
+
+    quest_key = AttributeProperty(None)
+    fallback_destination_id = AttributeProperty(None)
+
+    # ── Traversal ─────────────────────────────────────────────────────
+
     def at_traverse(self, traversing_object, target_location, **kwargs):
-        """Intercept traversal to create/join a dungeon instance."""
+        """
+        Intercept traversal to create/join a dungeon instance.
+
+        If quest_key is set, routes based on quest state:
+          - Quest active → dungeon instance
+          - Quest not accepted or completed → fallback destination
+        """
+        # Quest gating — route to fallback if quest not active
+        if self.quest_key and hasattr(traversing_object, "quests"):
+            quest_active = (
+                traversing_object.quests.has(self.quest_key)
+                and not traversing_object.quests.is_completed(self.quest_key)
+            )
+            if not quest_active:
+                self._move_to_fallback(traversing_object)
+                return
+
+        # Standard dungeon entry
         template_id = self.dungeon_template_id
         if not template_id:
             traversing_object.msg("This passage leads nowhere.")
@@ -89,6 +169,23 @@ class DungeonTriggerExit(DefaultExit):
         # Do NOT call super().at_traverse() — characters are already moved
         # by start_dungeon or _join_existing.
 
+    # ── Quest fallback ────────────────────────────────────────────────
+
+    def _move_to_fallback(self, traversing_object):
+        """Send the traverser to the fallback (non-dungeon) destination."""
+        from evennia import ObjectDB
+
+        if not self.fallback_destination_id:
+            traversing_object.msg("The passage seems blocked.")
+            return
+        try:
+            dest = ObjectDB.objects.get(id=self.fallback_destination_id)
+            traversing_object.move_to(dest)
+        except ObjectDB.DoesNotExist:
+            traversing_object.msg("The passage seems blocked.")
+
+    # ── Character collection ──────────────────────────────────────────
+
     def _collect_characters(self, traversing_object, template):
         """
         Collect characters to enter based on instance_mode.
@@ -109,6 +206,8 @@ class DungeonTriggerExit(DefaultExit):
         else:
             # Solo and shared — single character
             return [traversing_object]
+
+    # ── Instance resolution ───────────────────────────────────────────
 
     def _resolve_instance(self, traversing_object, template):
         """Find existing or create new instance based on instance_mode."""
@@ -142,6 +241,7 @@ class DungeonTriggerExit(DefaultExit):
         instance.template_id = template_id
         instance.instance_key = instance_key
         instance.entrance_room_id = self.location.id
+        instance.entrance_direction = self.direction if self.direction != "default" else None
 
         # For passages, set the destination room
         if self.dungeon_destination_room_id:
@@ -149,6 +249,8 @@ class DungeonTriggerExit(DefaultExit):
 
         instance.start()
         return instance
+
+    # ── Shared instance join ──────────────────────────────────────────
 
     def _join_existing(self, characters, instance, template):
         """Add characters to an existing shared instance."""
@@ -167,8 +269,8 @@ class DungeonTriggerExit(DefaultExit):
             instance.add_character(char)
             if first_room:
                 char.move_to(first_room, quiet=True, move_type="teleport")
-                char.msg(f"|y{template.name}|n")
-                char.msg(first_room.db.desc or "You enter the dungeon.")
+
+    # ── Entry announcement ────────────────────────────────────────────
 
     def _announce_entry(self, caller, characters, template):
         """Announce dungeon entry to the source room."""
