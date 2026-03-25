@@ -569,6 +569,7 @@ class BaseNFTItem(HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
         if nft.item_type:
             if nft.item_type.prototype_key:
                 spawn_dict["prototype_parent"] = nft.item_type.prototype_key
+                spawn_dict["prototype_key"] = nft.item_type.prototype_key
             else:
                 # No prototype — use typeclass directly
                 spawn_dict["typeclass"] = (

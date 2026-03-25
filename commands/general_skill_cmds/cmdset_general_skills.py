@@ -3,7 +3,6 @@ from commands.class_skill_cmdsets.class_skill_cmds.cmd_dodge import CmdDodge
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_assist import CmdAssist
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_sail import CmdSail
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_tame import CmdTame
-from commands.room_specific_cmds.crafting.cmd_repair import CmdRepair
 from commands.general_skill_cmds.cmd_survey import CmdSurvey
 from commands.general_skill_cmds.cmd_map import CmdMap
 from enums.mastery_level import MasteryLevel
@@ -19,7 +18,6 @@ class CmdSetGeneralSkills(CmdSetBaseCharClass):
         CmdAssist,
         CmdSail,
         CmdTame,
-        CmdRepair,
         CmdSurvey,
         CmdMap,
     ]
