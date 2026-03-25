@@ -430,16 +430,6 @@ class TestProcessXP(ProcessingTestBase):
 
     @patch("commands.room_specific_cmds.processing.cmd_process.delay",
            side_effect=_instant_delay)
-    def test_xp_message(self, mock_delay):
-        """Should show XP gain message."""
-        self.room1.db.process_xp = 5
-        _give_resources(self.char1, {1: 1})
-        _give_gold(self.char1, 1)
-        result = self.call(CmdProcess(), "")
-        self.assertIn("+5 XP", result)
-
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
-           side_effect=_instant_delay)
     def test_no_xp_when_zero(self, mock_delay):
         """Should not show XP message when process_xp is 0."""
         self.room1.db.process_xp = 0

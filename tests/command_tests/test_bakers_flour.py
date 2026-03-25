@@ -83,8 +83,8 @@ class TestBakersFlourQuestStep(EvenniaCommandTest):
         self.assertFalse(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_three_flour_completes_quest(self, mock_res_reserve, mock_gold, mock_sink):
         """Delivering 3 flour completes the quest."""
         quest = self._add_quest()
@@ -93,8 +93,8 @@ class TestBakersFlourQuestStep(EvenniaCommandTest):
         self.assertTrue(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_flour_consumed_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Flour is consumed (sinked) on quest completion."""
         quest = self._add_quest()
@@ -105,8 +105,8 @@ class TestBakersFlourQuestStep(EvenniaCommandTest):
         self.assertIn(FLOUR_ID, call_args[0] or list(call_args[1].values()))
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_gold_awarded_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Gold is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -115,8 +115,8 @@ class TestBakersFlourQuestStep(EvenniaCommandTest):
         mock_gold.assert_called()
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_bread_awarded_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Bread (resource 3) is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -130,8 +130,8 @@ class TestBakersFlourQuestStep(EvenniaCommandTest):
         self.assertTrue(len(bread_calls) >= 1)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_surplus_flour_still_completes(self, mock_res_reserve, mock_gold, mock_sink):
         """Surplus flour still completes the quest."""
         quest = self._add_quest()
@@ -156,8 +156,8 @@ class TestBakersFlourQuestAcceptance(EvenniaCommandTest):
         self.assertTrue(can)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_cannot_accept_after_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Non-repeatable quest cannot be re-accepted after completion."""
         quest = self.char1.quests.add(BakersFlourQuest)
@@ -190,8 +190,8 @@ class TestBakersFlourQuestAcceptance(EvenniaCommandTest):
         initial = initial_counts.get(BakersFlourQuest.key, 0)
 
         with patch("blockchain.xrpl.services.resource.ResourceService.sink"), \
-             patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game"), \
-             patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game"):
+             patch("blockchain.xrpl.services.gold.GoldService.craft_output"), \
+             patch("blockchain.xrpl.services.resource.ResourceService.craft_output"):
             quest = self.char1.quests.add(BakersFlourQuest)
             self.char1.db.resources = {FLOUR_ID: 3}
             quest.progress()

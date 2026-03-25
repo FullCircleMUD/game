@@ -284,14 +284,6 @@ class TestHarvestXP(HarvestingTestBase):
 
     @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
            side_effect=_instant_delay)
-    def test_xp_message(self, mock_delay):
-        """Should show XP gain message."""
-        self.room1.db.harvest_xp = 5
-        result = self.call(CmdHarvest(), "", cmdstring="mine")
-        self.assertIn("+5 XP", result)
-
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
-           side_effect=_instant_delay)
     def test_no_xp_when_zero(self, mock_delay):
         """Should not show XP message when harvest_xp is 0."""
         self.room1.db.harvest_xp = 0

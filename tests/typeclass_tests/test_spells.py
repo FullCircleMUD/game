@@ -3014,6 +3014,7 @@ class TestHolySight(EvenniaTest):
         from evennia.utils.create import create_object
         from typeclasses.terrain.rooms.room_base import RoomBase
         room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
         self.char1.location = room
         self.char2.location = room
         self.spell.cast(self.char1, self.char1)
@@ -3026,6 +3027,7 @@ class TestHolySight(EvenniaTest):
         from evennia.utils.create import create_object
         from typeclasses.terrain.rooms.room_base import RoomBase
         room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
         self.char1.location = room
         self.char2.location = room
         self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
@@ -3039,6 +3041,7 @@ class TestHolySight(EvenniaTest):
         from evennia.utils.create import create_object
         from typeclasses.terrain.rooms.room_base import RoomBase
         room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
         self.char1.location = room
         self.char2.location = room
         self.char1.db.class_skill_mastery_levels = {"divine_revelation": 4}

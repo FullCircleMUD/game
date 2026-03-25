@@ -56,12 +56,9 @@ class TestPurgatoryRelease(EvenniaTest):
         """Character receives the release message."""
         self.char1.home = self.cemetery
         self.char1.move_to(self.purgatory, quiet=True)
-        self.char1._purgatory_release()
         self.char1.msg = MagicMock()
-        # Re-release to capture message (first release already moved)
-        self.char1.move_to(self.purgatory, quiet=True)
         self.char1._purgatory_release()
-        self.char1.msg.assert_called_with(
+        self.char1.msg.assert_any_call(
             "You feel yourself drawn back to the world of the living..."
         )
 

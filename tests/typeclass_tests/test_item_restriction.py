@@ -46,9 +46,11 @@ def _setup_char(char, classes=None, race=None, alignment=None,
     if classes is not None:
         char.db.classes = classes
     if race is not None:
-        char.race = race
+        # Store as .value string to match can_use() str() comparison
+        char.race = race.value if hasattr(race, "value") else race
     if alignment is not None:
-        char.alignment = alignment
+        # Store as .value string to match can_use() str() comparison
+        char.alignment = alignment.value if hasattr(alignment, "value") else alignment
     if total_level:
         char.total_level = total_level
     if num_remorts:
@@ -248,28 +250,28 @@ class TestRaceRestrictions(EvenniaTest):
     def test_required_race_match(self):
         """Dwarf with required_races=[DWARF] should pass."""
         _setup_char(self.char1, race=Race.DWARF)
-        item = _make_item("Dwarven Hammer", required_races=[Race.DWARF])
+        item = _make_item("Dwarven Hammer", required_races=[Race.DWARF.value])
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
 
     def test_required_race_no_match(self):
         """Human with required_races=[DWARF] should fail."""
         _setup_char(self.char1, race=Race.HUMAN)
-        item = _make_item("Dwarven Hammer", required_races=[Race.DWARF])
+        item = _make_item("Dwarven Hammer", required_races=[Race.DWARF.value])
         allowed, reason = item.can_use(self.char1)
         self.assertFalse(allowed)
 
     def test_excluded_race_match(self):
         """Elf with excluded_races=[ELF] should fail."""
         _setup_char(self.char1, race=Race.ELF)
-        item = _make_item("Iron Shield", excluded_races=[Race.ELF])
+        item = _make_item("Iron Shield", excluded_races=[Race.ELF.value])
         allowed, _ = item.can_use(self.char1)
         self.assertFalse(allowed)
 
     def test_excluded_race_no_match(self):
         """Human with excluded_races=[ELF] should pass."""
         _setup_char(self.char1, race=Race.HUMAN)
-        item = _make_item("Iron Shield", excluded_races=[Race.ELF])
+        item = _make_item("Iron Shield", excluded_races=[Race.ELF.value])
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
 
@@ -287,7 +289,7 @@ class TestAlignmentRestrictions(EvenniaTest):
         _setup_char(self.char1, alignment=Alignment.LAWFUL_GOOD)
         item = _make_item(
             "Holy Avenger",
-            required_alignments=[Alignment.LAWFUL_GOOD],
+            required_alignments=[Alignment.LAWFUL_GOOD.value],
         )
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
@@ -297,7 +299,7 @@ class TestAlignmentRestrictions(EvenniaTest):
         _setup_char(self.char1, alignment=Alignment.CHAOTIC_EVIL)
         item = _make_item(
             "Holy Avenger",
-            required_alignments=[Alignment.LAWFUL_GOOD],
+            required_alignments=[Alignment.LAWFUL_GOOD.value],
         )
         allowed, reason = item.can_use(self.char1)
         self.assertFalse(allowed)
@@ -308,7 +310,7 @@ class TestAlignmentRestrictions(EvenniaTest):
         _setup_char(self.char1, alignment=Alignment.CHAOTIC_EVIL)
         item = _make_item(
             "Blessed Robe",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL],
+            excluded_alignments=[Alignment.CHAOTIC_EVIL.value],
         )
         allowed, _ = item.can_use(self.char1)
         self.assertFalse(allowed)
@@ -318,7 +320,7 @@ class TestAlignmentRestrictions(EvenniaTest):
         _setup_char(self.char1, alignment=Alignment.LAWFUL_GOOD)
         item = _make_item(
             "Blessed Robe",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL],
+            excluded_alignments=[Alignment.CHAOTIC_EVIL.value],
         )
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
@@ -459,8 +461,8 @@ class TestCombinedRestrictions(EvenniaTest):
         item = _make_item(
             "Holy Greatsword",
             required_classes=["warrior"],
-            required_races=[Race.HUMAN, Race.DWARF],
-            required_alignments=[Alignment.LAWFUL_GOOD, Alignment.NEUTRAL_GOOD],
+            required_races=[Race.HUMAN.value, Race.DWARF.value],
+            required_alignments=[Alignment.LAWFUL_GOOD.value, Alignment.NEUTRAL_GOOD.value],
             min_total_level=5,
             min_attributes={"strength": 14},
         )

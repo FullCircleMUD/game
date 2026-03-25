@@ -15,6 +15,11 @@ from evennia.utils.test_resources import EvenniaCommandTest
 from commands.all_char_cmds.cmd_say import CmdSay
 
 
+def _immediate_call_later(delay, fn, *args, **kwargs):
+    """Execute reactor.callLater callbacks immediately for testing."""
+    return fn(*args, **kwargs)
+
+
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
@@ -94,8 +99,9 @@ class TestLLMMixin(EvenniaCommandTest):
 
     # --- Speech mode: always ---
 
+    @patch("twisted.internet.reactor.callLater", side_effect=_immediate_call_later)
     @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
-    def test_always_responds_to_any_speech(self, mock_respond):
+    def test_always_responds_to_any_speech(self, mock_respond, _mock_cl):
         """always mode should respond to any speech."""
         npc = self._create_llm_npc(llm_speech_mode="always")
         npc.at_llm_say_heard(self.char1, "random chatter", language="common")
@@ -103,8 +109,9 @@ class TestLLMMixin(EvenniaCommandTest):
 
     # --- Speech mode: name_match ---
 
+    @patch("twisted.internet.reactor.callLater", side_effect=_immediate_call_later)
     @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
-    def test_name_match_triggers_response(self, mock_respond):
+    def test_name_match_triggers_response(self, mock_respond, _mock_cl):
         """name_match mode should trigger when NPC name is in speech."""
         npc = self._create_llm_npc(llm_speech_mode="name_match")
         npc.at_llm_say_heard(self.char1, "hey Brom got swords?", language="common")
@@ -119,8 +126,9 @@ class TestLLMMixin(EvenniaCommandTest):
 
     # --- Conversation engagement ---
 
+    @patch("twisted.internet.reactor.callLater", side_effect=_immediate_call_later)
     @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
-    def test_engaged_speaker_gets_response_without_name(self, mock_respond):
+    def test_engaged_speaker_gets_response_without_name(self, mock_respond, _mock_cl):
         """After NPC responds, follow-up speech should trigger without name."""
         import time as _time
 
@@ -173,8 +181,9 @@ class TestLLMMixin(EvenniaCommandTest):
         npc.at_llm_say_heard(self.char1, "hey Brom", language="common")
         mock_respond.assert_not_called()
 
+    @patch("twisted.internet.reactor.callLater", side_effect=_immediate_call_later)
     @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
-    def test_whisper_hook_triggers(self, mock_respond):
+    def test_whisper_hook_triggers(self, mock_respond, _mock_cl):
         """Whisper hook should trigger when enabled."""
         npc = self._create_llm_npc()
         npc.at_llm_whisper_received(self.char1, "secret message")

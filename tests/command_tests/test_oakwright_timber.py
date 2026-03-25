@@ -91,8 +91,8 @@ class TestOakwrightTimberQuestStep(EvenniaCommandTest):
         self.assertFalse(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_four_timber_completes_quest(self, mock_res_reserve, mock_gold, mock_sink):
         """Delivering 4 timber completes the quest."""
         quest = self._add_quest()
@@ -101,8 +101,8 @@ class TestOakwrightTimberQuestStep(EvenniaCommandTest):
         self.assertTrue(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_timber_consumed_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Timber is consumed (sinked) on quest completion."""
         quest = self._add_quest()
@@ -113,8 +113,8 @@ class TestOakwrightTimberQuestStep(EvenniaCommandTest):
         self.assertIn(TIMBER_ID, call_args[0] or list(call_args[1].values()))
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_gold_awarded_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Gold is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -123,8 +123,8 @@ class TestOakwrightTimberQuestStep(EvenniaCommandTest):
         mock_gold.assert_called()
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_bread_awarded_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Bread (resource 3) is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -138,8 +138,8 @@ class TestOakwrightTimberQuestStep(EvenniaCommandTest):
         self.assertTrue(len(bread_calls) >= 1)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_surplus_timber_still_completes(self, mock_res_reserve, mock_gold, mock_sink):
         """Surplus timber still completes the quest."""
         quest = self._add_quest()
@@ -164,8 +164,8 @@ class TestOakwrightTimberQuestAcceptance(EvenniaCommandTest):
         self.assertTrue(can)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_cannot_accept_after_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Non-repeatable quest cannot be re-accepted after completion."""
         quest = self.char1.quests.add(OakwrightTimberQuest)
@@ -198,8 +198,8 @@ class TestOakwrightTimberQuestAcceptance(EvenniaCommandTest):
         initial = initial_counts.get(OakwrightTimberQuest.key, 0)
 
         with patch("blockchain.xrpl.services.resource.ResourceService.sink"), \
-             patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game"), \
-             patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game"):
+             patch("blockchain.xrpl.services.gold.GoldService.craft_output"), \
+             patch("blockchain.xrpl.services.resource.ResourceService.craft_output"):
             quest = self.char1.quests.add(OakwrightTimberQuest)
             self.char1.db.resources = {TIMBER_ID: 4}
             quest.progress()

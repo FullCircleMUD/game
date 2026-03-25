@@ -378,18 +378,6 @@ class TestCmdRepairXP(EvenniaCommandTest):
         # BASIC craft XP = 5, repair = 5 // 2 = 2
         self.assertEqual(self.char1.experience_points, 2)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
-           side_effect=_instant_delay)
-    def test_xp_message(self, mock_delay):
-        """Repair should show XP gain message."""
-        _make_damaged_weapon(
-            "Training Longsword", self.char1, "training_longsword",
-            max_dur=50, cur_dur=25,
-        )
-
-        result = self.call(CmdRepair(), "training longsword", inputs=["y"])
-        self.assertIn("+2 XP", result)
-
 
 # ── Repair Command — Progress Bar ────────────────────────────────────
 

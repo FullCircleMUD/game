@@ -2,8 +2,10 @@
 Tests for CmdWallet — verifies wallet display for on-chain game assets.
 
 Mocks get_wallet_balances and get_wallet_nfts so no real XRPL calls are made.
-Uses EvenniaCommandTest.call() which matches with startswith on the first
-message sent.
+
+The wallet command uses deferToThread for async XRPL queries.  In tests we
+patch deferToThread to execute synchronously so callbacks fire within the
+same call() invocation and self.call() can capture all output.
 
 evennia test --settings settings tests.command_tests.test_cmd_wallet
 """
@@ -11,7 +13,7 @@ evennia test --settings settings tests.command_tests.test_cmd_wallet
 from decimal import Decimal
 from unittest.mock import patch
 
-from django.conf import settings
+from twisted.internet import defer
 
 from evennia.utils.test_resources import EvenniaCommandTest
 
@@ -19,6 +21,17 @@ from commands.account_cmds.cmd_wallet import CmdWallet
 
 
 WALLET_A = "rTestPlayerWalletAddress123456"
+
+
+def _sync_defer(func, *args, **kwargs):
+    """Run *func* synchronously and return an already-fired Deferred."""
+    d = defer.Deferred()
+    try:
+        result = func(*args, **kwargs)
+        d.callback(result)
+    except Exception as e:
+        d.errback(e)
+    return d
 
 
 class WalletTestBase(EvenniaCommandTest):
@@ -48,6 +61,7 @@ class TestWalletGuards(WalletTestBase):
         )
 
 
+@patch("commands.account_cmds.cmd_wallet.threads.deferToThread", _sync_defer)
 class TestWalletDisplay(WalletTestBase):
     """Test wallet display output."""
 
@@ -111,22 +125,16 @@ class TestWalletDisplay(WalletTestBase):
            side_effect=Exception("Network error"))
     def test_balance_error_shows_message(self, mock_bal, mock_nfts):
         """Network error on balances should show graceful message."""
-        self.call(
-            CmdWallet(), "",
-            "Could not query XRPL",
-            caller=self.account,
-        )
+        result = self.call(CmdWallet(), "", caller=self.account)
+        self.assertIn("Could not query XRPL", result)
 
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts",
            side_effect=Exception("Network error"))
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_balances", return_value={})
     def test_nft_error_shows_message(self, mock_bal, mock_nfts):
         """Network error on NFTs should show graceful message."""
-        self.call(
-            CmdWallet(), "",
-            "Could not query XRPL",
-            caller=self.account,
-        )
+        result = self.call(CmdWallet(), "", caller=self.account)
+        self.assertIn("Could not query XRPL", result)
 
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts", return_value=[])
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_balances", return_value={})

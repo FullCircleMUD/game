@@ -34,15 +34,18 @@ class TestSuperuserLanguageGrant(BaseEvenniaTest):
         )
         self.account.db.bank = bank
 
-        with patch.object(
-            type(self.account), "is_superuser", new_callable=PropertyMock, return_value=True
-        ):
-            mock_chars = MagicMock()
-            mock_chars.all.return_value = [self.char1]
+        from evennia.accounts.accounts import DefaultAccount
+
+        with patch.object(DefaultAccount, "at_post_login"):
             with patch.object(
-                type(self.account), "characters", new_callable=PropertyMock, return_value=mock_chars
+                type(self.account), "is_superuser", new_callable=PropertyMock, return_value=True
             ):
-                self.account.at_post_login(session=MagicMock())
+                mock_chars = MagicMock()
+                mock_chars.all.return_value = [self.char1]
+                with patch.object(
+                    type(self.account), "characters", new_callable=PropertyMock, return_value=mock_chars
+                ):
+                    self.account.at_post_login(session=MagicMock())
 
         expected = {lang.value for lang in Languages}
         self.assertEqual(self.char1.db.languages, expected)
@@ -68,10 +71,13 @@ class TestSuperuserLanguageGrant(BaseEvenniaTest):
         )
         self.account.db.bank = bank
 
-        with patch.object(
-            type(self.account), "is_superuser", new_callable=PropertyMock, return_value=False
-        ):
-            self.account.at_post_login(session=MagicMock())
+        from evennia.accounts.accounts import DefaultAccount
+
+        with patch.object(DefaultAccount, "at_post_login"):
+            with patch.object(
+                type(self.account), "is_superuser", new_callable=PropertyMock, return_value=False
+            ):
+                self.account.at_post_login(session=MagicMock())
 
         self.assertEqual(self.char1.db.languages, {"common"})
 

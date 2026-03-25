@@ -36,11 +36,14 @@ class HungerServiceTestBase(EvenniaCommandTest):
 
     def _run_tick(self, characters):
         """Run one hunger tick with the given character list.
-        Patches has_account to True for test characters (no real sessions)."""
-        with patch("typeclasses.scripts.hunger_service.ObjectDB") as mock_db, \
-             patch.object(type(self.char1), "has_account",
-                          new_callable=lambda: property(lambda s: True)):
-            mock_db.objects.filter.return_value = characters
+        Builds mock sessions that return each character as a puppet."""
+        mock_sessions = []
+        for char in characters:
+            s = MagicMock()
+            s.get_puppet.return_value = char
+            mock_sessions.append(s)
+        with patch("typeclasses.scripts.hunger_service.SESSION_HANDLER") as mock_sh:
+            mock_sh.get_sessions.return_value = mock_sessions
             self.service.at_repeat()
 
 

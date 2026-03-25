@@ -94,8 +94,8 @@ class TestElenaClothQuestStep(EvenniaCommandTest):
         self.assertFalse(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_three_cloth_completes_quest(self, mock_res_reserve, mock_gold, mock_sink):
         """Delivering 3 cloth completes the quest."""
         quest = self._add_quest()
@@ -104,8 +104,8 @@ class TestElenaClothQuestStep(EvenniaCommandTest):
         self.assertTrue(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_cloth_consumed_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Cloth resource is consumed (sinked) when quest completes."""
         quest = self._add_quest()
@@ -117,8 +117,8 @@ class TestElenaClothQuestStep(EvenniaCommandTest):
         self.assertIn(CLOTH_ID, call_args[0] or list(call_args[1].values()))
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_gold_awarded_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Gold reward is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -127,8 +127,8 @@ class TestElenaClothQuestStep(EvenniaCommandTest):
         mock_gold.assert_called()
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_bread_awarded_on_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Bread reward (resource 3) is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -143,8 +143,8 @@ class TestElenaClothQuestStep(EvenniaCommandTest):
         self.assertTrue(len(bread_calls) >= 1)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_more_than_needed_still_completes(self, mock_res_reserve, mock_gold, mock_sink):
         """Surplus cloth still completes the quest (only 3 consumed)."""
         quest = self._add_quest()
@@ -169,8 +169,8 @@ class TestElenaClothQuestAcceptance(EvenniaCommandTest):
         self.assertTrue(can)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_cannot_accept_after_completion(self, mock_res_reserve, mock_gold, mock_sink):
         """Non-repeatable quest cannot be re-accepted after completion."""
         quest = self.char1.quests.add(ElenaClothQuest)
@@ -203,8 +203,8 @@ class TestElenaClothQuestAcceptance(EvenniaCommandTest):
         initial = initial_counts.get(ElenaClothQuest.key, 0)
 
         with patch("blockchain.xrpl.services.resource.ResourceService.sink"), \
-             patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game"), \
-             patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game"):
+             patch("blockchain.xrpl.services.gold.GoldService.craft_output"), \
+             patch("blockchain.xrpl.services.resource.ResourceService.craft_output"):
             quest = self.char1.quests.add(ElenaClothQuest)
             self.char1.db.resources = {CLOTH_ID: 3}
             quest.progress()

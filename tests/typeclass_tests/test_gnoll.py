@@ -119,6 +119,9 @@ class TestGnollRampage(EvenniaTest):
         self.char1.hp = 30
         self.char1.location = self.room1
 
+        # Ensure no other PCs in room that random.choice might pick
+        self.char2.location = self.room2
+
         self.gnoll.at_kill(victim)
 
         mock_execute.assert_called_once_with(self.gnoll, self.char1)

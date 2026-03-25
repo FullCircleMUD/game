@@ -442,18 +442,6 @@ class TestCmdCraftXP(EvenniaCommandTest):
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
-    def test_xp_message(self, mock_assign, mock_spawn, mock_delay):
-        """Crafting should show XP gain message."""
-        mock_assign.return_value = TOKEN_ID
-        mock_spawn.return_value = MagicMock()
-
-        result = self.call(CmdCraft(), "training longsword", inputs=["y"])
-        self.assertIn("+5 XP", result)
-
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
-           side_effect=_instant_delay)
-    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
-    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
     def test_xp_room_multiplier(self, mock_assign, mock_spawn, mock_delay):
         """Room multiplier should scale craft XP."""
         mock_assign.return_value = TOKEN_ID

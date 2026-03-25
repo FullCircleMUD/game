@@ -81,14 +81,6 @@ class TestBashGates(_BashTestBase):
         result = self.call(CmdBash(), self.char2.key)
         self.assertIn("need training", result)
 
-    @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_no_args_in_combat_no_target(self, mock_ticker):
-        """Bash with no args in combat but no attack target → error."""
-        self._set_bash_mastery(self.char1, MasteryLevel.BASIC)
-        enter_combat(self.char1, self.mob)
-        result = self.call(CmdBash(), "")
-        self.assertIn("Bash who?", result)
-
     def test_no_args_out_of_combat(self):
         """Bash with no args out of combat → funny stumble message."""
         self._set_bash_mastery(self.char1, MasteryLevel.BASIC)

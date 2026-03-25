@@ -6,9 +6,9 @@ fungible and NFT imports.
 Import is an account-level (OOC) command. Assets go into the account bank.
 XRPL queries, Xaman API calls, and vault transactions are mocked.
 
-NOTE: EvenniaCommandTest.call() uses startswith matching for message
-assertions. Multi-msg commands concat with |, so assertions must match
-the FIRST msg sent after the last yield/input.
+The import command uses deferToThread for async XRPL/Xaman queries.  In tests
+we patch deferToThread to execute synchronously so callbacks fire within the
+same call() invocation and self.call() can capture all output.
 
 evennia test --settings settings tests.command_tests.test_cmd_import
 """
@@ -18,6 +18,7 @@ from unittest.mock import patch, MagicMock
 
 from django.conf import settings
 from django.test import override_settings
+from twisted.internet import defer
 
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
@@ -27,6 +28,17 @@ from commands.account_cmds.cmd_import import CmdImport
 
 VAULT = settings.XRPL_VAULT_ADDRESS
 WALLET_A = "rTestPlayerWalletAddress123456"
+
+
+def _sync_defer(func, *args, **kwargs):
+    """Run *func* synchronously and return an already-fired Deferred."""
+    d = defer.Deferred()
+    try:
+        result = func(*args, **kwargs)
+        d.callback(result)
+    except Exception as e:
+        d.errback(e)
+    return d
 
 
 class ImportTestBase(EvenniaCommandTest):
@@ -54,7 +66,7 @@ class ImportTestBase(EvenniaCommandTest):
 
 
 # ================================================================== #
-#  Kill-switch & validation tests
+#  Kill-switch & validation tests (synchronous — no deferToThread)
 # ================================================================== #
 
 class TestImportGuards(ImportTestBase):
@@ -111,6 +123,7 @@ class TestImportGuards(ImportTestBase):
 #  Gold import tests
 # ================================================================== #
 
+@patch("commands.account_cmds.cmd_import.threads.deferToThread", _sync_defer)
 class TestImportGold(ImportTestBase):
     """Test gold import flow."""
 
@@ -119,22 +132,16 @@ class TestImportGold(ImportTestBase):
            return_value={})
     def test_no_gold_in_wallet(self, mock_bal):
         """Importing gold when wallet has none should show error."""
-        self.call(
-            CmdImport(), "gold",
-            "Your wallet has no gold",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "gold", caller=self.account)
+        self.assertIn("Your wallet has no gold", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_balances",
            return_value={"FCMGold": Decimal("10")})
     def test_insufficient_gold(self, mock_bal):
         """Importing more gold than in wallet should show error."""
-        self.call(
-            CmdImport(), "gold 50",
-            "Your wallet only has 10",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "gold 50", caller=self.account)
+        self.assertIn("Your wallet only has 10", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_balances",
@@ -143,12 +150,10 @@ class TestImportGold(ImportTestBase):
            return_value={"uuid": "U1", "deeplink": "https://x", "qr_url": ""})
     def test_gold_import_creates_payment_payload(self, mock_payload, mock_bal):
         """Successful gold import should create Xaman Payment payload."""
-        self.call(
-            CmdImport(), "gold 50",
-            "Sign Payment",
-            caller=self.account,
-            inputs=["y"],
+        result = self.call(
+            CmdImport(), "gold 50", caller=self.account, inputs=["y"],
         )
+        self.assertIn("Sign Payment", result)
         mock_payload.assert_called_once()
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
@@ -156,12 +161,10 @@ class TestImportGold(ImportTestBase):
            return_value={"FCMGold": Decimal("100")})
     def test_gold_import_confirm_no_cancels(self, mock_bal):
         """Answering 'n' to confirmation should cancel import."""
-        self.call(
-            CmdImport(), "gold 50",
-            "Import cancelled.",
-            caller=self.account,
-            inputs=["n"],
+        result = self.call(
+            CmdImport(), "gold 50", caller=self.account, inputs=["n"],
         )
+        self.assertIn("Import cancelled.", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_balances",
@@ -170,12 +173,10 @@ class TestImportGold(ImportTestBase):
            return_value={"uuid": "U1", "deeplink": "https://x", "qr_url": ""})
     def test_gold_import_all(self, mock_payload, mock_bal):
         """import gold all should use full wallet balance."""
-        self.call(
-            CmdImport(), "gold all",
-            "Sign Payment",
-            caller=self.account,
-            inputs=["y"],
+        result = self.call(
+            CmdImport(), "gold all", caller=self.account, inputs=["y"],
         )
+        self.assertIn("Sign Payment", result)
         # Amount should be 200 (all gold in wallet)
         args = mock_payload.call_args
         self.assertEqual(args[0][2], 200)  # amount parameter
@@ -185,17 +186,15 @@ class TestImportGold(ImportTestBase):
            side_effect=Exception("Network error"))
     def test_gold_network_error(self, mock_bal):
         """Network error should show graceful message."""
-        self.call(
-            CmdImport(), "gold 10",
-            "Could not query XRPL",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "gold 10", caller=self.account)
+        self.assertIn("Could not query XRPL", result)
 
 
 # ================================================================== #
 #  Resource import tests
 # ================================================================== #
 
+@patch("commands.account_cmds.cmd_import.threads.deferToThread", _sync_defer)
 class TestImportResource(ImportTestBase):
     """Test resource import flow."""
 
@@ -204,11 +203,8 @@ class TestImportResource(ImportTestBase):
            return_value={})
     def test_no_resource_in_wallet(self, mock_bal):
         """Importing resource when wallet has none should show error."""
-        self.call(
-            CmdImport(), "wheat",
-            "Your wallet has no Wheat",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "wheat", caller=self.account)
+        self.assertIn("Your wallet has no Wheat", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_balances",
@@ -217,12 +213,10 @@ class TestImportResource(ImportTestBase):
            return_value={"uuid": "U1", "deeplink": "https://x", "qr_url": ""})
     def test_resource_import_creates_payload(self, mock_payload, mock_bal):
         """Successful resource import should create Xaman Payment payload."""
-        self.call(
-            CmdImport(), "wheat 5",
-            "Sign Payment",
-            caller=self.account,
-            inputs=["y"],
+        result = self.call(
+            CmdImport(), "wheat 5", caller=self.account, inputs=["y"],
         )
+        self.assertIn("Sign Payment", result)
         mock_payload.assert_called_once()
 
 
@@ -230,6 +224,7 @@ class TestImportResource(ImportTestBase):
 #  NFT import tests
 # ================================================================== #
 
+@patch("commands.account_cmds.cmd_import.threads.deferToThread", _sync_defer)
 class TestImportNFT(ImportTestBase):
     """Test NFT import flow."""
 
@@ -237,11 +232,8 @@ class TestImportNFT(ImportTestBase):
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts", return_value=[])
     def test_no_nfts_in_wallet(self, mock_nfts):
         """import nft with no wallet NFTs should show error."""
-        self.call(
-            CmdImport(), "nft",
-            "Your wallet has no NFTs",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "nft", caller=self.account)
+        self.assertIn("Your wallet has no NFTs", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts",
@@ -251,10 +243,7 @@ class TestImportNFT(ImportTestBase):
            ])
     def test_nft_list_shows_numbered(self, mock_nfts):
         """import nft should show numbered list of wallet NFTs."""
-        result = self.call(
-            CmdImport(), "nft",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "nft", caller=self.account)
         self.assertIn("1. Iron Longsword", result)
         self.assertIn("2. Leather Shield", result)
 
@@ -265,11 +254,8 @@ class TestImportNFT(ImportTestBase):
            ])
     def test_nft_out_of_range(self, mock_nfts):
         """import nft 5 with only 1 NFT should show error."""
-        self.call(
-            CmdImport(), "nft 5",
-            "Invalid selection",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "nft 5", caller=self.account)
+        self.assertIn("Invalid selection", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts",
@@ -283,11 +269,8 @@ class TestImportNFT(ImportTestBase):
         mock_qs.select_related.return_value.get.side_effect = (
             NFTGameState.DoesNotExist
         )
-        self.call(
-            CmdImport(), "nft 1",
-            "Iron Longsword is not a recognised",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "nft 1", caller=self.account)
+        self.assertIn("Iron Longsword is not a recognised", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts",
@@ -303,12 +286,10 @@ class TestImportNFT(ImportTestBase):
         mock_game_nft = MagicMock()
         mock_game_nft.item_type = MagicMock()
         mock_qs.select_related.return_value.get.return_value = mock_game_nft
-        self.call(
-            CmdImport(), "nft 1",
-            "Create Sell Offer",
-            caller=self.account,
-            inputs=["y"],
+        result = self.call(
+            CmdImport(), "nft 1", caller=self.account, inputs=["y"],
         )
+        self.assertIn("Create Sell Offer", result)
         mock_payload.assert_called_once_with(
             "000800AA", VAULT,
         )
@@ -324,20 +305,15 @@ class TestImportNFT(ImportTestBase):
         mock_game_nft = MagicMock()
         mock_game_nft.item_type = MagicMock()
         mock_qs.select_related.return_value.get.return_value = mock_game_nft
-        self.call(
-            CmdImport(), "nft 1",
-            "Import cancelled.",
-            caller=self.account,
-            inputs=["n"],
+        result = self.call(
+            CmdImport(), "nft 1", caller=self.account, inputs=["n"],
         )
+        self.assertIn("Import cancelled.", result)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.get_wallet_nfts",
            side_effect=Exception("Network error"))
     def test_nft_network_error(self, mock_nfts):
         """Network error querying NFTs should show graceful message."""
-        self.call(
-            CmdImport(), "nft",
-            "Could not query XRPL",
-            caller=self.account,
-        )
+        result = self.call(CmdImport(), "nft", caller=self.account)
+        self.assertIn("Could not query XRPL", result)

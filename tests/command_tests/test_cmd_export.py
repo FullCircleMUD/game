@@ -114,7 +114,7 @@ class TestExportGold(ExportTestBase):
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=True)
     @patch("blockchain.xrpl.xrpl_tx.send_payment", return_value="TX_HASH_1")
     @patch("blockchain.xrpl.services.gold.GoldService.withdraw_to_chain")
@@ -133,7 +133,7 @@ class TestExportGold(ExportTestBase):
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=True)
     @patch("blockchain.xrpl.xrpl_tx.send_payment", return_value="TX_HASH_1")
     @patch("blockchain.xrpl.services.gold.GoldService.withdraw_to_chain")
@@ -151,7 +151,7 @@ class TestExportGold(ExportTestBase):
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=True)
     @patch("blockchain.xrpl.xrpl_tx.send_payment", return_value="TX_HASH_1")
     @patch("blockchain.xrpl.services.gold.GoldService.withdraw_to_chain")
@@ -168,7 +168,7 @@ class TestExportGold(ExportTestBase):
         mock_send.assert_not_called()
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=True)
     @patch("blockchain.xrpl.xrpl_tx.send_payment", return_value="TX_HASH_ALL")
     @patch("blockchain.xrpl.services.gold.GoldService.withdraw_to_chain")
@@ -186,7 +186,7 @@ class TestExportGold(ExportTestBase):
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=False)
     @patch("blockchain.xrpl.xaman.create_trustline_payload",
            return_value={"uuid": "U1", "deeplink": "https://x", "qr_url": ""})
@@ -202,7 +202,7 @@ class TestExportGold(ExportTestBase):
         mock_trustline.assert_called_once()
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=True)
     @patch("blockchain.xrpl.xrpl_tx.send_payment",
            side_effect=Exception("Network error"))
@@ -238,7 +238,7 @@ class TestExportResource(ExportTestBase):
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
-    @patch("commands.account_cmds.cmd_export._check_trust_line_safe",
+    @patch("commands.account_cmds.cmd_export._check_trust_line",
            return_value=True)
     @patch("blockchain.xrpl.xrpl_tx.send_payment", return_value="TX_RES_1")
     @patch("blockchain.xrpl.services.resource.ResourceService.withdraw_to_chain")

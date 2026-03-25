@@ -85,7 +85,7 @@ class TestHendricksOreQuestStep(EvenniaCommandTest):
         self.assertFalse(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
     def test_three_ingots_completes_quest(self, mock_gold, mock_sink):
         """Delivering 3 bronze ingots completes the quest."""
         quest = self._add_quest()
@@ -94,7 +94,7 @@ class TestHendricksOreQuestStep(EvenniaCommandTest):
         self.assertTrue(quest.is_completed)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
     def test_ingots_consumed_on_completion(self, mock_gold, mock_sink):
         """Bronze ingots are consumed (sinked) on quest completion."""
         quest = self._add_quest()
@@ -105,7 +105,7 @@ class TestHendricksOreQuestStep(EvenniaCommandTest):
         self.assertIn(BRONZE_INGOT_ID, call_args[0] or list(call_args[1].values()))
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
     def test_gold_awarded_on_completion(self, mock_gold, mock_sink):
         """Gold is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -114,14 +114,14 @@ class TestHendricksOreQuestStep(EvenniaCommandTest):
         mock_gold.assert_called()
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_no_bread_awarded(self, mock_res_reserve, mock_gold, mock_sink):
         """No bread (resource 3) is awarded — gold-only reward."""
         quest = self._add_quest()
         self.char1.db.resources = {BRONZE_INGOT_ID: 3}
         quest.progress()
-        # reserve_to_game for resources should NOT be called (no bread reward)
+        # craft_output for resources should NOT be called (no bread reward)
         bread_calls = [
             c for c in mock_res_reserve.call_args_list
             if 3 in (c[0] or [])
@@ -129,7 +129,7 @@ class TestHendricksOreQuestStep(EvenniaCommandTest):
         self.assertEqual(len(bread_calls), 0)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
     def test_more_than_needed_still_completes(self, mock_gold, mock_sink):
         """Surplus ingots still completes the quest."""
         quest = self._add_quest()
@@ -154,7 +154,7 @@ class TestHendricksOreQuestAcceptance(EvenniaCommandTest):
         self.assertTrue(can)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
     def test_cannot_accept_after_completion(self, mock_gold, mock_sink):
         """Non-repeatable quest cannot be re-accepted after completion."""
         quest = self.char1.quests.add(HendricksOreQuest)
@@ -187,7 +187,7 @@ class TestHendricksOreQuestAcceptance(EvenniaCommandTest):
         initial = initial_counts.get(HendricksOreQuest.key, 0)
 
         with patch("blockchain.xrpl.services.resource.ResourceService.sink"), \
-             patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game"):
+             patch("blockchain.xrpl.services.gold.GoldService.craft_output"):
             quest = self.char1.quests.add(HendricksOreQuest)
             self.char1.db.resources = {BRONZE_INGOT_ID: 3}
             quest.progress()

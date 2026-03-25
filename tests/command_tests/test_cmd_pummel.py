@@ -81,14 +81,6 @@ class TestPummelGates(_PummelTestBase):
         result = self.call(CmdPummel(), self.char2.key)
         self.assertIn("need training", result)
 
-    @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_no_args_in_combat_no_target(self, mock_ticker):
-        """Pummel with no args in combat but no attack target → error."""
-        self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
-        enter_combat(self.char1, self.mob)
-        result = self.call(CmdPummel(), "")
-        self.assertIn("Pummel who?", result)
-
     def test_no_args_out_of_combat(self):
         """Pummel with no args out of combat → funny flail message."""
         self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)

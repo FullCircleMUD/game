@@ -84,24 +84,24 @@ class TestRatCellarQuestStep(EvenniaCommandTest):
         quest.progress(event_type="room_entered")
         self.assertFalse(quest.is_completed)
 
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_boss_killed_event_completes_quest(self, mock_res_reserve, mock_gold):
         """boss_killed event completes the quest."""
         quest = self._add_quest()
         quest.progress(event_type="boss_killed")
         self.assertTrue(quest.is_completed)
 
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_gold_awarded_on_completion(self, mock_res_reserve, mock_gold):
         """Gold is granted from reserve on quest completion."""
         quest = self._add_quest()
         quest.progress(event_type="boss_killed")
         mock_gold.assert_called()
 
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_bread_awarded_on_completion(self, mock_res_reserve, mock_gold):
         """Bread (resource 3) is granted from reserve on quest completion."""
         quest = self._add_quest()
@@ -113,8 +113,8 @@ class TestRatCellarQuestStep(EvenniaCommandTest):
         ]
         self.assertTrue(len(bread_calls) >= 1)
 
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_no_progress_after_completion(self, mock_res_reserve, mock_gold):
         """Sending boss_killed again after completion has no effect."""
         quest = self._add_quest()
@@ -142,8 +142,8 @@ class TestRatCellarQuestAcceptance(EvenniaCommandTest):
         can, reason = RatCellarQuest.can_accept(self.char1)
         self.assertTrue(can)
 
-    @patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game")
-    @patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game")
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
     def test_cannot_accept_after_completion(self, mock_res_reserve, mock_gold):
         """Non-repeatable quest cannot be re-accepted after completion."""
         quest = self.char1.quests.add(RatCellarQuest)
@@ -174,8 +174,8 @@ class TestRatCellarQuestAcceptance(EvenniaCommandTest):
         ) or {}
         initial = initial_counts.get(RatCellarQuest.key, 0)
 
-        with patch("blockchain.xrpl.services.gold.GoldService.reserve_to_game"), \
-             patch("blockchain.xrpl.services.resource.ResourceService.reserve_to_game"):
+        with patch("blockchain.xrpl.services.gold.GoldService.craft_output"), \
+             patch("blockchain.xrpl.services.resource.ResourceService.craft_output"):
             quest = self.char1.quests.add(RatCellarQuest)
             quest.progress(event_type="boss_killed")
 

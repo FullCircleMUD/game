@@ -914,6 +914,7 @@ class TestTrueSight(EvenniaTest):
         from evennia.utils.create import create_object
         from typeclasses.terrain.rooms.room_base import RoomBase
         room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
         self.char1.location = room
         self.char2.location = room
         self.spell.cast(self.char1, self.char1)
@@ -926,6 +927,7 @@ class TestTrueSight(EvenniaTest):
         from evennia.utils.create import create_object
         from typeclasses.terrain.rooms.room_base import RoomBase
         room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
         self.char1.location = room
         self.char2.location = room
         self.char2.add_condition(Condition.HIDDEN)

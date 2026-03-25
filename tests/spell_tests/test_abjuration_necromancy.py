@@ -364,7 +364,7 @@ class TestDrainLife(EvenniaTest):
             mock_dice.roll.return_value = 10
             with patch.object(self.char2, "die") as mock_die:
                 self.spell.cast(self.char1, self.char2)
-                mock_die.assert_called_once_with("spell")
+                mock_die.assert_called_once_with("spell", killer=None)
 
 
 # ================================================================== #
