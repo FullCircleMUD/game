@@ -398,7 +398,7 @@ def spawn_npcs():
     _spawn_nft_shopkeeper(
         room_key="Arms Dealer",
         name="Grik",
-        tradeable_item_types=["Training Dagger", "Training Shortsword"],
+        tradeable_item_types=["Training Dagger", "Training Shortsword", "Training Longsword"],
         shop_name="Grik's Blades & Blunts",
         desc=(
             "A wiry goblin with a surprisingly keen business sense perches "

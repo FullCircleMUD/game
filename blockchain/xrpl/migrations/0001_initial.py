@@ -56,6 +56,7 @@ CURRENCY_TYPES = [
     {"currency_code": "PGold", "resource_id": None, "name": "P Gold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "250000"},
     {"currency_code": "PTrainDagger", "resource_id": None, "name": "P Train Dagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
     {"currency_code": "PTrainSSword", "resource_id": None, "name": "P Train SSword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
+    {"currency_code": "PTrainLSword", "resource_id": None, "name": "P Train LSword", "unit": "tokens", "description": "Proxy token for Training Longsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
 ]
 
 
@@ -95,7 +96,7 @@ NFT_ITEM_TYPES = [
     # ── Weapons ──
     {"name": "Training Dagger", "typeclass": _DAGGER_TC, "prototype_key": "training_dagger", "description": "A blunt wooden dagger used for practice. Light and fast, but harmless.", "tracking_token": "PTrainDagger"},
     {"name": "Training Shortsword", "typeclass": _SHORTSWORD_TC, "prototype_key": "training_shortsword", "description": "A wooden practice shortsword. Lighter than a longsword, good for one-handed drills.", "tracking_token": "PTrainSSword"},
-    {"name": "Training Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "training_longsword", "description": "A wooden practice sword. Won't cut much, but it'll bruise."},
+    {"name": "Training Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "training_longsword", "description": "A wooden practice sword. Won't cut much, but it'll bruise.", "tracking_token": "PTrainLSword"},
     {"name": "Training Bow", "typeclass": _BOW_TC, "prototype_key": "training_bow", "description": "A crude practice bow carved from a single piece of timber."},
     {"name": "Club", "typeclass": _CLUB_TC, "prototype_key": "club", "description": "A heavy wooden club. Simple, brutal, and effective."},
     {"name": "Iron Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "iron_longsword", "description": "A sturdy iron blade, forged by a competent smith."},
