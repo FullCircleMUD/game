@@ -328,7 +328,7 @@ def _on_nft_quote_price(caller, shopkeeper, direction, item_type, item,
         "tracking_token": item_type.tracking_token,
         "gold_price": gold_price,
         "shopkeeper_dbref": shopkeeper.dbref,
-        "item_dbref": item.dbref if item else None,
+        "item_dbref": item.id if item else None,
     }
 
     shop_name = shopkeeper.shop_name or shopkeeper.key
@@ -578,7 +578,7 @@ class CmdNFTShopSell(Command):
         )
         d.addCallback(
             lambda result: _on_nft_sell_complete(
-                caller, shopkeeper, item_type.name, item.dbref,
+                caller, shopkeeper, item_type.name, item.id,
                 result["gold_received"], result,
             )
         )
