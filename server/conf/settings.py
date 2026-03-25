@@ -26,6 +26,8 @@ put secret game- or server-specific settings in secret_settings.py.
 
 import os
 
+import dj_database_url
+
 # Use the defaults from Evennia unless explicitly overridden
 from evennia.settings_default import *  # noqa: F403, F401 — provides DATABASES, GAME_DIR, etc.
 
@@ -36,20 +38,36 @@ WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
 SERVER_HOSTNAME = '0.0.0.0'
 LOCKDOWN_MODE = False
 
-# XRPL tables live in their own database.
-# Migrate with: evennia migrate --database xrpl
-DATABASES["xrpl"] = {  # type: ignore[name-defined]
-    "ENGINE": "django.db.backends.sqlite3",
-    "NAME": os.path.join(GAME_DIR, "server", "xrpl.db3"),  # type: ignore[name-defined]
-}
+# ── Database Configuration ────────────────────────────────────────────
+# DATABASE_URL controls the backend:
+#   - Set (Railway/production): PostgreSQL for all 3 databases
+#   - Not set (local dev): SQLite files, zero config
+# See design/DATABASE.md for full architecture documentation.
+_DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# AI Memory — persistent NPC memory with vector embeddings.
-# Separate DB so memories survive game DB wipes.
-# Migrate with: evennia migrate --database ai_memory
-DATABASES["ai_memory"] = {  # type: ignore[name-defined]
-    "ENGINE": "django.db.backends.sqlite3",
-    "NAME": os.path.join(GAME_DIR, "server", "ai_memory.db3"),  # type: ignore[name-defined]
-}
+if _DATABASE_URL:
+    # PostgreSQL mode — all three aliases share one physical PG database.
+    # The routers ensure each app's tables migrate to the correct alias.
+    _pg_config = dj_database_url.parse(_DATABASE_URL)
+    _pg_config["CONN_MAX_AGE"] = 600
+
+    DATABASES["default"] = _pg_config  # type: ignore[name-defined]
+    DATABASES["xrpl"] = {**_pg_config}  # type: ignore[name-defined]
+    DATABASES["ai_memory"] = {**_pg_config}  # type: ignore[name-defined]
+else:
+    # SQLite mode — local development. Default DB inherited from
+    # evennia.settings_default (evennia.db3). Custom DBs below.
+    # Migrate with: evennia migrate --database xrpl
+    DATABASES["xrpl"] = {  # type: ignore[name-defined]
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(GAME_DIR, "server", "xrpl.db3"),  # type: ignore[name-defined]
+    }
+    # Migrate with: evennia migrate --database ai_memory
+    DATABASES["ai_memory"] = {  # type: ignore[name-defined]
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(GAME_DIR, "server", "ai_memory.db3"),  # type: ignore[name-defined]
+    }
+
 DATABASE_ROUTERS = [
     "blockchain.xrpl.db_router.XRPLRouter",
     "ai_memory.db_router.AiMemoryRouter",
@@ -110,10 +128,18 @@ CONTRACT_TREASURY  = "0x0000000000000000000000000000000000000000"
 
 # ── XRPL Configuration ──────────────────────────────────────────────
 XRPL_IMPORT_EXPORT_ENABLED = True  # kill-switch for import/export — off for alpha, flip when ready
-XRPL_NETWORK_URL = "wss://s.altnet.rippletest.net:51233"
+# XRPL network endpoint — environment-specific, not secret.
+# Defaults to testnet so local dev works without any env var.
+# Railway production overrides to mainnet: wss://s1.ripple.com:51233
+# Railway staging keeps the testnet default (or sets it explicitly).
+XRPL_NETWORK_URL = os.environ.get(
+    "XRPL_NETWORK_URL",
+    "wss://s.altnet.rippletest.net:51233",
+)
 XRPL_ISSUER_ADDRESS = "rU3VtgY3LE63tmd7egjPUx37JqQXumokyJ"
 XRPL_VAULT_ADDRESS = "rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ"   # game/bridge wallet (holds RESERVE/SPAWNED)
 XRPL_GOLD_CURRENCY_CODE = "FCMGold"
+XRPL_PGOLD_CURRENCY_CODE = "PGold"
 
 XRPL_VAULT_WALLET_SEED = ""  # vault wallet seed for server-signed txns
 

@@ -17,3 +17,9 @@ numpy
 
 # needed for xaman API
 requests
+
+# PostgreSQL driver (production — Railway)
+psycopg2-binary
+
+# Parse DATABASE_URL into Django DATABASES format
+dj-database-url
