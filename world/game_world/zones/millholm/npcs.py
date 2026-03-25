@@ -93,6 +93,7 @@ def _spawn_baker():
         "face glistens with sweat from the heat of the ovens, but he wears "
         "a contented smile."
     )
+    npc.room_description = "{name} works behind the counter, kneading dough with practised ease."
     print(f"  Spawned baker 'Bron' in {room.key} ({room.dbref})")
     return npc
 
@@ -130,6 +131,7 @@ def _spawn_oakwright():
         "practised strokes. Sawdust dusts his leather apron and clings "
         "to his grey-streaked hair. He doesn't look up."
     )
+    npc.room_description = "{name} works at his bench, guiding a plane along a length of timber."
     print(f"  Spawned carpenter 'Master Oakwright' in {room.key} ({room.dbref})")
     return npc
 
@@ -169,6 +171,7 @@ def _spawn_elena():
         "hangs around her neck like a scarf. She glances up with wide, "
         "slightly harried eyes."
     )
+    npc.room_description = "{name} hunches over a cutting table, scissors flashing through fabric."
     print(f"  Spawned seamstress 'Elena Copperkettle' in {room.key} ({room.dbref})")
     return npc
 
@@ -221,6 +224,7 @@ def _spawn_mara():
         "quiet argument with a bundle of dried herbs. Her dark eyes "
         "flick up — appraising, clinical — then return to her work."
     )
+    npc.room_description = "{name} grinds herbs in a stone mortar, muttering to her ingredients."
     print(f"  Spawned herbalist 'Mara Brightwater' in {room.key} ({room.dbref})")
     return npc
 
@@ -258,6 +262,7 @@ def _spawn_torben():
         "steady strokes. His thick fingers move with surprising "
         "delicacy. He glances up with a patient nod."
     )
+    npc.room_description = "{name} scrapes a stretched hide with a curved blade in steady strokes."
     print(f"  Spawned leatherworker 'Torben Greaves' in {room.key} ({room.dbref})")
     return npc
 
@@ -295,6 +300,7 @@ def _spawn_hendricks():
         "and falling in a steady rhythm that hasn't changed in forty "
         "years. Sparks scatter with each blow. He doesn't look up."
     )
+    npc.room_description = "{name} works the forge, his hammer rising and falling in a steady rhythm."
     print(f"  Spawned blacksmith 'Old Hendricks' in {room.key} ({room.dbref})")
     return npc
 
@@ -323,6 +329,7 @@ def _spawn_warrior_guildmaster():
         "of someone who has seen every dirty trick a fight can offer and "
         "survived them all."
     )
+    npc.room_description = "{name} stands with arms folded, watching the training yard with a critical eye."
     print(f"  Spawned guildmaster 'Sergeant Grimjaw' in {room.key} ({room.dbref})")
     return npc
 
@@ -371,6 +378,7 @@ def _spawn_warrior_trainer():
         "muscle and her eyes miss nothing. A wooden practice sword "
         "rests across her shoulder."
     )
+    npc.room_description = "{name} runs drills, correcting stances with clipped efficiency."
     print(f"  Spawned trainer 'Corporal Hask' in {room.key} ({room.dbref})")
     return npc
 
@@ -399,6 +407,7 @@ def _spawn_thief_guildmaster():
         "take. A single exquisite rapier hangs at her hip — more ornament "
         "than weapon, until it isn't."
     )
+    npc.room_description = "{name} lounges in the shadows, a rapier glinting at her hip."
     print(f"  Spawned guildmaster 'Shadow Mistress Vex' in {room.key} ({room.dbref})")
     return npc
 
@@ -443,6 +452,7 @@ def _spawn_thief_trainer():
         "weapons, measuring distances. When they speak, it's barely above "
         "a whisper."
     )
+    npc.room_description = "{name} leans against the wall, idly flipping a coin across scarred knuckles."
     print(f"  Spawned trainer 'Whisper' in {room.key} ({room.dbref})")
     return npc
 
@@ -472,6 +482,7 @@ def _spawn_mage_guildmaster():
         "ahead of his mouth — but the occasional sharp glance reveals an "
         "intellect that misses nothing."
     )
+    npc.room_description = "{name} sits at a reading desk, surrounded by teetering stacks of books."
     print(f"  Spawned guildmaster 'Archmage Tindel' in {room.key} ({room.dbref})")
     return npc
 
@@ -516,6 +527,7 @@ def _spawn_mage_trainer():
         "of someone who takes her studies very seriously — perhaps too "
         "seriously, judging by the dark circles under her eyes."
     )
+    npc.room_description = "{name} stands at the binding plinth, carefully arranging reagents."
     print(f"  Spawned trainer 'Apprentice Selene' in {room.key} ({room.dbref})")
     return npc
 
@@ -545,6 +557,7 @@ def _spawn_cleric_guildmaster():
         "he can see exactly what they need. He speaks of distant temples and "
         "holy sites, and of pilgrims passing through heading south."
     )
+    npc.room_description = "{name} kneels before the altar, his hands clasped in quiet prayer."
     print(f"  Spawned guildmaster 'Brother Aldric' in {room.key} ({room.dbref})")
     return npc
 
@@ -594,6 +607,7 @@ def _spawn_cleric_trainer():
         "defending the faithful. Her face is kind but firm, the face of "
         "someone who heals with one hand and fights with the other."
     )
+    npc.room_description = "{name} moves between the shelves, organising prayer books with quiet efficiency."
     print(f"  Spawned trainer 'Sister Maeve' in {room.key} ({room.dbref})")
     return npc
 
@@ -640,6 +654,7 @@ def _spawn_beggar():
         "who has learned that the world can take everything from you "
         "without warning. A battered tin cup sits beside him, empty."
     )
+    npc.room_description = "{name} sits hunched against the wall, wrapped in a threadbare blanket."
     print(f"  Spawned beggar 'Old Silas' in {room.key} ({room.dbref})")
     return npc
 
@@ -687,6 +702,7 @@ def _spawn_jeweller():
         "practised precision, setting a small gem into a pewter ring. She "
         "hums tunelessly as she works."
     )
+    npc.room_description = "{name} sits at her workbench, setting a small gem into a pewter ring."
     print(f"  Spawned jeweller 'Gemma' in {room.key} ({room.dbref})")
     return npc
 
@@ -712,6 +728,7 @@ def _spawn_general_store():
         "appraising eye of someone who knows exactly what everything "
         "is worth — and what you're willing to pay for it."
     )
+    npc.room_description = "{name} stands behind the counter, watching customers with a shrewd eye."
     print(f"  Spawned shopkeeper 'Merchant Harlow' in {room.key} ({room.dbref})")
     return npc
 
@@ -738,6 +755,7 @@ def _spawn_wheat_farmer():
         "the best wheat in Millholm and she knows it — but she's not "
         "above a fair haggle."
     )
+    npc.room_description = "{name} leans against the doorframe, surveying her fields with quiet pride."
     print(f"  Spawned farmer 'Farmer Bramble' in {room.key} ({room.dbref})")
     return npc
 
@@ -799,6 +817,7 @@ def _spawn_broken_crown_barkeep():
         "A heavy wooden club leans against the wall behind her, within "
         "easy reach. It has notches carved into the handle."
     )
+    npc.room_description = "{name} stands behind the bar with her arms crossed, daring someone to start trouble."
     print(f"  Spawned barkeep 'Gerta' in {room.key} ({room.dbref})")
     return npc
 
@@ -861,6 +880,7 @@ def _spawn_gaoler():
         "the cudgel propped against the wall, which looks like it "
         "hasn't been touched in years."
     )
+    npc.room_description = "{name} sits hunched over a thick ledger, his small eyes peering up with weary suspicion."
     print(f"  Spawned gaoler 'Grubb' in {room.key} ({room.dbref})")
     return npc
 
@@ -914,6 +934,7 @@ def _spawn_fence():
         "of pockets, each one bulging slightly. A small lockbox sits "
         "under his chair, chained to his ankle."
     )
+    npc.room_description = "{name} hunches over a corner table, eyes darting between the door and the other patrons."
     print(f"  Spawned fence 'Ratwick' in {room.key} ({room.dbref})")
     return npc
 
@@ -1000,6 +1021,7 @@ def _spawn_lumberjack():
         "his breath. A half-eaten plate of buttered scones sits on a "
         "nearby stump."
     )
+    npc.room_description = "{name} hums tunelessly, a double-headed axe leaning against the wall beside him."
     print(f"  Spawned lumberjack 'Big Bjorn' in {room.key} ({room.dbref})")
     return npc
 
@@ -1025,6 +1047,7 @@ def _spawn_cotton_farmer():
         "tucked into her belt. She runs the Brightwater cotton operation "
         "with brisk efficiency and a warm smile."
     )
+    npc.room_description = "{name} sorts cotton bolts with brisk efficiency, wisps of fibre in her hair."
     print(f"  Spawned cotton farmer 'Goodwife Tilly' in {room.key} ({room.dbref})")
     return npc
 
@@ -1096,6 +1119,7 @@ def _spawn_trapper():
         "a hide with a bone scraper, occasionally pausing to squint at "
         "the tree line as if listening to something only he can hear."
     )
+    npc.room_description = "{name} sits on a stump, working a hide with a bone scraper."
     print(f"  Spawned trapper 'Old Buckshaw' in {room.key} ({room.dbref})")
     return npc
 
