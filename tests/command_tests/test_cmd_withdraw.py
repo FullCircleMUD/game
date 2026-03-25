@@ -161,8 +161,8 @@ class TestCmdWithdrawNFT(EvenniaCommandTest):
 
     @patch("blockchain.xrpl.services.nft.NFTService.unbank")
     def test_withdraw_nft(self, mock_unbank):
-        """withdraw 42 should move NFT to character."""
-        self.call(CmdWithdraw(), "42", "You withdraw Iron Sword")
+        """withdraw by dbref should move NFT to character."""
+        self.call(CmdWithdraw(), str(self.sword.id), "You withdraw Iron Sword")
         self.assertEqual(self.sword.location, self.char1)
 
     def test_withdraw_nft_not_found(self):
@@ -182,7 +182,7 @@ class TestCmdWithdrawNFT(EvenniaCommandTest):
         horse.db_location = self.bank
         horse.save(update_fields=["db_location"])
 
-        self.call(CmdWithdraw(), "99", "That item cannot be withdrawn")
+        self.call(CmdWithdraw(), str(horse.id), "That item cannot be withdrawn")
         self.assertEqual(horse.location, self.bank)
 
     def test_withdraw_unknown_arg(self):

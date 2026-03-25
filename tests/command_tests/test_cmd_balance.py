@@ -132,9 +132,9 @@ class TestCmdBalanceNFTItems(EvenniaCommandTest):
         self.assertIn("Iron Sword", result)
 
     def test_balance_shows_nft_token_id(self):
-        """balance should show token ID for NFT items."""
+        """balance should show dbref for NFT items."""
         result = self.call(CmdBalance(), "")
-        self.assertIn("#42", result)
+        self.assertIn(f"#{self.sword.id}", result)
 
 
 class TestCmdBalanceUntakeableItems(EvenniaCommandTest):

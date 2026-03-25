@@ -156,8 +156,8 @@ class TestCmdDepositNFT(EvenniaCommandTest):
 
     @patch("blockchain.xrpl.services.nft.NFTService.bank")
     def test_deposit_nft(self, mock_bank):
-        """deposit 42 should move NFT to bank."""
-        self.call(CmdDeposit(), "42", "You deposit Iron Sword")
+        """deposit by dbref should move NFT to bank."""
+        self.call(CmdDeposit(), str(self.sword.id), "You deposit Iron Sword")
         self.assertEqual(self.sword.location, self.bank)
 
     def test_deposit_nft_not_found(self):

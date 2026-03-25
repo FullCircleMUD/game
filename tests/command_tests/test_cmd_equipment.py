@@ -144,9 +144,9 @@ class TestCmdWear(EvenniaCommandTest):
         self.call(CmdWear(), "", "Wear what?")
 
     def test_wear_by_token_id(self):
-        """Wearing by token ID should work."""
-        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=7)
-        self.call(CmdWear(), "#7", "You wear Iron Helmet")
+        """Wearing by dbref should work."""
+        helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=7)
+        self.call(CmdWear(), f"#{helmet.id}", "You wear Iron Helmet")
 
     def test_wear_by_partial_name(self):
         """Wearing by partial name (substring) should work."""

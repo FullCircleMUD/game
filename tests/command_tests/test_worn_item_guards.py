@@ -82,10 +82,10 @@ class TestDropWornGuard(EvenniaCommandTest):
         self.assertIn(helmet, self.char1.contents)
 
     def test_drop_worn_by_token_id_rejected(self):
-        """Dropping a worn item by token ID should be rejected."""
+        """Dropping a worn item by dbref should be rejected."""
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=100)
         self.char1.wear(helmet)
-        result = self.call(CmdDrop(), "#100")
+        result = self.call(CmdDrop(), f"#{helmet.id}")
         self.assertIn("You must remove Iron Helmet first", result)
 
     def test_drop_unworn_item_succeeds(self):
@@ -162,10 +162,10 @@ class TestGiveWornGuard(EvenniaCommandTest):
         self.assertIn(helmet, self.char1.contents)
 
     def test_give_worn_by_token_id_rejected(self):
-        """Giving a worn item by token ID should be rejected."""
+        """Giving a worn item by dbref should be rejected."""
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=104)
         self.char1.wear(helmet)
-        result = self.call(CmdGive(), f"#104 to {self.char2.key}")
+        result = self.call(CmdGive(), f"#{helmet.id} to {self.char2.key}")
         self.assertIn("You must remove Iron Helmet first", result)
 
     def test_give_unworn_item_succeeds(self):
@@ -196,14 +196,14 @@ class TestJunkWornGuard(EvenniaCommandTest):
         """Junking a worn NFT should be rejected."""
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=106)
         self.char1.wear(helmet)
-        result = self.call(CmdJunk(), "#106")
+        result = self.call(CmdJunk(), f"#{helmet.id}")
         self.assertIn("You must remove Iron Helmet first", result)
         self.assertIn(helmet, self.char1.contents)
 
     def test_junk_unworn_nft_prompts_confirmation(self):
         """Junking an unworn NFT should proceed past worn guard to confirmation."""
-        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=107)
-        result = self.call(CmdJunk(), "#107", inputs=["n"])
+        helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=107)
+        result = self.call(CmdJunk(), f"#{helmet.id}", inputs=["n"])
         # Should get past the worn guard to the Y/N prompt (answered "n")
         self.assertNotIn("must remove", result)
         self.assertIn("Junk cancelled", result)
@@ -227,10 +227,10 @@ class TestDepositWornGuard(EvenniaCommandTest):
         self.account.attributes.add("wallet_address", WALLET_A)
 
     def test_deposit_worn_by_token_id_rejected(self):
-        """Depositing a worn item by token ID should be rejected."""
+        """Depositing a worn item by dbref should be rejected."""
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=108)
         self.char1.wear(helmet)
-        result = self.call(CmdDeposit(), "#108")
+        result = self.call(CmdDeposit(), f"#{helmet.id}")
         self.assertIn("You must remove Iron Helmet first", result)
         self.assertIn(helmet, self.char1.contents)
 

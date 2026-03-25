@@ -312,7 +312,7 @@ class TestExportNFT(ExportTestBase):
     def test_nft_export_creates_sell_offer(self, mock_accept, mock_sell):
         """NFT export should create a sell offer from the vault."""
         result = self.call(
-            CmdExport(), f"#{TOKEN_ID}",
+            CmdExport(), f"#{self.sword.id}",
             caller=self.account,
             inputs=["y"],
         )
@@ -328,7 +328,7 @@ class TestExportNFT(ExportTestBase):
     def test_nft_export_confirm_no_cancels(self, mock_accept, mock_sell):
         """Answering 'n' to confirmation should cancel NFT export."""
         result = self.call(
-            CmdExport(), f"#{TOKEN_ID}",
+            CmdExport(), f"#{self.sword.id}",
             caller=self.account,
             inputs=["n"],
         )
@@ -341,7 +341,7 @@ class TestExportNFT(ExportTestBase):
     def test_nft_sell_offer_failure_preserves_item(self, mock_sell):
         """Sell offer failure should preserve the item in bank."""
         result = self.call(
-            CmdExport(), f"#{TOKEN_ID}",
+            CmdExport(), f"#{self.sword.id}",
             caller=self.account,
             inputs=["y"],
         )
