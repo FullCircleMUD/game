@@ -56,6 +56,7 @@ def _spawn_bartender():
         "polished bar, idly wiping a tankard with a cloth. His weathered "
         "face creases into an easy smile at the sight of a new arrival."
     )
+    npc.room_description = "{name} stands behind the bar, polishing a tankard."
     print(f"  Spawned bartender 'Rowan' in {room.key} ({room.dbref})")
     return npc
 
