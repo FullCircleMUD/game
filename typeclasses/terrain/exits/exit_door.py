@@ -59,10 +59,11 @@ class ExitDoor(
     open_desc = AttributeProperty(None)
 
     def return_appearance(self, looker, **kwargs):
-        """Block destination preview when the door is closed."""
+        """Show door state + destination name when closed, full preview when open."""
         if not self.is_open:
-            name = self.door_name or "door"
-            return f"The {name} is closed."
+            dest = self.destination
+            dest_name = dest.get_display_name(looker) if dest else "somewhere"
+            return f"{self.key} is closed. It leads to |c{dest_name}|n."
         return super().return_appearance(looker, **kwargs)
 
     # Reciprocal door on the other side (set via link_door_pair)
