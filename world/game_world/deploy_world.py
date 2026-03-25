@@ -1036,7 +1036,36 @@ def deploy_world():
 
     print("  All cross-zone destinations wired.")
 
+    seed_starting_resources()
+
     print("=== WORLD DEPLOY COMPLETE ===\n")
+
+
+def seed_starting_resources():
+    """Immediately populate RoomHarvesting rooms with default_spawn_rate resources.
+
+    Called at the end of deploy_world() so the first player doesn't find
+    an empty world.  Uses ResourceSpawnService.distribute_to_rooms() which
+    applies resources instantly (no drip-feed delay, no telemetry gate).
+    """
+    from blockchain.xrpl.services.resource_spawn import ResourceSpawnService
+    from world.economy.resource_spawn_config import RESOURCE_SPAWN_CONFIG
+
+    print("\n--- Seeding starting resources ---")
+    summary = []
+    for resource_id, config in RESOURCE_SPAWN_CONFIG.items():
+        amount = config["default_spawn_rate"]
+        max_per_room = config["max_per_room"]
+        seeded = ResourceSpawnService.distribute_to_rooms(
+            resource_id, amount, max_per_room,
+        )
+        if seeded > 0:
+            summary.append(f"  r{resource_id}: {seeded} units")
+    if summary:
+        print("\n".join(summary))
+    else:
+        print("  No harvest rooms found — nothing seeded.")
+    print("--- Seeding complete ---\n")
 
 
 def soft_deploy_world():
