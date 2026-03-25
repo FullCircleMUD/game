@@ -92,6 +92,34 @@ def _spawn_guildmaster(room_key, name, guild_class, quest_key=None,
     return npc
 
 
+def _spawn_nft_shopkeeper(room_key, name, tradeable_item_types, shop_name, desc):
+    """
+    Spawn an NFTShopkeeperNPC into the given room.
+
+    Args:
+        room_key: Room key to place the shopkeeper in.
+        name: Display name for the NPC.
+        tradeable_item_types: List of str NFTItemType names this shop trades.
+        shop_name: Display name for the shop (shown in list/quote output).
+        desc: Description string for the NPC.
+    """
+    room = _find_room(room_key)
+    if not room:
+        print(f"  [!] Room '{room_key}' not found — skipping {name}")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.nft_shopkeeper.NFTShopkeeperNPC",
+        key=name,
+        location=room,
+    )
+    npc.tradeable_item_types = tradeable_item_types
+    npc.shop_name = shop_name
+    npc.db.desc = desc
+    print(f"  Spawned NFT shopkeeper '{name}' in {room.key} ({room.dbref})")
+    return npc
+
+
 def _spawn_shopkeeper(room_key, name, tradeable_resources, shop_name, desc):
     """
     Spawn a ShopkeeperNPC into the given room.
@@ -363,6 +391,19 @@ def spawn_npcs():
             "Merchant Harlow leans against the counter with an appraising eye, "
             "ready to haggle over grain, flour, and bread. His prices shift with "
             "the market — type |wlist|n to see what's on offer."
+        ),
+    )
+
+    # ── Arms Dealer — Training Dagger, Training Shortsword ──
+    _spawn_nft_shopkeeper(
+        room_key="Arms Dealer",
+        name="Grik",
+        tradeable_item_types=["Training Dagger", "Training Shortsword"],
+        shop_name="Grik's Blades & Blunts",
+        desc=(
+            "A wiry goblin with a surprisingly keen business sense perches "
+            "behind a counter cluttered with wooden practice weapons. He "
+            "eyes you shrewdly — type |wlist|n to see what he's selling."
         ),
     )
 

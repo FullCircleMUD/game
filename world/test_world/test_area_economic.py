@@ -1037,15 +1037,16 @@ def test_area_economic():
 
     shop_east = create_object(
         RoomBase,
-        key="shop east",
+        key="Arms Dealer",
         attributes=[
             ("max_height", 0),
             ("max_depth", 0),
-            ("desc", "shop 2 displays their wares")
+            ("desc", "Racks of wooden practice weapons line the walls of this small shop. "
+                     "A battered sign reads 'Blades & Blunts — Buy, Sell, Trade'.")
         ]
     )
 
-    connect(market_square, shop_east, "east", desc_ab="shop east", desc_ba="market square")
+    connect(market_square, shop_east, "east", desc_ab="an arms dealer", desc_ba="market square")
 
     shop_north = create_object(
         RoomBase,
