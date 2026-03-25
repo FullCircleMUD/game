@@ -140,7 +140,8 @@ class TestOakwrightTimberDelivery(EvenniaCommandTest):
         self.char1.db.resources = resources
 
         with patch.object(self.char1, "return_resource_to_sink"), \
-             patch.object(self.char1, "receive_gold_from_reserve"):
+             patch.object(self.char1, "receive_gold_from_reserve"), \
+             patch.object(self.char1, "receive_resource_from_reserve"):
             result = self.call(CmdNPCQuest(), "", obj=self.oakwright)
 
         quest = self.char1.quests.get("oakwright_timber")
@@ -155,7 +156,8 @@ class TestOakwrightTimberDelivery(EvenniaCommandTest):
         self.char1.db.resources = resources
 
         with patch.object(self.char1, "return_resource_to_sink") as mock_sink, \
-             patch.object(self.char1, "receive_gold_from_reserve"):
+             patch.object(self.char1, "receive_gold_from_reserve"), \
+             patch.object(self.char1, "receive_resource_from_reserve"):
             self.call(CmdNPCQuest(), "", obj=self.oakwright)
 
         mock_sink.assert_called_once_with(TIMBER_ID, TIMBER_NEEDED)

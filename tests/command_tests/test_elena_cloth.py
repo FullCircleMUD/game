@@ -88,8 +88,6 @@ class TestElenaClothQuestStep(EvenniaCommandTest):
         quest = self._add_quest()
         self.char1.db.resources = {CLOTH_ID: 1}
         quest.progress()
-        # Message should mention remaining cloth needed
-        msgs = self.char1.msg.call_args_list if hasattr(self.char1, 'msg') else []
         # Quest is not completed — that's the key check
         self.assertFalse(quest.is_completed)
 

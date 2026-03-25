@@ -137,7 +137,8 @@ class TestBakersFlourDelivery(EvenniaCommandTest):
 
         # Mock blockchain-touching methods
         with patch.object(self.char1, "return_resource_to_sink"), \
-             patch.object(self.char1, "receive_gold_from_reserve"):
+             patch.object(self.char1, "receive_gold_from_reserve"), \
+             patch.object(self.char1, "receive_resource_from_reserve"):
             result = self.call(CmdNPCQuest(), "", obj=self.baker)
 
         # Quest should be completed
@@ -153,7 +154,8 @@ class TestBakersFlourDelivery(EvenniaCommandTest):
         self.char1.db.resources = resources
 
         with patch.object(self.char1, "return_resource_to_sink") as mock_sink, \
-             patch.object(self.char1, "receive_gold_from_reserve"):
+             patch.object(self.char1, "receive_gold_from_reserve"), \
+             patch.object(self.char1, "receive_resource_from_reserve"):
             self.call(CmdNPCQuest(), "", obj=self.baker)
 
         # Should have called sink with flour ID and amount 3

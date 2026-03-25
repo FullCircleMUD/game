@@ -342,8 +342,9 @@ class TestRatCellarQuest(EvenniaCommandTest):
         quest = self.char1.quests.add(RatCellarQuest)
         self.assertFalse(quest.is_completed)
 
-        # Mock gold reward to avoid blockchain DB dependency
-        with patch.object(self.char1, "receive_gold_from_reserve"):
+        # Mock rewards to avoid blockchain DB dependency
+        with patch.object(self.char1, "receive_gold_from_reserve"), \
+             patch.object(self.char1, "receive_resource_from_reserve"):
             self.char1.quests.check_progress(
                 "boss_killed",
                 quest_keys=["rat_cellar"],

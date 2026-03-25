@@ -226,10 +226,11 @@ class TestSkipLogic(RegenServiceTestBase):
         """Unpuppeted characters (quit but account logged in) should be skipped."""
         self.char1.hunger_level = HungerLevel.STARVING
         self.char1.hp = 50
-        with patch("typeclasses.scripts.regeneration_service.ObjectDB") as mock_db, \
-             patch.object(type(self.char1), "has_account",
-                          new_callable=lambda: property(lambda s: False)):
-            mock_db.objects.filter.return_value = [self.char1]
+        # Session exists but get_puppet() returns None (no puppeted character)
+        mock_session = MagicMock()
+        mock_session.get_puppet.return_value = None
+        with patch("typeclasses.scripts.regeneration_service.SESSION_HANDLER") as mock_sh:
+            mock_sh.get_sessions.return_value = [mock_session]
             self.service.at_repeat()
         # HP should not change — service should skip this character entirely
         self.assertEqual(self.char1.hp, 50)
