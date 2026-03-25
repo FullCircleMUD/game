@@ -24,6 +24,8 @@ from blockchain.xrpl.models import (
     EconomySnapshot,
     FungibleGameState,
     FungibleTransferLog,
+    NFTGameState,
+    NFTItemType,
     PlayerSession,
     ResourceSnapshot,
 )
@@ -172,17 +174,48 @@ class TelemetryService:
             },
         )
 
-        # ── Per-resource snapshots ──
+        # ── Per-currency snapshots ──
         amm_prices = _fetch_amm_prices()
+
+        # Build NFT circulation counts: one query, grouped by item_type
+        # and location. Only rows with item_type assigned are in circulation.
+        nft_circulation = _nft_circulation_by_tracking_token()
 
         for ct in CurrencyType.objects.all():
             code = ct.currency_code
             prices = amm_prices.get(code, {})
 
-            ResourceSnapshot.objects.update_or_create(
-                hour=bucket,
-                currency_code=code,
-                defaults={
+            # Check if this currency is a proxy token for an NFT item type
+            nft_counts = nft_circulation.get(code)
+
+            if nft_counts is not None:
+                # Proxy token — circulation from NFTGameState, not FungibleGameState
+                defaults = {
+                    "in_character": Decimal(nft_counts.get("CHARACTER", 0)),
+                    "in_account": Decimal(nft_counts.get("ACCOUNT", 0)),
+                    "in_spawned": Decimal(nft_counts.get("SPAWNED", 0)),
+                    "in_reserve": Decimal(nft_counts.get("RESERVE", 0)),
+                    "in_sink": Decimal(0),  # NFTs don't have a SINK location
+                    "produced_1h": _transfer_volume(
+                        code, ["craft_output", "pickup", "nft_amm_swap"],
+                        hour_ago, now,
+                    ),
+                    "consumed_1h": _transfer_volume(
+                        code, ["craft_input", "sink", "nft_amm_swap"],
+                        hour_ago, now,
+                    ),
+                    "traded_1h": _transfer_volume(
+                        code, ["nft_amm_buy", "nft_amm_sell", "nft_amm_swap"],
+                        hour_ago, now,
+                    ),
+                    "exported_1h": Decimal(0),
+                    "imported_1h": Decimal(0),
+                    "amm_buy_price": prices.get("buy_1"),
+                    "amm_sell_price": prices.get("sell_1"),
+                }
+            else:
+                # Regular fungible currency — circulation from FungibleGameState
+                defaults = {
                     "in_character": _sum_balance(
                         code, [FungibleGameState.LOCATION_CHARACTER],
                     ),
@@ -215,7 +248,12 @@ class TelemetryService:
                     ),
                     "amm_buy_price": prices.get("buy_1"),
                     "amm_sell_price": prices.get("sell_1"),
-                },
+                }
+
+            ResourceSnapshot.objects.update_or_create(
+                hour=bucket,
+                currency_code=code,
+                defaults=defaults,
             )
 
         logger.info(
@@ -267,21 +305,61 @@ def _transfer_volume(currency_code, transfer_types, since, until):
 
 
 def _fetch_amm_prices():
-    """Fetch current AMM prices for all resources. Returns {} on failure.
+    """Fetch current AMM prices for all tradeable currencies.
 
-    Uses the existing batch price query. Wrapped in try/except so the
-    telemetry system works even when XRPL is unavailable (offline dev).
+    Makes two batch queries:
+      1. Game resources priced against FCMGold (resource_id IS NOT NULL)
+      2. Proxy tokens priced against PGold (tracking_token IS NOT NULL)
+
+    Results are merged into a single dict keyed by currency_code.
+    Wrapped in try/except so telemetry works when XRPL is unavailable.
     """
+    result = {}
     try:
         from blockchain.xrpl.xrpl_amm import get_multi_pool_prices
 
-        codes = list(
-            CurrencyType.objects.exclude(is_gold=True)
+        # 1. Resource pools (vs FCMGold)
+        resource_codes = list(
+            CurrencyType.objects.filter(resource_id__isnull=False)
             .values_list("currency_code", flat=True)
         )
-        if not codes:
-            return {}
-        return get_multi_pool_prices(codes)
+        if resource_codes:
+            result.update(get_multi_pool_prices(resource_codes))
+
+        # 2. Proxy token pools (vs PGold)
+        proxy_codes = list(
+            NFTItemType.objects.filter(tracking_token__isnull=False)
+            .values_list("tracking_token", flat=True)
+        )
+        if proxy_codes:
+            pgold = settings.XRPL_PGOLD_CURRENCY_CODE
+            result.update(
+                get_multi_pool_prices(proxy_codes, gold_currency=pgold)
+            )
+
     except Exception as err:
         logger.warning(f"Telemetry: AMM price fetch failed: {err}")
-        return {}
+    return result
+
+
+def _nft_circulation_by_tracking_token():
+    """Query NFT circulation counts grouped by tracking_token and location.
+
+    Returns:
+        dict {tracking_token: {location: count, ...}}
+        Only includes item types that have a tracking_token set.
+    """
+    rows = (
+        NFTGameState.objects.filter(item_type__isnull=False)
+        .values("item_type__tracking_token", "location")
+        .annotate(count=Count("id"))
+    )
+    result = {}
+    for row in rows:
+        token = row["item_type__tracking_token"]
+        if token is None:
+            continue
+        if token not in result:
+            result[token] = {}
+        result[token][row["location"]] = row["count"]
+    return result

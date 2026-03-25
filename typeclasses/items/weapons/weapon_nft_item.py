@@ -56,6 +56,7 @@ class WeaponNFTItem(WearableNFTItem):
     two_handed = AttributeProperty(False)
     is_finesse = AttributeProperty(False)    # True = use max(STR, DEX) for hit/damage
     can_dual_wield = AttributeProperty(False)  # True = can be equipped in HOLD slot via cmd_hold
+    is_inset = AttributeProperty(False)        # True = gem has been inset, excludes from shopkeeper trade
 
     # Override in subclasses with WeaponType.value string (e.g. "long_sword")
     # Used for mastery lookups against wielder.db.weapon_skill_mastery_levels

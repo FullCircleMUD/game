@@ -52,6 +52,10 @@ CURRENCY_TYPES = [
     {"currency_code": "FCMEmerald", "resource_id": 34, "name": "Emerald", "unit": "gems", "description": "A brilliant green gemstone. Prized by jewellers.", "weight_per_unit_kg": "0.050", "is_gold": False},
     {"currency_code": "FCMDiamond", "resource_id": 35, "name": "Diamond", "unit": "gems", "description": "A flawless clear gemstone. The rarest and most valuable.", "weight_per_unit_kg": "0.050", "is_gold": False},
     {"currency_code": "FCMCoal", "resource_id": 36, "name": "Coal", "unit": "lumps", "description": "Black mineral fuel. Used in steel smelting.", "weight_per_unit_kg": "0.500", "is_gold": False},
+    # Proxy tokens (NFT AMM pricing engine — closed-loop, vault-only)
+    {"currency_code": "PGold", "resource_id": None, "name": "Proxy Gold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False},
+    {"currency_code": "PTrainDagger", "resource_id": None, "name": "Proxy Training Dagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False},
+    {"currency_code": "PTrainSSword", "resource_id": None, "name": "Proxy Training Shortsword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False},
 ]
 
 
@@ -89,8 +93,8 @@ _ROUTE_MAP_TC = "typeclasses.items.maps.route_map_nft_item.RouteMapNFTItem"
 
 NFT_ITEM_TYPES = [
     # ── Weapons ──
-    {"name": "Training Dagger", "typeclass": _DAGGER_TC, "prototype_key": "training_dagger", "description": "A blunt wooden dagger used for practice. Light and fast, but harmless."},
-    {"name": "Training Shortsword", "typeclass": _SHORTSWORD_TC, "prototype_key": "training_shortsword", "description": "A wooden practice shortsword. Lighter than a longsword, good for one-handed drills."},
+    {"name": "Training Dagger", "typeclass": _DAGGER_TC, "prototype_key": "training_dagger", "description": "A blunt wooden dagger used for practice. Light and fast, but harmless.", "tracking_token": "PTrainDagger"},
+    {"name": "Training Shortsword", "typeclass": _SHORTSWORD_TC, "prototype_key": "training_shortsword", "description": "A wooden practice shortsword. Lighter than a longsword, good for one-handed drills.", "tracking_token": "PTrainSSword"},
     {"name": "Training Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "training_longsword", "description": "A wooden practice sword. Won't cut much, but it'll bruise."},
     {"name": "Training Bow", "typeclass": _BOW_TC, "prototype_key": "training_bow", "description": "A crude practice bow carved from a single piece of timber."},
     {"name": "Club", "typeclass": _CLUB_TC, "prototype_key": "club", "description": "A heavy wooden club. Simple, brutal, and effective."},
@@ -451,6 +455,7 @@ class Migration(migrations.Migration):
                 ("prototype_key", models.CharField(blank=True, max_length=255, null=True)),
                 ("description", models.TextField(blank=True, default="")),
                 ("default_metadata", models.JSONField(default=dict)),
+                ("tracking_token", models.CharField(blank=True, help_text="Proxy token currency code for AMM pricing. NULL = not tradeable.", max_length=40, null=True, unique=True)),
             ],
             options={
                 "verbose_name": "NFT Item Type",

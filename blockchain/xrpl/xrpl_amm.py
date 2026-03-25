@@ -165,14 +165,17 @@ def calculate_sell_output(reserve_in, reserve_out, amount_in, trading_fee):
     return (reserve_out * input_after_fee) / (reserve_in + input_after_fee)
 
 
-def get_swap_quote(resource_currency, amount, direction="buy"):
+def get_swap_quote(resource_currency, amount, direction="buy",
+                   gold_currency=None):
     """
-    Get a swap quote for buying or selling a resource against FCMGold.
+    Get a swap quote for buying or selling a resource against a gold currency.
 
     Args:
         resource_currency: Currency code of the resource (e.g., "FCMWheat").
         amount: int — amount of resource to buy or sell.
         direction: "buy" (gold → resource) or "sell" (resource → gold).
+        gold_currency: Optional gold currency code. Defaults to FCMGold.
+            Pass settings.XRPL_PGOLD_CURRENCY_CODE for NFT proxy token pools.
 
     Returns:
         dict with:
@@ -185,7 +188,8 @@ def get_swap_quote(resource_currency, amount, direction="buy"):
     Raises:
         ValueError if pool doesn't exist or can't fill the order.
     """
-    gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
+    if gold_currency is None:
+        gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
 
     info = get_amm_info(gold_currency, resource_currency)
     if info is None:
@@ -315,21 +319,25 @@ async def _get_multi_pool_prices_async(network_url, gold_currency,
     return results
 
 
-def get_multi_pool_prices(resource_currencies):
+def get_multi_pool_prices(resource_currencies, gold_currency=None):
     """
-    Query prices for multiple resource/FCMGold AMM pools.
+    Query prices for multiple resource/gold AMM pools.
 
     Args:
         resource_currencies: list of currency codes (e.g., ["FCMWheat", "FCMFlour"]).
+        gold_currency: Optional gold currency code. Defaults to FCMGold.
+            Pass settings.XRPL_PGOLD_CURRENCY_CODE for NFT proxy token pools.
 
     Returns:
         dict {currency_code: {buy_1: int, sell_1: int, gold_reserve, resource_reserve}}.
         Missing pools are omitted.
     """
+    if gold_currency is None:
+        gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
     return asyncio.run(
         _get_multi_pool_prices_async(
             settings.XRPL_NETWORK_URL,
-            settings.XRPL_GOLD_CURRENCY_CODE,
+            gold_currency,
             resource_currencies,
             settings.XRPL_ISSUER_ADDRESS,
         )

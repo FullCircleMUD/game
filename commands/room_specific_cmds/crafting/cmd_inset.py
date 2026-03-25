@@ -232,6 +232,7 @@ class CmdInset(Command):
                     # Store gem data on weapon
                     weapon.db.gem_effects = gem_effects
                     weapon.db.gem_restrictions = gem_restrictions
+                    weapon.is_inset = True
 
                     # Generate LLM name
                     new_name = name_generator.generate_inset_name(
@@ -247,6 +248,7 @@ class CmdInset(Command):
                     nft.metadata["wear_effects"] = weapon.wear_effects
                     nft.metadata["gem_effects"] = gem_effects
                     nft.metadata["gem_restrictions"] = gem_restrictions
+                    nft.metadata["is_inset"] = True
                     nft.save(update_fields=["metadata", "updated_at"])
 
                 except Exception as err:

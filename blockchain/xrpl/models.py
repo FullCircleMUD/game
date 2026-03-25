@@ -52,6 +52,10 @@ class NFTItemType(models.Model):
     prototype_key = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(blank=True, default="")
     default_metadata = models.JSONField(default=dict)
+    tracking_token = models.CharField(
+        max_length=40, null=True, blank=True, unique=True,
+        help_text="Proxy token currency code for AMM pricing. NULL = not tradeable.",
+    )
 
     class Meta:
         app_label = "xrpl"

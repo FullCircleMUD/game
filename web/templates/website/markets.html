@@ -8,7 +8,7 @@
 <div class="card mb-4">
   <div class="card-body text-center py-5">
     <h1 class="card-title mb-3">Markets</h1>
-    <p class="lead mb-1">Live AMM prices for every tradeable resource in the game.</p>
+    <p class="lead mb-1">Live AMM prices for every tradeable resource and item in the game.</p>
     {% if snapshot_time %}
     <p class="text-muted">Last updated: {{ snapshot_time|date:"M d, Y \a\t H:i" }} UTC</p>
     {% else %}
@@ -25,7 +25,10 @@
         <a class="nav-link active" id="resources-tab" data-toggle="tab" href="#resources" role="tab" aria-controls="resources" aria-selected="true">Resources</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" id="nfts-tab" data-toggle="tab" href="#nfts" role="tab" aria-controls="nfts" aria-selected="false">NFTs</a>
+        <a class="nav-link" id="equipment-tab" data-toggle="tab" href="#equipment" role="tab" aria-controls="equipment" aria-selected="false">Equipment</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="tradeables-tab" data-toggle="tab" href="#tradeables" role="tab" aria-controls="tradeables" aria-selected="false">Tradeables</a>
       </li>
     </ul>
 
@@ -86,12 +89,94 @@
         {% endif %}
       </div>
 
-      {# ── NFTs Tab ── #}
-      <div class="tab-pane fade" id="nfts" role="tabpanel" aria-labelledby="nfts-tab">
-        <p class="text-muted mb-0">
-          NFT marketplace data is coming soon. Once item trading is live on the XRPL,
-          this tab will display listed items, recent sales, and floor prices.
+      {# ── Equipment Tab ── #}
+      <div class="tab-pane fade" id="equipment" role="tabpanel" aria-labelledby="equipment-tab">
+        {% if equipment %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="text-right">Buy Price</th>
+                <th class="text-right">Sell Price</th>
+                <th class="text-right">Spread</th>
+                <th class="text-right">In Circulation</th>
+                <th class="text-right">Volume (1h)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in equipment %}
+              <tr>
+                <td>{{ e.name }}</td>
+                <td class="text-right">
+                  {% if e.buy_price != None %}
+                  <span style="color: var(--fcm-gold);">{{ e.buy_price|floatformat:0 }}g</span>
+                  {% else %}
+                  <span class="text-muted">&mdash;</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if e.sell_price != None %}
+                  <span style="color: var(--fcm-gold);">{{ e.sell_price|floatformat:0 }}g</span>
+                  {% else %}
+                  <span class="text-muted">&mdash;</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if e.spread != None %}
+                  {{ e.spread|floatformat:0 }}g
+                  {% else %}
+                  <span class="text-muted">&mdash;</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">{{ e.in_circulation|floatformat:0 }}</td>
+                <td class="text-right">{{ e.traded_1h|floatformat:0 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted mt-3 mb-0">
+          Equipment prices are driven by proxy token AMM pools. Buy and sell at NPC equipment shopkeepers in-game.
         </p>
+        {% else %}
+        <p class="text-muted mb-0">
+          No equipment market data available yet. Equipment pricing snapshots are generated hourly once
+          proxy token AMM pools are active.
+        </p>
+        {% endif %}
+      </div>
+
+      {# ── Tradeables Tab ── #}
+      <div class="tab-pane fade" id="tradeables" role="tabpanel" aria-labelledby="tradeables-tab">
+        {% if tradeables %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="text-right">In Circulation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in tradeables %}
+              <tr>
+                <td>{{ t.name }}</td>
+                <td class="text-right">{{ t.in_circulation }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted mt-3 mb-0">
+          These items are not currently AMM-priced. They can be traded player-to-player
+          or via the auction house (coming soon).
+        </p>
+        {% else %}
+        <p class="text-muted mb-0">
+          No tradeable items in circulation yet.
+        </p>
+        {% endif %}
       </div>
 
     </div>
@@ -104,9 +189,9 @@
     <h2 class="card-title">How AMM Pricing Works</h2>
     <hr/>
     <p>
-      Resources in Full Circle MUD are traded through Automated Market Maker (AMM)
+      Resources and equipment in Full Circle MUD are traded through Automated Market Maker (AMM)
       pools at NPC shopkeepers. Prices are determined by a constant-product formula
-      &mdash; the more players buy a resource, the higher its price climbs. The more
+      &mdash; the more players buy, the higher the price climbs. The more
       they sell, the lower it drops.
     </p>
     <p>
