@@ -378,6 +378,7 @@ def seed_blank_nft_pool(apps, schema_editor):
         NFTGameState.objects.update_or_create(
             nftoken_id=str(i),
             defaults={
+                "uri_id": i,
                 "taxon": 0,
                 "owner_in_game": vault,
                 "location": "RESERVE",
@@ -522,6 +523,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("nftoken_id", models.CharField(max_length=64, unique=True)),
+                ("uri_id", models.PositiveIntegerField(blank=True, help_text="Permanent ID matching the on-chain URI (/nft/<uri_id>).", null=True, unique=True)),
                 ("taxon", models.PositiveIntegerField()),
                 ("owner_in_game", models.CharField(blank=True, max_length=50, null=True)),
                 ("location", models.CharField(choices=[("RESERVE", "Reserve"), ("SPAWNED", "Spawned"), ("AUCTION", "Auction"), ("ACCOUNT", "Account"), ("CHARACTER", "Character"), ("ONCHAIN", "On Chain")], default="RESERVE", max_length=10)),

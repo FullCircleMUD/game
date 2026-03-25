@@ -87,7 +87,7 @@ def _build_attributes(nft, item_type):
 def nft_metadata_view(request, token_id):
     """Serve XLS-24d NFT metadata JSON for the given game-side token ID."""
     try:
-        nft = NFTGameState.objects.select_related("item_type").get(pk=token_id)
+        nft = NFTGameState.objects.select_related("item_type").get(uri_id=token_id)
     except NFTGameState.DoesNotExist:
         raise Http404
 

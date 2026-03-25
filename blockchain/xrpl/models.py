@@ -179,6 +179,10 @@ class NFTGameState(models.Model):
     ]
 
     nftoken_id = models.CharField(max_length=64, unique=True)
+    uri_id = models.PositiveIntegerField(
+        unique=True, null=True, blank=True,
+        help_text="Permanent ID matching the on-chain URI (/nft/<uri_id>).",
+    )
     taxon = models.PositiveIntegerField()
     owner_in_game = models.CharField(max_length=50, null=True, blank=True)
     location = models.CharField(

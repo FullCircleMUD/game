@@ -125,6 +125,7 @@ def sync_nfts():
                     row = existing_by_id[placeholder_id]
                     row.nftoken_id = nftoken_id
                     row.taxon = taxon
+                    row.uri_id = game_id
                     row.save(using="xrpl")
                     # Update lookup so we don't double-process
                     del existing_by_id[placeholder_id]
@@ -140,6 +141,7 @@ def sync_nfts():
             # New NFT not in DB — create a RESERVE row
             new_row = NFTGameState(
                 nftoken_id=nftoken_id,
+                uri_id=game_id,
                 taxon=taxon,
                 owner_in_game=vault_address,
                 location="RESERVE",
