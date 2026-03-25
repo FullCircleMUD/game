@@ -659,15 +659,8 @@ def _on_nft_buy_complete(caller, shopkeeper, item_type_name, gold_cost,
     caller._remove_gold(gold_cost)
 
     # Assign a blank token and spawn into player inventory
-    token_data = BaseNFTItem.assign_to_blank_token(item_type_name)
-    token_id = token_data[0]
-    chain_id = token_data[1]
-    contract_address = token_data[2]
-
-    obj = BaseNFTItem.spawn_into(
-        token_id, caller,
-        chain_id=chain_id, contract_address=contract_address,
-    )
+    token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
+    obj = BaseNFTItem.spawn_into(token_id, caller)
 
     shop_name = shopkeeper.shop_name or shopkeeper.key
     caller.msg(
