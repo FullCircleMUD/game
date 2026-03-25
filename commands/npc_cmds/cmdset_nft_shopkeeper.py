@@ -33,17 +33,33 @@ def _find_item_type_by_name(name, tradeable_types):
     """
     Match an item name against the shopkeeper's tradeable item types.
 
+    Supports exact, starts-with, and substring matching (case-insensitive).
+    Priority: exact match > single partial match. If multiple partial
+    matches, returns None (ambiguous).
+
     Args:
         name: str — player-typed item name (case-insensitive).
-        tradeable_types: queryset of NFTItemType objects.
+        tradeable_types: queryset/list of NFTItemType objects.
 
     Returns:
         NFTItemType or None.
     """
     name_lower = name.lower().strip()
+
+    # Exact match first
     for it in tradeable_types:
         if it.name.lower() == name_lower:
             return it
+
+    # Partial match — collect all that contain the search term
+    partials = [it for it in tradeable_types if name_lower in it.name.lower()]
+
+    if len(partials) == 1:
+        return partials[0]
+
+    if len(partials) > 1:
+        return "ambiguous"
+
     return None
 
 
@@ -61,7 +77,7 @@ def _find_inventory_item(caller, item_name, tradeable_types):
 
     name_lower = item_name.lower().strip()
 
-    # Search inventory for matching item
+    # Search inventory for matching item (exact, then partial)
     item = None
     for obj in caller.contents:
         if not isinstance(obj, BaseNFTItem):
@@ -69,6 +85,18 @@ def _find_inventory_item(caller, item_name, tradeable_types):
         if obj.key.lower() == name_lower:
             item = obj
             break
+
+    if item is None:
+        # Try partial match
+        partials = [
+            obj for obj in caller.contents
+            if isinstance(obj, BaseNFTItem) and name_lower in obj.key.lower()
+        ]
+        if len(partials) == 1:
+            item = partials[0]
+        elif len(partials) > 1:
+            caller.msg("I'm afraid you'll have to be more specific.")
+            return None, None
 
     if item is None:
         caller.msg(f"You don't have '{item_name}' in your inventory.")
@@ -160,56 +188,16 @@ class CmdNFTShopList(Command):
             caller.msg(f"|w=== {shop_name} ===|n\nThe racks are empty.")
             return
 
-        tracking_tokens = [t.tracking_token for t in tradeable]
-        token_to_type = {t.tracking_token: t for t in tradeable}
+        lines = [f"|w=== {shop_name} ===|n"]
+        for it in tradeable:
+            lines.append(f"  {it.name}")
 
-        caller.msg("|cChecking market prices...|n")
-        d = threads.deferToThread(
-            _fetch_pool_prices, tracking_tokens,
+        lines.append("")
+        lines.append(
+            "For a price use |wquote buy <item>|n "
+            "or |wquote sell <item>|n."
         )
-        d.addCallback(
-            lambda prices: _on_list_prices(
-                caller, shop_name, token_to_type, prices,
-            )
-        )
-        d.addErrback(
-            lambda f: _msg_if_connected(
-                caller, f"|rCannot get prices: {f.getErrorMessage()}|n"
-            )
-        )
-
-
-def _fetch_pool_prices(tracking_tokens):
-    """Worker thread — batch-query proxy token AMM pool prices."""
-    from blockchain.xrpl.services.nft_amm import NFTAMMService
-    return NFTAMMService.get_pool_prices(tracking_tokens)
-
-
-def _on_list_prices(caller, shop_name, token_to_type, prices):
-    """Reactor thread — display item prices."""
-    if not _session_check(caller):
-        return
-
-    lines = [f"|w=== {shop_name} ===|n"]
-    lines.append(f"  {'Item':<25} {'Buy':>8} {'Sell':>8}")
-    lines.append(f"  {'-' * 25} {'-' * 8} {'-' * 8}")
-
-    for token, item_type in token_to_type.items():
-        price_data = prices.get(token)
-        if price_data:
-            buy_1 = price_data.get("buy_1", "?")
-            sell_1 = price_data.get("sell_1", "?")
-            lines.append(
-                f"  {item_type.name:<25} {buy_1:>7}g {sell_1:>7}g"
-            )
-        else:
-            lines.append(f"  {item_type.name:<25} {'(no pool)':>17}")
-
-    lines.append("")
-    lines.append(
-        "Use |wquote buy <item>|n or |wquote sell <item>|n for a price quote."
-    )
-    caller.msg("\n".join(lines))
+        caller.msg("\n".join(lines))
 
 
 # ── CmdNFTShopQuote ─────────────────────────────────────────────────
@@ -266,6 +254,9 @@ class CmdNFTShopQuote(Command):
 
         if direction == "buy":
             item_type = _find_item_type_by_name(item_name, tradeable)
+            if item_type == "ambiguous":
+                caller.msg("I'm afraid you'll have to be more specific.")
+                return
             if not item_type:
                 caller.msg(f"This shop doesn't deal in '{item_name}'.")
                 return
@@ -505,6 +496,9 @@ class CmdNFTShopBuy(Command):
             return
 
         item_type = _find_item_type_by_name(self.args.strip(), tradeable)
+        if item_type == "ambiguous":
+            caller.msg("I'm afraid you'll have to be more specific.")
+            return
         if not item_type:
             caller.msg(f"This shop doesn't deal in '{self.args.strip()}'.")
             return
