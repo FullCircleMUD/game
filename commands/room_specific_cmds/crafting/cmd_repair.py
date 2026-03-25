@@ -112,7 +112,9 @@ class CmdRepair(Command):
             return
 
         # --- Find the recipe for this item ---
-        prototype_key = item.tags.get(category="from_prototype")
+        # Uses db.prototype_key set by BaseNFTItem.spawn_into() — NOT the
+        # Evennia from_prototype tag (which is not set by our spawn path).
+        prototype_key = getattr(item.db, "prototype_key", None)
         if not prototype_key:
             caller.msg(
                 f"You don't know how to repair {item.key}."

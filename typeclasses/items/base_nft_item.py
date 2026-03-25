@@ -569,7 +569,6 @@ class BaseNFTItem(HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
         if nft.item_type:
             if nft.item_type.prototype_key:
                 spawn_dict["prototype_parent"] = nft.item_type.prototype_key
-                spawn_dict["prototype_key"] = nft.item_type.prototype_key
             else:
                 # No prototype — use typeclass directly
                 spawn_dict["typeclass"] = (
@@ -593,7 +592,14 @@ class BaseNFTItem(HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
         obj.chain_id = None
         obj.contract_address = None
 
-        # Cache prototype_key for ingredient matching (avoids DB lookup)
+        # Store prototype_key as a db attribute for recipe lookup (used by
+        # cmd_repair to find the crafting recipe for this item).
+        #
+        # WARNING: Do NOT add "prototype_key" to spawn_dict above. Evennia's
+        # spawner treats prototype_key + prototype_parent with the same value
+        # as a circular self-reference and raises RuntimeError. The db attribute
+        # below is the correct mechanism — Evennia's from_prototype tag is NOT
+        # set by this spawn path and must not be relied upon.
         if nft.item_type and nft.item_type.prototype_key:
             obj.db.prototype_key = nft.item_type.prototype_key
 

@@ -57,7 +57,7 @@ def _make_damaged_weapon(key, location, prototype_key, max_dur=50, cur_dur=25):
     obj.wearslot = HumanoidWearSlot.HEAD
     obj.max_durability = max_dur
     obj.durability = cur_dur
-    obj.tags.add(prototype_key, category="from_prototype")
+    obj.db.prototype_key = prototype_key
     obj.move_to(location, quiet=True)
     return obj
 
