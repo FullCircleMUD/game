@@ -64,15 +64,16 @@ def _on_reconcile_complete(caller, rows):
         return
 
     # Header
+    nw = 20  # name column width
     caller.msg(
-        f"\n {'Currency':<14s} {'Vault':>12s} {'Reserve':>12s} "
+        f"\n {'Currency':<{nw}s} {'Vault':>12s} {'Reserve':>12s} "
         f"{'Distrib':>12s} {'Sink':>12s} {'Delta':>12s}"
     )
-    caller.msg(f" {'-' * 14} {'-' * 12} {'-' * 12} {'-' * 12} {'-' * 12} {'-' * 12}")
+    caller.msg(f" {'-' * nw} {'-' * 12} {'-' * 12} {'-' * 12} {'-' * 12} {'-' * 12}")
 
     warnings = 0
     for row in rows:
-        name = row["name"]
+        name = row["name"][:nw]  # truncate to column width
         on_chain = row["on_chain"]
         reserve = row["game_reserve"]
         distributed = row["game_distributed"]
@@ -89,7 +90,7 @@ def _on_reconcile_complete(caller, rows):
             delta_str = f"{delta:.3f}"
 
         caller.msg(
-            f" {name:<14s} {on_chain:>12.3f} {reserve:>12.3f} "
+            f" {name:<{nw}s} {on_chain:>12.3f} {reserve:>12.3f} "
             f"{distributed:>12.3f} {sink:>12.3f} {delta_str:>12s}"
         )
 

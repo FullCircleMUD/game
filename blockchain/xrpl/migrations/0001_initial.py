@@ -53,9 +53,9 @@ CURRENCY_TYPES = [
     {"currency_code": "FCMDiamond", "resource_id": 35, "name": "Diamond", "unit": "gems", "description": "A flawless clear gemstone. The rarest and most valuable.", "weight_per_unit_kg": "0.050", "is_gold": False},
     {"currency_code": "FCMCoal", "resource_id": 36, "name": "Coal", "unit": "lumps", "description": "Black mineral fuel. Used in steel smelting.", "weight_per_unit_kg": "0.500", "is_gold": False},
     # Proxy tokens (NFT AMM pricing engine — closed-loop, vault-only)
-    {"currency_code": "PGold", "resource_id": None, "name": "Proxy Gold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False},
-    {"currency_code": "PTrainDagger", "resource_id": None, "name": "Proxy Training Dagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False},
-    {"currency_code": "PTrainSSword", "resource_id": None, "name": "Proxy Training Shortsword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False},
+    {"currency_code": "PGold", "resource_id": None, "name": "P Gold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "250000"},
+    {"currency_code": "PTrainDagger", "resource_id": None, "name": "P Train Dagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
+    {"currency_code": "PTrainSSword", "resource_id": None, "name": "P Train SSword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
 ]
 
 
@@ -325,9 +325,11 @@ NFT_ITEM_TYPES = [
 def seed_currency_types(apps, schema_editor):
     CurrencyType = apps.get_model("xrpl", "CurrencyType")
     for ct in CURRENCY_TYPES:
+        # Strip non-model keys before passing to ORM
+        fields = {k: v for k, v in ct.items() if k != "initial_reserve"}
         CurrencyType.objects.update_or_create(
             currency_code=ct["currency_code"],
-            defaults=ct,
+            defaults=fields,
         )
 
 
@@ -394,11 +396,16 @@ def remove_blank_nft_pool(apps, schema_editor):
 
 
 def seed_fungible_reserves(apps, schema_editor):
-    """Create RESERVE balance rows for gold (1M) + all 36 resources (100k each)."""
+    """Create RESERVE balance rows for gold (1M), resources (100k), and proxy tokens (per-token amounts)."""
     vault = _get_vault_address()
     FungibleGameState = apps.get_model("xrpl", "FungibleGameState")
     for ct in CURRENCY_TYPES:
-        balance = INITIAL_GOLD_RESERVE if ct["is_gold"] else INITIAL_RESOURCE_RESERVE
+        if "initial_reserve" in ct:
+            balance = Decimal(ct["initial_reserve"])
+        elif ct["is_gold"]:
+            balance = INITIAL_GOLD_RESERVE
+        else:
+            balance = INITIAL_RESOURCE_RESERVE
         FungibleGameState.objects.update_or_create(
             currency_code=ct["currency_code"],
             wallet_address=vault,
