@@ -58,9 +58,6 @@ class WearableNFTItem(DurabilityMixin, BaseNFTItem):
     # Each entry is a dict, e.g. {"type": "stat_bonus", "stat": "armor_class", "value": 2}
     wear_effects = AttributeProperty(default=list)
 
-    # Override DurabilityMixin default (0 = unbreakable) to 100 for equipment.
-    max_durability = AttributeProperty(100)
-
     def at_object_creation(self):
         super().at_object_creation()
         self.tags.add("wearable", category="item_type")

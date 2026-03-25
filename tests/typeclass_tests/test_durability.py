@@ -86,8 +86,11 @@ class TestReduceDurability(DurabilityTestBase):
             key="Test Item",
             nohome=True,
         )
-        # at_object_creation calls at_durability_init
-        self.assertEqual(obj.durability, obj.max_durability)
+        # Simulate a prototype setting max_durability, then re-init
+        obj.max_durability = 100
+        obj.durability = None
+        obj.at_durability_init()
+        self.assertEqual(obj.durability, 100)
 
 
 # ── Progressive Warning Tests ────────────────────────────────────────────
