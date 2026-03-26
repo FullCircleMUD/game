@@ -1193,9 +1193,7 @@ def build_millholm_town():
              "goods are stacked in the corners. The yeasty aroma of "
              "fermenting brew mingles with the earthy smell of underground "
              "stone. Water drips steadily from somewhere in the shadows, "
-             "and the ceiling creaks with the footsteps of patrons above. "
-             "From somewhere to the south comes the sound of scratching "
-             "and high-pitched squeaking."),
+             "and the ceiling creaks with the footsteps of patrons above."),
             ("details", {
                 "barrels": (
                     "Oak barrels of various sizes, their staves dark with "
@@ -1204,6 +1202,21 @@ def build_millholm_town():
                     "in large letters."
                 ),
             }),
+        ],
+    )
+
+    rooms["back_cellar"] = create_object(
+        RoomBase,
+        key="Back Cellar",
+        attributes=[
+            ("max_height", 0),
+            ("max_depth", 0),
+            ("desc",
+             "A narrow extension of the cellar, darker and damper than "
+             "the main room. Old crates and broken furniture are piled "
+             "against the walls. The air is still and musty. Whatever "
+             "was down here has been cleared out — only gnaw marks on "
+             "the crates and a few scattered droppings remain as evidence."),
         ],
     )
 
@@ -1907,9 +1920,11 @@ def build_millholm_town():
     for room in indoor_rooms:
         room.set_terrain(TerrainType.URBAN.value)
 
-    # Cellar and stairwell are underground but torchlit
+    # Cellar, back cellar, and stairwell are underground but torchlit
     rooms["cellar"].set_terrain(TerrainType.UNDERGROUND.value)
     rooms["cellar"].always_lit = True
+    rooms["back_cellar"].set_terrain(TerrainType.UNDERGROUND.value)
+    rooms["back_cellar"].always_lit = True
     rooms["cellar_stairwell"].set_terrain(TerrainType.UNDERGROUND.value)
     rooms["cellar_stairwell"].always_lit = True
 

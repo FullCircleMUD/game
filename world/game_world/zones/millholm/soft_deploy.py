@@ -142,8 +142,7 @@ def build_zone():
 
     # Dungeon trigger exit from the permanent cellar into the procedural
     # rat cellar dungeon. Quest-gated — dungeon when quest active, empty
-    # cellar when not.
-    # TODO: create an empty cellar fallback room and set alternate_destination_id
+    # back cellar when not.
     cellar_trigger = create_object(
         ConditionalDungeonExit,
         key="a dark passage",
@@ -154,6 +153,16 @@ def build_zone():
     cellar_trigger.dungeon_template_id = "rat_cellar"
     cellar_trigger.condition_type = "quest_active"
     cellar_trigger.condition_key = "rat_cellar"
+    cellar_trigger.alternate_destination_id = town_rooms["back_cellar"].id
+
+    # Return exit from back cellar to cellar
+    back_cellar_return = create_object(
+        ExitVerticalAware,
+        key="Cellar",
+        location=town_rooms["back_cellar"],
+        destination=town_rooms["cellar"],
+    )
+    back_cellar_return.set_direction("north")
 
     # ── Mine and Faerie Hollow ───────────────────────────────────────
     print("[5] Building Millholm Abandoned Mine...")
