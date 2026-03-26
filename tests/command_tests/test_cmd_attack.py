@@ -308,18 +308,6 @@ class TestCombatHandler(EvenniaCommandTest):
         # char2 should have taken damage
         self.assertLess(self.char2.hp, 20)
 
-    @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_hold_action_does_nothing(self, mock_ticker):
-        """Hold action does nothing on tick."""
-        from combat.combat_utils import enter_combat
-        enter_combat(self.char1, self.char2)
-        handler = self.char1.scripts.get("combat_handler")[0]
-        handler.queue_action({"key": "hold", "dt": 0})
-
-        hp_before = self.char2.hp
-        handler.execute_next_action()
-        self.assertEqual(self.char2.hp, hp_before)
-
 
 # ================================================================== #
 #  Combat Utility Tests
@@ -500,9 +488,9 @@ class TestCombatUtils(EvenniaCommandTest):
         handler = self.char1.scripts.get("combat_handler")[0]
         handler.set_advantage(self.char2, rounds=3)
 
-        # Hold action — advantage is not consumed by attack
-        handler.queue_action({"key": "hold", "dt": 0})
-        handler.execute_next_action()
+        # Call decrement_advantages directly — simulates end-of-tick
+        # without an attack consuming the advantage
+        handler.decrement_advantages()
 
         # Should have decremented by 1 (minimum rule)
         self.assertEqual(handler.advantage_against[self.char2.id], 2)
@@ -835,8 +823,10 @@ class TestParry(EvenniaCommandTest):
         handler.parries_remaining = 0
 
         # Execute next action resets parries based on weapon
-        handler.queue_action({"key": "hold", "dt": 0})
-        handler.execute_next_action()
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.return_value = 15
+            mock_dice.roll.return_value = 1
+            handler.execute_next_action()
 
         # SKILLED longsword = 1 parry per round
         self.assertEqual(handler.parries_remaining, 1)
@@ -851,8 +841,10 @@ class TestParry(EvenniaCommandTest):
         enter_combat(self.char1, self.char2)
         handler = self.char1.scripts.get("combat_handler")[0]
 
-        handler.queue_action({"key": "hold", "dt": 0})
-        handler.execute_next_action()
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.return_value = 15
+            mock_dice.roll.return_value = 1
+            handler.execute_next_action()
 
         self.assertTrue(handler.parry_advantage)
         self.assertEqual(handler.parries_remaining, 3)

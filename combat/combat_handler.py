@@ -236,11 +236,26 @@ class CombatHandler(DefaultScript):
                         action["target"] = new_target
                         self.obj.ndb.combat_target = new_target
                     else:
-                        # No enemies left — _check_stop_combat() will clean up
-                        self.queue_action({"key": "hold", "dt": 0})
+                        # No enemies left — end combat immediately
+                        self.stop_combat()
+                        return
 
                 if not action.get("repeat", False):
-                    self.queue_action({"key": "hold", "dt": 0})
+                    # Non-repeating action done — retarget or end
+                    from combat.combat_utils import get_sides as _get_sides
+                    _, _remaining = _get_sides(self.obj)
+                    if _remaining:
+                        _new = _remaining[0]
+                        _weapon = get_weapon(self.obj)
+                        _speed = getattr(_weapon, "speed", 1.0) if _weapon else 1.0
+                        _dt = max(2, int(4 / _speed))
+                        self.queue_action({
+                            "key": "attack", "target": _new,
+                            "dt": _dt, "repeat": True,
+                        })
+                    else:
+                        self.stop_combat()
+                        return
 
         # Tick all combat-round-based named effects (shield, stun, prone, slowed, etc.)
         if hasattr(self.obj, "tick_combat_round"):
