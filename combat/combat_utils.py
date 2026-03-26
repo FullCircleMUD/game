@@ -161,10 +161,7 @@ def _check_intercept(target, target_allies=None):
         handlers = ally.scripts.get("combat_handler")
         if not handlers or handlers[0].protecting != target.id:
             continue
-        mastery_dict = ally.db.skill_mastery_levels
-        if not mastery_dict:
-            continue
-        mastery_int = mastery_dict.get("protect", MasteryLevel.UNSKILLED.value)
+        mastery_int = ally.get_skill_mastery("protect") if hasattr(ally, 'get_skill_mastery') else 0
         mastery = MasteryLevel(mastery_int)
         if mastery == MasteryLevel.UNSKILLED:
             continue

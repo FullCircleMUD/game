@@ -85,12 +85,12 @@ def _check_water_breathing(caller, conditions):
 
 def _best_party_skill(caller, skill_key):
     """Return the highest mastery level for skill_key across caller + party."""
-    best = (caller.db.skill_mastery_levels or {}).get(skill_key, 0)
+    best = caller.get_skill_mastery(skill_key) if hasattr(caller, 'get_skill_mastery') else 0
     leader = caller.get_group_leader()
     if leader and leader.location == caller.location:
-        best = max(best, (leader.db.skill_mastery_levels or {}).get(skill_key, 0))
+        best = max(best, leader.get_skill_mastery(skill_key) if hasattr(leader, 'get_skill_mastery') else 0)
     for f in (leader.get_followers(same_room=True) if leader else []):
-        best = max(best, (f.db.skill_mastery_levels or {}).get(skill_key, 0))
+        best = max(best, f.get_skill_mastery(skill_key) if hasattr(f, 'get_skill_mastery') else 0)
     return best
 
 

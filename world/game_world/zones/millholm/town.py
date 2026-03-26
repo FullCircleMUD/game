@@ -863,6 +863,128 @@ def build_millholm_town():
         ],
     )
 
+    # ── Artisan's Way (junction + east-west lane) ─────────────────
+    rooms["artisans_way"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "A cobbled lane branches east and west from the main road, "
+             "narrower than the Trade Way but busy with a different kind "
+             "of commerce. The ring of hammers, the rasp of saws, and the "
+             "sharp smell of tanning chemicals fill the air. Hand-painted "
+             "signs hang above workshop doors in both directions. This is "
+             "where Millholm's craftsmen ply their trades, away from the "
+             "bustle of the market square."),
+        ],
+    )
+
+    rooms["artisans_way_w1"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "The western stretch of Artisan's Way. Workshop doors line "
+             "both sides of the narrow lane. The clatter of a loom sounds "
+             "from behind one door, while the steady tap of a jeweller's "
+             "hammer comes from another."),
+        ],
+    )
+
+    rooms["artisans_way_w2"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "The lane continues west past soot-stained walls. The air "
+             "here is thick with the heat of forges and the acrid bite "
+             "of hot metal. Iron filings crunch underfoot."),
+        ],
+    )
+
+    rooms["artisans_way_w3"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "The western end of Artisan's Way. Wood shavings carpet "
+             "the cobblestones and the sweet smell of fresh-cut timber "
+             "hangs in the air. A large workshop dominates the dead end."),
+        ],
+    )
+
+    rooms["artisans_way_e1"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "The eastern stretch of Artisan's Way. Dried herbs hang "
+             "from hooks above doorways and the air carries a complex "
+             "bouquet of medicinal scents — camphor, lavender, and "
+             "something sharper underneath."),
+        ],
+    )
+
+    rooms["artisans_way_e2"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "The lane narrows further to the east. A jeweller's loupe "
+             "sign creaks above one doorway. The cobblestones here are "
+             "cleaner, swept regularly by fastidious craftsmen."),
+        ],
+    )
+
+    rooms["artisans_way_e3"] = create_object(
+        RoomBase,
+        key="Artisan's Way",
+        attributes=[
+            ("desc",
+             "The eastern dead end of Artisan's Way. The sharp chemical "
+             "smell of tanning solution is unmistakable here. Hides hang "
+             "on wooden frames outside one of the workshops, drying in "
+             "the air."),
+        ],
+    )
+
+    # ── Vacant workshops (future expansion slots) ──────────────────
+    rooms["vacant_w1"] = create_object(
+        RoomBase,
+        key="Vacant Workshop",
+        attributes=[
+            ("desc",
+             "A shuttered workshop with a faded 'To Let' sign nailed "
+             "to the door. Cobwebs fill the windows and the door is "
+             "locked tight. Whatever trade was practiced here has moved "
+             "on, leaving only the ghost of industry behind."),
+        ],
+    )
+
+    rooms["vacant_w2"] = create_object(
+        RoomBase,
+        key="Vacant Workshop",
+        attributes=[
+            ("desc",
+             "An empty workshop, its chimney cold and doorway boarded. "
+             "Soot stains on the stonework suggest a forge once burned "
+             "here. A 'For Let — Inquire at Town Hall' notice is pinned "
+             "to the boards."),
+        ],
+    )
+
+    rooms["vacant_e2"] = create_object(
+        RoomBase,
+        key="Vacant Workshop",
+        attributes=[
+            ("desc",
+             "A disused workshop at the far end of the lane. The door "
+             "hangs slightly ajar, revealing an empty room with bare "
+             "shelves and a cold hearth. A faded sign reads 'Workshop "
+             "Available — Good Terms for Honest Trade.'"),
+        ],
+    )
+
     rooms["south_gate"] = create_object(
         RoomBase,
         key="South Gate",
@@ -1451,6 +1573,93 @@ def build_millholm_town():
         ],
     )
 
+    # ── Retail shops on Old Trade Way ───────────────────────────────
+
+    rooms["weapons_shop"] = create_object(
+        RoomBase,
+        key="Grik's Blades & Blunts",
+        attributes=[
+            ("desc",
+             "Racks of weapons line every wall of this compact shop — "
+             "wooden training swords beside iron blades, daggers displayed "
+             "under glass, and heavier weapons mounted on brackets above. "
+             "A battered sign reads 'Blades & Blunts — Buy, Sell, Trade.' "
+             "The proprietor, a wiry goblin with a surprisingly keen "
+             "business sense, perches behind a counter cluttered with "
+             "whetstones and weapon oil."),
+        ],
+    )
+
+    rooms["armorer"] = create_object(
+        RoomBase,
+        key="Ironclad Outfitters",
+        attributes=[
+            ("desc",
+             "Mannequins stand in rows wearing suits of armour from "
+             "simple leather jerkins to heavy iron hauberks. Shields of "
+             "every size hang on the walls, their surfaces polished to "
+             "a mirror sheen. A workbench near the back holds tools for "
+             "last-minute adjustments — every piece is fitted to the "
+             "buyer before it leaves the shop."),
+        ],
+    )
+
+    rooms["clothing_shop"] = create_object(
+        RoomBase,
+        key="The Silken Thread",
+        attributes=[
+            ("desc",
+             "Bolts of fabric in every colour fill the shelves of this "
+             "elegant shop. Cloaks hang from iron hooks, boots are lined "
+             "up in neat rows, and glass cases display delicate scarves, "
+             "sashes, and enchanted accessories. The air smells of "
+             "lavender and cedar — the proprietor takes pride in "
+             "keeping moths at bay."),
+        ],
+    )
+
+    rooms["magical_supplies"] = create_object(
+        RoomBase,
+        key="The Bubbling Flask",
+        attributes=[
+            ("desc",
+             "Glass bottles of every shape and colour crowd the shelves "
+             "of this dimly lit shop. Potions glow faintly in their "
+             "stoppered vials — amber, emerald, deep violet. Bundles "
+             "of dried herbs hang from the ceiling beams, and a faint "
+             "haze of aromatic smoke drifts from an incense burner on "
+             "the counter. A hand-lettered sign warns 'You Break It, "
+             "You Bought It.'"),
+        ],
+    )
+
+    rooms["jewellers_showroom"] = create_object(
+        RoomBase,
+        key="The Gilded Window",
+        attributes=[
+            ("desc",
+             "Velvet-lined display cases hold rings, chains, bangles, "
+             "and ear studs wrought in copper, pewter, and silver. "
+             "Enchanted gems catch the lamplight and throw tiny "
+             "rainbows across the walls. This is the retail front for "
+             "The Gilded Setting workshop — finished pieces are brought "
+             "here from Artisan's Way for sale to the public."),
+        ],
+    )
+
+    rooms["vacant_shop"] = create_object(
+        RoomBase,
+        key="Vacant Shopfront",
+        attributes=[
+            ("desc",
+             "An empty shop with bare shelves and a cold hearth. The "
+             "windows are clean but the display cases are empty. A "
+             "faded 'To Let — Inquire at Town Hall' notice is pinned "
+             "inside the glass door. Whatever business occupied this "
+             "prime Trade Way frontage has moved on."),
+        ],
+    )
+
     print(f"  Created {len(rooms)} rooms.")
 
     # ══════════════════════════════════════════════════════════════════
@@ -1521,9 +1730,114 @@ def build_millholm_town():
     # ── South road (full spine to south gate) ─────────────────────────
     connect(rooms["sq_s"], rooms["south_road"], "south")
     connect(rooms["south_road"], rooms["mid_south_road"], "south")
-    connect(rooms["mid_south_road"], rooms["far_south_road"], "south")
+    connect(rooms["mid_south_road"], rooms["artisans_way"], "south")
+    connect(rooms["artisans_way"], rooms["far_south_road"], "south")
     connect(rooms["far_south_road"], rooms["south_gate"], "south")
-    exit_count += 8
+    exit_count += 10
+
+    # Artisan's Way — west branch
+    connect(rooms["artisans_way"], rooms["artisans_way_w1"], "west")
+    connect(rooms["artisans_way_w1"], rooms["artisans_way_w2"], "west")
+    connect(rooms["artisans_way_w2"], rooms["artisans_way_w3"], "west")
+    exit_count += 6
+
+    # Artisan's Way — east branch
+    connect(rooms["artisans_way"], rooms["artisans_way_e1"], "east")
+    connect(rooms["artisans_way_e1"], rooms["artisans_way_e2"], "east")
+    connect(rooms["artisans_way_e2"], rooms["artisans_way_e3"], "east")
+    exit_count += 6
+
+    # ── Artisan's Way — craft room doors (north and south off lane) ──
+
+    # W3 north: Hendricks House — south: Leathershop
+    connect_door(
+        rooms["artisans_way_w3"], rooms["hendricks_house"], "north",
+        key="a wooden door",
+        closed_ab="A wooden door leads north to a modest dwelling.",
+        open_ab="A cosy room with a well-worn armchair is visible through the open door.",
+        closed_ba="A wooden door leads south to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    connect_door(
+        rooms["artisans_way_w3"], rooms["leathershop"], "south",
+        key="a wooden door",
+        closed_ab="A wooden door with a leather hide sign leads south.",
+        open_ab="The sharp smell of tanned leather drifts through the open door.",
+        closed_ba="A wooden door leads north to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    exit_count += 4
+
+    # W2 north: Smithy — south: Vacant
+    connect_door(
+        rooms["artisans_way_w2"], rooms["smithy"], "north",
+        key="a heavy iron door",
+        closed_ab="A heavy iron door leads north into a smithy.",
+        open_ab="Heat and the ring of hammer on anvil pour through the open door.",
+        closed_ba="A heavy iron door leads south to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    connect(rooms["artisans_way_w2"], rooms["vacant_w2"], "south",
+            desc_ab="a boarded-up workshop", desc_ba="Artisan's Way")
+    exit_count += 4
+
+    # W1 north: Vacant — south: Jeweller
+    connect(rooms["artisans_way_w1"], rooms["vacant_w1"], "north",
+            desc_ab="a shuttered workshop", desc_ba="Artisan's Way")
+    connect_door(
+        rooms["artisans_way_w1"], rooms["jeweller"], "south",
+        key="a wooden door",
+        closed_ab="A wooden door with a gem-and-ring sign leads south.",
+        open_ab="The glint of gems and precious metals catches the light through the open door.",
+        closed_ba="A wooden door leads north to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    exit_count += 4
+
+    # E1 north: Apothecary — south: Distillery (back room off apothecary)
+    connect_door(
+        rooms["artisans_way_e1"], rooms["apothecary"], "north",
+        key="a wooden door",
+        closed_ab="A wooden door with a mortar and pestle sign leads north.",
+        open_ab="Strange scents and coloured vapours drift through the open door.",
+        closed_ba="A wooden door leads south to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    connect(rooms["apothecary"], rooms["distillery"], "east",
+            desc_ab="the distillery", desc_ba="the apothecary")
+    exit_count += 4
+
+    # E2 north: Textiles — south: Vacant
+    connect_door(
+        rooms["artisans_way_e2"], rooms["textiles"], "north",
+        key="a wooden door",
+        closed_ab="A wooden door with colourful fabric samples in the window leads north.",
+        open_ab="Bolts of colourful fabric are visible through the open door.",
+        closed_ba="A wooden door leads south to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    connect(rooms["artisans_way_e2"], rooms["vacant_e2"], "south",
+            desc_ab="a disused workshop", desc_ba="Artisan's Way")
+    exit_count += 4
+
+    # E3 north: Elena Copperkettle's House — south: Woodshop
+    connect_door(
+        rooms["artisans_way_e3"], rooms["elena_house"], "north",
+        key="a wooden door",
+        closed_ab="A wooden door leads north to a cosy cottage.",
+        open_ab="The smell of tea and fabric fills the air through the open door.",
+        closed_ba="A wooden door leads south to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    connect_door(
+        rooms["artisans_way_e3"], rooms["woodshop"], "south",
+        key="a wooden door",
+        closed_ab="A wooden door with a carved oak leaf sign leads south.",
+        open_ab="The scent of fresh-cut wood wafts through the open door.",
+        closed_ba="A wooden door leads north to Artisan's Way.",
+        open_ba="Artisan's Way is visible through the open door.",
+    )
+    exit_count += 4
 
     # ── Buildings off the square (doors) ─────────────────────────────
 
@@ -1561,20 +1875,20 @@ def build_millholm_town():
     )
     exit_count += 2
 
-    # road_mid_west — Smithy (north door)
+    # road_mid_west — Armorer (north door, replaces old smithy)
     connect_door(
-        rooms["road_mid_west"], rooms["smithy"], "north",
-        key="a heavy iron door",
-        closed_ab="A heavy iron door leads north into a smithy.",
-        open_ab="Heat and the ring of hammer on anvil pour through the open door.",
-        closed_ba="A heavy iron door leads south to the trade road.",
+        rooms["road_mid_west"], rooms["armorer"], "north",
+        key="a reinforced door",
+        closed_ab="A reinforced door with crossed-swords insignia leads north.",
+        open_ab="Rows of gleaming armour on mannequins are visible through the open door.",
+        closed_ba="A reinforced door leads south to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
     exit_count += 2
 
-    # road_mid_west — Abandoned House (south door)
+    # road_far_west — Abandoned House (south door)
     connect_door(
-        rooms["road_mid_west"], rooms["abandoned_house"], "south",
+        rooms["road_far_west"], rooms["abandoned_house"], "south",
         key="a boarded-up door",
         closed_ab="A boarded-up door leads south into a disused building.",
         open_ab="Dust and cobwebs are visible through the gap in the boards.",
@@ -1606,6 +1920,17 @@ def build_millholm_town():
     )
     exit_count += 2
 
+    # road_west — General Store (south door, 2nd entrance)
+    connect_door(
+        rooms["road_west"], rooms["general_store"], "south",
+        key="a wooden door",
+        closed_ab="A wooden door with a painted 'General Store' sign leads south.",
+        open_ab="Shelves laden with goods are visible through the open door.",
+        closed_ba="A wooden door leads north to the trade road.",
+        open_ba="The trade road is visible through the open door.",
+    )
+    exit_count += 2
+
     # SE — Mages Guild (south door)
     connect_door(
         rooms["sq_se"], rooms["mages_guild"], "south",
@@ -1633,42 +1958,31 @@ def build_millholm_town():
 
     # ── Buildings off the approach roads (doors) ─────────────────────
 
-    # road_far_west — Textiles (north door)
+    # road_far_west — Weapons Shop (north door, replaces old textiles)
     connect_door(
-        rooms["road_far_west"], rooms["textiles"], "north",
+        rooms["road_far_west"], rooms["weapons_shop"], "north",
         key="a wooden door",
-        closed_ab="A wooden door with colourful fabric samples in the window leads north.",
-        open_ab="Bolts of colourful fabric are visible through the open door.",
+        closed_ab="A wooden door beneath a sign reading 'Blades & Blunts' leads north.",
+        open_ab="Racks of weapons gleam in the lamplight through the open door.",
         closed_ba="A wooden door leads south to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
     exit_count += 2
 
-    # road_far_west — Elena's House (south door)
+    # road_west — Clothing Shop (north door, replaces old woodshop)
     connect_door(
-        rooms["road_far_west"], rooms["elena_house"], "south",
+        rooms["road_west"], rooms["clothing_shop"], "north",
         key="a wooden door",
-        closed_ab="A wooden door leads south to a cosy cottage.",
-        open_ab="The smell of tea and fabric fills the air through the open door.",
-        closed_ba="A wooden door leads north to the trade road.",
-        open_ba="The trade road is visible through the open door.",
-    )
-    exit_count += 2
-
-    # road_west — Woodshop (north door)
-    connect_door(
-        rooms["road_west"], rooms["woodshop"], "north",
-        key="a wooden door",
-        closed_ab="A wooden door with a carved oak leaf sign leads north.",
-        open_ab="The scent of fresh-cut wood wafts through the open door.",
+        closed_ab="A wooden door with elegant fabric drapes in the window leads north.",
+        open_ab="Displays of cloaks, boots, and fine accessories are visible through the open door.",
         closed_ba="A wooden door leads south to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
     exit_count += 2
 
-    # road_west — Gareth Stonefield's House (south door)
+    # road_mid_west — Gareth Stonefield's House (south door)
     connect_door(
-        rooms["road_west"], rooms["gareth_house"], "south",
+        rooms["road_mid_west"], rooms["gareth_house"], "south",
         key="an impressive oak door",
         closed_ab=(
             "An impressive oak door with brass fittings leads south to a "
@@ -1680,12 +1994,12 @@ def build_millholm_town():
     )
     exit_count += 2
 
-    # sq_nw — Woodshop (west door, 2nd entrance)
+    # sq_nw — Clothing Shop (west door, 2nd entrance)
     connect_door(
-        rooms["sq_nw"], rooms["woodshop"], "west",
+        rooms["sq_nw"], rooms["clothing_shop"], "west",
         key="a wooden door",
-        closed_ab="A wooden door leads west into the woodshop.",
-        open_ab="The scent of sawdust drifts through the open door.",
+        closed_ab="A wooden door leads west into The Silken Thread.",
+        open_ab="Bolts of colourful fabric are visible through the open door.",
         closed_ba="A wooden door leads east to the market square.",
         open_ba="The market square is visible through the open door.",
     )
@@ -1716,12 +2030,12 @@ def build_millholm_town():
     )
     exit_count += 2
 
-    # road_mid_east — Apothecary (north door)
+    # road_mid_east — Magical Supplies (north door, replaces old apothecary)
     connect_door(
-        rooms["road_mid_east"], rooms["apothecary"], "north",
+        rooms["road_mid_east"], rooms["magical_supplies"], "north",
         key="a wooden door",
-        closed_ab="A wooden door with a mortar and pestle sign leads north.",
-        open_ab="Strange scents and coloured vapours drift through the open door.",
+        closed_ab="A wooden door with a bubbling flask sign leads north.",
+        open_ab="The glow of coloured potions is visible through the open door.",
         closed_ba="A wooden door leads south to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
@@ -1738,29 +2052,24 @@ def build_millholm_town():
     )
     exit_count += 2
 
-    # road_far_east — Jeweller (north door)
+    # road_far_east — Jeweller's Showroom (north door, replaces old jeweller)
     connect_door(
-        rooms["road_far_east"], rooms["jeweller"], "north",
+        rooms["road_far_east"], rooms["jewellers_showroom"], "north",
         key="a wooden door",
-        closed_ab="A wooden door with a gem-and-ring sign leads north.",
-        open_ab="The glint of gems and precious metals catches the light through the open door.",
+        closed_ab="A wooden door with a gilded window display leads north.",
+        open_ab="Enchanted gems sparkle in velvet-lined cases through the open door.",
         closed_ba="A wooden door leads south to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
     exit_count += 2
 
-    # Apothecary — Distillery (east, back room)
-    connect(rooms["apothecary"], rooms["distillery"], "east",
-            desc_ab="the distillery", desc_ba="the apothecary")
-    exit_count += 2
-
-    # road_far_east — Leathershop (south door)
+    # road_far_east — Vacant Shopfront (south door, replaces old leathershop)
     connect_door(
-        rooms["road_far_east"], rooms["leathershop"], "south",
-        key="a wooden door",
-        closed_ab="A wooden door with a leather hide sign leads south.",
-        open_ab="The sharp smell of tanned leather drifts through the open door.",
-        closed_ba="A wooden door leads north to the trade road.",
+        rooms["road_far_east"], rooms["vacant_shop"], "south",
+        key="a glass door",
+        closed_ab="A glass-panelled door with a 'To Let' notice leads south.",
+        open_ab="An empty shop with bare shelves is visible through the open door.",
+        closed_ba="A glass-panelled door leads north to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
     exit_count += 2
@@ -1833,17 +2142,14 @@ def build_millholm_town():
     exit_count += 2
 
     # ── NPC house connections behind shops ───────────────────────────
+    # Hendricks House — now accessed from Artisan's Way W3 (north door above)
+    # Elena's House — now accessed from Artisan's Way E3 (north door above)
 
-    # Hendricks House — behind (north of) smithy
-    connect(rooms["smithy"], rooms["hendricks_house"], "north",
-            desc_ab="a door to the back room",
-            desc_ba="the smithy workshop")
-
-    # Mara Brightwater — behind (north of) apothecary
+    # Mara Brightwater — behind (north of) apothecary (stays as internal connection)
     connect(rooms["apothecary"], rooms["mara_house"], "north",
             desc_ab="a door to a cottage",
             desc_ba="the apothecary workshop")
-    exit_count += 4
+    exit_count += 2
 
     # ── Inn vertical chain ───────────────────────────────────────────
     connect(rooms["inn"], rooms["stairwell"], "north",
@@ -1896,6 +2202,11 @@ def build_millholm_town():
         rooms["stables"], rooms["north_road"],
         rooms["south_road"], rooms["mid_south_road"],
         rooms["far_south_road"], rooms["south_gate"],
+        rooms["artisans_way"],
+        rooms["artisans_way_w1"], rooms["artisans_way_w2"],
+        rooms["artisans_way_w3"],
+        rooms["artisans_way_e1"], rooms["artisans_way_e2"],
+        rooms["artisans_way_e3"],
     ]
     for room in outdoor_urban:
         room.set_terrain(TerrainType.URBAN.value)
@@ -1952,6 +2263,15 @@ def build_millholm_town():
         rooms["stables"],           # Millholm Stables
         rooms["beggars_alley"],     # quest NPC Old Silas lives here
         rooms["general_store"],     # shop
+        rooms["vacant_w1"],         # empty workshop
+        rooms["vacant_w2"],         # empty workshop
+        rooms["vacant_e2"],         # empty workshop
+        rooms["weapons_shop"],      # retail shop
+        rooms["armorer"],           # retail shop
+        rooms["clothing_shop"],     # retail shop
+        rooms["magical_supplies"],  # retail shop
+        rooms["jewellers_showroom"],# retail shop
+        rooms["vacant_shop"],       # empty shopfront
     ]
     for room in no_combat_rooms:
         room.allow_combat = False
@@ -1970,6 +2290,11 @@ def build_millholm_town():
         rooms["south_road"], rooms["mid_south_road"],
         rooms["far_south_road"], rooms["south_gate"],
         rooms["north_road"],
+        rooms["artisans_way"],
+        rooms["artisans_way_w1"], rooms["artisans_way_w2"],
+        rooms["artisans_way_w3"],
+        rooms["artisans_way_e1"], rooms["artisans_way_e2"],
+        rooms["artisans_way_e3"],
     ]
     lamppost_detail = (
         "A tall iron lamppost topped with a glass-panelled lantern. "
@@ -1995,6 +2320,10 @@ def build_millholm_town():
         rooms["post_office"], rooms["beggars_alley"],
         rooms["jeweller"], rooms["shrine"],
         rooms["priest_quarters"],
+        rooms["vacant_w1"], rooms["vacant_w2"], rooms["vacant_e2"],
+        rooms["weapons_shop"], rooms["armorer"],
+        rooms["clothing_shop"], rooms["magical_supplies"],
+        rooms["jewellers_showroom"], rooms["vacant_shop"],
     ]
     for room in lit_interiors:
         room.always_lit = True
@@ -2037,14 +2366,9 @@ def build_millholm_town():
         "cemetery":       "millholm_town:cemetery",
         "cemetery_gates": "millholm_town:cemetery_gates",
         "north_road":     "millholm_town:north_road",
-        # ── North-side shops ──
-        "textiles":       "millholm_town:textiles",
-        "smithy":         "millholm_town:smithy",
-        "woodshop":       "millholm_town:woodshop",
+        # ── North-side (bakery + stables remain) ──
         "stables":        "millholm_town:stables",
         "bakery":         "millholm_town:bakery",
-        "apothecary":     "millholm_town:apothecary",
-        "jeweller":       "millholm_town:jeweller",
         # ── The Old Trade Way + Market Square ──
         "road_far_west":  "millholm_town:road_far_west",
         "road_west":      "millholm_town:road_west",
@@ -2070,7 +2394,6 @@ def build_millholm_town():
         "post_office":    "millholm_town:post_office",
         "mages_guild":    "millholm_town:mages_guild",
         "inn":            "millholm_town:inn",
-        "leathershop":    "millholm_town:leathershop",
         # ── South road ──
         "south_road":     "millholm_town:south_road",
         "beggars_alley":  "millholm_town:beggars_alley",
@@ -2080,34 +2403,62 @@ def build_millholm_town():
         "far_south_road": "millholm_town:far_south_road",
         "gaol":           "millholm_town:gaol",
         "south_gate":     "millholm_town:south_gate",
+        # ── Artisan's Way ──
+        "artisans_way":      "millholm_town:artisans_way",
+        "artisans_way_w1":   "millholm_town:artisans_way_w1",
+        "artisans_way_w2":   "millholm_town:artisans_way_w2",
+        "artisans_way_w3":   "millholm_town:artisans_way_w3",
+        "artisans_way_e1":   "millholm_town:artisans_way_e1",
+        "artisans_way_e2":   "millholm_town:artisans_way_e2",
+        "artisans_way_e3":   "millholm_town:artisans_way_e3",
+        "smithy":            "millholm_town:smithy",
+        "textiles":          "millholm_town:textiles",
+        "woodshop":          "millholm_town:woodshop",
+        "apothecary":        "millholm_town:apothecary",
+        "jeweller":          "millholm_town:jeweller",
+        "leathershop":       "millholm_town:leathershop",
+        # ── Retail shops on Old Trade Way ──
+        "weapons_shop":      "millholm_town:weapons_shop",
+        "armorer":           "millholm_town:armorer",
+        "clothing_shop":     "millholm_town:clothing_shop",
+        "magical_supplies":  "millholm_town:magical_supplies",
+        "jewellers_showroom":"millholm_town:jewellers_showroom",
+        "vacant_shop":       "millholm_town:vacant_shop",
     }
     for room_key, tag in _town_map_tags.items():
         rooms[room_key].tags.add(tag, category="map_cell")
     # ── Region map cell tags (3x3 town block) ──
     _rt = "millholm_region"
     # Top row: town_nw, town_n, town_ne
-    for key in ["textiles", "smithy", "woodshop", "sq_nw", "inn"]:
+    for key in ["sq_nw", "inn", "weapons_shop", "clothing_shop"]:
         rooms[key].tags.add(f"{_rt}:town_nw", category="map_cell")
     for key in ["sq_n", "north_road", "cemetery_gates", "cemetery"]:
         rooms[key].tags.add(f"{_rt}:town_n", category="map_cell")
-    for key in ["sq_ne", "stables", "bakery", "apothecary", "jeweller"]:
+    for key in ["sq_ne", "stables", "bakery",
+                "magical_supplies", "jewellers_showroom"]:
         rooms[key].tags.add(f"{_rt}:town_ne", category="map_cell")
     # Middle row: town_w, town_center, town_e
     for key in ["road_far_west", "road_west", "road_mid_west", "sq_w",
-                "elena_house", "abandoned_house", "general_store"]:
+                "abandoned_house", "general_store", "armorer"]:
         rooms[key].tags.add(f"{_rt}:town_w", category="map_cell")
     for key in ["sq_center", "sq_sw", "sq_s", "sq_se",
                 "south_road", "shrine"]:
         rooms[key].tags.add(f"{_rt}:town_center", category="map_cell")
     for key in ["sq_e", "road_east", "road_mid_east", "road_far_east",
-                "bank", "post_office", "leathershop"]:
+                "bank", "post_office", "vacant_shop"]:
         rooms[key].tags.add(f"{_rt}:town_e", category="map_cell")
-    # Bottom row: town_sw, town_s, town_se
-    for key in ["beggars_alley", "broken_crown"]:
+    # Bottom row: town_sw, town_s (includes Artisan's Way), town_se
+    for key in ["beggars_alley", "broken_crown",
+                "artisans_way_w1", "artisans_way_w2", "artisans_way_w3",
+                "smithy", "leathershop", "jeweller", "woodshop",
+                "elena_house"]:
         rooms[key].tags.add(f"{_rt}:town_sw", category="map_cell")
-    for key in ["mid_south_road", "far_south_road", "south_gate"]:
+    for key in ["mid_south_road", "far_south_road", "south_gate",
+                "artisans_way"]:
         rooms[key].tags.add(f"{_rt}:town_s", category="map_cell")
-    for key in ["warriors_guild", "mages_guild", "gaol"]:
+    for key in ["warriors_guild", "mages_guild", "gaol",
+                "artisans_way_e1", "artisans_way_e2", "artisans_way_e3",
+                "apothecary", "textiles", "hendricks_house"]:
         rooms[key].tags.add(f"{_rt}:town_se", category="map_cell")
     print(f"  Tagged {len(_town_map_tags)} town rooms with map_cell tags (district + region).")
 
