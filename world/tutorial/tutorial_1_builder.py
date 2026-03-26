@@ -94,6 +94,32 @@ def build_tutorial_1(instance):
         obj.tags.add(tag, category="tutorial_item")
         return obj
 
+    def _spawn_pip(room):
+        """Spawn a tutorial guide NPC in this room."""
+        guide_context = getattr(room.db, "guide_context", "") or ""
+        tutorial_text = getattr(room.db, "tutorial_text", "") or ""
+        pip = create_object(
+            "typeclasses.actors.npcs.tutorial_guide_npc.TutorialGuideNPC",
+            key="Pip",
+            location=room,
+        )
+        pip.tags.add(tag, category="tutorial_mob")
+        pip.llm_personality = (
+            "A bright-eyed young adventurer who works at the Harvest Moon "
+            "Inn. Rowan the bartender sent you to show new arrivals the "
+            "ropes. You're enthusiastic, helpful, and speak plainly."
+        )
+        pip.llm_knowledge = (
+            "You are guiding a player through Tutorial 1: Survival Basics. "
+            f"You are currently in {room.key}.\n\n"
+            f"WHAT TO TEACH IN THIS ROOM:\n{guide_context}\n\n"
+            f"INSTRUCTIONS YOU ALREADY SHOWED THE PLAYER:\n{tutorial_text}"
+        )
+        pip.room_description = (
+            "{name}, a bright-eyed young guide, is here ready to help."
+        )
+        return pip
+
     # ================================================================== #
     #  ROOM 1: Welcome Hall — Movement
     # ================================================================== #
@@ -120,6 +146,8 @@ def build_tutorial_1(instance):
         ),
     )
 
+    _spawn_pip(rooms["welcome"])
+
     # ================================================================== #
     #  ROOM 2: Observation Chamber — Looking at Things
     # ================================================================== #
@@ -144,6 +172,8 @@ def build_tutorial_1(instance):
         ),
     )
     _connect(rooms["welcome"], rooms["look"], "east")
+
+    _spawn_pip(rooms["look"])
 
     # Display sword (fixture — can't be picked up)
     from typeclasses.world_objects.base_fixture import WorldFixture
@@ -219,6 +249,8 @@ def build_tutorial_1(instance):
     )
     _connect(rooms["look"], rooms["inventory"], "east")
 
+    _spawn_pip(rooms["inventory"])
+
     # Backpack (real NFT container item)
     _spawn_nft_item("Backpack", rooms["inventory"], tag)
 
@@ -270,6 +302,8 @@ def build_tutorial_1(instance):
         ),
     )
     _connect(rooms["inventory"], rooms["armoury"], "east")
+
+    _spawn_pip(rooms["armoury"])
 
     # Skydancer's Ring (real NFT item — grants FLY condition)
     _spawn_nft_item("Skydancer's Ring", rooms["armoury"], tag)
@@ -326,6 +360,7 @@ def build_tutorial_1(instance):
         natural_light=True,
     )
     _connect(rooms["armoury"], rooms["courtyard"], "east")
+    _spawn_pip(rooms["courtyard"])
 
     # ================================================================== #
     #  ROOM 6: The Dim Passage — Light & Darkness
@@ -366,6 +401,8 @@ def build_tutorial_1(instance):
         sheltered=True,
     )
     _connect(rooms["courtyard"], rooms["dark"], "east")
+
+    _spawn_pip(rooms["dark"])
 
     # Wooden torch (real NFT item)
     _spawn_nft_item("Wooden Torch", rooms["dark"], tag)
@@ -408,6 +445,8 @@ def build_tutorial_1(instance):
         natural_light=True,
     )
     _connect(rooms["dark"], rooms["combat"], "east")
+
+    _spawn_pip(rooms["combat"])
 
     # Training Dummy
     from typeclasses.actors.mobs.training_dummy import TrainingDummy
@@ -469,6 +508,8 @@ def build_tutorial_1(instance):
     )
     _connect(rooms["combat"], rooms["pantry"], "east")
 
+    _spawn_pip(rooms["pantry"])
+
     # Place bread only for first-time players (prevents tutorial bread farming)
     if first_run:
         char.account.db.tutorial_1_entered = True
@@ -513,6 +554,7 @@ def build_tutorial_1(instance):
         ),
     )
     _connect(rooms["pantry"], rooms["complete"], "east")
+    _spawn_pip(rooms["complete"])
 
     # ================================================================== #
     #  Exit from Tutorial Complete back to Hub — special handling

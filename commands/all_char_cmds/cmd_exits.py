@@ -86,9 +86,15 @@ class CmdExits(Command):
             else:
                 dir_label = ex.key.capitalize()
 
-            # Destination name
+            # Destination name — for self-loop exits (e.g. tutorial hub),
+            # the exit key is more informative than the room name
             dest = ex.destination
-            dest_name = dest.get_display_name(caller) if dest else "Unknown"
+            if dest and dest == room:
+                dest_name = ex.key
+            elif dest:
+                dest_name = dest.get_display_name(caller)
+            else:
+                dest_name = "Unknown"
 
             # Door state
             state = ""

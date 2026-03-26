@@ -56,7 +56,15 @@ def build_tutorial_hub():
              "|c\"Welcome, traveller. These halls will teach you the ways of "
              "this world. Each doorway leads to a different set of lessons. "
              "You may take them in order, or leave for the world "
-             "beyond at any time.\"|n"),
+             "beyond at any time.\"|n\n\n"
+             "  |weast|n  - |cTutorial 1: Survival Basics|n\n"
+             "           Movement, looking, inventory, equipment, combat, and more.\n"
+             "  |wnorth|n - |cTutorial 2: The Economic Loop|n\n"
+             "           Harvesting, processing, and banking.\n"
+             "  |wwest|n  - |cTutorial 3: Growth & Social|n\n"
+             "           Skills, training, guilds, and groups.\n"
+             "  |wsouth|n - Leave the tutorial for the game world.\n\n"
+             "You can always return here later with |wtutorial|n."),
             ("max_height", 0),
             ("max_depth", 0),
             ("natural_light", True),
@@ -103,6 +111,7 @@ def build_tutorial_hub():
     )
     exit_e.set_direction("east")
     exit_e.db.tutorial_num = 1
+    exit_e.db.desc = "Movement, looking, inventory, equipment, combat, and more."
 
     # North — Tutorial 2: The Economic Loop
     exit_n = create_object(
@@ -113,6 +122,7 @@ def build_tutorial_hub():
     )
     exit_n.set_direction("north")
     exit_n.db.tutorial_num = 2
+    exit_n.db.desc = "Harvesting, processing, and banking."
 
     # West — Tutorial 3: Growth & Social
     exit_w = create_object(
@@ -123,6 +133,7 @@ def build_tutorial_hub():
     )
     exit_w.set_direction("west")
     exit_w.db.tutorial_num = 3
+    exit_w.db.desc = "Skills, training, guilds, and groups."
 
     # South — Exit to game world
     exit_s = create_object(
@@ -132,5 +143,6 @@ def build_tutorial_hub():
         destination=hub,  # destination unused — at_traverse handles it
     )
     exit_s.set_direction("south")
+    exit_s.db.desc = "Leave the tutorial for the game world."
 
     return hub

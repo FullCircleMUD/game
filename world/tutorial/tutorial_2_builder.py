@@ -62,6 +62,32 @@ def build_tutorial_2(instance):
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
 
+    def _spawn_pip(room):
+        """Spawn a tutorial guide NPC in this room."""
+        guide_context = getattr(room.db, "guide_context", "") or ""
+        tutorial_text = getattr(room.db, "tutorial_text", "") or ""
+        pip = create_object(
+            "typeclasses.actors.npcs.tutorial_guide_npc.TutorialGuideNPC",
+            key="Pip",
+            location=room,
+        )
+        pip.tags.add(tag, category="tutorial_mob")
+        pip.llm_personality = (
+            "A bright-eyed young adventurer who works at the Harvest Moon "
+            "Inn. Rowan the bartender sent you to show new arrivals the "
+            "ropes. You're enthusiastic, helpful, and speak plainly."
+        )
+        pip.llm_knowledge = (
+            "You are guiding a player through Tutorial 2: The Economic Loop. "
+            f"You are currently in {room.key}.\n\n"
+            f"WHAT TO TEACH IN THIS ROOM:\n{guide_context}\n\n"
+            f"INSTRUCTIONS YOU ALREADY SHOWED THE PLAYER:\n{tutorial_text}"
+        )
+        pip.room_description = (
+            "{name}, a bright-eyed young guide, is here ready to help."
+        )
+        return pip
+
     # Check first-run status
     char = instance.get_character()
     first_run = (
@@ -111,6 +137,7 @@ def build_tutorial_2(instance):
     rooms["harvest"].desc_depleted = (
         "The field has been harvested clean. Nothing remains to gather."
     )
+    _spawn_pip(rooms["harvest"])
 
     # ================================================================== #
     #  ROOM 2: Woodlot — Chopping wood
@@ -151,6 +178,7 @@ def build_tutorial_2(instance):
         "The woodlot has been cleared. No trees remain."
     )
     _connect(rooms["harvest"], rooms["woodlot"], "east")
+    _spawn_pip(rooms["woodlot"])
 
     # ================================================================== #
     #  ROOM 3: Windmill — Processing wheat to flour
@@ -182,6 +210,7 @@ def build_tutorial_2(instance):
         {"inputs": {1: 1}, "output": 2, "amount": 1, "cost": 1},
     ]
     _connect(rooms["woodlot"], rooms["windmill"], "east")
+    _spawn_pip(rooms["windmill"])
 
     # ================================================================== #
     #  ROOM 4: Bakery — Processing flour+wood to bread
@@ -215,6 +244,7 @@ def build_tutorial_2(instance):
         {"inputs": {2: 1, 6: 1}, "output": 3, "amount": 1, "cost": 1},
     ]
     _connect(rooms["windmill"], rooms["bakery"], "east")
+    _spawn_pip(rooms["bakery"])
 
     # ================================================================== #
     #  ROOM 5: Vault — Banking
@@ -247,6 +277,7 @@ def build_tutorial_2(instance):
         typeclass=RoomBank,
     )
     _connect(rooms["bakery"], rooms["vault"], "east")
+    _spawn_pip(rooms["vault"])
 
     # ================================================================== #
     #  ROOM 6: Tutorial Complete
@@ -275,6 +306,7 @@ def build_tutorial_2(instance):
         ),
     )
     _connect(rooms["vault"], rooms["complete"], "east")
+    _spawn_pip(rooms["complete"])
 
     # ================================================================== #
     #  Completion exit back to hub

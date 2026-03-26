@@ -70,6 +70,32 @@ def build_tutorial_3(instance):
         obj.tags.add(tag, category="tutorial_item")
         return obj
 
+    def _spawn_pip(room):
+        """Spawn a tutorial guide NPC in this room."""
+        guide_context = getattr(room.db, "guide_context", "") or ""
+        tutorial_text = getattr(room.db, "tutorial_text", "") or ""
+        pip = create_object(
+            "typeclasses.actors.npcs.tutorial_guide_npc.TutorialGuideNPC",
+            key="Pip",
+            location=room,
+        )
+        pip.tags.add(tag, category="tutorial_mob")
+        pip.llm_personality = (
+            "A bright-eyed young adventurer who works at the Harvest Moon "
+            "Inn. Rowan the bartender sent you to show new arrivals the "
+            "ropes. You're enthusiastic, helpful, and speak plainly."
+        )
+        pip.llm_knowledge = (
+            "You are guiding a player through Tutorial 3: Growth & Social. "
+            f"You are currently in {room.key}.\n\n"
+            f"WHAT TO TEACH IN THIS ROOM:\n{guide_context}\n\n"
+            f"INSTRUCTIONS YOU ALREADY SHOWED THE PLAYER:\n{tutorial_text}"
+        )
+        pip.room_description = (
+            "{name}, a bright-eyed young guide, is here ready to help."
+        )
+        return pip
+
     # Check first-run status
     char = instance.get_character()
     first_run = (
@@ -110,6 +136,8 @@ def build_tutorial_3(instance):
         ),
     )
 
+    _spawn_pip(rooms["records"])
+
     # Mirror fixture
     mirror = _fixture(
         "a large ornate mirror", rooms["records"],
@@ -147,6 +175,8 @@ def build_tutorial_3(instance):
         ),
     )
     _connect(rooms["records"], rooms["speaking"], "east")
+
+    _spawn_pip(rooms["speaking"])
 
     # Message board fixture
     board = _fixture(
@@ -191,6 +221,8 @@ def build_tutorial_3(instance):
     )
     _connect(rooms["speaking"], rooms["skills"], "east")
 
+    _spawn_pip(rooms["skills"])
+
     # Skill tome fixture
     tome = _fixture(
         "a thick skill tome", rooms["skills"],
@@ -232,6 +264,8 @@ def build_tutorial_3(instance):
         ),
     )
     _connect(rooms["skills"], rooms["training"], "east")
+
+    _spawn_pip(rooms["training"])
 
     # Trainer NPC
     trainer = create.create_object(
@@ -285,6 +319,8 @@ def build_tutorial_3(instance):
     )
     _connect(rooms["training"], rooms["guild"], "east")
 
+    _spawn_pip(rooms["guild"])
+
     # Guildmaster NPC
     guildmaster = create.create_object(
         "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
@@ -332,6 +368,8 @@ def build_tutorial_3(instance):
     )
     _connect(rooms["guild"], rooms["companion"], "east")
 
+    _spawn_pip(rooms["companion"])
+
     # Companion NPC — simple mob for follow practice
     from typeclasses.actors.npc import BaseNPC
 
@@ -375,6 +413,7 @@ def build_tutorial_3(instance):
         ),
     )
     _connect(rooms["companion"], rooms["complete"], "east")
+    _spawn_pip(rooms["complete"])
 
     # ================================================================== #
     #  Completion exit back to hub

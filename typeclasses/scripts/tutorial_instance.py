@@ -91,36 +91,11 @@ class TutorialInstanceScript(DefaultScript):
             character.msg(f"|rTutorial {chunk_num} is not yet available.|n")
             return
 
-        # Spawn the tutorial guide NPC
-        guide = create_object(
-            "typeclasses.actors.npcs.tutorial_guide_npc.TutorialGuideNPC",
-            key="Pip",
-            location=first_room,
-        )
-        guide.tags.add(self.instance_key, category="tutorial_mob")
-        guide.llm_personality = (
-            "A bright-eyed young adventurer who works at the Harvest Moon "
-            "Inn. Rowan the bartender sent you to show new arrivals the "
-            "ropes. You're enthusiastic, helpful, and speak plainly."
-        )
-        guide.llm_knowledge = (
-            f"You are guiding a player through {title}. "
-            "Walk them through each room and explain the mechanics."
-        )
-        guide.db.desc = (
-            "A young adventurer with a ready grin and a well-worn satchel "
-            "slung over one shoulder. Pip bounces on the balls of their "
-            "feet, eager to show you around."
-        )
-
         # Move character into first room
+        # (each room has its own Pip spawned by the builder)
         character.move_to(first_room, quiet=True, move_type="teleport")
         character.msg(f"|c=== {title} ===|n")
         character.msg(first_room.db.desc or "")
-
-        # Make guide follow the player
-        if hasattr(character, "add_follower"):
-            character.add_follower(guide)
 
     # ------------------------------------------------------------------ #
     #  Collapse / cleanup
