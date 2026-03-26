@@ -395,14 +395,15 @@ class CombatHandler(DefaultScript):
     def _stop_ticker(self):
         dt = self.action_dict.get("dt", 0) if self.action_dict else 0
         idstring = f"combat_{self.obj.id}"
-        # Try the expected interval first
-        try:
-            TICKER_HANDLER.remove(
-                interval=dt, callback=self._on_tick, idstring=idstring,
-            )
-            return
-        except KeyError:
-            pass
+        # Try the expected interval first (skip if < 1 — no ticker to remove)
+        if dt >= 1:
+            try:
+                TICKER_HANDLER.remove(
+                    interval=dt, callback=self._on_tick, idstring=idstring,
+                )
+                return
+            except KeyError:
+                pass
         # Fallback: try common combat intervals in case of desync
         for fallback_dt in (2, 3, 4, 5, 6):
             if fallback_dt == dt:
