@@ -255,7 +255,19 @@ class CmdTrain(Command):
             yield from self._train_weapon(caller, trainer, weapon_input)
             return
 
-        yield from self._train_skill(caller, trainer, args)
+        # Try skill first, fall through to weapon if no match
+        skill_key = _match_in_list(trainer.trainable_skills, args)
+        if skill_key:
+            yield from self._train_skill(caller, trainer, args)
+        else:
+            weapon_key = _match_in_list(trainer.trainable_weapons or [], args)
+            if weapon_key:
+                yield from self._train_weapon(caller, trainer, args)
+            else:
+                caller.msg(
+                    f"'{args}' is not available at this trainer. "
+                    f"Type |wtrain|n to see available skills."
+                )
 
     # ── Listing ──
 

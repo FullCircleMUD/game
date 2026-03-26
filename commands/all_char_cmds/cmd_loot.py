@@ -79,9 +79,13 @@ class CmdLoot(Command):
             self._loot_resource(
                 caller, corpse, parsed.resource_id, parsed.resource_info, parsed.amount,
             )
-        else:  # item or token_id
-            if parsed.type == "token_id":
-                self._loot_by_token_id(caller, corpse, parsed.token_id)
+        elif parsed.type == "token_id":
+            self._loot_by_token_id(caller, corpse, parsed.token_id)
+        else:
+            # Check if the search term matches a corpse rather than an item
+            target_corpse = self._match_corpse(caller, corpses, parsed.search_term)
+            if target_corpse:
+                self._loot_all(caller, target_corpse)
             else:
                 self._loot_item(caller, corpse, parsed.search_term)
 
@@ -121,6 +125,16 @@ class CmdLoot(Command):
     # ------------------------------------------------------------------ #
     #  Find a lootable corpse
     # ------------------------------------------------------------------ #
+
+    def _match_corpse(self, caller, corpses, search_term):
+        """Check if the search term matches a corpse in the room."""
+        term = search_term.lower()
+        for corpse in corpses:
+            display = corpse.get_display_name(caller).lower()
+            if term == "corpse" or term in display:
+                if corpse.can_loot(caller):
+                    return corpse
+        return None
 
     def _find_lootable_corpse(self, caller, corpses):
         """Find the first corpse this character can loot."""

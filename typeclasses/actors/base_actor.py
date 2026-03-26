@@ -60,12 +60,15 @@ class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
     #########################################################
 
     hp = AttributeProperty(1)           # Current hit points
-    hp_max = AttributeProperty(2)       # Maximum hit points (race + class + equipment/spell bonuses)
+    base_hp_max = AttributeProperty(2)  # Natural max HP (race + class levels, no equipment/spells)
+    hp_max = AttributeProperty(2)       # Effective max HP (base + equipment/spell bonuses)
 
     mana = AttributeProperty(0)
+    base_mana_max = AttributeProperty(1)  # Natural max mana (race + class levels)
     mana_max = AttributeProperty(1)
 
     move = AttributeProperty(2)
+    base_move_max = AttributeProperty(3)  # Natural max move (race + class levels)
     move_max = AttributeProperty(3)
 
     # what the actors base AC is
@@ -242,7 +245,12 @@ class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
         self.wisdom = self.base_wisdom
         self.charisma = self.base_charisma
 
-        # 2. Reset bonus stats to zero/defaults
+        # 2. Reset pool maxes to base (race + class levels, no equipment)
+        self.hp_max = self.base_hp_max
+        self.mana_max = self.base_mana_max
+        self.move_max = self.base_move_max
+
+        # 3. Reset bonus stats to zero/defaults
         self.armor_class = self.base_armor_class
         self.total_hit_bonus = 0
         self.total_damage_bonus = 0
@@ -279,7 +287,16 @@ class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
 
         del self._accumulated_companions
 
-        # 4. Post-recalculate checks
+        # 4. Clamp current pools to new maxes (e.g. after equipment removal)
+        eff_hp = self.effective_hp_max
+        if self.hp > eff_hp:
+            self.hp = eff_hp
+        if self.mana > self.mana_max:
+            self.mana = self.mana_max
+        if self.move > self.move_max:
+            self.move = self.move_max
+
+        # 5. Post-recalculate checks
         self._check_encumbrance_consequences()
 
     def _accumulate_effect(self, effect):

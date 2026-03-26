@@ -76,12 +76,15 @@ class RaceBase:
 
         # Starting stats
         character.hp = self.base_hp
+        character.base_hp_max = self.base_hp
         character.hp_max = self.base_hp
 
         character.mana = self.base_mana
+        character.base_mana_max = self.base_mana
         character.mana_max = self.base_mana
 
         character.move = self.base_move
+        character.base_move_max = self.base_move
         character.move_max = self.base_move
 
         character.base_armor_class = self.base_armor_class

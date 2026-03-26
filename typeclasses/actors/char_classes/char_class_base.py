@@ -130,12 +130,15 @@ class CharClassBase:
         move_gain = level1data["move_gain"] + getattr(character, "bonus_move_per_level", 0)
 
         character.hp += hp_gain
+        character.base_hp_max += hp_gain
         character.hp_max += hp_gain
 
         character.mana += mana_gain
+        character.base_mana_max += mana_gain
         character.mana_max += mana_gain
 
         character.move += move_gain
+        character.base_move_max += move_gain
         character.move_max += move_gain
 
     def at_gain_subsequent_level_in_class(self, character):
@@ -178,12 +181,15 @@ class CharClassBase:
         move_gain = level_data["move_gain"] + getattr(character, "bonus_move_per_level", 0)
 
         character.hp += hp_gain
+        character.base_hp_max += hp_gain
         character.hp_max += hp_gain
 
         character.mana += mana_gain
+        character.base_mana_max += mana_gain
         character.mana_max += mana_gain
 
         character.move += move_gain
+        character.base_move_max += move_gain
         character.move_max += move_gain
 
         # Save updated class data back

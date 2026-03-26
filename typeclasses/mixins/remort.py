@@ -81,10 +81,13 @@ class RemortMixin:
 
         # --- Reset HP / mana / move ---
         self.hp = 1
+        self.base_hp_max = 2
         self.hp_max = 2
         self.mana = 0
+        self.base_mana_max = 1
         self.mana_max = 1
         self.move = 2
+        self.base_move_max = 3
         self.move_max = 3
 
         # --- Reset armor and combat caches ---
