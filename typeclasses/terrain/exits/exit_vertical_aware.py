@@ -143,12 +143,15 @@ class ExitVerticalAware(ExitBase):
     def access(self, accessing_obj, access_type="read", default=False,
                no_superuser_bypass=False, **kwargs):
         """
-        Override access to deny 'traverse' when height is inaccessible.
+        Override access to deny 'cmd' and 'traverse' when height is
+        inaccessible.
 
-        This prevents height-gated exits from appearing in command
-        disambiguation when multiple exits share the same direction.
+        Denying 'cmd' access prevents the exit command from matching
+        during Evennia's command parser phase, which eliminates
+        disambiguation prompts when multiple exits share the same
+        direction at different heights.
         """
-        if access_type == "traverse":
+        if access_type in ("cmd", "traverse"):
             height = getattr(accessing_obj, "room_vertical_position", 0)
             if not self.is_height_accessible(height):
                 return False
