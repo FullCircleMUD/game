@@ -166,6 +166,14 @@ class FCMCharacter(
         if move_type in ("move", "follow"):
             self.move = max(0, self.move - 1)
 
+        # Breath timer — start if we moved into underwater without one
+        if self.room_vertical_position < 0:
+            if not self.has_condition(Condition.WATER_BREATHING):
+                self.start_breath_timer()
+        else:
+            # Surfaced or on land — stop any running timer
+            self.stop_breath_timer()
+
         # HIDDEN movement check — stealth vs best perceiver on room entry
         if self.has_condition(Condition.HIDDEN) and self.location:
             self._check_hidden_on_entry()
