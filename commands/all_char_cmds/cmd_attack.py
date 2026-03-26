@@ -35,11 +35,16 @@ class CmdAttack(Command):
             caller.msg("Attack what?")
             return
 
-        # Search room contents only — excludes the room itself so that
-        # e.g. "kill king" in "Rat King's Lair" doesn't match the room name.
-        target = caller.search(self.args.strip(), location=caller.location)
-        if not target:
+        # Search room contents only — quiet=True takes first match instead
+        # of showing a disambiguation prompt (MUD convention: attack the
+        # first matching mob, use 2.rat for the second).
+        results = caller.search(
+            self.args.strip(), location=caller.location, quiet=True
+        )
+        if not results:
+            caller.msg(f"You don't see '{self.args.strip()}' here.")
             return
+        target = results[0] if isinstance(results, list) else results
 
         if target == caller:
             caller.msg("You can't attack yourself.")
