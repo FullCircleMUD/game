@@ -53,6 +53,14 @@ class CmdExits(Command):
             if not hasattr(ex, "is_visible_to") or ex.is_visible_to(caller)
         ]
 
+        # Filter height-gated exits based on caller's vertical position
+        char_height = getattr(caller, "room_vertical_position", 0)
+        exits = [
+            ex for ex in exits
+            if not hasattr(ex, "is_height_accessible")
+            or ex.is_height_accessible(char_height)
+        ]
+
         if not exits:
             caller.msg("There are no obvious exits.")
             return

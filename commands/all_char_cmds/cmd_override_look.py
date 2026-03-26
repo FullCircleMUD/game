@@ -172,6 +172,7 @@ class CmdLook(_EvenniaCmdLook):
             return
 
         # Find exit with this direction
+        char_height = getattr(caller, "room_vertical_position", 0)
         for ex in caller.location.contents_get(content_type="exit"):
             ex_dir = getattr(ex, "direction", None)
             if ex_dir != canonical:
@@ -179,6 +180,12 @@ class CmdLook(_EvenniaCmdLook):
             # Check visibility
             if hasattr(ex, "is_visible_to") and not ex.is_visible_to(caller):
                 break  # exit exists but is hidden — don't reveal
+            # Check height accessibility
+            if (
+                hasattr(ex, "is_height_accessible")
+                and not ex.is_height_accessible(char_height)
+            ):
+                continue  # exit exists but not at this height — try next
             # Show exit details
             desc = caller.at_look(ex)
             self.msg(text=(desc, {"type": "look"}), options=None)

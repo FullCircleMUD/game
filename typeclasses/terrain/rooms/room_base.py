@@ -66,10 +66,21 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
     _SUBTERRANEAN_TERRAIN = {TerrainType.UNDERGROUND.value, TerrainType.DUNGEON.value}
 
 
-    vert_descriptions = {
-        "0": "default ground level desc",
-        "1": "default flying at level 1 desc"
-    }
+    vert_descriptions = AttributeProperty(None, autocreate=False)
+    """Per-height room descriptions. Dict {height_int: description_str}.
+    None = use standard db.desc for all heights (default).
+
+    When set, characters at a matching height see the height-specific
+    description instead of db.desc. Heights without a mapping fall back
+    to db.desc with the standard flying/underwater prefix.
+
+    Example:
+        room.vert_descriptions = {
+            0: "A cobblestone courtyard surrounded by high walls...",
+            1: "From above, the courtyard spreads out below you...",
+            -1: "The water is waist deep here...",
+        }
+    """
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -419,16 +430,30 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         """
         Get the 'desc' component of the object description. Called by `return_appearance`.
 
+        If ``vert_descriptions`` is set and contains a key matching the
+        looker's ``room_vertical_position``, that description is used
+        instead of ``db.desc``. Otherwise falls back to the standard
+        description with flying/underwater prefixes.
+
         Args:
             looker (DefaultObject): Object doing the looking.
             **kwargs: Arbitrary data for use when overriding.
         Returns:
             str: The desc display string.
-
         """
         if self.is_dark(looker):
             return "|xIt is pitch black. You can't see a thing.|n"
-        desc = self.db.desc or self.default_description
+
+        # Check for height-specific description override
+        desc = None
+        if self.vert_descriptions:
+            height = getattr(looker, "room_vertical_position", 0)
+            if height in self.vert_descriptions:
+                desc = self.vert_descriptions[height]
+
+        if desc is None:
+            desc = self.db.desc or self.default_description
+
         weather_line = self._get_weather_desc_line()
         if weather_line:
             desc = f"{desc}\n{weather_line}"
@@ -490,6 +515,16 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             ex for ex in exits
             if (not hasattr(ex, "is_visible_to") or ex.is_visible_to(looker))
             and (not hasattr(ex, "is_open") or ex.is_open)
+        ]
+
+        # Filter height-gated exits based on looker's vertical position.
+        # Exits with required_min/max_height or arrival_heights set are
+        # only shown when the looker is at an accessible height.
+        char_height = getattr(looker, "room_vertical_position", 0)
+        exits = [
+            ex for ex in exits
+            if not hasattr(ex, "is_height_accessible")
+            or ex.is_height_accessible(char_height)
         ]
 
         if not exits:
