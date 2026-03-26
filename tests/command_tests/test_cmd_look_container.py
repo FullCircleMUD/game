@@ -17,6 +17,7 @@ class TestCmdLookInContainer(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
 
     # ------------------------------------------------------------------ #
     #  Helpers

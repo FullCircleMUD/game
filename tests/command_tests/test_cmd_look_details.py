@@ -14,6 +14,10 @@ class TestCmdLookDetails(EvenniaCommandTest):
     def create_script(self):
         pass
 
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+
     # ------------------------------------------------------------------ #
     #  Tests
     # ------------------------------------------------------------------ #
