@@ -187,4 +187,12 @@ def spawn_test_items():
     else:
         print("  ! Wolves Den room not found")
 
+    # --- Skydancer's Ring at Castle Wall ---
+    print("\n--- Castle Wall Ring ---\n")
+    castle_wall = _find_room("Outside Castle Wall")
+    if castle_wall:
+        spawn_nft_item("Skydancer's Ring", castle_wall)
+    else:
+        print("  ! Outside Castle Wall not found — skipping ring")
+
     print("\n=== Done ===\n")
