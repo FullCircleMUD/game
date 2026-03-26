@@ -53,7 +53,7 @@ class TestMobCorpse(EvenniaTest):
         self.mob.die("combat")
         corpse = self._find_corpse(self.room1)
         self.assertEqual(corpse.owner_name, "a goblin")
-        self.assertEqual(corpse.key, "corpse of a goblin")
+        self.assertEqual(corpse.key, "corpse")
 
     @patch("evennia.utils.utils.delay")
     def test_corpse_cause_of_death(self, mock_delay):

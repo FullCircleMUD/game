@@ -606,9 +606,10 @@ class FCMCharacter(
             self.tags.remove(dungeon_tag, category="dungeon_character")
 
         # 4. Empty corpse for flavour (no items, no gold, no resources)
+        #    key="corpse" so name searches don't match the corpse (see mob.py)
         corpse = create_object(
             Corpse,
-            key=f"corpse of {self.key}",
+            key="corpse",
             location=room,
         )
         corpse.owner_character_key = self.db.character_key
@@ -657,9 +658,10 @@ class FCMCharacter(
         self.clear_all_effects()
 
         # 3. Create Corpse object in current room
+        #    key="corpse" so name searches don't match the corpse (see mob.py)
         corpse = create_object(
             Corpse,
-            key=f"corpse of {self.key}",
+            key="corpse",
             location=room,
         )
         corpse.owner_character_key = self.db.character_key

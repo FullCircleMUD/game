@@ -333,9 +333,13 @@ class CombatMob(AIMixin, BaseNPC):
         from evennia.utils.create import create_object
         from typeclasses.world_objects.corpse import Corpse
 
+        # key="corpse" (not "corpse of {name}") so that searching for the
+        # mob's name (e.g. "kill rat") doesn't match the corpse.  The full
+        # display name "corpse of ..." comes from get_display_name() which
+        # reads owner_name, and the loot command finds corpses via isinstance.
         corpse = create_object(
             Corpse,
-            key=f"corpse of {self.key}",
+            key="corpse",
             location=room,
         )
         corpse.owner_character_key = None

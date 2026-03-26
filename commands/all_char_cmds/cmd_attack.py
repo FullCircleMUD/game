@@ -35,7 +35,9 @@ class CmdAttack(Command):
             caller.msg("Attack what?")
             return
 
-        target = caller.search(self.args.strip())
+        # Search room contents only — excludes the room itself so that
+        # e.g. "kill king" in "Rat King's Lair" doesn't match the room name.
+        target = caller.search(self.args.strip(), location=caller.location)
         if not target:
             return
 

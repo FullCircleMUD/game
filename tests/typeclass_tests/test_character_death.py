@@ -43,7 +43,7 @@ class TestCharacterDeath(EvenniaTest):
         self.char1.die("combat")
         corpse = self._find_corpse(self.room1)
         self.assertIsNotNone(corpse)
-        self.assertEqual(corpse.key, f"corpse of {self.char1.key}")
+        self.assertEqual(corpse.key, "corpse")
 
     @patch("typeclasses.world_objects.corpse.delay")
     @patch("typeclasses.actors.character.delay")
