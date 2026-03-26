@@ -138,6 +138,25 @@ class ExitVerticalAware(ExitBase):
             return f"{self.direction}: {desc}"
         return desc
 
+    # ── Access control ───────────────────────────────────────────────
+
+    def access(self, accessing_obj, access_type="read", default=False,
+               no_superuser_bypass=False, **kwargs):
+        """
+        Override access to deny 'traverse' when height is inaccessible.
+
+        This prevents height-gated exits from appearing in command
+        disambiguation when multiple exits share the same direction.
+        """
+        if access_type == "traverse":
+            height = getattr(accessing_obj, "room_vertical_position", 0)
+            if not self.is_height_accessible(height):
+                return False
+        return super().access(
+            accessing_obj, access_type=access_type, default=default,
+            no_superuser_bypass=no_superuser_bypass, **kwargs
+        )
+
     # ── Height accessibility ────────────────────────────────────────
 
     def is_height_accessible(self, height):

@@ -466,9 +466,12 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         if desc is None:
             desc = self.db.desc or self.default_description
 
-        weather_line = self._get_weather_desc_line()
-        if weather_line:
-            desc = f"{desc}\n{weather_line}"
+        # Suppress weather when underwater — you can't see the sky
+        char_height = getattr(looker, "room_vertical_position", 0)
+        if char_height >= 0:
+            weather_line = self._get_weather_desc_line()
+            if weather_line:
+                desc = f"{desc}\n{weather_line}"
         return desc
 
     def _get_weather_desc_line(self):
