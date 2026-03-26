@@ -19,6 +19,7 @@ Usage:
 
 from evennia import create_object, ObjectDB
 
+from enums.terrain_type import TerrainType
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.terrain.rooms.room_base import RoomBase
 
@@ -33,6 +34,11 @@ def test_area_castle_wall():
     if existing.exists():
         print("  Castle wall area already exists — skipping.")
         return
+
+    # Clean up any stale exits from Limbo pointing to deleted castle wall rooms
+    for ex in limbo.exits:
+        if ex.key == "Outside Castle Wall":
+            ex.delete()
 
     # ── Rooms ──────────────────────────────────────────────────────
 
@@ -144,6 +150,13 @@ def test_area_castle_wall():
         "|rYou are about to step off the castle wall. "
         "The ground is a long way down. This will hurt.|n"
     )
+
+    # ── Zone tags (required for soft_reset cleanup) ─────────────────
+    for room in [outside_wall, wall_top]:
+        room.tags.add("test_water_fly_zone", category="zone")
+        room.tags.add("castle_wall_district", category="district")
+        room.set_terrain(TerrainType.RURAL.value)
+        room.always_lit = True
 
     print("\n=== Castle Wall Test Area Created ===")
     print("  Outside Castle Wall — south of Limbo (max_height=2)")
