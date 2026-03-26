@@ -164,6 +164,14 @@ class ZoneSpawnScript(DefaultScript):
         for attr_name, attr_val in rule.get("attrs", {}).items():
             setattr(mob, attr_name, attr_val)
 
+        # Sync loot resource tags — attrs may have overridden the typeclass
+        # default loot_resources, so re-check and add any missing tags.
+        loot_res = getattr(mob, "loot_resources", None) or {}
+        for rid in loot_res:
+            tag_key = f"loot_resource_{rid}"
+            if not mob.tags.get(tag_key, category="loot_resource"):
+                mob.tags.add(tag_key, category="loot_resource")
+
         # Tag for population tracking
         mob.tags.add(self.db.zone_key, category="spawn_zone")
 

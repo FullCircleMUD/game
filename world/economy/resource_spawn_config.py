@@ -81,3 +81,20 @@ RESOURCE_SPAWN_CONFIG = {
     22: _cfg(target_supply_per_ph=3.0, default_spawn_rate=6,
              max_per_room=12),                          # Siren Petal
 }
+
+
+# ── Mob loot spawn config ──
+# Maps resource_id → config for spawning that resource onto living mobs.
+#
+# "mob_share" (float 0.0–1.0): fraction of the hourly spawn budget that
+# goes to mobs. The remainder goes to RoomHarvesting rooms. Set to 1.0
+# for resources that ONLY come from mobs (e.g. hide from wolves).
+#
+# Eligible mobs are discovered automatically via loot_resource_<rid> tags
+# set by CombatMob.at_object_creation(). Per-mob caps come from the mob's
+# loot_resources attribute — no need to list typeclasses here.
+MOB_RESOURCE_SPAWN_CONFIG = {
+    8: {  # Hide — spawns only on mobs, not in rooms
+        "mob_share": 1.0,
+    },
+}

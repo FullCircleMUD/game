@@ -620,14 +620,7 @@ Hourly aggregation system that snapshots key economic metrics for the spawn algo
 
 ## Resource Spawn Algorithm
 
-> **Design:** See `design/SPAWN_RESOURCES.md` for the full three-factor algorithm (consumption rate, price modifier, supply modifier), target bands, and drip-feed distribution.
-
-**Implementation:** `blockchain/xrpl/services/resource_spawn.py` — `ResourceSpawnService`. Configuration per zone in `world/spawns/*.json`. Admin command: `spawn_resources`.
-
-- **Config:** `world/economy/resource_spawn_config.py` — per-resource dict keyed by `resource_id`.
-- **Script:** `typeclasses/scripts/resource_spawn_service.py` — `ResourceSpawnScript`, thin hourly wrapper.
-- **Tests:** `tests/script_tests/test_resource_spawn.py` — 47 tests.
-- **POC:** `commands/account_cmds/cmd_spawn_poc.py` — superuser `spawnpoc` command.
+> **Source of truth:** See `design/SPAWN_RESOURCES.md` for the full three-factor algorithm, room distribution, mob loot spawning, budget split, drip-feed mechanics, configuration reference, and implementation file paths.
 
 ## NFT Saturation Service
 

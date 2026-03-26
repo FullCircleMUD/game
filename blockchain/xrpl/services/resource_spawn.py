@@ -1,23 +1,30 @@
 """
-Resource spawn service — hourly replenishment of RoomHarvesting nodes.
+Resource spawn service — hourly replenishment of RoomHarvesting nodes
+and mob loot inventories.
 
 Calculates how much of each raw resource to spawn based on three factors:
 1. Consumption rate (baseline) — what players are actually using (from SINK data)
 2. AMM price modifier — spawn more when price is high, less when low
 3. Circulating supply per player-hour — structural over/undersupply check
 
-Then distributes the spawn amount across RoomHarvesting rooms weighted by
-each room's spawn_rate_weight (1-5), capped at max_resource_count.
+Then distributes the spawn amount across two target pools:
+  - RoomHarvesting rooms — weighted by spawn_rate_weight, capped at max_resource_count
+  - Living mobs — late-bound selection at drip-tick time via loot_resource tags
 
-Distribution is drip-fed across the hour: each room receives its allocation
-in evenly spaced ticks (min 5 minutes apart) via delay() calls rather than
-a single batch dump.
+The split between rooms and mobs is controlled by MOB_RESOURCE_SPAWN_CONFIG's
+"mob_share" field. Resources without a mob config go 100% to rooms.
+
+Distribution is drip-fed across the hour via delay() calls (min 5 min apart).
+Mob distribution uses late-bound selection because mobs die and respawn between
+ticks. Surplus that can't be placed on mobs is banked for the next tick and
+dropped at end of hour (logged for tuning visibility).
 
 Called hourly by ResourceSpawnScript.
 """
 
 import logging
 import math
+import random
 from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
@@ -102,9 +109,11 @@ class ResourceSpawnService:
     def _process_resource(resource_id, config, player_hours, rooms):
         """Calculate and schedule drip-feed spawn for a single resource.
 
-        Returns total amount allocated (will be distributed over the hour).
+        Splits the hourly budget between rooms and mobs based on
+        MOB_RESOURCE_SPAWN_CONFIG. Returns total amount scheduled.
         """
         from blockchain.xrpl.currency_cache import get_currency_code
+        from world.economy.resource_spawn_config import MOB_RESOURCE_SPAWN_CONFIG
 
         currency_code = get_currency_code(resource_id)
         if not currency_code:
@@ -139,15 +148,34 @@ class ResourceSpawnService:
         if spawn_int <= 0:
             return 0
 
-        # Calculate per-room allocations, then drip-feed
-        allocations = ResourceSpawnService.calculate_room_allocations(
-            rooms, spawn_int, config["max_per_room"],
-        )
-        if not allocations:
-            return 0
+        # Split budget between rooms and mobs
+        mob_config = MOB_RESOURCE_SPAWN_CONFIG.get(resource_id)
+        if mob_config:
+            mob_share = mob_config.get("mob_share", 0.0)
+            mob_amount = round(spawn_int * mob_share)
+            room_amount = spawn_int - mob_amount
+        else:
+            mob_amount = 0
+            room_amount = spawn_int
 
-        total = sum(a for _, a in allocations)
-        ResourceSpawnService.schedule_drip_feed(allocations)
+        total = 0
+
+        # Room distribution (existing path)
+        if room_amount > 0:
+            allocations = ResourceSpawnService.calculate_room_allocations(
+                rooms, room_amount, config["max_per_room"],
+            )
+            if allocations:
+                total += sum(a for _, a in allocations)
+                ResourceSpawnService.schedule_drip_feed(allocations)
+
+        # Mob distribution (late-bound)
+        if mob_amount > 0:
+            ResourceSpawnService.schedule_mob_drip_feed(
+                resource_id, mob_amount,
+            )
+            total += mob_amount
+
         return total
 
     # ================================================================== #
@@ -424,6 +452,53 @@ class ResourceSpawnService:
             total += alloc
         return total
 
+    # ================================================================== #
+    #  Mob loot allocation & drip-feed distribution
+    # ================================================================== #
+
+    @staticmethod
+    def _load_loot_mobs(resource_id):
+        """Fetch all living mobs with the loot_resource_<rid> tag.
+
+        Returns list of mob objects. Called at drip-tick time (late-bound)
+        so the result reflects the current mob population.
+        """
+        from evennia.objects.models import ObjectDB
+
+        tag_key = f"loot_resource_{resource_id}"
+        return list(
+            ObjectDB.objects.filter(
+                db_tags__db_key=tag_key,
+                db_tags__db_category="loot_resource",
+            ).exclude(
+                db_location__isnull=True,  # exclude dead/limbo mobs
+            )
+        )
+
+    @staticmethod
+    def schedule_mob_drip_feed(resource_id, total):
+        """Schedule delayed mob loot distribution across the hour.
+
+        Same tick pattern as room drip-feed (max 12 ticks, min 5 min apart).
+        A shared mutable bank list carries surplus between ticks.
+        """
+        num_ticks = min(total, MAX_TICKS_PER_HOUR)
+        interval = 3600.0 / num_ticks
+        per_tick_base = total // num_ticks
+        extra = total % num_ticks
+
+        # Mutable container shared across all tick callbacks this hour
+        bank = [0]
+
+        for i in range(num_ticks):
+            drop = per_tick_base + (1 if i < extra else 0)
+            delay_seconds = i * interval
+            is_final = (i == num_ticks - 1)
+            delay(
+                delay_seconds, _apply_mob_drip,
+                resource_id, drop, bank, is_final,
+            )
+
 
 def _apply_drip(room_obj, amount):
     """Callback for delayed drip-feed. Adds resources capped at max."""
@@ -433,3 +508,94 @@ def _apply_drip(room_obj, amount):
     actual = min(amount, headroom)
     if actual > 0:
         room_obj.resource_count = current + actual
+
+
+def _apply_mob_drip(resource_id, amount, bank, is_final):
+    """Callback for delayed mob loot distribution.
+
+    Late-bound: queries eligible mobs at tick time, not scheduling time.
+    If more budget than eligible mobs, fills each to headroom and banks
+    the surplus for the next tick. At the final tick of the hour, any
+    remaining surplus is logged and dropped.
+
+    Args:
+        resource_id: int — which resource to place
+        amount: int — budget for this tick
+        bank: list[int] — mutable single-element list for banking surplus
+        is_final: bool — True on the last tick of the hour
+    """
+    budget = amount + bank[0]
+    bank[0] = 0
+
+    if budget <= 0:
+        return
+
+    # Late-bound mob lookup
+    mobs = ResourceSpawnService._load_loot_mobs(resource_id)
+
+    # Filter to living mobs with headroom
+    eligible = []
+    for mob in mobs:
+        if not getattr(mob, "is_alive", False):
+            continue
+        loot_caps = getattr(mob, "loot_resources", None) or {}
+        # Handle both int and string keys (Evennia serialization)
+        max_for_rid = loot_caps.get(resource_id, loot_caps.get(
+            str(resource_id), 0,
+        ))
+        current = mob.get_resource(resource_id)
+        headroom = max(0, max_for_rid - current)
+        if headroom > 0:
+            eligible.append((mob, headroom))
+
+    if not eligible:
+        # No mobs available — bank for next tick or drop at end of hour
+        if is_final:
+            if budget > 0:
+                logger.info(
+                    f"MobLootSpawn: r{resource_id} dropped {budget} surplus "
+                    f"(no eligible mobs at final tick)"
+                )
+        else:
+            bank[0] = budget
+        return
+
+    placed = 0
+
+    if len(eligible) >= budget:
+        # More mobs than budget — pick random subset, give 1 each
+        chosen = random.sample(eligible, budget)
+        for mob, _headroom in chosen:
+            try:
+                mob.receive_resource_from_reserve(resource_id, 1)
+                placed += 1
+            except Exception:
+                logger.log_trace(
+                    f"MobLootSpawn: failed to place r{resource_id} on {mob}"
+                )
+    else:
+        # Fewer mobs than budget — fill each to headroom
+        for mob, headroom in eligible:
+            give = min(headroom, budget - placed)
+            if give > 0:
+                try:
+                    mob.receive_resource_from_reserve(resource_id, give)
+                    placed += give
+                except Exception:
+                    logger.log_trace(
+                        f"MobLootSpawn: failed to place r{resource_id} on {mob}"
+                    )
+
+        surplus = budget - placed
+        if surplus > 0:
+            if is_final:
+                logger.info(
+                    f"MobLootSpawn: r{resource_id} dropped {surplus} surplus "
+                    f"at end of hour"
+                )
+            else:
+                bank[0] = surplus
+                logger.info(
+                    f"MobLootSpawn: r{resource_id} banked {surplus} "
+                    f"for next tick"
+                )

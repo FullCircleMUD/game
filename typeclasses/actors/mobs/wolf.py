@@ -41,6 +41,9 @@ class Wolf(AggressiveMob):
     aggro_hp_threshold = AttributeProperty(0.5)
     max_per_room = AttributeProperty(1)
 
+    # ── Loot — resource spawn service fills up to these caps ──
+    loot_resources = AttributeProperty({8: 1})  # max 1 hide
+
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(120)

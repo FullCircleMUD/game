@@ -22,6 +22,7 @@ from evennia.utils.test_resources import EvenniaTest
 from blockchain.xrpl.services.resource_spawn import (
     ResourceSpawnService,
     _apply_drip,
+    _apply_mob_drip,
     MAX_TICKS_PER_HOUR,
 )
 
@@ -582,17 +583,8 @@ class TestCalculateAndApply(EvenniaTest):
             ended_at=now - timedelta(hours=hours_ago_end),
         )
 
-    def test_no_players_online_skips(self):
-        """No players online → no spawning."""
-        self._create_economy_snapshot(players_online=0)
-        room = self._make_room(1)
-
-        ResourceSpawnService.calculate_and_apply()
-
-        self.assertEqual(room.resource_count, 0)
-
-    def test_no_snapshot_skips(self):
-        """No economy snapshot at all → no spawning."""
+    def test_no_currency_data_skips(self):
+        """No CurrencyType data → nothing to spawn (no currency codes)."""
         room = self._make_room(1)
 
         ResourceSpawnService.calculate_and_apply()
@@ -625,3 +617,278 @@ class TestCalculateAndApply(EvenniaTest):
         # Verify total amount across all scheduled drips > 0
         total = sum(call[0][3] for call in mock_delay.call_args_list)
         self.assertGreater(total, 0)
+
+
+# ================================================================== #
+#  Mob Loot Spawn Tests
+# ================================================================== #
+
+
+class TestApplyMobDrip(EvenniaTest):
+    """Tests for the _apply_mob_drip() callback."""
+
+    def create_script(self):
+        pass
+
+    def _make_mock_mob(self, resource_id=8, current=0, max_amount=1,
+                       alive=True, has_location=True):
+        """Create a mock mob with loot_resources and FungibleInventoryMixin."""
+        mob = MagicMock()
+        mob.is_alive = alive
+        mob.location = MagicMock() if has_location else None
+        mob.loot_resources = {resource_id: max_amount}
+        mob.get_resource = MagicMock(return_value=current)
+        mob.receive_resource_from_reserve = MagicMock()
+        return mob
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_places_resource_on_eligible_mob(self, mock_load):
+        """Single eligible mob gets 1 resource."""
+        mob = self._make_mock_mob()
+        mock_load.return_value = [mob]
+        bank = [0]
+
+        _apply_mob_drip(8, 1, bank, False)
+
+        mob.receive_resource_from_reserve.assert_called_once_with(8, 1)
+        self.assertEqual(bank[0], 0)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_skips_dead_mobs(self, mock_load):
+        """Dead mobs are not eligible for loot."""
+        dead_mob = self._make_mock_mob(alive=False)
+        live_mob = self._make_mock_mob()
+        mock_load.return_value = [dead_mob, live_mob]
+        bank = [0]
+
+        _apply_mob_drip(8, 1, bank, False)
+
+        dead_mob.receive_resource_from_reserve.assert_not_called()
+        live_mob.receive_resource_from_reserve.assert_called_once_with(8, 1)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_skips_full_mobs(self, mock_load):
+        """Mobs already at their loot cap are skipped."""
+        full_mob = self._make_mock_mob(current=1, max_amount=1)
+        empty_mob = self._make_mock_mob(current=0, max_amount=1)
+        mock_load.return_value = [full_mob, empty_mob]
+        bank = [0]
+
+        _apply_mob_drip(8, 1, bank, False)
+
+        full_mob.receive_resource_from_reserve.assert_not_called()
+        empty_mob.receive_resource_from_reserve.assert_called_once_with(8, 1)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_budget_exceeds_eligible_banks_surplus(self, mock_load):
+        """When budget > eligible mobs, surplus is banked."""
+        mob = self._make_mock_mob(current=0, max_amount=1)
+        mock_load.return_value = [mob]
+        bank = [0]
+
+        _apply_mob_drip(8, 5, bank, False)
+
+        mob.receive_resource_from_reserve.assert_called_once_with(8, 1)
+        self.assertEqual(bank[0], 4)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_final_tick_drops_surplus(self, mock_load):
+        """On final tick, surplus is dropped (not banked)."""
+        mock_load.return_value = []  # no mobs
+        bank = [3]
+
+        _apply_mob_drip(8, 2, bank, True)
+
+        self.assertEqual(bank[0], 0)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_no_mobs_banks_for_next_tick(self, mock_load):
+        """No eligible mobs on non-final tick → bank budget."""
+        mock_load.return_value = []
+        bank = [0]
+
+        _apply_mob_drip(8, 5, bank, False)
+
+        self.assertEqual(bank[0], 5)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_bank_carries_forward(self, mock_load):
+        """Banked surplus from previous tick is added to current budget."""
+        mob = self._make_mock_mob(current=0, max_amount=1)
+        mock_load.return_value = [mob]
+        bank = [3]  # carried from previous tick
+
+        _apply_mob_drip(8, 2, bank, False)
+
+        # Total budget = 2 + 3 = 5, but only 1 mob with headroom 1
+        mob.receive_resource_from_reserve.assert_called_once_with(8, 1)
+        self.assertEqual(bank[0], 4)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_more_mobs_than_budget_random_selection(self, mock_load):
+        """When more eligible mobs than budget, a random subset is chosen."""
+        mobs = [self._make_mock_mob() for _ in range(5)]
+        mock_load.return_value = mobs
+        bank = [0]
+
+        _apply_mob_drip(8, 2, bank, False)
+
+        # Exactly 2 mobs should have received resources
+        called = sum(
+            1 for m in mobs
+            if m.receive_resource_from_reserve.called
+        )
+        self.assertEqual(called, 2)
+        self.assertEqual(bank[0], 0)
+
+    @patch.object(ResourceSpawnService, "_load_loot_mobs")
+    def test_zero_budget_is_noop(self, mock_load):
+        """Zero budget with empty bank → no queries, no placement."""
+        bank = [0]
+
+        _apply_mob_drip(8, 0, bank, False)
+
+        mock_load.assert_not_called()
+
+
+class TestScheduleMobDripFeed(EvenniaTest):
+
+    def create_script(self):
+        pass
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    def test_single_unit_one_tick(self, mock_delay):
+        """1 unit → single tick at 0 seconds."""
+        ResourceSpawnService.schedule_mob_drip_feed(8, 1)
+
+        self.assertEqual(mock_delay.call_count, 1)
+        args = mock_delay.call_args[0]
+        self.assertAlmostEqual(args[0], 0.0)  # delay_seconds
+        self.assertEqual(args[1], _apply_mob_drip)  # callback
+        self.assertEqual(args[2], 8)   # resource_id
+        self.assertEqual(args[3], 1)   # amount
+        self.assertTrue(args[5])       # is_final (only tick)
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    def test_four_units_four_ticks(self, mock_delay):
+        """4 units → 4 ticks at 15 min intervals."""
+        ResourceSpawnService.schedule_mob_drip_feed(8, 4)
+
+        self.assertEqual(mock_delay.call_count, 4)
+        delays = [call[0][0] for call in mock_delay.call_args_list]
+        self.assertAlmostEqual(delays[0], 0.0)
+        self.assertAlmostEqual(delays[1], 900.0)
+        self.assertAlmostEqual(delays[2], 1800.0)
+        self.assertAlmostEqual(delays[3], 2700.0)
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    def test_capped_at_twelve_ticks(self, mock_delay):
+        """30 units → capped at 12 ticks, total amounts sum correctly."""
+        ResourceSpawnService.schedule_mob_drip_feed(8, 30)
+
+        self.assertEqual(mock_delay.call_count, 12)
+        total = sum(call[0][3] for call in mock_delay.call_args_list)
+        self.assertEqual(total, 30)
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    def test_bank_shared_across_ticks(self, mock_delay):
+        """All ticks share the same bank list object."""
+        ResourceSpawnService.schedule_mob_drip_feed(8, 3)
+
+        banks = [call[0][4] for call in mock_delay.call_args_list]
+        # All should be the same list object
+        for b in banks:
+            self.assertIs(b, banks[0])
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    def test_final_flag_only_on_last_tick(self, mock_delay):
+        """Only the last tick has is_final=True."""
+        ResourceSpawnService.schedule_mob_drip_feed(8, 5)
+
+        finals = [call[0][5] for call in mock_delay.call_args_list]
+        self.assertEqual(finals, [False, False, False, False, True])
+
+
+class TestProcessResourceBudgetSplit(EvenniaTest):
+    """Tests that _process_resource() splits budget between rooms and mobs."""
+
+    def create_script(self):
+        pass
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    @patch.object(ResourceSpawnService, "get_circulating_supply",
+                  return_value=Decimal("0"))
+    @patch.object(ResourceSpawnService, "get_latest_buy_price",
+                  return_value=None)
+    @patch.object(ResourceSpawnService, "get_avg_consumption_24h",
+                  return_value=Decimal("0"))
+    @patch("blockchain.xrpl.currency_cache.get_currency_code",
+           return_value="FCMHide")
+    def test_mob_share_1_sends_all_to_mobs(self, mock_cc, mock_cons,
+                                            mock_price, mock_supply,
+                                            mock_delay):
+        """mob_share=1.0 → all budget goes to mob drip-feed, none to rooms."""
+        mob_config = {8: {"mob_share": 1.0}}
+        config = _TEST_CONFIG.copy()
+
+        with patch(
+            "world.economy.resource_spawn_config.MOB_RESOURCE_SPAWN_CONFIG",
+            mob_config,
+        ):
+            result = ResourceSpawnService._process_resource(
+                8, config, 10.0, [],
+            )
+
+        # Should have scheduled mob drip (delay called with _apply_mob_drip)
+        mob_drip_calls = [
+            c for c in mock_delay.call_args_list
+            if c[0][1] is _apply_mob_drip
+        ]
+        self.assertGreater(len(mob_drip_calls), 0)
+
+        # No room drip calls (no _apply_drip calls)
+        room_drip_calls = [
+            c for c in mock_delay.call_args_list
+            if c[0][1] is _apply_drip
+        ]
+        self.assertEqual(len(room_drip_calls), 0)
+
+    @patch("blockchain.xrpl.services.resource_spawn.delay")
+    @patch.object(ResourceSpawnService, "get_circulating_supply",
+                  return_value=Decimal("0"))
+    @patch.object(ResourceSpawnService, "get_latest_buy_price",
+                  return_value=None)
+    @patch.object(ResourceSpawnService, "get_avg_consumption_24h",
+                  return_value=Decimal("0"))
+    @patch("blockchain.xrpl.currency_cache.get_currency_code",
+           return_value="FCMWheat")
+    def test_no_mob_config_sends_all_to_rooms(self, mock_cc, mock_cons,
+                                               mock_price, mock_supply,
+                                               mock_delay):
+        """No MOB_RESOURCE_SPAWN_CONFIG entry → all to rooms (backward compat)."""
+        room = MagicMock()
+        room.resource_count = 0
+        room.max_resource_count = 50
+        room.spawn_rate_weight = 1
+
+        with patch(
+            "world.economy.resource_spawn_config.MOB_RESOURCE_SPAWN_CONFIG",
+            {},
+        ):
+            result = ResourceSpawnService._process_resource(
+                1, _TEST_CONFIG, 10.0, [room],
+            )
+
+        # Should have scheduled room drips only
+        room_drip_calls = [
+            c for c in mock_delay.call_args_list
+            if len(c[0]) >= 3 and c[0][1] is _apply_drip
+        ]
+        self.assertGreater(len(room_drip_calls), 0)
+
+        # No mob drip calls
+        mob_drip_calls = [
+            c for c in mock_delay.call_args_list
+            if len(c[0]) >= 3 and c[0][1] is _apply_mob_drip
+        ]
+        self.assertEqual(len(mob_drip_calls), 0)

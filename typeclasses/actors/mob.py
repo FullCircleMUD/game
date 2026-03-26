@@ -83,6 +83,13 @@ class CombatMob(AIMixin, BaseNPC):
     # from wandering into a room that already has one of them.
     max_per_room = AttributeProperty(0)
 
+    # ── Loot resources ──
+    # Dict of {resource_id (int): max_amount (int)} defining which resources
+    # this mob can carry as loot. The resource spawn service fills mobs up
+    # to these caps over time. On death, all resources transfer to the corpse.
+    # Override in subclasses (e.g. Wolf: {8: 1} for 1 hide).
+    loot_resources = AttributeProperty({})
+
     def at_object_creation(self):
         super().at_object_creation()
         if self.location:
@@ -93,6 +100,11 @@ class CombatMob(AIMixin, BaseNPC):
         # Add combat commands so mob AI can use execute_cmd("attack ...")
         from commands.npc_cmds.cmdset_mob_combat import CmdSetMobCombat
         self.cmdset.add(CmdSetMobCombat, persistent=True)
+
+        # Register loot resource tags for indexed DB queries by the
+        # resource spawn service (e.g. "loot_resource_8" for hide).
+        for rid in (self.loot_resources or {}):
+            self.tags.add(f"loot_resource_{rid}", category="loot_resource")
 
     # ================================================================== #
     #  Appearance — HP condition when looked at
