@@ -53,7 +53,7 @@ class CmdBash(CmdSkillBase):
     """
 
     key = "bash"
-    aliases = ["b"]
+    aliases = ["ba", "b"]
     skill = skills.BASH.value
     help_category = "Combat"
 

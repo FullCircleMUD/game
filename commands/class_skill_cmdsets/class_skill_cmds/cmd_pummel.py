@@ -51,7 +51,7 @@ class CmdPummel(CmdSkillBase):
     """
 
     key = "pummel"
-    aliases = ["p"]
+    aliases = ["pum", "p"]
     skill = skills.PUMMEL.value
     help_category = "Combat"
 
