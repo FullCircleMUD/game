@@ -364,10 +364,18 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         show_desc = ignore_brief or not getattr(looker, "brief_mode", False)
         if show_desc:
             desc = self.get_display_desc(looker, **kwargs)
-            if char_height < 0:
-                desc = f"Swimming underwater you can dimly perceive above you:\n{desc}"
-            elif char_height > 0:
-                desc = f"Flying you can see below you:\n{desc}"
+            # Add height prefix only when vert_descriptions didn't provide
+            # a height-specific description (those already describe the
+            # scene from the correct perspective).
+            has_vert_desc = (
+                self.vert_descriptions
+                and char_height in self.vert_descriptions
+            )
+            if not has_vert_desc:
+                if char_height < 0:
+                    desc = f"Swimming underwater you can dimly perceive above you:\n{desc}"
+                elif char_height > 0:
+                    desc = f"Flying you can see below you:\n{desc}"
             if desc:
                 parts.append(f"|n{desc}")
 
