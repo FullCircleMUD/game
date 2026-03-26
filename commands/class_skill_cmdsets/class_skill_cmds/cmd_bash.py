@@ -84,9 +84,11 @@ class CmdBash(CmdSkillBase):
         # ── Parse target ──
         target = None
         if self.args and self.args.strip():
-            target = caller.search(self.args.strip())
-            if not target:
+            results = caller.search(self.args.strip(), location=caller.location, quiet=True)
+            if not results:
+                caller.msg(f"You don't see '{self.args.strip()}' here.")
                 return
+            target = results[0] if isinstance(results, list) else results
         elif in_combat:
             # Default to current attack target
             action = handler.action_dict

@@ -34,11 +34,11 @@ from enums.weapon_type import WeaponType
 
 # Gold cost per TARGET mastery level
 _TRAINING_GOLD_COST = {
-    1: 50,     # BASIC
-    2: 100,    # SKILLED
-    3: 200,    # EXPERT
-    4: 350,    # MASTER
-    5: 500,    # GRANDMASTER
+    1: 10,     # BASIC
+    2: 25,     # SKILLED
+    3: 50,     # EXPERT
+    4: 100,    # MASTER
+    5: 200,    # GRANDMASTER
 }
 
 # Training time in seconds per TARGET mastery level
