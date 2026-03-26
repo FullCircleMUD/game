@@ -224,7 +224,9 @@ def build_zone():
     connect(farm_rooms["south_fork_end"], southern_rooms["countryside_road"], "east")
 
     # ── Fixtures, NPCs, Mobs ─────────────────────────────────────────
-    place_millholm_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms)
+    place_millholm_fixtures(
+        town_rooms, farm_rooms, woods_rooms, sewer_rooms, southern_rooms,
+    )
     spawn_millholm_npcs()
     spawn_millholm_mobs()
 

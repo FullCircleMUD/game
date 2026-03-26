@@ -73,12 +73,15 @@ class DungeonTemplate:
     defeat_destination_key: Optional[str] = None
     """Room key for defeat respawn. If None, uses the dungeon entrance."""
 
-    post_boss_linger_seconds: int = 300
-    """Seconds after boss defeated before instance collapses (default 5 min)."""
+    persistent_until_empty: bool = False
+    """If True, the instance ignores instance_lifetime_seconds and only
+    collapses when the last character leaves. Useful for small dungeons
+    where the player should take as long as they need."""
 
     empty_collapse_delay: int = 0
-    """Seconds to keep a shared instance alive after all players leave.
-    0 = collapse on next tick (default). Useful for shared mode."""
+    """Seconds to keep an instance alive after all players leave.
+    0 = collapse on next tick (default). Useful for shared mode to allow
+    brief re-entry."""
 
     terrain_type: str = "dungeon"
     """Terrain type tag for generated rooms (e.g. 'dungeon', 'forest',

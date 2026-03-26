@@ -107,7 +107,7 @@ class RatKing(CombatMob):
         except ScriptDB.DoesNotExist:
             return
 
-        # Notify all characters in the instance
+        # Notify all characters in the instance and fire quest event
         for char in instance.get_characters():
             char.msg("|gThe Rat King has been slain! The cellar falls quiet.|n")
             if hasattr(char, "quests"):
@@ -117,5 +117,5 @@ class RatKing(CombatMob):
                     source=self,
                 )
 
-        # Start post-boss collapse timer
+        # Mark boss defeated (progression hook — no collapse triggered)
         instance.on_boss_defeated()

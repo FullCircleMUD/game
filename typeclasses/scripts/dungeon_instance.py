@@ -51,9 +51,8 @@ class DungeonInstanceScript(DefaultScript):
     destination_room_id = AttributeProperty(None)  # passage endpoint
     state = AttributeProperty("active")
     boss_defeated = AttributeProperty(False)
-    boss_defeated_at = AttributeProperty(None)
     created_at = AttributeProperty(None)
-    emptied_at = AttributeProperty(None)  # shared mode: when last player left
+    emptied_at = AttributeProperty(None)  # when last player left
 
     def at_script_creation(self):
         self.interval = 60  # tick every minute
@@ -336,24 +335,14 @@ class DungeonInstanceScript(DefaultScript):
     # ------------------------------------------------------------------ #
 
     def on_boss_defeated(self):
-        """Called when the boss is killed. Starts the linger timer."""
+        """
+        Called when the boss is killed.
+
+        Sets the boss_defeated flag for quest/progression checks.
+        Does NOT trigger collapse — the instance persists until the
+        player leaves naturally (walk out, recall, etc.).
+        """
         self.boss_defeated = True
-        self.boss_defeated_at = timezone.now()
-
-        linger_mins = self.template.post_boss_linger_seconds // 60
-        linger_secs = self.template.post_boss_linger_seconds % 60
-        if linger_mins > 0:
-            unit = "minute" if linger_mins == 1 else "minutes"
-            time_str = f"{linger_mins} {unit}"
-        else:
-            unit = "second" if linger_secs == 1 else "seconds"
-            time_str = f"{linger_secs} {unit}"
-
-        for char in self.get_characters():
-            char.msg("|yThe dungeon begins to tremble...|n")
-            char.msg(
-                f"|xYou have {time_str} before the dungeon collapses.|n"
-            )
 
     # ------------------------------------------------------------------ #
     #  Collapse / cleanup
@@ -361,10 +350,11 @@ class DungeonInstanceScript(DefaultScript):
 
     def collapse_instance(self):
         """
-        Evacuate all characters and destroy all dungeon objects.
+        Clean up the dungeon instance and destroy all dungeon objects.
 
-        Moves characters to the entrance room, returns fungibles to
-        the reserve, and deletes all tagged rooms/exits/mobs.
+        If any characters are still inside (AFK, disconnected, or safety
+        timeout), silently teleports them to the entrance. Returns
+        fungibles to reserve and deletes all tagged rooms/exits/mobs.
         """
         if self.state == "done":
             return
@@ -372,9 +362,8 @@ class DungeonInstanceScript(DefaultScript):
         self.state = "collapsing"
         entrance = self.entrance_room
 
-        # Evacuate characters
+        # Silently evacuate any remaining characters (safety net only)
         for char in self.get_characters():
-            char.msg("|rThe dungeon collapses around you!|n")
             if entrance:
                 char.move_to(entrance, quiet=True, move_type="teleport")
             self.remove_character(char)
@@ -414,27 +403,16 @@ class DungeonInstanceScript(DefaultScript):
         now = timezone.now()
         template = self.template
 
-        # Instance lifetime expired?
-        if self.created_at:
+        # Instance lifetime expired? (skipped if persistent_until_empty)
+        if not template.persistent_until_empty and self.created_at:
             elapsed = (now - self.created_at).total_seconds()
             if elapsed >= template.instance_lifetime_seconds:
                 self.collapse_instance()
                 return
 
-        # Post-boss linger expired?
-        if self.boss_defeated and self.boss_defeated_at:
-            linger = (now - self.boss_defeated_at).total_seconds()
-            if linger >= template.post_boss_linger_seconds:
-                self.collapse_instance()
-                return
-
-        # All characters left?
+        # All characters left? Collapse (with optional delay).
         if not self.get_characters():
-            # Shared mode with delay — wait before collapsing
-            if (
-                template.instance_mode == "shared"
-                and template.empty_collapse_delay > 0
-            ):
+            if template.empty_collapse_delay > 0:
                 if not self.emptied_at:
                     self.emptied_at = now
                 elapsed = (now - self.emptied_at).total_seconds()

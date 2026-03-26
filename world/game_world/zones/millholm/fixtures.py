@@ -23,7 +23,9 @@ from typeclasses.world_objects.jobs_board import JobsBoard
 from typeclasses.world_objects.sign import WorldSign
 
 
-def place_millholm_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
+def place_millholm_fixtures(
+    town_rooms, farm_rooms, woods_rooms, sewer_rooms, southern_rooms,
+):
     """Place world fixtures into already-built Millholm rooms."""
     print("[5] Placing world fixtures...")
     count = 0
@@ -254,6 +256,42 @@ def place_millholm_fixtures(town_rooms, farm_rooms, woods_rooms, sewer_rooms):
         "slowly.' Whatever the Shadow Mistress keeps in here, she does "
         "not want it found."
     )
+    count += 1
+
+    # ══════════════════════════════════════════════════════════════════
+    # ZONE TRANSITION — Pre-alpha warning signs
+    # ══════════════════════════════════════════════════════════════════
+
+    _WARNING_TEXT = (
+        "WARNING — PRE-ALPHA BOUNDARY\n"
+        "\n"
+        "You are welcome to test the zone\n"
+        "travel system beyond this point,\n"
+        "but no content exists outside\n"
+        "Millholm yet. You will find only\n"
+        "empty scaffold rooms.\n"
+        "\n"
+        "Turn back for adventure!"
+    )
+
+    east_warning = create_object(
+        WorldSign,
+        key="a large warning sign",
+        location=woods_rooms["east_gate"],
+        nohome=True,
+    )
+    east_warning.sign_text = _WARNING_TEXT
+    east_warning.sign_style = "wall"
+    count += 1
+
+    south_warning = create_object(
+        WorldSign,
+        key="a large warning sign",
+        location=southern_rooms["shadowsward_gate"],
+        nohome=True,
+    )
+    south_warning.sign_text = _WARNING_TEXT
+    south_warning.sign_style = "wall"
     count += 1
 
     print(f"  Placed {count} world fixtures.")

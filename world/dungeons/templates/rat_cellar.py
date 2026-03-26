@@ -117,7 +117,7 @@ RAT_CELLAR = DungeonTemplate(
     boss_depth=1,
     max_unexplored_exits=1,
     max_new_exits_per_room=1,
-    instance_lifetime_seconds=1800,  # 30 minutes
+    instance_lifetime_seconds=1800,  # 30 minutes (safety net)
     room_generator=generate_rat_cellar_room,
     boss_generator=generate_rat_king,
     room_typeclass="typeclasses.terrain.rooms.dungeon.dungeon_room.DungeonRoom",
@@ -125,7 +125,7 @@ RAT_CELLAR = DungeonTemplate(
     allow_pvp=False,
     allow_death=False,
     defeat_destination_key="The Harvest Moon",
-    post_boss_linger_seconds=60,  # 1 min after Rat King dies
+    persistent_until_empty=True,  # player walks out when ready
     terrain_type="underground",
     always_lit=True,  # torchlit cellar
 )

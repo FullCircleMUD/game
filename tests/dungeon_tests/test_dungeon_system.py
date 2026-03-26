@@ -66,7 +66,6 @@ TEST_TEMPLATE = DungeonTemplate(
     allow_combat=True,
     allow_pvp=False,
     allow_death=False,
-    post_boss_linger_seconds=300,
 )
 
 TEST_PASSAGE_TEMPLATE = DungeonTemplate(

@@ -158,7 +158,6 @@ CAVE_OF_TRIALS = DungeonTemplate(
     allow_combat=True,
     allow_pvp=False,
     allow_death=False,
-    post_boss_linger_seconds=300,  # 5 minutes
     terrain_type="underground",
 )
 
