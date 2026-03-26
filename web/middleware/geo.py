@@ -18,10 +18,8 @@ from django.http import HttpResponseRedirect
 # Paths that Variant A (restricted) users are hard-redirected away from.
 _RESTRICTED_PATHS = (
     '/redemption/',
-    '/reserve/',
     '/eligible-jurisdictions/',
     '/kyc/',
-    '/docs/blockchain/',
 )
 
 
