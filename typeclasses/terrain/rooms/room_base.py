@@ -369,7 +369,8 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             # scene from the correct perspective).
             has_vert_desc = (
                 self.vert_descriptions
-                and char_height in self.vert_descriptions
+                and (char_height in self.vert_descriptions
+                     or str(char_height) in self.vert_descriptions)
             )
             if not has_vert_desc:
                 if char_height < 0:
@@ -453,11 +454,14 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             return "|xIt is pitch black. You can't see a thing.|n"
 
         # Check for height-specific description override
+        # Note: Evennia may serialize dict keys as strings, so check both
         desc = None
         if self.vert_descriptions:
             height = getattr(looker, "room_vertical_position", 0)
             if height in self.vert_descriptions:
                 desc = self.vert_descriptions[height]
+            elif str(height) in self.vert_descriptions:
+                desc = self.vert_descriptions[str(height)]
 
         if desc is None:
             desc = self.db.desc or self.default_description

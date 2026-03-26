@@ -166,8 +166,9 @@ class ExitVerticalAware(ExitBase):
                 return False
 
         # Check arrival_heights implicit gate
+        # Note: Evennia may serialize dict keys as strings, so check both
         if self.arrival_heights is not None:
-            if height not in self.arrival_heights:
+            if height not in self.arrival_heights and str(height) not in self.arrival_heights:
                 return False
 
         return True
@@ -214,9 +215,13 @@ class ExitVerticalAware(ExitBase):
             return
 
         # --- Determine arrival height ---
+        # Note: Evennia may serialize dict keys as strings, so check both
         arrival_height = height  # default: keep current height
         if self.arrival_heights is not None:
-            arrival_height = self.arrival_heights.get(height, height)
+            if height in self.arrival_heights:
+                arrival_height = self.arrival_heights[height]
+            elif str(height) in self.arrival_heights:
+                arrival_height = self.arrival_heights[str(height)]
 
         # --- Destination height/depth compatibility ---
         # Use arrival_height for the check, not current height
