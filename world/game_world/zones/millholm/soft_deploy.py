@@ -37,9 +37,13 @@ def clean_zone():
     _clean_zone(ZONE_KEY)
 
 
-def build_zone():
+def build_zone(one_way_limbo=False):
     """
     Build the Millholm zone from scratch.
+
+    Args:
+        one_way_limbo: If True, create only a one-way exit from Limbo to the
+            inn (players can't walk back to Limbo). Default False (two-way).
 
     Returns a gateway_rooms dict for cross-zone wiring in deploy_world.py.
     All gateways are currently stubs — exits will be wired as adjacent zones
@@ -53,7 +57,7 @@ def build_zone():
 
     # ── Districts ────────────────────────────────────────────────────
     print("[1] Building Millholm Town...")
-    town_rooms = build_millholm_town()
+    town_rooms = build_millholm_town(one_way_limbo=one_way_limbo)
 
     print("[2] Building Millholm Farms...")
     farm_rooms = build_millholm_farms(town_rooms)

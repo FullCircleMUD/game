@@ -79,9 +79,13 @@ def _ensure_system_rooms():
     )
 
 
-def deploy_world():
+def deploy_world(one_way_limbo=False):
     """
     Build all active zones and wire cross-zone connections.
+
+    Args:
+        one_way_limbo: If True, create only a one-way exit from Limbo to the
+            inn (players can't walk back to Limbo). Default False (two-way).
 
     Each zone's build_zone() returns a gateway_rooms dict. Cross-zone exits
     are created here using those gateway rooms. Uncomment zone imports and
@@ -93,7 +97,7 @@ def deploy_world():
 
     # ── Build active zones ───────────────────────────────────────────
     from world.game_world.zones.millholm.soft_deploy import build_zone as build_millholm
-    millholm = build_millholm()
+    millholm = build_millholm(one_way_limbo=one_way_limbo)
 
     from world.game_world.zones.ironback_peaks.soft_deploy import build_zone as build_ironback
     ironback = build_ironback()
@@ -1068,9 +1072,14 @@ def seed_starting_resources():
     print("--- Seeding complete ---\n")
 
 
-def soft_deploy_world():
-    """Wipe all active zones and rebuild the full world from scratch."""
+def soft_deploy_world(one_way_limbo=False):
+    """Wipe all active zones and rebuild the full world from scratch.
+
+    Args:
+        one_way_limbo: If True, create only a one-way exit from Limbo to the
+            inn (players can't walk back to Limbo). Default False (two-way).
+    """
     print("=== SOFT DEPLOY WORLD ===\n")
     for zone_key in ACTIVE_ZONES:
         clean_zone(zone_key)
-    deploy_world()
+    deploy_world(one_way_limbo=one_way_limbo)

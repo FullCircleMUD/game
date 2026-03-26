@@ -40,10 +40,9 @@ class ResourceSpawnService:
     def calculate_and_apply():
         """Main entry point. Called hourly by the script.
 
-        1. Check there are players online (no spawn to empty server)
-        2. Fetch all RoomHarvesting rooms once, group by resource_id
-        3. Calculate player-hours over past 7 days
-        4. For each configured resource:
+        1. Fetch all RoomHarvesting rooms once, group by resource_id
+        2. Calculate player-hours over past 7 days
+        3. For each configured resource:
            a. Get 24h avg consumption rate
            b. Calculate price modifier from AMM data
            c. Calculate supply-per-player-hour modifier
@@ -51,15 +50,16 @@ class ResourceSpawnService:
            e. Calculate per-room allocations by weight
            f. Schedule drip-feed distribution across the hour
         """
-        from blockchain.xrpl.models import EconomySnapshot
-
         from world.economy.resource_spawn_config import RESOURCE_SPAWN_CONFIG
 
-        # Check someone is playing
-        latest = EconomySnapshot.objects.order_by("-hour").first()
-        if not latest or latest.players_online == 0:
-            logger.info("ResourceSpawn: no players online, skipping")
-            return
+        # NOTE: Previously this method checked EconomySnapshot.players_online
+        # and skipped spawning if no players were online. This was removed
+        # because: (1) rooms are already hard-capped at max_resource_count so
+        # spawning into an empty server just fills rooms to their caps — no
+        # runaway accumulation; (2) skipping hours created a deficit vs the
+        # consumption-based spawn rate, meaning the first players back online
+        # would find depleted rooms and wait up to 2 hours for the spawn
+        # pipeline to catch up (telemetry snapshot + next spawn tick).
 
         # Single DB query — group all harvest rooms by resource_id
         rooms_by_resource = ResourceSpawnService._load_harvest_rooms()

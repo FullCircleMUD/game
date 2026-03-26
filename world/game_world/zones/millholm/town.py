@@ -38,9 +38,13 @@ ZONE = "millholm"
 DISTRICT = "millholm_town"
 
 
-def build_millholm_town():
-    """Build the Millholm Town district and connect Limbo to the inn."""
+def build_millholm_town(one_way_limbo=False):
+    """Build the Millholm Town district and connect Limbo to the inn.
 
+    Args:
+        one_way_limbo: If True, create only a one-way exit from Limbo to the
+            inn (players can't walk back to Limbo). Default False (two-way).
+    """
     limbo = ObjectDB.objects.get(id=2)
     rooms = {}
 
@@ -1668,9 +1672,20 @@ def build_millholm_town():
 
     exit_count = 0
 
-    # ── Limbo ↔ Inn (2-way, temporary dev connection) ────────────────
-    connect(limbo, rooms["inn"], "down")
-    exit_count += 2
+    # ── Limbo → Inn connection ───────────────────────────────────────
+    if one_way_limbo:
+        from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+        exit_ab = create_object(
+            ExitVerticalAware,
+            key=rooms["inn"].key,
+            location=limbo,
+            destination=rooms["inn"],
+        )
+        exit_ab.set_direction("down")
+        exit_count += 1
+    else:
+        connect(limbo, rooms["inn"], "down")
+        exit_count += 2
 
     # ── Trade Way: west approach → square → east departure ───────────
     #
