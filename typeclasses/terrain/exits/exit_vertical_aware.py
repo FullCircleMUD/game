@@ -17,8 +17,25 @@ See design/VERTICAL_MOVEMENT.md for full design and examples.
 """
 
 from evennia import AttributeProperty
+from evennia.objects.objects import ExitCommand
 
 from .exit_base import ExitBase
+
+
+class _HeightAwareExitCommand(ExitCommand):
+    """
+    Exit command that denies 'cmd' access when the exit's height
+    requirements aren't met by the caller. This prevents height-gated
+    exits from appearing in command disambiguation.
+    """
+
+    def access(self, srcobj, access_type="cmd", default=False):
+        if access_type == "cmd" and self.obj:
+            if hasattr(self.obj, "is_height_accessible"):
+                height = getattr(srcobj, "room_vertical_position", 0)
+                if not self.obj.is_height_accessible(height):
+                    return False
+        return super().access(srcobj, access_type=access_type, default=default)
 
 
 class ExitVerticalAware(ExitBase):
@@ -84,6 +101,9 @@ class ExitVerticalAware(ExitBase):
     }
 
     direction = AttributeProperty("default")
+
+    # Use height-aware exit command for command matching
+    exit_command = _HeightAwareExitCommand
 
     # ── Height adapter attributes ───────────────────────────────────
     # All default to None = no height gating, no height adaptation.
