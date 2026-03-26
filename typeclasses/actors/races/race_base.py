@@ -112,9 +112,9 @@ class RaceBase:
                 weapon_skills[weapon.value] = MasteryLevel.BASIC.value
             character.db.weapon_skill_mastery_levels = weapon_skills
 
-        # Racial command set
+        # Racial command set (persistent survives server restarts)
         if self.racial_cmdset:
-            character.cmdset.add(self.racial_cmdset)
+            character.cmdset.add(self.racial_cmdset, persistent=True)
 
     def get_valid_alignments(self):
         """

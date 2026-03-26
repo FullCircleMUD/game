@@ -102,9 +102,9 @@ class CharClassBase:
 
         Stats are ADDITIVE — race sets the foundation, class adds on top.
         """
-        # Add the class command set
+        # Add the class command set (persistent survives server restarts)
         if self.class_cmdset:
-            character.cmdset.add(self.class_cmdset)
+            character.cmdset.add(self.class_cmdset, persistent=True)
 
         level1data = self.level_progression[1]
 
