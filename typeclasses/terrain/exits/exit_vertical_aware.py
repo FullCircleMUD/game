@@ -274,14 +274,14 @@ class ExitVerticalAware(ExitBase):
                 )
                 traversing_object.msg(warning)
 
-        # --- Movement ---
-        super().at_traverse(traversing_object, destination, **kwargs)
-
-        # --- Set arrival height AFTER movement ---
-        # Must be after move_to() so we don't violate the source room's
-        # max_height while still inside it.
+        # --- Set arrival height BEFORE movement ---
+        # Must be before move_to() so the destination room's display
+        # shows the correct height on arrival.
         if self.arrival_heights is not None:
             traversing_object.room_vertical_position = arrival_height
+
+        # --- Movement ---
+        super().at_traverse(traversing_object, destination, **kwargs)
 
         # --- Post-movement fall ---
         if will_fall and hasattr(traversing_object, "_check_fall"):
