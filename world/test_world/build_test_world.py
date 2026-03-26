@@ -11,6 +11,7 @@ from world.test_world.spawn_npcs import spawn_npcs
 from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
 from world.test_world.test_area_dungeon import test_area_dungeon
 from world.test_world.test_area_gateway import test_area_gateway
+from world.test_world.test_area_castle_wall import test_area_castle_wall
 
 
 RECYCLE_BIN_KEY = "nft_recycle_bin"
@@ -107,5 +108,8 @@ def build_test_world():
 
     # spawn gateway rooms linking zones (requires all areas)
     test_area_gateway()
+
+    # height adapter test areas
+    test_area_castle_wall()
 
 
