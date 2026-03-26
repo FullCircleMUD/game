@@ -28,6 +28,12 @@ def test_area_castle_wall():
 
     limbo = ObjectDB.objects.get(id=2)
 
+    # Check if already built
+    existing = ObjectDB.objects.filter(db_key="Outside Castle Wall")
+    if existing.exists():
+        print("  Castle wall area already exists — skipping.")
+        return
+
     # ── Rooms ──────────────────────────────────────────────────────
 
     outside_wall = create_object(
