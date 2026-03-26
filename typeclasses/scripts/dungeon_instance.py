@@ -139,7 +139,8 @@ class DungeonInstanceScript(DefaultScript):
         """
         Create the first room and move all characters into it.
 
-        Called by DungeonTriggerExit after collecting the group.
+        Called by ProceduralDungeonMixin.enter_dungeon() after collecting
+        the group.
         """
         self.add_characters(characters)
 

@@ -14,8 +14,8 @@ Three instance modes:
     "group"  — leader + followers share one instance.
     "shared" — one instance at a time per entrance, anyone can join.
 
-Entry is via DungeonTriggerExit — a world exit that creates/joins a
-dungeon instance when traversed. Players enter by walking, not by command.
+Entry is via ProceduralDungeonExit or ConditionalDungeonExit — world exits
+that create/join dungeon instances when traversed. Players enter by walking.
 """
 
 from dataclasses import dataclass

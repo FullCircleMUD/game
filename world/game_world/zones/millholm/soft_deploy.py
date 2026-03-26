@@ -13,8 +13,9 @@ Usage (Evennia shell):
 
 from evennia import create_object
 
-from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
+from typeclasses.terrain.exits.conditional_dungeon_exit import ConditionalDungeonExit
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonExit
 from utils.exit_helpers import connect, connect_door
 from world.game_world.zone_utils import clean_zone as _clean_zone
 from world.game_world.zones.millholm.faerie_hollow import build_faerie_hollow
@@ -140,17 +141,19 @@ def build_zone():
     )
 
     # Dungeon trigger exit from the permanent cellar into the procedural
-    # rat cellar dungeon. Quest-gated — only works when rat_cellar quest
-    # is active. Without the quest, the exit is visible but blocked.
+    # rat cellar dungeon. Quest-gated — dungeon when quest active, empty
+    # cellar when not.
+    # TODO: create an empty cellar fallback room and set alternate_destination_id
     cellar_trigger = create_object(
-        DungeonTriggerExit,
+        ConditionalDungeonExit,
         key="a dark passage",
         location=town_rooms["cellar"],
-        destination=town_rooms["cellar"],  # self-referential
+        destination=town_rooms["cellar"],  # self-referential (dungeon path)
     )
     cellar_trigger.set_direction("south")
     cellar_trigger.dungeon_template_id = "rat_cellar"
-    cellar_trigger.quest_key = "rat_cellar"
+    cellar_trigger.condition_type = "quest_active"
+    cellar_trigger.condition_key = "rat_cellar"
 
     # ── Mine and Faerie Hollow ───────────────────────────────────────
     print("[5] Building Millholm Abandoned Mine...")
@@ -168,7 +171,7 @@ def build_zone():
 
     print("[6a] Connecting deep woods entry → clearing (procedural passage)...")
     trigger_in = create_object(
-        DungeonTriggerExit,
+        ProceduralDungeonExit,
         key="Deep Woods",
         location=entry_room,
         destination=entry_room,
@@ -179,7 +182,7 @@ def build_zone():
 
     print("[6b] Connecting deep woods clearing → entry (procedural passage)...")
     trigger_out = create_object(
-        DungeonTriggerExit,
+        ProceduralDungeonExit,
         key="Deep Woods",
         location=clearing_room,
         destination=clearing_room,
@@ -190,7 +193,7 @@ def build_zone():
 
     print("[6c] Connecting deep woods clearing → miners' camp (procedural passage)...")
     trigger_to_mine = create_object(
-        DungeonTriggerExit,
+        ProceduralDungeonExit,
         key="Deep Woods",
         location=clearing_room,
         destination=clearing_room,
@@ -201,7 +204,7 @@ def build_zone():
 
     print("[6d] Connecting miners' camp → deep woods clearing (procedural passage)...")
     trigger_from_mine = create_object(
-        DungeonTriggerExit,
+        ProceduralDungeonExit,
         key="Deep Woods",
         location=miners_camp,
         destination=miners_camp,

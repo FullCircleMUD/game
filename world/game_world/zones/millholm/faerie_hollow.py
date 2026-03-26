@@ -20,7 +20,7 @@ Connection points:
   - west: proc passage 2 (outbound back to deep_woods_entry)
   - east: proc passage 3 (inbound to miners_camp)
   - east: proc passage 4 (outbound from miners_camp)
-  (wired in build_game_world.py via DungeonTriggerExits)
+  (wired in soft_deploy.py via ProceduralDungeonExits)
 
 Usage:
     from world.game_world.millholm_faerie_hollow import build_faerie_hollow

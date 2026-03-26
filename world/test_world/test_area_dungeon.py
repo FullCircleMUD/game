@@ -3,7 +3,7 @@ Spawn a dungeon entrance in the Thieves Guild for playtesting.
 
 Run AFTER test_area_economic() has created the guild rooms.
 
-Creates a room with a DungeonTriggerExit linked to the Cave of Trials
+Creates a room with a ProceduralDungeonExit linked to the Cave of Trials
 template, connected via a "down" exit from the Thieves Guild Entrance.
 
 Usage (from Evennia):
@@ -13,7 +13,7 @@ Usage (from Evennia):
 from evennia import ObjectDB, create_object
 
 from enums.terrain_type import TerrainType
-from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
+from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonExit
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.terrain.rooms.room_base import RoomBase
 
@@ -88,7 +88,7 @@ def test_area_dungeon():
 
     # Create the dungeon trigger exit (walk into the cave)
     trigger = create_object(
-        DungeonTriggerExit,
+        ProceduralDungeonExit,
         key="a dark cave",
         location=entrance,
         destination=entrance,  # self-referential

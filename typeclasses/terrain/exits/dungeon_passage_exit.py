@@ -1,5 +1,5 @@
 """
-DungeonPassageExit — exit at the endpoints of a procedural passage dungeon.
+DungeonPassageExit — exit at the endpoints of a procedural dungeon.
 
 Used in two places:
     1. Room (0,0) → entrance world room  (walk back out)
@@ -10,67 +10,18 @@ Traversing this exit removes the character from the dungeon instance
 untagged, since follower cascade via at_post_move bypasses exit
 at_traverse and wouldn't otherwise clean up their tags.
 
-Inherits from ExitBase for proper exit descriptions. Direction support
-is provided directly for consistent display in the auto-exit line.
+Inherits from ExitVerticalAware for direction system and vertical checks.
 """
 
 from evennia import AttributeProperty
 
-from typeclasses.terrain.exits.exit_base import ExitBase
+from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 
 
-class DungeonPassageExit(ExitBase):
+class DungeonPassageExit(ExitVerticalAware):
     """Exit at a passage dungeon boundary — removes dungeon tag on traverse."""
 
-    # ── Direction system (shared with ExitVerticalAware) ──────────────
-    DIRECTION_ALIASES = {
-        "north": ["n", "north"],
-        "south": ["s", "south"],
-        "east": ["e", "east"],
-        "west": ["w", "west"],
-        "northeast": ["ne", "northeast"],
-        "northwest": ["nw", "northwest"],
-        "southeast": ["se", "southeast"],
-        "southwest": ["sw", "southwest"],
-        "up": ["u", "up"],
-        "down": ["d", "down"],
-        "in": ["in"],
-        "out": ["out"],
-    }
-
-    direction = AttributeProperty("default")
-
-    def set_direction(self, direction):
-        """
-        Set the compass direction and auto-add direction aliases.
-
-        Args:
-            direction (str): A key from DIRECTION_ALIASES (e.g. "north").
-        """
-        self.direction = direction
-        aliases = self.DIRECTION_ALIASES.get(direction, [])
-        current = set(self.aliases.all())
-        for alias in aliases:
-            if alias not in current:
-                self.aliases.add(alias)
-
-    def get_display_name(self, looker=None, **kwargs):
-        """
-        Format the exit for room display.
-
-        If direction is set, returns "direction: description".
-        Otherwise falls back to desc or key.
-        """
-        desc = self.db.desc or self.key
-        if self.direction in self.DIRECTION_ALIASES:
-            return f"{self.direction}: {desc}"
-        return desc
-
-    # ── Dungeon attributes ────────────────────────────────────────────
-
     dungeon_instance_id = AttributeProperty(None)
-
-    # ── Traversal ─────────────────────────────────────────────────────
 
     def at_traverse(self, traversing_object, target_location, **kwargs):
         """Remove character (and followers) from instance, then traverse."""

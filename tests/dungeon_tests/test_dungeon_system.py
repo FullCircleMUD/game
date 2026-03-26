@@ -18,7 +18,7 @@ from evennia.utils.search import search_tag
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from commands.room_specific_cmds.dungeon.cmd_dungeon_exit import CmdExitDungeon
-from typeclasses.terrain.exits.dungeon_trigger_exit import DungeonTriggerExit
+from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonExit
 from typeclasses.scripts.dungeon_instance import (
     DungeonInstanceScript,
     DIRECTION_VECTORS,
@@ -305,7 +305,7 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
 # ------------------------------------------------------------------ #
 
 class TestDungeonEntry(EvenniaCommandTest):
-    """Test dungeon entry via DungeonTriggerExit."""
+    """Test dungeon entry via ProceduralDungeonExit."""
 
     character_typeclass = "typeclasses.actors.character.FCMCharacter"
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
@@ -319,7 +319,7 @@ class TestDungeonEntry(EvenniaCommandTest):
         DUNGEON_REGISTRY.clear()
         register_dungeon(TEST_TEMPLATE)
         self.trigger = create_object(
-            DungeonTriggerExit,
+            ProceduralDungeonExit,
             key="dark cave",
             location=self.room1,
             destination=self.room1,
@@ -572,7 +572,7 @@ class TestSharedInstanceMode(EvenniaCommandTest):
         DUNGEON_REGISTRY.clear()
         register_dungeon(TEST_SHARED_TEMPLATE)
         self.trigger = create_object(
-            DungeonTriggerExit,
+            ProceduralDungeonExit,
             key="shared entrance",
             location=self.room1,
             destination=self.room1,
@@ -620,11 +620,11 @@ class TestSharedInstanceMode(EvenniaCommandTest):
 
 
 # ------------------------------------------------------------------ #
-#  Movement-triggered entry tests (DungeonTriggerExit)
+#  Movement-triggered entry tests (ProceduralDungeonExit)
 # ------------------------------------------------------------------ #
 
-class TestDungeonTriggerExit(EvenniaCommandTest):
-    """Test movement-triggered dungeon entry via DungeonTriggerExit."""
+class TestProceduralDungeonExit(EvenniaCommandTest):
+    """Test movement-triggered dungeon entry via ProceduralDungeonExit."""
 
     character_typeclass = "typeclasses.actors.character.FCMCharacter"
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
@@ -641,7 +641,7 @@ class TestDungeonTriggerExit(EvenniaCommandTest):
 
         # Create a trigger exit in room1
         self.trigger = create_object(
-            DungeonTriggerExit,
+            ProceduralDungeonExit,
             key="dark cave",
             location=self.room1,
             destination=self.room1,  # self-referential
@@ -751,3 +751,166 @@ class TestFollowerTeleportGuard(EvenniaCommandTest):
         # Both should be in room2
         self.assertEqual(self.char1.location, self.room2)
         self.assertEqual(self.char2.location, self.room2)
+
+
+# ------------------------------------------------------------------ #
+#  ConditionalRoutingExit tests (standalone, no dungeon)
+# ------------------------------------------------------------------ #
+
+class TestConditionalRoutingExit(EvenniaCommandTest):
+    """Test condition-based routing without dungeon involvement."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from typeclasses.terrain.exits.conditional_routing_exit import (
+            ConditionalRoutingExit,
+        )
+
+        # room1 = source, room2 = primary dest, alt_room = alternate dest
+        self.alt_room = create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="Alternate Room",
+        )
+        self.exit = create_object(
+            ConditionalRoutingExit,
+            key="south",
+            location=self.room1,
+            destination=self.room2,
+        )
+        self.exit.set_direction("south")
+
+    def tearDown(self):
+        if self.alt_room and self.alt_room.pk:
+            self.alt_room.delete()
+        super().tearDown()
+
+    def test_no_condition_goes_to_primary(self):
+        """No condition configured — always goes to primary destination."""
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+
+    def test_quest_active_condition_met(self):
+        """quest_active condition met — goes to primary destination."""
+        from world.quests.rat_cellar import RatCellarQuest
+
+        self.char1.quests.add(RatCellarQuest)
+        self.exit.condition_type = "quest_active"
+        self.exit.condition_key = "rat_cellar"
+        self.exit.alternate_destination_id = self.alt_room.id
+
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+
+    def test_quest_active_condition_not_met(self):
+        """quest_active condition not met — goes to alternate."""
+        self.exit.condition_type = "quest_active"
+        self.exit.condition_key = "rat_cellar"
+        self.exit.alternate_destination_id = self.alt_room.id
+
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.alt_room)
+
+    def test_quest_complete_condition_met(self):
+        """quest_complete condition met — goes to primary."""
+        from world.quests.rat_cellar import RatCellarQuest
+
+        quest = self.char1.quests.add(RatCellarQuest)
+        quest.status = "completed"
+        self.exit.condition_type = "quest_complete"
+        self.exit.condition_key = "rat_cellar"
+        self.exit.alternate_destination_id = self.alt_room.id
+
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+
+    def test_quest_complete_condition_not_met(self):
+        """quest_complete condition not met (quest active) — goes to alternate."""
+        from world.quests.rat_cellar import RatCellarQuest
+
+        self.char1.quests.add(RatCellarQuest)
+        self.exit.condition_type = "quest_complete"
+        self.exit.condition_key = "rat_cellar"
+        self.exit.alternate_destination_id = self.alt_room.id
+
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.alt_room)
+
+    def test_has_tag_condition_met(self):
+        """has_tag condition met — goes to primary."""
+        self.char1.tags.add("vip_access", category="player_flag")
+        self.exit.condition_type = "has_tag"
+        self.exit.condition_key = "vip_access"
+        self.exit.alternate_destination_id = self.alt_room.id
+
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+
+    def test_has_tag_condition_not_met(self):
+        """has_tag condition not met — goes to alternate."""
+        self.exit.condition_type = "has_tag"
+        self.exit.condition_key = "vip_access"
+        self.exit.alternate_destination_id = self.alt_room.id
+
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.alt_room)
+
+    def test_no_alternate_blocks(self):
+        """Condition not met with no alternate — blocked."""
+        self.exit.condition_type = "quest_active"
+        self.exit.condition_key = "rat_cellar"
+        # No alternate_destination_id set
+
+        self.exit.at_traverse(self.char1, self.room2)
+        # Should still be in room1 (not moved)
+        self.assertEqual(self.char1.location, self.room1)
+
+
+# ------------------------------------------------------------------ #
+#  ConditionalDungeonExit tests (condition + dungeon)
+# ------------------------------------------------------------------ #
+
+class TestConditionalDungeonExitNoAlternate(EvenniaCommandTest):
+    """Test ConditionalDungeonExit when no alternate destination is set."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        DUNGEON_REGISTRY.clear()
+        register_dungeon(TEST_TEMPLATE)
+
+        from typeclasses.terrain.exits.conditional_dungeon_exit import (
+            ConditionalDungeonExit,
+        )
+
+        self.trigger = create_object(
+            ConditionalDungeonExit,
+            key="south",
+            location=self.room1,
+            destination=self.room1,
+        )
+        self.trigger.dungeon_template_id = "test_dungeon"
+        self.trigger.condition_type = "quest_active"
+        self.trigger.condition_key = "nonexistent_quest"
+        # No alternate_destination_id
+
+    def tearDown(self):
+        _cleanup_instances()
+        super().tearDown()
+
+    def test_condition_not_met_no_alternate_blocks(self):
+        """Condition not met, no alternate — player stays put."""
+        self.trigger.at_traverse(self.char1, self.room1)
+        self.assertEqual(self.char1.location, self.room1)

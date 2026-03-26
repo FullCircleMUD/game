@@ -1841,7 +1841,7 @@ def build_millholm_town():
     connect(rooms["stairwell"], rooms["first_floor_stairwell"], "up",
             desc_ab="stairs leading to the first floor",
             desc_ba="stairs leading back down")
-    # NOTE: cellar_stairwell → cellar connection is now a DungeonTriggerExit
+    # NOTE: cellar_stairwell → cellar connection is now a door (soft_deploy.py)
     # created in build_game_world.py (rat cellar quest). Return exit from cellar
     # back to cellar_stairwell is also wired there.
     connect(rooms["first_floor_stairwell"], rooms["hallway"], "south",
@@ -2010,7 +2010,7 @@ def build_millholm_town():
     # road_far_west → will connect west to Millholm Farms district
     # road_far_east → will connect east to Industries / Millholm Woods
     # cellar → connects west (hidden) to Millholm Sewers (soft_deploy.py)
-    # cellar_stairwell → connects south via DungeonTriggerExit (rat cellar quest)
+    # cellar → connects south via ConditionalDungeonExit (rat cellar quest)
     # abandoned_house → will connect down (hidden) to Millholm Sewers
     # south_gate → connects south to Southern District (build_game_world.py)
 
