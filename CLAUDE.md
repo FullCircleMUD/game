@@ -318,36 +318,7 @@ session.msg(oob=("event_name", {"key": "value"}))
 
 ### Resource Type IDs
 
-| ID | Name | Role in game |
-|---|---|---|
-| 1 | Wheat | Farming output |
-| 2 | Flour | Miller output (Wheat → Flour) |
-| 3 | Bread | Baker output (Flour → Bread) — feeds characters, hunger system |
-| 4 | Iron Ore | Miner output |
-| 5 | Iron Ingot | Smelter output (Iron Ore → Iron Ingot) → Blacksmith makes NFT items |
-| 6 | Wood | Forestry output |
-| 7 | Timber | Sawmill output (Wood → Timber) |
-| 8 | Hide | Hunting output |
-| 9 | Leather | Tannery output (Hide → Leather) |
-| 10 | Cotton | Farming output |
-| 11 | Cloth | Loom output (Cotton → Cloth) |
-| 12 | Moonpetal | Gathering output → alchemy |
-| 13 | Moonpetal Essence | Apothecary output (Moonpetal → Essence) → potion brewing |
-| 14-22 | Alchemy herbs | Bloodmoss, Windroot, Arcane Dust, Ogre's Cap, Vipervine, Ironbark, Mindcap, Sage Leaf, Siren Petal |
-| 23 | Copper Ore | Mining output → smelting |
-| 24 | Copper Ingot | Smelter output → jewellery, bronze alloy |
-| 25 | Tin Ore | Mining output → smelting |
-| 26 | Tin Ingot | Smelter output → bronze/pewter alloys |
-| 27 | Lead Ore | Mining output → smelting |
-| 28 | Lead Ingot | Smelter output → pewter alloy |
-| 29 | Pewter Ingot | Smelter alloy (Tin + Lead) → jewellery |
-| 30 | Silver Ore | Mining output → smelting |
-| 31 | Silver Ingot | Smelter output → jewellery (SKILLED) |
-| 32 | Bronze Ingot | Smelter alloy (Copper + Tin) → blacksmithing (BASIC) |
-| 33 | Ruby | Mining/drops → jewellery (EXPERT+) |
-| 34 | Emerald | Mining/drops → jewellery (EXPERT+) |
-| 35 | Diamond | Mining/drops → jewellery (EXPERT+) |
-| 36 | Coal | Mining output → steel alloy |
+> **Resource types:** See `blockchain/xrpl/models.py` `CurrencyType` for the canonical resource ID → currency code mapping. See `design/ECONOMY.md` for resource roles and economic design.
 
 ## Service Encapsulation Pattern
 
@@ -620,7 +591,7 @@ def func(self):
 
 ## SINK Location & Reallocation
 
-All consumption flows (gold fees, crafting inputs, eating, junking, AMM rounding dust) route to the **SINK** location in `FungibleGameState`. This separates consumed assets from unallocated reserve, giving visibility into what was consumed vs what's available to re-spawn.
+> **Design:** See `design/ECONOMY.md` § SINK Location for the economic rationale and reallocation rules.
 
 **Consumption:** `return_gold_to_sink()` / `return_resource_to_sink()` — for fees, crafting, eating, junking, AMM dust. Routes to SINK.
 **Cleanup:** `return_gold_to_reserve()` / `return_resource_to_reserve()` — for corpse decay, dungeon teardown, world rebuild. Routes to RESERVE.
@@ -635,6 +606,8 @@ All consumption flows (gold fees, crafting inputs, eating, junking, AMM rounding
 
 ## Economy Telemetry
 
+> **Design:** See `design/TELEMETRY.md` for metric definitions and snapshot design. See `design/ECONOMY.md` for how telemetry drives spawn rates.
+
 Hourly aggregation system that snapshots key economic metrics for the spawn algorithm and admin monitoring. Raw data already exists in transfer logs and game state tables — the telemetry system pre-computes summaries.
 
 **Models:** `PlayerSession` (login/logout tracking), `EconomySnapshot` (global hourly metrics: players online, gold circulation/reserve/sinks, AMM trades, imports/exports), `ResourceSnapshot` (per-resource hourly: circulation by location, velocity, AMM prices).
@@ -647,119 +620,20 @@ Hourly aggregation system that snapshots key economic metrics for the spawn algo
 
 ## Resource Spawn Algorithm
 
-Hourly service that replenishes `RoomHarvesting` nodes based on economy data. Resources drip-feed into rooms throughout the hour rather than spawning in a single batch.
+> **Design:** See `design/SPAWN_RESOURCES.md` for the full three-factor algorithm (consumption rate, price modifier, supply modifier), target bands, and drip-feed distribution.
 
-### Architecture Overview
+**Implementation:** `blockchain/xrpl/services/resource_spawn.py` — `ResourceSpawnService`. Configuration per zone in `world/spawns/*.json`. Admin command: `spawn_resources`.
 
-```
-ResourceSpawnScript (hourly tick)
-    │
-    ▼
-ResourceSpawnService.calculate_and_apply()
-    │
-    ├── 1. Gate: skip if no players online (EconomySnapshot)
-    ├── 2. Single DB query: fetch ALL RoomHarvesting rooms, group by resource_id
-    ├── 3. Get 7-day player-hours from PlayerSession
-    │
-    ▼  For each configured resource:
-    │
-    ├── 4. Baseline: 24h rolling avg of consumed_1h (ResourceSnapshot)
-    │      └── Cold start fallback: default_spawn_rate from config
-    ├── 5. Price modifier: AMM buy price vs target band
-    ├── 6. Supply modifier: circulating supply per player-hour vs target
-    ├── 7. spawn_amount = baseline × price_mod × supply_mod
-    ├── 8. Calculate per-room allocations (weighted by spawn_rate_weight)
-    │
-    ▼
-    9. Drip-feed: schedule delay() calls to distribute resources
-       over the hour (max 12 ticks, min 5 min apart per room)
-```
-
-### Three-Factor Algorithm
-
-**`spawn_amount = consumption_rate × price_modifier × supply_modifier`**
-
-- **Consumption rate** (baseline): 24h rolling average of `ResourceSnapshot.consumed_1h` — what players are actually using. The 24h window smooths across peak/off-peak hours and timezone differences. Falls back to `default_spawn_rate` from config when no data exists (cold start).
-- **Price modifier**: AMM buy price vs target band. Price high → modifier > 1.0 (spawn more than consumed). Price mid-band → 1.0. Price low → modifier < 1.0 (spawn less). No AMM pool → 1.0. Two-segment linear interpolation clamped to `[modifier_min, modifier_max]`.
-- **Supply modifier**: Circulating supply per player-hour vs target buffer. Oversupply (hoarding) → modifier < 1.0 (cut spawn to encourage selling). Undersupply → modifier > 1.0 (boost spawn). Uses 7-day `PlayerSession` window for player-hours. Zero player-hours → 1.0 (can't compute).
-
-### Weighted Room Distribution
-
-Each `RoomHarvesting` room has `spawn_rate_weight` (1-5, default 1) and `max_resource_count` (default 20). Total spawn is divided proportionally: `floor(weight × amount / total_weight)`, remainder to highest-weight rooms first. Rooms at max are skipped.
-
-### Drip-Feed Distribution
-
-Instead of dumping all resources at once, each room's hourly allocation is spread across the hour via `delay()` calls:
-- Room due 1 → single drop at minute 0
-- Room due 4 → 1 drop every 15 minutes
-- Room due 12 → 1 drop every 5 minutes
-- Room due 30 → drops of 2-3 every 5 minutes (capped at 12 ticks)
-
-The `_apply_drip()` callback re-checks `max_resource_count` at apply time, so rooms that fill up between ticks won't overflow.
-
-### Data Sources
-
-All inputs come from existing models — the spawn service is purely a consumer:
-
-| Data | Source | How Used |
-|---|---|---|
-| Hourly consumption | `ResourceSnapshot.consumed_1h` | 24h rolling avg baseline |
-| AMM buy price | `ResourceSnapshot.amm_buy_price` | Price modifier |
-| Circulating supply | `FungibleGameState` (CHARACTER + ACCOUNT) | Supply modifier |
-| Player activity | `PlayerSession` (7-day window) | Per-player-hour calculation |
-| Players online gate | `EconomySnapshot.players_online` | Skip spawn if nobody playing |
-| Harvest rooms | `ObjectDB` (RoomHarvesting typeclass) | Single query, grouped by resource_id |
-
-### Files
-
-- **Config:** `world/economy/resource_spawn_config.py` — per-resource dict keyed by `resource_id`. Only raw gathering resources (wheat, ores, herbs, etc.), not processed (flour, ingots, cloth). Configurable: target price band, target supply per player-hour, default spawn rate, max per room, modifier min/max.
-- **Service:** `blockchain/xrpl/services/resource_spawn.py` — `ResourceSpawnService` with static methods for calculation, allocation, and drip-feed scheduling.
+- **Config:** `world/economy/resource_spawn_config.py` — per-resource dict keyed by `resource_id`.
 - **Script:** `typeclasses/scripts/resource_spawn_service.py` — `ResourceSpawnScript`, thin hourly wrapper.
-- **Tests:** `tests/script_tests/test_resource_spawn.py` — 47 tests covering modifiers, queries, allocation, drip-feed, and integration.
-- **POC:** `commands/account_cmds/cmd_spawn_poc.py` — superuser `spawnpoc` command for testing with hardwired values against live rooms.
+- **Tests:** `tests/script_tests/test_resource_spawn.py` — 47 tests.
+- **POC:** `commands/account_cmds/cmd_spawn_poc.py` — superuser `spawnpoc` command.
 
-### Future
+## NFT Saturation Service
 
-Zone activity tracking (backlog) will add a dynamic multiplier on top of static weights based on where players actually spend their time.
+> **Design:** See `design/SPAWN_NFT_ITEMS.md` and `design/SPAWN_KNOWLEDGE_ITEMS.md` for saturation formulas, rarity tiers, and drop mechanics.
 
-## NFT Saturation Service (daily snapshot)
-
-Collects daily saturation data for the **saturation-based NFT item spawn algorithm** (loot selection logic is future work — this is the data collection layer).
-
-### Concept
-
-NFT items (scrolls, recipes, rare items) use **saturation** to control drop rates. Unlike resources, these items aren't consumed steadily — scrolls/recipes grant permanent knowledge, rare items circulate until exported/junked. Static drop rates would flood the game with items nobody needs.
-
-**Two types of saturation:**
-
-| Category | Saturation = | Data source |
-|---|---|---|
-| Scrolls & recipes | (players who know it + unlearned copies in player hands) / active players | `db.spellbook`, `db.recipe_book`, `NFTGameState` |
-| Rare items | Count in circulation vs target ratio per active player | `NFTGameState` |
-
-### Three Data Inputs
-
-| Input | Source | Method |
-|---|---|---|
-| Active player count (7d) | `PlayerSession` — distinct character_keys with session in last 7 days | `get_active_player_count_7d()` |
-| Knowledge counts | `ObjectDB` — iterate active characters, read `db.spellbook` + `db.granted_spells` + `db.recipe_book` | `get_knowledge_counts()` |
-| Unlearned copies | `NFTGameState` — scroll/recipe NFTs in CHARACTER or ACCOUNT locations | `get_unlearned_copy_counts()` |
-| NFT circulation | `NFTGameState` — all non-scroll/recipe NFTs in CHARACTER + ACCOUNT + SPAWNED | `get_nft_circulation_counts()` |
-
-### Snapshot Model
-
-`SaturationSnapshot` — one row per tracked item per day. Fields: `day`, `item_key`, `category` (spell/recipe/item), `active_players_7d`, `known_by`, `unlearned_copies`, `in_circulation`, `saturation`.
-
-### Files
-
-- **Service:** `blockchain/xrpl/services/nft_saturation.py` — `NFTSaturationService` with static methods for data collection. Entry point: `take_daily_snapshot()`.
-- **Script:** `typeclasses/scripts/nft_saturation_service.py` — `NFTSaturationScript`, daily (86400s) wrapper.
-- **Model:** `SaturationSnapshot` in `blockchain/xrpl/models.py`.
-- **Tests:** `tests/script_tests/test_nft_saturation.py` — 34 tests covering all data collection methods and integration.
-
-### Future
-
-The loot selection algorithm will consume these snapshots: mob dies → roll for drop → query latest saturation → weight toward undersaturated items → pick one. See `design/ECONOMY.md` § Spawn Algorithms for full design.
+**Implementation:** `blockchain/xrpl/services/nft_saturation.py` — `NFTSaturationService`. Daily snapshot via `NFTSaturationScript` (86400s interval). Snapshots stored in `SaturationSnapshot` model.
 
 ## Character Delete Protection
 
@@ -1219,6 +1093,8 @@ Data-driven item usage restrictions mixed into `BaseNFTItem`. Default is unrestr
 - Hooked into `wear()` validation chain in `BaseWearslotsMixin` — `can_use()` runs before `can_wear()`
 
 ## EffectsManagerMixin (typeclasses/mixins/effects_manager.py)
+
+> **Design:** See `design/COMBAT_SYSTEM.md` for named effect specifications (values, durations, stacking rules) and `design/SPELL_SKILL_DESIGN.md` for spell-granted effects.
 
 Unified effect system that replaces ConditionsMixin. Provides three composable layers:
 
@@ -1700,35 +1576,9 @@ Commands: `craft` (aliases: `forge`, `carve`, `sew`, `brew`, `enchant` + prefix 
 
 ## Prototype Structure (world/prototypes/)
 
-One file per item, organised by category. Evennia discovers all prototypes via `PROTOTYPE_MODULES = ["world.prototypes"]` and wildcard imports in `__init__.py`.
+One file per item. Prototypes define item stats, wear effects, damage, and crafting metadata. Organized by category: `weapons/`, `wearables/`, `consumables/`, `components/`, `ships/`.
 
-```
-world/prototypes/
-├── __init__.py              ← imports * from all subpackages
-├── weapons/                 ← 18 weapons (training_*, iron_*, bronze_*, club, spear, sling)
-├── wearables/               ← organised by slot subdirectory (vanilla + enchanted variants)
-│   ├── head/               ← bandana, kippah, leather_cap + enchanted: rogues_bandana, sages_kippah, scouts_cap
-│   ├── face/               ← veil + enchanted: veil_of_grace
-│   ├── body/               ← gambeson, coarse_robe, leather_armor
-│   ├── legs/               ← brown_corduroy_pants, leather_pants
-│   ├── neck/               ← scarf, copper_chain, pewter_chain + enchanted: professors_scarf
-│   ├── finger/             ← copper_ring, pewter_ring
-│   ├── wrist/              ← copper_bangle, pewter_bracelet
-│   ├── ear/                ← copper_studs, pewter_hoops
-│   ├── hands/              ← leather_gloves, warriors_wraps + enchanted: pugilists_gloves
-│   ├── feet/               ← leather_boots
-│   ├── waist/              ← leather_belt, sash + enchanted: sun_bleached_sash
-│   ├── cloak/              ← cloak + enchanted: titans_cloak
-│   └── bridle/             ← bridle
-├── holdables/               ← wooden_shield, ironbound_shield
-├── components/              ← shaft, haft, leather_straps (BaseNFTItem)
-├── consumables/             ← all single-use NFT items
-│   ├── potions/             ← 9 alchemy potions (PotionNFTItem)
-│   ├── recipes/             ← recipe scroll prototypes (CraftingRecipeNFTItem) — no scrolls for enchanting
-│   ├── scrolls/             ← spell scroll prototypes (SpellScrollNFTItem)
-│   └── wands/               ← (placeholder)
-└── containers/              ← backpack, panniers (ContainerNFTItem)
-```
+> **Design:** See `design/ECONOMY.md` for resource types and pricing. Individual prototype files are the source of truth for item stats.
 
 ## Magic System Architecture
 
@@ -1792,6 +1642,8 @@ class MagicMissile(Spell):
 
 **Discovery**: `@register_spell` decorator populates `SPELL_REGISTRY`. `__init__.py` per school folder imports all spell modules so decorators fire at import time.
 
+> **Design:** See `design/SPELL_SKILL_DESIGN.md` for spell design philosophy, cooldown rules, damage scaling formulas, and all spell specifications.
+
 **Registry helpers**: `get_spell(key)`, `get_spells_for_school(school)`, `list_spell_keys()`
 
 **SpellbookMixin** (`typeclasses/mixins/spellbook.py`): mixed into `FCMCharacter`. Provides `learn_spell()`, `knows_spell()`, `memorise_spell()`, `forget_spell()`, `is_memorised()`, `get_memorisation_cap()`, `get_known_spells()`, `get_memorised_spells()`. Storage: `db.spellbook` and `db.memorised_spells` (both `{spell_key: True}` dicts).
@@ -1828,16 +1680,9 @@ class MagicMissile(Spell):
 - Mages consume via `transcribe` command — Y/N confirmation, then spell added to spellbook, scroll consumed
 - Scrolls can also be cast directly (one-time use, no transcription, lower/no level requirement) — deferred
 
-### Spell Design Rules
+### Spell Implementation Patterns
 
-**Mana cost rule:** 1 mana per average point of damage. Round halves up (3.5 → 4). Conditions, utility, and AoE do NOT add extra cost — the damage formula IS the cost.
-
-**Damage scaling tiers:**
-- Starter spells (learned at BASIC): +1d6 per tier (or +1 missile for Magic Missile)
-- Intermediate spells (learned at SKILLED): +2d6 per tier
-- Big spells (learned at EXPERT+): +3d6 per tier — clearly superior, reward for mastery investment
-
-**Cooldown rules:** Spell-specific cooldowns (can still take other actions, just can't recast that spell). Defaults by min_mastery tier: BASIC/SKILLED = 0, EXPERT = 1 round, MASTER = 2 rounds, GM = 3 rounds. Override via `cooldown` class attribute on individual spells. Tracked in `caster.db.spell_cooldowns`.
+**Cooldown tracking:** Spell-specific cooldowns tracked in `caster.db.spell_cooldowns`. Override default via `cooldown` class attribute on individual spells.
 
 **Duration storage convention:** `_DURATION` dicts store values in their **natural human-readable unit**, then convert to the effect system's unit in `_execute()`:
 - **Seconds-based effects** (`duration_type="seconds"`): store in **minutes** (e.g. `{1: 1, 2: 2, 3: 5}`), convert `* 60` before passing to `apply_named_effect()`. Examples: Invisibility, Sanctuary, Shadowcloak, True Sight.
@@ -1859,229 +1704,74 @@ class MagicMissile(Spell):
 - **Safe AoE** (e.g. Cone of Cold): hits enemies only. Diminishing accuracy: 1st enemy 100%, 2nd 80%, 3rd 60%, 4th 40%, 5th+ 20%. The price of safety is you might not catch all enemies.
 - This creates genuine tactical choice: guaranteed damage to everyone (including yourself) vs selective targeting with diminishing accuracy.
 
-**Creature size tiers** (scaling mechanic for summons, knockback, reanimation):
+**Creature size tiers** (scaling mechanic for summons, knockback, reanimation): BASIC=Small, SKILLED=Medium, EXPERT=Large, MASTER=Huge, GM=Gargantuan.
 
-| Mastery | Size | Examples |
-|---|---|---|
-| BASIC | Small | rat, sprite, imp, snake |
-| SKILLED | Medium | wolf, skeleton, minor elemental |
-| EXPERT | Large | bear, ogre, greater elemental |
-| MASTER | Huge | giant, wyvern, treant |
-| GM | Gargantuan | ancient dragon, titan |
+### Per-School Spell Lists
 
-### Evocation Spell Progression
+> Spell balance numbers (damage dice, mana costs, cooldowns, scaling) are in `design/SPELL_SKILL_DESIGN.md`. Below lists implemented vs scaffolded spells and key technical notes only.
 
-**Implemented spells:**
+#### Evocation
 
-| Spell | Min Tier | Type | Range | Damage | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|---|
-| Magic Missile | BASIC | single target | any | 1d4+1 × tier missiles | 5/8/10/14/16 | 0 | auto-hit, force damage |
-| Frostbolt | BASIC | single target | any | 1d6 cold + contested SLOWED | 5/8/10/14/16 | 0 | flat damage, utility via debuff |
-| Flame Burst | SKILLED | safe AoE | melee | 3d6→6d6 fire | 11/14/18/21 | 0 | safe AoE, diminishing accuracy |
-| Fireball | EXPERT | unsafe AoE | any | 8d6/11d6/14d6 fire, DEX save half | 28/39/49 | 1 | hits everything incl. caster |
-| Cone of Cold | MASTER | safe AoE | any | 10d6/13d6 cold | 35/46 | 2 | diminishing accuracy + SLOWED |
-| Power Word: Death | GM | single target | any | instant kill | 100 | 3 | contested save, nat 20 always kills |
+**Implemented:** MagicMissile (BASIC, single target, auto-hit force), Frostbolt (BASIC, single target, cold + contested SLOWED), FlameBurst (SKILLED, safe AoE, fire), Fireball (EXPERT, unsafe AoE, DEX save half), ConeOfCold (MASTER, safe AoE, diminishing accuracy + SLOWED), PowerWordDeath (GM, single target, contested save).
+**Planned:** Lightning Bolt (SKILLED, single target, ranged).
 
-**Planned spells (not yet implemented):**
+#### Abjuration
 
-| Spell | Min Tier | Type | Range | Damage | Mana (per tier) | Notes |
-|---|---|---|---|---|---|---|
-| Lightning Bolt | SKILLED | single target | ranged | 4d6→10d6 lightning | 14/21/28/35 | high single-target |
-| Chain Lightning | EXPERT | multi-target | ranged | 6d6→10d6 primary, bounces | 21/28/35 | bounces = tier count, -1d6/bounce |
+**Implemented:** Shield (BASIC, reactive — auto-triggers via `check_reactive_shield()` in `combat/reactive_spells.py`, toggle via `toggle shield`, anti-stacking via `has_effect("shield")`), MageArmor (BASIC, seconds-based timer, anti-stacking via `has_effect("mage_armored")`, stacks with Shield), Resist (SKILLED, `has_spell_arg` — `cast resist fire [target]`, per-element named effects coexist, uses DamageResistanceMixin via Layer 2 dispatch), Shadowcloak (SKILLED, group targeting via `get_group_leader()` + `get_followers(same_room=True)`, `stat_bonus` on `stealth_bonus`).
+**Scaffolded:** Antimagic Field (EXPERT, unsafe AoE — strips YOUR buffs too), Group Resist (MASTER), Invulnerability (GM).
 
-### Abjuration Spell Progression
+#### Necromancy
 
-Shield, Mage Armor, Resist, and Shadowcloak implemented. Remaining spells scaffolded. Dependencies for remaining: dispel mechanics.
+**Implemented:** DrainLife (BASIC, heals caster 100% capped at max HP), VampiricTouch (SKILLED, touch attack d20+INT+mastery vs AC, heals PAST max HP, VAMPIRIC effect with escalating mana cost 3%->95%, bonus HP lost on expiry floor 1 HP), SoulHarvest (EXPERT, unsafe AoE, drains all living except caster).
+**Scaffolded:** Disease (BASIC, needs DISEASED condition + named effect), Raise Dead (SKILLED, needs pet system), Raise Lich (MASTER, needs pet system + NPC AI), Death Mark (GM, needs damage pipeline hook).
 
-**Implemented spells:**
+#### Conjuration
 
-| Spell | Min Tier | Type | Mechanic | Mana | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Shield | BASIC | self (reactive) | +4/+4/+5/+5/+6 AC, 1/2/2/3/3 rounds | 3/5/7/9/12 | 0 | **IMPLEMENTED** — Reactive only (like Smite). Auto-triggers when about to be hit via `check_reactive_shield()` in `combat/reactive_spells.py`. Toggle via `toggle shield` (unified player preference system, `shield_active` attribute). Three gates: toggle ON + memorised + mana. Anti-stacking via `has_effect("shield")`. |
-| Mage Armor | BASIC | self | +3/+3/+4/+4/+5 AC, 1/2/2/3/3 hours | 3/5/7/9/12 | 0 | Long-duration maintenance buff. Uses seconds-based timer (wall-clock). Anti-stacking via `has_effect("mage_armored")`. Stacks with Shield (up to +11 AC at GM). Mana refunded on anti-stacking rejection. |
-| Resist | SKILLED | friendly | 20%/30%/40%/60% resistance to chosen element, 30s | 8/10/14/16 | 0 | First spell using `has_spell_arg` — `cast resist fire [target]`. Per-element named effects (resist_fire, resist_cold, etc.) — different elements can coexist. Anti-stacking per element. Uses DamageResistanceMixin via Layer 2 dispatch. |
-| Shadowcloak | SKILLED | group | +4/+6/+8/+10 stealth_bonus, 4/6/8/10 min | 12/15/20/24 | 0 | Group stealth buff — self if solo, all same-room group members if in a follow chain. Uses `stat_bonus` on `stealth_bonus` via named effect system. Anti-stacking per target. First spell using group targeting via `get_group_leader()` + `get_followers(same_room=True)`. |
+**Implemented:** AcidArrow (BASIC, DoT via AcidDoTScript with combat-round ticks, anti-stacking: new cast replaces old).
+**Scaffolded:** Teleport (SKILLED, respects no_teleport_to/out room flags), Dimensional Lock (EXPERT, unsafe AoE), Conjure Elemental (MASTER, needs pet system), Gate (GM, needs waygate system).
 
-**Scaffolded spells:**
+#### Divination
 
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Antimagic Field | EXPERT | unsafe AoE | Dispels all spell+potion effects, suppresses casting. 1/2/3 rounds | 28/39/49 | default | "Fireball of abjuration" — strips YOUR buffs too |
-| Group Resist | MASTER | party | 40%/60% resistance, 30s, whole party | 56/64 | 2 | 4x individual Resist cost |
-| Invulnerability | GM | self | Total damage+condition immunity, 1 round | 100 | 3 | mirror of PWD |
+**Implemented:** Identify (BASIC, target_type="any", actor + item branches, actors level-gated 1-5=BASIC...36+=GM, PCs only in PvP rooms), TrueSight (SKILLED, NamedEffect TRUE_SIGHT, DETECT_INVIS only at MASTER+, `db.true_sight_tier` for trap detection in `_check_traps_on_entry()`).
+**Scaffolded:** Scry (SKILLED), Mass Revelation (EXPERT, unsafe AoE — strips HIDDEN+INVISIBLE from ALL).
 
-### Necromancy Spell Progression
+#### Illusion
 
-**Implemented spells:**
+**Implemented:** Blur (BASIC, BlurScript sets 1 disadvantage on all enemies per round, NamedEffect BLURRED), Invisibility (SKILLED, NamedEffect INVISIBLE + Condition.INVISIBLE, `break_invisibility()` zeros all refs + stops timer, recast refresh pattern).
+**Scaffolded:** Mass Confusion (EXPERT, unsafe AoE), Greater Invisibility (MASTER, INVISIBLE + db flag), Phantasmal Killer (GM).
 
-| Spell | Min Tier | Type | Damage | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Drain Life | BASIC | single target | 2d6→6d6 cold | 5/8/10/14/16 | 0 | heals caster 100%, capped at max HP |
-| Vampiric Touch | SKILLED | single target (touch) | 1d6→4d6 cold | dynamic (% of max mana) | 0 | Touch attack (d20+INT+mastery vs AC). Heals 100% PAST max HP. VAMPIRIC effect with 10min timer (resets each drain). Escalating mana cost (3%→95%). Bonus HP lost on expiry (floor 1 HP). |
-| Soul Harvest | EXPERT | unsafe AoE | 8d6→14d6 cold | 28/39/49 | 1 | drains ALL living except caster, caster heals total |
+#### Divine Healing
 
-**Scaffolded spells:**
+**Implemented:** CureWounds (BASIC, WIS modifier scaling).
+**Scaffolded:** Purify (SKILLED, tier-gated condition removal), Mass Heal (EXPERT, group), Death Ward (GM, hooks into `take_damage()`/`die()` to intercept lethal damage).
 
-| Spell | Min Tier | Mechanic | Mana (per tier) | Notes |
-|---|---|---|---|---|
-| Disease | BASIC | Contested INT+mastery vs CON. DISEASED — disables ALL regen (HP, mana, move). Duration scales with tier. | 5/8/10/14/16 | Countered by Purify (SKILLED+). Useful vs regen-heavy mobs. Needs DISEASED condition + named effect. |
-| Raise Dead | SKILLED | Raise 1/2/3/4 corpses, 2/5/10/30 min duration | 15/25/40/60 | player corpses with gear protected. Needs pet system |
-| Raise Lich | MASTER | Raise one corpse as lich minion (casts Drain Life) | 50/70 | replaces existing lich. Needs pet system + NPC AI |
-| Death Mark | GM | Marks target 1 round — ALL damage heals attacker | 100 | party burst window. Needs damage pipeline hook |
+#### Divine Protection
 
-**Design identity**: life manipulation — steal, drain, corrupt, raise. The selfish school. Core: damage-to-heal conversion. Counterplay: cold resistance, silence/stun, Antimagic Field, Purify.
+**Implemented:** Sanctuary (BASIC, NamedEffect SANCTUARY + Condition.SANCTUARY, `break_sanctuary()` zeros all refs + stops timer, recast refresh pattern, combat hooks: target protected / attacker loses sanctuary on offensive action).
+**Scaffolded:** Holy Aura (EXPERT, group), Divine Aegis (GM).
 
-### Conjuration Spell Progression
+#### Divine Judgement (Paladin Only)
 
-Acid Arrow implemented. Remaining spells scaffolded. Dependencies: room teleport flags (no_teleport_to/no_teleport_out), world tag, pet system, waygate system.
+**Implemented:** Smite (BASIC, reactive — auto-triggers on weapon hit via `check_reactive_smite()` in `combat/reactive_spells.py`, toggle via `toggle smite`, respects radiant resistance).
+**Scaffolded:** Holy Fire (EXPERT, safe AoE), Wrath of God (GM, unsafe AoE).
 
-**Implemented spells:**
+#### Divine Revelation
 
-| Spell | Min Tier | Type | Mechanic | Mana | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Acid Arrow | BASIC | single target | 1d4+1 acid/round x tier rounds (DoT) | 5/8/10/14/16 | 0 | Pure DoT workhorse — same total damage budget as Magic Missile but delivered over time. Uses AcidDoTScript (combat-round ticks via combat_handler). Anti-stacking: new cast replaces old. |
+**Implemented:** HolyInsight (BASIC, extends Identify base class, shares `_identify_actor()`/`_identify_item()`, adds divine-flavoured text + evil/undead detection at tier 2+), HolySight (SKILLED, NamedEffect HOLY_SIGHT + `db.holy_sight_tier`, `_can_see_hidden()` helper in room_base.py, integration: room_base (3 checks), hidden_object, character trap detection, 23 tests).
 
-**Scaffolded spells:**
+#### Divine Dominion
 
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Teleport | SKILLED | self | Self-teleport: district→zone→world range | 15/25/40/40 | 60s | respects no_teleport_to/out room flags |
-| Dimensional Lock | EXPERT | unsafe AoE | DIMENSION_LOCKED on all — no flee/teleport/summon | 28/39/49 | 0 | save scales: normal→disadvantage→no save |
-| Conjure Elemental | MASTER | summon | Elemental combat pet, 10/30 min | 56/64 | 0 | needs pet system |
-| Gate | GM | portal | Walk-through portal to discovered waygate | 100 | 300s | party can use. Needs waygate system |
+**Implemented:** Command (BASIC, `has_spell_arg`, `cast command <halt|grovel|drop|flee> <target>`, contested WIS vs WIS, HUGE+ immune, 33 tests), Hold (EXPERT, PARALYSED with per-round WIS save, size gate scales: EXPERT=medium MASTER=large GM=huge, GARGANTUAN immune, 24 tests).
+**Scaffolded:** Word of God (GM, unsafe AoE).
 
-**Design identity**: summoning, teleportation, dimensional control. The "Fireball" is Dimensional Lock (area control, not damage). Counterplay: WIS saves, Antimagic Field.
+#### Nature Magic
 
-### Divination Spell Progression
-
-True Sight implemented. No damage spells — pure utility and intelligence. Mirror Image and Foresight deferred for design discussion.
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Identify** | BASIC | utility | Reveals actor stats + NFT item properties (dynamic templates). Actors: level-gated (1-5=BASIC…36+=GM), PCs only in PvP rooms. Items: weapons/armor/holdables/consumables/containers, no mastery gate | 5/8/10/14/16 | 0 | **IMPLEMENTED** (actor + item branches) — target_type="any". World fixture/resource branches deferred |
-| **True Sight** | SKILLED | self-buff | Tiered perception: SKILLED=see HIDDEN, EXPERT=+auto-detect traps (no roll), MASTER=+see INVISIBLE. Duration: 5/10/30/60 min | 15/25/40/40 | 0 | **IMPLEMENTED** — NamedEffect TRUE_SIGHT, DETECT_INVIS only at MASTER+. db.true_sight_tier stored for trap detection in _check_traps_on_entry(). Traps auto-detected on cast and room entry at EXPERT+ |
-| Scry | SKILLED | remote | Remote mob intel: alive/zone→room/HP→stats→items | 15/25/40/60 | 30s | range scales with tier |
-| Mass Revelation | EXPERT | unsafe AoE | Strips HIDDEN+INVISIBLE from ALL in room (allies too) | 28/39/49 | 0 | "Fireball of divination" |
-
-**Design identity**: knowledge, sight, revelation. No damage. The support school. Counterplay: Greater Invisibility, Antimagic Field.
-
-### Illusion Spell Progression
-
-Blur implemented. Mirror Image deferred for design discussion.
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Blur** | BASIC | self-buff | BlurScript sets 1 disadvantage on all enemies per round. Multi-attackers only lose 1 attack's accuracy | 5/8/10/14/16 | 0 | **IMPLEMENTED** — 3/4/5/6/7 rounds. Uses NamedEffect BLURRED + BlurScript |
-| **Invisibility** | SKILLED | self-buff | Standard INVISIBLE — breaks on attack/cast | 15/25/40/40 | 0 | **IMPLEMENTED** — NamedEffect INVISIBLE + Condition.INVISIBLE. Duration: 5/10/30/60 min. break_invisibility() zeros all refs + stops timer. Recast refreshes duration (only if gaining time, else mana refunded). |
-| Mass Confusion | EXPERT | unsafe AoE | CONFUSED — random target selection, caster included | 28/39/49 | 0 | "Fireball of illusion". Foresight auto-saves |
-| Greater Invisibility | MASTER | friendly-buff | INVISIBLE but doesn't break on action | 56/64 | 0 | uses INVISIBLE + db flag |
-| Phantasmal Killer | GM | single target | Contested WIS save, 20d6 psychic / half on save | 100 | 0 | can kill from fright |
-
-**Design identity**: deception, misdirection, confusion. The trickster school. Core: denial of information. Counterplay: True Sight, Mass Revelation, WIS saves.
-
-### Divine Healing Spell Progression
-
-Cleric/paladin healing domain. Core identity: restore, cure, protect from death.
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Cure Wounds** | BASIC | friendly | Heal 1d8+WIS per tier | 5/8/10/14/16 | 0 | **IMPLEMENTED** — workhorse heal, WIS modifier scaling |
-| Purify | SKILLED | friendly | Remove conditions from target. Tier-gated: SKILLED=POISONED/BLINDED, EXPERT=+DISEASED, MASTER=+SLOWED, GM=+PARALYSED. Cures all eligible conditions in one cast. | 8/10/14/16 | 0 | Divine counter to necromantic corruption and debuffs. |
-| Mass Heal | EXPERT | group | Heal all allies in room | TBD | 1 | "Fireball of healing" — the party-save button |
-| Death Ward | GM | friendly | Preemptive buff — intercepts death, target survives on 1 HP, effect consumed | TBD | 3 | Hooks into `take_damage()`/`die()` to intercept lethal damage. Named effect consumed on trigger |
-
-**Design identity**: restoration, preservation, anti-death. The selfless school. Counterplay: Antimagic Field, silence/stun.
-
-### Divine Protection Spell Progression
-
-Cleric/paladin defensive domain. Core identity: wards, buffs, sanctification. Sanctuary implemented.
-
-**Implemented spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Sanctuary** | BASIC | self | Enemies cannot target caster. Breaks on attack or hostile spell cast | 5/8/10/14/16 | 0 | **IMPLEMENTED** — NamedEffect SANCTUARY + Condition.SANCTUARY. Duration: 1/2/3/4/5 min. break_sanctuary() zeros all refs + stops timer. Recast refreshes (only if gaining time, else mana refunded). Combat hooks: target protected (attack blocked), attacker loses sanctuary on offensive action. |
-
-**Scaffolded spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Holy Aura | EXPERT | group | AC + resistance buff to all allies in room | TBD | 1 | Group defensive buff |
-| Divine Aegis | GM | friendly | Total damage immunity on target for short duration | TBD | 3 | Thematic parallel to Abjuration's Invulnerability |
-
-**Design identity**: protection, warding, sanctification. The guardian school. Counterplay: Antimagic Field, wait it out.
-
-### Divine Judgement Spell Progression
-
-**Paladin only.** Holy damage domain. Core identity: righteous wrath, radiant strikes. Smite implemented.
-
-**Implemented spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Smite** | BASIC | self (reactive) | +1d6/+2d6/+3d6/+4d6/+5d6 bonus radiant damage per weapon hit | 3/5/7/9/12 | 0 | **IMPLEMENTED** — Reactive only (like Shield). Auto-triggers on weapon hit via `check_reactive_smite()` in `combat/reactive_spells.py`. Toggle via `toggle smite` (unified player preference system, `smite_active` attribute). Three gates: toggle ON + memorised + mana. Respects radiant resistance. |
-
-**Scaffolded spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Holy Fire | EXPERT | safe AoE | Radiant damage to enemies | TBD | 1 | Paladin's Fireball — safe AoE fits righteous precision |
-| Wrath of God | GM | unsafe AoE | Massive radiant damage + BLINDED/STUNNED | TBD | 3 | Ultimate paladin nuke |
-
-**Design identity**: righteous destruction, holy wrath. The smiter school. Counterplay: radiant resistance, Antimagic Field.
-
-### Divine Revelation Spell Progression
-
-Cleric/paladin knowledge domain. Mirrors Divination for divine casters. Core identity: divine sight, holy knowledge. Holy Insight and Holy Sight implemented.
-
-**Implemented spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Holy Insight** | BASIC | any | Identify clone + Divine Sight (alignment, evil/undead detection, divine aura) | 5/8/10/14/16 | 0 | **IMPLEMENTED** — Extends Identify base class. Shares `_identify_actor()`/`_identify_item()`. Adds divine-flavoured text + evil/undead detection at tier 2+. target_type="any". |
-| **Holy Sight** | SKILLED | self | Divine mirror of True Sight with different tier order: SKILLED=traps, EXPERT=+INVISIBLE, MASTER=+HIDDEN. Duration 5/10/30/60 min. | 15/25/40/40 | 0 | **IMPLEMENTED** — NamedEffect HOLY_SIGHT + `db.holy_sight_tier`. `_can_see_hidden()` helper in room_base.py. Integration: room_base (3 checks), hidden_object, character trap detection. 23 tests. |
-
-**Design identity**: divine knowledge, holy sight. The oracle school. Mirrors Divination.
-
-### Divine Dominion Spell Progression
-
-Cleric/paladin control domain. Core identity: command, compel, holy authority. Command and Hold implemented.
-
-**Implemented spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Command** | BASIC | single target (hostile) | `cast command <halt\|grovel\|drop\|flee> <target>`. Contested WIS vs WIS. Halt=STUNNED (1/2/2/3/3 rounds), Grovel=PRONE (1/1/2/2/3 rounds), Drop=force_drop_weapon, Flee=execute_cmd("flee") | 5/8/10/14/16 | 0 | **IMPLEMENTED** — `has_spell_arg`. Combat-only. HUGE+ immune. 33 tests. |
-| **Hold** | EXPERT | single target (hostile) | Contested WIS vs WIS. PARALYSED with per-round WIS save (DC = caster's full total). Size gate scales: EXPERT=medium, MASTER=large, GM=huge. GARGANTUAN immune. Duration 3/4/5 rounds. | 28/39/49 | 1 | **IMPLEMENTED** — Renamed from hold_person. Same save-each-round pattern as Entangle. 24 tests. |
-
-**Scaffolded spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Word of God | GM | unsafe AoE | Mass stun all enemies in room, no save first round | TBD | 3 | Ultimate cleric CC |
-
-**Design identity**: authority, compulsion, divine command. The controller school. Counterplay: WIS saves, Antimagic Field.
-
-### Nature Magic Spell Progression
-
-Druid/ranger nature domain. Core identity: natural forces, entanglement, storms. Entangle and Call Lightning implemented.
-
-**Implemented spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| **Entangle** | BASIC | single target (hostile) | Contested WIS+mastery vs STR. ENTANGLED 1/2/3/4/5 rounds + save-each-round STR escape. Save DC = caster's full total (d20+WIS+mastery). | 5/8/10/14/16 | 0 | **IMPLEMENTED** — Uses NamedEffect ENTANGLED with save_dc/save_stat. Grants advantage to all enemies via on-apply callback. |
-| **Call Lightning** | EXPERT | unsafe AoE | Lightning storm hits EVERYTHING in room (caster, allies, enemies). DEX save for half damage (DC = caster d20 + WIS + mastery). 6d6/9d6/12d6 lightning damage. | 21/32/42 | 1 | **IMPLEMENTED** — Same pattern as Fireball but 2d6 less per tier (nature trades damage for CC). WIS-based save DC (vs Fireball's INT). 14 tests. |
-
-**Scaffolded spells:**
-
-| Spell | Min Tier | Type | Mechanic | Mana (per tier) | Cooldown | Notes |
-|---|---|---|---|---|---|---|
-| Earthquake | GM | unsafe AoE | Massive damage to all in room + STUNNED/knockdown | TBD | 3 | Hits everything including caster and allies |
-
-**Design identity**: natural forces, control, elemental power. The primal school. Counterplay: lightning resistance, Antimagic Field.
+**Implemented:** Entangle (BASIC, NamedEffect ENTANGLED with save_dc/save_stat, grants advantage to all enemies via on-apply callback), CallLightning (EXPERT, unsafe AoE, WIS-based save DC, 14 tests).
+**Scaffolded:** Earthquake (GM, unsafe AoE).
 
 ## Weapon Skill Architecture
+
+> **Design:** See `design/COMBAT_SYSTEM.md` for weapon mastery progression tables, damage values, and combat balance numbers.
 
 Weapon mastery effects live **inside the weapon item subclasses**, not in a separate registry. The weapon object already exists, already has combat hooks, and already knows its type. No indirection needed.
 
@@ -2159,7 +1849,7 @@ Both use `SpearNFTItem`, both get identical mastery effects. The prototype makes
 
 ### Crit Threshold System
 
-`base_crit_threshold` is an `AttributeProperty(20)` on BaseActor, modified by equipment on/off and spell/potion effects. `effective_crit_threshold` is a `@property` that computes `base_crit_threshold + weapon.get_mastery_crit_threshold_modifier(wielder)`. Combat uses `attacker.effective_crit_threshold` (not the old `crit_threshold` AttributeProperty, which was deleted). Only daggers currently modify crit threshold (-1 at EXPERT/MASTER, -2 at GM).
+`base_crit_threshold` is an `AttributeProperty(20)` on BaseActor, modified by equipment on/off and spell/potion effects. `effective_crit_threshold` is a `@property` that computes `base_crit_threshold + weapon.get_mastery_crit_threshold_modifier(wielder)`. Combat uses `attacker.effective_crit_threshold` (not the old `crit_threshold` AttributeProperty, which was deleted).
 
 ### Dual-Wield System
 
@@ -2195,15 +1885,9 @@ Pure Python singleton (`typeclasses/items/weapons/unarmed_weapon.py`) — NOT an
 
 **`force_drop_weapon(target, weapon=None)`** — shared disarm utility in `combat_utils.py`. Conditional behaviour: mobs/NPCs drop weapon to room floor (`move_to(location)`), player characters unequip to inventory only (no item loss). Guards: UnarmedWeapon immune, must have wielded weapon. Used by both Command spell (Drop word) and Sai weapon disarm. Returns `(bool, weapon_name)`.
 
-**Mastery progression (UNSKILLED → GRANDMASTER):**
-- Damage: 1 / 1d2 / 1d3 / 1d4 / 1d6 / 1d8
-- Hit/damage bonus: standard MasteryLevel.bonus (-2/0/+2/+4/+6/+8)
-- Extra attacks: 0/0/0/1/1/1
+**Mastery progression:** Damage dice, hit/damage bonuses, and extra attacks scale with mastery tier (see `design/COMBAT_SYSTEM.md` for values).
 
-**Stun/Knockdown (SKILLED+):** On-hit contested roll (d20 + STR + mastery vs d20 + CON). Size-gated: HUGE+ immune. First hit per round only (first 2 at GM). Stun check count tracked via `stun_checks_remaining` on combat handler, reset each tick.
-- SKILLED/EXPERT: win → STUNNED 1 round (lose action)
-- MASTER: win by <5 → STUNNED 1 round, win by >=5 → PRONE 1 round (lose action + all enemies get 1 round advantage)
-- GM: same as MASTER but 2 rounds duration (STUNNED/PRONE + advantage)
+**Stun/Knockdown (SKILLED+):** On-hit contested roll (d20 + STR + mastery vs d20 + CON). Size-gated: HUGE+ immune. Stun check count tracked via `stun_checks_remaining` on combat handler, reset each tick. Higher mastery tiers unlock PRONE (with advantage grant to enemies) and longer durations.
 
 **Parry immunity:** Unarmed attacks cannot be parried (weapon-on-weapon only, gated by `isinstance(weapon, UnarmedWeapon)` check in `execute_attack()`).
 
