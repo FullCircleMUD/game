@@ -88,8 +88,7 @@ class CmdForage(CmdSkillBase):
             return
 
         # --- Mastery check ---
-        mastery_dict = caller.db.skill_mastery_levels or {}
-        mastery_level = mastery_dict.get(self.skill, MasteryLevel.UNSKILLED.value)
+        mastery_level = caller.get_skill_mastery(self.skill) if hasattr(caller, 'get_skill_mastery') else 0
         hunger_points = MASTERY_YIELD.get(mastery_level, 0)
 
         if hunger_points == 0:

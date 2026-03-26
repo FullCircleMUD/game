@@ -68,11 +68,12 @@ class CmdDefence(CmdSkillBase):
         caller = self.caller
 
         # ── Mastery check ──
-        mastery_dict = caller.db.skill_mastery_levels
-        if not mastery_dict:
+        if not (getattr(caller.db, "general_skill_mastery_levels", None)
+                or getattr(caller.db, "class_skill_mastery_levels", None)
+                or getattr(caller.db, "weapon_skill_mastery_levels", None)):
             return self.mob_func()
 
-        mastery_int = mastery_dict.get(self.skill, MasteryLevel.UNSKILLED.value)
+        mastery_int = caller.get_skill_mastery(self.skill)
         mastery = MasteryLevel(mastery_int)
 
         if mastery == MasteryLevel.UNSKILLED:

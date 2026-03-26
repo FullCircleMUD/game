@@ -77,8 +77,7 @@ class CmdHide(CmdSkillBase):
             return
 
         # Mastery check — UNSKILLED can't hide
-        mastery_dict = caller.db.skill_mastery_levels or {}
-        mastery_int = mastery_dict.get(self.skill, MasteryLevel.UNSKILLED.value)
+        mastery_int = caller.get_skill_mastery(self.skill) if hasattr(caller, 'get_skill_mastery') else 0
         if mastery_int <= 0:
             caller.msg(
                 "You have no idea how to hide effectively. "

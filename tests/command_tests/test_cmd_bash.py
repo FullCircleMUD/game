@@ -43,9 +43,9 @@ class _BashTestBase(EvenniaCommandTest):
         super().tearDown()
 
     def _set_bash_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.BASH.value] = level.value
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.BASH.value] = {"mastery": level.value, "classes": ["Warrior"]}
 
 
 # ================================================================== #

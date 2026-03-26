@@ -24,9 +24,9 @@ _ITEM = "typeclasses.world_objects.base_world_item.WorldItem"
 
 def _set_stealth(char, mastery=MasteryLevel.BASIC):
     """Give a character the stealth skill at a given mastery level."""
-    if not char.db.skill_mastery_levels:
-        char.db.skill_mastery_levels = {}
-    char.db.skill_mastery_levels[skills.STEALTH.value] = mastery.value
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.STEALTH.value] = {"mastery": mastery.value, "classes": ["Thief"]}
 
 
 class TestCmdStashBasic(EvenniaCommandTest):
@@ -60,8 +60,8 @@ class TestCmdStashBasic(EvenniaCommandTest):
         self.call(CmdStash(), "Gold Ring", "You have no idea how to stash")
 
     def test_stash_no_mastery_dict(self):
-        """Character with no skill_mastery_levels should fail."""
-        self.char1.db.skill_mastery_levels = None
+        """Character with no mastery data should fail."""
+        self.char1.db.class_skill_mastery_levels = None
         self.call(CmdStash(), "Gold Ring", "You have no idea how to stash")
 
     def test_stash_already_hidden(self):

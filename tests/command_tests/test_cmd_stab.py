@@ -53,9 +53,9 @@ class TestStabGates(EvenniaCommandTest):
         super().tearDown()
 
     def _set_stab_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.STAB.value] = level.value
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.STAB.value] = {"mastery": level.value, "classes": ["Thief"]}
 
     def test_no_finesse_weapon(self):
         """Can't stab without a finesse weapon."""
@@ -96,7 +96,7 @@ class TestStabGates(EvenniaCommandTest):
 
     def test_no_mastery_data(self):
         """Characters with no mastery data get mob_func."""
-        self.char1.db.skill_mastery_levels = None
+        self.char1.db.class_skill_mastery_levels = None
         result = self.call(CmdBackstab(), self.char2.key)
         self.assertIn("don't know", result)
 
@@ -179,9 +179,9 @@ class TestStabOpener(EvenniaCommandTest):
         super().tearDown()
 
     def _set_stab_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.STAB.value] = level.value
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.STAB.value] = {"mastery": level.value, "classes": ["Thief"]}
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_opener_from_hidden(self, mock_ticker):
@@ -287,9 +287,9 @@ class TestStabMidCombat(EvenniaCommandTest):
         super().tearDown()
 
     def _set_stab_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.STAB.value] = level.value
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.STAB.value] = {"mastery": level.value, "classes": ["Thief"]}
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_mid_combat_with_advantage(self, mock_ticker):

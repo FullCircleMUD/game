@@ -20,9 +20,9 @@ _CHAR = "typeclasses.actors.character.FCMCharacter"
 
 def _set_stealth(char, mastery=MasteryLevel.BASIC):
     """Give a character the stealth skill at a given mastery level."""
-    if not char.db.skill_mastery_levels:
-        char.db.skill_mastery_levels = {}
-    char.db.skill_mastery_levels[skills.STEALTH.value] = mastery.value
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.STEALTH.value] = {"mastery": mastery.value, "classes": ["Thief"]}
 
 
 def _set_alertness(char, mastery=MasteryLevel.BASIC):
@@ -67,8 +67,8 @@ class TestCmdHideBasic(EvenniaCommandTest):
 
     @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
     def test_hide_no_mastery_dict_can_attempt(self, mock_roll):
-        """Character with no skill_mastery_levels can still attempt hide."""
-        self.char1.db.skill_mastery_levels = None
+        """Character with no mastery data can still attempt hide (returns unskilled)."""
+        self.char1.db.class_skill_mastery_levels = None
         self.char2.location = None  # empty room = auto-succeed
         mock_roll.return_value = 10
         self.call(CmdHide(), "")

@@ -18,11 +18,12 @@ class CmdSkillBase(Command):
     def func(self):
         # Callers without skill mastery data (e.g. animal mobs) get mob_func().
         # Humanoid NPCs with mastery data use the same dispatch as players.
-        mastery_dict = self.caller.db.skill_mastery_levels
-        if not mastery_dict:
+        if not (getattr(self.caller.db, "general_skill_mastery_levels", None)
+                or getattr(self.caller.db, "class_skill_mastery_levels", None)
+                or getattr(self.caller.db, "weapon_skill_mastery_levels", None)):
             return self.mob_func()
 
-        mastery_level = mastery_dict.get(self.skill, MasteryLevel.UNSKILLED.value)
+        mastery_level = self.caller.get_skill_mastery(self.skill)
 
         # Call the appropriate function based on mastery level
         dispatch = {

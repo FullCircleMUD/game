@@ -24,9 +24,9 @@ _OK = "You forage for edible plants and berries"
 
 def _set_survivalist(char, mastery=MasteryLevel.BASIC):
     """Give a character the survivalist skill at a given mastery level."""
-    if not char.db.skill_mastery_levels:
-        char.db.skill_mastery_levels = {}
-    char.db.skill_mastery_levels[skills.SURVIVALIST.value] = mastery.value
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.SURVIVALIST.value] = {"mastery": mastery.value, "classes": ["Druid"]}
 
 
 class TestCmdForageTerrain(EvenniaCommandTest):
@@ -215,6 +215,6 @@ class TestCmdForageNoSkill(EvenniaCommandTest):
         self.char1.hunger_level = HungerLevel.HUNGRY
 
     def test_no_mastery_dict(self):
-        """Character with no skill_mastery_levels at all should fail."""
-        self.char1.db.skill_mastery_levels = None
+        """Character with no mastery data at all should fail."""
+        self.char1.db.class_skill_mastery_levels = None
         self.call(CmdForage(), "", "You search around but have no idea")

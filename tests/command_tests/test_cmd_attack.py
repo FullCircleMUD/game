@@ -116,7 +116,7 @@ class TestCmdDodge(EvenniaCommandTest):
         # Give char1 skill mastery levels so mastery dispatch works
         from enums.skills_enum import skills
         from enums.mastery_level import MasteryLevel
-        self.char1.db.skill_mastery_levels = {
+        self.char1.db.general_skill_mastery_levels = {
             skills.BATTLESKILLS.value: MasteryLevel.UNSKILLED.value,
         }
 
@@ -170,8 +170,8 @@ class TestCmdDodge(EvenniaCommandTest):
             # Enter combat for mob
             from combat.combat_utils import enter_combat
             enter_combat(mob, self.char1)
-            # Mob should not have skill_mastery_levels
-            self.assertIsNone(mob.db.skill_mastery_levels)
+            # Mob should not have any mastery dicts
+            self.assertIsNone(mob.db.general_skill_mastery_levels)
             # Mob dodge — calls mob_func
             result = self.call(CmdDodge(), "", caller=mob)
             self.assertIn("dodges", result)
@@ -591,7 +591,7 @@ class TestCmdSkillBaseMasteryBranch(EvenniaCommandTest):
         from enums.skills_enum import skills
         from enums.mastery_level import MasteryLevel
         self.room1.allow_pvp = True  # PvP so PCs are enemies for dodge
-        self.char1.db.skill_mastery_levels = {
+        self.char1.db.general_skill_mastery_levels = {
             skills.BATTLESKILLS.value: MasteryLevel.UNSKILLED.value,
         }
         enter_combat(self.char1, self.char2)
@@ -607,9 +607,9 @@ class TestCmdSkillBaseMasteryBranch(EvenniaCommandTest):
         from combat.combat_utils import enter_combat
 
         self.room1.allow_pvp = True
-        self.char1.db.skill_mastery_levels = {
-            skills.BATTLESKILLS.value: MasteryLevel.BASIC.value,
-        }
+        if not self.char1.db.general_skill_mastery_levels:
+            self.char1.db.general_skill_mastery_levels = {}
+        self.char1.db.general_skill_mastery_levels[skills.BATTLESKILLS.value] = MasteryLevel.BASIC.value
         enter_combat(self.char1, self.char2)
         result = self.call(CmdDodge(), "", caller=self.char1)
         self.assertIn("weaving defensively", result)
@@ -627,8 +627,8 @@ class TestCmdSkillBaseMasteryBranch(EvenniaCommandTest):
         try:
             from combat.combat_utils import enter_combat
             enter_combat(mob, self.char1)
-            # mob.db.skill_mastery_levels should be None
-            self.assertIsNone(mob.db.skill_mastery_levels)
+            # mob should not have any mastery dicts
+            self.assertIsNone(mob.db.general_skill_mastery_levels)
             result = self.call(CmdDodge(), "", caller=mob)
             # mob_func for dodge shows leaping/twisting message
             self.assertIn("dodges", result)

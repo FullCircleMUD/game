@@ -343,27 +343,36 @@ class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
         """Max HP including CON modifier (per level)."""
         return self.hp_max + (self.get_attribute_bonus(self.constitution) * self.get_level())
 
+    def get_skill_mastery(self, skill_key):
+        """Look up a skill's mastery level from any mastery dict.
+        Returns the MasteryLevel int value (0=UNSKILLED if not found).
+        """
+        # General skills (flat: {skill: int})
+        general = getattr(self.db, "general_skill_mastery_levels", None) or {}
+        if skill_key in general:
+            return general[skill_key]
+        # Class skills (nested: {skill: {"mastery": int, "classes": [...]}})
+        class_m = getattr(self.db, "class_skill_mastery_levels", None) or {}
+        entry = class_m.get(skill_key)
+        if entry:
+            return entry.get("mastery", 0) if hasattr(entry, "get") else entry
+        # Weapon skills (flat: {weapon: int})
+        weapon = getattr(self.db, "weapon_skill_mastery_levels", None) or {}
+        if skill_key in weapon:
+            return weapon[skill_key]
+        return MasteryLevel.UNSKILLED.value
+
     @property
     def effective_stealth_bonus(self):
         """Stealth bonus: equipment/spells + DEX modifier + STEALTH mastery bonus."""
-        mastery_int = (self.db.skill_mastery_levels or {}).get(
-            skills.STEALTH.value, MasteryLevel.UNSKILLED.value
-        )
+        mastery_int = self.get_skill_mastery(skills.STEALTH.value)
         mastery_bonus = MasteryLevel(mastery_int).bonus
         return self.stealth_bonus + self.get_attribute_bonus(self.dexterity) + mastery_bonus
 
     @property
     def effective_perception_bonus(self):
         """Perception bonus: equipment/spells + WIS modifier + ALERTNESS mastery bonus."""
-        mastery_int = 0
-        general = getattr(self.db, "general_skill_mastery_levels", None) or {}
-        if skills.ALERTNESS.value in general:
-            mastery_int = general[skills.ALERTNESS.value]
-        if mastery_int <= 0:
-            class_m = getattr(self.db, "class_skill_mastery_levels", None) or {}
-            entry = class_m.get(skills.ALERTNESS.value)
-            if entry:
-                mastery_int = entry.get("mastery", 0) if isinstance(entry, dict) else entry
+        mastery_int = self.get_skill_mastery(skills.ALERTNESS.value)
         mastery_bonus = MasteryLevel(mastery_int).bonus if mastery_int > 0 else MasteryLevel.UNSKILLED.bonus
         return self.perception_bonus + self.get_attribute_bonus(self.wisdom) + mastery_bonus
 

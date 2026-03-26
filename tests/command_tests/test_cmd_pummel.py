@@ -43,9 +43,9 @@ class _PummelTestBase(EvenniaCommandTest):
         super().tearDown()
 
     def _set_pummel_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.PUMMEL.value] = level.value
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.PUMMEL.value] = {"mastery": level.value, "classes": ["Warrior"]}
 
 
 # ================================================================== #

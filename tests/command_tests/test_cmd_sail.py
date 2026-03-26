@@ -70,9 +70,9 @@ class TestSailGates(EvenniaCommandTest):
         super().tearDown()
 
     def _set_seamanship(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
+        if not char.db.general_skill_mastery_levels:
+            char.db.general_skill_mastery_levels = {}
+        char.db.general_skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
 
     def test_unskilled_blocked(self):
         """Unskilled seamanship blocks sailing."""
@@ -163,9 +163,9 @@ class TestSailSuccess(EvenniaCommandTest):
         super().tearDown()
 
     def _set_seamanship(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
+        if not char.db.general_skill_mastery_levels:
+            char.db.general_skill_mastery_levels = {}
+        char.db.general_skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
 
     @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_sail_single_ship_auto(self, mock_ships):
@@ -257,9 +257,9 @@ class TestSailShipSelection(EvenniaCommandTest):
         super().tearDown()
 
     def _set_seamanship(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
+        if not char.db.general_skill_mastery_levels:
+            char.db.general_skill_mastery_levels = {}
+        char.db.general_skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
 
     @patch(PATCH_QUALIFYING)
     def test_multiple_ships_shows_list(self, mock_ships):
@@ -350,9 +350,9 @@ class TestSailCosts(EvenniaCommandTest):
         super().tearDown()
 
     def _set_seamanship(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
+        if not char.db.general_skill_mastery_levels:
+            char.db.general_skill_mastery_levels = {}
+        char.db.general_skill_mastery_levels[skills.SEAMANSHIP.value] = level.value
 
     @patch(PATCH_QUALIFYING, return_value=[_mock_ship("Cog", 1)])
     def test_bread_consumed(self, mock_ships):

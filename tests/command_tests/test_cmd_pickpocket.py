@@ -24,9 +24,9 @@ WALLET_B = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
 
 def _set_subterfuge(char, mastery=MasteryLevel.BASIC):
     """Give a character subterfuge mastery."""
-    if not char.db.skill_mastery_levels:
-        char.db.skill_mastery_levels = {}
-    char.db.skill_mastery_levels[skills.SUBTERFUGE.value] = mastery.value
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.SUBTERFUGE.value] = {"mastery": mastery.value, "classes": ["Thief"]}
 
 
 def _pre_case(caller, target, gold_visible=True, gold_desc="some gold",

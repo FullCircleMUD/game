@@ -44,9 +44,9 @@ class _RetreatTestBase(EvenniaCommandTest):
         super().tearDown()
 
     def _set_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.STRATEGY.value] = level.value
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.STRATEGY.value] = {"mastery": level.value, "classes": ["Warrior"]}
 
 
 # ================================================================== #

@@ -828,8 +828,8 @@ class FCMCharacter(
         # and also processing of commands by different mastery levels
         # kept here as a known working example of how to set mastery levels
 
-        self.db.skill_mastery_levels["blacksmith"] = MasteryLevel.BASIC.value
-        self.db.skill_mastery_levels["survivalist"] = MasteryLevel.GRANDMASTER.value
+        self.db.general_skill_mastery_levels["blacksmith"] = MasteryLevel.BASIC.value
+        self.db.general_skill_mastery_levels["survivalist"] = MasteryLevel.GRANDMASTER.value
         self.db.general_skill_mastery_levels["carpenter"] = MasteryLevel.BASIC.value
         """
 

@@ -44,9 +44,9 @@ class _AssistTestBase(EvenniaCommandTest):
         super().tearDown()
 
     def _set_battleskills_mastery(self, char, level):
-        if not char.db.skill_mastery_levels:
-            char.db.skill_mastery_levels = {}
-        char.db.skill_mastery_levels[skills.BATTLESKILLS.value] = level.value
+        if not char.db.general_skill_mastery_levels:
+            char.db.general_skill_mastery_levels = {}
+        char.db.general_skill_mastery_levels[skills.BATTLESKILLS.value] = level.value
 
 
 # ================================================================== #
@@ -254,8 +254,8 @@ class TestAdvantageConsumption(_AssistTestBase):
 
         # Trigger a skill check — hide (stealth roll)
         from commands.class_skill_cmdsets.class_skill_cmds.cmd_hide import CmdHide
-        self.char1.db.skill_mastery_levels = {
-            skills.STEALTH.value: MasteryLevel.BASIC.value,
+        self.char1.db.class_skill_mastery_levels = {
+            skills.STEALTH.value: {"mastery": MasteryLevel.BASIC.value, "classes": ["Thief"]},
         }
         self.call(CmdHide(), "", caller=self.char1)
 
@@ -269,8 +269,8 @@ class TestAdvantageConsumption(_AssistTestBase):
         self.char1.db.non_combat_disadvantage = True
 
         from commands.class_skill_cmdsets.class_skill_cmds.cmd_hide import CmdHide
-        self.char1.db.skill_mastery_levels = {
-            skills.STEALTH.value: MasteryLevel.BASIC.value,
+        self.char1.db.class_skill_mastery_levels = {
+            skills.STEALTH.value: {"mastery": MasteryLevel.BASIC.value, "classes": ["Thief"]},
         }
         self.call(CmdHide(), "", caller=self.char1)
 
@@ -283,8 +283,8 @@ class TestAdvantageConsumption(_AssistTestBase):
         self.char1.db.non_combat_disadvantage = True
 
         from commands.class_skill_cmdsets.class_skill_cmds.cmd_hide import CmdHide
-        self.char1.db.skill_mastery_levels = {
-            skills.STEALTH.value: MasteryLevel.BASIC.value,
+        self.char1.db.class_skill_mastery_levels = {
+            skills.STEALTH.value: {"mastery": MasteryLevel.BASIC.value, "classes": ["Thief"]},
         }
         self.call(CmdHide(), "", caller=self.char1)
 
@@ -300,8 +300,8 @@ class TestAdvantageConsumption(_AssistTestBase):
         self.char1.db.non_combat_disadvantage = False
 
         from commands.class_skill_cmdsets.class_skill_cmds.cmd_hide import CmdHide
-        self.char1.db.skill_mastery_levels = {
-            skills.STEALTH.value: MasteryLevel.BASIC.value,
+        self.char1.db.class_skill_mastery_levels = {
+            skills.STEALTH.value: {"mastery": MasteryLevel.BASIC.value, "classes": ["Thief"]},
         }
         self.call(CmdHide(), "", caller=self.char1)
 
@@ -315,8 +315,8 @@ class TestAdvantageConsumption(_AssistTestBase):
         self.char1.db.non_combat_disadvantage = True
 
         from commands.class_skill_cmdsets.class_skill_cmds.cmd_hide import CmdHide
-        self.char1.db.skill_mastery_levels = {
-            skills.STEALTH.value: MasteryLevel.BASIC.value,
+        self.char1.db.class_skill_mastery_levels = {
+            skills.STEALTH.value: {"mastery": MasteryLevel.BASIC.value, "classes": ["Thief"]},
         }
         self.call(CmdHide(), "", caller=self.char1)
 
