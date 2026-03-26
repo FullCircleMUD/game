@@ -166,14 +166,22 @@ class FCMCharacter(
         if move_type in ("move", "follow"):
             self.move = max(0, self.move - 1)
 
-        # Combat cleanup — if we moved to a room with no enemies, end combat
-        if self.scripts.get("combat_handler"):
+        # Combat cleanup — if we moved to a room with no enemies, end combat.
+        # Uses direct cleanup instead of stop_combat() to avoid ticker
+        # interaction issues with Evennia's script lifecycle.
+        handlers = self.scripts.get("combat_handler")
+        if handlers:
             from combat.combat_utils import get_sides
             _, enemies = get_sides(self)
             if not enemies:
-                handlers = self.scripts.get("combat_handler")
-                if handlers:
-                    handlers[0].stop_combat()
+                handler = handlers[0]
+                handler._stop_ticker()
+                if hasattr(self, "clear_combat_effects"):
+                    self.clear_combat_effects()
+                self.position = "standing"
+                self.ndb.combat_target = None
+                self.msg("|gCombat has ended.|n")
+                handler.delete()
 
         # HIDDEN movement check — stealth vs best perceiver on room entry
         if self.has_condition(Condition.HIDDEN) and self.location:
