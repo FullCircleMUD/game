@@ -82,20 +82,27 @@ class CmdLook(_EvenniaCmdLook):
 
         # --- Room detail check (fallback when no real object matches) ---
         if self.args and caller.location:
-            # Quiet search — if a real object exists, let super() handle it
+            # Quiet search — filter out room and hidden/invisible objects
             found = caller.search(self.args, quiet=True)
             if found:
-                target = found[0] if isinstance(found, list) else found
-                # Exclude the room itself from look targets
-                if target == caller.location:
-                    found = None
-                # Block hidden/invisible objects the caller can't see
-                elif (
-                    hasattr(target, "is_visible_to")
-                    and not target.is_visible_to(caller)
-                ):
-                    found = None
-            if not found:
+                if not isinstance(found, list):
+                    found = [found]
+                # Filter out the room itself and hidden/invisible objects
+                found = [
+                    obj for obj in found
+                    if obj != caller.location
+                    and (
+                        not hasattr(obj, "is_visible_to")
+                        or obj.is_visible_to(caller)
+                    )
+                ]
+            if found:
+                # Show the first visible match directly (bypass super's
+                # search which would re-find the room and disambiguate)
+                desc = caller.at_look(found[0])
+                self.msg(text=(desc, {"type": "look"}), options=None)
+                return
+            else:
                 room = caller.location
                 details = getattr(room, "details", None)
                 if details:
@@ -117,15 +124,30 @@ class CmdLook(_EvenniaCmdLook):
         if self.args and caller.location:
             found = caller.search(self.args, quiet=True)
             if found:
-                target = found[0] if isinstance(found, list) else found
-                if target == caller.location:
-                    caller.msg(f"You don't see '{self.args.strip()}' here.")
-                    return
-                if (
-                    hasattr(target, "is_visible_to")
-                    and not target.is_visible_to(caller)
-                ):
-                    caller.msg(f"You don't see '{self.args.strip()}' here")
+                if not isinstance(found, list):
+                    found = [found]
+                # Filter out room and hidden/invisible objects
+                visible = [
+                    obj for obj in found
+                    if obj != caller.location
+                    and (
+                        not hasattr(obj, "is_visible_to")
+                        or obj.is_visible_to(caller)
+                    )
+                ]
+                if not visible and found:
+                    # All matches were room or hidden — check if any were
+                    # hidden (no period hint) vs just the room (with period)
+                    has_hidden = any(
+                        hasattr(obj, "is_visible_to")
+                        and not obj.is_visible_to(caller)
+                        for obj in found
+                        if obj != caller.location
+                    )
+                    if has_hidden:
+                        caller.msg(f"You don't see '{self.args.strip()}' here")
+                    else:
+                        caller.msg(f"You don't see '{self.args.strip()}' here.")
                     return
 
         super().func()
