@@ -166,6 +166,15 @@ class FCMCharacter(
         if move_type in ("move", "follow"):
             self.move = max(0, self.move - 1)
 
+        # Combat cleanup — if we moved to a room with no enemies, end combat
+        if self.scripts.get("combat_handler"):
+            from combat.combat_utils import get_sides
+            _, enemies = get_sides(self)
+            if not enemies:
+                handlers = self.scripts.get("combat_handler")
+                if handlers:
+                    handlers[0].stop_combat()
+
         # HIDDEN movement check — stealth vs best perceiver on room entry
         if self.has_condition(Condition.HIDDEN) and self.location:
             self._check_hidden_on_entry()

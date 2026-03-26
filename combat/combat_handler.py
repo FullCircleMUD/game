@@ -110,13 +110,13 @@ class CombatHandler(DefaultScript):
                 dt (int): seconds between action executions
                 repeat (bool): if True, action repeats until replaced
         """
+        self._stop_ticker()
         self.action_dict = action_dict
         # Track current target for room display ("is here, fighting X!")
         target = action_dict.get("target")
         if target:
             self.obj.ndb.combat_target = target
         dt = action_dict.get("dt", 0)
-        self._stop_ticker()
         if dt > 0:
             self._start_ticker(dt)
 
@@ -378,14 +378,28 @@ class CombatHandler(DefaultScript):
         )
 
     def _stop_ticker(self):
+        dt = self.action_dict.get("dt", 0) if self.action_dict else 0
+        idstring = f"combat_{self.obj.id}"
+        # Try the expected interval first
         try:
             TICKER_HANDLER.remove(
-                interval=self.action_dict.get("dt", 0),
-                callback=self._on_tick,
-                idstring=f"combat_{self.obj.id}",
+                interval=dt, callback=self._on_tick, idstring=idstring,
             )
+            return
         except KeyError:
             pass
+        # Fallback: try common combat intervals in case of desync
+        for fallback_dt in (2, 3, 4, 5, 6):
+            if fallback_dt == dt:
+                continue
+            try:
+                TICKER_HANDLER.remove(
+                    interval=fallback_dt, callback=self._on_tick,
+                    idstring=idstring,
+                )
+                return
+            except KeyError:
+                pass
 
     def _on_tick(self, *args, **kwargs):
         """Ticker callback — executes the queued action."""
