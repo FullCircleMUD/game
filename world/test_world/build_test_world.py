@@ -92,8 +92,9 @@ def build_test_world():
     test_area_beach()
     test_area_economic()
     test_area_arena()
+    test_area_castle_wall()
 
-    # spawn NFT items and fungibles into rooms
+    # spawn NFT items and fungibles into rooms (after all areas built)
     spawn_test_items()
     test_area_combat()
 
@@ -108,8 +109,5 @@ def build_test_world():
 
     # spawn gateway rooms linking zones (requires all areas)
     test_area_gateway()
-
-    # height adapter test areas
-    test_area_castle_wall()
 
 
