@@ -310,3 +310,156 @@ class TestCombatHeight(EvenniaCommandTest):
                     h.stop()
                     h.delete()
             mob.delete()
+
+
+class TestMobAggroHeight(EvenniaCommandTest):
+    """Test mob aggro behavior with height differences."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.max_height = 5
+        self.room1.max_depth = -3
+        self.char1.hp = 50
+        self.char1.hp_max = 50
+        self.char1.room_vertical_position = 0
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        super().tearDown()
+
+    def _make_mob(self, key="test_mob", **kwargs):
+        from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+        mob = create.create_object(
+            AggressiveMob,
+            key=key,
+            location=self.room1,
+        )
+        mob.hp = 20
+        mob.hp_max = 20
+        mob.room_vertical_position = 0
+        for k, v in kwargs.items():
+            setattr(mob, k, v)
+        return mob
+
+    def test_grounded_mob_no_aggro_flying_player(self):
+        """Grounded mob without FLY does not aggro a flying player."""
+        from enums.condition import Condition
+        mob = self._make_mob()
+        try:
+            self.char1.room_vertical_position = 2
+            with patch.object(mob, "_schedule_attack") as mock_attack:
+                mob.at_new_arrival(self.char1)
+                mock_attack.assert_not_called()
+        finally:
+            mob.delete()
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_flying_mob_adjusts_height_to_aggro(self, mock_ticker):
+        """Flying mob adjusts its height to match a flying player and aggros."""
+        from enums.condition import Condition
+        mob = self._make_mob()
+        mob.add_condition(Condition.FLY)
+        try:
+            self.char1.room_vertical_position = 3
+            with patch.object(mob, "_schedule_attack") as mock_attack:
+                mob.at_new_arrival(self.char1)
+                mock_attack.assert_called_once_with(self.char1)
+            self.assertEqual(mob.room_vertical_position, 3)
+        finally:
+            mob.delete()
+
+    def test_flying_mob_descends_to_ground_player(self):
+        """Flying mob at height descends to ground to aggro a grounded player."""
+        from enums.condition import Condition
+        mob = self._make_mob()
+        mob.add_condition(Condition.FLY)
+        mob.room_vertical_position = 2
+        try:
+            self.char1.room_vertical_position = 0
+            with patch.object(mob, "_schedule_attack") as mock_attack:
+                mob.at_new_arrival(self.char1)
+                mock_attack.assert_called_once_with(self.char1)
+            self.assertEqual(mob.room_vertical_position, 0)
+        finally:
+            mob.delete()
+
+    def test_mob_no_fly_above_max_height(self):
+        """Mob with FLY can't fly above room max_height to reach target."""
+        from enums.condition import Condition
+        mob = self._make_mob()
+        mob.add_condition(Condition.FLY)
+        self.room1.max_height = 2
+        try:
+            self.char1.room_vertical_position = 4  # above max_height
+            with patch.object(mob, "_schedule_attack") as mock_attack:
+                mob.at_new_arrival(self.char1)
+                mock_attack.assert_not_called()
+        finally:
+            mob.delete()
+
+    def test_grounded_mob_aggros_grounded_player(self):
+        """Grounded mob aggros grounded player normally (no height issue)."""
+        mob = self._make_mob()
+        try:
+            self.char1.room_vertical_position = 0
+            mob.room_vertical_position = 0
+            with patch.object(mob, "_schedule_attack") as mock_attack:
+                mob.at_new_arrival(self.char1)
+                mock_attack.assert_called_once_with(self.char1)
+        finally:
+            mob.delete()
+
+    def test_execute_attack_rechecks_height(self):
+        """_execute_attack re-checks height and adjusts if possible."""
+        from enums.condition import Condition
+        mob = self._make_mob()
+        mob.add_condition(Condition.FLY)
+        try:
+            self.char1.room_vertical_position = 0
+            mob.room_vertical_position = 0
+            # Target flies up between schedule and execute
+            self.char1.room_vertical_position = 2
+            with patch.object(mob, "mob_attack") as mock_attack:
+                mob._execute_attack(self.char1)
+                mock_attack.assert_called_once_with(self.char1)
+            self.assertEqual(mob.room_vertical_position, 2)
+        finally:
+            mob.delete()
+
+    def test_execute_attack_blocked_no_fly(self):
+        """_execute_attack blocked when target flies and mob can't."""
+        mob = self._make_mob()
+        try:
+            self.char1.room_vertical_position = 2
+            mob.room_vertical_position = 0
+            with patch.object(mob, "mob_attack") as mock_attack:
+                mob._execute_attack(self.char1)
+                mock_attack.assert_not_called()
+        finally:
+            mob.delete()
+
+    def test_ai_wander_filters_unreachable(self):
+        """ai_wander tries to reach target but skips if unreachable."""
+        mob = self._make_mob()
+        try:
+            self.char1.room_vertical_position = 2
+            mob.room_vertical_position = 0
+            with patch.object(mob, "_schedule_attack") as mock_attack:
+                with patch.object(mob.ai, "get_targets_in_room", return_value=[self.char1]):
+                    mob.ai_wander()
+                    mock_attack.assert_not_called()
+        finally:
+            mob.delete()
