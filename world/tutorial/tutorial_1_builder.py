@@ -77,6 +77,8 @@ def build_tutorial_1(instance):
             room.db.max_height = extra_attrs["max_height"]
         if "max_depth" in extra_attrs:
             room.db.max_depth = extra_attrs["max_depth"]
+        if "vert_descriptions" in extra_attrs:
+            room.vert_descriptions = extra_attrs["vert_descriptions"]
         return room
 
     def _connect(room_a, room_b, direction, **kwargs):
@@ -358,6 +360,30 @@ def build_tutorial_1(instance):
         max_height=1,
         max_depth=-1,
         natural_light=True,
+        vert_descriptions={
+            0: (
+                "A wide courtyard open to the sky above. Puffy clouds drift "
+                "overhead, and a gentle breeze rustles through the space. In "
+                "the center, a crystal-clear pool shimmers invitingly, its "
+                "depths glowing with a faint blue light. The passage "
+                "continues east into a dark tunnel."
+            ),
+            1: (
+                "The wind rushes past you as you hover above the courtyard. "
+                "Below, the crystal-clear pool is a disc of brilliant blue, "
+                "its glow visible even from up here. The courtyard walls "
+                "stretch out in every direction, and you can see the dark "
+                "mouth of the eastern tunnel from a whole new angle. Puffy "
+                "clouds drift close enough to touch."
+            ),
+            -1: (
+                "You are submerged in the pool. A soft blue glow emanates "
+                "from the smooth stones lining the bottom, casting rippling "
+                "light across your hands. The sounds of the courtyard above "
+                "are muffled and distant. Shafts of sunlight pierce the "
+                "surface, dancing through the crystal-clear water."
+            ),
+        },
     )
     _connect(rooms["armoury"], rooms["courtyard"], "east")
     _spawn_pip(rooms["courtyard"])
