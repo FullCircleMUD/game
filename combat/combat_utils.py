@@ -8,6 +8,7 @@ get_sides()       — ally/enemy detection from a combatant's perspective
 
 import random
 
+from combat.height_utils import can_reach_target, get_height_hit_modifier
 from enums.actor_size import ActorSize
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
@@ -300,6 +301,14 @@ def execute_attack(attacker, target, _is_riposte=False,
                 exclude=[attacker],
             )
 
+    # --- Height reachability check (height can change mid-combat) ---
+    if not can_reach_target(attacker, target, weapon):
+        attacker.msg(
+            f"|yYou can't reach {target.key} — "
+            f"they are at a different height.|n"
+        )
+        return
+
     # --- 1. Pre-attack hooks ---
     hook_hit_mod = weapon.at_pre_attack(attacker, target) if weapon else 0
     hook_ac_mod = defender_weapon.at_pre_defend(target, attacker) if defender_weapon else 0
@@ -330,7 +339,8 @@ def execute_attack(attacker, target, _is_riposte=False,
     is_crit = d20 >= attacker.effective_crit_threshold
 
     # Attacker's total hit (self-contained — inspects own weapon)
-    total_hit = d20 + attacker.effective_hit_bonus + hook_hit_mod + hit_modifier
+    height_mod = get_height_hit_modifier(attacker, target, weapon)
+    total_hit = d20 + attacker.effective_hit_bonus + hook_hit_mod + hit_modifier + height_mod
     total_ac = target.effective_ac + hook_ac_mod
 
     # --- 3. Parry check ---

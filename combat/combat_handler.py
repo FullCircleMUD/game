@@ -182,7 +182,32 @@ class CombatHandler(DefaultScript):
             action = self.action_dict
             if action and action["key"] == "attack":
                 target = action.get("target")
+                height_blocked = False
                 if target and getattr(target, "hp", 0) > 0 and target.location == self.obj.location:
+                    # --- Height reachability check ---
+                    from combat.height_utils import can_reach_target
+                    if not can_reach_target(self.obj, target, weapon):
+                        is_pc = getattr(self.obj, "is_pc", False)
+                        if not is_pc:
+                            # Mob: try to find a reachable target
+                            new_target = self._find_reachable_target(weapon)
+                            if new_target:
+                                target = new_target
+                                action["target"] = new_target
+                                self.obj.ndb.combat_target = new_target
+                            else:
+                                # No reachable targets — flee
+                                self.obj.execute_cmd("flee")
+                                return
+                        else:
+                            # Player: skip this tick, keep combat active
+                            self.obj.msg(
+                                f"|yYou can't reach {target.key} "
+                                f"from your current position.|n"
+                            )
+                            height_blocked = True
+
+                if not height_blocked and target and getattr(target, "hp", 0) > 0 and target.location == self.obj.location:
                     # --- SLOWED check: cap to 1 attack, no off-hand ---
                     is_slowed = self.obj.has_effect("slowed")
                     if is_slowed:
@@ -223,7 +248,7 @@ class CombatHandler(DefaultScript):
                                         weapon_override=offhand_weapon,
                                         hit_modifier=offhand_penalty,
                                     )
-                else:
+                elif not height_blocked:
                     # Target gone or dead — auto-retarget next enemy
                     from combat.combat_utils import get_sides
                     _, remaining_enemies = get_sides(self.obj)
@@ -279,6 +304,22 @@ class CombatHandler(DefaultScript):
         # Always decrement advantage/disadvantage counts and check combat end
         self.decrement_advantages()
         self._check_stop_combat()
+
+    # ================================================================== #
+    #  Height — find reachable target
+    # ================================================================== #
+
+    def _find_reachable_target(self, weapon):
+        """Find a reachable enemy in the room for mob retargeting."""
+        from combat.combat_utils import get_sides
+        from combat.height_utils import can_reach_target
+        _, enemies = get_sides(self.obj)
+        for enemy in enemies:
+            if (getattr(enemy, "hp", 0) > 0
+                    and enemy.location == self.obj.location
+                    and can_reach_target(self.obj, enemy, weapon)):
+                return enemy
+        return None
 
     # ================================================================== #
     #  Advantage / Disadvantage (count-based)

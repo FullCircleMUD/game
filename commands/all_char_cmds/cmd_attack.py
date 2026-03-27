@@ -9,6 +9,7 @@ execute_attack() which fires all weapon hooks.
 from evennia import Command
 
 from combat.combat_utils import enter_combat
+from combat.height_utils import can_reach_target
 from enums.condition import Condition
 
 
@@ -56,6 +57,15 @@ class CmdAttack(Command):
 
         if target.hp <= 0:
             caller.msg(f"{target.key} is already dead.")
+            return
+
+        # Height reachability check — melee requires same height
+        weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
+        if not can_reach_target(caller, target, weapon):
+            caller.msg(
+                "They are out of melee range. "
+                "You need a ranged weapon or to match their height."
+            )
             return
 
         # Attack from hide — break hidden, grant advantage after combat starts
