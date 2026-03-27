@@ -3,18 +3,22 @@ CarryingCapacityMixin — weight tracking and encumbrance for characters,
 pets, and mounts.
 
 Weight is split into two independently-tracked components:
-    current_weight_nfts       — total weight of NFT items in contents
+    items_weight            — total weight of NFT items in contents
     current_weight_fungibles  — total weight of gold + resources
 
 The property `current_weight_carried` is always the sum of the two.
 This split means NFT and fungible weight changes never interfere.
 
-NFT weight is tracked automatically via Evennia's at_object_receive()
-and at_object_leave() hooks — no command-level code needed.
+Both components use a nuclear recalculate pattern — every weight-changing
+event triggers a full rebuild from scratch.  This eliminates drift from
+missed hooks (e.g. item.delete() not firing at_object_leave) or
+double-fired hooks.
 
-Fungible weight is tracked by overriding _at_balance_changed() from
-FungibleInventoryMixin. If FungibleInventoryMixin is not present (e.g.
-on a pet that only carries items), fungible weight stays at 0.
+Item weight includes direct content items plus the contents weight of
+containers with transfer_weight=True (e.g. backpacks).
+
+Fungible weight is recalculated via get_total_fungible_weight() from
+FungibleInventoryMixin.
 
 MRO: CarryingCapacityMixin must come BEFORE FungibleInventoryMixin so
 its _at_balance_changed() override wins.
@@ -40,17 +44,19 @@ class CarryingCapacityMixin:
     # See BaseActor and FCMCharacter.apply_effect() for the universal pattern.
     max_carrying_capacity_kg = AttributeProperty(50)
 
-    # the amount the character is currently carrying in either nfts or fungibles
-    # adjusted whena character moves item into or out of inventory
-    # moving between inventory and equipped state does not 
-    # alter this as character are still carrying equipped items
-    current_weight_nfts = AttributeProperty(0.0)
+    # Total weight of NFT items in contents (including container contents
+    # for containers with transfer_weight=True).  Rebuilt from scratch by
+    # _recalculate_item_weight() on every item gain/loss.
+    items_weight = AttributeProperty(0.0)
+
+    # Total weight of fungibles (gold + resources).  Rebuilt from scratch
+    # by _at_balance_changed() on every gold/resource change.
     current_weight_fungibles = AttributeProperty(0.0)
 
     @property
     def current_weight_carried(self):
-        """Total weight = NFT items + fungibles. Always the sum of the two."""
-        return (self.current_weight_nfts or 0.0) + (self.current_weight_fungibles or 0.0)
+        """Total weight = items + fungibles. Always the sum of the two."""
+        return (self.items_weight or 0.0) + (self.current_weight_fungibles or 0.0)
 
     # ================================================================== #
     #  Initialization
@@ -62,7 +68,7 @@ class CarryingCapacityMixin:
         Sets default capacity values.
         """
         self.max_carrying_capacity_kg = 50
-        self.current_weight_nfts = 0.0
+        self.items_weight = 0.0
         self.current_weight_fungibles = 0.0
 
     # ================================================================== #
@@ -91,24 +97,40 @@ class CarryingCapacityMixin:
         return self.current_weight_carried > self.get_max_capacity()
 
     # ================================================================== #
-    #  NFT weight tracking (via Evennia hooks)
+    #  Item weight — nuclear recalculate (via Evennia hooks)
     # ================================================================== #
 
+    def _recalculate_item_weight(self, exclude=None):
+        """
+        Rebuild item weight from contents (nuclear recalculate).
+
+        Includes the .weight of every direct content object, plus the
+        current_contents_weight of containers with transfer_weight=True.
+
+        Args:
+            exclude: optional object to skip (used by at_object_leave
+                     because Evennia fires the hook before the item is
+                     actually removed from contents).
+        """
+        total = 0.0
+        for obj in self.contents:
+            if obj is exclude:
+                continue
+            total += getattr(obj, "weight", 0.0) or 0.0
+            if (getattr(obj, "is_container", False)
+                    and getattr(obj, "transfer_weight", False)):
+                total += getattr(obj, "current_contents_weight", 0.0) or 0.0
+        self.items_weight = total
+
     def at_object_receive(self, moved_obj, source_location, **kwargs):
-        """Update NFT weight when an object enters contents."""
+        """Recalculate item weight when an object enters contents."""
         super().at_object_receive(moved_obj, source_location, **kwargs)
-        weight = getattr(moved_obj, "weight", 0.0) or 0.0
-        if weight > 0:
-            self.current_weight_nfts = (self.current_weight_nfts or 0.0) + weight
+        self._recalculate_item_weight()
 
     def at_object_leave(self, moved_obj, target_location, **kwargs):
-        """Update NFT weight when an object leaves contents."""
+        """Recalculate item weight when an object leaves contents."""
         super().at_object_leave(moved_obj, target_location, **kwargs)
-        weight = getattr(moved_obj, "weight", 0.0) or 0.0
-        if weight > 0:
-            self.current_weight_nfts = max(
-                0.0, (self.current_weight_nfts or 0.0) - weight
-            )
+        self._recalculate_item_weight(exclude=moved_obj)
 
     # ================================================================== #
     #  Fungible weight tracking (override FungibleInventoryMixin hook)
@@ -129,16 +151,9 @@ class CarryingCapacityMixin:
         """
         Rebuild both weight components from scratch.
 
-        Called on server restart via at_init() to catch any drift between
-        the stored weight attributes and actual contents/balances.
+        Called on server restart via at_init() and by the recalc command.
         """
-        # NFT weight from contents
-        nft_total = 0.0
-        for obj in self.contents:
-            nft_total += getattr(obj, "weight", 0.0) or 0.0
-        self.current_weight_nfts = nft_total
-
-        # Fungible weight
+        self._recalculate_item_weight()
         if hasattr(self, "get_total_fungible_weight"):
             self.current_weight_fungibles = self.get_total_fungible_weight()
         else:

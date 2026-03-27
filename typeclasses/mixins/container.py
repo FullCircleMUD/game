@@ -16,10 +16,10 @@ Same-owner transitions (same wallet address) are no-ops.
 
 Weight propagation:
     When `transfer_weight=True` and the container is inside a character's
-    inventory, changes to contents weight update the carrier's
-    `current_weight_nfts` attribute.  When `transfer_weight=False` (e.g.
-    panniers on a mule) only the container's own weight counts against
-    the carrier.
+    inventory, changes to contents weight trigger a nuclear recalculate
+    on the carrier via carrier._recalculate_item_weight().  When
+    `transfer_weight=False` (e.g. panniers on a mule) only the
+    container's own weight counts against the carrier.
 
 MRO: ContainerMixin must come BEFORE FungibleInventoryMixin and
 BaseNFTItem/WearableNFTItem so its hooks fire first.
@@ -222,18 +222,14 @@ class ContainerMixin:
     def _propagate_weight_to_carrier(self, delta):
         """
         If transfer_weight is True and this container is carried by
-        something with weight tracking, propagate the weight delta.
+        something with weight tracking, trigger a nuclear recalculate
+        on the carrier.
         """
-        if not (self.transfer_weight and delta != 0):
+        if not self.transfer_weight:
             return
         carrier = self.location
-        if carrier and hasattr(carrier, "current_weight_nfts"):
-            carrier.current_weight_nfts = (
-                carrier.current_weight_nfts or 0.0
-            ) + delta
-            # Clamp to 0 to avoid float drift
-            if carrier.current_weight_nfts < 0:
-                carrier.current_weight_nfts = 0.0
+        if carrier and hasattr(carrier, "_recalculate_item_weight"):
+            carrier._recalculate_item_weight()
 
     # ================================================================== #
     #  Full Recalculation (safety net)

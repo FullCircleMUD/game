@@ -119,15 +119,13 @@ class TutorialInstanceScript(DefaultScript):
             # Remove tutorial tag
             char.tags.remove(self.instance_key, category="tutorial_character")
 
-            # Strip tutorial items from equipment first, then inventory
+            # Strip tutorial items — unequip first (so at_remove fires and
+            # conditions like fly/water_breathing are properly cleaned up),
+            # then delete.
             for item in list(char.contents):
                 if getattr(item.db, "tutorial_item", False):
-                    # Remove from wearslots if worn
-                    if hasattr(char, "remove_from_slot"):
-                        for slot, worn in dict(char.db.wearslots or {}).items():
-                            if worn == item:
-                                char.remove(item)
-                                break
+                    if hasattr(char, "is_worn") and char.is_worn(item):
+                        char.remove(item)
                     item.delete()
 
             # Strip any tutorial resources

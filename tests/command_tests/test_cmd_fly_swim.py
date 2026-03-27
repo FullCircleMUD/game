@@ -477,7 +477,7 @@ class TestFlyEncumbered(EvenniaCommandTest):
         # Make character over-encumbered
         self.char1.strength = 10
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 60.0
+        self.char1.items_weight = 60.0
 
     def test_fly_up_blocked_when_encumbered(self):
         """Can't fly up when over-encumbered on ground."""
@@ -512,7 +512,7 @@ class TestSwimEncumbered(EvenniaCommandTest):
         # Make character over-encumbered
         self.char1.strength = 10
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 60.0
+        self.char1.items_weight = 60.0
 
     def test_swim_encumbered_sinks_from_surface(self):
         """Encumbered on water surface → sink to bottom."""

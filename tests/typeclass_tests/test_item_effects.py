@@ -336,7 +336,7 @@ class TestEffectiveCarryCapacity(EffectTestBase):
     def test_can_carry_uses_effective(self):
         self.char1.strength = 14  # +2 modifier → 60 kg capacity
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 55.0
+        self.char1.items_weight = 55.0
         # 55 < 60 → can carry 0 more
         self.assertTrue(self.char1.can_carry(4.0))
         self.assertFalse(self.char1.can_carry(6.0))
@@ -355,7 +355,7 @@ class TestEncumbranceConsequences(EffectTestBase):
         """Losing a STR buff while flying + over capacity → fall."""
         self.char1.strength = 10  # base 0 modifier
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 55.0
+        self.char1.items_weight = 55.0
         self.char1.room_vertical_position = 2
         self.char1.hp = 100
 
@@ -375,7 +375,7 @@ class TestEncumbranceConsequences(EffectTestBase):
         """Losing a STR buff on water surface + over capacity → sink."""
         self.char1.strength = 10
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 55.0
+        self.char1.items_weight = 55.0
         self.char1.room_vertical_position = 0
         self.room1.max_depth = -2
 
@@ -393,7 +393,7 @@ class TestEncumbranceConsequences(EffectTestBase):
         """Losing a STR buff on dry ground → no immediate consequence."""
         self.char1.strength = 10
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 55.0
+        self.char1.items_weight = 55.0
         self.char1.room_vertical_position = 0
         self.room1.max_depth = 0
         self.char1.hp = 100

@@ -177,7 +177,7 @@ class TestExitEncumbered(TestExitVerticalAwareBase):
         """Put character over capacity."""
         self.char1.strength = 10  # neutralise STR modifier
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 60.0  # over limit
+        self.char1.items_weight = 60.0  # over limit
 
     def test_encumbered_blocks_ground_movement(self):
         """Over-encumbered on dry ground → can't move."""
@@ -192,7 +192,7 @@ class TestExitEncumbered(TestExitVerticalAwareBase):
         """Within capacity → movement allowed."""
         self.char1.strength = 10
         self.char1.max_carrying_capacity_kg = 50
-        self.char1.current_weight_nfts = 30.0
+        self.char1.items_weight = 30.0
         self.room2.max_height = 1
         self.room2.max_depth = 0
         self.exit.at_traverse(self.char1, self.room2)

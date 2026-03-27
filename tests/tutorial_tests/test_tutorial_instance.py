@@ -306,6 +306,129 @@ class TestGraduationReward(EvenniaTest):
         self.assertEqual(self.char1.get_resource(3), 0)
 
 
+class TestCollapseUnequipsItems(EvenniaTest):
+    """Test that collapse_instance properly unequips items before deleting."""
+
+    character_typeclass = _CHAR
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from world.tutorial.tutorial_hub_builder import build_tutorial_hub
+
+        self.hub = build_tutorial_hub()
+
+        patcher = patch(_NFT_MOCK_TARGET, side_effect=_mock_spawn_nft)
+        self.mock_spawn_nft = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _make_script(self, key):
+        script = _create_tutorial_script(key=key, autostart=False)
+        script.instance_key = script.key
+        script.hub_room_id = self.hub.id
+        script.start()
+        script.start_tutorial(self.char1, chunk_num=1)
+        return script
+
+    def _equip_tutorial_item(self, slot, wear_effects=None):
+        """Create a tutorial wearable, put it in a wearslot, apply effects."""
+        from typeclasses.items.wearables.wearable_nft_item import WearableNFTItem
+
+        item = create_object(
+            WearableNFTItem, key="test ring", location=self.char1,
+        )
+        item.db.tutorial_item = True
+        item.wearslot = slot
+        if wear_effects:
+            item.wear_effects = wear_effects
+
+        # Equip via the wearslot system so at_wear fires
+        self.char1.wear(item)
+        return item
+
+    def test_collapse_removes_condition_from_equipped_item(self):
+        """Equipped tutorial item with a condition effect should have that
+        condition cleaned up on collapse."""
+        script = self._make_script("test_cond_clean")
+        item = self._equip_tutorial_item(
+            "LEFT_RING_FINGER",
+            wear_effects=[{"type": "condition", "condition": "water_breathing"}],
+        )
+
+        # Condition should be active
+        self.assertTrue(self.char1.has_condition("water_breathing"))
+        self.assertTrue(self.char1.is_worn(item))
+
+        script.collapse_instance()
+
+        # Condition should be gone and item deleted
+        self.assertFalse(self.char1.has_condition("water_breathing"))
+        self.assertFalse(item.pk)
+
+    def test_collapse_removes_fly_condition(self):
+        """Fly condition from equipped tutorial item should be removed on collapse."""
+        script = self._make_script("test_fly_clean")
+        self._equip_tutorial_item(
+            "LEFT_RING_FINGER",
+            wear_effects=[{"type": "condition", "condition": "fly"}],
+        )
+
+        self.assertTrue(self.char1.has_condition("fly"))
+
+        script.collapse_instance()
+
+        self.assertFalse(self.char1.has_condition("fly"))
+
+    def test_collapse_removes_stat_bonus_from_equipped_item(self):
+        """Stat bonuses from equipped tutorial items should be cleared on collapse."""
+        script = self._make_script("test_stat_clean")
+        base_str = self.char1.base_strength
+        self._equip_tutorial_item(
+            "LEFT_RING_FINGER",
+            wear_effects=[{"type": "stat_bonus", "stat": "strength", "value": 4}],
+        )
+
+        self.assertEqual(self.char1.strength, base_str + 4)
+
+        script.collapse_instance()
+
+        self.assertEqual(self.char1.strength, base_str)
+
+    def test_collapse_handles_unequipped_tutorial_item(self):
+        """Tutorial items in inventory (not equipped) should just be deleted."""
+        script = self._make_script("test_inv_clean")
+
+        item = create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="loose tutorial item",
+            location=self.char1,
+            attributes=[("tutorial_item", True)],
+        )
+
+        script.collapse_instance()
+
+        self.assertFalse(item.pk)
+
+    def test_collapse_clears_wearslot(self):
+        """After collapse, the wearslot that held the tutorial item should be empty."""
+        script = self._make_script("test_slot_clean")
+        self._equip_tutorial_item(
+            "LEFT_RING_FINGER",
+            wear_effects=[{"type": "condition", "condition": "water_breathing"}],
+        )
+
+        wearslots = self.char1.db.wearslots or {}
+        self.assertIsNotNone(wearslots.get("LEFT_RING_FINGER"))
+
+        script.collapse_instance()
+
+        wearslots = self.char1.db.wearslots or {}
+        self.assertIsNone(wearslots.get("LEFT_RING_FINGER"))
+
+
 class TestTrainingDummy(EvenniaTest):
     """Test the training dummy mob."""
 
