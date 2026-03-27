@@ -404,128 +404,11 @@ Game code imports from `blockchain.xrpl.services.*`: `GoldService`, `ResourceSer
 
 - `0001_initial.py` — All 8 models + seed data (37 CurrencyType rows, all NFTItemType rows including consumables, 200 blank NFT pool, gold reserve 1M, resource reserves 10k each)
 
-## FungibleInventoryMixin (typeclasses/mixins/fungible_inventory.py)
+## Inventory & Equipment System
 
-The single point of entry for all gold and resource service operations. Mixed into `FCMCharacter`, `RoomBase`, and `AccountBank`. Stores data as Evennia Attributes (`self.db.gold` int, `self.db.resources` dict).
-
-**Public API (fully implemented):**
-
-| Method group | Methods |
-|---|---|
-| Queries | `get_gold()`, `has_gold()`, `get_resource()`, `has_resource()`, `get_all_resources()` |
-| In-game transfers | `transfer_gold_to(target, amount)`, `transfer_resource_to(target, resource_id, amount)` |
-| From reserve | `receive_gold_from_reserve(amount)`, `receive_resource_from_reserve(resource_id, amount)` |
-| To reserve | `return_gold_to_reserve(amount)`, `return_resource_to_reserve(resource_id, amount)` |
-| Chain boundary | `deposit_gold_from_chain(amount, tx_hash)`, `withdraw_gold_to_chain(amount, tx_hash)` |
-| Chain boundary | `deposit_resource_from_chain(resource_id, amount, tx_hash)`, `withdraw_resource_to_chain(resource_id, amount, tx_hash)` |
-
-**Classification helpers (used internally):**
-- `_classify_fungible(obj)` → `"CHARACTER"` / `"ACCOUNT"` / `"WORLD"`
-- `_get_wallet()` — CHARACTER: `account.wallet_address`, ACCOUNT: `self.wallet_address`, WORLD: vault address
-- `_get_character_key()` — CHARACTER: `self.key`, others: `None`
-
-`transfer_gold_to(None)` raises `ValueError` pointing to `return_gold_to_reserve()`. WORLD→WORLD transfers raise `ValueError` (unsupported).
-
-Must call `self.at_fungible_init()` from `at_object_creation()`.
-
-## Wearslot Mixin System (typeclasses/mixins/wearslots/)
-
-Equipment slot management for any creature type. Items stay in `contents` — the wearslot dict holds references only. Weight boundary is at the character edge (`world ↔ contents`); `contents ↔ wearslots` is an internal shuffle with zero weight change.
-
-### BaseWearslotsMixin
-
-| Method | Returns | Purpose |
-|---|---|---|
-| `at_wearslots_init()` | — | Initialize `self.db.wearslots = {}` (call from `at_object_creation()`) |
-| `wear(item)` | `(bool, str)` | Equip item, calls `item.at_wear(self)` after |
-| `remove(item)` | `(bool, str)` | Unequip item, calls `item.at_remove(self)` after |
-| `can_wear(item)` | `bool` | **Must override** — creature-type restrictions only (raises NotImplementedError) |
-| `slot_is_available(item)` | `bool` | Any matching slot empty? |
-| `get_available_slot(item)` | `str\|None` | First empty matching slot |
-| `is_worn(item)` | `bool` | Is item in any wearslot? |
-| `get_slot(slot_name)` | `obj\|None` | What's in this slot? (accepts enum or string) |
-| `get_all_worn()` | `dict` | `{slot: item}` for occupied slots only |
-| `get_carried()` | `list` | Contents minus worn items (for inventory display) |
-| `equipment_cmd_output(header)` | `str` | Formatted equipment display |
-
-**Validation order in `wear()`:** contents check → already worn → has wearslot → slot available → `can_use()` (item restrictions) → `can_wear()` (creature-type) → equip
-
-**Slot names are the restriction mechanism.** If a dog has `DOG_NECK` and a human has `NECK`, items are naturally restricted by slot name matching. No separate creature-type gating needed.
-
-### Child Mixins
-
-- **HumanoidWearslotsMixin** — 19 slots from `HumanoidWearSlot` enum: HEAD, FACE, LEFT_EAR, RIGHT_EAR, NECK, CLOAK, BODY, LEFT_ARM, RIGHT_ARM, HANDS, LEFT_WRIST, RIGHT_WRIST, LEFT_RING_FINGER, RIGHT_RING_FINGER, WAIST, LEGS, FEET, WIELD, HOLD
-- **DogWearslotsMixin** — 2 slots from `DogWearSlot` enum: DOG_NECK, DOG_BODY (proof of concept)
-
-### Enums (enums/wearslot.py)
-
-`HumanoidWearSlot` and `DogWearSlot` — single source of truth for slot names. Items declare their slot via `wearslot = AttributeProperty(HumanoidWearSlot.HEAD)`. WIELD/HOLD are slots in the dict — separate commands (`wield`/`hold`) will handle type checks at the command layer.
-
-## BaseNFTItem (typeclasses/items/base_nft_item.py)
-
-The base typeclass for all blockchain-backed NFT items. Inherits `HiddenObjectMixin` (stashable via `stash` command) and `ItemRestrictionMixin`. Stores `token_id`, `chain_id`, `contract_address` as `AttributeProperty`. All service dispatch happens automatically via hooks.
-
-### at_post_move dispatch (source → destination)
-
-**Creation (source is None — item entering the game world):**
-
-| Destination | Service call | Flow |
-|---|---|---|
-| `WORLD` (room) | `NFTService.spawn()` | RESERVE → SPAWNED |
-| `CHARACTER` | `NFTService.craft_output()` | RESERVE → CHARACTER |
-| `ACCOUNT` (bank) | `NFTService.deposit_from_chain()` | ONCHAIN → ACCOUNT |
-
-**Movement (source is not None):**
-
-| Source → Destination | Service call | Flow |
-|---|---|---|
-| `WORLD` → `CHARACTER` | `NFTService.pickup()` | SPAWNED → CHARACTER |
-| `CHARACTER` → `WORLD` | `NFTService.drop()` | CHARACTER → SPAWNED |
-| `CHARACTER` → `CHARACTER` | `NFTService.transfer()` | CHARACTER → CHARACTER |
-| `CHARACTER` → `ACCOUNT` | `NFTService.bank()` | CHARACTER → ACCOUNT |
-| `ACCOUNT` → `CHARACTER` | `NFTService.unbank()` | ACCOUNT → CHARACTER |
-| `WORLD` → `WORLD` | *(no-op)* | stays SPAWNED |
-
-**tx_hash for import:** Pass via `move_to(bank, tx_hash="0x...")` — Evennia forwards kwargs to `at_post_move`.
-
-### at_object_delete dispatch (by current location)
-
-| Location | Service call | Flow |
-|---|---|---|
-| `WORLD` (room) | `NFTService.despawn()` | SPAWNED → RESERVE |
-| `CHARACTER` | `NFTService.craft_input()` | CHARACTER → RESERVE |
-| `ACCOUNT` (bank) | `NFTService.withdraw_to_chain()` | ACCOUNT → ONCHAIN |
-
-**tx_hash for export:** Stash on `obj.ndb.pending_tx_hash` before calling `obj.delete()` — ndb is still alive when the hook fires.
-
-### Factory Methods (spawn/despawn lifecycle)
-
-**Spawning** (blank token pool → game object):
-1. `BaseNFTItem.assign_to_blank_token(item_type_name)` — picks lowest RESERVE blank token, assigns item_type + default_metadata via `NFTService.assign_item_type()` with `select_for_update()` for concurrency safety. Returns `(token_id, chain_id, contract_address)`.
-2. `BaseNFTItem.spawn_into(token_id, location, chain_id, contract_address)` — creates Evennia object from NFTMirror data using `spawn()` for prototype application, applies metadata as attributes, calls `move_to(location)` to trigger hooks.
-
-**Despawning** (game object → reserve):
-- `obj.delete()` triggers `at_object_delete` → service dispatch → `NFTService._reset_token_identity(nft)` wipes `item_type=None`, `metadata={}` on all RESERVE return paths (despawn, craft_input, account_to_reserve).
-
-### Static/class methods
-
-- `BaseNFTItem._classify(obj)` → `"CHARACTER"` / `"ACCOUNT"` / `"WORLD"` / `None`
-- `BaseNFTItem.get_nft_mirror(token_id, chain_id, contract_address)` → delegates to `NFTService.get_nft()` (read-only mirror lookup — use this instead of importing NFTService directly)
-
-### Subclasses
-
-- `TakeableNFTItem` — can be picked up (default `get: true()`)
-- `WorldAnchoredNFTItem` — cannot be picked up (overrides to `get: false()`)
-- `WearableNFTItem` — base for armor/clothing/jewelry. `at_wear(wearer)` / `at_remove(wearer)` hooks apply/remove data-driven effects. `wearslot`, `wear_effects`, `max_durability`, `durability` AttributeProperties.
-- `HoldableNFTItem` — base for shields/torches/orbs. `at_hold(holder)` / `at_remove(holder)` hooks apply/remove data-driven effects. `wear_effects`, `max_durability`, `durability`.
-- `WeaponNFTItem` — weapon base class with mastery-scaled damage dicts. `at_wield(wielder)` / `at_remove(wielder)` hooks apply/remove data-driven effects.
-- Weapon subclasses: `LongswordNFTItem`, `DaggerNFTItem`, `ShortswordNFTItem`, `BowNFTItem`, `ClubNFTItem`, `SpearNFTItem`, `AxeNFTItem`, `GreatswordNFTItem`, `MaceNFTItem`, `HammerNFTItem`, `SlingNFTItem`, `BlowgunNFTItem`, `BolaNFTItem`
-- `ConsumableNFTItem` — base for single-use items. `consume(consumer)` calls `at_consume()` then deletes (returns to RESERVE).
-- `CraftingRecipeNFTItem(ConsumableNFTItem)` — teaches recipe via `learn_recipe()` on consume. `recipe_key` AttributeProperty.
-- `PotionNFTItem(ConsumableNFTItem)` — potion with mastery-scaled effects. `potion_effects`, `duration`, and `named_effect_key` baked at brew time. Anti-stacking via EffectsManagerMixin `has_effect()` — keyed by stat (e.g. `"potion_strength"`), so any two STR potions can't stack regardless of tier. Timed effects use `apply_named_effect()` directly (data-driven — `duration_type` auto-fills from registry, condition extracted from item data).
-- `SpellScrollNFTItem(ConsumableNFTItem)` — spell scroll consumed via `transcribe` command. `spell_key` AttributeProperty.
-
-All items inherit `ItemRestrictionMixin` via `BaseNFTItem` — any item can have usage restrictions set in its prototype.
+> **See `design/INVENTORY_EQUIPMENT.md`** for the authoritative reference on: inventory storage (items in `contents`, fungibles as attributes), equipment (wearslots, wear effects, equip flow), carrying capacity (nuclear weight recalculate), NFT ownership model (states, transitions, container cascading), data-driven item effects (`wear_effects`), ItemRestrictionMixin, and the nuclear recalculate systems (`_recalculate_stats()`, `_recalculate_item_weight()`, `_at_balance_changed()`).
+>
+> Key mixins/classes covered there: `FungibleInventoryMixin`, `BaseWearslotsMixin`, `HumanoidWearslotsMixin`, `CarryingCapacityMixin`, `BaseNFTItem`, `WearableNFTItem`, `WeaponNFTItem`, `HoldableNFTItem`, `ItemRestrictionMixin`.
 
 ## AccountBank (typeclasses/accounts/account_bank.py)
 
@@ -686,9 +569,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - Xaman API: SignIn, TrustSet, NFTokenAcceptOffer payloads with delay-based polling
 - XRPL service layer active: GoldService, ResourceService, NFTService, FungibleService, AMMService, TelemetryService, ResourceSpawnService, NFTSaturationService
 - Service encapsulation: all service access via FungibleInventoryMixin or BaseNFTItem hooks
-- FungibleInventoryMixin with 29 public methods including chain boundary deposit/withdraw
-- BaseNFTItem with full 9-path at_post_move dispatch + 3-path at_object_delete dispatch
-- NFT blank token pool: assign_to_blank_token() → spawn_into() factory methods, identity wipe on reserve return
+- Full inventory & equipment system — see `design/INVENTORY_EQUIPMENT.md` for details (FungibleInventoryMixin, BaseNFTItem, wearslots, CarryingCapacityMixin, nuclear recalculate, NFT ownership)
 - NFTItemType registry with typeclass, prototype_key, default_metadata
 - Weapon system: WeaponNFTItem + subclasses (Longsword, Dagger, Shortsword, Bow, Club, Spear, Axe, Greatsword, Mace, Hammer, Sling)
 - Item prototypes in `world/prototypes/` package (weapons, wearables, holdables, components, consumables/recipes, consumables/potions, consumables/scrolls, containers) — one file per item, vanilla and enchanted variants
@@ -704,13 +585,8 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - Hunger/eating system (Bread is resource ID 3). HungerService and RegenerationService only process puppeted characters (`has_account` check) — unpuppeted characters are skipped. Forage command (SURVIVALIST skill, Druid/Ranger): restores hunger directly (no bread production), mastery scales yield (BASIC=1..GM=5), 15-min cooldown matching hunger cycle, NO hunger_free_pass_tick (bread retains economic advantage). Solo auto-applies, party gets interactive allocation prompt. Requires forageable terrain (not urban/underground/dungeon/water).
 - Get/drop/give commands wired to service layer
 - Superuser wallet injection: at_post_login() backfills vault wallet + bank for superuser account
-- Wearslot mixin system: BaseWearslotsMixin, HumanoidWearslotsMixin (19 slots), DogWearslotsMixin (proof of concept)
-- WearableNFTItem, HoldableNFTItem, WeaponNFTItem base classes with data-driven at_wear/at_wield/at_hold hooks
-- Data-driven item effects system: `wear_effects` on prototypes, nuclear recalculate pattern via `_recalculate_stats()` on BaseActor — supports `stat_bonus`, `damage_resistance`, `condition` (with optional companion effects), `hit_bonus`, and `damage_bonus` effect types. Conditions remain ref-counted (incremental). Numeric stats rebuilt from scratch on every equip/unequip/buff change. Companion effects on compound conditions deduplicated via `_accumulated_companions` set during recalculate.
 - DamageResistanceMixin: integer percentage resistances/vulnerabilities, clamped to [-75, 75] on read, reusable across any typeclass
 - DurabilityMixin: `max_durability`, `durability`, `repairable` AttributeProperties on all item types, `repair_to_full()` method
-- CarryingCapacityMixin: nuclear item weight recalculate (`_recalculate_item_weight()`) on every `at_object_receive`/`at_object_leave` + nuclear fungible weight via `_at_balance_changed()`. Attribute: `items_weight` (replaces old `current_weight_nfts`). Container contents included for `transfer_weight=True` containers.
-- WearSlot enums (HumanoidWearSlot, DogWearSlot) as single source of truth for slot names
 - Worn item guards: drop/give/deposit/junk reject equipped items via `exclude_worn` on character search
 - Score command — consolidated character sheet in a 4-column boxed layout (~16 lines). Header: name, race, alignment, classes, level, XP. Body: vitals (HP/MP/MV with color-coded health), ability scores (current + base), combat modifiers (AC, crit, init, att/round), resistances/vulnerabilities. Footer: active conditions, levels-to-spend hint. Hand-built f-strings with `_pad()` helper for color-code-aware alignment. 23 tests.
 - Stats command — focused "base vs effective" breakdown showing how equipment, spells, and ability modifiers change stats. Three sections: Ability Scores (base, effective, modifier), Vitals (HP/Mana/Move max with CON breakdown), Combat (AC, crit, initiative with DEX breakdown, attacks/round). Boxed layout matching score style. 14 tests.
@@ -1000,33 +876,6 @@ When a character reaches max level, they can **remort** — reset to level 1 whi
 
 This creates a long-term progression loop — characters grow more powerful across remort cycles, unlocking content that first-life characters cannot access.
 
-## Data-Driven Item Effects System
-
-Items declare effects in their prototype's `wear_effects` list. On wear/remove, conditions are applied/removed incrementally (ref-counted), then `_recalculate_stats()` rebuilds all numeric stats from scratch.
-
-**Supported effect types:**
-
-| Type | Format | Example |
-|---|---|---|
-| `stat_bonus` | `{"type": "stat_bonus", "stat": "<name>", "value": <int>}` | `{"type": "stat_bonus", "stat": "armor_class", "value": 1}` |
-| `damage_resistance` | `{"type": "damage_resistance", "damage_type": "<type>", "value": <int>}` | `{"type": "damage_resistance", "damage_type": "piercing", "value": 50}` |
-| `condition` | `{"type": "condition", "condition": "<name>"}` | `{"type": "condition", "condition": "darkvision"}` |
-| `condition` (compound) | `{"type": "condition", "condition": "<name>", "effects": [...]}` | `{"type": "condition", "condition": "hasted", "effects": [{"type": "stat_bonus", "stat": "attacks_per_round", "value": 1}]}` |
-| `hit_bonus` | `{"type": "hit_bonus", "weapon_type": "<WeaponType.value>", "value": <int>}` | `{"type": "hit_bonus", "weapon_type": "unarmed", "value": 1}` |
-| `damage_bonus` | `{"type": "damage_bonus", "weapon_type": "<WeaponType.value>", "value": <int>}` | `{"type": "damage_bonus", "weapon_type": "unarmed", "value": 1}` |
-
-**Weapon-type-specific bonuses (`hit_bonus`/`damage_bonus`):** Stored in `hit_bonuses` and `damage_bonuses` dicts on FCMCharacter, keyed by `WeaponType.value` string (e.g. `"unarmed"`, `"long_sword"`, `"dagger"`). Multiple sources stack additively. Rebuilt from scratch during `_recalculate_stats()`. At combat time, look up `character.hit_bonuses.get(weapon_type_value, 0)`.
-
-**Supported stats for `stat_bonus`:** Any AttributeProperty on FCMCharacter — `strength`, `dexterity`, `constitution`, `intelligence`, `wisdom`, `charisma`, `armor_class`, `crit_threshold`, `initiative_bonus`, `attacks_per_round`, `stealth_bonus`, `move_max`, etc. **Important:** Tier 2 stats store equipment/spell bonuses only — ability score modifiers are computed at check time via Tier 3 @properties (see "Ability Score Modifier Pattern" section above).
-
-**Damage types for `damage_resistance`:** `slashing`, `piercing`, `bludgeoning`, `fire`, `cold`, `lightning`, `acid`, `poison`, `magic`, `force` (see `enums/damage_type.py`). Values are integer percentages — `50` means 50% resistance. Capped to [-75, 75] on read via `get_resistance()`.
-
-**Flow:** `wear()` → `item.at_wear(wearer)` → loops condition-type effects only via `apply_effect()` (ref-counted) → calls `wearer._recalculate_stats()` (rebuilds all numeric stats from equipment + buffs + racial effects). `remove()` reverses conditions then recalculates. Named effects (spells/potions) follow the same pattern: `apply_named_effect()` / `remove_named_effect()` handle conditions incrementally, then call `_recalculate_stats()`.
-
-**Stacking rules:** Standalone `stat_bonus` effects stack additively (two +1 STR rings = +2 STR — both counted during recalculate). Compound `condition` effects with nested `"effects"` only apply companion bonuses once per condition during recalculate — wearing a second haste item increments the condition ref count but the companion stat bonus is only accumulated once (tracked via `_accumulated_companions` set during recalculate).
-
-**Prototypes only apply at spawn time** — editing a prototype affects new spawns only. Existing items keep their original values. This is intentional for an NFT game (legacy items).
-
 ## DamageResistanceMixin (typeclasses/mixins/damage_resistance.py)
 
 Provides damage resistance/vulnerability tracking for any typeclass — characters, NPCs, mobs, pets, mounts, destructible objects.
@@ -1060,30 +909,6 @@ Central damage application method. **ALL damage sources must call `take_damage()
 - `apply_spell_damage()` in `world/spells/spell_utils.py` — thin wrapper (converts `DamageType` enum to string)
 - `_check_fall()` in `base_actor.py` — fall damage (`ignore_resistance=True`)
 - `BreathTimerScript` in `typeclasses/scripts/breath_timer.py` — drowning (`ignore_resistance=True`)
-
-## ItemRestrictionMixin (typeclasses/mixins/item_restriction.py)
-
-Data-driven item usage restrictions mixed into `BaseNFTItem`. Default is unrestricted — items only become restricted when a prototype sets restriction fields.
-
-**Restriction fields (all `AttributeProperty` with empty/zero defaults):**
-
-| Field | Logic | Description |
-|---|---|---|
-| `required_classes` | OR | Character has ANY listed class → pass |
-| `excluded_classes` | AND-NOT | Character has ANY listed class → fail (vetoes) |
-| `min_class_levels` | ALL | Each `{class: level}` must be met |
-| `required_races` | OR | Character's race in list → pass |
-| `excluded_races` | AND-NOT | Character's race in list → fail |
-| `required_alignments` | OR | Character's alignment in list → pass |
-| `excluded_alignments` | AND-NOT | Character's alignment in list → fail |
-| `min_total_level` | ≥ | `character.total_level >= value` |
-| `min_remorts` | ≥ | `character.num_remorts >= value` |
-| `min_attributes` | ALL | Each `{ability: score}` must be met |
-| `min_mastery` | ALL | Each `{skill: level}` must be met |
-
-- `can_use(character)` → `(bool, str)` — checks all restrictions, short-circuits on first failure
-- `is_restricted` property — `True` if any field is non-default
-- Hooked into `wear()` validation chain in `BaseWearslotsMixin` — `can_use()` runs before `can_wear()`
 
 ## EffectsManagerMixin (typeclasses/mixins/effects_manager.py)
 
