@@ -7,5 +7,23 @@
         "max_per_room": 2,
         "respawn_seconds": 30,
         "desc": "A small brown rabbit nibbles at the weeds pushing through the untended soil. Its ears swivel at every sound, ready to bolt at the first sign of danger."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
+        "key": "a rabbit",
+        "area_tag": "wheat_farm",
+        "target": 3,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A small rabbit crouches between the rows of golden wheat, nibbling on fallen grain. It watches you with bright, wary eyes."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
+        "key": "a rabbit",
+        "area_tag": "cotton_farm",
+        "target": 3,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A rabbit sits among the cotton plants, its brown fur dusted with white fibres. It twitches its nose at you before returning to nibbling on a leaf."
     }
 ]

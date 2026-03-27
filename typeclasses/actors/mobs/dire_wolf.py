@@ -34,6 +34,10 @@ class DireWolf(AggressiveMob):
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)
 
+    # ── Loot ──
+    loot_resources = AttributeProperty({8: 1})  # max 1 hide
+    loot_gold_max = AttributeProperty(4)
+
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)
 

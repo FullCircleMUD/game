@@ -41,10 +41,9 @@ class Kobold(AggressiveMob):
     attack_delay_max = AttributeProperty(5)
 
     # ── Gold loot ──
-    loot_gold_max = AttributeProperty(6)
+    loot_gold_max = AttributeProperty(2)
 
     # ── Knowledge loot ──
-    spawn_scrolls_max = AttributeProperty({"basic": 1})
     spawn_recipes_max = AttributeProperty({"basic": 1})
 
     # ── Behavior ──

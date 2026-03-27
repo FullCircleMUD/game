@@ -35,6 +35,9 @@ class CellarRat(AggressiveMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
 
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(1)
+
     # ── Display ──
     room_description = AttributeProperty(
         "{name} snarls from the shadows, teeth bared."

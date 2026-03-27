@@ -22,7 +22,8 @@
             "attack_delay_max": 5,
             "is_aggressive_to_players": true,
             "size": "small",
-            "ai_tick_interval": 6
+            "ai_tick_interval": 6,
+            "loot_gold_max": 1
         }
     }
 ]

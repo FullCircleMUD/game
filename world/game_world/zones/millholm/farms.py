@@ -1227,7 +1227,24 @@ def build_millholm_farms(town_rooms):
     ]
     for room in abandoned_farm_rooms:
         room.tags.add("abandoned_farm", category="mob_area")
-    print("  Tagged abandoned farm rooms with mob_area.")
+
+    wheat_farm_rooms = [
+        rooms["gw_lane"], rooms["gw_garden"],
+        *[gw_grid[r][c] for r in range(3) for c in range(7)],
+    ]
+    for room in wheat_farm_rooms:
+        room.tags.add("wheat_farm", category="mob_area")
+
+    cotton_farm_rooms = [
+        rooms["bw_yard"],
+        rooms["bw_field_nw"], rooms["bw_field_n"], rooms["bw_field_ne"],
+        rooms["bw_field_w"], rooms["bw_field_center"], rooms["bw_field_e"],
+        rooms["bw_field_sw"], rooms["bw_field_s"], rooms["bw_field_se"],
+    ]
+    for room in cotton_farm_rooms:
+        room.tags.add("cotton_farm", category="mob_area")
+
+    print("  Tagged farm rooms with mob_area.")
 
     # ══════════════════════════════════════════════════════════════════
     # 4. FUTURE CONNECTION NOTES

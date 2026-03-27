@@ -35,6 +35,9 @@ class RatKing(CombatMob):
     attack_delay_min = AttributeProperty(5)
     attack_delay_max = AttributeProperty(8)
 
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(3)
+
     # ── Display ──
     room_description = AttributeProperty(
         "{name} crouches here, red eyes gleaming above a crude crown of wire and bone."

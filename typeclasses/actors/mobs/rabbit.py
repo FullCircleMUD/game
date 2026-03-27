@@ -29,6 +29,9 @@ class Rabbit(CombatMob):
     armor_class = AttributeProperty(12)
     level = AttributeProperty(1)
 
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(1)
+
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(30)

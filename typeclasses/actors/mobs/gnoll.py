@@ -42,11 +42,11 @@ class Gnoll(AggressiveMob):
     attack_delay_max = AttributeProperty(6)
 
     # ── Gold loot ──
-    loot_gold_max = AttributeProperty(12)
+    loot_gold_max = AttributeProperty(8)
 
     # ── Knowledge loot ──
-    spawn_scrolls_max = AttributeProperty({"basic": 1, "skilled": 1})
-    spawn_recipes_max = AttributeProperty({"basic": 1, "skilled": 1})
+    spawn_scrolls_max = AttributeProperty({"basic": 1})
+    spawn_recipes_max = AttributeProperty({"basic": 1})
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.25)  # fights to 25% HP before fleeing
