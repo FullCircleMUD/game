@@ -18,9 +18,16 @@ from evennia import create_object
 from evennia.utils import create
 
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
+from typeclasses.actors.npc import BaseNPC
+from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.world_objects.base_fixture import WorldFixture
 from utils.exit_helpers import connect
+
+
+class FollowableNPC(FollowableMixin, BaseNPC):
+    """An NPC that can be followed. Used for tutorial follow practice."""
+    pass
 
 
 def build_tutorial_3(instance):
@@ -370,11 +377,9 @@ def build_tutorial_3(instance):
 
     _spawn_pip(rooms["companion"])
 
-    # Companion NPC — simple mob for follow practice
-    from typeclasses.actors.npc import BaseNPC
-
+    # Companion NPC — followable mob for follow practice
     companion = create.create_object(
-        BaseNPC,
+        FollowableNPC,
         key="Squire Finn",
         location=rooms["companion"],
     )

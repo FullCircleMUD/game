@@ -119,6 +119,10 @@ class TutorialInstanceScript(DefaultScript):
             # Remove tutorial tag
             char.tags.remove(self.instance_key, category="tutorial_character")
 
+            # Clear follow state (in case player followed a tutorial NPC)
+            if hasattr(char, "following") and char.following:
+                char.following = None
+
             # Strip tutorial items — unequip first (so at_remove fires and
             # conditions like fly/water_breathing are properly cleaned up),
             # then delete.

@@ -39,7 +39,7 @@ class PlayerPreferencesMixin:
     # ── Preference attributes ──────────────────────────────────────────
     brief_mode = AttributeProperty(False, autocreate=False)
     auto_exits = AttributeProperty(True, autocreate=False)
-    nofollow = AttributeProperty(False, autocreate=False)
+    # nofollow is defined in FollowableMixin
     smite_active = AttributeProperty(False, autocreate=False)
     shield_active = AttributeProperty(False, autocreate=False)
 

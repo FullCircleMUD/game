@@ -14,6 +14,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.mastery_level import MasteryLevel
 
+from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.player_preferences import PlayerPreferencesMixin
 from typeclasses.mixins.recipe_book import RecipeBookMixin
 from typeclasses.mixins.remort import RemortMixin
@@ -29,6 +30,7 @@ from utils.experience_table import EXPERIENCE_TABLE, get_xp_for_next_level, get_
 
 class FCMCharacter(
     CarryingCapacityMixin,
+    FollowableMixin,
     FungibleInventoryMixin,
     HumanoidWearslotsMixin,
     PlayerPreferencesMixin,
@@ -88,8 +90,8 @@ class FCMCharacter(
     active_mount = AttributeProperty(None)
 
     # ── Group / Follow system ──
-    following = AttributeProperty(None)    # Character this char is following
-    # nofollow moved to PlayerPreferencesMixin
+    # following, nofollow, get_group_leader(), get_followers() from FollowableMixin
+    # nofollow also in PlayerPreferencesMixin (player-facing toggle)
 
     # ── Combat preferences ──
     wimpy_threshold = AttributeProperty(0)  # 0 = disabled, >0 = auto-flee HP
@@ -100,42 +102,6 @@ class FCMCharacter(
     def quests(self):
         from world.quests.quest_handler import FCMQuestHandler
         return FCMQuestHandler(self)
-
-    # ── Group / Follow helpers ──
-
-    def get_group_leader(self):
-        """Walk the follow chain to the root (the leader)."""
-        visited = {self}
-        current = self
-        while current.following and current.following not in visited:
-            visited.add(current.following)
-            current = current.following
-        return current
-
-    def get_followers(self, same_room=False):
-        """
-        Get all characters directly or indirectly following this character.
-
-        Args:
-            same_room: If True, only return followers in the same room.
-        """
-        from evennia import ObjectDB
-
-        results = []
-        # Find all characters whose following attribute points to self
-        direct = [
-            obj for obj in ObjectDB.objects.filter(
-                db_typeclass_path__contains="character"
-            )
-            if obj.following == self
-        ]
-        for f in direct:
-            if same_room and f.location != self.location:
-                continue
-            results.append(f)
-            # Recurse to get indirect followers
-            results.extend(f.get_followers(same_room=same_room))
-        return results
 
     def at_pre_move(self, destination, move_type="move", **kwargs):
         """Check movement blockers before moving."""

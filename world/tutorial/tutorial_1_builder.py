@@ -512,7 +512,7 @@ def build_tutorial_1(instance):
         "When STARVING, you take periodic damage! Keep fed.\n\n"
         "  |weat bread|n — Eat bread to restore hunger.\n"
         "  |whunger|n — Check your current hunger level.\n"
-        "  |wstats|n — Also shows hunger level.\n\n"
+        "  |wscore|n — Also shows hunger level.\n\n"
         "Bread is made from flour + wood (fuel) at a bakery.\n"
         "Flour is milled from wheat at a windmill.\n"
         "Wheat is harvested from farmland.\n\n"

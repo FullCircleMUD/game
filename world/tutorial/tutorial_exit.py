@@ -16,9 +16,9 @@ class TutorialCompletionExit(ExitVerticalAware):
 
     tutorial_instance_id = AttributeProperty(None)
 
-    def at_after_traverse(self, traversing_object, source_location, **kwargs):
+    def at_post_traverse(self, traversing_object, source_location, **kwargs):
         """After the character has moved through, collapse the instance."""
-        super().at_after_traverse(traversing_object, source_location, **kwargs)
+        super().at_post_traverse(traversing_object, source_location, **kwargs)
 
         if not self.tutorial_instance_id:
             return

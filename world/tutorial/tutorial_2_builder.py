@@ -152,15 +152,15 @@ def build_tutorial_2(instance):
         "  |wchop|n — Chop wood from trees.\n\n"
         "Different resources use different harvest commands:\n"
         "  |wharvest|n — crops, |wchop|n — wood, |wmine|n — ore,\n"
-        "  |wforage|n — herbs, |wfish|n — fish, |whunt|n — hides.\n\n"
+        "  |wpick|n — cotton, |wgather|n — herbs & rare materials.\n\n"
         "|yPractice:|n\n"
         "  Type |wchop|n a few times to gather wood.\n"
         "  Move |weast|n when ready.",
         guide_context=(
             "Teach |wchop|n for gathering wood. Explain that different "
             "resources use different harvest commands: |wharvest|n for "
-            "crops, |wchop|n for wood, |wmine|n for ore, |wforage|n for "
-            "herbs, |wfish|n for fish, |whunt|n for hides."
+            "crops, |wchop|n for wood, |wmine|n for ore, |wpick|n for "
+            "cotton, |wgather|n for herbs and rare materials."
         ),
         typeclass=RoomHarvesting,
     )

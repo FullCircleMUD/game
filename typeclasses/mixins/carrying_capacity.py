@@ -162,6 +162,10 @@ class CarryingCapacityMixin:
     def at_init(self):
         """Recalculate on every server restart/cache load to catch drift."""
         super().at_init()
+        # Guard: skip if object isn't fully saved to a database yet
+        # (avoids ValueError during Django queryset iteration)
+        if not self.pk or getattr(self._state, "db", None) is None:
+            return
         self.recalculate_weight()
 
     # ================================================================== #
