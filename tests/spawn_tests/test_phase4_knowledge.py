@@ -1,10 +1,9 @@
 """Tests for Phase 4 — knowledge item spawning (scrolls and recipes).
 
 Covers:
-  - _build_tier_max() level-to-tier mapping
   - CombatMob scroll/recipe tags on creation
-  - Mob subclasses get correct tier dicts
-  - Mobs without scroll_loot_slots don't get tags
+  - Mob subclasses get correct builder-set tier dicts
+  - Mobs without spawn_scrolls_max don't get tags
   - populate_knowledge_config() generates entries from registries
   - _resolve_nft_item_type_name() lookup
   - Zone spawn script scroll/recipe tag sync
@@ -17,74 +16,6 @@ from unittest.mock import patch, MagicMock
 from evennia.utils import create
 from evennia.utils.test_resources import EvenniaTest
 
-from typeclasses.actors.mob import _build_tier_max, _TIER_ORDER
-
-
-# ================================================================== #
-#  _build_tier_max unit tests
-# ================================================================== #
-
-
-class TestBuildTierMax(EvenniaTest):
-
-    def create_script(self):
-        pass
-
-    def test_level_1_is_basic(self):
-        result = _build_tier_max(1, 1)
-        self.assertEqual(result["basic"], 1)
-        self.assertEqual(result["skilled"], 0)
-
-    def test_level_2_is_basic(self):
-        result = _build_tier_max(2, 1)
-        self.assertEqual(result["basic"], 1)
-        self.assertEqual(result["skilled"], 0)
-
-    def test_level_3_is_skilled(self):
-        result = _build_tier_max(3, 1)
-        self.assertEqual(result["basic"], 0)
-        self.assertEqual(result["skilled"], 1)
-
-    def test_level_4_is_skilled(self):
-        result = _build_tier_max(4, 2)
-        self.assertEqual(result["skilled"], 2)
-        self.assertEqual(result["basic"], 0)
-        self.assertEqual(result["expert"], 0)
-
-    def test_level_5_is_expert(self):
-        result = _build_tier_max(5, 1)
-        self.assertEqual(result["expert"], 1)
-
-    def test_level_6_is_expert(self):
-        result = _build_tier_max(6, 2)
-        self.assertEqual(result["expert"], 2)
-
-    def test_level_7_is_master(self):
-        result = _build_tier_max(7, 1)
-        self.assertEqual(result["master"], 1)
-
-    def test_level_9_is_gm(self):
-        result = _build_tier_max(9, 1)
-        self.assertEqual(result["gm"], 1)
-
-    def test_level_10_is_gm(self):
-        """Levels above 9 still map to gm."""
-        result = _build_tier_max(10, 1)
-        self.assertEqual(result["gm"], 1)
-
-    def test_all_tiers_present(self):
-        """Result always has all 5 tiers."""
-        result = _build_tier_max(1, 1)
-        self.assertEqual(set(result.keys()), set(_TIER_ORDER))
-
-    def test_two_slots_at_tier(self):
-        """Multiple slots all go to the same tier."""
-        result = _build_tier_max(6, 2)
-        # L6 = expert, 2 slots
-        self.assertEqual(result, {
-            "basic": 0, "skilled": 0, "expert": 2, "master": 0, "gm": 0,
-        })
-
 
 # ================================================================== #
 #  Mob tag/attribute registration
@@ -92,7 +23,7 @@ class TestBuildTierMax(EvenniaTest):
 
 
 class TestMobScrollRecipeTags(EvenniaTest):
-    """Mobs with scroll_loot_slots/recipe_loot_slots get appropriate tags."""
+    """Mobs with spawn_scrolls_max/spawn_recipes_max get appropriate tags."""
 
     def create_script(self):
         pass
@@ -105,7 +36,7 @@ class TestMobScrollRecipeTags(EvenniaTest):
         )
 
     def test_kobold_has_scroll_tag(self):
-        """Kobold (scroll_loot_slots=1) gets spawn_scrolls tag."""
+        """Kobold (spawn_scrolls_max={"basic": 1}) gets spawn_scrolls tag."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
@@ -115,7 +46,7 @@ class TestMobScrollRecipeTags(EvenniaTest):
         self.assertIn("spawn_scrolls", tags)
 
     def test_kobold_has_recipe_tag(self):
-        """Kobold (recipe_loot_slots=1) gets spawn_recipes tag."""
+        """Kobold gets spawn_recipes tag."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
@@ -125,59 +56,59 @@ class TestMobScrollRecipeTags(EvenniaTest):
         self.assertIn("spawn_recipes", tags)
 
     def test_kobold_scrolls_max_is_basic(self):
-        """Kobold L2 → basic tier, 1 slot."""
+        """Kobold gets builder-set basic tier dict."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
             location=self.room,
         )
-        expected = {"basic": 1, "skilled": 0, "expert": 0, "master": 0, "gm": 0}
+        expected = {"basic": 1}
         self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
 
     def test_kobold_recipes_max_is_basic(self):
-        """Kobold L2 → basic tier, 1 slot."""
+        """Kobold gets builder-set basic tier dict."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
             location=self.room,
         )
-        expected = {"basic": 1, "skilled": 0, "expert": 0, "master": 0, "gm": 0}
+        expected = {"basic": 1}
         self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
-    def test_gnoll_is_skilled_tier(self):
-        """Gnoll L4 → skilled tier, 1 slot each."""
+    def test_gnoll_has_skilled_tier(self):
+        """Gnoll gets builder-set basic+skilled tier dict."""
         mob = create.create_object(
             "typeclasses.actors.mobs.gnoll.Gnoll",
             key="a gnoll",
             location=self.room,
         )
-        expected = {"basic": 0, "skilled": 1, "expert": 0, "master": 0, "gm": 0}
+        expected = {"basic": 1, "skilled": 1}
         self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
         self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
-    def test_gnoll_warlord_is_expert_with_two_slots(self):
-        """GnollWarlord L6 → expert tier, 2 slots each."""
+    def test_gnoll_warlord_has_expert_tier(self):
+        """GnollWarlord gets builder-set basic+skilled+expert tier dict."""
         mob = create.create_object(
             "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
             key="Gnoll Warlord",
             location=self.room,
         )
-        expected = {"basic": 0, "skilled": 0, "expert": 2, "master": 0, "gm": 0}
+        expected = {"basic": 1, "skilled": 1, "expert": 2}
         self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
         self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
-    def test_kobold_chieftain_is_skilled(self):
-        """KoboldChieftain L3 → skilled tier, 1 slot each."""
+    def test_kobold_chieftain_has_skilled_tier(self):
+        """KoboldChieftain gets builder-set basic+skilled tier dict."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
             key="Kobold Chieftain",
             location=self.room,
         )
-        expected = {"basic": 0, "skilled": 1, "expert": 0, "master": 0, "gm": 0}
+        expected = {"basic": 1, "skilled": 1}
         self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
 
     def test_wolf_has_no_scroll_tag(self):
-        """Wolf (scroll_loot_slots=0) should NOT get spawn_scrolls tag."""
+        """Wolf (no spawn_scrolls_max) should NOT get spawn_scrolls tag."""
         mob = create.create_object(
             "typeclasses.actors.mobs.wolf.Wolf",
             key="a grey wolf",
@@ -196,17 +127,17 @@ class TestMobScrollRecipeTags(EvenniaTest):
         tags = mob.tags.get(category="spawn_recipes", return_list=True)
         self.assertNotIn("spawn_recipes", tags)
 
-    def test_wolf_has_no_scrolls_max(self):
-        """Wolf should NOT have spawn_scrolls_max."""
+    def test_wolf_has_empty_scrolls_max(self):
+        """Wolf should have empty spawn_scrolls_max (no knowledge loot)."""
         mob = create.create_object(
             "typeclasses.actors.mobs.wolf.Wolf",
             key="a grey wolf",
             location=self.room,
         )
-        self.assertIsNone(mob.db.spawn_scrolls_max)
+        self.assertFalse(mob.spawn_scrolls_max)
 
     def test_base_combat_mob_no_scroll_tag(self):
-        """Base CombatMob (0 slots) should NOT get scroll/recipe tags."""
+        """Base CombatMob (empty dicts) should NOT get scroll/recipe tags."""
         mob = create.create_object(
             "typeclasses.actors.mob.CombatMob",
             key="a mob",

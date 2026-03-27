@@ -44,8 +44,8 @@ class Kobold(AggressiveMob):
     loot_gold_max = AttributeProperty(6)
 
     # ── Knowledge loot ──
-    scroll_loot_slots = AttributeProperty(1)
-    recipe_loot_slots = AttributeProperty(1)
+    spawn_scrolls_max = AttributeProperty({"basic": 1})
+    spawn_recipes_max = AttributeProperty({"basic": 1})
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.7)  # flee early

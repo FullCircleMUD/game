@@ -179,19 +179,17 @@ class ZoneSpawnScript(DefaultScript):
                 mob.tags.add("spawn_gold", category="spawn_gold")
             mob.db.spawn_gold_max = gold_max
 
-        scroll_slots = getattr(mob, "scroll_loot_slots", 0) or 0
-        if scroll_slots > 0:
-            from typeclasses.actors.mob import _build_tier_max
+        scrolls_max = getattr(mob, "spawn_scrolls_max", None) or {}
+        if scrolls_max:
             if not mob.tags.get("spawn_scrolls", category="spawn_scrolls"):
                 mob.tags.add("spawn_scrolls", category="spawn_scrolls")
-            mob.db.spawn_scrolls_max = _build_tier_max(mob.level, scroll_slots)
+            mob.db.spawn_scrolls_max = dict(scrolls_max)
 
-        recipe_slots = getattr(mob, "recipe_loot_slots", 0) or 0
-        if recipe_slots > 0:
-            from typeclasses.actors.mob import _build_tier_max
+        recipes_max = getattr(mob, "spawn_recipes_max", None) or {}
+        if recipes_max:
             if not mob.tags.get("spawn_recipes", category="spawn_recipes"):
                 mob.tags.add("spawn_recipes", category="spawn_recipes")
-            mob.db.spawn_recipes_max = _build_tier_max(mob.level, recipe_slots)
+            mob.db.spawn_recipes_max = dict(recipes_max)
 
         # Tag for population tracking
         mob.tags.add(self.db.zone_key, category="spawn_zone")
