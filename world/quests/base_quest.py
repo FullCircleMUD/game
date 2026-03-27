@@ -176,12 +176,14 @@ class FCMQuest:
             self.quester.at_gain_experience_points(self.reward_xp)
         if self.reward_gold and hasattr(self.quester, "receive_gold_from_reserve"):
             self.quester.receive_gold_from_reserve(self.reward_gold)
+            self._register_quest_debt("gold", "gold", self.reward_gold)
         if self.reward_bread and hasattr(self.quester, "receive_resource_from_reserve"):
             self.quester.receive_resource_from_reserve(3, self.reward_bread)
             self.quester.msg(
                 f"|gYou receive {self.reward_bread} "
                 f"{'Bread' if self.reward_bread == 1 else 'Breads'}.|n"
             )
+            self._register_quest_debt("resources", "3", self.reward_bread)
         # Increment account-level completion counter (for starter quest caps)
         if self.__class__.account_cap is not None:
             account = getattr(self.quester, "account", None)
@@ -191,6 +193,18 @@ class FCMQuest:
                 ) or {}
                 counts[self.key] = counts.get(self.key, 0) + 1
                 account.attributes.add("quest_completion_counts", counts)
+
+    @staticmethod
+    def _register_quest_debt(category, key, amount):
+        """Register quest reward debt with the spawn system.
+
+        Graceful no-op if the spawn service isn't running yet (e.g. in tests).
+        """
+        from blockchain.xrpl.services.spawn.service import get_spawn_service
+
+        service = get_spawn_service()
+        if service:
+            service.allocate_quest_reward(category, key, amount)
 
     def on_complete(self):
         """Called on completion. Override for custom logic."""

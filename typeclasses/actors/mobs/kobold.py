@@ -40,6 +40,13 @@ class Kobold(AggressiveMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)
 
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(6)
+
+    # ── Knowledge loot ──
+    scroll_loot_slots = AttributeProperty(1)
+    recipe_loot_slots = AttributeProperty(1)
+
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.7)  # flee early
     min_allies_to_attack = AttributeProperty(1)   # need 1+ ally

@@ -37,6 +37,13 @@ class GnollWarlord(Gnoll):
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)
 
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(25)
+
+    # ── Knowledge loot ──
+    scroll_loot_slots = AttributeProperty(2)
+    recipe_loot_slots = AttributeProperty(2)
+
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.0)  # never flees
     max_per_room = AttributeProperty(1)

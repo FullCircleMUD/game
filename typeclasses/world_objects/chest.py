@@ -44,6 +44,11 @@ class WorldChest(
     # Override CloseableMixin default — chests start closed
     is_open = AttributeProperty(False)
 
+    # ── Gold capacity ──
+    # Max gold this chest can hold for the spawn system. 0 = no gold.
+    # Override in zone setup or prototypes.
+    loot_gold_max = AttributeProperty(0)
+
     def at_object_creation(self):
         super().at_object_creation()
         self.at_smashable_init()
@@ -51,6 +56,11 @@ class WorldChest(
         self.at_lockable_init()
         self.at_container_init()
         self.at_fungible_init()
+
+        # Unified spawn system: gold tag
+        if self.loot_gold_max > 0:
+            self.tags.add("spawn_gold", category="spawn_gold")
+            self.db.spawn_gold_max = self.loot_gold_max
 
     # ------------------------------------------------------------------ #
     #  Access gating on open/closed state

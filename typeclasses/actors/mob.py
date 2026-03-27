@@ -28,6 +28,30 @@ from typeclasses.actors.ai_handler import AIMixin
 from typeclasses.actors.npc import BaseNPC
 
 
+# Tier hierarchy for knowledge loot slots (matches spawn system tiers).
+_TIER_ORDER = ["basic", "skilled", "expert", "master", "gm"]
+
+
+def _build_tier_max(level, slots):
+    """Build a spawn_<cat>_max dict from mob level and slot count.
+
+    The mob's tier is derived from its level:
+        L1-2 = basic, L3-4 = skilled, L5-6 = expert, L7-8 = master, L9+ = gm
+
+    All slots are placed at the mob's tier. At-or-below filtering in the
+    distributor means lower-tier items can fill higher-tier slots.
+
+    Returns:
+        Dict like {"basic": 0, "skilled": 1, "expert": 0, "master": 0, "gm": 0}
+    """
+    tier_index = min((level + 1) // 2, 5) - 1  # 0-4
+    tier_index = max(0, tier_index)
+    return {
+        tier: (slots if i == tier_index else 0)
+        for i, tier in enumerate(_TIER_ORDER)
+    }
+
+
 class CombatMob(AIMixin, BaseNPC):
     """
     Base class for killable mobs with AI behavior.
@@ -85,10 +109,23 @@ class CombatMob(AIMixin, BaseNPC):
 
     # ── Loot resources ──
     # Dict of {resource_id (int): max_amount (int)} defining which resources
-    # this mob can carry as loot. The resource spawn service fills mobs up
-    # to these caps over time. On death, all resources transfer to the corpse.
+    # this mob can carry as loot. The spawn system fills mobs up to these
+    # caps over time. On death, all resources transfer to the corpse.
     # Override in subclasses (e.g. Wolf: {8: 1} for 1 hide).
     loot_resources = AttributeProperty({})
+
+    # ── Gold loot ──
+    # Max gold this mob can carry as loot. 0 = no gold.
+    # Override in intelligent mob subclasses (kobolds, gnolls, etc.).
+    # Animals (wolves, rabbits) should not carry gold.
+    loot_gold_max = AttributeProperty(0)
+
+    # ── Knowledge loot slots ──
+    # Number of scroll/recipe slots this mob gets at its tier level.
+    # 0 = no scrolls/recipes. Override in intelligent mob subclasses.
+    # Tier is derived from mob level: L1-2=basic, L3-4=skilled, etc.
+    scroll_loot_slots = AttributeProperty(0)
+    recipe_loot_slots = AttributeProperty(0)
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -101,10 +138,27 @@ class CombatMob(AIMixin, BaseNPC):
         from commands.npc_cmds.cmdset_mob_combat import CmdSetMobCombat
         self.cmdset.add(CmdSetMobCombat, persistent=True)
 
-        # Register loot resource tags for indexed DB queries by the
-        # resource spawn service (e.g. "loot_resource_8" for hide).
-        for rid in (self.loot_resources or {}):
-            self.tags.add(f"loot_resource_{rid}", category="loot_resource")
+        # Unified spawn system: tag for target pooling, max dict for headroom.
+        if self.loot_resources:
+            self.tags.add("spawn_resources", category="spawn_resources")
+            self.db.spawn_resources_max = dict(self.loot_resources)
+
+        # Gold loot: plain int capacity.
+        if self.loot_gold_max > 0:
+            self.tags.add("spawn_gold", category="spawn_gold")
+            self.db.spawn_gold_max = self.loot_gold_max
+
+        # Knowledge loot: derive tier from level, build per-tier max dict.
+        if self.scroll_loot_slots > 0:
+            self.tags.add("spawn_scrolls", category="spawn_scrolls")
+            self.db.spawn_scrolls_max = _build_tier_max(
+                self.level, self.scroll_loot_slots,
+            )
+        if self.recipe_loot_slots > 0:
+            self.tags.add("spawn_recipes", category="spawn_recipes")
+            self.db.spawn_recipes_max = _build_tier_max(
+                self.level, self.recipe_loot_slots,
+            )
 
     # ================================================================== #
     #  Appearance — HP condition when looked at

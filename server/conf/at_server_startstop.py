@@ -53,8 +53,8 @@ _GLOBAL_SCRIPTS = [
     ("telemetry_aggregator_service", "typeclasses.scripts.telemetry_service.TelemetryAggregatorScript"),
     ("reallocation_service", "typeclasses.scripts.reallocation_service.ReallocationServiceScript"),
     ("durability_decay_service", "typeclasses.scripts.durability_decay_service.DurabilityDecayService"),
-    ("resource_spawn_service", "typeclasses.scripts.resource_spawn_service.ResourceSpawnScript"),
     ("nft_saturation_service", "typeclasses.scripts.nft_saturation_service.NFTSaturationScript"),
+    ("unified_spawn_service", "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript"),
 ]
 
 

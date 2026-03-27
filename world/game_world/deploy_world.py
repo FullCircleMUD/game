@@ -1049,24 +1049,38 @@ def seed_starting_resources():
     """Immediately populate RoomHarvesting rooms with default_spawn_rate resources.
 
     Called at the end of deploy_world() so the first player doesn't find
-    an empty world.  Uses ResourceSpawnService.distribute_to_rooms() which
-    applies resources instantly (no drip-feed delay, no telemetry gate).
+    an empty world. Directly sets resource_count on each room using the
+    unified SPAWN_CONFIG defaults.
     """
-    from blockchain.xrpl.services.resource_spawn import ResourceSpawnService
-    from world.economy.resource_spawn_config import RESOURCE_SPAWN_CONFIG
+    from evennia.objects.models import ObjectDB
+
+    from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
 
     print("\n--- Seeding starting resources ---")
-    summary = []
-    for resource_id, config in RESOURCE_SPAWN_CONFIG.items():
-        amount = config["default_spawn_rate"]
-        max_per_room = config["max_per_room"]
-        seeded = ResourceSpawnService.distribute_to_rooms(
-            resource_id, amount, max_per_room,
-        )
-        if seeded > 0:
-            summary.append(f"  r{resource_id}: {seeded} units")
-    if summary:
-        print("\n".join(summary))
+
+    rooms = ObjectDB.objects.filter(
+        db_tags__db_key="spawn_resources",
+        db_tags__db_category="spawn_resources",
+    ).distinct()
+
+    seeded_count = 0
+    for room in rooms:
+        if not hasattr(room.db, "resource_count"):
+            continue
+        max_dict = room.db.spawn_resources_max or {}
+        resource_id = getattr(room.db, "resource_id", None)
+        if resource_id is None:
+            continue
+        cfg = SPAWN_CONFIG.get(("resource", resource_id))
+        if not cfg:
+            continue
+        cap = max_dict.get(resource_id, 20)
+        amount = min(cfg["default_spawn_rate"], cap)
+        room.db.resource_count = amount
+        seeded_count += 1
+
+    if seeded_count:
+        print(f"  Seeded {seeded_count} harvest rooms with starting resources.")
     else:
         print("  No harvest rooms found — nothing seeded.")
     print("--- Seeding complete ---\n")

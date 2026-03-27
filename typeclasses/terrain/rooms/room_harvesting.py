@@ -4,7 +4,7 @@ Resource harvesting room — gather raw materials one at a time.
 Players use type-specific commands (mine, chop, harvest, hunt, fish, forage)
 to gather resources. Each action takes 3 seconds and yields 1 unit. Players
 don't know how many resources remain — they just keep gathering until "nothing
-left." Resource counts are replenished externally by a future spawn engine.
+left." Resource counts are replenished hourly by the UnifiedSpawnScript.
 
 Room description changes based on resource availability:
     >abundance_threshold  → desc_abundant  ("Resources are plentiful here.")
@@ -28,15 +28,8 @@ class RoomHarvesting(RoomBase):
     # Which resource can be harvested here (resource_id from seed data)
     resource_id = AttributeProperty(1)
 
-    # Current available count (ResourceSpawnService increments this hourly)
+    # Current available count (spawn system increments this hourly)
     resource_count = AttributeProperty(0)
-
-    # Maximum resource_count the spawn engine will fill to
-    max_resource_count = AttributeProperty(20)
-
-    # Spawn weight (1-5): higher = more resources spawned here relative
-    # to other rooms of the same resource type.  5 = rich node, 1 = sparse.
-    spawn_rate_weight = AttributeProperty(1)
 
     # Count above which "abundant" description is shown
     abundance_threshold = AttributeProperty(5)
@@ -67,6 +60,9 @@ class RoomHarvesting(RoomBase):
     def at_object_creation(self):
         super().at_object_creation()
         self.cmdset.add(CmdSetHarvesting, persistent=True)
+        # Unified spawn system: tag for target pooling, max dict for headroom.
+        self.tags.add("spawn_resources", category="spawn_resources")
+        self.db.spawn_resources_max = {self.resource_id: 20}
 
     def get_display_desc(self, looker, **kwargs):
         """Return tier-appropriate description based on resource count."""

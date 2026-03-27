@@ -164,13 +164,34 @@ class ZoneSpawnScript(DefaultScript):
         for attr_name, attr_val in rule.get("attrs", {}).items():
             setattr(mob, attr_name, attr_val)
 
-        # Sync loot resource tags — attrs may have overridden the typeclass
-        # default loot_resources, so re-check and add any missing tags.
+        # Sync spawn tags — attrs may have overridden the typeclass default
+        # loot_resources, loot_gold_max, or scroll/recipe slots, so re-check
+        # and ensure spawn tags are current.
         loot_res = getattr(mob, "loot_resources", None) or {}
-        for rid in loot_res:
-            tag_key = f"loot_resource_{rid}"
-            if not mob.tags.get(tag_key, category="loot_resource"):
-                mob.tags.add(tag_key, category="loot_resource")
+        if loot_res:
+            if not mob.tags.get("spawn_resources", category="spawn_resources"):
+                mob.tags.add("spawn_resources", category="spawn_resources")
+            mob.db.spawn_resources_max = dict(loot_res)
+
+        gold_max = getattr(mob, "loot_gold_max", 0) or 0
+        if gold_max > 0:
+            if not mob.tags.get("spawn_gold", category="spawn_gold"):
+                mob.tags.add("spawn_gold", category="spawn_gold")
+            mob.db.spawn_gold_max = gold_max
+
+        scroll_slots = getattr(mob, "scroll_loot_slots", 0) or 0
+        if scroll_slots > 0:
+            from typeclasses.actors.mob import _build_tier_max
+            if not mob.tags.get("spawn_scrolls", category="spawn_scrolls"):
+                mob.tags.add("spawn_scrolls", category="spawn_scrolls")
+            mob.db.spawn_scrolls_max = _build_tier_max(mob.level, scroll_slots)
+
+        recipe_slots = getattr(mob, "recipe_loot_slots", 0) or 0
+        if recipe_slots > 0:
+            from typeclasses.actors.mob import _build_tier_max
+            if not mob.tags.get("spawn_recipes", category="spawn_recipes"):
+                mob.tags.add("spawn_recipes", category="spawn_recipes")
+            mob.db.spawn_recipes_max = _build_tier_max(mob.level, recipe_slots)
 
         # Tag for population tracking
         mob.tags.add(self.db.zone_key, category="spawn_zone")

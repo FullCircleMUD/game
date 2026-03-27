@@ -38,6 +38,13 @@ class KoboldChieftain(AggressiveMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)
 
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(12)
+
+    # ── Knowledge loot ──
+    scroll_loot_slots = AttributeProperty(1)
+    recipe_loot_slots = AttributeProperty(1)
+
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.3)  # fights to 30%
     max_per_room = AttributeProperty(1)

@@ -501,15 +501,11 @@ Hourly aggregation system that snapshots key economic metrics for the spawn algo
 
 **Velocity categories:** produced (craft_output + pickup), consumed (craft_input), traded (amm_buy + amm_sell), exported (withdraw_to_chain), imported (deposit_from_chain).
 
-## Resource Spawn Algorithm
+## Unified Spawn System
 
-> **Source of truth:** See `design/SPAWN_RESOURCES.md` for the full three-factor algorithm, room distribution, mob loot spawning, budget split, drip-feed mechanics, configuration reference, and implementation file paths.
+> **Source of truth:** See `design/UNIFIED_ITEM_SPAWN_SYSTEM.md` for the full Calculator + Distributor architecture — resource two-factor algorithm, gold three-factor algorithm, knowledge saturation model, rare NFT POC, tag-driven distribution, drip-feed mechanics, quest debt integration, and implementation file paths.
 
-## NFT Saturation Service
-
-> **Design:** See `design/SPAWN_NFT_ITEMS.md` and `design/SPAWN_KNOWLEDGE_ITEMS.md` for saturation formulas, rarity tiers, and drop mechanics.
-
-**Implementation:** `blockchain/xrpl/services/nft_saturation.py` — `NFTSaturationService`. Daily snapshot via `NFTSaturationScript` (86400s interval). Snapshots stored in `SaturationSnapshot` model.
+**Implementation:** `blockchain/xrpl/services/spawn/` — `SpawnService` orchestrator, 4 calculators (Resource, Gold, Knowledge, RareNFT), 2 distributor families (Fungible, NFT). Hourly cycle via `UnifiedSpawnScript`. Daily saturation snapshots via `NFTSaturationScript` (86400s interval) stored in `SaturationSnapshot` model. 174+ tests in `tests/spawn_tests/`.
 
 ## Character Delete Protection
 
