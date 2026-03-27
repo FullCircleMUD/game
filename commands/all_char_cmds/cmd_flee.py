@@ -5,6 +5,9 @@ In combat: DEX check (d20 + DEX mod vs DC 10). On success, flee through
 a random open exit and leave combat. On failure, lose the action and all
 enemies get 1 round of advantage.
 
+Height advantage: if no enemy has a melee weapon at the same height,
+flee auto-succeeds (no DEX check needed).
+
 Out of combat: comic panic run through a random exit (auto-success).
 """
 
@@ -58,7 +61,8 @@ class CmdFlee(Command):
 
     def _flee_in_combat(self, caller, handler):
         """Attempt to flee from combat (DEX check)."""
-        from combat.combat_utils import get_sides
+        from combat.combat_utils import get_sides, get_weapon
+        from combat.height_utils import can_reach_target
 
         exits = _get_open_exits(caller)
         if not exits:
@@ -68,11 +72,24 @@ class CmdFlee(Command):
         # Capture enemies before any movement changes rooms
         _, enemies = get_sides(caller)
 
-        # DEX check: d20 + DEX modifier vs DC
+        # Height advantage: if no enemy can melee us, flee auto-succeeds.
+        # An enemy threatens melee if they're at the same height with a
+        # melee weapon (or unarmed).
+        any_melee_threat = False
+        for enemy in enemies:
+            if enemy.location != caller.location:
+                continue
+            e_weapon = get_weapon(enemy)
+            e_type = getattr(e_weapon, "weapon_type", "melee") if e_weapon else "melee"
+            if e_type == "melee" and can_reach_target(enemy, caller, e_weapon):
+                any_melee_threat = True
+                break
+
+        # DEX check: d20 + DEX modifier vs DC (skipped if no melee threat)
         dex_mod = caller.get_attribute_bonus(caller.dexterity)
         roll = dice.roll("1d20") + dex_mod
 
-        if roll >= FLEE_DC:
+        if not any_melee_threat or roll >= FLEE_DC:
             # Success — flee through random exit
             chosen = random.choice(exits)
             direction = chosen.key

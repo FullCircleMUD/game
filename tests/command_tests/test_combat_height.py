@@ -463,3 +463,103 @@ class TestMobAggroHeight(EvenniaCommandTest):
                     mock_attack.assert_not_called()
         finally:
             mob.delete()
+
+
+class TestFleeHeight(EvenniaCommandTest):
+    """Test flee mechanics with height differences."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.allow_pvp = True
+        self.room1.max_height = 5
+        self.char1.hp = 50
+        self.char1.hp_max = 50
+        self.char2.hp = 50
+        self.char2.hp_max = 50
+        self.char1.room_vertical_position = 0
+        self.char2.room_vertical_position = 0
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        super().tearDown()
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_flee_auto_succeeds_vs_ranged_only(self, mock_ticker, mock_dice):
+        """Flee auto-succeeds when all enemies are at different height (ranged only)."""
+        mock_dice.roll.return_value = 1  # terrible roll — still succeeds
+        from combat.combat_utils import enter_combat
+        from commands.all_char_cmds.cmd_flee import CmdFlee
+
+        # Create a missile weapon for char2
+        bow = create.create_object(
+            "typeclasses.items.weapons.weapon_nft_item.WeaponNFTItem",
+            key="a shortbow",
+            location=self.char2,
+            attributes=[
+                ("weapon_type", "missile"),
+                ("weapon_type_key", "bow"),
+                ("speed", 1.0),
+                ("damage_dice", "1d6"),
+                ("token_id", 997),
+            ],
+        )
+        self.char2.wear(bow)
+
+        # char1 is flying, char2 is grounded with ranged weapon
+        self.char1.room_vertical_position = 2
+        self.char2.room_vertical_position = 0
+
+        enter_combat(self.char1, self.char2)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("flee", result.lower())
+        self.assertNotIn("can't escape", result)
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_flee_requires_check_vs_melee(self, mock_ticker, mock_dice):
+        """Flee requires DEX check when enemy is in melee range (same height)."""
+        mock_dice.roll.return_value = 1  # terrible roll
+        from combat.combat_utils import enter_combat
+        from commands.all_char_cmds.cmd_flee import CmdFlee
+
+        # Both at ground level — melee threat exists
+        self.char1.room_vertical_position = 0
+        self.char2.room_vertical_position = 0
+
+        enter_combat(self.char1, self.char2)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("can't escape", result)
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_flee_auto_succeeds_flying_vs_grounded_melee(self, mock_ticker, mock_dice):
+        """Flying player auto-succeeds flee vs grounded melee enemy."""
+        mock_dice.roll.return_value = 1  # terrible roll — still succeeds
+        from combat.combat_utils import enter_combat
+        from commands.all_char_cmds.cmd_flee import CmdFlee
+
+        # char1 flying, char2 grounded with no weapon (unarmed = melee)
+        self.char1.room_vertical_position = 3
+        self.char2.room_vertical_position = 0
+
+        enter_combat(self.char1, self.char2)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("flee", result.lower())
+        self.assertNotIn("can't escape", result)
