@@ -39,14 +39,14 @@ class TestWolfAggression(EvenniaTest):
     def test_wolf_max_per_room(self):
         self.assertEqual(self.wolf.max_per_room, 1)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_at_new_arrival_aggros_player(self, mock_delay):
         """Wolf should schedule attack when a player enters."""
         self.char1.is_pc = True
         self.wolf.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_at_new_arrival_aggros_rabbit(self, mock_delay):
         """Wolf should schedule attack when a rabbit enters."""
         rabbit = create.create_object(
@@ -58,7 +58,7 @@ class TestWolfAggression(EvenniaTest):
         self.wolf.at_new_arrival(rabbit)
         self.assertTrue(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_no_aggro_when_low_health(self, mock_delay):
         """Wolf should not aggro when below HP threshold."""
         self.wolf.hp = 1  # well below 50%
@@ -66,7 +66,7 @@ class TestWolfAggression(EvenniaTest):
         self.wolf.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_no_aggro_when_dead(self, mock_delay):
         """Dead wolf should not aggro."""
         self.wolf.is_alive = False
@@ -74,7 +74,7 @@ class TestWolfAggression(EvenniaTest):
         self.wolf.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_players_prioritised_over_rabbits_in_wander(self, mock_delay):
         """ai_wander should target players before rabbits."""
         self.char1.is_pc = True

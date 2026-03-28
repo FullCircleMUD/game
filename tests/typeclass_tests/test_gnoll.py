@@ -64,14 +64,14 @@ class TestGnollAggression(EvenniaTest):
         self.gnoll.is_alive = True
         self.gnoll.hp = 40
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_at_new_arrival_aggros_player(self, mock_delay):
         """Gnoll should schedule attack when a player enters."""
         self.char1.is_pc = True
         self.gnoll.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_no_aggro_when_low_health(self, mock_delay):
         """Gnoll should not aggro below 25% HP."""
         self.gnoll.hp = 5  # 12.5% — below 25% threshold
@@ -79,7 +79,7 @@ class TestGnollAggression(EvenniaTest):
         self.gnoll.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_targets_player(self, mock_delay):
         """ai_wander should attack player in room."""
         self.char1.is_pc = True

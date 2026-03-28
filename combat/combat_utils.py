@@ -588,12 +588,11 @@ def enter_combat(combatant, target):
     _get_or_create_handler(combatant)
     _get_or_create_handler(target)
 
-    # If target is a CombatMob, trigger counter-attack against the aggressor.
-    # mob_attack() → execute_cmd("attack ...") → queues repeating attack on
-    # the mob's handler. Safe to call even if handler already has an action.
-    from typeclasses.actors.mob import CombatMob
-    if isinstance(target, CombatMob) and getattr(target, "is_alive", False):
-        target.mob_attack(combatant)
+    # If target has combat capability (CombatMixin), trigger counter-attack.
+    # initiate_attack() → execute_cmd("attack ...") → queues repeating attack
+    # on the target's handler. Safe to call even if handler already has an action.
+    if hasattr(target, "initiate_attack") and getattr(target, "is_alive", False):
+        target.initiate_attack(combatant)
 
     # Pull in combatant's group
     if hasattr(combatant, "get_group_leader"):

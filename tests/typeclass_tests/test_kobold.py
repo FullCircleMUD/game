@@ -59,7 +59,7 @@ class TestKoboldPackCourage(EvenniaTest):
         kobold2.is_alive = False
         self.assertFalse(self.kobold1._has_pack_courage())
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_attacks_with_ally_present(self, mock_delay):
         """Kobold with ally should aggro on player arrival."""
         kobold2 = create.create_object(
@@ -72,7 +72,7 @@ class TestKoboldPackCourage(EvenniaTest):
         self.kobold1.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_flees_when_alone(self, mock_delay):
         """Solo kobold should flee, not attack, when player arrives."""
         self.char1.is_pc = True
@@ -82,7 +82,7 @@ class TestKoboldPackCourage(EvenniaTest):
         # Should have fled to room2
         self.assertEqual(self.kobold1.location, self.room2)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_fights_when_cornered(self, mock_delay):
         """Solo kobold with no exits should fight (cornered)."""
         # Create a room with no exits
@@ -97,7 +97,7 @@ class TestKoboldPackCourage(EvenniaTest):
         # Should attack — cornered, no exits
         self.assertTrue(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_attacks_with_allies(self, mock_delay):
         """ai_wander should attack if allies present."""
         kobold2 = create.create_object(
@@ -111,7 +111,7 @@ class TestKoboldPackCourage(EvenniaTest):
         self.kobold1.ai_wander()
         self.assertTrue(mock_delay.called)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_flees_when_alone(self, mock_delay):
         """ai_wander should flee if alone and player present."""
         self.char1.is_pc = True

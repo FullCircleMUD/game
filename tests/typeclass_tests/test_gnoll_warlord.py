@@ -84,13 +84,13 @@ class TestGnollWarlordBehavior(EvenniaTest):
         self.boss.at_kill(victim)
         mock_execute.assert_called_once_with(self.boss, self.char1)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_does_not_move(self, mock_delay):
         """Boss should scan for players but never wander."""
         self.boss.ai_wander()
         self.assertEqual(self.boss.location, self.room1)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_attacks_player(self, mock_delay):
         """Boss should attack players found in room."""
         self.char1.is_pc = True

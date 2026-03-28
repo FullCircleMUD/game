@@ -20,6 +20,7 @@ from typeclasses.mixins.recipe_book import RecipeBookMixin
 from typeclasses.mixins.remort import RemortMixin
 from typeclasses.mixins.spellbook import SpellbookMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
+from typeclasses.mixins.combat_mixin import CombatMixin
 
 from evennia.utils.utils import lazy_property
 
@@ -29,6 +30,7 @@ from evennia.utils.utils import lazy_property
 from utils.experience_table import EXPERIENCE_TABLE, get_xp_for_next_level, get_xp_gap
 
 class FCMCharacter(
+    CombatMixin,
     CarryingCapacityMixin,
     FollowableMixin,
     FungibleInventoryMixin,
@@ -487,8 +489,8 @@ class FCMCharacter(
         if self.hp >= self.wimpy_threshold:
             return
 
-        handlers = self.scripts.get("combat_handler")
-        if not handlers:
+        handler = self.get_combat_handler()
+        if not handler:
             return
 
         # Find open exits
@@ -510,7 +512,7 @@ class FCMCharacter(
         _, enemies = get_sides(self)
 
         # Stop combat before moving
-        handlers[0].stop_combat()
+        handler.stop_combat()
 
         self.msg(f"|rYour wimpy threshold is reached — you flee {direction}!|n")
         if room:
@@ -524,9 +526,11 @@ class FCMCharacter(
 
         # Clean up combat for remaining enemies
         for enemy in enemies:
-            enemy_handlers = enemy.scripts.get("combat_handler")
-            if enemy_handlers:
-                enemy_handlers[0]._check_stop_combat()
+            enemy_handler = (enemy.get_combat_handler()
+                             if hasattr(enemy, "get_combat_handler")
+                             else None)
+            if enemy_handler:
+                enemy_handler._check_stop_combat()
 
     def die(self, cause="unknown", killer=None):
         """
@@ -567,9 +571,7 @@ class FCMCharacter(
         from typeclasses.world_objects.corpse import Corpse
 
         # 1. Stop combat handler if active
-        handlers = self.scripts.get("combat_handler")
-        if handlers:
-            handlers[0].stop_combat()
+        self.exit_combat()
 
         # 2. Clear all effects to prevent DoTs following player to safe room
         self.clear_all_effects()
@@ -621,9 +623,7 @@ class FCMCharacter(
         from typeclasses.world_objects.corpse import Corpse
 
         # 1. Stop combat — clean up handler, pending actions, combat effects
-        handlers = self.scripts.get("combat_handler")
-        if handlers:
-            handlers[0].stop_combat()
+        self.exit_combat()
 
         # 2. Strip ALL effects (seconds-based, combat, permanent)
         #    stop_combat already cleared combat_rounds effects; this catches

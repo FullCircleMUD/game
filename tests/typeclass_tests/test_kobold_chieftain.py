@@ -65,14 +65,14 @@ class TestKoboldChieftainBehavior(EvenniaTest):
         self.boss.hp = 28
         self.boss.tags.clear(category="mob_area")
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_does_not_move(self, mock_delay):
         """Boss should scan for players but never wander to another room."""
         # No players — should not move
         self.boss.ai_wander()
         self.assertEqual(self.boss.location, self.room1)
 
-    @patch("typeclasses.actors.mobs.aggressive_mob.delay")
+    @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_attacks_player(self, mock_delay):
         """Boss should attack players found in room."""
         self.char1.is_pc = True

@@ -66,7 +66,7 @@ class RatKing(CombatMob):
             return
         if getattr(target, "hp", 1) <= 0:
             return
-        self.mob_attack(target)
+        self.initiate_attack(target)
 
     # ── AI States ──
 

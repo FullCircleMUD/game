@@ -209,8 +209,8 @@ class CmdTaunt(CmdSkillBase):
             # ── OPENER PATH ──
             if attacker_total > defender_total:
                 # Success — mob takes the bait and attacks
-                # mob_attack triggers enter_combat from the mob's side
-                target.mob_attack(caller)
+                # initiate_attack triggers enter_combat from the mob's side
+                target.initiate_attack(caller)
 
                 # Ensure caller has a handler + attack action
                 handlers = caller.scripts.get("combat_handler")

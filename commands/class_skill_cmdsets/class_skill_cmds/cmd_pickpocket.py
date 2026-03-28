@@ -277,9 +277,9 @@ class CmdPickpocket(CmdSkillBase):
             )
 
         # Aggressive mob aggro
-        from typeclasses.actors.mob import CombatMob
-        if isinstance(target, CombatMob) and target.is_aggressive_to_players:
-            target.mob_attack(caller)
+        if (hasattr(target, "initiate_attack")
+                and getattr(target, "is_aggressive_to_players", False)):
+            target.initiate_attack(caller)
 
     # Mastery stubs — not used (func overridden)
     def unskilled_func(self):

@@ -8,7 +8,7 @@ Each tick, `run()` dispatches to `self.obj.ai_<state>()` on the mob.
 State is persisted as an Evennia Attribute (survives server restarts).
 
 Usage:
-    class MyMob(AIMixin, BaseNPC):
+    class MyMob(StateMachineAIMixin, BaseNPC):
         def ai_wander(self):
             ...
 
@@ -123,9 +123,13 @@ class AIHandler:
         return random.choice(exits) if exits else None
 
 
-class AIMixin:
+class StateMachineAIMixin:
     """Mixin that provides the .ai lazy property for any object."""
 
     @lazy_property
     def ai(self):
         return AIHandler(self)
+
+
+# Backward-compat alias — remove after all imports are updated.
+AIMixin = StateMachineAIMixin

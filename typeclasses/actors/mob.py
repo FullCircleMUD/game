@@ -2,7 +2,7 @@
 CombatMob — killable enemy mobs with AI, combat handler, and respawn.
 
 Base class for all hostile/neutral mobs in FCM. Extends BaseNPC with:
-  - AI state machine (via AIMixin)
+  - AI state machine (via StateMachineAIMixin)
   - TICKER_HANDLER-driven AI loop
   - Combat via shared execute_attack() — same path as players
   - Death + timed respawn
@@ -24,11 +24,12 @@ from evennia import TICKER_HANDLER
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
-from typeclasses.actors.ai_handler import AIMixin
+from typeclasses.actors.ai_handler import StateMachineAIMixin
 from typeclasses.actors.npc import BaseNPC
+from typeclasses.mixins.combat_mixin import CombatMixin
 
 
-class CombatMob(AIMixin, BaseNPC):
+class CombatMob(CombatMixin, StateMachineAIMixin, BaseNPC):
     """
     Base class for killable mobs with AI behavior.
 
@@ -106,15 +107,9 @@ class CombatMob(AIMixin, BaseNPC):
     spawn_recipes_max = AttributeProperty({})
 
     def at_object_creation(self):
-        super().at_object_creation()
+        super().at_object_creation()  # CombatMixin adds CmdSetMobCombat + call:false()
         if self.location:
             self.spawn_room_id = self.location.id
-        # Override call:true() from BaseNPC — mob commands shouldn't merge
-        # into nearby players' command pools (players have their own CmdAttack).
-        self.locks.add("call:false()")
-        # Add combat commands so mob AI can use execute_cmd("attack ...")
-        from commands.npc_cmds.cmdset_mob_combat import CmdSetMobCombat
-        self.cmdset.add(CmdSetMobCombat, persistent=True)
 
         # Unified spawn system: tag for target pooling, max dict for headroom.
         if self.loot_resources:
@@ -208,31 +203,11 @@ class CombatMob(AIMixin, BaseNPC):
         pass
 
     # ================================================================== #
-    #  Simple Combat — Direct Attacks
+    #  Simple Combat
     # ================================================================== #
 
-    def mob_attack(self, target):
-        """
-        Initiate attack via the command interface — same path as players.
-
-        Uses execute_cmd() so the attack goes through CmdAttack → enter_combat()
-        → CombatHandler. The combat handler's ticker then drives repeated attacks.
-
-        If already actively attacking, this is a no-op.
-        """
-        if not self.is_alive or not self.location:
-            return
-        if not target or not getattr(target, "hp", None) or target.hp <= 0:
-            return
-
-        # Already actively attacking? Let the handler drive.
-        existing = self.scripts.get("combat_handler")
-        if existing:
-            action = existing[0].action_dict
-            if action.get("key") == "attack":
-                return  # already auto-attacking
-
-        self.execute_cmd(f"attack {target.key}")
+    # Backward-compat alias — callers should migrate to initiate_attack().
+    mob_attack = CombatMixin.initiate_attack
 
     def _roll_damage(self):
         """Roll damage from damage_dice string like '1d4' or '2d6'."""
@@ -249,22 +224,7 @@ class CombatMob(AIMixin, BaseNPC):
         """Called when this mob kills something. Override for special behavior."""
         pass
 
-    # ================================================================== #
-    #  Health Helpers
-    # ================================================================== #
-
-    @property
-    def hp_fraction(self):
-        """Current HP as a fraction of max HP (0.0 to 1.0)."""
-        max_hp = self.effective_hp_max
-        if max_hp <= 0:
-            return 0
-        return self.hp / max_hp
-
-    @property
-    def is_low_health(self):
-        """True if below aggro_hp_threshold (default 50%)."""
-        return self.hp_fraction < self.aggro_hp_threshold
+    # hp_fraction and is_low_health are provided by CombatMixin
 
     # ================================================================== #
     #  Movement
@@ -337,9 +297,7 @@ class CombatMob(AIMixin, BaseNPC):
         self.stop_ai()
 
         # Clean up combat handler if present
-        handlers = self.scripts.get("combat_handler")
-        if handlers:
-            handlers[0].stop_combat()
+        self.exit_combat()
 
         room = self.location  # capture before removing from world
 

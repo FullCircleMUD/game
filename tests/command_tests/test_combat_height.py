@@ -432,7 +432,7 @@ class TestMobAggroHeight(EvenniaCommandTest):
             mob.room_vertical_position = 0
             # Target flies up between schedule and execute
             self.char1.room_vertical_position = 2
-            with patch.object(mob, "mob_attack") as mock_attack:
+            with patch.object(mob, "initiate_attack") as mock_attack:
                 mob._execute_attack(self.char1)
                 mock_attack.assert_called_once_with(self.char1)
             self.assertEqual(mob.room_vertical_position, 2)
@@ -445,7 +445,7 @@ class TestMobAggroHeight(EvenniaCommandTest):
         try:
             self.char1.room_vertical_position = 2
             mob.room_vertical_position = 0
-            with patch.object(mob, "mob_attack") as mock_attack:
+            with patch.object(mob, "initiate_attack") as mock_attack:
                 mob._execute_attack(self.char1)
                 mock_attack.assert_not_called()
         finally:
