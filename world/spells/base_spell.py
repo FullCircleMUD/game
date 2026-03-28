@@ -68,6 +68,7 @@ class Spell:
         min_mastery — minimum MasteryLevel to learn/cast
         mana_cost   — dict {mastery_tier_int: mana_cost}
         target_type — "hostile", "friendly", "self", or "none"
+        spell_range — "self", "melee", or "ranged" (height gating)
         cooldown    — rounds of cooldown after casting (None = use default)
         description — short flavour text shown in spellbook/spellinfo
         mechanics   — multi-line rules/scaling text for spellinfo
@@ -80,6 +81,7 @@ class Spell:
     min_mastery = MasteryLevel.BASIC
     mana_cost = {}
     target_type = "hostile"
+    spell_range = "ranged"  # "self", "melee", or "ranged"
     cooldown = None  # None = use default based on min_mastery tier
     has_spell_arg = False  # True = cmd_cast pops first word as spell_arg
     description = ""
@@ -159,6 +161,16 @@ class Spell:
                 False,
                 f"{self.name} is on cooldown ({remaining} round{s} remaining).",
             )
+
+        # Height check for melee-range spells
+        if self.spell_range == "melee" and target:
+            caster_height = getattr(caster, "room_vertical_position", 0)
+            target_height = getattr(target, "room_vertical_position", 0)
+            if caster_height != target_height:
+                return (
+                    False,
+                    "You can't reach them from your current height.",
+                )
 
         cost = self.mana_cost.get(tier, 0)
         if caster.mana < cost:

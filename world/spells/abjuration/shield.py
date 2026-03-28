@@ -43,6 +43,7 @@ class Shield(Spell):
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 3, 2: 5, 3: 7, 4: 9, 5: 12}
     target_type = "self"
+    spell_range = "self"
     cooldown = 0
     description = "Conjures a shimmering barrier of force that deflects attacks."
     mechanics = (

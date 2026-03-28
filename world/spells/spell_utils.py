@@ -78,3 +78,37 @@ def get_room_all(caster):
         obj for obj in room.contents
         if getattr(obj, "hp", None) is not None and obj.hp > 0
     ]
+
+
+def get_room_enemies_at_height(caster):
+    """
+    Get living enemies at the same vertical height as the caster.
+
+    Wraps get_room_enemies() with a room_vertical_position filter.
+    Useful for AoE spells that only affect targets at the same height.
+
+    Returns:
+        list: Enemy entities at the caster's height.
+    """
+    caster_height = getattr(caster, "room_vertical_position", 0)
+    return [
+        e for e in get_room_enemies(caster)
+        if getattr(e, "room_vertical_position", 0) == caster_height
+    ]
+
+
+def get_room_all_at_height(caster):
+    """
+    Get all living entities at the same vertical height as the caster.
+
+    Wraps get_room_all() with a room_vertical_position filter.
+    Useful for unsafe AoE spells that only affect targets at the same height.
+
+    Returns:
+        list: All living entities at the caster's height.
+    """
+    caster_height = getattr(caster, "room_vertical_position", 0)
+    return [
+        e for e in get_room_all(caster)
+        if getattr(e, "room_vertical_position", 0) == caster_height
+    ]

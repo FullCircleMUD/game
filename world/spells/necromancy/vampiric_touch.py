@@ -106,6 +106,7 @@ class VampiricTouch(Spell):
     # deducts nothing; we handle mana in our override.
     mana_cost = {2: 0, 3: 0, 4: 0, 5: 0}
     target_type = "hostile"
+    spell_range = "melee"
     cooldown = 0
     description = "Drains life through touch, raising your HP beyond its maximum."
     mechanics = (
@@ -158,6 +159,16 @@ class VampiricTouch(Spell):
         tier = self.get_caster_tier(caster)
         if tier < self.min_mastery.value:
             return (False, "Your mastery is too low to cast this spell.")
+
+        # Height check — melee range spell
+        if target:
+            caster_height = getattr(caster, "room_vertical_position", 0)
+            target_height = getattr(target, "room_vertical_position", 0)
+            if caster_height != target_height:
+                return (
+                    False,
+                    "You can't reach them from your current height.",
+                )
 
         on_cd, remaining = self.is_on_cooldown(caster)
         if on_cd:

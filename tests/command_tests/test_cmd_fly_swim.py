@@ -230,6 +230,71 @@ class TestCmdFlyConditionGating(EvenniaCommandTest):
 
 
 # =====================================================================
+#  Fall-into-water tests — water room (max_depth < 0)
+# =====================================================================
+
+class TestFallIntoWater(EvenniaCommandTest):
+    """Water absorbs the first WATER_FALL_ABSORB (20) HP of fall damage."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.attributes.add("wallet_address", WALLET_A)
+        self.room1.max_height = 5
+        self.room1.max_depth = -1  # water present
+
+    def test_fall_height_1_water_no_damage(self):
+        """Height 1 into water (10 HP) — fully absorbed, splash message."""
+        self.char1.add_condition(Condition.FLY)
+        self.char1.room_vertical_position = 1
+        self.char1.hp = 100
+        self.char1.remove_condition(Condition.FLY)
+        self.assertEqual(self.char1.room_vertical_position, 0)
+        self.assertEqual(self.char1.hp, 100)
+
+    def test_fall_height_2_water_no_damage(self):
+        """Height 2 into water (20 HP) — fully absorbed, splash message."""
+        self.char1.add_condition(Condition.FLY)
+        self.char1.room_vertical_position = 2
+        self.char1.hp = 100
+        self.char1.remove_condition(Condition.FLY)
+        self.assertEqual(self.char1.room_vertical_position, 0)
+        self.assertEqual(self.char1.hp, 100)
+
+    def test_fall_height_3_water_10_damage(self):
+        """Height 3 into water (30 HP - 20 absorb) = 10 damage."""
+        self.char1.add_condition(Condition.FLY)
+        self.char1.room_vertical_position = 3
+        self.char1.hp = 100
+        self.char1.remove_condition(Condition.FLY)
+        self.assertEqual(self.char1.room_vertical_position, 0)
+        self.assertEqual(self.char1.hp, 90)
+
+    def test_fall_height_5_water_30_damage(self):
+        """Height 5 into water (50 HP - 20 absorb) = 30 damage."""
+        self.char1.add_condition(Condition.FLY)
+        self.char1.room_vertical_position = 5
+        self.char1.hp = 100
+        self.char1.remove_condition(Condition.FLY)
+        self.assertEqual(self.char1.room_vertical_position, 0)
+        self.assertEqual(self.char1.hp, 70)
+
+    def test_fall_height_2_dry_ground_still_damages(self):
+        """Height 2 onto dry ground — no absorption, full 20 damage."""
+        self.room1.max_depth = 0  # no water
+        self.char1.add_condition(Condition.FLY)
+        self.char1.room_vertical_position = 2
+        self.char1.hp = 100
+        self.char1.remove_condition(Condition.FLY)
+        self.assertEqual(self.char1.room_vertical_position, 0)
+        self.assertEqual(self.char1.hp, 80)
+
+
+# =====================================================================
 #  Swim tests — land room (max_depth=0, no water)
 # =====================================================================
 

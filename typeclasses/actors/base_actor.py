@@ -549,27 +549,69 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # ── Fall damage when FLY condition is lost while airborne ──
 
     FALL_DAMAGE_PER_LEVEL = 10
+    WATER_FALL_ABSORB = 20
 
     def _check_fall(self):
-        """If airborne, fall to ground and take flat damage per height level."""
+        """If airborne, fall to ground and take flat damage per height level.
+
+        Water (rooms with max_depth < 0) absorbs the first WATER_FALL_ABSORB
+        HP of fall damage — a short dock jump is harmless, but a cliff dive
+        still hurts.
+        """
         height = self.room_vertical_position
         if height <= 0:
             return
 
         self.room_vertical_position = 0
         raw_damage = height * self.FALL_DAMAGE_PER_LEVEL
-        damage = self.take_damage(raw_damage, cause="fall", ignore_resistance=True)
+        room = self.location
 
-        self.msg(
-            f"|rYou plummet to the ground! "
-            f"You take |w{damage}|r damage from the fall.|n"
-        )
-        if self.location:
-            self.location.msg_contents(
-                f"{self.key} plummets from the sky and crashes to the ground!",
-                exclude=[self],
-                from_obj=self,
+        # Water cushions the fall
+        lands_in_water = room and getattr(room, "max_depth", 0) < 0
+        if lands_in_water:
+            raw_damage = max(0, raw_damage - self.WATER_FALL_ABSORB)
+
+        if raw_damage <= 0 and lands_in_water:
+            self.msg("|yYou splash into the water!|n")
+            if room:
+                room.msg_contents(
+                    f"{self.key} does the most magnificent belly-flop "
+                    f"into the water!",
+                    exclude=[self],
+                    from_obj=self,
+                )
+            return
+
+        if lands_in_water:
+            damage = self.take_damage(
+                raw_damage, cause="fall", ignore_resistance=True
             )
+            self.msg(
+                f"|rYou plummet into the water from a great height! "
+                f"You take |w{damage}|r damage from the impact.|n"
+            )
+            if room:
+                room.msg_contents(
+                    f"{self.key} plummets from the sky and crashes "
+                    f"into the water!",
+                    exclude=[self],
+                    from_obj=self,
+                )
+        else:
+            damage = self.take_damage(
+                raw_damage, cause="fall", ignore_resistance=True
+            )
+            self.msg(
+                f"|rYou plummet to the ground! "
+                f"You take |w{damage}|r damage from the fall.|n"
+            )
+            if room:
+                room.msg_contents(
+                    f"{self.key} plummets from the sky and crashes "
+                    f"to the ground!",
+                    exclude=[self],
+                    from_obj=self,
+                )
 
     # ================================================================== #
     #  Damage Pipeline
