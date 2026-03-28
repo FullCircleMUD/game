@@ -26,6 +26,7 @@ class CmdWield(Command):
     """
 
     key = "wield"
+    aliases = ("wie", "wiel")
     locks = "cmd:all()"
     help_category = "Items"
 

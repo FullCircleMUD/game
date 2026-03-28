@@ -25,6 +25,7 @@ class CmdFollow(Command):
     """
 
     key = "follow"
+    aliases = ("fol", "foll")
     locks = "cmd:all()"
     help_category = "Group"
 
@@ -114,6 +115,7 @@ class CmdUnfollow(Command):
     """
 
     key = "unfollow"
+    aliases = ("unf", "unfo", "unfol")
     locks = "cmd:all()"
     help_category = "Group"
 

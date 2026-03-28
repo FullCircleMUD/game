@@ -19,7 +19,7 @@ class CmdWeight(Command):
     """
 
     key = "weight"
-    aliases = ["encumbrance"]
+    aliases = ("we", "wei", "weig", "encumbrance")
     locks = "cmd:all()"
     help_category = "Character"
 

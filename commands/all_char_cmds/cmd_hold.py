@@ -30,6 +30,7 @@ class CmdHold(Command):
     """
 
     key = "hold"
+    aliases = ("ho", "hol")
     locks = "cmd:all()"
     help_category = "Items"
 

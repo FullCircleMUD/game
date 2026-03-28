@@ -28,7 +28,7 @@ class CmdLight(Command):
     """
 
     key = "light"
-    aliases = ["ignite"]
+    aliases = ("li", "lig", "ignite")
     locks = "cmd:all()"
     help_category = "Items"
 

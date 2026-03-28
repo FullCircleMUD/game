@@ -112,10 +112,6 @@ def build_tutorial_3(instance):
 
     if first_run and char.account:
         char.account.db.tutorial_3_entered = True
-        # Give 1 general skill point + 50 gold for training
-        current = getattr(char.db, "general_skill_points_available", 0) or 0
-        char.db.general_skill_points_available = current + 1
-        char.receive_gold_from_reserve(50)
 
     # ================================================================== #
     #  ROOM 1: Hall of Records — Score, Stats, Conditions
@@ -129,11 +125,14 @@ def build_tutorial_3(instance):
         "|wTutorial: Character Information|n\n\n"
         "  |wscore|n — Your character summary: class, level, XP.\n"
         "  |wstats|n — Detailed statistics: HP, abilities, AC, combat.\n"
-        "  |wconditions|n — Active effects and resistances.\n\n"
+        "  |whunger|n — Check how hungry you are.\n"
+        "  |wweight|n — Carrying capacity and encumbrance.\n"
+        "  |wwhere|n — See where you are in the world.\n"
+        "  |wquests|n — View your active and completed quests.\n"
+        "  |wlanguages|n — Languages you can speak.\n\n"
         "|yPractice:|n\n"
         "  Try |wscore|n to see your character overview.\n"
         "  Try |wstats|n for detailed stats.\n"
-        "  Try |wconditions|n to check active effects.\n"
         "  Move |weast|n when ready.",
         guide_context=(
             "Teach character information commands. |wscore|n shows class, "
@@ -408,6 +407,8 @@ def build_tutorial_3(instance):
         "  |wGuilds:|n         guild, advance, quest\n"
         "  |wGroups:|n         follow, group, unfollow, nofollow\n\n"
         "You're ready for the world! Head east for your reward.\n\n"
+        "|yTip:|n Type |whelp|n at any time to see all available "
+        "commands, or |whelp <command>|n for details on a specific one.\n\n"
         "|yMove |weast|y to return to the Tutorial Hub and "
         "receive your graduation reward!|n",
         guide_context=(

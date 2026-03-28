@@ -99,7 +99,7 @@ class CmdProcess(Command):
     """
 
     key = "process"
-    aliases = ["mill", "bake", "smelt", "saw", "tan", "weave", "distill", "distil", "di", "dis", "dist"]
+    aliases = ("pro", "proc", "mill", "bake", "smelt", "saw", "tan", "weave", "distill", "distil", "di", "dis", "dist")
     locks = "cmd:all()"
     help_category = "Crafting"
 

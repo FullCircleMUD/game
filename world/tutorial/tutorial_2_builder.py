@@ -97,7 +97,7 @@ def build_tutorial_2(instance):
 
     if first_run and char.account:
         char.account.db.tutorial_2_entered = True
-        # Give starter gold for processing costs
+        # Give starter gold for processing costs (restored by snapshot on exit)
         char.receive_gold_from_reserve(20)
 
     # ================================================================== #

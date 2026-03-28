@@ -257,72 +257,76 @@ class TutorialInstanceScript(DefaultScript):
         elif self.chunk_num == 3:
             self._reward_tutorial_3(char)
 
+    @staticmethod
+    def _register_quest_debt(category, key, amount):
+        """Register tutorial reward debt with the spawn system."""
+        from blockchain.xrpl.services.spawn.service import get_spawn_service
+
+        service = get_spawn_service()
+        if service:
+            service.allocate_quest_reward(category, key, amount)
+
     def _reward_tutorial_1(self, char):
-        """Tutorial 1 reward: 2 bread, 50 gold, wooden dagger."""
+        """Tutorial 1 reward: 10 gold, 2 bread."""
         account = char.account
         if getattr(account.db, "tutorial_starter_given", False):
             return
         account.db.tutorial_starter_given = True
 
+        char.receive_gold_from_reserve(10)
         char.receive_resource_from_reserve(3, 2)  # 2 bread
-        char.receive_gold_from_reserve(50)
 
-        dagger = create_object(
-            "typeclasses.world_objects.base_fixture.WorldFixture",
-            key="a wooden training dagger",
-            location=char,
-            attributes=[
-                ("desc", "A simple wooden dagger, suitable for a beginner."),
-            ],
-        )
-        dagger.locks.add("get:true()")
+        # Debt: 10 gold + upstream bread cost (2 wheat, 2 wood, 4 gold)
+        self._register_quest_debt("gold", "gold", 14)
+        self._register_quest_debt("resources", "1", 2)   # 2 wheat
+        self._register_quest_debt("resources", "6", 2)   # 2 wood
 
         char.msg(
             "\n|g=== Graduation Reward! ===|n\n"
             "As a reward for completing the tutorial, you receive:\n"
+            "  - 10 gold\n"
             "  - 2 bread\n"
-            "  - 50 gold\n"
-            "  - A wooden training dagger\n"
             "|gGood luck, adventurer!|n\n"
         )
 
     def _reward_tutorial_2(self, char):
-        """Tutorial 2 reward: 100 gold, 10 wheat, 5 wood."""
+        """Tutorial 2 reward: 20 gold, 10 wheat, 5 wood."""
         account = char.account
         if getattr(account.db, "tutorial_2_reward_given", False):
             return
         account.db.tutorial_2_reward_given = True
 
-        char.receive_gold_from_reserve(100)
+        char.receive_gold_from_reserve(20)
         char.receive_resource_from_reserve(1, 10)  # 10 wheat
         char.receive_resource_from_reserve(6, 5)   # 5 wood
+
+        self._register_quest_debt("gold", "gold", 20)
+        self._register_quest_debt("resources", "1", 10)  # 10 wheat
+        self._register_quest_debt("resources", "6", 5)   # 5 wood
 
         char.msg(
             "\n|g=== Graduation Reward! ===|n\n"
             "As a reward for completing the economics tutorial:\n"
-            "  - 100 gold\n"
+            "  - 20 gold\n"
             "  - 10 wheat\n"
             "  - 5 wood\n"
             "|gHappy trading, adventurer!|n\n"
         )
 
     def _reward_tutorial_3(self, char):
-        """Tutorial 3 reward: 1 general skill point, 100 gold."""
+        """Tutorial 3 reward: 50 gold."""
         account = char.account
         if getattr(account.db, "tutorial_3_reward_given", False):
             return
         account.db.tutorial_3_reward_given = True
 
-        char.receive_gold_from_reserve(100)
-        # Award 1 general skill point
-        current = getattr(char.db, "general_skill_points_available", 0) or 0
-        char.db.general_skill_points_available = current + 1
+        char.receive_gold_from_reserve(20)
+        self._register_quest_debt("gold", "gold", 20)
 
         char.msg(
             "\n|g=== Graduation Reward! ===|n\n"
             "As a reward for completing the growth tutorial:\n"
-            "  - 100 gold\n"
-            "  - 1 general skill point\n"
+            "  - 20 gold\n"
             "|gGrow strong, adventurer!|n\n"
         )
 

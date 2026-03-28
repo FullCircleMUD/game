@@ -1766,7 +1766,6 @@ def build_millholm_town(one_way_limbo=False):
 
     # ── Limbo → Inn connection ───────────────────────────────────────
     if one_way_limbo:
-        from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
         exit_ab = create_object(
             ExitVerticalAware,
             key=rooms["inn"].key,
