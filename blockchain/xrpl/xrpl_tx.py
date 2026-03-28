@@ -134,7 +134,7 @@ async def _send_payment_async(network_url, vault_seed, destination,
             result_code=tx_result,
         )
 
-    logger.log_info(
+    logger.info(
         f"XRPL Payment: {amount} {currency_code} → {destination} "
         f"(tx: {tx_hash})"
     )
@@ -205,7 +205,7 @@ async def _create_nft_sell_offer_async(network_url, vault_seed,
             tx_hash=tx_hash,
         )
 
-    logger.log_info(
+    logger.info(
         f"XRPL NFT Sell Offer: {nftoken_id} → {destination} "
         f"(offer: {offer_id}, tx: {tx_hash})"
     )
@@ -277,7 +277,7 @@ async def _accept_nft_sell_offer_async(network_url, vault_seed, offer_id):
             result_code=tx_result,
         )
 
-    logger.log_info(
+    logger.info(
         f"XRPL NFT Accept Offer: {offer_id} (tx: {tx_hash})"
     )
     return tx_hash
@@ -312,12 +312,24 @@ def accept_nft_sell_offer(offer_id):
 # ================================================================== #
 
 async def _get_transaction_async(network_url, tx_hash):
-    """Query a transaction's full result from the XRPL ledger."""
+    """Query a transaction's full result from the XRPL ledger.
+
+    Retries up to 6 times (every 2s) if the transaction is not yet
+    validated, since a just-signed Xaman payment may still be in the
+    open ledger when we first query.
+    """
     async with AsyncWebsocketClient(network_url) as client:
-        response = await client.request(
-            Tx(transaction=tx_hash)
-        )
-        return response.result
+        for _attempt in range(6):
+            response = await client.request(
+                Tx(transaction=tx_hash)
+            )
+            result = response.result
+            if result.get("validated"):
+                return result
+            # Not yet validated — wait and retry
+            await asyncio.sleep(2)
+        # Return whatever we have after retries
+        return result
 
 
 def get_transaction(tx_hash):
@@ -371,33 +383,47 @@ def verify_fungible_payment(tx_hash, expected_destination, expected_currency_hex
             tx_hash=tx_hash,
         )
 
-    # Check transaction succeeded
-    meta_result = tx_result.get("meta", {}).get("TransactionResult")
+    # Check transaction is validated (in a closed ledger)
+    if not tx_result.get("validated"):
+        raise XRPLTransactionError(
+            "Transaction is not yet validated",
+            tx_hash=tx_hash,
+        )
+
+    # Check transaction succeeded — meta may be under "meta" or "metaData"
+    meta = tx_result.get("meta") or tx_result.get("metaData") or {}
+    meta_result = meta.get("TransactionResult")
     if meta_result != "tesSUCCESS":
         raise XRPLTransactionError(
             f"Transaction was not successful: {meta_result}",
             tx_hash=tx_hash, result_code=meta_result,
         )
 
+    # xrpl-py Tx response nests transaction fields under "tx_json"
+    # (older versions put them at the top level)
+    tx_fields = tx_result.get("tx_json") or tx_result
+
     # Check it's a Payment
-    if tx_result.get("TransactionType") != "Payment":
+    tx_type = tx_fields.get("TransactionType")
+    if tx_type != "Payment":
         raise XRPLTransactionError(
-            f"Transaction is not a Payment "
-            f"(got {tx_result.get('TransactionType')})",
+            f"Transaction is not a Payment (got {tx_type})",
             tx_hash=tx_hash,
         )
 
     # Check destination
-    if tx_result.get("Destination") != expected_destination:
+    if tx_fields.get("Destination") != expected_destination:
         raise XRPLTransactionError(
             f"Payment destination mismatch: "
             f"expected {expected_destination}, "
-            f"got {tx_result.get('Destination')}",
+            f"got {tx_fields.get('Destination')}",
             tx_hash=tx_hash,
         )
 
-    # Check amount is an issued currency (dict), not XRP (string)
-    amount = tx_result.get("Amount")
+    # Check amount is an issued currency (dict), not XRP (string).
+    # Newer XRPL API versions use "DeliverMax" for the payment amount
+    # in tx_json, with "Amount" becoming the XRP fee.
+    amount = tx_fields.get("DeliverMax") or tx_fields.get("Amount")
     if not isinstance(amount, dict):
         raise XRPLTransactionError(
             "Payment amount is XRP, not an issued currency",

@@ -64,6 +64,10 @@ class CmdImport(Command):
             account.msg("|rNo account bank found.|n")
             return
 
+        # Ensure bank wallet stays in sync with account
+        if bank.wallet_address != wallet:
+            bank.wallet_address = wallet
+
         if not self.args:
             account.msg(
                 "Usage: import gold [amount] | import <resource> [amount]"
@@ -661,7 +665,8 @@ def _accept_nft_import(tx_hash):
     )
 
     tx_result = get_transaction(tx_hash)
-    offer_id = _extract_offer_id(tx_result.get("meta", {}))
+    meta = tx_result.get("meta") or tx_result.get("metaData") or {}
+    offer_id = _extract_offer_id(meta)
     if not offer_id:
         raise ValueError(
             f"Could not extract offer ID from transaction {tx_hash}"

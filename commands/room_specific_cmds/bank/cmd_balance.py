@@ -39,6 +39,11 @@ def ensure_bank(account):
         )
         bank.wallet_address = account.attributes.get("wallet_address")
         account.db.bank = bank
+    else:
+        # Keep wallet in sync (covers banks created before wallet linking)
+        account_wallet = account.attributes.get("wallet_address")
+        if account_wallet and bank.wallet_address != account_wallet:
+            bank.wallet_address = account_wallet
     return bank
 
 

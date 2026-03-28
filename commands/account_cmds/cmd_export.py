@@ -66,6 +66,10 @@ class CmdExport(Command):
             account.msg("|rNo account bank found.|n")
             return
 
+        # Ensure bank wallet stays in sync with account
+        if bank.wallet_address != wallet:
+            bank.wallet_address = wallet
+
         if not self.args:
             account.msg(
                 "Usage: export #<id> | export gold [amount] "
