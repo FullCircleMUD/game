@@ -19,13 +19,14 @@ from evennia.utils.utils import delay
 
 from enums.death_cause import DeathCause
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
+from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 
 # Timer durations in seconds
 UNLOCK_DELAY = 300   # 5 minutes — after this, anyone can loot
 DESPAWN_DELAY = 600  # 10 minutes — corpse disappears
 
 
-class Corpse(FungibleInventoryMixin, DefaultObject):
+class Corpse(HeightAwareMixin, FungibleInventoryMixin, DefaultObject):
     """
     A corpse left behind when a character dies.
 

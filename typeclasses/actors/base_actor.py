@@ -9,9 +9,10 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from typeclasses.mixins.effects_manager import EffectsManagerMixin
 from typeclasses.mixins.damage_resistance import DamageResistanceMixin
+from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 
 
-class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
+class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
 
     #########################################################
     # Ability Scores (point buy system)
@@ -108,9 +109,7 @@ class BaseActor(EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
     # damage_resistances — provided by DamageResistanceMixin
     # conditions, apply_effect, remove_effect, named effects — provided by EffectsManagerMixin
 
-    # whether actor is on the ground (0) or flying > 0 or swimming < 0
-    # and how many levels high or low they are flying or swimming
-    room_vertical_position = AttributeProperty(0)
+    # room_vertical_position — provided by HeightAwareMixin
 
     # Short sentence displayed in room character list (CircleMUD-style).
     # None = use default template. Players can override via ``roomdesc``.

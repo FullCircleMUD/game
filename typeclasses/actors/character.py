@@ -570,6 +570,9 @@ class FCMCharacter(
         """Handle defeat in a no-death room — empty corpse, keep gear, teleport out."""
         from typeclasses.world_objects.corpse import Corpse
 
+        # Capture height before effects removal can change it
+        actor_height = self.room_vertical_position
+
         # 1. Stop combat handler if active
         self.exit_combat()
 
@@ -591,6 +594,18 @@ class FCMCharacter(
         corpse.owner_character_key = self.db.character_key
         corpse.owner_name = self.key
         corpse.cause_of_death = "defeat"
+
+        # Height transfer: flying actor's corpse falls to ground, underwater stays
+        if actor_height > 0:
+            corpse.room_vertical_position = 0
+            if room:
+                room.msg_contents(
+                    f"The corpse of {self.key} falls to the ground.",
+                    from_obj=corpse,
+                )
+        elif actor_height < 0:
+            corpse.room_vertical_position = actor_height
+
         corpse.start_timers()
 
         # 5. Reset HP to 1
@@ -622,6 +637,11 @@ class FCMCharacter(
         from typeclasses.items.base_nft_item import BaseNFTItem
         from typeclasses.world_objects.corpse import Corpse
 
+        # Capture height before effects/equipment removal can change it.
+        # Equipment-granted FLY persists through clear_all_effects() and is
+        # only removed at unequip (step 4), which happens after corpse creation.
+        actor_height = self.room_vertical_position
+
         # 1. Stop combat — clean up handler, pending actions, combat effects
         self.exit_combat()
 
@@ -641,6 +661,17 @@ class FCMCharacter(
         corpse.owner_character_key = self.db.character_key
         corpse.owner_name = self.key
         corpse.cause_of_death = cause
+
+        # Height transfer: flying actor's corpse falls to ground, underwater stays
+        if actor_height > 0:
+            corpse.room_vertical_position = 0
+            if room:
+                room.msg_contents(
+                    f"The corpse of {self.key} falls to the ground.",
+                    from_obj=corpse,
+                )
+        elif actor_height < 0:
+            corpse.room_vertical_position = actor_height
 
         # 4. Unequip all worn/wielded/held items
         #    remove() fires at_remove() hooks which decrement conditions

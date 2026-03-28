@@ -14,11 +14,12 @@ Usage:
 
 from evennia.objects.objects import DefaultObject
 
+from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
 from typeclasses.mixins.invisible_object import InvisibleObjectMixin
 
 
-class WorldFixture(InvisibleObjectMixin, HiddenObjectMixin, DefaultObject):
+class WorldFixture(HeightAwareMixin, InvisibleObjectMixin, HiddenObjectMixin, DefaultObject):
     """
     Immovable, non-NFT base class for permanent world objects.
 

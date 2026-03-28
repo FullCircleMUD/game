@@ -344,6 +344,18 @@ class CombatMob(CombatMixin, StateMachineAIMixin, BaseNPC):
         corpse.owner_name = self.key
         corpse.cause_of_death = cause
 
+        # Height transfer: flying mob's corpse falls to ground, underwater stays at depth
+        actor_height = self.room_vertical_position
+        if actor_height > 0:
+            corpse.room_vertical_position = 0
+            if room:
+                room.msg_contents(
+                    f"The corpse of {self.key} falls to the ground.",
+                    from_obj=corpse,
+                )
+        elif actor_height < 0:
+            corpse.room_vertical_position = actor_height
+
         # Unequip worn items first (future-proofing for mobs with wearslots)
         if hasattr(self, "get_all_worn"):
             for item in list(self.get_all_worn().values()):

@@ -13,6 +13,27 @@ from evennia.scripts.scripts import DefaultScript
 from evennia.typeclasses.attributes import AttributeProperty
 
 
+def _broadcast_height_change(actor, old_height, new_height):
+    """Broadcast a message when an actor changes height mid-combat."""
+    if not actor.location:
+        return
+    if new_height > old_height:
+        if old_height < 0 and new_height == 0:
+            msg = f"{actor.key} surfaces from the water!"
+        elif old_height < 0:
+            msg = f"{actor.key} rises through the water!"
+        else:
+            msg = f"{actor.key} flies upward!"
+    else:
+        if new_height < 0 and old_height == 0:
+            msg = f"{actor.key} dives beneath the surface!"
+        elif new_height < 0:
+            msg = f"{actor.key} dives deeper!"
+        else:
+            msg = f"{actor.key} swoops down!"
+    actor.location.msg_contents(msg, from_obj=actor)
+
+
 class CombatHandler(DefaultScript):
     """
     Per-combatant combat handler.
@@ -189,16 +210,29 @@ class CombatHandler(DefaultScript):
                     if not can_reach_target(self.obj, target, weapon):
                         is_pc = getattr(self.obj, "is_pc", False)
                         if not is_pc:
-                            # Mob: try to find a reachable target
-                            new_target = self._find_reachable_target(weapon)
-                            if new_target:
-                                target = new_target
-                                action["target"] = new_target
-                                self.obj.ndb.combat_target = new_target
+                            # Step 1: Try to match current target's height
+                            old_height = self.obj.room_vertical_position
+                            matched = (
+                                hasattr(self.obj, "_try_match_height")
+                                and self.obj._try_match_height(target)
+                            )
+                            if matched:
+                                _broadcast_height_change(
+                                    self.obj, old_height,
+                                    self.obj.room_vertical_position,
+                                )
                             else:
-                                # No reachable targets — flee
-                                self.obj.execute_cmd("flee")
-                                return
+                                # Step 2: Can't match — find a reachable enemy
+                                new_target = self._find_reachable_target(weapon)
+                                if new_target:
+                                    target = new_target
+                                    action["target"] = new_target
+                                    self.action_dict = action
+                                    self.obj.ndb.combat_target = new_target
+                                else:
+                                    # Step 3: No reachable targets — flee
+                                    self.obj.execute_cmd("flee")
+                                    return
                         else:
                             # Player: skip this tick, keep combat active
                             self.obj.msg(
@@ -268,10 +302,16 @@ class CombatHandler(DefaultScript):
                 if not action.get("repeat", False):
                     # Non-repeating action done — retarget or end
                     from combat.combat_utils import get_sides as _get_sides
+                    from combat.height_utils import can_reach_target as _can_reach
                     _, _remaining = _get_sides(self.obj)
-                    if _remaining:
-                        _new = _remaining[0]
-                        _weapon = get_weapon(self.obj)
+                    _weapon = get_weapon(self.obj)
+                    # Prefer reachable targets
+                    _new = next(
+                        (e for e in _remaining
+                         if _can_reach(self.obj, e, _weapon)),
+                        _remaining[0] if _remaining else None,
+                    )
+                    if _new:
                         _speed = getattr(_weapon, "speed", 1.0) if _weapon else 1.0
                         _dt = max(2, int(4 / _speed))
                         self.queue_action({
