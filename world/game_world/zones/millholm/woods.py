@@ -585,9 +585,8 @@ def build_millholm_woods(town_rooms):
              "The path opens into a rough smelting site cut from the "
              "woods. A squat stone furnace radiates heat while charcoal "
              "smolders in stacked pits. Ore carts and tongs lie nearby, "
-             "and slag heaps glitter dully under soot. A grizzled smith "
-             "tends the furnace, feeding ore and fuel into the hungry "
-             "flames."),
+             "and slag heaps glitter dully under soot. The air shimmers "
+             "with heat and the bitter tang of molten metal."),
         ],
     )
 
