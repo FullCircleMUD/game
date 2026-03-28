@@ -330,8 +330,10 @@ class TestTutorial3FirstRunGating(EvenniaTest):
 
     def test_graduation_reward_gives_gold_and_skill_point(self):
         """Graduation should give 100 gold and 1 skill point."""
-        script = self._run_tutorial(self.char1, "grad")
         gold_before = self.char1.get_gold()
+        script = self._run_tutorial(self.char1, "grad")
+        # Measure skill points after start (first-run bonus already given,
+        # and skill points aren't fungibles so not snapshot-restored)
         sp_before = getattr(
             self.char1.db, "general_skill_points_available", 0
         ) or 0
@@ -340,7 +342,9 @@ class TestTutorial3FirstRunGating(EvenniaTest):
         sp_after = getattr(
             self.char1.db, "general_skill_points_available", 0
         ) or 0
+        # Snapshot restore undoes first-run gold bonus, graduation adds 100
         self.assertEqual(gold_after - gold_before, 100)
+        # Skill point graduation reward
         self.assertEqual(sp_after - sp_before, 1)
 
     def test_graduation_reward_once_per_account(self):

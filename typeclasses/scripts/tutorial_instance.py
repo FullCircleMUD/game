@@ -26,6 +26,12 @@ class TutorialInstanceScript(DefaultScript):
     hub_room_id = AttributeProperty(None)
     chunk_num = AttributeProperty(1)
     state = AttributeProperty("active")
+    # Snapshot of character fungibles on tutorial entry — restored on exit
+    snapshot_gold = AttributeProperty(None)
+    snapshot_resources = AttributeProperty(None)
+    # Bank snapshot (tutorial 2 only — has a bank room)
+    snapshot_bank_gold = AttributeProperty(None)
+    snapshot_bank_resources = AttributeProperty(None)
 
     def at_script_creation(self):
         self.key = self.instance_key or f"tutorial_{uuid.uuid4().hex[:8]}"
@@ -73,6 +79,10 @@ class TutorialInstanceScript(DefaultScript):
 
         # Tag the character
         character.tags.add(self.instance_key, category="tutorial_character")
+
+        # Snapshot fungible balances — restored on exit so the tutorial
+        # is economically neutral (graduation rewards added after restore).
+        self._snapshot_fungibles(character)
 
         # Build the rooms
         if chunk_num == 1:
@@ -132,11 +142,9 @@ class TutorialInstanceScript(DefaultScript):
                         char.remove(item)
                     item.delete()
 
-            # Strip any tutorial resources
-            for rid in [1, 2, 3, 6, 7]:  # wheat, flour, bread, wood, timber
-                amt = char.get_resource(rid) if hasattr(char, "get_resource") else 0
-                if amt > 0:
-                    char.return_resource_to_reserve(rid, amt)
+            # Restore fungible balances to pre-tutorial snapshot so the
+            # tutorial is economically neutral.
+            self._restore_fungibles(char)
 
             # Graduation reward — once per account
             if give_reward and char.account:
@@ -161,6 +169,84 @@ class TutorialInstanceScript(DefaultScript):
         self.state = "done"
         self.stop()
         self.delete()
+
+    # ------------------------------------------------------------------ #
+    #  Fungible snapshot / restore
+    # ------------------------------------------------------------------ #
+
+    def _snapshot_fungibles(self, char):
+        """Record the character's (and optionally bank's) fungible state."""
+        self.snapshot_gold = char.get_gold() if hasattr(char, "get_gold") else 0
+        self.snapshot_resources = (
+            char.get_all_resources()
+            if hasattr(char, "get_all_resources")
+            else {}
+        )
+
+        # Tutorial 2 has a bank room — snapshot bank too
+        if self.chunk_num == 2 and char.account:
+            bank = getattr(char.account.db, "bank", None)
+            if bank:
+                self.snapshot_bank_gold = (
+                    bank.get_gold() if hasattr(bank, "get_gold") else 0
+                )
+                self.snapshot_bank_resources = (
+                    bank.get_all_resources()
+                    if hasattr(bank, "get_all_resources")
+                    else {}
+                )
+
+    def _restore_fungibles(self, char):
+        """
+        Restore fungible balances to the pre-tutorial snapshot.
+
+        Any resources gained during the tutorial are returned to reserve;
+        any resources spent are received back from reserve. This makes the
+        tutorial economically neutral — graduation rewards are added after.
+        """
+        if self.snapshot_gold is None:
+            return  # no snapshot taken (shouldn't happen)
+
+        self._restore_object_fungibles(
+            char, self.snapshot_gold, self.snapshot_resources or {}
+        )
+
+        # Restore bank if we snapshotted it (tutorial 2 only)
+        if self.snapshot_bank_gold is not None and char.account:
+            bank = getattr(char.account.db, "bank", None)
+            if bank:
+                self._restore_object_fungibles(
+                    bank,
+                    self.snapshot_bank_gold,
+                    self.snapshot_bank_resources or {},
+                )
+
+    def _restore_object_fungibles(self, obj, snap_gold, snap_resources):
+        """Restore a single object's gold + resources to snapshot values."""
+        # --- Gold ---
+        current_gold = obj.get_gold() if hasattr(obj, "get_gold") else 0
+        delta_gold = current_gold - snap_gold
+        if delta_gold > 0:
+            obj.return_gold_to_reserve(delta_gold)
+        elif delta_gold < 0:
+            obj.receive_gold_from_reserve(-delta_gold)
+
+        # --- Resources ---
+        current_resources = (
+            obj.get_all_resources()
+            if hasattr(obj, "get_all_resources")
+            else {}
+        )
+        # All resource IDs that appear in either snapshot or current
+        all_rids = set(snap_resources.keys()) | set(current_resources.keys())
+        for rid in all_rids:
+            snap_amt = snap_resources.get(rid, 0)
+            curr_amt = current_resources.get(rid, 0)
+            delta = curr_amt - snap_amt
+            if delta > 0:
+                obj.return_resource_to_reserve(rid, delta)
+            elif delta < 0:
+                obj.receive_resource_from_reserve(rid, -delta)
 
     def _give_graduation_reward(self, char):
         """Give per-tutorial rewards, gated once per account."""
