@@ -7,5 +7,14 @@
         "max_per_room": 1,
         "respawn_seconds": 120,
         "desc": "A grey wolf pads through the undergrowth, ears pricked and amber eyes watchful. Lean muscle ripples beneath a coarse pelt as it scans the woods for prey."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.crow.Crow",
+        "key": "a black crow",
+        "area_tag": "woods_wolves",
+        "target": 15,
+        "max_per_room": 4,
+        "respawn_seconds": 30,
+        "desc": "A glossy black crow perches watchfully, its dark eyes glinting. It ruffles its feathers and caws softly, as if signalling to unseen companions."
     }
 ]

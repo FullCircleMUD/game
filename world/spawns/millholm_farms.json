@@ -25,5 +25,14 @@
         "max_per_room": 1,
         "respawn_seconds": 30,
         "desc": "A rabbit sits among the cotton plants, its brown fur dusted with white fibres. It twitches its nose at you before returning to nibbling on a leaf."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.crow.Crow",
+        "key": "a black crow",
+        "area_tag": "abandoned_farm",
+        "target": 8,
+        "max_per_room": 4,
+        "respawn_seconds": 30,
+        "desc": "A scraggly black crow picks through the debris of the abandoned farm, eyeing you with brazen contempt."
     }
 ]

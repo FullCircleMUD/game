@@ -1,18 +1,17 @@
 """
 DireWolf — aggressive predator mob that attacks players.
 
-Extends AggressiveMob with tactical dodge behavior (25% chance per
-combat tick). Retreats to the wolves den to heal when below 50% health.
+Extends AggressiveMob with TacticalDodgeMixin for a 25% chance to dodge
+per combat tick. Retreats to the wolves den to heal when below 50% health.
 """
-
-import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from typeclasses.mixins.mob_behaviours.tactical_dodge_mixin import TacticalDodgeMixin
 
 
-class DireWolf(AggressiveMob):
+class DireWolf(TacticalDodgeMixin, AggressiveMob):
     """A massive dire wolf that attacks players on sight."""
 
     # ── Size ──
@@ -40,6 +39,7 @@ class DireWolf(AggressiveMob):
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)
+    dodge_chance = AttributeProperty(0.25)
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
@@ -47,15 +47,6 @@ class DireWolf(AggressiveMob):
 
     # ── Retreat ──
     den_room_tag = AttributeProperty("wolves_den")
-
-    # ── Combat Tick ──
-
-    def at_combat_tick(self, handler):
-        """
-        75% attack as normal, 25% dodge (gives enemies disadvantage).
-        """
-        if random.random() < 0.25:
-            self.execute_cmd("dodge")
 
     # ── AI States ──
 

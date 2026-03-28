@@ -4,25 +4,20 @@ Gnoll — aggressive raider with Rampage ability.
 The toughest standard mob in the Millholm southern plains. Gnolls are
 brutal fighters that become more dangerous as they kill — when a gnoll
 slays a target, it immediately attacks the next enemy with zero delay
-(Rampage).
+(Rampage), provided by RampageMixin.
 
 Stats: L4, 40HP, 1d6+2 damage, AC 14, STR 14, DEX 10.
 Designed for parties of level 4-5. A solo L4 can beat one with effort;
 solo L2-3 should avoid them.
-
-Rampage: at_kill() fires execute_attack() at the next living enemy in
-the room, bypassing the normal 2-8s attack delay. Follows the same
-pattern as the greatsword's executioner mechanic.
 """
-
-import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from typeclasses.mixins.mob_behaviours.rampage_mixin import RampageMixin
 
 
-class Gnoll(AggressiveMob):
+class Gnoll(RampageMixin, AggressiveMob):
     """A savage gnoll raider. Rampages through enemies on a kill."""
 
     # ── Stats ──
@@ -51,39 +46,13 @@ class Gnoll(AggressiveMob):
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.25)  # fights to 25% HP before fleeing
     max_per_room = AttributeProperty(2)
+    rampage_message = AttributeProperty(
+        "|r{name} snarls with bloodlust and turns on {target}!|n"
+    )
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(180)
-
-    # ── Rampage ──
-
-    def at_kill(self, victim):
-        """Rampage — immediately attack the next enemy on a kill."""
-        if not self.is_alive or not self.location:
-            return
-
-        # Find living players still in the room
-        targets = [
-            obj for obj in self.location.contents
-            if obj != victim
-            and getattr(obj, "is_pc", False)
-            and getattr(obj, "hp", 0) > 0
-        ]
-        if not targets:
-            return
-
-        target = random.choice(targets)
-
-        # Announce the rampage
-        self.location.msg_contents(
-            f"|r{self.key} snarls with bloodlust and turns on {target.key}!|n",
-            from_obj=self,
-        )
-
-        # Instant attack — bypasses normal delay
-        from combat.combat_utils import execute_attack
-        execute_attack(self, target)
 
     # ── Retreat ──
 
