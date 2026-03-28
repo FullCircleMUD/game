@@ -88,9 +88,11 @@ FCM/src/                        ← run `evennia start` from here
 │   │   │   ├── swimming_mixin.py     ← SwimmingMixin (innate swimming, Condition.WATER_BREATHING, dive/surface)
 │   │   │   ├── innate_ranged_mixin.py ← InnateRangedMixin (mob_weapon_type="missile", cross-height attacks)
 │   │   │   ├── mob_behaviours/        ← reusable mob behavior mixins (PackCourageMixin, RampageMixin, TacticalDodgeMixin)
+│   │   │   ├── climbable_mixin.py    ← ClimbableMixin (climbable_heights, climb_dc — data mixin for climbable fixtures)
 │   │   │   └── wearslots/             ← BaseWearslotsMixin, HumanoidWearslotsMixin, DogWearslotsMixin
 │   │   ├── world_objects/
-│   │   │   └── corpse.py             ← Corpse (dropped on death, loot command, decay timers)
+│   │   │   ├── corpse.py             ← Corpse (dropped on death, loot command, decay timers)
+│   │   │   └── climbable_fixture.py  ← ClimbableFixture(ClimbableMixin, WorldFixture) — drainpipes, ladders, ropes, trees
 │   │   └── terrain/rooms/            ← RoomBase (zone/district tag helpers), RoomBank, RoomRecycleBin, RoomProcessing, RoomCrafting, RoomHarvesting, RoomInn, RoomCemetery, RoomPurgatory
 │   ├── world/
 │   │   ├── quests/              ← quest system (base_quest, quest_handler, registry, templates)
@@ -207,7 +209,7 @@ Commands are organised into help categories via `help_category` on each command 
 
 | Category | Commands |
 |---|---|
-| **Character** | stats, score, skills, fly, swim, where, hunger, languages (lang), weight, quests, remort, setdesc |
+| **Character** | stats, score, skills, fly, swim, climb, where, hunger, languages (lang), weight, quests, remort, setdesc |
 | **Combat** | attack, flee, dodge, assist, bash, pummel, stab, assassinate, frenzy, turn, protect, taunt, mock, consider |
 | **Communication** | say, shout, whisper, pose, who |
 | **Crafting** | learn, recipes, repair (skill) + room-specific: craft/forge/carve/sew/brew/enchant, available, process/mill/bake/smelt/saw/tan/weave, rates |
@@ -642,7 +644,8 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - Character creation wizard: EvMenu-based guided flow (race → class → alignment → point buy → weapon skills → starting skills → languages → starting knowledge → name → confirm → create) with CON modifier in HP display and effective HP at creation
 - Condition messaging: FCMCharacter overrides `add_condition()`/`remove_condition()` with first/third person messages. RoomBase overrides `msg_contents()` for HIDDEN/INVISIBLE visibility filtering. Conditions include DEAF (blocks hearing speech) and COMPREHEND_LANGUAGES (bypasses language garbling).
 - Language system: 8 languages in `Languages` enum (Common, Dwarven, Elfish, Halfling, Celestial, Kobold, Goblin, Dragon). `db.languages` stores known languages as set of strings. Chargen step 9 grants racial + INT-bonus language picks. Deterministic garble engine (`utils/garble.py`) with per-language syllable palettes — same word always garbles the same way. Three language-aware communication commands: `say/dw <msg>` (room speech), `whisper/dw Char = msg` (private), `shout/dw <msg>` (room + muffled partial text in adjacent rooms with direction). Switch parsing handles both `/switch` in cmdname and in args (Evennia base Command puts switches in args in the live game). SILENCED blocks speech, DEAF blocks hearing, INVISIBLE shows "Someone", COMPREHEND_LANGUAGES bypasses garble. `languages` command lists known languages.
-- FLY condition gating: `fly up` requires FLY condition, fall damage (10 HP/level) on FLY removal while airborne
+- FLY condition gating: `fly up` requires FLY condition, fall damage (10 HP/level) on FLY removal while airborne. Fall safety: if a ClimbableMixin fixture in the room supports the character's current height, character slides down safely instead of taking damage.
+- Climbable fixtures: `ClimbableFixture(ClimbableMixin, WorldFixture)` — drainpipes, ladders, ropes, trees. `climbable_heights` set defines supported heights (e.g. {0, 1}), `climb_dc` optional DEX check (0=auto). `CmdClimb` (`climb up/down <target>`) changes `room_vertical_position` within supported heights without requiring FLY. Enables height-routed exits for non-flying characters. First instance: drainpipe in Back Alley behind Artisan's Way, leading to rooftop entry point.
 - Underwater breath timer: BreathTimerScript (CON-based duration: `30 + CON_mod * 15` seconds, min 10s), drowning damage when expired, WATER_BREATHING bypasses entirely
 - Death system: `die()` creates corpse, strips items/gold/resources to corpse, stops combat handler, enters purgatory (60s timer or 50g early release), 5% XP penalty, HP reset to 1. Drowning and starvation trigger death. Default home set to Limbo at character creation; `_purgatory_release()` falls back to Limbo if home is None. `at_post_puppet` reschedules purgatory timer if character stuck on login.
 - Corpse with loot/loot all commands and decay timers

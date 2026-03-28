@@ -30,6 +30,7 @@ from typeclasses.terrain.rooms.room_crafting import RoomCrafting
 from typeclasses.terrain.rooms.room_inn import RoomInn
 from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
+from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from utils.exit_helpers import connect, connect_door
 
 
@@ -959,9 +960,100 @@ def build_millholm_town(one_way_limbo=False):
         attributes=[
             ("desc",
              "A shuttered workshop with a faded 'To Let' sign nailed "
-             "to the door. Cobwebs fill the windows and the door is "
-             "locked tight. Whatever trade was practiced here has moved "
-             "on, leaving only the ghost of industry behind."),
+             "to the door. Cobwebs fill the windows and dust coats every "
+             "surface. Whatever trade was practiced here has moved on, "
+             "leaving only the ghost of industry behind. At the back of "
+             "the room, a sheet of corrugated iron leans against the "
+             "wall, slightly askew."),
+            ("details", {
+                "corrugated iron": (
+                    "A large sheet of rusted corrugated iron propped "
+                    "against the back wall. It doesn't quite sit flush — "
+                    "there's a draught coming from behind it, and scuff "
+                    "marks on the floor suggest it's been moved recently."
+                ),
+                "iron": (
+                    "A large sheet of rusted corrugated iron propped "
+                    "against the back wall. It doesn't quite sit flush — "
+                    "there's a draught coming from behind it, and scuff "
+                    "marks on the floor suggest it's been moved recently."
+                ),
+                "scuff marks": (
+                    "The dust on the floor has been disturbed in an arc, "
+                    "as if something heavy has been swung aside repeatedly."
+                ),
+            }),
+        ],
+    )
+
+    rooms["back_alley"] = create_object(
+        RoomBase,
+        key="Back Alley",
+        attributes=[
+            ("desc",
+             "A narrow, stinking alley squeezed between the backs of "
+             "workshops. Damp brick walls rise high on either side, "
+             "streaked with soot and moss. Broken crates and refuse are "
+             "piled against one wall. A rusted iron drainpipe runs up "
+             "the side of the old workshop to the rooftops above — it "
+             "looks climbable, if you don't mind the height."),
+            ("max_height", 1),
+            ("details", {
+                "drainpipe": (
+                    "A thick iron drainpipe bolted to the brickwork, "
+                    "running from the cobbles all the way up to the "
+                    "guttering. The bolts are rusted but solid. Someone "
+                    "has wrapped rags around the pipe at intervals — "
+                    "handholds. This has been climbed before."
+                ),
+                "pipe": (
+                    "A thick iron drainpipe bolted to the brickwork, "
+                    "running from the cobbles all the way up to the "
+                    "guttering. The bolts are rusted but solid. Someone "
+                    "has wrapped rags around the pipe at intervals — "
+                    "handholds. This has been climbed before."
+                ),
+                "crates": (
+                    "Splintered wooden crates, mostly empty. A few still "
+                    "hold mouldy straw and the faint smell of turpentine."
+                ),
+                "refuse": (
+                    "A heap of rotten vegetable peelings, broken pottery, "
+                    "and things you'd rather not examine too closely."
+                ),
+            }),
+        ],
+    )
+
+    rooms["rooftops_w1"] = create_object(
+        RoomBase,
+        key="Rooftops Above Artisan's Way",
+        attributes=[
+            ("desc",
+             "The slate rooftops of Millholm spread out around you, a "
+             "secret world above the town. Clay chimney pots jut up like "
+             "crooked fingers, trailing wisps of smoke. The tiles are "
+             "slick with moss but mostly solid underfoot. From here you "
+             "can see the market square to the north, the woods beyond "
+             "the eastern wall, and the patchwork of farm fields to the "
+             "west. A drainpipe leads back down to the alley below."),
+            ("details", {
+                "chimney": (
+                    "Squat clay chimney pots, blackened by years of wood "
+                    "smoke. Some lean at alarming angles. A jackdaw has "
+                    "built a nest in the nearest one."
+                ),
+                "tiles": (
+                    "Grey slate tiles, many cracked or replaced with "
+                    "mismatched pieces. Patches of moss and lichen grow "
+                    "in the joints. They creak slightly underfoot."
+                ),
+                "market square": (
+                    "The market square is visible to the north — you can "
+                    "see the tops of the market stalls and the bustle of "
+                    "people below, oblivious to your presence up here."
+                ),
+            }),
         ],
     )
 
@@ -2196,6 +2288,55 @@ def build_millholm_town(one_way_limbo=False):
             desc_ab="the barracks", desc_ba="the guild hall")
     exit_count += 6
 
+    # ── Vacant Workshop W1 → Back Alley (hidden door) ─────────────
+    door_ab, _ = connect_door(
+        rooms["vacant_w1"], rooms["back_alley"], "north",
+        key="a sheet of corrugated iron",
+        closed_ab=(
+            "A large sheet of rusted corrugated iron leans against the "
+            "back wall. It doesn't quite sit flush."
+        ),
+        open_ab=(
+            "The corrugated iron has been pushed aside, revealing a "
+            "narrow gap leading to an alley behind the workshop."
+        ),
+        closed_ba=(
+            "A sheet of corrugated iron covers a gap in the wall "
+            "to the south."
+        ),
+        open_ba=(
+            "Through the gap in the wall you can see a dusty workshop."
+        ),
+        door_name="iron",
+    )
+    door_ab.is_hidden = True
+    door_ab.find_dc = 16
+    exit_count += 2
+
+    # ── Back Alley → Rooftops (height-routed, climb to height 1) ──
+    exit_up = create_object(
+        ExitVerticalAware,
+        key="the rooftops",
+        location=rooms["back_alley"],
+        destination=rooms["rooftops_w1"],
+    )
+    exit_up.set_direction("up")
+    exit_up.required_min_height = 1
+    exit_up.required_max_height = 1
+    exit_up.arrival_heights = {1: 0}
+    exit_count += 1
+
+    # ── Rooftops → Back Alley (down, arrive at ground level) ──────
+    exit_down = create_object(
+        ExitVerticalAware,
+        key="the alley below",
+        location=rooms["rooftops_w1"],
+        destination=rooms["back_alley"],
+    )
+    exit_down.set_direction("down")
+    exit_down.arrival_heights = {0: 0}
+    exit_count += 1
+
     print(f"  Created {exit_count} exits.")
 
     # ══════════════════════════════════════════════════════════════════
@@ -2357,7 +2498,7 @@ def build_millholm_town(one_way_limbo=False):
     # ── Weather exposure — outdoor rooms feel the weather ────────────
     # URBAN terrain defaults to sheltered (muffled indoor sounds).
     # Streets, square, and open alleys are exposed to the sky.
-    outdoor_exposed = lit_streets + [rooms["beggars_alley"]]
+    outdoor_exposed = lit_streets + [rooms["beggars_alley"], rooms["rooftops_w1"]]
     for room in outdoor_exposed:
         room.sheltered = False
 

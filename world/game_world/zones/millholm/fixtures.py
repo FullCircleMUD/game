@@ -81,6 +81,36 @@ def place_millholm_fixtures(
     count += 1
 
     # ══════════════════════════════════════════════════════════════════
+    # TOWN — Climbable fixtures
+    # ══════════════════════════════════════════════════════════════════
+
+    from typeclasses.world_objects.climbable_fixture import ClimbableFixture
+
+    drainpipe = create_object(
+        ClimbableFixture,
+        key="a rusted iron drainpipe",
+        location=town_rooms["back_alley"],
+        nohome=True,
+    )
+    drainpipe.db.desc = (
+        "A thick iron drainpipe bolted to the brickwork, running from "
+        "the cobbles all the way up to the guttering above. The bolts "
+        "are rusted but solid. Someone has wrapped rags around the pipe "
+        "at intervals — handholds. This has been climbed before."
+    )
+    drainpipe.climbable_heights = {0, 1}
+    drainpipe.climb_dc = 0
+    drainpipe.climb_up_msg = (
+        "You haul yourself up the drainpipe, finding footholds on the "
+        "rusted bolts and rag-wrapped sections."
+    )
+    drainpipe.climb_down_msg = (
+        "You shinny down the drainpipe, the rusty iron cold under "
+        "your hands."
+    )
+    count += 1
+
+    # ══════════════════════════════════════════════════════════════════
     # FARMS — Signs and fixtures
     # ══════════════════════════════════════════════════════════════════
 

@@ -1139,7 +1139,7 @@ def _spawn_smelter():
     npc.tradeable_resources = [23, 25]  # Copper Ore, Tin Ore
     npc.shop_name = "Thackery's Ore & Fuel"
 
-    npc.llm_speech_mode = "name_match"
+    npc.llm_speech_mode = "always"
     npc.llm_use_vector_memory = False
     npc.llm_hook_arrive = True
     npc.llm_personality = (

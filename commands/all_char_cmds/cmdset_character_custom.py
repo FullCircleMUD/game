@@ -40,6 +40,7 @@ from commands.all_char_cmds.cmd_score import CmdScore
 from commands.all_char_cmds.cmd_where import CmdWhere
 from commands.all_char_cmds.cmd_fly import CmdFly
 from commands.all_char_cmds.cmd_swim import CmdSwim
+from commands.all_char_cmds.cmd_climb import CmdClimb
 from commands.all_char_cmds.cmd_quit_ic import CmdQuitIC
 from commands.all_char_cmds.cmd_junk import CmdJunk
 from commands.all_char_cmds.cmd_put import CmdPut
@@ -141,6 +142,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdSkills())
         self.add(CmdFly())
         self.add(CmdSwim())
+        self.add(CmdClimb())
         self.add(CmdJunk())
         self.add(CmdPut())
         self.add(CmdEat())

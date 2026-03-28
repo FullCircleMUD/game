@@ -562,9 +562,29 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         if height <= 0:
             return
 
+        room = self.location
+
+        # Climbable fixture safety — if something supports this height,
+        # the character grabs on and slides down instead of falling.
+        if room:
+            for obj in room.contents:
+                climbable = getattr(obj, "climbable_heights", None)
+                if climbable and height in climbable:
+                    self.room_vertical_position = 0
+                    self.msg(
+                        f"|yYou grab onto {obj.key} and slide "
+                        f"safely to the ground.|n"
+                    )
+                    room.msg_contents(
+                        f"{self.key} grabs onto {obj.key} and "
+                        f"slides to the ground.",
+                        exclude=[self],
+                        from_obj=self,
+                    )
+                    return
+
         self.room_vertical_position = 0
         raw_damage = height * self.FALL_DAMAGE_PER_LEVEL
-        room = self.location
 
         # Water cushions the fall
         lands_in_water = room and getattr(room, "max_depth", 0) < 0
