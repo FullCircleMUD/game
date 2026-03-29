@@ -1337,6 +1337,93 @@ def _spawn_smelter():
     return npc
 
 
+def _spawn_boatman():
+    """Spawn Old Barnacle Bob the sailing instructor at the Sailing Club."""
+    room = _find_room("Millholm Junior Sailing Club")
+    if not room:
+        print("  [!] Room 'Millholm Junior Sailing Club' not found — skipping boatman")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.quest_giving_llm_trainer.QuestGivingLLMTrainer",
+        key="Old Barnacle Bob",
+        location=room,
+    )
+    npc.trainable_skills = ["seamanship", "shipwright"]
+    npc.trainer_masteries = {
+        "seamanship": 1,   # BASIC
+        "shipwright": 1,   # BASIC
+    }
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_hook_arrive = True
+    npc.llm_personality = (
+        "A leathery old man in his seventies with a face like a "
+        "walnut and a permanent squint from decades of staring at "
+        "the horizon. He wears a battered captain's hat that has "
+        "never been near a real ship and a moth-eaten naval jacket "
+        "with tarnished brass buttons. He smells faintly but "
+        "distinctly of fish, tar, wet rope, and something else that "
+        "nobody has ever been able to identify. Not terrible — just "
+        "odd. Like a rock pool left in the sun. He is wildly "
+        "enthusiastic about boats and sailing to a degree that makes "
+        "other people uncomfortable. He talks about boats the way "
+        "normal people talk about their children. He names every boat "
+        "he builds and gets emotional when they're launched. He "
+        "genuinely believes the Millholm Junior Sailing Club is the "
+        "finest maritime institution in the world, despite it being "
+        "a shed on a lake. He calls everyone 'shipmate' and peppers "
+        "his speech with nautical terms, most of which he uses "
+        "incorrectly. He is kind, patient with beginners, and "
+        "absolutely terrible at explaining things clearly — but "
+        "somehow his students always learn."
+    )
+    npc.llm_knowledge = (
+        "You are Old Barnacle Bob, retired sailor (self-proclaimed), "
+        "founder and sole instructor of the Millholm Junior Sailing "
+        "Club. You have lived by this lake for forty years and you "
+        "know every ripple, current, and sandbar in it. You teach "
+        "seamanship and shipbuilding to anyone willing to learn.\n\n"
+        "Your teaching style: you demonstrate by doing, narrate "
+        "everything you're doing in nautical jargon that your "
+        "students don't understand, then look surprised when they're "
+        "confused. Then you sigh, show them again more slowly, and "
+        "they somehow get it. You are actually an excellent teacher "
+        "— your methods just look chaotic from the outside.\n\n"
+        "The sailing club is your pride and joy. You built the "
+        "boathouse with your own hands. The dinghies are your "
+        "children (you have given them all names). 'The Unsinkable' "
+        "is your favourite. 'Mum Says No' was named by Timmy, your "
+        "most frequent and most catastrophic student. Timmy has "
+        "capsized everything including a rowing boat and once, "
+        "somehow, a canoe that was on dry land at the time.\n\n"
+        "You are convinced the lake has a monster in it. You call it "
+        "'Old Greensleeves' and claim to have seen it twice. Nobody "
+        "believes you. You don't care.\n\n"
+        "You think the lake is underappreciated. You have repeatedly "
+        "petitioned the town council for a proper harbour. They "
+        "have repeatedly ignored you.\n\n"
+        "Your smell: you are aware of it. You blame the tar. It is "
+        "not the tar. You have tried everything — nothing helps. "
+        "You have made peace with it. Your students have not."
+    )
+    npc.db.desc = (
+        "A wizened old man in a moth-eaten naval jacket and a battered "
+        "captain's hat that lists to one side. His face is deeply "
+        "lined and tanned the colour of old leather, and his eyes "
+        "have the permanent squint of someone who has spent a lifetime "
+        "staring at water. His hands are calloused and stained with "
+        "tar. He radiates an aura of cheerful eccentricity and a "
+        "faint but unmistakable smell that defies easy categorisation."
+    )
+    npc.room_description = (
+        "{name} potters about the boathouse, humming a sea shanty and "
+        "trailing a faint but indefinable smell."
+    )
+    print(f"  Spawned LLM trainer 'Old Barnacle Bob' in {room.key} ({room.dbref})")
+    return npc
+
+
 def spawn_millholm_npcs():
     """Spawn all Millholm NPCs."""
     print("--- Spawning Millholm NPCs ---")
@@ -1365,6 +1452,8 @@ def spawn_millholm_npcs():
     _spawn_lumberjack()
     _spawn_trapper()
     _spawn_smelter()
+    # ── Lake District ──
+    _spawn_boatman()
     # ── Southern District ──
     _spawn_broken_crown_barkeep()
     _spawn_gaoler()
