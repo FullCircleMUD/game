@@ -635,6 +635,8 @@ def build_millholm_mine():
 
     # ── District map cell tags ────────────────────────────────────────
     _mine_map_tags = {
+        "windroot_hollow":   "millholm_mine:windroot_hollow",
+        "miners_camp":       "millholm_mine:miners_camp",
         "mine_entrance":     "millholm_mine:mine_entrance",
         "entry_shaft":       "millholm_mine:entry_shaft",
         "copper_drift":      "millholm_mine:copper_drift",

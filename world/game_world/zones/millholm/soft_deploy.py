@@ -379,6 +379,7 @@ def build_zone(one_way_limbo=False):
     # ── Fixtures, NPCs, Mobs ─────────────────────────────────────────
     place_millholm_fixtures(
         town_rooms, farm_rooms, woods_rooms, sewer_rooms, southern_rooms,
+        mine_rooms,
     )
     spawn_millholm_npcs()
     spawn_millholm_mobs()

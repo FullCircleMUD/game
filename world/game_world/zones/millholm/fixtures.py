@@ -25,6 +25,7 @@ from typeclasses.world_objects.sign import WorldSign
 
 def place_millholm_fixtures(
     town_rooms, farm_rooms, woods_rooms, sewer_rooms, southern_rooms,
+    mine_rooms,
 ):
     """Place world fixtures into already-built Millholm rooms."""
     print("[5] Placing world fixtures...")
@@ -322,6 +323,16 @@ def place_millholm_fixtures(
     )
     south_warning.sign_text = _WARNING_TEXT
     south_warning.sign_style = "wall"
+    count += 1
+
+    sealed_door_sign = create_object(
+        WorldSign,
+        key="a large warning sign",
+        location=mine_rooms["sealed_door"],
+        nohome=True,
+    )
+    sealed_door_sign.sign_text = _WARNING_TEXT
+    sealed_door_sign.sign_style = "wall"
     count += 1
 
     print(f"  Placed {count} world fixtures.")
