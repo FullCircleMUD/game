@@ -61,6 +61,12 @@ def spawn_millholm_mobs():
     else:
         print("  [!] Failed to create millholm_southern spawn script")
 
+    script = ZoneSpawnScript.create_for_zone("millholm_cemetery")
+    if script:
+        print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
+    else:
+        print("  [!] Failed to create millholm_cemetery spawn script")
+
     script = ZoneSpawnScript.create_for_zone("millholm_lake")
     if script:
         print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")

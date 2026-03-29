@@ -1,0 +1,28 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.skeleton.Skeleton",
+        "key": "a skeleton",
+        "area_tag": "cemetery_tomb",
+        "target": 3,
+        "max_per_room": 3,
+        "respawn_seconds": 1080,
+        "desc": "A yellowed skeleton, its bones held together by ancient sinew and dark will. Empty eye sockets stare with mindless malice, and its bony fingers end in points worn sharp by centuries of scratching at stone. It moves with a jerky, unnatural gait.",
+        "attrs": {
+            "hp": 10,
+            "hp_max": 10,
+            "strength": 8,
+            "dexterity": 10,
+            "constitution": 8,
+            "base_armor_class": 10,
+            "armor_class": 10,
+            "level": 1,
+            "damage_dice": "1d4",
+            "attack_message": "claws at",
+            "attack_delay_min": 3,
+            "attack_delay_max": 6,
+            "loot_gold_max": 3,
+            "size": "medium",
+            "ai_tick_interval": 8
+        }
+    }
+]

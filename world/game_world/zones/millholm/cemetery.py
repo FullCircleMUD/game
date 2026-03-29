@@ -599,50 +599,10 @@ def build_millholm_cemetery():
         room.set_terrain(TerrainType.UNDERGROUND.value)
         room.max_height = 0
 
-    # ══════════════════════════════════════════════════════════════════
-    # MOBS — Stonefield burial chamber skeletons
-    # ══════════════════════════════════════════════════════════════════
-
-    from evennia.utils import create
-
-    for i in range(3):
-        skeleton = create.create_object(
-            "typeclasses.actors.mobs.aggressive_mob.AggressiveMob",
-            key="a skeleton",
-            location=rooms["tomb_stonefield_burial"],
-        )
-        skeleton.hp = 10
-        skeleton.hp_max = 10
-        skeleton.strength = 8
-        skeleton.dexterity = 10
-        skeleton.constitution = 8
-        skeleton.base_armor_class = 10
-        skeleton.armor_class = 10
-        skeleton.level = 1
-        skeleton.damage_dice = "1d4"
-        skeleton.attack_message = "claws at"
-        skeleton.attack_delay_min = 3
-        skeleton.attack_delay_max = 6
-        skeleton.loot_gold_max = 0
-        skeleton.size = "medium"
-        skeleton.ai_tick_interval = 8
-        skeleton.is_unique = True  # don't delete on death — static placement
-        skeleton.db.desc = (
-            "A yellowed skeleton, its bones held together by ancient "
-            "sinew and dark will. Empty eye sockets stare with mindless "
-            "malice, and its bony fingers end in points worn sharp by "
-            "centuries of scratching at stone. It moves with a jerky, "
-            "unnatural gait."
-        )
-        skeleton.room_description = (
-            "{name} stands motionless, its empty eyes fixed on you."
-        )
-        skeleton.tags.add("undead", category="creature_type")
-        skeleton.tags.add(ZONE, category="zone")
-        skeleton.tags.add(DISTRICT, category="district")
-        skeleton.start_ai()
-
-    print("  Spawned 3 skeletons in Stonefield Burial Chamber.")
+    # Mob area tag for zone spawn script
+    rooms["tomb_stonefield_burial"].tags.add(
+        "cemetery_tomb", category="mob_area",
+    )
 
     # ══════════════════════════════════════════════════════════════════
     # LOOT — coffin in the burial chamber
@@ -663,7 +623,7 @@ def build_millholm_cemetery():
         "carved deep into the stone. Whatever is inside has been "
         "undisturbed for centuries."
     )
-    coffin.loot_gold_max = 20
+    coffin.loot_gold_max = 10
     coffin.tags.add(ZONE, category="zone")
     coffin.tags.add(DISTRICT, category="district")
 
