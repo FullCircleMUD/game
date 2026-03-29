@@ -624,6 +624,7 @@ def build_millholm_cemetery():
         "undisturbed for centuries."
     )
     coffin.loot_gold_max = 10
+    coffin.spawn_scrolls_max = {"basic": 1}
     coffin.tags.add(ZONE, category="zone")
     coffin.tags.add(DISTRICT, category="district")
 

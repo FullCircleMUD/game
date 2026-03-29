@@ -44,10 +44,13 @@ class WorldChest(
     # Override CloseableMixin default — chests start closed
     is_open = AttributeProperty(False)
 
-    # ── Gold capacity ──
+    # ── Spawn capacity ──
     # Max gold this chest can hold for the spawn system. 0 = no gold.
-    # Override in zone setup or prototypes.
     loot_gold_max = AttributeProperty(0)
+    # Per-tier max dicts for scroll/recipe capacity. Empty = none.
+    # e.g. {"basic": 1} = one basic-tier scroll.
+    spawn_scrolls_max = AttributeProperty({})
+    spawn_recipes_max = AttributeProperty({})
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -61,6 +64,14 @@ class WorldChest(
         if self.loot_gold_max > 0:
             self.tags.add("spawn_gold", category="spawn_gold")
             self.db.spawn_gold_max = self.loot_gold_max
+
+        # Knowledge loot: scrolls and recipes
+        if self.spawn_scrolls_max:
+            self.tags.add("spawn_scrolls", category="spawn_scrolls")
+            self.db.spawn_scrolls_max = dict(self.spawn_scrolls_max)
+        if self.spawn_recipes_max:
+            self.tags.add("spawn_recipes", category="spawn_recipes")
+            self.db.spawn_recipes_max = dict(self.spawn_recipes_max)
 
     # ------------------------------------------------------------------ #
     #  Access gating on open/closed state
