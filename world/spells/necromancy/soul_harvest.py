@@ -61,8 +61,12 @@ class SoulHarvest(Spell):
         num_dice = self._DICE.get(tier, 8)
         raw_damage = dice.roll(f"{num_dice}d6")
 
-        # Get all living entities EXCEPT caster
-        all_targets = [e for e in get_room_all(caster) if e != caster]
+        # Get all living entities EXCEPT caster and undead
+        all_targets = [
+            e for e in get_room_all(caster)
+            if e != caster
+            and not e.tags.get("undead", category="creature_type")
+        ]
         if not all_targets:
             return (True, {
                 "first": "You unleash a wave of necrotic energy but there's nothing to drain!",

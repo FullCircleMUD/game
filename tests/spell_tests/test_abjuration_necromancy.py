@@ -617,3 +617,83 @@ class TestResist(EvenniaTest):
                 self.char1.has_effect(f"resist_{element}"),
                 f"Missing effect resist_{element}",
             )
+
+
+# ================================================================== #
+#  Necromancy vs Undead Tests
+# ================================================================== #
+
+class TestNecromancyVsUndead(EvenniaTest):
+    """Necromancy drain spells should not work against undead."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.db.class_skill_mastery_levels = {"necromancy": 3}
+        self.char1.db.spell_cooldowns = {}
+        self.char1.mana = 500
+        self.char1.hp = 50
+        self.char1.hp_max = 100
+        # Tag char2 as undead
+        self.char2.tags.add("undead", category="creature_type")
+        self.char2.hp = 100
+        self.char2.hp_max = 100
+        self.char2.damage_resistances = {}
+
+    def test_drain_life_fails_on_undead(self):
+        """Drain Life should fail against undead — no damage, no heal."""
+        spell = get_spell("drain_life")
+        hp_before = self.char2.hp
+        caster_hp_before = self.char1.hp
+        success, result = spell.cast(self.char1, self.char2)
+        self.assertFalse(success)
+        self.assertEqual(self.char2.hp, hp_before)
+        self.assertEqual(self.char1.hp, caster_hp_before)
+        self.assertIn("no life force", result["first"].lower())
+
+    def test_vampiric_touch_fails_on_undead(self):
+        """Vampiric Touch should have no effect on undead."""
+        spell = get_spell("vampiric_touch")
+        self.char1.db.class_skill_mastery_levels = {"necromancy": 2}
+        hp_before = self.char2.hp
+        success, result = spell.cast(self.char1, self.char2)
+        self.assertTrue(success)  # spell cast but no effect
+        self.assertEqual(self.char2.hp, hp_before)
+        self.assertIn("no life to drain", result["first"].lower())
+
+    def test_soul_harvest_skips_undead(self):
+        """Soul Harvest should skip undead targets in the room."""
+        spell = get_spell("soul_harvest")
+        hp_before = self.char2.hp
+        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
+            mock_dice.roll.return_value = 28
+            success, result = spell.cast(self.char1, None)
+            self.assertTrue(success)
+            # Undead char2 should take no damage
+            self.assertEqual(self.char2.hp, hp_before)
+            # Only undead in room — nothing to drain message
+            self.assertIn("nothing", result["first"].lower())
+
+    def test_soul_harvest_mixed_room(self):
+        """Soul Harvest should damage living but skip undead."""
+        spell = get_spell("soul_harvest")
+        # char2 is undead (tagged in setUp), make a living target too
+        from evennia.utils import create
+        living = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="living_target",
+            location=self.room1,
+        )
+        living.hp = 200
+        living.hp_max = 200
+        living.damage_resistances = {}
+        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
+            mock_dice.roll.return_value = 28
+            success, result = spell.cast(self.char1, None)
+            self.assertTrue(success)
+            # Living target should take damage
+            self.assertLess(living.hp, 200)
+            # Undead char2 should be unharmed
+            self.assertEqual(self.char2.hp, 100)

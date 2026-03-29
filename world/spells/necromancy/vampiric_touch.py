@@ -192,6 +192,23 @@ class VampiricTouch(Spell):
         return result
 
     def _execute(self, caster, target):
+        # Undead have no life force to drain
+        if target.tags.get("undead", category="creature_type"):
+            return (True, {
+                "first": (
+                    f"|rYour vampiric touch passes through {target.key} "
+                    f"without effect — there is no life to drain!|n"
+                ),
+                "second": (
+                    f"|r{caster.key} reaches toward you with dark energy, "
+                    f"but you feel nothing.|n"
+                ),
+                "third": (
+                    f"|r{caster.key} reaches toward {target.key} with "
+                    f"dark energy, but nothing happens.|n"
+                ),
+            })
+
         tier = self.get_caster_tier(caster)
 
         # --- Touch attack roll ---

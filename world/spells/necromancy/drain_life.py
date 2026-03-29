@@ -58,6 +58,20 @@ class DrainLife(Spell):
     _DICE = {1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
 
     def _execute(self, caster, target):
+        # Undead have no life force to drain
+        if target.tags.get("undead", category="creature_type"):
+            return (False, {
+                "first": (
+                    f"|rYour dark magic finds no life force to drain "
+                    f"from {target.key}!|n"
+                ),
+                "second": None,
+                "third": (
+                    f"|r{caster.key} reaches toward {target.key} with "
+                    f"dark energy, but it dissipates harmlessly.|n"
+                ),
+            })
+
         tier = self.get_caster_tier(caster)
         num_dice = self._DICE.get(tier, 2)
         raw_damage = dice.roll(f"{num_dice}d6")
