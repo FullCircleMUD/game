@@ -81,8 +81,13 @@ class Rabbit(CombatMob):
     # ── AI States ──
 
     def ai_wander(self):
-        """Wander slowly through the woods."""
+        """Wander slowly through the woods. Flee if in combat."""
         if not self.location:
+            return
+
+        # In combat — always try to flee
+        if self.scripts.get("combat_handler"):
+            self.execute_cmd("flee")
             return
 
         # Check for threats — if any, schedule flee

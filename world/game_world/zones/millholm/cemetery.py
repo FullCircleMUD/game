@@ -27,7 +27,8 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_cemetery import RoomCemetery
-from utils.exit_helpers import connect, connect_door
+from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from utils.exit_helpers import connect, connect_door, connect_trapped_door
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -519,8 +520,8 @@ def build_millholm_cemetery():
     )
     exit_count += 6
 
-    # Stonefield tomb interior — antechamber → inner passage → burial chamber
-    connect_door(
+    # Stonefield tomb interior — trapped iron door → inner passage
+    connect_trapped_door(
         rooms["tomb_stonefield"], rooms["tomb_stonefield_inner"], "west",
         key="an iron door",
         closed_ab="A rusted iron door blocks the passage deeper into the tomb.",
@@ -528,9 +529,44 @@ def build_millholm_cemetery():
         closed_ba="A rusted iron door blocks the way east.",
         open_ba="The antechamber is visible through the open door.",
         door_name="iron door",
+        trap_find_dc=8,
+        trap_disarm_dc=8,
+        trap_damage_dice="1d4",
+        trap_damage_type="piercing",
+        trap_description="a set of rusted dart tubes hidden in the door frame",
+        trap_one_shot=True,
+        trap_side="ab",
     )
-    connect(rooms["tomb_stonefield_inner"], rooms["tomb_stonefield_burial"], "west")
-    exit_count += 4
+    exit_count += 2
+
+    # Tripwire between inner passage and burial chamber
+    from typeclasses.terrain.exits.exit_tripwire import TripwireExit
+
+    tripwire_ab = create_object(
+        TripwireExit,
+        key="Stonefield Burial Chamber",
+        location=rooms["tomb_stonefield_inner"],
+        destination=rooms["tomb_stonefield_burial"],
+    )
+    tripwire_ab.set_direction("west")
+    tripwire_ab.is_trapped = True
+    tripwire_ab.trap_armed = True
+    tripwire_ab.trap_find_dc = 8
+    tripwire_ab.trap_disarm_dc = 8
+    tripwire_ab.trap_damage_dice = "1d4"
+    tripwire_ab.trap_damage_type = "piercing"
+    tripwire_ab.trap_description = "a thin wire stretched across the passage"
+    tripwire_ab.trap_one_shot = True
+
+    # Return exit from burial chamber (no trap)
+    exit_burial_back = create_object(
+        ExitVerticalAware,
+        key="Inner Passage",
+        location=rooms["tomb_stonefield_burial"],
+        destination=rooms["tomb_stonefield_inner"],
+    )
+    exit_burial_back.set_direction("east")
+    exit_count += 2
 
     print(f"  Created {exit_count} cemetery exits.")
 
@@ -562,6 +598,76 @@ def build_millholm_cemetery():
     for room in tombs:
         room.set_terrain(TerrainType.UNDERGROUND.value)
         room.max_height = 0
+
+    # ══════════════════════════════════════════════════════════════════
+    # MOBS — Stonefield burial chamber skeletons
+    # ══════════════════════════════════════════════════════════════════
+
+    from evennia.utils import create
+
+    for i in range(3):
+        skeleton = create.create_object(
+            "typeclasses.actors.mobs.aggressive_mob.AggressiveMob",
+            key="a skeleton",
+            location=rooms["tomb_stonefield_burial"],
+        )
+        skeleton.hp = 10
+        skeleton.hp_max = 10
+        skeleton.strength = 8
+        skeleton.dexterity = 10
+        skeleton.constitution = 8
+        skeleton.base_armor_class = 10
+        skeleton.armor_class = 10
+        skeleton.level = 1
+        skeleton.damage_dice = "1d4"
+        skeleton.attack_message = "claws at"
+        skeleton.attack_delay_min = 3
+        skeleton.attack_delay_max = 6
+        skeleton.loot_gold_max = 0
+        skeleton.size = "medium"
+        skeleton.ai_tick_interval = 8
+        skeleton.is_unique = True  # don't delete on death — static placement
+        skeleton.db.desc = (
+            "A yellowed skeleton, its bones held together by ancient "
+            "sinew and dark will. Empty eye sockets stare with mindless "
+            "malice, and its bony fingers end in points worn sharp by "
+            "centuries of scratching at stone. It moves with a jerky, "
+            "unnatural gait."
+        )
+        skeleton.room_description = (
+            "{name} stands motionless, its empty eyes fixed on you."
+        )
+        skeleton.tags.add("undead", category="creature_type")
+        skeleton.tags.add(ZONE, category="zone")
+        skeleton.tags.add(DISTRICT, category="district")
+        skeleton.start_ai()
+
+    print("  Spawned 3 skeletons in Stonefield Burial Chamber.")
+
+    # ══════════════════════════════════════════════════════════════════
+    # LOOT — coffin in the burial chamber
+    # ══════════════════════════════════════════════════════════════════
+
+    from typeclasses.world_objects.chest import WorldChest
+
+    coffin = create.create_object(
+        WorldChest,
+        key="a stone sarcophagus",
+        location=rooms["tomb_stonefield_burial"],
+        nohome=True,
+    )
+    coffin.db.desc = (
+        "The central sarcophagus — the largest and most ornate. Its "
+        "heavy granite lid has been pushed partly aside, revealing "
+        "darkness within. The name 'ALDRIC STONEFIELD — FOUNDER' is "
+        "carved deep into the stone. Whatever is inside has been "
+        "undisturbed for centuries."
+    )
+    coffin.loot_gold_max = 20
+    coffin.tags.add(ZONE, category="zone")
+    coffin.tags.add(DISTRICT, category="district")
+
+    print("  Placed lootable sarcophagus in Stonefield Burial Chamber.")
 
     print("  Tagged all cemetery rooms (zone, district, terrain, weather).")
     print("  Millholm Cemetery complete.\n")
