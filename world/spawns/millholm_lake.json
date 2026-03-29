@@ -1,0 +1,91 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "a duck",
+        "area_tag": "lake_shore",
+        "target": 2,
+        "max_per_room": 1,
+        "respawn_seconds": 60,
+        "desc": "A plump mallard duck waddles along the water's edge, occasionally dipping its bill into the shallows. It eyes you with the studied indifference of a creature that knows it has nothing you want.",
+        "attrs": {
+            "hp": 2,
+            "hp_max": 2,
+            "strength": 2,
+            "dexterity": 12,
+            "constitution": 2,
+            "base_armor_class": 12,
+            "armor_class": 12,
+            "level": 1,
+            "size": "small",
+            "ai_tick_interval": 10,
+            "loot_gold_max": 0
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "a duckling",
+        "area_tag": "lake_shore",
+        "target": 4,
+        "max_per_room": 2,
+        "respawn_seconds": 60,
+        "desc": "A tiny fluffy duckling paddles frantically to keep up with its mother, peeping softly. Its downy feathers are still more fluff than plumage.",
+        "attrs": {
+            "hp": 1,
+            "hp_max": 1,
+            "strength": 1,
+            "dexterity": 14,
+            "constitution": 1,
+            "base_armor_class": 14,
+            "armor_class": 14,
+            "level": 1,
+            "size": "tiny",
+            "ai_tick_interval": 10,
+            "loot_gold_max": 0
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "a frog",
+        "area_tag": "lake_shallows",
+        "target": 4,
+        "max_per_room": 2,
+        "respawn_seconds": 60,
+        "desc": "A fat green frog squats on a lily pad, its throat pulsing as it croaks. Bulging golden eyes swivel to watch you before it resumes its contemplation of absolutely nothing.",
+        "attrs": {
+            "hp": 1,
+            "hp_max": 1,
+            "strength": 1,
+            "dexterity": 16,
+            "constitution": 1,
+            "base_armor_class": 14,
+            "armor_class": 14,
+            "level": 1,
+            "size": "tiny",
+            "ai_tick_interval": 12,
+            "loot_gold_max": 0
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.base_marine_mob.BaseMarineMob",
+        "key": "a pike",
+        "area_tag": "lake_deep",
+        "target": 4,
+        "max_per_room": 1,
+        "respawn_seconds": 120,
+        "desc": "A long, dark shape glides through the deep water — a pike, its mottled green flanks nearly invisible against the weedy depths. Its flat, predatory snout and cold eyes give it the look of something that has been perfecting patience for a very long time.",
+        "attrs": {
+            "hp": 6,
+            "hp_max": 6,
+            "strength": 8,
+            "dexterity": 14,
+            "constitution": 6,
+            "base_armor_class": 12,
+            "armor_class": 12,
+            "level": 1,
+            "size": "medium",
+            "preferred_depth": -2,
+            "ai_tick_interval": 10,
+            "loot_gold_max": 0
+        }
+    }
+]

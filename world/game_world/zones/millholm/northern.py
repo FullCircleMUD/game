@@ -774,6 +774,19 @@ def build_millholm_northern():
                  rooms["deep_dock"], rooms["deep_yard"]]:
         room.set_terrain(TerrainType.WATER.value)
 
+    # Mob area tags for zone spawn script
+    for room in [rooms["lake_shore"], rooms["lake_shore_west"],
+                 rooms["lake_shore_east"]]:
+        room.tags.add("lake_shore", category="mob_area")
+    for room in [rooms["shallows_w"], rooms["shallows_c"],
+                 rooms["shallows_e"], rooms["shallows_dock"],
+                 rooms["shallows_yard"]]:
+        room.tags.add("lake_shore", category="mob_area")
+        room.tags.add("lake_shallows", category="mob_area")
+    for room in [rooms["deep_w"], rooms["deep_c"], rooms["deep_e"],
+                 rooms["deep_dock"], rooms["deep_yard"]]:
+        room.tags.add("lake_deep", category="mob_area")
+
     print("  Tagged all northern rooms (zone, district, terrain, weather).")
     print("  Millholm Lake complete.\n")
 
