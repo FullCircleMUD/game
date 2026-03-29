@@ -384,31 +384,145 @@ def _spawn_warrior_trainer():
 
 
 def _spawn_thief_guildmaster():
-    """Spawn Shadow Mistress Vex in the Thieves' Lair."""
+    """Spawn Gareth Stonefield — thief guildmaster in the Thieves' Lair."""
     room = _find_room("Shadow Mistress's Chamber")
     if not room:
-        print("  [!] Room 'Shadow Mistress's Chamber' not found — skipping vex")
+        print("  [!] Room 'Shadow Mistress's Chamber' not found — skipping gareth")
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
-        key="Shadow Mistress Vex",
+        "typeclasses.actors.npcs.llm_guildmaster_npc.LLMGuildmasterNPC",
+        key="Gareth Stonefield",
         location=room,
     )
     npc.guild_class = "thief"
     npc.multi_class_quest_key = "thief_initiation"
     npc.max_advance_level = 5
     npc.next_guildmaster_hint = "the Grandmaster of Shadows in Saltspray Bay"
-    npc.db.desc = (
-        "A tall, lithe woman draped in dark silk that seems to drink the "
-        "light. Her black hair is pulled back from an angular face dominated "
-        "by sharp cheekbones and cool, appraising eyes. She moves with the "
-        "languid grace of someone who has nothing to prove and everything to "
-        "take. A single exquisite rapier hangs at her hip — more ornament "
-        "than weapon, until it isn't."
+
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = True
+    npc.llm_hook_arrive = True
+    npc.llm_personality = (
+        "An impeccably presented man in his fifties. Everything about him "
+        "is precise — his silver-streaked hair is oiled and combed back, "
+        "his nails are manicured, his boots are polished to a mirror "
+        "shine. He wears a silk waistcoat over a crisp linen shirt, with "
+        "a gold watch chain at his hip. He smells faintly of sandalwood "
+        "and expensive tobacco. He speaks softly, never raises his voice, "
+        "and chooses every word with the care of a man who knows that "
+        "careless words cost lives. He has a vain streak — he adjusts "
+        "his cuffs, checks his reflection in polished surfaces, and is "
+        "visibly offended by untidiness. Despite the elegance, there is "
+        "something deeply dangerous about him. His smile never reaches "
+        "his eyes. He calls everyone 'my friend' in a tone that makes "
+        "it clear the friendship is conditional."
     )
-    npc.room_description = "{name} lounges in the shadows, a rapier glinting at her hip."
-    print(f"  Spawned guildmaster 'Shadow Mistress Vex' in {room.key} ({room.dbref})")
+    npc.llm_knowledge = (
+        "You are Gareth Stonefield, guildmaster of the Millholm Thieves' "
+        "Guild. Above ground you maintain an impeccable reputation as a "
+        "wealthy merchant and trader — you live in the finest house in "
+        "town, on the Old Trade Way. Nobody suspects that your real "
+        "business is run from this chamber deep beneath the sewers.\n\n"
+        "You are fastidious, controlled, and utterly ruthless when "
+        "necessary. You run the guild like a business — profit, "
+        "discipline, professionalism. You despise sloppy work, loud "
+        "mouths, and anyone who draws unnecessary attention. A good "
+        "thief is invisible. A great thief is someone nobody suspects "
+        "exists.\n\n"
+        "Your second-in-command is Vex, who runs the guild's night "
+        "operations. You trust her competence but not her ambition. "
+        "Whisper handles training of new recruits.\n\n"
+        "The initiation test requires aspirants to reach the boss room "
+        "of the Cave of Trials — a test of nerve, not brute force. "
+        "You accept new members via the 'join' command and grant level "
+        "advancement via 'advance' after they've earned experience.\n\n"
+        "You have a network of informants throughout Millholm. You know "
+        "about the goings-on in town — the struggling baker, the wolves "
+        "in the woods, the kobolds in the mine. Information is currency "
+        "and you are very wealthy indeed.\n\n"
+        "You never admit to being a thief guildmaster to strangers. To "
+        "outsiders you are simply 'a merchant with connections.' Only "
+        "those who have found their way down here have earned the right "
+        "to know the truth."
+    )
+    npc.db.desc = (
+        "An immaculately dressed man of middle years, standing with the "
+        "easy confidence of someone accustomed to being obeyed. His "
+        "silver-streaked hair is swept back from a lean, handsome face, "
+        "and his dark eyes miss nothing. A silk waistcoat in deep "
+        "burgundy sits perfectly over a crisp white shirt, and his "
+        "boots gleam even in the dim lamplight. A gold watch chain "
+        "glints at his waist. He looks like he belongs in a merchant's "
+        "counting house, not a chamber beneath the sewers — which is, "
+        "of course, entirely the point."
+    )
+    npc.room_description = (
+        "{name} stands by the desk, adjusting his cuffs with studied precision."
+    )
+    print(f"  Spawned LLM guildmaster 'Gareth Stonefield' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_thief_2ic():
+    """Spawn Vex — second-in-command, runs the guild's night shift."""
+    room = _find_room("Shadow Mistress's Chamber")
+    if not room:
+        print("  [!] Room 'Shadow Mistress's Chamber' not found — skipping vex")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+        key="Vex",
+        location=room,
+    )
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = True
+    npc.llm_hook_arrive = False
+    npc.llm_personality = (
+        "A tall, lithe woman in her thirties with sharp cheekbones and "
+        "cool, appraising eyes that give nothing away. She dresses in "
+        "dark, practical clothing — no silk for her. She is sardonic, "
+        "blunt, and dangerous. She has no patience for fools, flattery, "
+        "or excuses. She speaks in short, clipped sentences and never "
+        "wastes a word. She has a dry, cutting wit that she deploys "
+        "like a weapon. She respects competence and despises cowardice. "
+        "She is fiercely loyal to the guild but has her own ambitions — "
+        "she doesn't hide this from anyone, least of all Gareth. She "
+        "calls new recruits 'fresh meat' until they prove otherwise."
+    )
+    npc.llm_knowledge = (
+        "You are Vex, second-in-command of the Millholm Thieves' Guild. "
+        "You run the guild's night operations — the jobs, the scores, "
+        "the muscle. While Gareth Stonefield plays the respectable "
+        "merchant upstairs, you do the real work down here.\n\n"
+        "You respect Gareth's mind and his connections, but you think "
+        "he's gotten too comfortable. Too much silk, not enough steel. "
+        "You'd never betray him — that's not how this works — but you "
+        "keep your own counsel and your own plans.\n\n"
+        "You are responsible for assessing new recruits. You are not "
+        "impressed easily. You've seen a hundred eager faces come "
+        "through that door and most of them washed out, got caught, or "
+        "got dead. The ones who survive are the ones who listen.\n\n"
+        "You know everything that happens in the sewers and most of "
+        "what happens on the streets above. Whisper handles the "
+        "training; you handle everything else. You have contacts among "
+        "the rats, the beggars, and the fence at The Broken Crown.\n\n"
+        "You don't trust anyone completely. That's not paranoia — "
+        "that's professionalism."
+    )
+    npc.db.desc = (
+        "A tall, lithe woman draped in dark practical clothing that "
+        "makes no sound when she moves. Her black hair is pulled back "
+        "from an angular face dominated by sharp cheekbones and cool, "
+        "appraising eyes. A single exquisite rapier hangs at her hip — "
+        "more ornament than weapon, until it isn't. She watches you "
+        "the way a cat watches a mouse that hasn't noticed the cat yet."
+    )
+    npc.room_description = (
+        "{name} leans against the wall in the shadows, arms folded, watching."
+    )
+    print(f"  Spawned LLM 2IC 'Vex' in {room.key} ({room.dbref})")
     return npc
 
 
@@ -1237,6 +1351,7 @@ def spawn_millholm_npcs():
     _spawn_warrior_guildmaster()
     _spawn_warrior_trainer()
     _spawn_thief_guildmaster()
+    _spawn_thief_2ic()
     _spawn_thief_trainer()
     _spawn_mage_guildmaster()
     _spawn_mage_trainer()

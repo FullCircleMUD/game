@@ -494,7 +494,7 @@ def build_millholm_sewers():
         door_name="wall",
     )
     door_ab.is_hidden = True
-    door_ab.find_dc = 20
+    door_ab.find_dc = 12
 
     # ====================================================================
     #  EXITS — Thieves' Lair

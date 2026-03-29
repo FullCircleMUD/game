@@ -92,7 +92,7 @@ def build_zone(one_way_limbo=False):
         door_name="stone door",
     )
     door_ab.is_hidden = True
-    door_ab.find_dc = 16
+    door_ab.find_dc = 10
 
     print("[4b] Connecting abandoned house → old cistern (hidden)...")
     door_ab2, _ = connect_door(
@@ -118,7 +118,7 @@ def build_zone(one_way_limbo=False):
         door_name="trapdoor",
     )
     door_ab2.is_hidden = True
-    door_ab2.find_dc = 18
+    door_ab2.find_dc = 10
 
     # ── Cellar access + Rat Cellar quest trigger ────────────────────
     print("[4c] Setting up Cellar and Rat Cellar quest entrance...")
