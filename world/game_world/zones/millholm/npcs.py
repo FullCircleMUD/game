@@ -1337,6 +1337,37 @@ def _spawn_smelter():
     return npc
 
 
+def _spawn_grik():
+    """Spawn Grik the arms dealer at Grik's Blades & Blunts."""
+    room = _find_room("Grik's Blades & Blunts")
+    if not room:
+        print("  [!] Room 'Grik's Blades & Blunts' not found — skipping grik")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.nft_shopkeeper.NFTShopkeeperNPC",
+        key="Grik",
+        location=room,
+    )
+    npc.tradeable_item_types = [
+        "Training Dagger", "Training Shortsword", "Training Longsword",
+    ]
+    npc.shop_name = "Grik's Blades & Blunts"
+    npc.db.desc = (
+        "A wiry goblin with a surprisingly keen business sense perches "
+        "behind a counter cluttered with wooden practice weapons and "
+        "whetstones. His yellowed teeth flash in what might be a smile "
+        "or might be a threat assessment. He eyes you shrewdly, one "
+        "clawed hand resting on a dagger beneath the counter — just "
+        "in case."
+    )
+    npc.room_description = (
+        "{name} perches behind the counter, eyeing you shrewdly."
+    )
+    print(f"  Spawned NFT shopkeeper 'Grik' in {room.key} ({room.dbref})")
+    return npc
+
+
 def _spawn_boatman():
     """Spawn Old Barnacle Bob the sailing instructor at the Sailing Club."""
     room = _find_room("Millholm Junior Sailing Club")
@@ -1452,6 +1483,8 @@ def spawn_millholm_npcs():
     _spawn_lumberjack()
     _spawn_trapper()
     _spawn_smelter()
+    # ── Old Trade Way Shops ──
+    _spawn_grik()
     # ── Lake District ──
     _spawn_boatman()
     # ── Southern District ──
