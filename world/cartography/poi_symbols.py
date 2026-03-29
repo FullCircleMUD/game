@@ -25,7 +25,6 @@ POI_SYMBOLS = {
     "lake":        "L",
     "zone_exit":   "X",
     # Underground / dungeon
-    "tunnel":      "~",
     "chamber":     "O",
     "shaft":       "v",
     "dead_end":    "x",
@@ -62,7 +61,6 @@ POI_NAMES = {
     "lake":        "Lake",
     "zone_exit":   "Map Exit",
     # Underground / dungeon
-    "tunnel":      "Tunnel",
     "chamber":     "Chamber",
     "shaft":       "Shaft",
     "dead_end":    "Dead End",

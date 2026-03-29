@@ -540,6 +540,7 @@ def build_millholm_sewers():
         "sewer_entrance":      "millholm_sewers:sewer_entrance",
         "main_drain":          "millholm_sewers:main_drain",
         "drain_junction":      "millholm_sewers:drain_junction",
+        "eastern_pipe":        "millholm_sewers:eastern_pipe",
         "flooded_tunnel":      "millholm_sewers:flooded_tunnel",
         "deep_sewer":          "millholm_sewers:deep_sewer",
         "overflow_chamber":    "millholm_sewers:overflow_chamber",
