@@ -152,14 +152,63 @@ def sync_nfts():
             existing_by_id[nftoken_id] = new_row
             created += 1
 
+    # Patch live Evennia objects that still hold placeholder token_ids
+    objects_patched = _patch_evennia_objects(chain_nfts)
+
     return {
         "updated": updated,
         "created": created,
         "unchanged": unchanged,
         "skipped": skipped,
         "on_chain_count": len(chain_nfts),
+        "objects_patched": objects_patched,
     }
 
+
+
+def _patch_evennia_objects(chain_nfts):
+    """
+    Find spawned BaseNFTItem objects with placeholder token_ids and
+    update them to the real 64-char XRPL NFToken ID.
+
+    A placeholder token_id is a short numeric string (e.g. "150") that
+    was set when the object was spawned before sync_nfts replaced the
+    DB row's nftoken_id with the real on-chain value.
+    """
+    from typeclasses.items.base_nft_item import BaseNFTItem
+    from evennia.objects.models import ObjectDB
+
+    # Build uri_id → real nftoken_id mapping
+    uri_to_nftoken = {}
+    for nft in chain_nfts:
+        game_id = _extract_game_id(nft.get("URI"))
+        if game_id is not None:
+            uri_to_nftoken[str(game_id)] = nft["NFTokenID"]
+
+    if not uri_to_nftoken:
+        return 0
+
+    patched = 0
+    for obj in ObjectDB.objects.get_by_attribute("token_id"):
+        if not isinstance(obj, BaseNFTItem):
+            continue
+        token_id = obj.token_id
+        if token_id is None:
+            continue
+        token_str = str(token_id)
+        # Skip if already a real 64-char hex ID
+        if len(token_str) == 64:
+            continue
+        real_id = uri_to_nftoken.get(token_str)
+        if real_id:
+            obj.token_id = real_id
+            patched += 1
+            logger.info(
+                f"NFT sync: patched #{obj.id} token_id "
+                f"{token_str} → {real_id[:16]}..."
+            )
+
+    return patched
 
 
 # ================================================================== #

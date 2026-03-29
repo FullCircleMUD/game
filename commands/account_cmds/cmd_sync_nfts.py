@@ -56,6 +56,8 @@ def _on_sync_complete(caller, result):
     caller.msg(f"  Unchanged (already synced): {result['unchanged']}")
     if result['skipped']:
         caller.msg(f"  |ySkipped (no game ID in URI):|n {result['skipped']}")
+    if result.get('objects_patched'):
+        caller.msg(f"  |gEvennia objects patched:|n {result['objects_patched']}")
     caller.msg("|c--- Sync Complete ---|n")
 
 
