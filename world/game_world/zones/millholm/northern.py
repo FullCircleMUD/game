@@ -23,7 +23,7 @@ from utils.exit_helpers import connect
 
 # ── Zone / district constants ─────────────────────────────────────────
 ZONE = "millholm"
-DISTRICT = "millholm_northern"
+DISTRICT = "millholm_lake"
 
 
 def build_millholm_northern():
@@ -104,21 +104,111 @@ def build_millholm_northern():
         ],
     )
 
+    rooms["lake_shore_west"] = create_object(
+        RoomBase,
+        key="Western Lake Shore",
+        attributes=[
+            ("max_height", 1),
+            ("max_depth", -2),
+            ("desc",
+             "The western shore of the lake curves away into a sheltered "
+             "cove where the water is shallow and still. Willow trees "
+             "trail their branches into the lake, and the bank is soft "
+             "mud dotted with the prints of deer and foxes. A heron "
+             "stands motionless in the shallows, watching for fish with "
+             "infinite patience. The reeds here grow thick, creating "
+             "a natural screen from the rest of the shore."),
+            ("details", {
+                "willows": (
+                    "Graceful willow trees lean out over the water, "
+                    "their long trailing branches dipping into the "
+                    "surface and creating curtains of green. The bark "
+                    "is deeply furrowed and silver-grey."
+                ),
+                "heron": (
+                    "A grey heron, utterly still, standing knee-deep "
+                    "in the shallows. Its long neck is coiled like a "
+                    "spring. It watches the water with a yellow eye, "
+                    "waiting for the flicker of a fish."
+                ),
+                "prints": (
+                    "Animal tracks pressed into the soft mud along the "
+                    "waterline — the neat slots of deer hooves, the "
+                    "pads of a fox, and the webbed prints of ducks."
+                ),
+            }),
+        ],
+    )
+
+    rooms["lake_shore_east"] = create_object(
+        RoomBase,
+        key="Eastern Lake Shore",
+        attributes=[
+            ("max_height", 1),
+            ("max_depth", -2),
+            ("desc",
+             "The eastern shore is rockier than the rest, with flat "
+             "slabs of grey stone jutting out into the water like "
+             "natural platforms. The water is deeper here — the bottom "
+             "drops away sharply just a few feet from the edge. "
+             "Dragonflies skim the surface, and swallows swoop low "
+             "to drink on the wing. A tumble of boulders at the "
+             "water's edge looks like it was once a wall or foundation "
+             "of some kind, long since reclaimed by the lake."),
+            ("details", {
+                "stones": (
+                    "Flat grey stone slabs, smooth and sun-warmed. "
+                    "They make good platforms for sitting, fishing, "
+                    "or diving into the deeper water beyond."
+                ),
+                "boulders": (
+                    "A tumble of large stones at the water's edge, "
+                    "too regular to be natural. The remains of a wall "
+                    "or building foundation, perhaps. Whatever stood "
+                    "here is long gone — only the lake remembers."
+                ),
+                "dragonflies": (
+                    "Electric-blue dragonflies hover and dart over the "
+                    "water's surface, snatching midges from the air. "
+                    "Their wings catch the light like stained glass."
+                ),
+            }),
+        ],
+    )
+
     print(f"  Created {len(rooms)} northern rooms.")
+
+    # ══════════════════════════════════════════════════════════════════
+    # EXITS — lake shore connections
+    # ══════════════════════════════════════════════════════════════════
+
+    connect(rooms["lake_shore_west"], rooms["lake_shore"], "east")
+    connect(rooms["lake_shore"], rooms["lake_shore_east"], "east")
+
+    print("  Created 4 lake shore exits.")
 
     # ══════════════════════════════════════════════════════════════════
     # TAGS — zone, district, terrain, properties
     # ══════════════════════════════════════════════════════════════════
 
-    for room in rooms.values():
+    # Lake track is town-side of the passage — tagged as town
+    rooms["lake_track"].tags.add(ZONE, category="zone")
+    rooms["lake_track"].tags.add("millholm_town", category="district")
+    rooms["lake_track"].set_terrain(TerrainType.PLAINS.value)
+    rooms["lake_track"].sheltered = False
+
+    # Lake shore rooms are the lake district
+    lake_rooms = [
+        rooms["lake_shore"], rooms["lake_shore_west"],
+        rooms["lake_shore_east"],
+    ]
+    for room in lake_rooms:
         room.tags.add(ZONE, category="zone")
         room.tags.add(DISTRICT, category="district")
-        room.sheltered = False  # outdoor, weather-exposed
-
-    rooms["lake_track"].set_terrain(TerrainType.PLAINS.value)
-    rooms["lake_shore"].set_terrain(TerrainType.COASTAL.value)
+        room.set_terrain(TerrainType.COASTAL.value)
+        room.sheltered = False
 
     print("  Tagged all northern rooms (zone, district, terrain, weather).")
-    print("  Millholm Northern complete.\n")
+    print("  Millholm Lake complete.\n")
 
     return rooms
