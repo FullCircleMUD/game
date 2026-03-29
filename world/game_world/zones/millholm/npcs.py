@@ -1337,6 +1337,142 @@ def _spawn_smelter():
     return npc
 
 
+def _spawn_durga():
+    """Spawn Durga Ironplate the armorer at Ironclad Outfitters."""
+    room = _find_room("Ironclad Outfitters")
+    if not room:
+        print("  [!] Room 'Ironclad Outfitters' not found — skipping durga")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.nft_shopkeeper.NFTShopkeeperNPC",
+        key="Durga Ironplate",
+        location=room,
+    )
+    npc.tradeable_item_types = [
+        "Training Dagger", "Training Shortsword", "Training Longsword",
+    ]
+    npc.shop_name = "Ironclad Outfitters"
+    npc.db.desc = (
+        "A stocky dwarven woman with iron-grey hair cropped close to "
+        "her skull and shoulders that could bear an ox. Her leather "
+        "apron is scarred from decades of hammer blows and rivet work. "
+        "She stands ramrod straight — the posture of a career soldier — "
+        "and looks you up and down the way a sergeant inspects a new "
+        "recruit. Her hands are rough and sure, and a measuring tape "
+        "hangs around her neck like a scarf."
+    )
+    npc.room_description = (
+        "{name} stands behind the counter, measuring tape at the ready, "
+        "eyeing your posture critically."
+    )
+    print(f"  Spawned NFT shopkeeper 'Durga Ironplate' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_colette():
+    """Spawn Madame Colette the clothier at The Silken Thread."""
+    room = _find_room("The Silken Thread")
+    if not room:
+        print("  [!] Room 'The Silken Thread' not found — skipping colette")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.nft_shopkeeper.NFTShopkeeperNPC",
+        key="Madame Colette",
+        location=room,
+    )
+    npc.tradeable_item_types = [
+        "Training Dagger", "Training Shortsword", "Training Longsword",
+    ]
+    npc.shop_name = "The Silken Thread"
+    npc.db.desc = (
+        "An impossibly elegant woman of indeterminate age, her silver "
+        "hair swept up in a complicated arrangement held together by "
+        "jade pins. She wears a gown of deep teal silk that probably "
+        "cost more than the building. Her accent is from somewhere far "
+        "away — somewhere with better taste, she would have you know. "
+        "She holds a pair of tiny gold scissors and looks at your "
+        "outfit with an expression that hovers between pity and "
+        "professional interest."
+    )
+    npc.room_description = (
+        "{name} adjusts a bolt of silk, her expression suggesting your "
+        "outfit has personally offended her."
+    )
+    print(f"  Spawned NFT shopkeeper 'Madame Colette' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_fizwick():
+    """Spawn Fizwick the alchemist at The Bubbling Flask."""
+    room = _find_room("The Bubbling Flask")
+    if not room:
+        print("  [!] Room 'The Bubbling Flask' not found — skipping fizwick")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.nft_shopkeeper.NFTShopkeeperNPC",
+        key="Fizwick",
+        location=room,
+    )
+    npc.tradeable_item_types = [
+        "Training Dagger", "Training Shortsword", "Training Longsword",
+    ]
+    npc.shop_name = "The Bubbling Flask"
+    npc.db.desc = (
+        "A small, twitchy gnome with singed eyebrows and a permanent "
+        "expression of mild alarm. His apron is covered in chemical "
+        "stains of every conceivable colour, and his fingers are "
+        "bandaged in at least three places. He keeps glancing "
+        "nervously at a bubbling beaker on the counter as if "
+        "expecting it to explode at any moment. It probably will. "
+        "Despite the chaos, the potions on his shelves are neatly "
+        "labelled and arranged with obsessive precision — the work "
+        "of a brilliant mind in a slightly unreliable body."
+    )
+    npc.room_description = (
+        "{name} fidgets behind the counter, one eye on a bubbling "
+        "beaker that is definitely changing colour."
+    )
+    print(f"  Spawned NFT shopkeeper 'Fizwick' in {room.key} ({room.dbref})")
+    return npc
+
+
+def _spawn_pim():
+    """Spawn Polished Pim the jeweller's nephew at The Gilded Window."""
+    room = _find_room("The Gilded Window")
+    if not room:
+        print("  [!] Room 'The Gilded Window' not found — skipping pim")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.npcs.nft_shopkeeper.NFTShopkeeperNPC",
+        key="Polished Pim",
+        location=room,
+    )
+    npc.tradeable_item_types = [
+        "Training Dagger", "Training Shortsword", "Training Longsword",
+    ]
+    npc.shop_name = "The Gilded Window"
+    npc.db.desc = (
+        "A young man barely out of his teens, with a mop of sandy "
+        "hair and an eager expression that suggests he's still "
+        "impressed by absolutely everything in the shop. He wears a "
+        "slightly too-large waistcoat with 'The Gilded Window' "
+        "embroidered on the breast pocket, and keeps polishing the "
+        "display cases whether they need it or not. A small portrait "
+        "of his aunt Gemma hangs behind the counter, watching over "
+        "him with a stern expression."
+    )
+    npc.room_description = (
+        "{name} polishes a display case enthusiastically, humming "
+        "to himself."
+    )
+    print(f"  Spawned NFT shopkeeper 'Polished Pim' in {room.key} ({room.dbref})")
+    return npc
+
+
 def _spawn_grik():
     """Spawn Grik the arms dealer at Grik's Blades & Blunts."""
     room = _find_room("Grik's Blades & Blunts")
@@ -1485,6 +1621,10 @@ def spawn_millholm_npcs():
     _spawn_smelter()
     # ── Old Trade Way Shops ──
     _spawn_grik()
+    _spawn_durga()
+    _spawn_colette()
+    _spawn_fizwick()
+    _spawn_pim()
     # ── Lake District ──
     _spawn_boatman()
     # ── Southern District ──
