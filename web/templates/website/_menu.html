@@ -29,9 +29,7 @@ Only Home and Admin (staff-only) remain.
       <li><a class="nav-link" href="{% url 'vision' %}">Vision</a></li>
       <li><a class="nav-link" href="{% url 'about' %}">About</a></li>
       <li><a class="nav-link" href="{% url 'costs' %}">Costs</a></li>
-      {% if geo_variant == 'B' %}
-      <li><a class="nav-link" href="{% url 'redemption' %}">Redemption</a></li>
-      {% endif %}
+      {# Geo-variant infrastructure retained — add conditional links here if needed #}
       <li><a class="nav-link" href="{% url 'markets' %}">Markets</a></li>
       <li><a class="nav-link" href="{% url 'docs' %}">Docs</a></li>
       {% if discord_url %}<li><a class="nav-link" href="{{ discord_url }}" target="_blank" rel="noopener">Discord</a></li>{% endif %}

@@ -8,8 +8,8 @@
 <div class="card mb-4">
   <div class="card-body text-center py-5">
     <h1 class="card-title mb-3">Full Circle MUD</h1>
-    <p class="lead mb-1">Eve Online meets Ultima Online, but the gold is real and the economy is on chain.</p>
-    <p class="text-muted">A text-based multiplayer world where every coin, every sword, and every hide of leather is a real asset you own.</p>
+    <p class="lead mb-1">Eve Online meets Ultima Online, with a transparent on-chain economy.</p>
+    <p class="text-muted">A text-based multiplayer world where every coin, every sword, and every hide of leather is an on-chain asset you own.</p>
   </div>
 </div>
 
@@ -41,9 +41,10 @@
 
     <h4 class="mt-4">1. You Own Your Assets</h4>
     <p>
-      Gold is an issued currency on the XRP Ledger. Resources &mdash; wheat, iron ore,
-      moonpetal essence &mdash; are fungible tokens. Every crafted item can be exported to the XRPL as an NFT. These aren't database entries dressed up as tokens; they're real on-chain assets
-      that you control from your own Xaman wallet.
+      Gold and resources &mdash; wheat, iron ore, moonpetal essence &mdash; are all issued
+      currencies on the XRP Ledger. Every crafted item can be exported as an NFT. These aren't
+      database entries dressed up as tokens; they're on-chain assets that you control from your
+      own Xaman wallet.
     </p>
     <p>
       Import assets into the game to use them. Export them to your wallet to trade freely.
@@ -66,13 +67,13 @@
     <p>
       Most blockchain games create a token and call it an economy. FCM builds an actual
       medieval economy with supply chains, crafting professions, resource scarcity, and NPC markets
-      &mdash; then backs it with real value.
+      &mdash; all running transparently on a public ledger.
     </p>
     <p>
       Farmers harvest wheat. Millers grind it to flour. Bakers bake bread. Miners pull ore from the
       ground. Smelters refine ingots. Blacksmiths forge weapons. Alchemists brew potions from
       rare herbs. Every step has cost, skill requirements, and market dynamics.
-      Thirty-six resource types feed into seven crafting professions through interconnected
+      Dozens of resource types feed into multiple crafting professions through interconnected
       supply chains.
     </p>
     <p>
@@ -83,16 +84,16 @@
 
     <h4 class="mt-4">4. Deep Gameplay First</h4>
     <p>
-      The blockchain enables the economy, but the game stands on its own. Eight character classes.
-      Twenty-four weapon types, each with unique mechanics that evolve across five mastery tiers
+      The blockchain enables the economy, but the game stands on its own. An expanding roster
+      of races and character classes. Over twenty weapon types, each with unique mechanics that evolve across five mastery tiers
       &mdash; a longsword in the hands of a Grandmaster plays fundamentally differently than in the hands of a novice.
       Six schools of magic with spells that gain qualitative new abilities as you advance, not just bigger numbers.
       Stealth, traps, reactive combat, group tactics.
     </p>
     <p>
       This is a MUD in the tradition of the genre's best &mdash; rich, text-driven, imagination-first
-      &mdash; with the addition that the loot you earn has real value and the economy you
-      participate in is genuine.
+      &mdash; with the addition that the loot you earn is truly yours on the blockchain and the economy you
+      participate in is transparent and player-driven.
     </p>
   </div>
 </div>
@@ -129,7 +130,7 @@
       <div class="col-md-6 mb-3">
         <h5>Crafting</h5>
         <p>
-          Seven professions with over fifty recipes. Gather raw materials, refine them through
+          Over ten professions, each with their own unique skills and recipes. Gather raw materials, refine them through
           processing stations, and craft finished goods. Every step produces a real on-ledger
           asset. Mastery unlocks better recipes and faster production.
         </p>
@@ -187,13 +188,12 @@
     <p>
       Built on <a href="https://www.evennia.com" target="_blank">Evennia</a>, a mature
       Python/Django MUD framework, with game assets issued natively on the
-      <a href="https://xrpl.org" target="_blank">XRP Ledger</a>. A dedicated sync service
-      bridges on-ledger events to the game's mirror database, ensuring the game world and the
-      ledger always agree.
+      <a href="https://xrpl.org" target="_blank">XRP Ledger</a>. A mirror database
+      tracks all on-ledger state, ensuring the game world and the ledger always agree.
     </p>
     <p>
       Gold is issued as a currency on the XRP Ledger by the game's issuer wallet.
-      The vault holds all in-game assets. The reconciliation ledger ensures every transfer
+      The vault holds all in-game assets. Our reconciliation process ensures every transfer
       between wallet and vault is accounted for on both sides.
     </p>
     <p class="mb-0">

@@ -29,21 +29,14 @@
         names associated with your account.
       </li>
       <li>
-        <strong>Jurisdictional records</strong> — a hashed representation of your
+        <strong>Session records</strong> — a hashed representation of your
         IP address (SHA-256 one-way hash; the raw IP address is never stored) and
-        the detected country code for each login session. These records are created
-        automatically at login for regulatory compliance purposes.
+        the detected country code for each login session.
       </li>
       <li>
         <strong>Game activity</strong> — session start and end times, in-game
         economic activity (gold and resource transfers, crafting, trading), and
         quest and progression data.
-      </li>
-      <li>
-        <strong>Redemption and identity data</strong> (eligible jurisdictions only,
-        at mainnet) — KYC/AML verification data required to process gold redemptions.
-        This data is collected and processed by our third-party verification provider
-        and is subject to their privacy policy as well as ours.
       </li>
     </ol>
     <p>
@@ -82,25 +75,19 @@
     <p>We use collected data for the following purposes:</p>
     <ol type="a">
       <li>
-        <strong>Regulatory compliance</strong> — geo-detection records and
-        jurisdictional data are maintained as documentation that Full Circle MUD
-        has made reasonable efforts to restrict the gold redemption feature to
-        eligible jurisdictions.
-      </li>
-      <li>
         <strong>Game operation</strong> — session and activity data is used to
         run the game, calculate the in-game economy, and maintain account state.
       </li>
       <li>
         <strong>Transparency reporting</strong> — aggregated, anonymised economic
-        data is published in monthly financial reports. No individual player data
+        data may be published in game economy reports. No individual player data
         is included in these reports.
       </li>
       <li>
         <strong>Fraud and abuse prevention</strong> — account and session data
         may be used to investigate suspected violations of the
         <a href="{% url 'terms' %}">Terms of Service</a>, including attempted
-        circumvention of jurisdictional restrictions.
+        abuse of game systems.
       </li>
     </ol>
     <p>We do not sell personal data to third parties.</p>
@@ -128,24 +115,14 @@
           <td>Account management, dispute resolution</td>
         </tr>
         <tr>
-          <td>Jurisdictional records (IP hash, country code, page variant served)</td>
+          <td>Session records (IP hash, country code)</td>
           <td>3 years from each session</td>
-          <td>Regulatory compliance documentation</td>
-        </tr>
-        <tr>
-          <td>Login session records</td>
-          <td>3 years</td>
-          <td>Regulatory compliance, fraud prevention</td>
+          <td>Fraud prevention, abuse detection</td>
         </tr>
         <tr>
           <td>In-game economic activity logs</td>
           <td>3 years</td>
           <td>Economy audit trail, dispute resolution</td>
-        </tr>
-        <tr>
-          <td>Redemption records and KYC/AML data</td>
-          <td>5 years from redemption date</td>
-          <td>Anti-money-laundering regulatory requirements</td>
         </tr>
       </tbody>
     </table>
@@ -178,8 +155,8 @@
       </li>
       <li>
         <strong>Deletion</strong> — you may request deletion of your account.
-        Note that certain data required for regulatory compliance (jurisdictional
-        records, redemption records) cannot be deleted before the end of the
+        Note that certain data required for operational purposes (session records,
+        economic activity logs) cannot be deleted before the end of the
         applicable retention period.
       </li>
       <li>
@@ -205,11 +182,6 @@
       <li>
         <strong>Infrastructure providers</strong> — hosting and database services
         that store game data on our behalf, under data processing agreements.
-      </li>
-      <li>
-        <strong>KYC/AML verification providers</strong> (eligible jurisdictions
-        only) — identity verification services used to process redemption requests.
-        These providers have their own privacy policies.
       </li>
       <li>
         <strong>XRPL network</strong> — on-chain transactions (wallet addresses,

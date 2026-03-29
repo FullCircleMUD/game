@@ -1,142 +1,17 @@
 {% extends "website/base.html" %}
 
-{% block titleblock %}Eligible Jurisdictions{% endblock %}
+{% block titleblock %}Full Circle MUD{% endblock %}
 
 {% block content %}
 
 <div class="card mb-4">
-  <div class="card-body">
-    <h1 class="card-title">Eligible Jurisdictions</h1>
-    <hr/>
-    <p>
-      The gold redemption feature is available to players accessing Full Circle MUD
-      from the following jurisdictions. Eligibility is determined by IP geolocation
-      at time of access. Players in jurisdictions not listed below are not eligible
-      for gold redemption.
+  <div class="card-body text-center py-5">
+    <h1 class="card-title mb-3">Page Not Available</h1>
+    <p class="text-muted">
+      This page is no longer available. Full Circle MUD does not operate a jurisdictional
+      eligibility framework.
     </p>
-    <p class="text-muted small">
-      This list reflects our current launch jurisdictions. Additional jurisdictions
-      may be added before or after mainnet launch as legal review is completed for
-      each region.
-    </p>
-  </div>
-</div>
-
-{# ── Latin America ── #}
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="card-title">Latin America</h2>
-    <hr/>
-    <div class="row">
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Argentina</li>
-          <li>Brazil</li>
-          <li>Colombia</li>
-        </ul>
-      </div>
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Costa Rica</li>
-          <li>El Salvador</li>
-          <li>Guatemala</li>
-        </ul>
-      </div>
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Honduras</li>
-          <li>Mexico</li>
-          <li>Panama</li>
-          <li>Paraguay</li>
-          <li>Uruguay</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ── Africa ── #}
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="card-title">Africa</h2>
-    <hr/>
-    <div class="row">
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Ghana</li>
-          <li>Kenya</li>
-        </ul>
-      </div>
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Nigeria</li>
-          <li>South Africa</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ── Southeast Asia ── #}
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="card-title">Southeast Asia</h2>
-    <hr/>
-    <div class="row">
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Indonesia</li>
-          <li>Malaysia</li>
-        </ul>
-      </div>
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Philippines</li>
-          <li>Thailand</li>
-        </ul>
-      </div>
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Vietnam</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ── Middle East / Eastern Europe ── #}
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="card-title">Middle East &amp; Eastern Europe</h2>
-    <hr/>
-    <div class="row">
-      <div class="col-md-4">
-        <ul class="list-unstyled">
-          <li>Georgia</li>
-          <li>United Arab Emirates</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ── Not on the list ── #}
-<div class="card mb-4">
-  <div class="card-body">
-    <h2 class="card-title">Not on This List?</h2>
-    <hr/>
-    <p>
-      If your country is not listed above, the gold redemption feature is not
-      available to you at this time. Geo-detection is applied automatically and
-      cannot be overridden through browser settings or location-masking technologies.
-      See our <a href="{% url 'terms' %}">Terms of Service</a> for details on
-      jurisdictional restrictions.
-    </p>
-    <p>
-      If you believe your location has been determined incorrectly, you may submit
-      a documented review request to
-      <a href="mailto:compliance@fcmud.world">compliance@fcmud.world</a>.
-    </p>
+    <a href="{% url 'index' %}" class="btn btn-outline-light mt-3">Return to Home</a>
   </div>
 </div>
 

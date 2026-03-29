@@ -2,33 +2,35 @@
 Geo-detection middleware and context processor.
 
 Reads the Cloudflare CF-IPCountry header on every HTTP request and classifies
-the visitor as Variant A (restricted) or Variant B (eligible).
+the visitor as Variant A or Variant B based on their detected country.
 
 In production, Cloudflare injects CF-IPCountry on every request when the DNS
 proxy is enabled.  In development, falls back to settings.DEV_GEO_COUNTRY.
-Fail-closed: unknown / missing country -> 'XX' -> Variant A (restricted).
+Fail-closed: unknown / missing country -> 'XX' -> Variant A.
 
-Restricted paths (Variant A) receive a 302 redirect to the homepage.
+The infrastructure supports per-path redirects for restricted variants via
+_RESTRICTED_PATHS, but this is currently empty — all visitors see the same
+content.  Paths can be added here if jurisdiction-specific restrictions are
+needed in the future.
 """
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
 
 
-# Paths that Variant A (restricted) users are hard-redirected away from.
-_RESTRICTED_PATHS = (
-    '/redemption/',
-    '/eligible-jurisdictions/',
-    '/kyc/',
-)
+# Paths that Variant A users are hard-redirected away from.
+# Currently empty — no jurisdiction-specific page restrictions in effect.
+_RESTRICTED_PATHS = ()
 
 
 class GeoDetectionMiddleware:
     """
     Sets request.geo_country and request.geo_variant on every request.
 
-    geo_variant is 'B' for eligible countries, 'A' for everyone else.
-    Restricted paths for Variant A receive a 302 to '/'.
+    geo_variant is 'B' for countries in GEO_ELIGIBLE_COUNTRIES, 'A' for
+    everyone else.  Currently all visitors see the same content — the
+    variant infrastructure is retained for future use if jurisdiction-
+    specific restrictions become necessary.
     """
 
     def __init__(self, get_response):
