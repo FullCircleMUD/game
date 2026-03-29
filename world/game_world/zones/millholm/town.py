@@ -25,7 +25,6 @@ from evennia import create_object, ObjectDB
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_bank import RoomBank
-from typeclasses.terrain.rooms.room_cemetery import RoomCemetery
 from typeclasses.terrain.rooms.room_crafting import RoomCrafting
 from typeclasses.terrain.rooms.room_inn import RoomInn
 from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
@@ -413,7 +412,7 @@ def build_millholm_town(one_way_limbo=False):
              "selling eggs, cheese, and bundles of herbs. The cobblestones "
              "are cleaner here where the road narrows, swept by a fastidious "
              "shopkeeper. The road north leads past the last houses toward "
-             "the cemetery."),
+             "open countryside."),
             ("details", {
                 "stalls": (
                     "Simple wooden stalls with canvas awnings, selling "
@@ -805,76 +804,11 @@ def build_millholm_town(one_way_limbo=False):
              "the last few houses before the town gives way to open ground. "
              "Wildflowers grow in the verges, and the road is less worn than "
              "the busy trade way — fewer carts pass this way. A dirt track "
-             "continues north toward the cemetery."),
+             "branches west toward wrought-iron gates, and the road continues "
+             "north into open countryside."),
         ],
     )
 
-    rooms["cemetery_gates"] = create_object(
-        RoomBase,
-        key="Cemetery Track",
-        attributes=[
-            ("desc",
-             "A narrow dirt track winds between overgrown hedgerows, the "
-             "town falling away behind you. The path is quiet — just "
-             "birdsong and the rustle of wind through long grass. Ahead, "
-             "tall wrought-iron gates stand between stone pillars topped "
-             "with weathered carvings of clasped hands, marking the "
-             "entrance to the cemetery."),
-            ("details", {
-                "hedgerows": (
-                    "Thick hawthorn hedges line both sides of the track, "
-                    "their branches tangled and wild. White blossoms dot "
-                    "the greenery in season, and birds nest deep within "
-                    "the thorny cover."
-                ),
-                "pillars": (
-                    "Stone gateposts topped with carvings of clasped hands, "
-                    "worn smooth by weather. A name is carved into each "
-                    "pillar but the letters are too eroded to read."
-                ),
-            }),
-        ],
-    )
-
-    rooms["cemetery"] = create_object(
-        RoomCemetery,
-        key="Millholm Cemetery",
-        attributes=[
-            ("bind_cost", 1),
-            ("desc",
-             "Ancient oaks shade rows of headstones that lean at tired "
-             "angles in the long grass. Some graves are tended — fresh "
-             "flowers, cleared weeds — while others have been forgotten, "
-             "their inscriptions worn to nothing. A stone shrine near the "
-             "centre allows the faithful to bind their spirit to this place "
-             "of rest. Birdsong is the only sound. The town feels very far "
-             "away."),
-            ("details", {
-                "shrine": (
-                    "A small stone shrine, open on all sides, with a flat "
-                    "altar stone at its centre. Candle stubs and dried "
-                    "flower petals litter the surface. This is where the "
-                    "dead are committed and where the living can bind their "
-                    "spirit — so that death, when it comes, brings them back "
-                    "here rather than somewhere less familiar."
-                ),
-                "headstones": (
-                    "Rows of headstones in every state of repair. The oldest "
-                    "are little more than rough stones with scratched letters. "
-                    "The newest are carved granite with names, dates, and "
-                    "brief epitaphs. 'Here lies Aldric Goldwheat, who fed "
-                    "the town.' 'Mira Ironhand — she built what endures.'"
-                ),
-                "graves": (
-                    "Rows of headstones in every state of repair. The oldest "
-                    "are little more than rough stones with scratched letters. "
-                    "The newest are carved granite with names, dates, and "
-                    "brief epitaphs. 'Here lies Aldric Goldwheat, who fed "
-                    "the town.' 'Mira Ironhand — she built what endures.'"
-                ),
-            }),
-        ],
-    )
 
     # ── South Road (extends south from sq_s to south gate) ──────────
 
@@ -1840,19 +1774,9 @@ def build_millholm_town(one_way_limbo=False):
     connect(rooms["sq_e"], rooms["sq_se"], "south")
     exit_count += 4
 
-    # ── North road to cemetery ───────────────────────────────────────
+    # ── North road ─────────────────────────────────────────────────
     connect(rooms["sq_n"], rooms["north_road"], "north")
-    connect(rooms["north_road"], rooms["cemetery_gates"], "north")
-    connect_door(
-        rooms["cemetery_gates"], rooms["cemetery"], "north",
-        key="wrought-iron gates",
-        door_name="gates",
-        closed_ab="Tall wrought-iron gates bar the entrance to the cemetery. Their bars are worked into patterns of ivy and wheat.",
-        open_ab="The iron gates stand open, revealing rows of headstones among long grass and ancient oaks.",
-        closed_ba="Wrought-iron gates close off the track back to town. Their hinges are well-oiled.",
-        open_ba="The gates stand open. A dirt track leads south toward the town.",
-    )
-    exit_count += 6
+    exit_count += 2
 
     # ── South road (full spine to south gate) ─────────────────────────
     connect(rooms["sq_s"], rooms["south_road"], "south")
@@ -2356,8 +2280,6 @@ def build_millholm_town(one_way_limbo=False):
     rooms["road_far_east"].set_terrain(TerrainType.RURAL.value)
 
     # Cemetery area — rural
-    rooms["cemetery_gates"].set_terrain(TerrainType.RURAL.value)
-    rooms["cemetery"].set_terrain(TerrainType.RURAL.value)
 
     # Indoor rooms — urban terrain (inside town buildings)
     indoor_rooms = [
@@ -2365,8 +2287,6 @@ def build_millholm_town(one_way_limbo=False):
         if r not in outdoor_urban
         and r is not rooms["road_far_west"]
         and r is not rooms["road_far_east"]
-        and r is not rooms["cemetery_gates"]
-        and r is not rooms["cemetery"]
     ]
     for room in indoor_rooms:
         room.set_terrain(TerrainType.URBAN.value)
@@ -2436,7 +2356,6 @@ def build_millholm_town(one_way_limbo=False):
     #   RoomCrafting:   smithy, leathershop, textiles, woodshop,
     #                   apothecary, jeweller, arcane_study
     #   RoomProcessing: distillery, bakery
-    #   RoomCemetery:   cemetery
     # Below: RoomBase rooms that need allow_combat set explicitly.
     no_combat_rooms = [
         rooms["mages_guild"],       # Circle of the First Light
@@ -2529,7 +2448,6 @@ def build_millholm_town(one_way_limbo=False):
     # Streets, square, and open alleys are exposed to the sky.
     outdoor_exposed = lit_streets + [
         rooms["beggars_alley"],
-        rooms["cemetery"], rooms["cemetery_gates"],
     ]
     for room in outdoor_exposed:
         room.sheltered = False
@@ -2551,8 +2469,6 @@ def build_millholm_town(one_way_limbo=False):
     # millholm_town map — all exterior/street rooms
     _town_map_tags = {
         # ── Cemetery / North ──
-        "cemetery":       "millholm_town:cemetery",
-        "cemetery_gates": "millholm_town:cemetery_gates",
         "north_road":     "millholm_town:north_road",
         # ── North-side (bakery + stables remain) ──
         "stables":        "millholm_town:stables",
@@ -2620,7 +2536,7 @@ def build_millholm_town(one_way_limbo=False):
     # Top row: town_nw, town_n, town_ne
     for key in ["sq_nw", "inn", "weapons_shop", "clothing_shop"]:
         rooms[key].tags.add(f"{_rt}:town_nw", category="map_cell")
-    for key in ["sq_n", "north_road", "cemetery_gates", "cemetery"]:
+    for key in ["sq_n", "north_road"]:
         rooms[key].tags.add(f"{_rt}:town_n", category="map_cell")
     for key in ["sq_ne", "stables", "bakery",
                 "magical_supplies", "jewellers_showroom"]:

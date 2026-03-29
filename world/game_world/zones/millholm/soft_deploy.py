@@ -23,6 +23,7 @@ from world.game_world.zones.millholm.farms import build_millholm_farms
 from world.game_world.zones.millholm.fixtures import place_millholm_fixtures
 from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
+from world.game_world.zones.millholm.cemetery import build_millholm_cemetery
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
 from world.game_world.zones.millholm.rooftops import build_millholm_rooftops
 from world.game_world.zones.millholm.sewers import build_millholm_sewers
@@ -65,6 +66,12 @@ def build_zone(one_way_limbo=False):
 
     print("[3] Building Millholm Woods...")
     woods_rooms = build_millholm_woods(town_rooms)
+
+    print("[3b] Building Millholm Cemetery...")
+    cemetery_rooms = build_millholm_cemetery()
+
+    print("[3c] Connecting north road → cemetery gates...")
+    connect(town_rooms["north_road"], cemetery_rooms["cemetery_gates"], "west")
 
     print("[4] Building Millholm Sewers...")
     sewer_rooms = build_millholm_sewers()
