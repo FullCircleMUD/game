@@ -89,10 +89,12 @@ FCM/src/                        ← run `evennia start` from here
 │   │   │   ├── innate_ranged_mixin.py ← InnateRangedMixin (mob_weapon_type="missile", cross-height attacks)
 │   │   │   ├── mob_behaviours/        ← reusable mob behavior mixins (PackCourageMixin, RampageMixin, TacticalDodgeMixin)
 │   │   │   ├── climbable_mixin.py    ← ClimbableMixin (climbable_heights, climb_dc — data mixin for climbable fixtures)
+│   │   │   ├── switch_mixin.py      ← SwitchMixin (toggle on/off — levers, buttons, valves; at_activate/at_deactivate hooks)
 │   │   │   └── wearslots/             ← BaseWearslotsMixin, HumanoidWearslotsMixin, DogWearslotsMixin
 │   │   ├── world_objects/
 │   │   │   ├── corpse.py             ← Corpse (dropped on death, loot command, decay timers)
-│   │   │   └── climbable_fixture.py  ← ClimbableFixture(ClimbableMixin, WorldFixture) — drainpipes, ladders, ropes, trees
+│   │   │   ├── climbable_fixture.py  ← ClimbableFixture(ClimbableMixin, WorldFixture) — drainpipes, ladders, ropes, trees
+│   │   │   └── switch_fixture.py    ← SwitchFixture(SwitchMixin, WorldFixture) — levers, buttons, valves
 │   │   └── terrain/rooms/            ← RoomBase (zone/district tag helpers), RoomBank, RoomRecycleBin, RoomProcessing, RoomCrafting, RoomHarvesting, RoomInn, RoomCemetery, RoomPurgatory
 │   ├── world/
 │   │   ├── quests/              ← quest system (base_quest, quest_handler, registry, templates)
@@ -134,6 +136,16 @@ evennia migrate --database xrpl
 ### Running Tests
 
 **IMPORTANT:** Tests must be run from inside the `FCM/src/game/` folder, not from `FCM/src/`. Use `--settings settings` so Evennia picks up the project's `server/conf/settings.py` rather than the default Evennia settings. Import paths in tests are relative to `FCM/src/game/`.
+
+**IMPORTANT:** When running the full test suite, **always capture output to a temp file** so it can be examined without truncation. The suite takes ~2.5 hours — do not rely on piping through `tail` or terminal output limits which will truncate failure tracebacks and waste the entire run.
+
+```bash
+# Full suite — capture to file for review
+evennia test --settings settings tests 2>&1 | tee /tmp/test_results.txt
+
+# Then examine failures:
+grep -A 10 "FAIL:\|ERROR:" /tmp/test_results.txt
+```
 
 ```bash
 # From FCM/src/game/ (with venv activated):
@@ -214,7 +226,7 @@ Commands are organised into help categories via `help_category` on each command 
 | **Communication** | say, shout, whisper, pose, who |
 | **Crafting** | learn, recipes, repair (skill) + room-specific: craft/forge/carve/sew/brew/enchant, available, process/mill/bake/smelt/saw/tan/weave, rates |
 | **Exploration** | build, chart, sail, explore |
-| **General** | look, scan, diagnose, exits |
+| **General** | look, scan, diagnose, exits, pull/push/turn/flip |
 | **Group** | follow, unfollow, nofollow, group |
 | **Group Combat** | offence, defence, retreat |
 | **Items** | get, drop, give, inventory, equipment, wear, wield, hold, remove, junk, loot, quaff, eat, put |
@@ -701,10 +713,12 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
   - Combat integration: `combat_handler.start_combat()` sets `position="fighting"`, `stop_combat()` sets `position="standing"`. `ndb.combat_target` tracks current combat target for room display ("Bob is here, fighting a goblin!").
   - Position-aware room display templates: `_POSITION_TEMPLATES` dict on BaseActor for default display per position. `get_room_description()` dispatches between custom room_description and templates.
   - 18 posture tests + 6 room description tests.
+- SwitchMixin (`typeclasses/mixins/switch_mixin.py`): generic toggle mechanism for fixtures. `is_activated` state, configurable `switch_verb`/`switch_name` for messaging, `can_deactivate` flag for one-way switches. `at_activate(caller)`/`at_deactivate(caller)` hooks — override in subclass or builder to define the effect. `SwitchFixture(SwitchMixin, WorldFixture)` concrete typeclass for levers, buttons, valves. `CmdSwitch` command (`pull`/`push`/`turn`/`flip` aliases) toggles switches in the room.
 - World interaction commands:
   - `open`/`close`: closeable objects in room (chests, doors)
   - `unlock`: key-based unlocking (searches inventory for matching KeyItem, consumed on use)
   - `lock`: lock a closed lockable object
+  - `pull`/`push`/`turn`/`flip`: toggle SwitchMixin objects (levers, buttons, valves)
   - `search`: d20 + alertness mastery bonus + WIS mod vs hidden object find_dc, also detects traps (objects, exits, rooms) by rolling vs trap_find_dc
   - `picklock` (alias `pl`): SUBTERFUGE skill command, d20 + mastery bonus + DEX mod vs lock_dc
   - `case`: SUBTERFUGE skill command. Scout a target's inventory before pickpocketing. Per-item visibility roll based on mastery (BASIC 50% → GM 90%). Vague gold display (tiers not exact amounts). Results cached 5 minutes. Does not break HIDDEN.
