@@ -854,6 +854,33 @@ def build_millholm_town(one_way_limbo=False):
         ],
     )
 
+    rooms["upper_south_road"] = create_object(
+        RoomBase,
+        key="South Road",
+        attributes=[
+            ("desc",
+             "The road passes between the backs of guild halls to the "
+             "north and the workshops of Artisan's Way to the south. "
+             "The walls on either side are plain and functional — no "
+             "shopfronts face this stretch, just service doors and "
+             "barred windows. The sound of hammers and the smell of "
+             "hot metal drift from the lane to the south."),
+        ],
+    )
+
+    rooms["lower_south_road"] = create_object(
+        RoomBase,
+        key="South Road",
+        attributes=[
+            ("desc",
+             "A quieter stretch of road between Artisan's Way and the "
+             "rougher end of town. The workshops to the north give way "
+             "to residential buildings to the south — smaller, plainer, "
+             "with window boxes instead of shop signs. A cat watches "
+             "you from a windowsill with studied indifference."),
+        ],
+    )
+
     # ── Artisan's Way (junction + east-west lane) ─────────────────
     rooms["artisans_way"] = create_object(
         RoomBase,
@@ -1136,6 +1163,60 @@ def build_millholm_town(one_way_limbo=False):
             "about it years ago."
         ),
     }
+
+    rooms["gaol_cell"] = create_object(
+        RoomBase,
+        key="Gaol Cell",
+        attributes=[
+            ("max_height", 0),
+            ("max_depth", 0),
+            ("desc",
+             "A cramped stone cell barely six feet wide, its walls "
+             "scratched with tally marks, crude drawings, and the "
+             "occasional desperate prayer. A thin straw pallet lies "
+             "on the floor, stained with things you'd rather not "
+             "think about. A wooden bucket in the corner serves as "
+             "the sole amenity. Daylight creeps in through a barred "
+             "window high on the wall — just enough to see by, just "
+             "enough to remind you of what you're missing. Someone "
+             "has carved 'TIMMY WOZ ERE' into the stone above the "
+             "pallet, and beneath it, in different handwriting, 'SO "
+             "WOZ 'IS MUM — 3 TIMES'."),
+            ("details", {
+                "tally marks": (
+                    "Hundreds of scratched lines covering one wall, "
+                    "grouped in fives. Someone spent a long time in "
+                    "here. The marks start neat and even near the "
+                    "door and become increasingly frantic toward the "
+                    "corner."
+                ),
+                "pallet": (
+                    "A thin straw pallet, flattened by the weight of "
+                    "many previous occupants. It smells of old sweat "
+                    "and regret. A single flea hops lazily across "
+                    "the surface."
+                ),
+                "bucket": (
+                    "A wooden bucket. You don't need to look more "
+                    "closely. You really don't."
+                ),
+                "window": (
+                    "A small barred window high on the wall. Through "
+                    "it you can see a sliver of sky and hear the "
+                    "distant sounds of the town going about its "
+                    "business without you."
+                ),
+                "carvings": (
+                    "'TIMMY WOZ ERE' — carved with something sharp, "
+                    "probably a smuggled nail. Below it: 'SO WOZ 'IS "
+                    "MUM — 3 TIMES'. Below that, in tiny letters: "
+                    "'Timmy's mum is innocent (she told me so)'. "
+                    "Timmy appears to be a recurring figure in "
+                    "Millholm's history of minor catastrophe."
+                ),
+            }),
+        ],
+    )
 
     rooms["beggars_alley"] = create_object(
         RoomBase,
@@ -1781,10 +1862,34 @@ def build_millholm_town(one_way_limbo=False):
     # ── South road (full spine to south gate) ─────────────────────────
     connect(rooms["sq_s"], rooms["south_road"], "south")
     connect(rooms["south_road"], rooms["mid_south_road"], "south")
-    connect(rooms["mid_south_road"], rooms["artisans_way"], "south")
-    connect(rooms["artisans_way"], rooms["far_south_road"], "south")
+    connect(rooms["mid_south_road"], rooms["upper_south_road"], "south")
+    connect(rooms["upper_south_road"], rooms["artisans_way"], "south")
+    connect(rooms["artisans_way"], rooms["lower_south_road"], "south")
+    connect(rooms["lower_south_road"], rooms["far_south_road"], "south")
     connect(rooms["far_south_road"], rooms["south_gate"], "south")
-    exit_count += 10
+    exit_count += 14
+
+    # Lower south road — west to jeweller (second entrance)
+    connect_door(
+        rooms["lower_south_road"], rooms["jeweller"], "west",
+        key="a wooden door",
+        closed_ab="A wooden door with a gem-and-ring sign leads west.",
+        open_ab="The glint of precious metals catches the light through the open door.",
+        closed_ba="A wooden door leads east to South Road.",
+        open_ba="South Road is visible through the open door.",
+    )
+    exit_count += 2
+
+    # Upper south road — east to apothecary (second entrance)
+    connect_door(
+        rooms["upper_south_road"], rooms["apothecary"], "east",
+        key="a wooden door",
+        closed_ab="A wooden door with a mortar and pestle sign leads east.",
+        open_ab="The sharp scent of herbs drifts through the open door.",
+        closed_ba="A wooden door leads west to South Road.",
+        open_ba="South Road is visible through the open door.",
+    )
+    exit_count += 2
 
     # Artisan's Way — west branch
     connect(rooms["artisans_way"], rooms["artisans_way_w1"], "west")
@@ -2178,6 +2283,20 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A heavy iron-banded door leads west to the south road.",
         open_ba="The south road is visible through the open door.",
     )
+
+    # Gaol — Cell (locked door north)
+    connect_door(
+        rooms["gaol"], rooms["gaol_cell"], "north",
+        key="a barred cell door",
+        closed_ab="A barred iron cell door leads north. It is locked.",
+        open_ab="The cell door stands open, revealing a cramped stone cell.",
+        closed_ba="A barred iron cell door blocks the way south to the gaol.",
+        open_ba="The guard's desk and the gaol corridor are visible through the open door.",
+        door_name="cell door",
+        is_locked=True,
+        lock_dc=12,
+    )
+    exit_count += 2
     exit_count += 2
 
     # ── Gareth's House → Bedroom (upstairs) ─────────────────────────
@@ -2265,6 +2384,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["road_mid_west"], rooms["road_mid_east"],
         rooms["stables"], rooms["north_road"],
         rooms["south_road"], rooms["mid_south_road"],
+        rooms["upper_south_road"], rooms["lower_south_road"],
         rooms["far_south_road"], rooms["south_gate"],
         rooms["artisans_way"],
         rooms["artisans_way_w1"], rooms["artisans_way_w2"],
@@ -2318,6 +2438,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["north_road"],
         # South roads
         rooms["south_road"], rooms["mid_south_road"],
+        rooms["upper_south_road"], rooms["lower_south_road"],
         rooms["far_south_road"], rooms["south_gate"],
         # Artisan's Way (w1 already set in room creation)
         rooms["artisans_way"],
@@ -2336,6 +2457,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["leathershop"], rooms["textiles"], rooms["jeweller"],
         rooms["apothecary"], rooms["woodshop"], rooms["bank"],
         rooms["post_office"], rooms["broken_crown"], rooms["gaol"],
+        rooms["gaol_cell"],
         rooms["weapons_shop"], rooms["armorer"], rooms["clothing_shop"],
         rooms["magical_supplies"], rooms["jewellers_showroom"],
         rooms["vacant_shop"], rooms["vacant_w1"],
@@ -2391,6 +2513,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["road_far_west"], rooms["road_far_east"],
         rooms["road_mid_west"], rooms["road_mid_east"],
         rooms["south_road"], rooms["mid_south_road"],
+        rooms["upper_south_road"], rooms["lower_south_road"],
         rooms["far_south_road"], rooms["south_gate"],
         rooms["north_road"],
         rooms["artisans_way"],
@@ -2418,7 +2541,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["woodshop"], rooms["smithy"], rooms["apothecary"],
         rooms["textiles"], rooms["leathershop"], rooms["bank"],
         rooms["general_store"], rooms["mages_guild"],
-        rooms["warriors_guild"], rooms["gaol"],
+        rooms["warriors_guild"], rooms["gaol"], rooms["gaol_cell"],
         rooms["broken_crown"], rooms["distillery"],
         rooms["post_office"],
         rooms["jeweller"], rooms["shrine"],
@@ -2501,10 +2624,12 @@ def build_millholm_town(one_way_limbo=False):
         # ── South road ──
         "south_road":     "millholm_town:south_road",
         "beggars_alley":  "millholm_town:beggars_alley",
-        "mid_south_road": "millholm_town:mid_south_road",
-        "warriors_guild": "millholm_town:warriors_guild",
-        "broken_crown":   "millholm_town:broken_crown",
-        "far_south_road": "millholm_town:far_south_road",
+        "mid_south_road":    "millholm_town:mid_south_road",
+        "upper_south_road":  "millholm_town:upper_south_road",
+        "warriors_guild":    "millholm_town:warriors_guild",
+        "lower_south_road":  "millholm_town:lower_south_road",
+        "broken_crown":      "millholm_town:broken_crown",
+        "far_south_road":    "millholm_town:far_south_road",
         "gaol":           "millholm_town:gaol",
         "south_gate":     "millholm_town:south_gate",
         # ── Artisan's Way ──
@@ -2557,8 +2682,8 @@ def build_millholm_town(one_way_limbo=False):
                 "smithy", "leathershop", "jeweller", "woodshop",
                 "elena_house"]:
         rooms[key].tags.add(f"{_rt}:town_sw", category="map_cell")
-    for key in ["mid_south_road", "far_south_road", "south_gate",
-                "artisans_way"]:
+    for key in ["mid_south_road", "upper_south_road", "lower_south_road",
+                "far_south_road", "south_gate", "artisans_way"]:
         rooms[key].tags.add(f"{_rt}:town_s", category="map_cell")
     for key in ["warriors_guild", "mages_guild", "gaol",
                 "artisans_way_e1", "artisans_way_e2", "artisans_way_e3",
