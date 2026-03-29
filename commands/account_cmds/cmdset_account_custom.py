@@ -30,6 +30,7 @@ from commands.account_cmds.cmd_reconcile import CmdReconcile
 from commands.account_cmds.cmd_amm_check import CmdAMMCheck
 from commands.account_cmds.cmd_economy import CmdEconomy
 from commands.account_cmds.cmd_sync_reserves import CmdSyncReserves
+from commands.account_cmds.cmd_recover_nft import CmdRecoverNft
 
 
 # ── Thin overrides of Evennia defaults (category / lock only) ───────
@@ -191,3 +192,4 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdAMMCheck())
         self.add(CmdEconomy())
         self.add(CmdSyncReserves())
+        self.add(CmdRecoverNft())
