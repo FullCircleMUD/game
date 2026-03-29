@@ -127,7 +127,7 @@ CONTRACT_VAULT     = "0x0000000000000000000000000000000000000000"
 CONTRACT_TREASURY  = "0x0000000000000000000000000000000000000000"
 
 # ── XRPL Configuration ──────────────────────────────────────────────
-XRPL_IMPORT_EXPORT_ENABLED = True  # kill-switch for import/export — off for alpha, flip when ready
+XRPL_IMPORT_EXPORT_ENABLED = False  # kill-switch for import/export — off for bot testing
 # XRPL network endpoint — environment-specific, not secret.
 # Defaults to testnet so local dev works without any env var.
 # Railway production overrides to mainnet: wss://s1.ripple.com:51233
@@ -206,8 +206,12 @@ TIME_FACTOR = 24
 # a fixed starting date (e.g. int(datetime(2026, 1, 1).timestamp())).
 TIME_GAME_EPOCH = None
 
-# hunder cycle settings
-HUNGER_TICK_INTERVAL = 1200 # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAE DAY
+# hunger cycle settings
+HUNGER_TICK_INTERVAL = 1200  # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAME DAY
+
+# combat tick interval (seconds) — how often each combatant acts.
+# All weapons share the same tick. Float for fine-tuning (e.g. 3.5, 4.5).
+COMBAT_TICK_INTERVAL = 4.0
 
 
 ######################################################################
