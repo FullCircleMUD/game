@@ -254,6 +254,187 @@ def build_millholm_cemetery():
         ],
     )
 
+    # ══════════════════════════════════════════════════════════════════
+    # FAMILY TOMBS — west of the west column
+    # ══════════════════════════════════════════════════════════════════
+
+    # ── Stonefield Tomb (3 rooms — trap, door, boss) ─────────────────
+
+    rooms["tomb_stonefield"] = create_object(
+        RoomBase,
+        key="Stonefield Tomb - Antechamber",
+        attributes=[
+            ("desc",
+             "A low stone chamber, cold and close. The air is stale "
+             "and heavy with the smell of old dust and dry rot. The "
+             "walls are lined with niches, each holding a stone urn "
+             "inscribed with a name and dates. Cobwebs hang from the "
+             "ceiling in thick curtains. The Stonefield family crest — "
+             "a ship under sail above a pair of crossed keys — is "
+             "carved into the back wall. The floor is suspiciously "
+             "clean in one spot, the dust disturbed."),
+            ("details", {
+                "urns": (
+                    "Stone urns in wall niches, each bearing a name "
+                    "in faded gold lettering. Aldric Stonefield. Maren "
+                    "Stonefield. Tobias Stonefield. The older ones are "
+                    "cracked and stained."
+                ),
+                "crest": (
+                    "The Stonefield family crest: a merchant ship under "
+                    "full sail above a pair of crossed keys. An odd "
+                    "choice for a family of traders — the keys suggest "
+                    "something locked away, something hidden."
+                ),
+                "floor": (
+                    "The dust on the floor has been disturbed here — "
+                    "scuff marks and the faint outline of a pressure "
+                    "plate set into the flagstones."
+                ),
+            }),
+        ],
+    )
+
+    rooms["tomb_stonefield_inner"] = create_object(
+        RoomBase,
+        key="Stonefield Tomb - Inner Passage",
+        attributes=[
+            ("desc",
+             "A narrow passage cut from the rock, leading deeper "
+             "beneath the cemetery. The stonework here is older and "
+             "rougher than the antechamber — this part of the tomb "
+             "was carved long before the rest. Iron brackets on the "
+             "walls once held torches, now empty. The air is colder "
+             "here, and there is a faint sound — a dry, scratching "
+             "rustle from somewhere ahead."),
+            ("details", {
+                "stonework": (
+                    "Rough-hewn stone, much older than the polished "
+                    "blocks of the antechamber. Tool marks from ancient "
+                    "chisels are still visible. This passage predates "
+                    "Millholm itself."
+                ),
+                "sound": (
+                    "A dry, rhythmic scratching from somewhere deeper "
+                    "in the tomb. Like bone on stone."
+                ),
+            }),
+        ],
+    )
+
+    rooms["tomb_stonefield_burial"] = create_object(
+        RoomBase,
+        key="Stonefield Burial Chamber",
+        attributes=[
+            ("desc",
+             "A vaulted chamber of dark stone, the ceiling lost in "
+             "shadow. Three stone sarcophagi stand on raised platforms "
+             "against the walls, their lids carved with the likenesses "
+             "of the dead within — stern faces, folded hands, merchant "
+             "robes. The central sarcophagus is larger and more ornate "
+             "than the others, its lid slightly ajar. Something has "
+             "been in here. Something that moved the lid. Scratch marks "
+             "on the stone floor lead from the sarcophagi to the "
+             "doorway and back again."),
+            ("details", {
+                "sarcophagi": (
+                    "Three stone coffins, each carved from a single "
+                    "block of granite. The central one bears the name "
+                    "'ALDRIC STONEFIELD — FOUNDER' in deep-cut letters. "
+                    "Its lid is cracked and sits slightly askew, as if "
+                    "pushed from within."
+                ),
+                "scratch marks": (
+                    "Deep scratches gouged into the flagstone floor, "
+                    "running from the base of the sarcophagi to the "
+                    "doorway. Whatever made them had hard, sharp points "
+                    "for feet. Or fingers."
+                ),
+                "lid": (
+                    "The lid of the central sarcophagus is ajar — "
+                    "pushed a few inches to one side. The gap is "
+                    "dark. You could look inside, but you'd have to "
+                    "reach in."
+                ),
+            }),
+        ],
+    )
+
+    # ── Goldwheat Tomb (1 room — flavour only) ──────────────────────
+
+    rooms["tomb_goldwheat"] = create_object(
+        RoomBase,
+        key="Goldwheat Family Tomb",
+        attributes=[
+            ("desc",
+             "A modest stone chamber, warmer and drier than expected. "
+             "Sheaves of carved wheat adorn the walls, and the family "
+             "motto — 'From the Earth, For the People' — is inscribed "
+             "above the entrance. Four stone sarcophagi rest in alcoves, "
+             "their lids sealed with lead and undisturbed. Fresh "
+             "wildflowers have been placed on each one — someone still "
+             "visits. The air smells faintly of dry grain and candle "
+             "wax."),
+            ("details", {
+                "sarcophagi": (
+                    "Four sealed stone coffins in wall alcoves. Each "
+                    "bears a name: Aldric Goldwheat, Brenna Goldwheat, "
+                    "Thom Goldwheat, Little Miri Goldwheat. The last "
+                    "is heartbreakingly small."
+                ),
+                "flowers": (
+                    "Fresh wildflowers — cornflowers and daisies — "
+                    "laid carefully on each sarcophagus. Someone has "
+                    "been here recently. The Goldwheat family still "
+                    "remembers its dead."
+                ),
+                "wheat": (
+                    "Carved sheaves of wheat, beautifully detailed, "
+                    "covering every wall. Each stalk is individually "
+                    "rendered. The stonemason loved this work."
+                ),
+            }),
+        ],
+    )
+
+    # ── Ironhand Crypt (1 room — flavour only) ──────────────────────
+
+    rooms["tomb_ironhand"] = create_object(
+        RoomBase,
+        key="Ironhand Family Crypt",
+        attributes=[
+            ("desc",
+             "A martial chamber of dark stone. Weapons and shields "
+             "are mounted on the walls between the burial niches — "
+             "rusted swords, dented helms, a shattered shield bearing "
+             "a clenched fist. The Ironhand family were soldiers and "
+             "smiths, and even in death they are surrounded by iron. "
+             "The sarcophagi here are plain and unadorned — no carved "
+             "faces, no fine lettering. Just names, ranks, and dates. "
+             "A soldier's burial."),
+            ("details", {
+                "weapons": (
+                    "Ancient weapons mounted on the walls. A notched "
+                    "longsword, a battleaxe with a cracked haft, a "
+                    "round shield split nearly in two. These were "
+                    "carried in real fights, not made for display."
+                ),
+                "sarcophagi": (
+                    "Plain stone coffins with simple inscriptions. "
+                    "'Sergeant Bram Ironhand.' 'Captain Hilde Ironhand.' "
+                    "'Ironhand the Elder — She Built What Endures.' "
+                    "No flowers, no ornament. Soldiers don't need them."
+                ),
+                "fist": (
+                    "The Ironhand crest — a clenched iron fist on a "
+                    "field of black. It appears on the shattered shield "
+                    "and is carved above the entrance. The knuckles "
+                    "are scarred, even in stone."
+                ),
+            }),
+        ],
+    )
+
     print(f"  Created {len(rooms)} cemetery rooms.")
 
     # ══════════════════════════════════════════════════════════════════
@@ -308,6 +489,49 @@ def build_millholm_cemetery():
 
     exit_count += 14  # 7 bidirectional pairs
 
+    # Family tombs — doors west off the west column
+    connect_door(
+        rooms["graves_nw"], rooms["tomb_stonefield"], "west",
+        key="a stone door",
+        closed_ab="A heavy stone door bears the Stonefield crest — a ship above crossed keys.",
+        open_ab="The Stonefield tomb lies open, cold air drifting from within.",
+        closed_ba="A heavy stone door leads east to the cemetery.",
+        open_ba="Daylight filters through the open door.",
+        door_name="stone door",
+    )
+    connect_door(
+        rooms["graves_e"], rooms["tomb_goldwheat"], "west",
+        key="a stone door",
+        closed_ab="A stone door carved with sheaves of wheat marks the Goldwheat family tomb.",
+        open_ab="The Goldwheat tomb stands open, the smell of candle wax drifting out.",
+        closed_ba="A stone door leads east to the cemetery.",
+        open_ba="The cemetery is visible through the open door.",
+        door_name="stone door",
+    )
+    connect_door(
+        rooms["graves_sw"], rooms["tomb_ironhand"], "west",
+        key="a stone door",
+        closed_ab="A stone door bearing a clenched iron fist marks the Ironhand family crypt.",
+        open_ab="The Ironhand crypt lies open, the glint of old weapons visible within.",
+        closed_ba="A stone door leads east to the cemetery.",
+        open_ba="The cemetery is visible through the open door.",
+        door_name="stone door",
+    )
+    exit_count += 6
+
+    # Stonefield tomb interior — antechamber → inner passage → burial chamber
+    connect_door(
+        rooms["tomb_stonefield"], rooms["tomb_stonefield_inner"], "west",
+        key="an iron door",
+        closed_ab="A rusted iron door blocks the passage deeper into the tomb.",
+        open_ab="The iron door stands open, revealing a dark passage beyond.",
+        closed_ba="A rusted iron door blocks the way east.",
+        open_ba="The antechamber is visible through the open door.",
+        door_name="iron door",
+    )
+    connect(rooms["tomb_stonefield_inner"], rooms["tomb_stonefield_burial"], "west")
+    exit_count += 4
+
     print(f"  Created {exit_count} cemetery exits.")
 
     # ══════════════════════════════════════════════════════════════════
@@ -317,9 +541,27 @@ def build_millholm_cemetery():
     for room in rooms.values():
         room.tags.add(ZONE, category="zone")
         room.tags.add(DISTRICT, category="district")
+
+    # Outdoor rooms — cemetery grounds (max_height 1, weather-exposed)
+    outdoor = [
+        rooms["cemetery_gates"], rooms["cemetery"],
+        rooms["graves_ne"], rooms["graves_nw"],
+        rooms["graves_e"], rooms["graves_se"], rooms["graves_sw"],
+    ]
+    for room in outdoor:
         room.set_terrain(TerrainType.RURAL.value)
-        room.sheltered = False  # outdoor, weather-exposed
-        # Dark at night — no lampposts in a cemetery
+        room.sheltered = False
+        room.max_height = 1
+
+    # Indoor rooms — family tombs (max_height 0, underground)
+    tombs = [
+        rooms["tomb_stonefield"], rooms["tomb_stonefield_inner"],
+        rooms["tomb_stonefield_burial"],
+        rooms["tomb_goldwheat"], rooms["tomb_ironhand"],
+    ]
+    for room in tombs:
+        room.set_terrain(TerrainType.UNDERGROUND.value)
+        room.max_height = 0
 
     print("  Tagged all cemetery rooms (zone, district, terrain, weather).")
     print("  Millholm Cemetery complete.\n")
