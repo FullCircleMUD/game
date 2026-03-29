@@ -24,6 +24,7 @@ from world.game_world.zones.millholm.fixtures import place_millholm_fixtures
 from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
 from world.game_world.zones.millholm.cemetery import build_millholm_cemetery
+from world.game_world.zones.millholm.northern import build_millholm_northern
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
 from world.game_world.zones.millholm.rooftops import build_millholm_rooftops
 from world.game_world.zones.millholm.sewers import build_millholm_sewers
@@ -344,6 +345,36 @@ def build_zone(one_way_limbo=False):
     # Wardrobe exit only at ground level (height 1 goes to Gareth's roof)
     door_wardrobe_ba.required_min_height = 0
     door_wardrobe_ba.required_max_height = 0
+
+    # ── Northern District (lake) ─────────────────────────────────────
+    print("[9] Building Millholm Northern...")
+    northern_rooms = build_millholm_northern()
+
+    print("[9a] Connecting north road → lake track...")
+    connect(town_rooms["north_road"], northern_rooms["lake_track"], "north")
+
+    print("[9b] Connecting lake track ↔ lake shore (procedural passage)...")
+    import world.dungeons.templates.lake_passage  # noqa: F401
+
+    trigger_to_lake = create_object(
+        ProceduralDungeonExit,
+        key="a rough track",
+        location=northern_rooms["lake_track"],
+        destination=northern_rooms["lake_track"],
+    )
+    trigger_to_lake.set_direction("north")
+    trigger_to_lake.dungeon_template_id = "lake_passage"
+    trigger_to_lake.dungeon_destination_room_id = northern_rooms["lake_shore"].id
+
+    trigger_from_lake = create_object(
+        ProceduralDungeonExit,
+        key="a rough track",
+        location=northern_rooms["lake_shore"],
+        destination=northern_rooms["lake_shore"],
+    )
+    trigger_from_lake.set_direction("south")
+    trigger_from_lake.dungeon_template_id = "lake_passage"
+    trigger_from_lake.dungeon_destination_room_id = northern_rooms["lake_track"].id
 
     # ── Fixtures, NPCs, Mobs ─────────────────────────────────────────
     place_millholm_fixtures(
