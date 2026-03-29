@@ -771,6 +771,7 @@ def build_millholm_northern():
     # Lake track is town-side of the passage — tagged as town
     rooms["lake_track"].tags.add(ZONE, category="zone")
     rooms["lake_track"].tags.add("millholm_town", category="district")
+    rooms["lake_track"].tags.add("millholm_town:lake_track", category="map_cell")
     rooms["lake_track"].set_terrain(TerrainType.PLAINS.value)
     rooms["lake_track"].sheltered = False
 

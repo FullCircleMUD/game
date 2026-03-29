@@ -630,6 +630,10 @@ def build_millholm_cemetery():
 
     print("  Placed lootable sarcophagus in Stonefield Burial Chamber.")
 
+    # District map cell tags — cemetery appears on the town map
+    rooms["cemetery_gates"].tags.add("millholm_town:cemetery_gates", category="map_cell")
+    rooms["cemetery"].tags.add("millholm_town:cemetery", category="map_cell")
+
     print("  Tagged all cemetery rooms (zone, district, terrain, weather).")
     print("  Millholm Cemetery complete.\n")
 
