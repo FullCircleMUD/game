@@ -591,6 +591,13 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                 continue
             visible.append(char)
 
+        # Filter by height-gated visibility
+        visible = [
+            char for char in visible
+            if not hasattr(char, "is_height_visible_to")
+            or char.is_height_visible_to(looker)
+        ]
+
         if not visible:
             return ""
 
@@ -628,6 +635,13 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         things = [
             thing for thing in things
             if not hasattr(thing, "is_visible_to") or thing.is_visible_to(looker)
+        ]
+
+        # Filter by height-gated visibility
+        things = [
+            thing for thing in things
+            if not hasattr(thing, "is_height_visible_to")
+            or thing.is_height_visible_to(looker)
         ]
 
         # Separate items with ground descriptions (full sentences) from

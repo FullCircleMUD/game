@@ -592,6 +592,33 @@ def build_millholm_northern():
         ],
     )
 
+    # ══════════════════════════════════════════════════════════════════
+    # SUNKEN WRECK — lootable fixture in deep_dock
+    # ══════════════════════════════════════════════════════════════════
+
+    from typeclasses.world_objects.chest import WorldChest
+
+    wreck = create_object(
+        WorldChest,
+        key="a sunken rowing boat",
+        location=rooms["deep_dock"],
+        nohome=True,
+    )
+    wreck.db.desc = (
+        "The remains of a small rowing boat resting on the lake bed, "
+        "its timbers dark and swollen with waterlogging. The name "
+        "'Timmy's Revenge' is just visible on the stern in faded "
+        "paint. Fish shelter in the shadow of the hull, and silt has "
+        "drifted against one side. Something glints in the mud "
+        "beneath the overturned bow."
+    )
+    wreck.is_open = True  # no need to open — just take from it
+    wreck.loot_gold_max = 5
+    wreck.room_vertical_position = -2
+    wreck.visible_max_height = -1  # only visible at depth -1 or below
+    wreck.tags.add(ZONE, category="zone")
+    wreck.tags.add(DISTRICT, category="district")
+
     print(f"  Created {len(rooms)} northern rooms.")
 
     # ══════════════════════════════════════════════════════════════════
