@@ -20,8 +20,8 @@ class RatKing(CombatMob):
     size = AttributeProperty("medium")
 
     # ── Stats — level 2, weakened mini-boss ──
-    hp = AttributeProperty(10)
-    hp_max = AttributeProperty(10)
+    hp = AttributeProperty(5)
+    hp_max = AttributeProperty(5)
     strength = AttributeProperty(10)
     dexterity = AttributeProperty(12)
     constitution = AttributeProperty(10)

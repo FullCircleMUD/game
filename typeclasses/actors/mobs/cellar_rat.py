@@ -20,8 +20,8 @@ class CellarRat(AggressiveMob):
     size = AttributeProperty("small")
 
     # ── Stats — level 1, fragile ──
-    hp = AttributeProperty(4)
-    hp_max = AttributeProperty(4)
+    hp = AttributeProperty(2)
+    hp_max = AttributeProperty(2)
     strength = AttributeProperty(4)
     dexterity = AttributeProperty(14)
     constitution = AttributeProperty(8)
