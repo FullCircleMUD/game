@@ -29,6 +29,7 @@ class CmdSearch(Command):
     """
 
     key = "search"
+    aliases = ("sea", "sear")
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 

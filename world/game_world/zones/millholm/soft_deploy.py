@@ -24,6 +24,7 @@ from world.game_world.zones.millholm.fixtures import place_millholm_fixtures
 from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
+from world.game_world.zones.millholm.rooftops import build_millholm_rooftops
 from world.game_world.zones.millholm.sewers import build_millholm_sewers
 from world.game_world.zones.millholm.southern import build_millholm_southern
 from world.game_world.zones.millholm.town import build_millholm_town
@@ -235,6 +236,107 @@ def build_zone(one_way_limbo=False):
 
     print("[7b] Connecting farm south fork → southern countryside...")
     connect(farm_rooms["south_fork_end"], southern_rooms["countryside_road"], "east")
+
+    # ── Rooftops District ──────────────────────────────────────────────
+    print("[8] Building Millholm Rooftops...")
+    roof_rooms = build_millholm_rooftops()
+
+    # ── Cross-district: town ↔ rooftops ──────────────────────────────
+    print("[8a] Connecting Artisan's Way W1 → Sagging Rooftop (fly)...")
+    exit_aw1_roof = create_object(
+        ExitVerticalAware,
+        key="the rooftops",
+        location=town_rooms["artisans_way_w1"],
+        destination=roof_rooms["rooftops_w1"],
+    )
+    exit_aw1_roof.set_direction("north")
+    exit_aw1_roof.required_min_height = 1
+    exit_aw1_roof.required_max_height = 2
+    exit_aw1_roof.arrival_heights = {1: 0, 2: 1}
+
+    exit_roof_aw1 = create_object(
+        ExitVerticalAware,
+        key="Artisan's Way below",
+        location=roof_rooms["rooftops_w1"],
+        destination=town_rooms["artisans_way_w1"],
+    )
+    exit_roof_aw1.set_direction("south")
+    exit_roof_aw1.arrival_heights = {0: 1, 1: 2}
+
+    print("[8b] Connecting vacant workshop → back alley (hidden door)...")
+    door_ab, door_ba = connect_door(
+        town_rooms["vacant_w1"], town_rooms["back_alley"], "north",
+        key="a sheet of corrugated iron",
+        closed_ab=(
+            "A large sheet of rusted corrugated iron leans against the "
+            "back wall. It doesn't quite sit flush."
+        ),
+        open_ab=(
+            "The corrugated iron has been pushed aside, revealing a "
+            "narrow gap leading to an alley behind the workshop."
+        ),
+        closed_ba=(
+            "A sheet of corrugated iron covers a gap in the wall "
+            "to the south."
+        ),
+        open_ba=(
+            "Through the gap in the wall you can see a dusty workshop."
+        ),
+        door_name="iron",
+    )
+    door_ab.is_hidden = True
+    door_ab.find_dc = 2  # TODO: restore to 16 after testing
+    door_ba.required_min_height = 0
+    door_ba.required_max_height = 0
+
+    print("[8c] Connecting back alley → Sagging Rooftop (climb)...")
+    exit_to_roof = create_object(
+        ExitVerticalAware,
+        key="the rooftops",
+        location=town_rooms["back_alley"],
+        destination=roof_rooms["rooftops_w1"],
+    )
+    exit_to_roof.set_direction("south")
+    exit_to_roof.required_min_height = 1
+    exit_to_roof.required_max_height = 1
+    exit_to_roof.arrival_heights = {1: 0}
+
+    exit_to_alley = create_object(
+        ExitVerticalAware,
+        key="the alley below",
+        location=roof_rooms["rooftops_w1"],
+        destination=town_rooms["back_alley"],
+    )
+    exit_to_alley.set_direction("down")
+    exit_to_alley.arrival_heights = {0: 0}
+
+    print("[8d] Connecting Gareth's bedroom → General Store Rooftop (hidden wardrobe)...")
+    door_wardrobe, door_wardrobe_ba = connect_door(
+        town_rooms["gareth_bedroom"], roof_rooms["rooftops_store"], "east",
+        key="an oak wardrobe",
+        closed_ab=(
+            "A massive oak wardrobe stands against the far wall, "
+            "slightly too big for the room."
+        ),
+        open_ab=(
+            "The wardrobe has been pushed aside, revealing a low "
+            "doorway cut into the wall behind it. Cold air and the "
+            "smell of rain-soaked slate drift through the gap."
+        ),
+        closed_ba=(
+            "A low doorway leads west, blocked by the back of a "
+            "large wardrobe."
+        ),
+        open_ba=(
+            "Through the low doorway you can see a dimly lit bedroom."
+        ),
+        door_name="wardrobe",
+    )
+    door_wardrobe.is_hidden = True
+    door_wardrobe.find_dc = 2  # TODO: restore to 16 after testing
+    # Wardrobe exit only at ground level (height 1 goes to Gareth's roof)
+    door_wardrobe_ba.required_min_height = 0
+    door_wardrobe_ba.required_max_height = 0
 
     # ── Fixtures, NPCs, Mobs ─────────────────────────────────────────
     place_millholm_fixtures(

@@ -455,7 +455,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["sq_w"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way West",
         attributes=[
             ("desc",
              "The Old Trade Way enters the market square from the west, the "
@@ -500,7 +500,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["sq_e"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way East",
         attributes=[
             ("desc",
              "The trade road continues east from the crossroads, the square "
@@ -616,7 +616,8 @@ def build_millholm_town(one_way_limbo=False):
              "its owner's success in trade. Maps and ledgers cover the desk, "
              "and a lockbox sits beneath it. The bookshelves hold an "
              "impressive collection of leather-bound volumes on trade, "
-             "economics, and geography."),
+             "economics, and geography. A narrow wooden staircase in the "
+             "corner leads up to the first floor."),
             ("details", {
                 "maps": (
                     "Trade maps showing routes across the continent — "
@@ -628,6 +629,57 @@ def build_millholm_town(one_way_limbo=False):
                     "An impressive bookcase housing leather-bound tomes on "
                     "trade, economics, and geography. The collection is "
                     "unusually large for a merchant in a farming town."
+                ),
+                "staircase": (
+                    "A narrow wooden staircase, well-polished from use, "
+                    "spirals tightly upward to the first floor. The treads "
+                    "are worn smooth in the centre."
+                ),
+            }),
+        ],
+    )
+
+    rooms["gareth_bedroom"] = create_object(
+        RoomBase,
+        key="Gareth's Bedroom",
+        attributes=[
+            ("max_height", 0),
+            ("max_depth", 0),
+            ("desc",
+             "A modest but comfortable bedroom tucked under the eaves of "
+             "the house. A heavy oak bed with clean linen dominates the "
+             "room, and a washstand and mirror occupy one corner. A "
+             "battered sea chest sits at the foot of the bed, secured "
+             "with a brass padlock. A large oak wardrobe stands against "
+             "the far wall, slightly too big for the room. The ceiling "
+             "slopes sharply on one side, following the line of the "
+             "roof. A small window looks out over the rooftops of the "
+             "craft quarter."),
+            ("details", {
+                "chest": (
+                    "A battered sea chest, the kind used by sailors. It's "
+                    "out of place in a merchant's bedroom. The brass "
+                    "padlock is heavy and well-oiled."
+                ),
+                "window": (
+                    "A small window set into the sloping wall, looking "
+                    "out over the rooftops of the craft quarter. The "
+                    "slate tiles of the neighbouring workshops stretch "
+                    "away below. The window is hinged and looks like it "
+                    "could be opened."
+                ),
+                "bed": (
+                    "A sturdy oak bed frame with a horsehair mattress "
+                    "and clean linen. The pillows are plump. Gareth "
+                    "clearly values his sleep."
+                ),
+                "wardrobe": (
+                    "A massive oak wardrobe, dark with age and polish. "
+                    "It's slightly too large for the room — as if it "
+                    "was built here rather than carried up the stairs. "
+                    "The doors hang slightly open, revealing a few "
+                    "cloaks and a heavy winter coat. There are scuff "
+                    "marks on the floorboards around its base."
                 ),
             }),
         ],
@@ -681,7 +733,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["road_far_west"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way West",
         attributes=[
             ("desc",
              "The trade road stretches westward, leaving the last buildings "
@@ -705,7 +757,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["road_west"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way West",
         attributes=[
             ("desc",
              "The trade road approaches town from the west, packed earth "
@@ -718,7 +770,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["road_east"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way East",
         attributes=[
             ("desc",
              "The road narrows as it leaves the square behind, heading east "
@@ -731,7 +783,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["road_far_east"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way East",
         attributes=[
             ("desc",
              "The cobblestones end here, giving way to packed earth as the "
@@ -893,6 +945,7 @@ def build_millholm_town(one_way_limbo=False):
              "both sides of the narrow lane. The clatter of a loom sounds "
              "from behind one door, while the steady tap of a jeweller's "
              "hammer comes from another."),
+            ("max_height", 2),
         ],
     )
 
@@ -1020,38 +1073,6 @@ def build_millholm_town(one_way_limbo=False):
                 "refuse": (
                     "A heap of rotten vegetable peelings, broken pottery, "
                     "and things you'd rather not examine too closely."
-                ),
-            }),
-        ],
-    )
-
-    rooms["rooftops_w1"] = create_object(
-        RoomBase,
-        key="Rooftops Above Artisan's Way",
-        attributes=[
-            ("desc",
-             "The slate rooftops of Millholm spread out around you, a "
-             "secret world above the town. Clay chimney pots jut up like "
-             "crooked fingers, trailing wisps of smoke. The tiles are "
-             "slick with moss but mostly solid underfoot. From here you "
-             "can see the market square to the north, the woods beyond "
-             "the eastern wall, and the patchwork of farm fields to the "
-             "west. A drainpipe leads back down to the alley below."),
-            ("details", {
-                "chimney": (
-                    "Squat clay chimney pots, blackened by years of wood "
-                    "smoke. Some lean at alarming angles. A jackdaw has "
-                    "built a nest in the nearest one."
-                ),
-                "tiles": (
-                    "Grey slate tiles, many cracked or replaced with "
-                    "mismatched pieces. Patches of moss and lichen grow "
-                    "in the joints. They creak slightly underfoot."
-                ),
-                "market square": (
-                    "The market square is visible to the north — you can "
-                    "see the tops of the market stalls and the bustle of "
-                    "people below, oblivious to your presence up here."
                 ),
             }),
         ],
@@ -1204,7 +1225,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["road_mid_west"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way West",
         attributes=[
             ("desc",
              "The trade road passes between a cluster of workshops and "
@@ -1217,7 +1238,7 @@ def build_millholm_town(one_way_limbo=False):
 
     rooms["road_mid_east"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Way East",
         attributes=[
             ("desc",
              "The trade road continues east past quieter establishments. "
@@ -1887,10 +1908,12 @@ def build_millholm_town(one_way_limbo=False):
             desc_ab="a boarded-up workshop", desc_ba="Artisan's Way")
     exit_count += 4
 
-    # W1 north: Vacant — south: Jeweller
-    connect(rooms["artisans_way_w1"], rooms["vacant_w1"], "north",
+    # W1 north: Vacant (ground only) — south: Jeweller
+    exit_to_vacant, _ = connect(rooms["artisans_way_w1"], rooms["vacant_w1"], "north",
             desc_ab="a shuttered workshop", desc_ba="Artisan's Way")
-    connect_door(
+    exit_to_vacant.required_min_height = 0
+    exit_to_vacant.required_max_height = 0
+    door_jeweller_ab, _ = connect_door(
         rooms["artisans_way_w1"], rooms["jeweller"], "south",
         key="a wooden door",
         closed_ab="A wooden door with a gem-and-ring sign leads south.",
@@ -1898,6 +1921,8 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A wooden door leads north to Artisan's Way.",
         open_ba="Artisan's Way is visible through the open door.",
     )
+    door_jeweller_ab.required_min_height = 0
+    door_jeweller_ab.required_max_height = 0
     exit_count += 4
 
     # E1 north: Apothecary — south: Distillery (back room off apothecary)
@@ -2231,20 +2256,29 @@ def build_millholm_town(one_way_limbo=False):
     )
     exit_count += 2
 
-    # ── Secret passage: Gareth's House ↔ Abandoned House ─────────────
-    connect(
-        rooms["gareth_house"], rooms["abandoned_house"], "east",
+    # ── Gareth's House → Bedroom (upstairs) ─────────────────────────
+    connect(rooms["gareth_house"], rooms["gareth_bedroom"], "up",
+            desc_ab="the bedroom upstairs", desc_ba="the house below")
+    exit_count += 2
+
+    # ── Secret passage: Gareth's House ↔ Abandoned House (hidden) ────
+    secret_ab, secret_ba = connect(
+        rooms["gareth_house"], rooms["abandoned_house"], "west",
         desc_ab=(
-            "The east wall is decorated with an impressive bookcase housing "
+            "The west wall is decorated with an impressive bookcase housing "
             "a large collection of leather-bound tomes on trade, economics, "
             "and geography."
         ),
         desc_ba=(
             "Footprints in the thick dust lead across the room toward the "
-            "west wall and simply stop, as if whoever made them vanished "
+            "east wall and simply stop, as if whoever made them vanished "
             "into thin air."
         ),
     )
+    secret_ab.is_hidden = True
+    secret_ab.find_dc = 12
+    secret_ba.is_hidden = True
+    secret_ba.find_dc = 12
     exit_count += 2
 
     # ── NPC house connections behind shops ───────────────────────────
@@ -2286,55 +2320,6 @@ def build_millholm_town(one_way_limbo=False):
     connect(rooms["warriors_guild"], rooms["barracks"], "south",
             desc_ab="the barracks", desc_ba="the guild hall")
     exit_count += 6
-
-    # ── Vacant Workshop W1 → Back Alley (hidden door) ─────────────
-    door_ab, _ = connect_door(
-        rooms["vacant_w1"], rooms["back_alley"], "north",
-        key="a sheet of corrugated iron",
-        closed_ab=(
-            "A large sheet of rusted corrugated iron leans against the "
-            "back wall. It doesn't quite sit flush."
-        ),
-        open_ab=(
-            "The corrugated iron has been pushed aside, revealing a "
-            "narrow gap leading to an alley behind the workshop."
-        ),
-        closed_ba=(
-            "A sheet of corrugated iron covers a gap in the wall "
-            "to the south."
-        ),
-        open_ba=(
-            "Through the gap in the wall you can see a dusty workshop."
-        ),
-        door_name="iron",
-    )
-    door_ab.is_hidden = True
-    door_ab.find_dc = 16
-    exit_count += 2
-
-    # ── Back Alley → Rooftops (height-routed, climb to height 1) ──
-    exit_up = create_object(
-        ExitVerticalAware,
-        key="the rooftops",
-        location=rooms["back_alley"],
-        destination=rooms["rooftops_w1"],
-    )
-    exit_up.set_direction("up")
-    exit_up.required_min_height = 1
-    exit_up.required_max_height = 1
-    exit_up.arrival_heights = {1: 0}
-    exit_count += 1
-
-    # ── Rooftops → Back Alley (down, arrive at ground level) ──────
-    exit_down = create_object(
-        ExitVerticalAware,
-        key="the alley below",
-        location=rooms["rooftops_w1"],
-        destination=rooms["back_alley"],
-    )
-    exit_down.set_direction("down")
-    exit_down.arrival_heights = {0: 0}
-    exit_count += 1
 
     print(f"  Created {exit_count} exits.")
 
@@ -2395,6 +2380,50 @@ def build_millholm_town(one_way_limbo=False):
     rooms["cellar_stairwell"].always_lit = True
 
     print("  Tagged all rooms with zone, district, and terrain.")
+
+    # ── Street flying height ─────────────────────────────────────────
+    # All outdoor streets allow flight up to height 2 so flying
+    # characters see a consistent sky layer across town. Rooftop
+    # access via height-routed exits only exists on specific streets.
+    flyable_streets = [
+        # Old Trade Way
+        rooms["road_far_west"], rooms["road_west"],
+        rooms["road_mid_west"], rooms["road_mid_east"],
+        rooms["road_east"], rooms["road_far_east"],
+        # Market Square (all 9 cells)
+        rooms["sq_nw"], rooms["sq_n"], rooms["sq_ne"],
+        rooms["sq_w"], rooms["sq_center"], rooms["sq_e"],
+        rooms["sq_sw"], rooms["sq_s"], rooms["sq_se"],
+        # North road
+        rooms["north_road"],
+        # South roads
+        rooms["south_road"], rooms["mid_south_road"],
+        rooms["far_south_road"], rooms["south_gate"],
+        # Artisan's Way (w1 already set in room creation)
+        rooms["artisans_way"],
+        rooms["artisans_way_e1"], rooms["artisans_way_e2"],
+        rooms["artisans_way_e3"],
+    ]
+    for room in flyable_streets:
+        room.max_height = 2
+    print(f"  Set max_height=2 on {len(flyable_streets) + 1} flyable streets.")
+
+    # ── Indoor flying restriction ────────────────────────────────────
+    # Indoor rooms should not allow any flying (max_height=0).
+    # Rooms already set via create_object attributes are excluded.
+    no_fly_interiors = [
+        rooms["inn"], rooms["bakery"], rooms["smithy"],
+        rooms["leathershop"], rooms["textiles"], rooms["jeweller"],
+        rooms["apothecary"], rooms["woodshop"], rooms["bank"],
+        rooms["post_office"], rooms["broken_crown"], rooms["gaol"],
+        rooms["weapons_shop"], rooms["armorer"], rooms["clothing_shop"],
+        rooms["magical_supplies"], rooms["jewellers_showroom"],
+        rooms["vacant_shop"], rooms["vacant_w1"],
+        rooms["vacant_w2"], rooms["vacant_e2"],
+    ]
+    for room in no_fly_interiors:
+        room.max_height = 0
+    print(f"  Set max_height=0 on {len(no_fly_interiors)} indoor rooms.")
 
     # ── Combat flags ─────────────────────────────────────────────────
     # RoomBase defaults: allow_combat=True, allow_pvp=False, allow_death=True.
@@ -2472,13 +2501,14 @@ def build_millholm_town(one_way_limbo=False):
         rooms["general_store"], rooms["mages_guild"],
         rooms["warriors_guild"], rooms["gaol"],
         rooms["broken_crown"], rooms["distillery"],
-        rooms["post_office"], rooms["beggars_alley"],
+        rooms["post_office"],
         rooms["jeweller"], rooms["shrine"],
         rooms["priest_quarters"],
         rooms["vacant_w1"], rooms["vacant_w2"], rooms["vacant_e2"],
         rooms["weapons_shop"], rooms["armorer"],
         rooms["clothing_shop"], rooms["magical_supplies"],
         rooms["jewellers_showroom"], rooms["vacant_shop"],
+        rooms["gareth_bedroom"],
     ]
     for room in lit_interiors:
         room.always_lit = True
@@ -2497,7 +2527,10 @@ def build_millholm_town(one_way_limbo=False):
     # ── Weather exposure — outdoor rooms feel the weather ────────────
     # URBAN terrain defaults to sheltered (muffled indoor sounds).
     # Streets, square, and open alleys are exposed to the sky.
-    outdoor_exposed = lit_streets + [rooms["beggars_alley"], rooms["rooftops_w1"]]
+    outdoor_exposed = lit_streets + [
+        rooms["beggars_alley"],
+        rooms["cemetery"], rooms["cemetery_gates"],
+    ]
     for room in outdoor_exposed:
         room.sheltered = False
 

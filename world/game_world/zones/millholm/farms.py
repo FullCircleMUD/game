@@ -53,7 +53,7 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_1"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Lane",
         attributes=[
             ("desc",
              "The cobblestones give way to hard-packed earth as the trade road "
@@ -65,7 +65,7 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_2"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Lane",
         attributes=[
             ("desc",
              "Rolling farmland stretches away on both sides of the road. "
@@ -78,7 +78,7 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_meadow"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Lane",
         attributes=[
             ("desc",
              "The road curves gently around a wildflower meadow where bees "
@@ -90,7 +90,7 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_oak"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Lane",
         attributes=[
             ("desc",
              "A massive old oak tree stands at a crossing point on the road, "
@@ -103,7 +103,7 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_hill"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Lane",
         attributes=[
             ("desc",
              "The road climbs a gentle rise here, offering a commanding view "
@@ -115,7 +115,7 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_crossroads"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Old Trade Lane",
         attributes=[
             ("desc",
              "A crossroads where a south-running track branches off the main "
@@ -126,40 +126,45 @@ def build_millholm_farms(town_rooms):
 
     rooms["farm_road_west"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Dirt Track",
         attributes=[
             ("desc",
-             "The trade road continues its westward course through open "
-             "countryside. Fence posts connected by rough twine line the road, "
-             "keeping livestock from wandering onto the path. A scarecrow "
-             "stands sentinel in a nearby field, its tattered clothes flapping "
-             "in the wind."),
+             "Two muddy wagon ruts carve through the grass, the only "
+             "evidence that this is a road at all. Weeds push up between "
+             "the ruts and the hedgerows on either side are slowly "
+             "narrowing the gap. Only the regular passage of a farmer's "
+             "cart keeps this track from disappearing entirely. A "
+             "lopsided scarecrow watches over a nearby field, its "
+             "tattered clothes flapping in the wind."),
         ],
     )
 
     rooms["farm_road_cotton"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Dirt Track",
         attributes=[
             ("desc",
-             "Cotton fields stretch away to the north, their white bolls "
-             "bright against the dark earth. A dirt track leads north toward "
-             "a cluster of farm buildings — the Brightwater Cotton Farm. "
-             "Workers can be seen moving between the rows, filling large "
-             "canvas sacks with the fluffy harvest."),
+             "The dirt track narrows further here, the twin wagon ruts "
+             "almost lost in the mud. Cotton fields stretch away to the "
+             "north, their white bolls bright against the dark earth. A "
+             "path branches north toward a cluster of farm buildings — "
+             "the Brightwater Cotton Farm. Thistles and dock leaves "
+             "crowd the edges of the track."),
         ],
     )
 
     rooms["farm_road_mill"] = create_object(
         RoomBase,
-        key="The Old Trade Way",
+        key="Dirt Track",
         attributes=[
             ("desc",
-             "The road approaches the old windmill that gives this stretch "
-             "of farmland its character. The great wooden sails turn lazily "
-             "in the breeze, and the rhythmic grinding of millstones can be "
-             "heard from within. Sacks of grain are stacked by the roadside "
-             "awaiting collection."),
+             "The wagon ruts deepen where they curve toward the old "
+             "windmill, churned to thick mud by the regular passage of "
+             "grain carts. The great wooden sails turn lazily in the "
+             "breeze, and the rhythmic grinding of millstones can be "
+             "heard from within. Sacks of grain are stacked by the "
+             "trackside awaiting collection. Beyond the mill, the track "
+             "fades into open farmland."),
         ],
     )
 

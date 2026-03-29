@@ -32,7 +32,6 @@ class CmdClimb(Command):
     """
 
     key = "climb"
-    aliases = ("cl",)
     locks = "cmd:all()"
     help_category = "Character"
 
