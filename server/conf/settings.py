@@ -227,8 +227,14 @@ DEV_GEO_COUNTRY = 'US'
 DISCORD_URL = 'https://discord.gg/j8b5GkysM3'
 GITHUB_URL = 'https://github.com/fullcirclemud'
 
-# Jurisdictions eligible for the full financial product experience (Variant B).
+# Whether to log player geo data (IP hash + country code) on login.
+# Set to True if jurisdictional tracking is needed in the future.
+# When False, the login_history attribute is not written to.
+LOG_PLAYER_GEO_DATA = False
+
+# Jurisdictions classified as Variant B (eligible).
 # Configurable here so the list can be updated without code changes.
+# Currently unused — all visitors see the same content.
 GEO_ELIGIBLE_COUNTRIES = {
     'PY', 'UY', 'AR', 'BR', 'MX', 'CO', 'SV', 'GT', 'HN', 'PA', 'CR',  # Latin America
     'NG', 'KE', 'GH', 'ZA',                                                # Africa

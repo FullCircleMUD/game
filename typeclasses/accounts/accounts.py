@@ -562,6 +562,14 @@ Leave Character / Game      |gquit|n
             bank.wallet_address = self.wallet_address
             self.db.bank = bank
             self.msg("|y[Dev] Bank created for account.|n")
+            self.msg(
+                "\n|r============================================|n"
+                "\n|r  REMINDER: Run these commands (OOC):       |n"
+                "\n|r    sync_nfts      — sync on-chain NFTs     |n"
+                "\n|r    sync_reserves  — recalculate reserves    |n"
+                "\n|r    reconcile      — verify balances match   |n"
+                "\n|r============================================|n"
+            )
 
         # Grant all languages to superuser characters
         if self.is_superuser:
@@ -572,8 +580,9 @@ Leave Character / Game      |gquit|n
 
         # ── Login history ──────────────────────────────────────────
         # Record IP (hashed per privacy policy) and geo-country for each
-        # login.  Kept for security monitoring and compliance audit trail.
-        if session is not None:
+        # login.  Gated by LOG_PLAYER_GEO_DATA — disabled by default,
+        # enable in settings.py if jurisdictional tracking is needed.
+        if session is not None and getattr(settings, "LOG_PLAYER_GEO_DATA", False):
             import hashlib
             from datetime import datetime, timezone as _tz
 

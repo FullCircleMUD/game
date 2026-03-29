@@ -65,10 +65,11 @@ class GeoDetectionMiddleware:
 
 def geo_context(request):
     """
-    Template context processor -- injects geo_variant and geo_country
-    into every template so partials like _menu.html can branch on them.
+    Template context processor -- injects geo_variant, geo_country, and
+    site-wide settings into every template.
     """
     return {
         'geo_variant': getattr(request, 'geo_variant', 'A'),
         'geo_country': getattr(request, 'geo_country', 'XX'),
+        'discord_url': getattr(settings, 'DISCORD_URL', ''),
     }
