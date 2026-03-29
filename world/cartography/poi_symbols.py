@@ -22,6 +22,7 @@ POI_SYMBOLS = {
     "stable":      "H",
     "post_office": "P",
     "house":       "h",
+    "lake":        "L",
     "zone_exit":   "X",
     # Underground / dungeon
     "tunnel":      "~",
@@ -58,6 +59,7 @@ POI_NAMES = {
     "stable":      "Stable",
     "post_office": "Post Office",
     "house":       "House",
+    "lake":        "Lake",
     "zone_exit":   "Map Exit",
     # Underground / dungeon
     "tunnel":      "Tunnel",

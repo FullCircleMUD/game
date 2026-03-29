@@ -21,9 +21,9 @@ from world.cartography.map_registry import register_map
 #
 # col:  0  3  6  9  12 15 18 21 24 27 30 33 36
 #
-# r0:                                  F
-# r1:                            ~  ~  M--D
-# r2:                   C        ~  ?  ~
+# r0:                ~  L--Z ~         F
+# r1:                ~  ~  ~     ~  ~  M--D
+# r2:                C--#        ~  ?  ~
 # r3:    F     F     T  T  T  R  ~  ~  ~
 # r4: R--#--#--#--#--T--T--T--#--#--#--#--#--Z
 # r5:       #        T  T  T  R  ~  ~  ~
@@ -39,19 +39,19 @@ from world.cartography.map_registry import register_map
 #        0123456789012345678901234567890123456789
 #        0         1         2         3
 _TEMPLATE = (
-    "                                 .         \n"  # r0:  windroot (c33)
-    "                           .  .  .--.\n"        # r1:  deep_woods x2, mine, dungeon
-    "                  .        .  .  .\n"           # r2:  cemetery, deep_woods x2, faerie
-    "   .     .     .  .  .  .  .  .  .\n"          # r3:  farms, town top, sawmill, woods
-    ".--.--.--.--.--.--.--.--.--.--.--.--.\n"         # r4:  main road
-    "      .        .  .  .  .  .  .  .\n"          # r5:  south fork, town bot, smelter, woods
-    "      .--.        .        .  .  .\n"          # r6:  south road, bandits, road, woods+tannery
-    "      .           .        .  .  .\n"          # r7:  south road, road, woods
-    "      .           .\n"                         # r8:  moonpetal, road
-    "      .           .\n"                         # r9:  south road, road
+    "               .  .--.  .        .         \n"  # r0:  scrub(c15), lake(c18)--far_shore(c21), scrub(c24), windroot(c33)
+    "               .  .  .     .  .  .--.\n"        # r1:  scrub(c15,18,21), deep_woods x2, mine, dungeon
+    "            .--.           .  .  .\n"           # r2:  cemetery(c12)--north_road(c15), deep_woods x2, faerie
+    "   .     .     .  .  .  .  .  .  .\n"           # r3:  farms, town top, sawmill, woods
+    ".--.--.--.--.--.--.--.--.--.--.--.--.\n"        # r4:  main road
+    "      .        .  .  .  .  .  .  .\n"           # r5:  south fork, town bot, smelter, woods
+    "      .--.        .        .  .  .\n"           # r6:  south road, bandits, road, woods+tannery
+    "      .           .        .  .  .\n"           # r7:  south road, road, woods
+    "      .           .\n"                          # r8:  moonpetal, road
+    "      .           .\n"                          # r9:  south road, road
     "      .        .--.--.\n"                       # r10: south road, ravaged--gnoll--barrow
-    "      .           .\n"                         # r11: south road, road
-    "      .--.--.--.--.          \n"               # r12: south approach road
+    "      .           .\n"                          # r11: south road, road
+    "      .--.--.--.--.          \n"                # r12: south approach road
     "                  .          "                  # r13: shadowsward gate
 )
 
@@ -65,8 +65,17 @@ _POINT_CELLS = {
     "deep_woods_sw":      {"pos": [(2, 27)], "poi": "woods"},
     "faerie_hollow":      {"pos": [(2, 30)], "poi": "unknown"},
     "deep_woods_se":      {"pos": [(2, 33)], "poi": "woods"},
-    # ── Cemetery ──
-    "cemetery":           {"pos": [(2, 18)], "poi": "cemetery"},
+    # ── Lake (north of town, surrounded by scrubland) ──
+    "lake_scrub_w":       {"pos": [(0, 15)], "poi": "woods"},
+    "lake":               {"pos": [(0, 18)], "poi": "lake"},
+    "lake_far_shore":     {"pos": [(0, 21)], "poi": "zone_boundary"},
+    "lake_scrub_ne":      {"pos": [(0, 24)], "poi": "woods"},
+    "lake_scrub_sw":      {"pos": [(1, 15)], "poi": "woods"},
+    "lake_scrub_s":       {"pos": [(1, 18)], "poi": "woods"},
+    "lake_scrub_se":      {"pos": [(1, 21)], "poi": "woods"},
+    # ── Cemetery (west of town, connected to north road) ──
+    "cemetery":           {"pos": [(2, 12)], "poi": "cemetery"},
+    "north_road":         {"pos": [(2, 15)], "poi": "road"},
     # ── Farms (north of road) ──
     "wheat_farm":         {"pos": [(3, 3)],  "poi": "farm"},
     "cotton_farm":        {"pos": [(3, 9)],  "poi": "farm"},
