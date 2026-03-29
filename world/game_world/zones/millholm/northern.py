@@ -20,6 +20,7 @@ from enums.terrain_type import TerrainType
 from enums.room_crafting_type import RoomCraftingType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_crafting import RoomCrafting
+from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from utils.exit_helpers import connect, connect_door
 
@@ -548,6 +549,65 @@ def build_millholm_northern():
     )
 
     # ══════════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════════
+    # UNDERWATER CAVE — hidden grotto off deep_c, bloodmoss harvesting
+    # ══════════════════════════════════════════════════════════════════
+
+    rooms["underwater_cave"] = create_object(
+        RoomHarvesting,
+        key="Underwater Grotto",
+        attributes=[
+            ("desc",
+             "A natural cavity in the rock beneath the lake bed, just "
+             "large enough to swim into. The walls are slick with algae "
+             "and the water glows a faint, eerie green — bioluminescent "
+             "organisms cling to every surface. Thick clumps of dark "
+             "red moss grow from the cracks in the stone, swaying gently "
+             "in the slow current. Air bubbles trickle upward from a "
+             "fissure in the floor, catching the green light as they "
+             "rise. The entrance behind you is a dark oval in the rock, "
+             "barely visible from outside."),
+            ("max_height", 0),
+            ("max_depth", -1),
+            ("resource_id", 14),       # Bloodmoss
+            ("resource_count", 0),     # spawn script sets amount
+            ("abundance_threshold", 3),
+            ("harvest_height", -1),    # must be underwater to harvest
+            ("harvest_command", "gather"),
+            ("desc_abundant",
+             "Thick clumps of dark red bloodmoss grow from every crack "
+             "and crevice, swaying in the slow current. There is plenty "
+             "to gather here."),
+            ("desc_scarce",
+             "A few sparse clumps of bloodmoss cling to the walls, "
+             "their fronds thin and pale. The supply is running low."),
+            ("desc_depleted",
+             "The rock walls are bare — the bloodmoss has been picked "
+             "clean. Only bare stone and algae remain."),
+            ("details", {
+                "moss": (
+                    "Dark red moss with thick, fleshy fronds. It clings "
+                    "to the rock with surprising tenacity. When torn "
+                    "free it bleeds a dark ichor — hence the name. "
+                    "Alchemists prize it for healing potions."
+                ),
+                "light": (
+                    "A faint green bioluminescence coats the cave walls. "
+                    "Tiny organisms, each no bigger than a pinhead, "
+                    "glow softly in the darkness. The effect is "
+                    "beautiful and deeply unsettling."
+                ),
+                "bubbles": (
+                    "A steady trickle of air bubbles rises from a "
+                    "crack in the cave floor. Not enough to breathe — "
+                    "but proof that something lies deeper still."
+                ),
+            }),
+            ("always_lit", True),  # bioluminescence
+        ],
+    )
+
+    # ══════════════════════════════════════════════════════════════════
     # BOATYARD — east of sailing club
     # ══════════════════════════════════════════════════════════════════
 
@@ -725,8 +785,8 @@ def build_millholm_northern():
     )
     trick_deep_e.set_direction("east")
 
-    # Deep row north also loops back (no further north)
-    for rkey in ["deep_w", "deep_c", "deep_e", "deep_dock", "deep_yard"]:
+    # Deep row north loops back (no further north) — except deep_c
+    for rkey in ["deep_w", "deep_e", "deep_dock", "deep_yard"]:
         trick_n = create_object(
             ExitVerticalAware,
             key=rooms[rkey].key,
@@ -734,6 +794,39 @@ def build_millholm_northern():
             destination=rooms[rkey],
         )
         trick_n.set_direction("north")
+
+    # deep_c north: trick loop at heights 0 to -1, cave at depth -2
+    trick_c_n = create_object(
+        ExitVerticalAware,
+        key=rooms["deep_c"].key,
+        location=rooms["deep_c"],
+        destination=rooms["deep_c"],
+    )
+    trick_c_n.set_direction("north")
+    trick_c_n.required_min_height = -1
+    trick_c_n.required_max_height = 1
+
+    # Hidden cave entrance — only visible at depth -2
+    exit_to_cave = create_object(
+        ExitVerticalAware,
+        key="a dark opening in the rocks",
+        location=rooms["deep_c"],
+        destination=rooms["underwater_cave"],
+    )
+    exit_to_cave.set_direction("north")
+    exit_to_cave.required_min_height = -2
+    exit_to_cave.required_max_height = -2
+    exit_to_cave.arrival_heights = {-2: 0}
+
+    # Return exit from cave back to deep_c (at depth -2)
+    exit_from_cave = create_object(
+        ExitVerticalAware,
+        key="the submerged passage",
+        location=rooms["underwater_cave"],
+        destination=rooms["deep_c"],
+    )
+    exit_from_cave.set_direction("south")
+    exit_from_cave.arrival_heights = {0: -2}
 
     # Trick exits — shallows edges loop back to themselves
     trick_shallows_w = create_object(
@@ -802,6 +895,10 @@ def build_millholm_northern():
                  rooms["deep_w"], rooms["deep_c"], rooms["deep_e"],
                  rooms["deep_dock"], rooms["deep_yard"]]:
         room.set_terrain(TerrainType.WATER.value)
+
+    rooms["underwater_cave"].set_terrain(TerrainType.UNDERGROUND.value)
+    rooms["underwater_cave"].tags.add(ZONE, category="zone")
+    rooms["underwater_cave"].tags.add(DISTRICT, category="district")
 
     # Mob area tags for zone spawn script
     for room in [rooms["lake_shore"], rooms["lake_shore_west"],
