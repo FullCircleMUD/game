@@ -749,7 +749,7 @@ def build_millholm_sewers():
     )
 
     # Hidden key in the vault
-    from typeclasses.world_objects.world_item import WorldItem
+    from typeclasses.world_objects.base_world_item import WorldItem
 
     vault_key = create_object(
         WorldItem,

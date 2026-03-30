@@ -132,7 +132,10 @@ def clean_zone(zone_key: str):
             continue
         _return_fungibles_to_reserve(room)
         deleted_ids.add(room.id)
-        room.delete()
+        try:
+            room.delete()
+        except Exception:
+            continue  # already deleted by cascade
         room_count += 1
     print(f"  Deleted {room_count} room(s).")
 

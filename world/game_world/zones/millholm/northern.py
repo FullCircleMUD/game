@@ -769,6 +769,7 @@ def build_millholm_northern():
     connect(rooms["shallows_yard"], rooms["deep_yard"], "north")
 
     # Trick exits — deep row edges loop back
+    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
     trick_deep_w = create_object(
         ExitVerticalAware,
         key="Deep Water - Western Reach",
@@ -846,7 +847,6 @@ def build_millholm_northern():
     trick_shallows_e.set_direction("east")
 
     # Trick exit — west from western shore loops back to itself
-    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
     trick_west = create_object(
         ExitVerticalAware,
         key="Western Lake Shore",
