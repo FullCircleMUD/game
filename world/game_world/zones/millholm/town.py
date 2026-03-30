@@ -219,7 +219,7 @@ def build_millholm_town(one_way_limbo=False):
         attributes=[
             ("crafting_type", "tailor"),
             ("mastery_level", 2),  # MasteryLevel.SKILLED
-            ("craft_cost", 2),
+            ("craft_cost", 3),
             ("desc",
              "Bolts of cloth line the walls in stacked rolls — rough canvas, "
              "plain cotton, dyed wool in blues and greens. Two spinning wheels "
