@@ -826,15 +826,33 @@ def build_millholm_farms(town_rooms):
     )
 
     rooms["ab_field_3"] = create_object(
-        RoomBase,
+        RoomHarvesting,
         key="Overgrown Field",
         attributes=[
             ("desc",
-             "Thick brambles have taken hold in this corner of the "
-             "abandoned farm. Blackberry canes form impenetrable thickets, "
-             "their thorny arms reaching across the old pathways. Dark "
-             "purple fruit hangs heavy in the tangled growth — at least "
-             "something still produces a harvest here."),
+             "Thick brambles and blackberry canes have taken hold in this "
+             "corner of the abandoned farm, forming impenetrable thickets. "
+             "Among them, a more sinister plant has flourished — vipervine, "
+             "its dark green tendrils coiling through the brambles like "
+             "slow-moving serpents. The vine's thorns are longer and sharper "
+             "than the blackberries', and its leaves have a faintly oily "
+             "sheen. It has grown completely out of control here, "
+             "strangling the fence posts and pulling down what remains "
+             "of the boundary wall."),
+            ("resource_id", 20),           # Vipervine
+            ("resource_count", 0),         # spawn script sets amount
+            ("abundance_threshold", 3),
+            ("harvest_height", 0),
+            ("harvest_command", "gather"),
+            ("desc_abundant",
+             "Vipervine coils through the brambles in thick, dark ropes. "
+             "There is plenty to gather — if you don't mind the thorns."),
+            ("desc_scarce",
+             "Most of the vipervine has been cut back. A few thin tendrils "
+             "still cling to the fence posts."),
+            ("desc_depleted",
+             "The vipervine has been stripped clean. Only blackberry "
+             "canes and bare thorns remain."),
         ],
     )
 
