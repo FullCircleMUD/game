@@ -25,4 +25,6 @@ FullCircleMUD publishes periodic game economy reports at [github.com/fullcirclem
 
 ## Licence
 
-[To be determined]
+This project is licensed under the [Business Source License 1.1](LICENSE). On 2030-03-31, the licence converts to [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html).
+
+See [LICENSE](LICENSE) for full terms.
