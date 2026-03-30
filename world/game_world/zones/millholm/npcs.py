@@ -859,7 +859,7 @@ def _spawn_wheat_farmer():
         key="Farmer Bramble",
         location=room,
     )
-    npc.tradeable_resources = [1]  # Wheat only
+    npc.tradeable_resources = [1, 18]  # Wheat, Sage Leaf
     npc.shop_name = "Goldwheat Farm"
     npc.db.desc = (
         "A stout halfling woman in mud-caked boots and a wide straw hat "
