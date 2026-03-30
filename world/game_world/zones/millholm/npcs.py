@@ -1424,7 +1424,7 @@ def _spawn_durga():
     )
     npc.tradeable_item_types = [
         "Bronze Helm", "Bronze Greaves", "Bronze Bracers",
-        "Leather Armor", "Wooden Shield",
+        "Leather Armor", "Gambeson", "Wooden Shield",
     ]
     npc.shop_name = "Ironclad Outfitters"
     npc.db.desc = (
@@ -1459,7 +1459,7 @@ def _spawn_colette():
     npc.tradeable_item_types = [
         "Bandana", "Veil", "Scarf", "Sash", "Kippah",
         "Warrior's Wraps", "Brown Corduroy Pants",
-        "Coarse Robe", "Cloak", "Gambeson",
+        "Coarse Robe", "Cloak",
     ]
     npc.shop_name = "The Silken Thread"
     npc.db.desc = (
