@@ -1490,7 +1490,12 @@ def _spawn_fizwick():
         location=room,
     )
     npc.tradeable_item_types = [
-        "Training Dagger", "Training Shortsword", "Training Longsword",
+        "Potion of Life's Essence",
+        "Potion of the Zephyr",
+        "Potion of the Wellspring",
+        "Potion of the Bull",
+        "Potion of Owl's Insight",
+        "Potion of Cat's Grace",
     ]
     npc.shop_name = "The Bubbling Flask"
     npc.db.desc = (
