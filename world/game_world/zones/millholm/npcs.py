@@ -1423,7 +1423,8 @@ def _spawn_durga():
         location=room,
     )
     npc.tradeable_item_types = [
-        "Training Dagger", "Training Shortsword", "Training Longsword",
+        "Bronze Helm", "Bronze Greaves", "Bronze Bracers",
+        "Leather Armor", "Wooden Shield",
     ]
     npc.shop_name = "Ironclad Outfitters"
     npc.db.desc = (

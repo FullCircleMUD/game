@@ -135,10 +135,10 @@ NFT_ITEM_TYPES = [
     {"name": "Leather Pants", "typeclass": _WEARABLE_TC, "prototype_key": "leather_pants", "description": "Tough leather trousers with double-stitched seams."},
     {"name": "Bridle", "typeclass": _WEARABLE_TC, "prototype_key": "bridle", "description": "A simple leather bridle with iron bit and reins."},
     {"name": "Sling", "typeclass": _SLING_TC, "prototype_key": "sling", "description": "A simple leather sling for hurling stones. Light and easy to use."},
-    {"name": "Leather Armor", "typeclass": _WEARABLE_TC, "prototype_key": "leather_armor", "description": "A gambeson reinforced with leather plates and straps. Offers solid protection without heavy metal."},
+    {"name": "Leather Armor", "typeclass": _WEARABLE_TC, "prototype_key": "leather_armor", "description": "A gambeson reinforced with leather plates and straps. Offers solid protection without heavy metal.", "tracking_token": "PLeatherArmor"},
     {"name": "Studded Leather Armor", "typeclass": _WEARABLE_TC, "prototype_key": "studded_leather_armor", "description": "Leather armor reinforced with iron studs and rivets. Tougher than plain leather."},
     # ── Holdables ──
-    {"name": "Wooden Shield", "typeclass": _HOLDABLE_TC, "prototype_key": "wooden_shield", "description": "A round wooden shield banded with iron."},
+    {"name": "Wooden Shield", "typeclass": _HOLDABLE_TC, "prototype_key": "wooden_shield", "description": "A round wooden shield banded with iron.", "tracking_token": "PWoodenShield"},
     {"name": "Ironbound Shield", "typeclass": _HOLDABLE_TC, "prototype_key": "ironbound_shield", "description": "A wooden shield bound with iron bands and rivets. Sturdier than plain wood."},
     {"name": "Wooden Torch", "typeclass": _TORCH_TC, "prototype_key": "wooden_torch", "description": "A sturdy timber torch wrapped in oil-soaked cloth. It burns bright but is consumed by its flame."},
     {"name": "Bronze Lantern", "typeclass": _LANTERN_TC, "prototype_key": "bronze_lantern", "description": "A reliable bronze lantern with a glass pane. Can be refueled with oil."},
@@ -176,9 +176,9 @@ NFT_ITEM_TYPES = [
     {"name": "Pewter Chain", "typeclass": _WEARABLE_TC, "prototype_key": "pewter_chain", "description": "A simple chain of interlocking pewter links."},
     {"name": "Copper Chain", "typeclass": _WEARABLE_TC, "prototype_key": "copper_chain", "description": "A delicate chain of copper links with a warm lustre.", "tracking_token": "PCopperChain"},
     # ── Bronze Armor ──
-    {"name": "Bronze Greaves", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_greaves", "description": "Shaped bronze plates that protect the shins and calves."},
-    {"name": "Bronze Bracers", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_bracers", "description": "Curved bronze plates that protect the forearms."},
-    {"name": "Bronze Helm", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_helm", "description": "A sturdy bronze helmet with cheek guards and a nose piece."},
+    {"name": "Bronze Greaves", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_greaves", "description": "Shaped bronze plates that protect the shins and calves.", "tracking_token": "PBronzeGreaves"},
+    {"name": "Bronze Bracers", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_bracers", "description": "Curved bronze plates that protect the forearms.", "tracking_token": "PBronzeBracers"},
+    {"name": "Bronze Helm", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_helm", "description": "A sturdy bronze helmet with cheek guards and a nose piece.", "tracking_token": "PBronzeHelm"},
     # ── Enchanted Wearables ──
     {"name": "Rogue's Bandana", "typeclass": _WEARABLE_TC, "prototype_key": "rogues_bandana", "description": "A dark bandana imbued with arcane agility. It quickens the wearer's reflexes."},
     {"name": "Sage's Kippah", "typeclass": _WEARABLE_TC, "prototype_key": "sages_kippah", "description": "An embroidered skullcap humming with quiet wisdom."},
