@@ -660,15 +660,31 @@ def build_millholm_farms(town_rooms):
     )
 
     rooms["gw_garden"] = create_object(
-        RoomBase,
+        RoomHarvesting,
         key="Goldwheat Farm - Garden",
         attributes=[
             ("desc",
              "A well-tended kitchen garden sits behind the farmhouse, "
              "bursting with vegetables and herbs. Neat rows of beans, "
              "squash, and root vegetables grow alongside fragrant rosemary, "
-             "thyme, and lavender. A low stone wall and a sturdy wooden "
-             "gate separate the garden from the wheat fields to the south."),
+             "thyme, and lavender. Silvery-green sage bushes grow in a "
+             "sunny patch by the stone wall, their leaves aromatic and "
+             "plentiful. A low stone wall and a sturdy wooden gate "
+             "separate the garden from the wheat fields to the south."),
+            ("resource_id", 18),           # Sage Leaf
+            ("resource_count", 0),         # spawn script sets amount
+            ("abundance_threshold", 3),
+            ("harvest_height", 0),
+            ("harvest_command", "gather"),
+            ("desc_abundant",
+             "Silvery-green sage bushes grow in thick clumps by the "
+             "stone wall. There are plenty of sage leaves to gather."),
+            ("desc_scarce",
+             "The sage bushes have been picked over — only a few small "
+             "leaves remain on the stems."),
+            ("desc_depleted",
+             "The sage bushes have been stripped bare. Give them time "
+             "to grow back."),
         ],
     )
 
