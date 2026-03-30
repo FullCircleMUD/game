@@ -1456,7 +1456,9 @@ def _spawn_colette():
         location=room,
     )
     npc.tradeable_item_types = [
-        "Training Dagger", "Training Shortsword", "Training Longsword",
+        "Bandana", "Veil", "Scarf", "Sash", "Kippah",
+        "Warrior's Wraps", "Brown Corduroy Pants",
+        "Coarse Robe", "Cloak", "Gambeson",
     ]
     npc.shop_name = "The Silken Thread"
     npc.db.desc = (
