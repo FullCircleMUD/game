@@ -1,12 +1,13 @@
 """
 Thief Initiation — guild quest for joining the Thieves Guild.
 
-The guildmaster sends the aspirant to prove themselves by reaching
-the deepest room of the Cave of Trials dungeon (the "BINGO!" room).
+The guildmaster (Gareth Stonefield) sends the aspirant to complete
+the Thieves' Gauntlet — a static 3-room challenge off the Training
+Alcove in the Thieves' Lair. The aspirant must navigate traps, find
+hidden levers and keys, and retrieve a shadow guild token from a
+locked chest at the end.
 
-This is a single-step VisitQuest: when the character enters a room
-tagged with quest_tags=["thief_initiation"], the quest completes.
-The boss room in cave_dungeon.py carries that tag.
+Return the token to Gareth to complete the quest and join the guild.
 
 Quest acceptance is gated on:
   - levels_to_spend > 0
@@ -16,32 +17,40 @@ Quest acceptance is gated on:
 """
 
 from world.quests import register_quest
-from world.quests.templates.visit_quest import VisitQuest
+from world.quests.base_quest import FCMQuest
 
 
 @register_quest
-class ThiefInitiation(VisitQuest):
+class ThiefInitiation(FCMQuest):
     key = "thief_initiation"
     name = "The Shadow Trial"
     desc = (
-        "The guildmaster leans close, voice barely a whisper. \"You want in? "
-        "Then prove you can survive. Enter the Cave of Trials beneath us and "
-        "reach the deepest chamber. If you make it back alive, you're one of "
-        "us. If not... well, we'll barely notice you were gone.\""
+        "Gareth Stonefield leans close, his voice barely a whisper. "
+        "\"You want in? Then prove you can think like one of us. The "
+        "gauntlet is right here in the lair — find the hidden entrance "
+        "in the Training Alcove. Don't go wandering off into the sewers "
+        "looking for it, it's under your nose. Navigate what's inside, "
+        "retrieve the guild token from the vault, and bring it back to "
+        "me. If you make it back with the token, you're one of us.\""
     )
     quest_type = "guild"
-    start_step = "visit"
+    start_step = "retrieve"
     reward_xp = 100
 
-    help_visit = (
-        "Reach the deepest chamber of the Cave of Trials. Enter the "
-        "dungeon below the Thieves Guild and navigate to the final room."
+    help_retrieve = (
+        "Find the hidden entrance in the Training Alcove (it's right "
+        "here in the Thieves' Lair — search carefully). Navigate the "
+        "gauntlet, retrieve the shadow guild token from the vault chest, "
+        "and return it to Gareth Stonefield."
     )
     help_completed = "You have proven yourself and joined the Thieves Guild."
     help_failed = (
         "You have no levels available to spend. Gain more experience "
         "and return to the Guildmaster."
     )
+
+    # ── Token identification ──
+    TOKEN_KEY = "a shadow guild token"
 
     # ── Acceptance checks ──
 
@@ -79,16 +88,83 @@ class ThiefInitiation(VisitQuest):
 
         return (True, "")
 
-    # ── Override visit step to grant thief class ──
+    # ── Progress check — do they have the token? ──
 
-    def step_visit(self, *args, **kwargs):
-        """Triggered by QuestTagMixin.fire_quest_event on boss room entry."""
-        event_type = kwargs.get("event_type")
-        if event_type == "enter_room":
-            self.quester.msg(
-                "|yYou have reached the deepest chamber of the Cave of Trials!|n"
-            )
-            self.complete()
+    def step_retrieve(self, *args, **kwargs):
+        """Check if character has the guild token in inventory."""
+        for obj in self.quester.contents:
+            if obj.key == self.TOKEN_KEY:
+                # Return the token to the vault chest
+                self._return_token(obj)
+                self.complete()
+                return
+
+    def _return_token(self, token):
+        """Put token back and reset the gauntlet for the next aspirant."""
+        from evennia import ObjectDB
+
+        # Find the vault room in the sewers
+        vault = None
+        vaults = ObjectDB.objects.filter(db_key="The Vault")
+        for v in vaults:
+            if v.tags.get("millholm_sewers", category="district"):
+                vault = v
+                break
+
+        if vault:
+            # Return token to chest
+            for obj in vault.contents:
+                if obj.key == "a heavy iron chest":
+                    token.move_to(obj, quiet=True)
+                    # Re-lock the chest
+                    if hasattr(obj, "is_locked"):
+                        obj.is_locked = True
+                        obj.is_open = False
+                    break
+            else:
+                token.delete()
+        else:
+            token.delete()
+
+        # Reset all gauntlet rooms — re-arm traps, re-hide fixtures,
+        # close doors, re-hide the hidden lever and key
+        gauntlet_keys = [
+            "Narrow Corridor", "Damp Chamber", "The Vault",
+        ]
+        for room_key in gauntlet_keys:
+            rooms = ObjectDB.objects.filter(db_key=room_key)
+            for room in rooms:
+                if not room.tags.get("millholm_sewers", category="district"):
+                    continue
+                for obj in room.contents:
+                    # Re-arm traps
+                    if hasattr(obj, "trap_armed") and hasattr(obj, "is_trapped"):
+                        if obj.is_trapped:
+                            obj.trap_armed = True
+                            obj.trap_detected = False
+                    # Re-hide hidden objects (lever, key)
+                    if hasattr(obj, "is_hidden") and hasattr(obj, "find_dc"):
+                        if obj.find_dc > 0:
+                            obj.is_hidden = True
+                            if hasattr(obj, "discovered_by"):
+                                obj.discovered_by = set()
+                    # Close and re-lock doors
+                    if hasattr(obj, "is_open") and hasattr(obj, "set_direction"):
+                        obj.is_open = False
+                        if hasattr(obj, "is_locked"):
+                            obj.is_locked = False  # doors aren't locked, just closed
+
+        # Also reset the hidden entrance panel in Training Alcove
+        alcoves = ObjectDB.objects.filter(db_key="Training Alcove")
+        for alcove in alcoves:
+            if not alcove.tags.get("millholm_sewers", category="district"):
+                continue
+            for obj in alcove.contents:
+                if hasattr(obj, "is_hidden") and hasattr(obj, "find_dc"):
+                    if obj.find_dc > 0:
+                        obj.is_hidden = True
+                        if hasattr(obj, "discovered_by"):
+                            obj.discovered_by = set()
 
     # ── Completion ──
 
@@ -99,9 +175,9 @@ class ThiefInitiation(VisitQuest):
         if character.levels_to_spend <= 0:
             self.status = "failed"
             character.msg(
-                "|rThe Guildmaster shakes her head. \"You proved yourself, "
-                "but you have no levels to spend on your training. Return "
-                "when you have gained more experience.\"|n"
+                "|rGareth shakes his head. \"You proved yourself, "
+                "but you have no levels to spend on your training. "
+                "Return when you have gained more experience.\"|n"
             )
             return
 
@@ -112,9 +188,10 @@ class ThiefInitiation(VisitQuest):
         char_class.at_char_first_gaining_class(character)
 
         character.msg(
-            f"\n|g*** The Guildmaster nods approvingly. \"You survived. That "
-            f"makes you one of us, {character.key}. Welcome to the shadows.\" "
-            f"***|n\n"
+            f"\n|g*** Gareth Stonefield nods approvingly. \"You found the "
+            f"door. You survived the traps. You retrieved the token. "
+            f"That makes you one of us, {character.key}. Welcome to the "
+            f"shadows.\" ***|n\n"
             f"You are now a level 1 Thief.\n"
             f"Type |wguild|n to see your progress, or |wadvance|n to "
             f"spend additional levels."
