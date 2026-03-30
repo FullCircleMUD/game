@@ -548,6 +548,36 @@ Permanently destroys items, gold, or resources. For gold and resources, calls `r
 - `move_to(**kwargs)` forwards all kwargs to `at_post_move()` — use this to pass `tx_hash`
 - Creating with `location=` triggers `at_post_move` immediately during `create_object` with no way to pass kwargs. Always create `nohome=True`, set attributes, then `move_to()` when hooks need kwargs or attributes.
 
+## CRITICAL: Room/Object Lookup Convention — Always Filter by District Tag
+
+**Evennia's `db_key` is NOT globally unique.** Multiple rooms/objects across different zones can share the same key (e.g. "The Vault" in the sewers AND in a future mine dungeon). The unique identifier is the `dbref` (auto-incrementing integer, e.g. `#247`).
+
+**When searching for rooms or objects by name in code, ALWAYS filter by district or zone tag:**
+
+```python
+# WRONG — may return objects from multiple zones
+ObjectDB.objects.filter(db_key="The Vault")
+
+# RIGHT — scoped to a specific district
+ObjectDB.objects.filter(
+    db_key="The Vault",
+    db_tags__db_key="millholm_sewers",
+    db_tags__db_category="district",
+)
+
+# ALSO RIGHT — search within a known room's contents
+for obj in room.contents:
+    if obj.key == "a heavy iron chest":
+        ...
+```
+
+**Alternatives for guaranteed unique lookup:**
+- Store the `dbref` (`.id`) at build time and look up by ID later
+- Use a unique tag (e.g. `tags.add("thief_gauntlet_chest", category="quest_fixture")`)
+- Search within a known room's `.contents` (already scoped)
+
+This convention applies to all game code — quests, zone builders, fixtures, NPC spawners, and any system that needs to find a specific room or object.
+
 ## CRITICAL: Never Use Django Queryset Bulk Deletes on Game Objects
 
 **`ObjectDB.objects.filter(...).delete()` must NEVER be used in game code.** Django bulk deletes bypass Evennia's object lifecycle hooks — `at_object_delete()` will not fire, creating orphaned mirror DB records.
