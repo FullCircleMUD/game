@@ -1460,6 +1460,8 @@ def _spawn_colette():
         "Bandana", "Veil", "Scarf", "Sash", "Kippah",
         "Warrior's Wraps", "Brown Corduroy Pants",
         "Coarse Robe", "Cloak",
+        "Leather Cap", "Leather Gloves", "Leather Pants",
+        "Leather Belt", "Leather Boots",
     ]
     npc.shop_name = "The Silken Thread"
     npc.db.desc = (

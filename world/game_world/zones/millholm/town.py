@@ -192,7 +192,7 @@ def build_millholm_town(one_way_limbo=False):
         attributes=[
             ("crafting_type", "leathershop"),
             ("mastery_level", 2),  # MasteryLevel.SKILLED
-            ("craft_cost", 2),
+            ("craft_cost", 4),
             ("desc",
              "The sharp smell of tanning chemicals and cured leather hits you "
              "at the door. Hides in various stages of preparation hang from "
