@@ -1340,7 +1340,7 @@ def build_millholm_town(one_way_limbo=False):
         attributes=[
             ("crafting_type", "jeweller"),
             ("mastery_level", 1),
-            ("craft_cost", 2),
+            ("craft_cost", 5),
             ("desc",
              "A small, immaculate workshop lit by dozens of candles and "
              "a magnifying lens on an articulated brass arm. Velvet-lined "
