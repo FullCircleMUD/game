@@ -191,7 +191,7 @@ def _spawn_mara():
     # Add shop commands
     from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
     npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
-    npc.db.tradeable_resources = [12, 14, 15, 17]  # Moonpetal, Bloodmoss, Windroot, Ogre's Cap
+    npc.db.tradeable_resources = [12, 14, 15, 16, 17, 18, 20]  # Moonpetal, Bloodmoss, Windroot, Arcane Dust, Ogre's Cap, Sage Leaf, Vipervine
     npc.db.shop_name = "The Mortar and Pestle"
     npc.quest_key = "mara_moonpetal"
     npc.llm_prompt_file = "mara.md"
