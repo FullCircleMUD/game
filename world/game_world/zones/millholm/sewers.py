@@ -21,7 +21,7 @@ from evennia import create_object
 
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect, connect_door, connect_trapped_door
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -442,6 +442,115 @@ def build_millholm_sewers():
     )
     _tag_room(rooms["training_alcove"], D)
 
+    # ── Thieves' Gauntlet (3 rooms off Training Alcove) ──────────────
+
+    rooms["gauntlet_corridor"] = create_object(
+        RoomBase,
+        key="Narrow Corridor",
+        attributes=[
+            ("desc",
+             "A cramped stone corridor, barely wide enough for one person. "
+             "The walls are damp and the air smells of old rust. Cobwebs "
+             "hang in thick curtains from the low ceiling, but someone has "
+             "cleared a path through them recently — the broken strands "
+             "are still sticky. Ahead, an iron door is set into the wall. "
+             "Something about the door frame doesn't look right — the "
+             "mortar around the hinges is a slightly different colour "
+             "from the rest, as if it's been modified."),
+            ("details", {
+                "frame": (
+                    "The door frame has been altered. The mortar around "
+                    "the upper hinge is newer than the surrounding stone, "
+                    "and tiny holes are drilled into the lintel. Something "
+                    "is hidden inside the frame."
+                ),
+                "cobwebs": (
+                    "Thick cobwebs, mostly cleared. The path through them "
+                    "is recent — someone comes this way regularly."
+                ),
+            }),
+        ],
+    )
+    _tag_room(rooms["gauntlet_corridor"], D)
+
+    rooms["gauntlet_lever_room"] = create_object(
+        RoomBase,
+        key="Damp Chamber",
+        attributes=[
+            ("desc",
+             "A low-ceilinged chamber where water seeps through the "
+             "stone, leaving the floor slick and treacherous. The air is "
+             "cold and still. The passage continues west through a narrow "
+             "archway. A thin wire glints in the torchlight just above "
+             "ankle height near the archway — carelessly placed, or "
+             "deliberately obvious? The south wall is rougher than the "
+             "others, the stones uneven and poorly mortared. One stone "
+             "in particular juts out slightly further than its neighbours, "
+             "as if it were meant to be pushed."),
+            ("details", {
+                "wire": (
+                    "A thin wire stretched across the passage at ankle "
+                    "height, just before the archway. It's attached to "
+                    "something in the wall on both sides. Stepping on it "
+                    "would be bad."
+                ),
+                "stone": (
+                    "One stone in the south wall protrudes slightly. The "
+                    "edges are worn smooth, as if it has been pushed many "
+                    "times before. It looks like it moves."
+                ),
+                "wall": (
+                    "The south wall is rougher than the others. One stone "
+                    "juts out — worn smooth on the edges. It has been "
+                    "pushed before. Many times."
+                ),
+            }),
+        ],
+    )
+    _tag_room(rooms["gauntlet_lever_room"], D)
+
+    rooms["gauntlet_vault"] = create_object(
+        RoomBase,
+        key="The Vault",
+        attributes=[
+            ("desc",
+             "A small, dry chamber at the end of the gauntlet. A heavy "
+             "iron chest sits against the far wall, secured with a "
+             "padlock. The walls are bare stone — no decoration, no "
+             "furniture, just the chest and the faint sound of dripping "
+             "water from somewhere above. The floor is dusty, but the "
+             "dust around the base of the chest has been disturbed. "
+             "Scratch marks in the dust lead from the chest to the east "
+             "wall and back, as if something has been dragged across "
+             "the floor. The east wall has a loose stone near the base, "
+             "just above floor level — easy to miss if you weren't "
+             "looking for it."),
+            ("details", {
+                "chest": (
+                    "A heavy iron chest with a brass padlock. The chest "
+                    "itself is bolted to the floor. Whatever is inside "
+                    "is meant to be earned, not carried away."
+                ),
+                "scratch marks": (
+                    "Scratches in the dust, leading from the chest to "
+                    "the east wall and back. Something small has been "
+                    "dragged back and forth — or hidden and retrieved."
+                ),
+                "stone": (
+                    "A loose stone near the base of the east wall, just "
+                    "above floor level. The mortar around it has crumbled "
+                    "away. It looks like it could be pulled free."
+                ),
+                "wall": (
+                    "The east wall is plain stone, but near the floor "
+                    "there's a loose stone with crumbled mortar. Something "
+                    "might be hidden behind it."
+                ),
+            }),
+        ],
+    )
+    _tag_room(rooms["gauntlet_vault"], D)
+
     # ====================================================================
     #  EXITS — Sewer Proper
     # ====================================================================
@@ -507,6 +616,166 @@ def build_millholm_sewers():
     connect(rooms["thieves_hall"], rooms["stolen_goods"], "south")
     connect(rooms["stolen_goods"], rooms["shadow_mistress_chamber"], "east")
     connect(rooms["guard_post"], rooms["training_alcove"], "east")
+
+    # ── Thieves' Gauntlet exits + fixtures ───────────────────────────────
+
+    # Hidden entrance from Training Alcove (dc 5)
+    door_gauntlet, _ = connect_door(
+        rooms["training_alcove"], rooms["gauntlet_corridor"], "south",
+        key="a concealed panel",
+        closed_ab=(
+            "The south wall looks like solid stone, but the mortar "
+            "around one section is slightly different."
+        ),
+        open_ab=(
+            "A section of the south wall has swung inward, revealing "
+            "a narrow corridor beyond."
+        ),
+        closed_ba="A stone panel blocks the passage north.",
+        open_ba="The training alcove is visible through the open panel.",
+        door_name="panel",
+    )
+    door_gauntlet.is_hidden = True
+    door_gauntlet.find_dc = 5
+
+    # Trapped door from corridor to lever room (darts, dc 6)
+    connect_trapped_door(
+        rooms["gauntlet_corridor"], rooms["gauntlet_lever_room"], "west",
+        key="an iron door",
+        closed_ab=(
+            "A heavy iron door blocks the passage west. Something "
+            "about the frame doesn't look right."
+        ),
+        open_ab="The iron door stands open. A damp chamber lies beyond.",
+        closed_ba="An iron door leads east back to the corridor.",
+        open_ba="The corridor is visible through the open door.",
+        door_name="iron door",
+        trap_find_dc=6,
+        trap_disarm_dc=6,
+        trap_damage_dice="1d2",
+        trap_damage_type="piercing",
+        trap_description="tiny dart holes drilled into the door frame",
+        trap_one_shot=True,
+        trap_side="ab",
+    )
+
+    # Tripwire from lever room to vault
+    from typeclasses.terrain.exits.exit_tripwire import TripwireExit
+    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+
+    tripwire = create_object(
+        TripwireExit,
+        key="The Vault",
+        location=rooms["gauntlet_lever_room"],
+        destination=rooms["gauntlet_vault"],
+    )
+    tripwire.set_direction("west")
+    tripwire.is_trapped = True
+    tripwire.trap_armed = True
+    tripwire.trap_find_dc = 6
+    tripwire.trap_disarm_dc = 6
+    tripwire.trap_damage_dice = "1d2"
+    tripwire.trap_damage_type = "piercing"
+    tripwire.trap_description = "a thin wire stretched across the archway"
+    tripwire.trap_one_shot = True
+
+    # Return from vault (no trap)
+    vault_back = create_object(
+        ExitVerticalAware,
+        key="Damp Chamber",
+        location=rooms["gauntlet_vault"],
+        destination=rooms["gauntlet_lever_room"],
+    )
+    vault_back.set_direction("east")
+
+    # Hidden lever in lever room — disarms the tripwire
+    from typeclasses.world_objects.switch_fixture import SwitchFixture
+
+    class _GauntletLever(SwitchFixture):
+        """Lever that disarms the tripwire when pulled."""
+        def at_activate(self, caller):
+            # Find the tripwire in the room's west exit
+            for obj in self.location.contents:
+                if hasattr(obj, "trap_armed") and obj.trap_armed:
+                    obj.trap_armed = False
+                    caller.msg(
+                        "|gYou hear a click as a mechanism disengages "
+                        "somewhere ahead.|n"
+                    )
+                    if self.location:
+                        self.location.msg_contents(
+                            "A faint click echoes through the chamber.",
+                            exclude=[caller],
+                            from_obj=caller,
+                        )
+                    return
+            caller.msg("Nothing seems to happen.")
+
+    lever = create_object(
+        _GauntletLever,
+        key="a protruding stone",
+        location=rooms["gauntlet_lever_room"],
+        nohome=True,
+    )
+    lever.switch_verb = "push"
+    lever.switch_name = "stone"
+    lever.activate_msg = "You push the protruding stone. It sinks into the wall with a grinding sound."
+    lever.can_deactivate = False
+    lever.is_hidden = True
+    lever.find_dc = 5
+    lever.db.desc = (
+        "A stone that protrudes slightly from the south wall. The "
+        "edges are worn smooth from repeated use. It looks like it "
+        "can be pushed."
+    )
+
+    # Hidden key in the vault
+    from typeclasses.world_objects.world_item import WorldItem
+
+    vault_key = create_object(
+        WorldItem,
+        key="a tarnished brass key",
+        location=rooms["gauntlet_vault"],
+        nohome=True,
+    )
+    vault_key.db.desc = (
+        "A small brass key, tarnished with age. It was hidden behind "
+        "a loose stone in the wall."
+    )
+    vault_key.is_hidden = True
+    vault_key.find_dc = 6
+
+    # Locked chest with guild token
+    from typeclasses.world_objects.chest import WorldChest
+
+    vault_chest = create_object(
+        WorldChest,
+        key="a heavy iron chest",
+        location=rooms["gauntlet_vault"],
+        nohome=True,
+    )
+    vault_chest.db.desc = (
+        "A heavy iron chest bolted to the floor, secured with a "
+        "brass padlock. Whatever is inside has been placed here "
+        "deliberately — a test, not a treasure."
+    )
+    vault_chest.is_locked = True
+    vault_chest.lock_dc = 20  # too hard to pick without skills — use the key
+    vault_chest.key_tag = "gauntlet_key"
+    vault_key.tags.add("gauntlet_key", category="key_tag")
+
+    # Guild token inside the chest
+    guild_token = create_object(
+        WorldItem,
+        key="a shadow guild token",
+        nohome=True,
+    )
+    guild_token.db.desc = (
+        "A small disc of blackened iron stamped with the Thieves' "
+        "Guild mark — a dagger crossed with a key. This is proof "
+        "of completing the gauntlet. Return it to Gareth Stonefield."
+    )
+    guild_token.move_to(vault_chest, quiet=True)
 
     # ── Combat flags ─────────────────────────────────────────────────────
     # Thieves' Guild rooms — safe zones for guild NPCs and training.
