@@ -1530,7 +1530,7 @@ def _spawn_pim():
         location=room,
     )
     npc.tradeable_item_types = [
-        "Training Dagger", "Training Shortsword", "Training Longsword",
+        "Copper Bangle", "Copper Chain", "Copper Ring", "Copper Studs",
     ]
     npc.shop_name = "The Gilded Window"
     npc.db.desc = (

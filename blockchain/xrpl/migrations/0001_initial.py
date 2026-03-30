@@ -168,13 +168,13 @@ NFT_ITEM_TYPES = [
     {"name": "Potion of the Silver Tongue", "typeclass": _POTION_TC, "prototype_key": "silver_tongue", "description": "An iridescent potion with a sweet, intoxicating aroma.", "tracking_token": "PPotionSilverTongue"},
     # ── Jewellery ──
     {"name": "Pewter Ring", "typeclass": _WEARABLE_TC, "prototype_key": "pewter_ring", "description": "A simple band of pewter, polished to a dull sheen."},
-    {"name": "Copper Ring", "typeclass": _WEARABLE_TC, "prototype_key": "copper_ring", "description": "A warm-toned copper band with a faint green patina."},
+    {"name": "Copper Ring", "typeclass": _WEARABLE_TC, "prototype_key": "copper_ring", "description": "A warm-toned copper band with a faint green patina.", "tracking_token": "PCopperRing"},
     {"name": "Pewter Hoops", "typeclass": _WEARABLE_TC, "prototype_key": "pewter_hoops", "description": "A pair of small pewter hoops, lightly burnished."},
-    {"name": "Copper Studs", "typeclass": _WEARABLE_TC, "prototype_key": "copper_studs", "description": "A pair of small copper studs with a warm, reddish gleam."},
+    {"name": "Copper Studs", "typeclass": _WEARABLE_TC, "prototype_key": "copper_studs", "description": "A pair of small copper studs with a warm, reddish gleam.", "tracking_token": "PCopperStuds"},
     {"name": "Pewter Bracelet", "typeclass": _WEARABLE_TC, "prototype_key": "pewter_bracelet", "description": "A flat pewter bracelet with a hammered finish."},
-    {"name": "Copper Bangle", "typeclass": _WEARABLE_TC, "prototype_key": "copper_bangle", "description": "A round copper bangle, smooth and warm to the touch."},
+    {"name": "Copper Bangle", "typeclass": _WEARABLE_TC, "prototype_key": "copper_bangle", "description": "A round copper bangle, smooth and warm to the touch.", "tracking_token": "PCopperBangle"},
     {"name": "Pewter Chain", "typeclass": _WEARABLE_TC, "prototype_key": "pewter_chain", "description": "A simple chain of interlocking pewter links."},
-    {"name": "Copper Chain", "typeclass": _WEARABLE_TC, "prototype_key": "copper_chain", "description": "A delicate chain of copper links with a warm lustre."},
+    {"name": "Copper Chain", "typeclass": _WEARABLE_TC, "prototype_key": "copper_chain", "description": "A delicate chain of copper links with a warm lustre.", "tracking_token": "PCopperChain"},
     # ── Bronze Armor ──
     {"name": "Bronze Greaves", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_greaves", "description": "Shaped bronze plates that protect the shins and calves."},
     {"name": "Bronze Bracers", "typeclass": _WEARABLE_TC, "prototype_key": "bronze_bracers", "description": "Curved bronze plates that protect the forearms."},
