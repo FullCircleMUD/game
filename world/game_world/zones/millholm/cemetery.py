@@ -610,7 +610,7 @@ def build_millholm_cemetery():
 
     from typeclasses.world_objects.chest import WorldChest
 
-    coffin = create.create_object(
+    coffin = create_object(
         WorldChest,
         key="a stone sarcophagus",
         location=rooms["tomb_stonefield_burial"],
