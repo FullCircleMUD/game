@@ -61,8 +61,8 @@ class TestCellarRatStats(EvenniaCommandTest):
         from typeclasses.actors.mobs.cellar_rat import CellarRat
 
         rat = create_object(CellarRat, key="test rat")
-        self.assertEqual(rat.hp, 4)
-        self.assertEqual(rat.hp_max, 4)
+        self.assertEqual(rat.hp, 2)
+        self.assertEqual(rat.hp_max, 2)
         self.assertEqual(rat.level, 1)
         self.assertEqual(rat.size, "small")
         self.assertEqual(rat.damage_dice, "1d2")
@@ -73,8 +73,8 @@ class TestCellarRatStats(EvenniaCommandTest):
         from typeclasses.actors.mobs.rat_king import RatKing
 
         king = create_object(RatKing, key="test king")
-        self.assertEqual(king.hp, 10)
-        self.assertEqual(king.hp_max, 10)
+        self.assertEqual(king.hp, 5)
+        self.assertEqual(king.hp_max, 5)
         self.assertEqual(king.level, 2)
         self.assertEqual(king.size, "medium")
         self.assertEqual(king.damage_dice, "1d4")

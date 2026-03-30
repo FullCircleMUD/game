@@ -13,7 +13,7 @@ from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.flying_mixin import FlyingMixin
 
 
-class FlyingTestMob(FlyingMixin, AggressiveMob):
+class FlyingMixinTestMob(FlyingMixin, AggressiveMob):
     """Test-only flying mob class."""
     preferred_height = AttributeProperty(1)
 
@@ -29,7 +29,7 @@ class TestFlyingMixin(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.mob = create.create_object(
-            FlyingTestMob,
+            FlyingMixinTestMob,
             key="test crow",
             location=self.room1,
         )

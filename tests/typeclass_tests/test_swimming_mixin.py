@@ -13,7 +13,7 @@ from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.swimming_mixin import SwimmingMixin
 
 
-class SwimmingTestMob(SwimmingMixin, AggressiveMob):
+class SwimmingMixinTestMob(SwimmingMixin, AggressiveMob):
     """Test-only swimming mob class."""
     preferred_depth = AttributeProperty(-1)
 
@@ -31,7 +31,7 @@ class TestSwimmingMixin(EvenniaTest):
         # Set room to allow depth
         self.room1.max_depth = -3
         self.mob = create.create_object(
-            SwimmingTestMob,
+            SwimmingMixinTestMob,
             key="test shark",
             location=self.room1,
         )
