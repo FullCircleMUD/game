@@ -222,19 +222,38 @@ def build_millholm_sewers():
     )
     _tag_room(rooms["waterlogged_passage"], T)
 
+    from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
+
     rooms["fungal_grotto"] = create_object(
-        RoomBase,
+        RoomHarvesting,
         key="Fungal Grotto",
-        attributes=[(
-            "desc",
-            "The tunnel opens into a natural cavern where the brickwork has "
-            "given way entirely to raw stone. Enormous fungi — some taller "
-            "than a person — grow in clusters from the damp floor and walls, "
-            "their caps glowing with a faint blue-green bioluminescence. "
-            "Spores drift lazily through the air like underwater snow. A "
-            "narrow gap leads east, partially submerged, while the main "
-            "passage continues south.",
-        )],
+        attributes=[
+            ("desc",
+             "The tunnel opens into a natural cavern where the brickwork has "
+             "given way entirely to raw stone. Enormous fungi — some taller "
+             "than a person — grow in clusters from the damp floor and walls, "
+             "their caps glowing with a faint blue-green bioluminescence. "
+             "Spores drift lazily through the air like underwater snow. Among "
+             "the larger specimens, fat bulbous mushrooms with mottled grey "
+             "caps cluster in the damp crevices. A narrow gap leads east, "
+             "partially submerged, while the main passage continues south."),
+            ("resource_id", 17),           # Ogre's Cap
+            ("resource_count", 0),         # spawn script sets amount
+            ("abundance_threshold", 3),
+            ("harvest_height", 0),
+            ("harvest_command", "gather"),
+            ("desc_abundant",
+             "Fat, bulbous mushrooms with mottled grey caps crowd the damp "
+             "grotto floor. There are plenty of ogre's caps to gather."),
+            ("desc_scarce",
+             "A few pale ogre's caps cling to the crevices, their caps thin "
+             "and small. The supply is running low."),
+            ("desc_depleted",
+             "The crevices are bare — the ogre's caps have all been picked. "
+             "Only the enormous bioluminescent fungi remain, useless for "
+             "alchemy."),
+            ("always_lit", True),  # bioluminescence
+        ],
     )
     _tag_room(rooms["fungal_grotto"], T)
 
