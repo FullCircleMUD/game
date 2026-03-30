@@ -565,14 +565,81 @@ def execute_attack(attacker, target, _is_riposte=False,
 
 
 # ================================================================== #
+#  Initiative
+# ================================================================== #
+
+
+def roll_initiative(combatant):
+    """Roll initiative for combat ordering.
+
+    Returns d20 + effective_initiative + speed modifier.
+    Speed comes from weapon (players) or initiative_speed (mobs).
+    Higher = acts sooner.
+    """
+    weapon = get_weapon(combatant)
+    if weapon:
+        speed_mod = int(getattr(weapon, "speed", 0))
+    else:
+        # Animal mobs / unarmed NPCs — use mob's initiative_speed attribute
+        speed_mod = int(getattr(combatant, "initiative_speed", 0))
+    return dice.roll("1d20") + combatant.effective_initiative + speed_mod
+
+
+def calculate_initiative_delays(initiative_rolls, tick_interval):
+    """Convert initiative rolls to staggered ticker delays.
+
+    Args:
+        initiative_rolls: {combatant: roll_total} dict
+        tick_interval: COMBAT_TICK_INTERVAL in seconds
+
+    Returns:
+        {combatant: delay_seconds} dict.  Highest roll gets delay 0,
+        others are spread across the first 75% of the tick window.
+    """
+    if not initiative_rolls:
+        return {}
+
+    # Sort by roll descending — highest initiative acts first.
+    # Use id() as tiebreaker to avoid comparing incomparable objects.
+    sorted_combatants = sorted(
+        initiative_rolls.keys(),
+        key=lambda c: (initiative_rolls[c], id(c)),
+        reverse=True,
+    )
+
+    total = len(sorted_combatants)
+    max_delay = tick_interval * 0.75
+
+    delays = {}
+    for rank, combatant in enumerate(sorted_combatants):
+        if total <= 1:
+            delays[combatant] = 0
+        else:
+            delays[combatant] = rank * max_delay / (total - 1)
+    return delays
+
+
+# ================================================================== #
 #  Combat Entry
 # ================================================================== #
 
-def enter_combat(combatant, target):
+def enter_combat(combatant, target, instigator=None, instigator_advantage=False):
     """
     Shared entry point for all combat-initiating actions.
 
     Creates combat handlers on combatant, target, and their group members.
+    Optionally fires a free instigator attack and rolls initiative for all
+    new combatants to stagger ticker starts.
+
+    Args:
+        combatant: the character initiating the action
+        target: the target of the action
+        instigator: if set, this character gets one free attack before
+            tickers start.  Pass None for commands that already perform
+            their own opening action (stab, bash, pummel).
+        instigator_advantage: if True, instigator gets 1 round of
+            advantage against target on the free attack (e.g. from stealth).
+
     Returns True if combat was successfully initiated, False otherwise.
     """
     room = combatant.location
@@ -584,9 +651,14 @@ def enter_combat(combatant, target):
         combatant.msg("Combat is not allowed here.")
         return False
 
+    # Track which combatants are new to this fight
+    new_combatants = []
+
     # Create handler on combatant and target
-    _get_or_create_handler(combatant)
-    _get_or_create_handler(target)
+    for actor in (combatant, target):
+        _, is_new = _get_or_create_handler(actor)
+        if is_new:
+            new_combatants.append(actor)
 
     # If target has combat capability (CombatMixin), trigger counter-attack.
     # initiate_attack() → execute_cmd("attack ...") → queues repeating attack
@@ -601,7 +673,9 @@ def enter_combat(combatant, target):
             members = [leader] + leader.get_followers(same_room=True)
             for member in members:
                 if member.location == room and getattr(member, "hp", 0) > 0:
-                    _get_or_create_handler(member)
+                    _, is_new = _get_or_create_handler(member)
+                    if is_new:
+                        new_combatants.append(member)
 
     # Pull in target's group
     if hasattr(target, "get_group_leader"):
@@ -610,33 +684,86 @@ def enter_combat(combatant, target):
             members = [t_leader] + t_leader.get_followers(same_room=True)
             for member in members:
                 if member.location == room and getattr(member, "hp", 0) > 0:
-                    _get_or_create_handler(member)
+                    _, is_new = _get_or_create_handler(member)
+                    if is_new:
+                        new_combatants.append(member)
 
-    # Auto-queue attack on first enemy for all combatants who don't
-    # already have an action. Must happen after all handlers exist so
-    # get_sides() can see everyone.
+    # --- Free instigator attack ---
+    if instigator and getattr(target, "hp", 0) > 0:
+        handler = instigator.scripts.get("combat_handler")
+        if handler:
+            if instigator_advantage:
+                handler[0].set_advantage(target, rounds=1)
+            execute_attack(instigator, target)
+
+    # --- Roll initiative for all new combatants ---
+    from django.conf import settings as django_settings
+    tick_interval = getattr(django_settings, "COMBAT_TICK_INTERVAL", 4.0)
+
+    initiative_rolls = {}
+    for obj in new_combatants:
+        handlers = obj.scripts.get("combat_handler")
+        if handlers:
+            init_roll = roll_initiative(obj)
+            handlers[0].ndb.initiative_roll = init_roll
+            initiative_rolls[obj] = init_roll
+
+    delays = calculate_initiative_delays(initiative_rolls, tick_interval)
+
+    # Store delays on handlers so commands that override queue_action
+    # (stab, bash, pummel) can read their initiative delay.
+    for obj, delay in delays.items():
+        handlers = obj.scripts.get("combat_handler")
+        if handlers:
+            handlers[0].ndb.initiative_delay = delay
+
+    # --- Start tickers with initiative delays ---
+    # Must happen after all handlers exist so get_sides() can see everyone.
     all_in_combat = [
         obj for obj in room.contents
         if getattr(obj, "hp", None) is not None
         and obj.hp > 0
         and obj.scripts.get("combat_handler")
     ]
+
+    tick_dt = tick_interval  # reuse from above
+
     for obj in all_in_combat:
         handlers = obj.scripts.get("combat_handler")
-        if handlers:
-            handlers[0].auto_attack_first_enemy()
+        if not handlers:
+            continue
+        handler = handlers[0]
+        delay = delays.get(obj, 0)
+
+        if obj == combatant and target:
+            # Combatant explicitly targets the specified target rather than
+            # relying on get_sides() (which may not work in PvP or PC-vs-PC).
+            if not (handler.action_dict and handler.action_dict.get("key") == "attack"):
+                handler.queue_action({
+                    "key": "attack",
+                    "target": target,
+                    "dt": tick_dt,
+                    "repeat": True,
+                    "initial_delay": delay,
+                })
+        else:
+            handler.auto_attack_first_enemy(initiative_delay=delay)
 
     return True
 
 
 def _get_or_create_handler(combatant):
-    """Create combat handler on combatant if they don't have one."""
+    """Create combat handler on combatant if they don't have one.
+
+    Returns:
+        (handler, is_new) tuple.  is_new=True if a handler was just created.
+    """
     from evennia.utils.create import create_script
     from combat.combat_handler import CombatHandler
 
     existing = combatant.scripts.get("combat_handler")
     if existing:
-        return existing[0]
+        return existing[0], False
 
     handler = create_script(
         CombatHandler,
@@ -646,7 +773,7 @@ def _get_or_create_handler(combatant):
     )
     handler.start()
     handler.start_combat()
-    return handler
+    return handler, True
 
 
 # ================================================================== #

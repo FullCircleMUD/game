@@ -7,7 +7,7 @@ from world.prototypes.weapons.iron_dagger import *         # noqa: F401,F403
 from world.prototypes.weapons.iron_shortsword import *     # noqa: F401,F403
 from world.prototypes.weapons.iron_longsword import *      # noqa: F401,F403
 from world.prototypes.weapons.iron_hand_axe import *       # noqa: F401,F403
-from world.prototypes.weapons.spear import *               # noqa: F401,F403
+from world.prototypes.weapons.iron_spear import *      # noqa: F401,F403
 from world.prototypes.weapons.iron_mace import *           # noqa: F401,F403
 from world.prototypes.weapons.iron_hammer import *         # noqa: F401,F403
 from world.prototypes.weapons.training_greatsword import * # noqa: F401,F403

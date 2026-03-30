@@ -32,6 +32,9 @@ class Rabbit(CombatMob):
     # ── Gold loot ──
     loot_gold_max = AttributeProperty(1)
 
+    # ── Combat ──
+    initiative_speed = AttributeProperty(4)
+
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(30)

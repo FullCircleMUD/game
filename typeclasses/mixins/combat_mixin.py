@@ -49,10 +49,13 @@ class CombatMixin:
 
     # ── Combat entry/exit ──
 
-    def enter_combat(self, target):
-        """Enter combat with target. Creates combat handlers on both sides."""
+    def enter_combat(self, target, **kwargs):
+        """Enter combat with target. Creates combat handlers on both sides.
+
+        Accepts optional kwargs: instigator, instigator_advantage.
+        """
         from combat.combat_utils import enter_combat
-        return enter_combat(self, target)
+        return enter_combat(self, target, **kwargs)
 
     def exit_combat(self):
         """Stop combat handler cleanly if present."""

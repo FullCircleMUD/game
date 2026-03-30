@@ -156,6 +156,11 @@ class TestAssistCombat(_AssistTestBase):
                         h.stop()
                         h.delete()
 
+            # Reset HP so nobody dies from combat during enter_combat
+            self.char1.hp = self.char1.hp_max
+            self.char2.hp = self.char2.hp_max
+            self.mob.hp = self.mob.hp_max
+
             self._set_battleskills_mastery(self.char1, mastery)
             enter_combat(self.char1, self.mob)
             enter_combat(self.char2, self.mob)

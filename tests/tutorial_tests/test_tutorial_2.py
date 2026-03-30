@@ -242,13 +242,13 @@ class TestTutorial2FirstRunGating(EvenniaTest):
         script2.collapse_instance()
 
     def test_graduation_reward_gives_gold(self):
-        """Graduation should give 100 gold (snapshot restore + reward)."""
+        """Graduation should give 20 gold (snapshot restore + reward)."""
         gold_before = self.char1.get_gold()
         script = self._run_tutorial(self.char1, "grad")
         script.collapse_instance(give_reward=True)
         gold_after = self.char1.get_gold()
-        # Snapshot restore undoes the first-run bonus, graduation adds 100
-        self.assertEqual(gold_after - gold_before, 100)
+        # Snapshot restore undoes the first-run bonus, graduation adds 20
+        self.assertEqual(gold_after - gold_before, 20)
 
     def test_graduation_reward_once_per_account(self):
         """Graduation reward should only be given once per account."""

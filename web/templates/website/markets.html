@@ -10,7 +10,14 @@
     <h1 class="card-title mb-3">Markets</h1>
     <p class="lead mb-1">Live AMM prices for every tradeable resource and item in the game.</p>
     {% if snapshot_time %}
-    <p class="text-muted">Last updated: {{ snapshot_time|date:"M d, Y \a\t H:i" }} UTC</p>
+    <p class="text-muted mb-2">Last updated: {{ snapshot_time|date:"M d, Y \a\t H:i" }} UTC</p>
+    {% if gold_circulation != None %}
+    <p class="mb-0">
+      <span style="color: var(--fcm-gold);">Gold in Circulation: {{ gold_circulation|floatformat:0 }}g</span>
+      &nbsp;&bull;&nbsp;
+      <span class="text-muted">Sinks (1h): {{ gold_sinks_1h|floatformat:0 }}g</span>
+    </p>
+    {% endif %}
     {% else %}
     <p class="text-muted">No market data yet &mdash; snapshots are generated hourly once the economy is live.</p>
     {% endif %}

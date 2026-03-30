@@ -28,6 +28,7 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
     level = AttributeProperty(3)
 
     # ── Combat ──
+    initiative_speed = AttributeProperty(2)
     damage_dice = AttributeProperty("2d6")
     attack_message = AttributeProperty("savagely bites")
     attack_delay_min = AttributeProperty(3)

@@ -11,6 +11,7 @@ from django.views.generic import TemplateView
 
 from blockchain.xrpl.models import (
     CurrencyType,
+    EconomySnapshot,
     NFTGameState,
     NFTItemType,
     ResourceSnapshot,
@@ -138,5 +139,15 @@ class MarketsView(TemplateView):
                     }
                 )
         ctx["tradeables"] = tradeables
+
+        # Gold headline from EconomySnapshot
+        eco = (
+            EconomySnapshot.objects.order_by("-hour")
+            .values("gold_circulation", "gold_sinks_1h")
+            .first()
+        )
+        if eco:
+            ctx["gold_circulation"] = eco["gold_circulation"]
+            ctx["gold_sinks_1h"] = eco["gold_sinks_1h"]
 
         return ctx

@@ -107,6 +107,8 @@ class TestMageArmor(EvenniaTest):
         super().setUp()
         self.spell = get_spell("mage_armor")
         self.char1.db.class_skill_mastery_levels = {"abjuration": 1}
+        self.char1.base_mana_max = 200
+        self.char1.mana_max = 200
         self.char1.mana = 100
 
     def test_mage_armor_applies_named_effect(self):
@@ -485,6 +487,8 @@ class TestResist(EvenniaTest):
         super().setUp()
         self.spell = get_spell("resist")
         self.char1.db.class_skill_mastery_levels = {"abjuration": 2}
+        self.char1.base_mana_max = 500
+        self.char1.mana_max = 500
         self.char1.mana = 100
         self.char1.db.spell_cooldowns = {}
         self.char2.hp = 200

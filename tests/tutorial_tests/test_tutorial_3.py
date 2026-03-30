@@ -254,12 +254,13 @@ class TestTutorial3NPCs(EvenniaTest):
         self.assertEqual(len(companions), 1)
 
     def test_guide_spawned(self):
-        """A tutorial guide (Pip) should be spawned."""
+        """Tutorial guides (Pip) should be spawned — one per room."""
         mobs = list(
             search_tag(self.script.instance_key, category="tutorial_mob")
         )
-        guide = [m for m in mobs if m.key == "Pip"]
-        self.assertEqual(len(guide), 1)
+        guides = [m for m in mobs if m.key == "Pip"]
+        # Each tutorial room gets its own Pip
+        self.assertGreater(len(guides), 0)
 
 
 class TestTutorial3FirstRunGating(EvenniaTest):
@@ -293,59 +294,22 @@ class TestTutorial3FirstRunGating(EvenniaTest):
         script.start_tutorial(char, chunk_num=3)
         return script
 
-    def test_first_run_gives_skill_point(self):
-        """First run should give 1 general skill point."""
-        sp_before = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
-        script = self._run_tutorial(self.char1, "first")
-        sp_after = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
-        self.assertEqual(sp_after - sp_before, 1)
-        script.collapse_instance()
-
-    def test_first_run_gives_gold(self):
-        """First run should give 50 gold."""
+    def test_first_run_no_gold(self):
+        """First run should not give gold (no first-run bonus in tutorial 3)."""
         gold_before = self.char1.get_gold()
-        script = self._run_tutorial(self.char1, "first_gold")
+        script = self._run_tutorial(self.char1, "first")
         gold_after = self.char1.get_gold()
-        self.assertEqual(gold_after - gold_before, 50)
+        self.assertEqual(gold_after, gold_before)
         script.collapse_instance()
 
-    def test_second_run_no_skill_point(self):
-        """Second run should not give additional skill points."""
-        script1 = self._run_tutorial(self.char1, "first2")
-        script1.collapse_instance()
-
-        sp_before = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
-        script2 = self._run_tutorial(self.char1, "second")
-        sp_after = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
-        self.assertEqual(sp_after, sp_before)
-        script2.collapse_instance()
-
-    def test_graduation_reward_gives_gold_and_skill_point(self):
-        """Graduation should give 100 gold and 1 skill point."""
+    def test_graduation_reward_gives_gold(self):
+        """Graduation should give 20 gold."""
         gold_before = self.char1.get_gold()
         script = self._run_tutorial(self.char1, "grad")
-        # Measure skill points after start (first-run bonus already given,
-        # and skill points aren't fungibles so not snapshot-restored)
-        sp_before = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
         script.collapse_instance(give_reward=True)
         gold_after = self.char1.get_gold()
-        sp_after = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
-        # Snapshot restore undoes first-run gold bonus, graduation adds 100
-        self.assertEqual(gold_after - gold_before, 100)
-        # Skill point graduation reward
-        self.assertEqual(sp_after - sp_before, 1)
+        # Snapshot restore is a no-op (no first-run bonus), graduation adds 20
+        self.assertEqual(gold_after - gold_before, 20)
 
     def test_graduation_reward_once_per_account(self):
         """Graduation reward should only be given once per account."""
@@ -354,13 +318,6 @@ class TestTutorial3FirstRunGating(EvenniaTest):
 
         script2 = self._run_tutorial(self.char1, "grad2")
         gold_before = self.char1.get_gold()
-        sp_before = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
         script2.collapse_instance(give_reward=True)
         gold_after = self.char1.get_gold()
-        sp_after = getattr(
-            self.char1.db, "general_skill_points_available", 0
-        ) or 0
         self.assertEqual(gold_after, gold_before)
-        self.assertEqual(sp_after, sp_before)

@@ -254,9 +254,9 @@ class TestGraduationReward(EvenniaTest):
         # Collapse WITH reward
         script.collapse_instance(give_reward=True)
 
-        # Should have 2 bread and 50 gold
+        # Should have 2 bread and 10 gold
         self.assertEqual(self.char1.get_resource(3), 2)
-        self.assertEqual(self.char1.get_gold(), 50)
+        self.assertEqual(self.char1.get_gold(), 10)
 
     @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
     @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")

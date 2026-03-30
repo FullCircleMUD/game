@@ -75,6 +75,12 @@ class CombatMob(CombatMixin, StateMachineAIMixin, BaseNPC):
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)
 
+    # Initiative speed for mobs — mirrors weapon speed for players.
+    # Higher = faster / more agile. Used by roll_initiative() when the
+    # combatant has no weapon (animal mobs, unarmed NPCs).
+    # Scale: 0 (sluggish) to 4 (lightning fast).
+    initiative_speed = AttributeProperty(0)
+
     # ── Aggro ──
     is_aggressive_to_players = AttributeProperty(False)
     aggro_hp_threshold = AttributeProperty(0.5)

@@ -66,7 +66,9 @@ class TestExitAllowed(TestExitVerticalAwareBase):
 
     def test_flying_within_limit(self):
         """Flying char (height=1) to room with max_height=2 → allowed."""
+        from enums.condition import Condition
         self.char1.room_vertical_position = 1
+        self.char1.add_condition(Condition.FLY)
         self.room2.max_height = 2
         self.room2.max_depth = 0
         self.exit.at_traverse(self.char1, self.room2)
@@ -74,7 +76,9 @@ class TestExitAllowed(TestExitVerticalAwareBase):
 
     def test_flying_at_exact_limit(self):
         """Flying char at exactly destination max_height → allowed."""
+        from enums.condition import Condition
         self.char1.room_vertical_position = 1
+        self.char1.add_condition(Condition.FLY)
         self.room2.max_height = 1
         self.room2.max_depth = 0
         self.exit.at_traverse(self.char1, self.room2)
@@ -201,6 +205,7 @@ class TestExitEncumbered(TestExitVerticalAwareBase):
     def test_encumbered_fall_while_flying(self):
         """Over-encumbered while flying → fall to ground + take damage."""
         self._make_encumbered()
+        self.room1.max_depth = 0
         self.char1.room_vertical_position = 2
         self.char1.hp = 100
         self.room2.max_height = 2

@@ -172,7 +172,7 @@ TOS_VERSION = "draft-1"
 
 # Bot / Virtual Client login
 BOT_LOGIN_ENABLED = True  # master switch — set True to allow bot accounts to connect
-BOT_ACCOUNT_USERNAMES = ["llm_bot"]  # accounts that bypass wallet challenge when enabled
+BOT_ACCOUNT_USERNAMES = ["llm_bot_1", "llm_bot_2", "llm_bot_3", "llm_bot_4"]  # accounts that bypass wallet challenge when enabled
 
 
 # LLM NPC Configuration

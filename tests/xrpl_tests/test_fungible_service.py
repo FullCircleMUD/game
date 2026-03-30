@@ -421,6 +421,7 @@ CURRENCY_HEX = "46434D476F6C64000000000000000000000000000000000000000000"  # FCM
 
 # A valid on-chain Payment result
 VALID_TX_RESULT = {
+    "validated": True,
     "TransactionType": "Payment",
     "Destination": VAULT_ADDR,
     "Amount": {

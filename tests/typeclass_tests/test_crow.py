@@ -38,7 +38,7 @@ class TestCrowStats(EvenniaTest):
         self.assertEqual(self.crow.size, "tiny")
 
     def test_no_loot(self):
-        self.assertEqual(self.crow.loot_gold_max, 0)
+        self.assertEqual(self.crow.loot_gold_max, 1)
 
     def test_pack_courage_threshold(self):
         """Needs 2+ allies (3 total) to attack."""

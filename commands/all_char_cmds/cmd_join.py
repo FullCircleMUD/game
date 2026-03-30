@@ -74,28 +74,11 @@ class CmdJoin(Command):
             if caller.has_condition(Condition.INVISIBLE):
                 caller.break_invisibility()
 
-        # Enter combat
-        if not enter_combat(caller, target):
-            return
-
-        # Queue repeating attack
-        weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
-        speed = getattr(weapon, "speed", 1.0) if weapon else 1.0
-        dt = max(2, int(4 / speed))
-
-        handler = caller.scripts.get("combat_handler")
-        if not handler:
-            caller.msg("Something went wrong entering combat.")
-            return
-
-        handler[0].queue_action({
-            "key": "attack",
-            "target": target,
-            "dt": dt,
-            "repeat": True,
-        })
-
         caller.msg(f"|rYou join {ally.key}'s fight against {target.key}!|n")
+
+        # Enter combat — free instigator attack + initiative staggering
+        if not enter_combat(caller, target, instigator=caller):
+            return
         if caller.location:
             caller.location.msg_contents(
                 f"|r{caller.key} joins the fight against {target.key}!|n",

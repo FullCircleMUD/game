@@ -311,6 +311,7 @@ class TestEffectiveHPMax(EffectTestBase):
     def test_includes_equipment_and_con(self):
         self.char1.base_constitution = 14  # +2 modifier (base so recalculate preserves it)
         self.char1.constitution = 14
+        self.char1.base_hp_max = 20
         self.char1.hp_max = 20
         self.char1.total_level = 1
         effects = [{"type": "stat_bonus", "stat": "hp_max", "value": 5}]

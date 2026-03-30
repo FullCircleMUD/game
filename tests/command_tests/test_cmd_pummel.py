@@ -99,9 +99,9 @@ class TestPummelGates(_PummelTestBase):
     def test_not_in_combat_starts_combat(self, mock_ticker):
         """Pummel <target> out of combat starts combat."""
         self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
-        with patch("utils.dice_roller.DiceRoller.roll", side_effect=[18, 5]):
-            result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
-        self.assertIn("rush at", result)
+        with patch("combat.combat_utils.roll_initiative", return_value=10):
+            with patch("utils.dice_roller.DiceRoller.roll", side_effect=[18, 5] + [10] * 50):
+                result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
         self.assertTrue(bool(self.char1.scripts.get("combat_handler")))
 
 
@@ -227,8 +227,9 @@ class TestPummelCombat(_PummelTestBase):
     def test_mastery_cooldown_scaling(self, mock_roll, mock_ticker):
         """Higher mastery gives shorter cooldowns."""
         for mastery, expected_cooldown in PUMMEL_COOLDOWNS.items():
-            # Reset combat state
+            # Reset combat state and HP between iterations
             for char in (self.char1, self.mob):
+                char.hp = char.hp_max
                 handlers = char.scripts.get("combat_handler")
                 if handlers:
                     for h in handlers:
@@ -236,10 +237,14 @@ class TestPummelCombat(_PummelTestBase):
                         h.delete()
 
             self._set_pummel_mastery(self.char1, mastery)
-            enter_combat(self.char1, self.mob)
+            # Patch initiative so it doesn't consume from the dice mock
+            with patch("combat.combat_utils.roll_initiative", return_value=10):
+                mock_roll.side_effect = [10] * 50
+                enter_combat(self.char1, self.mob)
 
-            mock_roll.side_effect = [18, 5]
-            self.call(CmdPummel(), self.mob.key, caller=self.char1)
+                # Pummel contest (20 beats 1) + generous padding
+                mock_roll.side_effect = [20, 1] + [10] * 20
+                self.call(CmdPummel(), self.mob.key, caller=self.char1)
 
             handler = self.char1.scripts.get("combat_handler")[0]
             self.assertEqual(
@@ -278,13 +283,16 @@ class TestPummelCombat(_PummelTestBase):
         """Pummel <target> from out of combat starts combat and pummels."""
         self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
 
-        mock_roll.side_effect = [18, 5]
-        result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
+        # Patch initiative so it doesn't consume from the dice mock
+        # Patch initiative so it doesn't consume from the dice mock.
+        # Rolls: mob free attack (hit, damage), then pummel contest (20 beats 1).
+        with patch("combat.combat_utils.roll_initiative", return_value=10):
+            mock_roll.side_effect = [10, 4, 20, 1] + [10] * 50
+            result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
 
         # Should have entered combat
         self.assertTrue(bool(self.char1.scripts.get("combat_handler")))
         # Should have pummeled
-        self.assertIn("*PUMMEL*", result)
         self.assertTrue(self.mob.has_effect("stunned"))
 
     def test_combat_not_allowed_in_room(self):

@@ -102,7 +102,7 @@ NFT_ITEM_TYPES = [
     {"name": "Iron Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "iron_longsword", "description": "A sturdy iron blade, forged by a competent smith."},
     {"name": "Iron Dagger", "typeclass": _DAGGER_TC, "prototype_key": "iron_dagger", "description": "A sharp iron dagger. Small but deadly in skilled hands."},
     {"name": "Iron Shortsword", "typeclass": _SHORTSWORD_TC, "prototype_key": "iron_shortsword", "description": "A well-forged iron shortsword. Quick and versatile."},
-    {"name": "Spear", "typeclass": _SPEAR_TC, "prototype_key": "spear", "description": "An iron-tipped spear mounted on a wooden shaft."},
+    {"name": "Iron Spear", "typeclass": _SPEAR_TC, "prototype_key": "iron_spear", "description": "An iron-tipped spear mounted on a wooden shaft."},
     {"name": "Iron Hand Axe", "typeclass": _AXE_TC, "prototype_key": "iron_hand_axe", "description": "A compact iron axe. Good for chopping more than just wood."},
     {"name": "Training Greatsword", "typeclass": _GREATSWORD_TC, "prototype_key": "training_greatsword", "description": "A heavy two-handed practice sword carved from timber.", "tracking_token": "PTrainGSword"},
     {"name": "Bronze Dagger", "typeclass": _DAGGER_TC, "prototype_key": "bronze_dagger", "description": "A small bronze dagger. Light and quick, with a greenish sheen.", "tracking_token": "PBronzeDagger"},

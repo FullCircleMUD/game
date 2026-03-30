@@ -43,6 +43,7 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     level = AttributeProperty(1)
 
     # ── Combat ──
+    initiative_speed = AttributeProperty(4)
     damage_dice = AttributeProperty("1d2")
     attack_message = AttributeProperty("pecks at")
     attack_delay_min = AttributeProperty(2)

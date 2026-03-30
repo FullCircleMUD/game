@@ -32,6 +32,7 @@ class Wolf(AggressiveMob):
     level = AttributeProperty(2)
 
     # ── Combat ──
+    initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("1d4")
     attack_message = AttributeProperty("bites")
     attack_delay_min = AttributeProperty(2)

@@ -45,59 +45,59 @@ class TestMobGoldTags(EvenniaTest):
         self.assertIn("spawn_gold", tags)
 
     def test_kobold_gold_max(self):
-        """Kobold spawn_gold_max should be 6."""
+        """Kobold spawn_gold_max should be 2."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
             location=self.room,
         )
-        self.assertEqual(mob.db.spawn_gold_max, 6)
+        self.assertEqual(mob.db.spawn_gold_max, 2)
 
     def test_kobold_chieftain_gold_max(self):
-        """KoboldChieftain spawn_gold_max should be 12."""
+        """KoboldChieftain spawn_gold_max should be 6."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
             key="Kobold Chieftain",
             location=self.room,
         )
-        self.assertEqual(mob.db.spawn_gold_max, 12)
+        self.assertEqual(mob.db.spawn_gold_max, 6)
 
     def test_gnoll_gold_max(self):
-        """Gnoll spawn_gold_max should be 12."""
+        """Gnoll spawn_gold_max should be 8."""
         mob = create.create_object(
             "typeclasses.actors.mobs.gnoll.Gnoll",
             key="a gnoll",
             location=self.room,
         )
-        self.assertEqual(mob.db.spawn_gold_max, 12)
+        self.assertEqual(mob.db.spawn_gold_max, 8)
 
     def test_gnoll_warlord_gold_max(self):
-        """GnollWarlord spawn_gold_max should be 25."""
+        """GnollWarlord spawn_gold_max should be 15."""
         mob = create.create_object(
             "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
             key="Gnoll Warlord",
             location=self.room,
         )
-        self.assertEqual(mob.db.spawn_gold_max, 25)
+        self.assertEqual(mob.db.spawn_gold_max, 15)
 
-    def test_wolf_has_no_gold_tag(self):
-        """Wolf (loot_gold_max=0) should NOT get spawn_gold tag."""
+    def test_wolf_has_gold_tag(self):
+        """Wolf (loot_gold_max=2) gets spawn_gold tag."""
         mob = create.create_object(
             "typeclasses.actors.mobs.wolf.Wolf",
             key="a grey wolf",
             location=self.room,
         )
         tags = mob.tags.get(category="spawn_gold", return_list=True)
-        self.assertNotIn("spawn_gold", tags)
+        self.assertIn("spawn_gold", tags)
 
-    def test_wolf_has_no_gold_max(self):
-        """Wolf should NOT have spawn_gold_max."""
+    def test_wolf_gold_max(self):
+        """Wolf spawn_gold_max should be 2."""
         mob = create.create_object(
             "typeclasses.actors.mobs.wolf.Wolf",
             key="a grey wolf",
             location=self.room,
         )
-        self.assertIsNone(mob.db.spawn_gold_max)
+        self.assertEqual(mob.db.spawn_gold_max, 2)
 
     def test_base_combat_mob_no_gold_tag(self):
         """Base CombatMob (loot_gold_max=0) should NOT get gold tag."""

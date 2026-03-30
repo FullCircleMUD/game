@@ -53,22 +53,22 @@ class TestHelperFunctions(EvenniaCommandTest):
 
     def test_calculate_gold_cost_base(self):
         """CHA 10 (mod 0) → no discount → base cost."""
-        self.assertEqual(_calculate_gold_cost(1, 10), 50)
-        self.assertEqual(_calculate_gold_cost(2, 10), 100)
-        self.assertEqual(_calculate_gold_cost(3, 10), 200)
-        self.assertEqual(_calculate_gold_cost(4, 10), 350)
-        self.assertEqual(_calculate_gold_cost(5, 10), 500)
+        self.assertEqual(_calculate_gold_cost(1, 10), 10)
+        self.assertEqual(_calculate_gold_cost(2, 10), 25)
+        self.assertEqual(_calculate_gold_cost(3, 10), 50)
+        self.assertEqual(_calculate_gold_cost(4, 10), 100)
+        self.assertEqual(_calculate_gold_cost(5, 10), 200)
 
     def test_calculate_gold_cost_high_cha(self):
         """CHA 20 → mod +5 → 25% discount."""
-        self.assertEqual(_calculate_gold_cost(1, 20), 38)   # 50 * 0.75 = 37.5 → 38
-        self.assertEqual(_calculate_gold_cost(2, 20), 75)   # 100 * 0.75
-        self.assertEqual(_calculate_gold_cost(5, 20), 375)  # 500 * 0.75
+        self.assertEqual(_calculate_gold_cost(1, 20), 8)    # 10 * 0.75 = 7.5 → 8
+        self.assertEqual(_calculate_gold_cost(2, 20), 19)   # 25 * 0.75 = 18.75 → 19
+        self.assertEqual(_calculate_gold_cost(5, 20), 150)  # 200 * 0.75
 
     def test_calculate_gold_cost_low_cha(self):
         """CHA 6 → mod -2 → 10% surcharge."""
-        self.assertEqual(_calculate_gold_cost(1, 6), 55)    # 50 * 1.10
-        self.assertEqual(_calculate_gold_cost(2, 6), 110)   # 100 * 1.10
+        self.assertEqual(_calculate_gold_cost(1, 6), 11)    # 10 * 1.10
+        self.assertEqual(_calculate_gold_cost(2, 6), 28)    # 25 * 1.10 = 27.5 → 28
 
     def test_calculate_gold_cost_minimum_1(self):
         """Cost should never drop below 1."""
@@ -169,10 +169,10 @@ class TestCmdTrainListing(EvenniaCommandTest):
         self.assertIn("long sword", result)
 
     def test_listing_shows_gold_cost(self):
-        """Listing should show gold cost for BASIC (52 with default CHA 8)."""
+        """Listing should show gold cost for BASIC (10 with default CHA 8)."""
         result = self.call(CmdTrain(), "", obj=self.trainer)
-        # Default CHA is 8 → mod -1 → 5% surcharge → 50 * 1.05 = 52.5 → 52
-        self.assertIn("52", result)
+        # Default CHA is 8 → mod -1 → 5% surcharge → 10 * 1.05 = 10.5 → 10
+        self.assertIn("10", result)
 
     def test_listing_shows_success_chance(self):
         """Listing should show success percentage."""
@@ -290,8 +290,8 @@ class TestCmdTrainSkill(EvenniaCommandTest):
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
         self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
-        # Default CHA 8 → mod -1 → 5% surcharge → BASIC costs 52
-        self.assertEqual(self.char1.get_gold(), 948)
+        # Default CHA 8 → mod -1 → 5% surcharge → BASIC costs 10
+        self.assertEqual(self.char1.get_gold(), 990)
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
@@ -339,8 +339,8 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         self.assertEqual(levels.get("battleskills", 0), 0)
         # Skill points should NOT be deducted
         self.assertEqual(self.char1.general_skill_pts_available, 10)
-        # Gold IS deducted (non-refundable) — CHA 8 → 52 gold
-        self.assertEqual(self.char1.get_gold(), 948)
+        # Gold IS deducted (non-refundable) — CHA 8 → 10 gold
+        self.assertEqual(self.char1.get_gold(), 990)
         # Cooldown should be set
         cooldowns = self.char1.db.training_cooldowns or {}
         self.assertIn(str(self.trainer.dbref), cooldowns)
@@ -519,8 +519,8 @@ class TestCmdTrainWeapon(EvenniaCommandTest):
         levels = self.char1.db.weapon_skill_mastery_levels or {}
         self.assertEqual(levels.get("long_sword", 0), 0)
         self.assertEqual(self.char1.weapon_skill_pts_available, 10)
-        # Gold IS deducted (non-refundable) — CHA 8 → 52 gold
-        self.assertEqual(self.char1.get_gold(), 948)
+        # Gold IS deducted (non-refundable) — CHA 8 → 10 gold
+        self.assertEqual(self.char1.get_gold(), 990)
         cooldowns = self.char1.db.training_cooldowns or {}
         self.assertIn(str(self.trainer.dbref), cooldowns)
 
@@ -712,7 +712,7 @@ class TestChaDiscount(EvenniaCommandTest):
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_high_cha_discount(self, mock_craft, mock_delay):
-        """High CHA (20) gives 25% discount: 50 → 38 gold."""
+        """High CHA (20) gives 25% discount: 10 → 8 gold."""
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
@@ -721,13 +721,13 @@ class TestChaDiscount(EvenniaCommandTest):
             "commands.npc_cmds.cmdset_trainer.randint", return_value=1
         ):
             self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
-        # 50 * (1 - 5 * 0.05) = 50 * 0.75 = 37.5 → 38
-        self.assertEqual(self.char1.get_gold(), 962)
+        # 10 * (1 - 5 * 0.05) = 10 * 0.75 = 7.5 → 8
+        self.assertEqual(self.char1.get_gold(), 992)
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_low_cha_surcharge(self, mock_craft, mock_delay):
-        """Low CHA (6) gives 10% surcharge: 50 → 55 gold."""
+        """Low CHA (6) gives 10% surcharge: 10 → 11 gold."""
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
@@ -736,4 +736,4 @@ class TestChaDiscount(EvenniaCommandTest):
             "commands.npc_cmds.cmdset_trainer.randint", return_value=1
         ):
             self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
-        self.assertEqual(self.char1.get_gold(), 945)
+        self.assertEqual(self.char1.get_gold(), 989)

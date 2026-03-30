@@ -33,26 +33,27 @@ class WeaponNFTItem(WearableNFTItem):
         at_wear/at_remove (data-driven effect loop), at_break (equipment break)
 
     Weapon-specific attributes (from prototype):
-        damage         — dict of MasteryLevel -> xDy damage string
+        base_damage    — lookup key into damage tables ("d4", "d6", "d8", etc.)
+        material       — material tier ("wood", "bronze", "iron", "steel", "adamantine")
+        damage         — legacy dict override (used by special weapons that bypass the table)
         damage_type    — from DamageType enum (slashing, piercing, etc.)
         weapon_type    — "melee" or "missile"
-        speed          — attack speed modifier (lower = faster)
+        speed          — initiative modifier (higher = acts first)
         two_handed     — if True, blocks use of the HOLD slot while wielded
     """
 
-    # Damage dict keyed by MasteryLevel — wielder's mastery determines the roll.
-    damage = AttributeProperty({
-        MasteryLevel.UNSKILLED: "1D2",
-        MasteryLevel.BASIC: "1D3",
-        MasteryLevel.SKILLED: "1D4",
-        MasteryLevel.EXPERT: "1D4",
-        MasteryLevel.MASTER: "1D4",
-        MasteryLevel.GRANDMASTER: "1D4",
-    })
+    # Damage lookup: base_damage + material resolve via world.damage_tables.
+    # Set these on prototypes instead of the damage dict.
+    base_damage = AttributeProperty(None)   # e.g. "d8", "d4", "2d6"
+    material = AttributeProperty(None)      # e.g. "iron", "bronze", "adamantine"
+
+    # Legacy damage dict — only used when base_damage/material are not set
+    # (special weapons like blowgun/bola with fixed damage).
+    damage = AttributeProperty(None)
 
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     weapon_type = AttributeProperty("melee")  # "melee" or "missile"
-    speed = AttributeProperty(1.0)
+    speed = AttributeProperty(2)
     two_handed = AttributeProperty(False)
     is_finesse = AttributeProperty(False)    # True = use max(STR, DEX) for hit/damage
     can_dual_wield = AttributeProperty(False)  # True = can be equipped in HOLD slot via cmd_hold
@@ -72,9 +73,17 @@ class WeaponNFTItem(WearableNFTItem):
     def get_damage_roll(self, mastery_level=MasteryLevel.UNSKILLED):
         """
         Get the damage dice string for a given mastery level.
-        Falls back to UNSKILLED if the level isn't in the dict.
+
+        Prefers the lookup table (base_damage + material). Falls back to
+        the legacy damage dict for special weapons (blowgun, bola, etc.).
         """
-        return self.damage.get(mastery_level, self.damage.get(MasteryLevel.UNSKILLED, "1D2"))
+        if self.base_damage and self.material:
+            from world.damage_tables import get_damage_dice
+            return get_damage_dice(self.base_damage, self.material, mastery_level)
+        # Legacy fallback for special weapons with fixed damage
+        if self.damage:
+            return self.damage.get(mastery_level, self.damage.get(MasteryLevel.UNSKILLED, "1d2"))
+        return "1d2"
 
     # ================================================================== #
     #  Equip / Unequip Hooks

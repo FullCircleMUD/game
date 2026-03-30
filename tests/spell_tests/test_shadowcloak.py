@@ -58,6 +58,8 @@ class TestShadowcloakSoloCast(EvenniaTest):
         super().setUp()
         self.spell = get_spell("shadowcloak")
         self.char1.db.class_skill_mastery_levels = {"abjuration": 2}
+        self.char1.base_mana_max = 200
+        self.char1.mana_max = 200
         self.char1.mana = 100
 
     def test_solo_applies_effect(self):
@@ -107,6 +109,8 @@ class TestShadowcloakAntiStacking(EvenniaTest):
         super().setUp()
         self.spell = get_spell("shadowcloak")
         self.char1.db.class_skill_mastery_levels = {"abjuration": 2}
+        self.char1.base_mana_max = 200
+        self.char1.mana_max = 200
         self.char1.mana = 100
 
     def test_anti_stacking_refunds_mana(self):
@@ -136,6 +140,8 @@ class TestShadowcloakScaling(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.spell = get_spell("shadowcloak")
+        self.char1.base_mana_max = 200
+        self.char1.mana_max = 200
         self.char1.mana = 200
 
     def test_skilled_bonus(self):

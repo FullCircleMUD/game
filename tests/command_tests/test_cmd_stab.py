@@ -389,6 +389,9 @@ class TestStabDamage(EvenniaCommandTest):
         handler = self.char1.scripts.get("combat_handler")[0]
         handler.bonus_attack_dice = "4d6"
 
+        # Reset mock so initiative rolls don't pollute call_args_list
+        mock_dice.roll.reset_mock()
+
         # d20 roll = 19 (hit), weapon damage = 5, bonus dice = 12
         mock_dice.roll_with_advantage_or_disadvantage.return_value = 19
         mock_dice.roll.side_effect = [5, 12]  # weapon damage, bonus dice

@@ -83,22 +83,22 @@ class CombatHandler(DefaultScript):
         self.obj.position = "fighting"
         self.obj.msg("|rYou enter combat!|n")
 
-    def auto_attack_first_enemy(self):
+    def auto_attack_first_enemy(self, initiative_delay=0):
         """Auto-queue repeating attack on the first enemy from get_sides().
         Called after all combat handlers are created so sides are populated."""
         if self.action_dict and self.action_dict.get("key") == "attack":
             return  # already has an attack queued
-        from combat.combat_utils import get_weapon, get_sides
+        from combat.combat_utils import get_sides
         _, enemies = get_sides(self.obj)
         if enemies:
-            weapon = get_weapon(self.obj)
-            speed = getattr(weapon, "speed", 1.0) if weapon else 1.0
-            dt = max(2, int(4 / speed))
+            from django.conf import settings as django_settings
+            dt = getattr(django_settings, "COMBAT_TICK_INTERVAL", 4.0)
             self.queue_action({
                 "key": "attack",
                 "target": enemies[0],
                 "dt": dt,
                 "repeat": True,
+                "initial_delay": initiative_delay,
             })
 
     def stop_combat(self):
@@ -138,8 +138,9 @@ class CombatHandler(DefaultScript):
         if target:
             self.obj.ndb.combat_target = target
         dt = action_dict.get("dt", 0)
+        initial_delay = action_dict.get("initial_delay", 0)
         if dt > 0:
-            self._start_ticker(dt)
+            self._start_ticker(dt, initial_delay=initial_delay)
 
     def execute_next_action(self):
         """Called each tick. Resolves the queued action."""
@@ -312,8 +313,8 @@ class CombatHandler(DefaultScript):
                         _remaining[0] if _remaining else None,
                     )
                     if _new:
-                        _speed = getattr(_weapon, "speed", 1.0) if _weapon else 1.0
-                        _dt = max(2, int(4 / _speed))
+                        from django.conf import settings as django_settings
+                        _dt = getattr(django_settings, "COMBAT_TICK_INTERVAL", 4.0)
                         self.queue_action({
                             "key": "attack", "target": _new,
                             "dt": _dt, "repeat": True,
@@ -466,7 +467,19 @@ class CombatHandler(DefaultScript):
     #  Ticker Management
     # ================================================================== #
 
-    def _start_ticker(self, dt):
+    def _start_ticker(self, dt, initial_delay=0):
+        if initial_delay > 0:
+            # Stagger start based on initiative — delay the first tick,
+            # then start the repeating ticker from there.
+            from evennia.utils import delay as ev_delay
+            deferred = ev_delay(initial_delay, self._start_repeating_ticker, dt)
+            self.obj.ndb._initiative_deferred = deferred
+        else:
+            self._start_repeating_ticker(dt)
+
+    def _start_repeating_ticker(self, dt):
+        """Start the repeating combat ticker (called directly or after initiative delay)."""
+        self.obj.ndb._initiative_deferred = None
         TICKER_HANDLER.add(
             interval=dt,
             callback=self._on_tick,
@@ -474,6 +487,12 @@ class CombatHandler(DefaultScript):
         )
 
     def _stop_ticker(self):
+        # Cancel any pending initiative delay
+        deferred = getattr(self.obj.ndb, "_initiative_deferred", None)
+        if deferred and deferred.active():
+            deferred.cancel()
+            self.obj.ndb._initiative_deferred = None
+
         dt = self.action_dict.get("dt", 0) if self.action_dict else 0
         idstring = f"combat_{self.obj.id}"
         # Try the expected interval first (skip if < 1 — no ticker to remove)

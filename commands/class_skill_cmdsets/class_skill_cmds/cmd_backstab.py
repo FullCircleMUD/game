@@ -177,21 +177,20 @@ class CmdBackstab(CmdSkillBase):
             handler = handlers[0]
 
             handler.set_advantage(target, rounds=1)
+            handler.bonus_attack_dice = bonus_dice
+            handler.stab_used = True
 
-            # Queue repeating attack action
-            weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
-            speed = getattr(weapon, "speed", 1.0) if weapon else 1.0
-            dt = max(2, int(4 / speed))
-
+            # Queue repeating attack with initiative delay
+            from django.conf import settings as django_settings
+            dt = getattr(django_settings, "COMBAT_TICK_INTERVAL", 4.0)
+            init_delay = getattr(handler.ndb, "initiative_delay", 0) or 0
             handler.queue_action({
                 "key": "attack",
                 "target": target,
                 "dt": dt,
                 "repeat": True,
+                "initial_delay": init_delay,
             })
-
-            handler.bonus_attack_dice = bonus_dice
-            handler.stab_used = True
 
             caller.msg(
                 f"|yYou strike from the shadows, aiming for a vital spot! "
