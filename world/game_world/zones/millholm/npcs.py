@@ -1570,12 +1570,22 @@ def _spawn_grik():
     )
     npc.tradeable_item_types = [
         "Training Dagger", "Training Shortsword", "Training Longsword",
+        "Club", "Quarterstaff", "Sling", "Shortbow", "Crossbow",
+        "Bronze Dagger", "Bronze Shortsword", "Bronze Longsword",
+        "Bronze Hand Axe", "Bronze Spear", "Bronze Mace",
+        "Bronze Hammer", "Bronze Rapier",
+        "Bronze Greatsword", "Bronze Battleaxe",
+        "Iron Dagger", "Iron Shortsword", "Iron Longsword",
+        "Iron Hand Axe", "Spear", "Iron Mace",
+        "Iron Hammer", "Iron Spiked Club",
     ]
     npc.shop_name = "Grik's Blades & Blunts"
     npc.db.desc = (
         "A wiry goblin with a surprisingly keen business sense perches "
-        "behind a counter cluttered with wooden practice weapons and "
-        "whetstones. His yellowed teeth flash in what might be a smile "
+        "behind a counter cluttered with blades, bludgeons, and "
+        "whetstones. Racks of bronze and iron weapons line the walls, "
+        "while wooden training weapons fill a barrel by the door. "
+        "His yellowed teeth flash in what might be a smile "
         "or might be a threat assessment. He eyes you shrewdly, one "
         "clawed hand resting on a dagger beneath the counter — just "
         "in case."
