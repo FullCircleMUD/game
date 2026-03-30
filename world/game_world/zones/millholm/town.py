@@ -1301,9 +1301,9 @@ def build_millholm_town(one_way_limbo=False):
         key="Millholm Distillery",
         attributes=[
             ("processing_type", "distillery"),
-            ("process_cost", 1),
+            ("process_cost", 3),
             ("recipes", [
-                {"inputs": {12: 1}, "output": 13, "amount": 1, "cost": 1},
+                {"inputs": {12: 1}, "output": 13, "amount": 1, "cost": 3},
             ]),
             ("max_height", 0),
             ("max_depth", 0),
@@ -1593,7 +1593,7 @@ def build_millholm_town(one_way_limbo=False):
         attributes=[
             ("crafting_type", "apothecary"),
             ("mastery_level", 1),
-            ("craft_cost", 2),
+            ("craft_cost", 6),
             ("desc",
              "Glass vials and beakers crowd every surface, some bubbling "
              "over spirit lamps, others sitting still and dark. Dried herbs "
