@@ -253,8 +253,11 @@ class CmdCraft(Command):
             )
             return
 
-        # --- Check gold (workshop fee only) ---
-        total_gold = room.craft_cost
+        # --- Check gold (workshop fee × mastery tier) ---
+        mastery_tier = recipe.get("min_mastery", 1)
+        if hasattr(mastery_tier, "value"):
+            mastery_tier = mastery_tier.value
+        total_gold = room.craft_cost * mastery_tier
 
         if not caller.has_gold(total_gold):
             caller.msg(
