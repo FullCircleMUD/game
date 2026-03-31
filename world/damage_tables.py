@@ -74,6 +74,14 @@ DAMAGE_TABLES = {
         "steel":      {U: "1d7", B: "2d7", S: "4d4", E: "4d5", M: "4d6", G: "4d7"},
         "adamantine": {U: "2d4", B: "4d4", S: "4d5", E: "4d6", M: "4d7", G: "8d4"},
     },
+    # ── 2d7 Base (Lance — mounted cavalry weapon) ──
+    "2d7": {
+        "wood":       {U: "1d5", B: "2d5", S: "2d6", E: "2d7", M: "2d8", G: "4d5"},
+        "bronze":     {U: "1d6", B: "2d6", S: "2d7", E: "2d8", M: "4d5", G: "4d6"},
+        "iron":       {U: "1d7", B: "2d7", S: "2d8", E: "4d5", M: "4d6", G: "4d7"},
+        "steel":      {U: "2d4", B: "2d8", S: "4d5", E: "4d6", M: "4d7", G: "4d8"},
+        "adamantine": {U: "2d5", B: "4d5", S: "4d6", E: "4d7", M: "4d8", G: "8d5"},
+    },
 }
 
 
@@ -81,7 +89,7 @@ def get_damage_dice(base_damage, material, mastery):
     """Resolve damage dice string from base die, material, and wielder mastery.
 
     Args:
-        base_damage: str — "d4", "d6", "d8", "d10", "d12", or "2d6"
+        base_damage: str — "d1", "d4", "d6", "d8", "d10", "d12", "2d6", or "2d7"
         material: str — "wood", "bronze", "iron", "steel", or "adamantine"
         mastery: MasteryLevel enum value
 

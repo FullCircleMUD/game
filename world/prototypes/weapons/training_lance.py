@@ -6,7 +6,7 @@ TRAINING_LANCE = {
     "key": "Training Lance",
     "aliases": ["lance", "training lance"],
     "desc": "A long wooden lance with a blunted tip. Used for jousting practice and mounted drills.",
-    "base_damage": "d10",
+    "base_damage": "2d7",
     "material": "wood",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
