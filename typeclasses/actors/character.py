@@ -934,6 +934,24 @@ class FCMCharacter(
                 "learning the ropes.\n"
             )
 
+        # Spell hint — show once for characters with spellcasting classes.
+        if self.account and not getattr(self.account.db, "seen_spell_hint", False):
+            has_spells = bool(self.db.spellbook or self.db.granted_spells)
+            if has_spells:
+                self.account.db.seen_spell_hint = True
+                self.msg(
+                    "\n|c╔═══════════════════════════════════════════════╗|n"
+                    "\n|c║|n  You have spells! Here's how to use them:     |c║|n"
+                    "\n|c║|n                                               |c║|n"
+                    "\n|c║|n  |wspells|n     — see your available spells       |c║|n"
+                    "\n|c║|n  |wmemorise <spell>|n — prepare a spell for use   |c║|n"
+                    "\n|c║|n  |wcast <spell>|n     — cast a memorised spell    |c║|n"
+                    "\n|c║|n  |wforget <spell>|n   — free a memory slot        |c║|n"
+                    "\n|c║|n                                               |c║|n"
+                    "\n|c║|n  You must memorise a spell before casting it. |c║|n"
+                    "\n|c╚═══════════════════════════════════════════════╝|n"
+                )
+
         # Send initial vitals for the split webclient panel
         self.send_vitals_update()
 
