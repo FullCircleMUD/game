@@ -81,7 +81,11 @@ class LLMShopkeeperNPC(LLMRoleplayNPC):
         Includes the command syntax with color codes and a description,
         plus a list of what this shop trades.
         """
-        lines = ["SHOP COMMANDS (tell players these when they ask about buying or selling):"]
+        lines = [
+            "SHOP COMMANDS — IMPORTANT: You CANNOT complete transactions through conversation. "
+            "You MUST direct players to use these commands. NEVER pretend to sell items through dialogue. "
+            "When a player wants to buy or sell, tell them the exact command to type:"
+        ]
 
         for syntax, desc in self.SHOP_COMMAND_HELP:
             lines.append(f"  {syntax} — {desc}")
