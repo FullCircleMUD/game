@@ -37,12 +37,14 @@ class CmdLook(_EvenniaCmdLook):
         look <obj>
         look <direction>
         look in <container>
+        examine <obj>
 
     Observes your location or objects in your vicinity.
     In darkness, you can only see the room layout and your own inventory.
     Use 'look in' to view the contents of a container.
     """
 
+    aliases = ["l", "ls", "examine", "exam"]
     help_category = "General"
 
     def func(self):
@@ -51,6 +53,10 @@ class CmdLook(_EvenniaCmdLook):
         # --- "look around" → same as bare "look" ---
         if self.args and self.args.strip().lower() == "around":
             self.args = ""
+
+        # --- "look at <target>" → strip the "at " prefix ---
+        if self.args and self.args.lower().strip().startswith("at "):
+            self.args = self.args.strip()[3:]
 
         # --- "look in <container>" ---
         if self.args:
