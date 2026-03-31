@@ -66,6 +66,7 @@ def build_tutorial_1(instance):
         room = create_object(RoomBase, key=key, attributes=attrs)
         room.tags.add(tag, category="tutorial_room")
         room.cmdset.add(CmdSetTutorial, persistent=True)
+        room.always_lit = True
         room.allow_combat = extra_attrs.get("allow_combat", False)
         room.allow_pvp = False
         room.allow_death = extra_attrs.get("allow_death", False)

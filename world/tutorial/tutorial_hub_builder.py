@@ -92,6 +92,9 @@ def build_tutorial_hub():
     from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
     hub.cmdset.add(CmdSetTutorial, persistent=True)
 
+    # Tutorial rooms are always lit
+    hub.always_lit = True
+
     # Safe zone
     hub.allow_combat = False
     hub.allow_pvp = False
