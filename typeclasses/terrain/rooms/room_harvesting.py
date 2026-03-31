@@ -66,9 +66,21 @@ class RoomHarvesting(RoomBase):
 
     def get_display_desc(self, looker, **kwargs):
         """Return tier-appropriate description based on resource count."""
+        if self.is_dark(looker):
+            return "|xIt is pitch black. You can't see a thing.|n"
+
         if self.resource_count > self.abundance_threshold:
-            return self.desc_abundant
+            abundance_line = self.desc_abundant
         elif self.resource_count > 0:
-            return self.desc_scarce
+            abundance_line = self.desc_scarce
         else:
-            return self.desc_depleted
+            abundance_line = self.desc_depleted
+
+        # Include weather line if applicable (matching parent behavior)
+        char_height = getattr(looker, "room_vertical_position", 0)
+        if char_height >= 0:
+            weather_line = self._get_weather_desc_line()
+            if weather_line:
+                return f"{abundance_line}\n{weather_line}"
+
+        return abundance_line
