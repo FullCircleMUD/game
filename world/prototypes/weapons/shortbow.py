@@ -10,7 +10,7 @@ SHORTBOW = {
     "material": "wood",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "missile",
-    "speed": 2,
+    "speed": 1,
     "weight": 1.5,
     "max_durability": 2880,
     "wear_effects": [],

@@ -10,7 +10,7 @@ BRONZE_LONGSWORD = {
     "material": "bronze",
     "damage_type": DamageType.SLASHING,
     "weapon_type": "melee",
-    "speed": 2,
+    "speed": 1,
     "weight": 3.0,
     "max_durability": 3600,
     "wear_effects": [],

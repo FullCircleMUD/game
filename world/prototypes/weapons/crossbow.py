@@ -10,7 +10,7 @@ CROSSBOW = {
     "material": "wood",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "missile",
-    "speed": 1,
+    "speed": 0,
     "weight": 3.5,
     "max_durability": 5400,
     "wear_effects": [],

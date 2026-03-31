@@ -53,7 +53,7 @@ class WeaponNFTItem(WearableNFTItem):
 
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     weapon_type = AttributeProperty("melee")  # "melee" or "missile"
-    speed = AttributeProperty(2)
+    speed = AttributeProperty(1)
     two_handed = AttributeProperty(False)
     is_finesse = AttributeProperty(False)    # True = use max(STR, DEX) for hit/damage
     can_dual_wield = AttributeProperty(False)  # True = can be equipped in HOLD slot via cmd_hold

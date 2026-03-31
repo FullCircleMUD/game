@@ -10,7 +10,7 @@ BRONZE_RAPIER = {
     "material": "bronze",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "melee",
-    "speed": 3,
+    "speed": 1,
     "weight": 1.5,
     "max_durability": 3600,
     "wear_effects": [],

@@ -30,7 +30,7 @@ class CellarRat(AggressiveMob):
     level = AttributeProperty(1)
 
     # ── Combat ──
-    initiative_speed = AttributeProperty(4)
+    initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("1d2")
     attack_message = AttributeProperty("bites")
     attack_delay_min = AttributeProperty(2)

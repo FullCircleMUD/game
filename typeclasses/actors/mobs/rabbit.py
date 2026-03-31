@@ -33,7 +33,7 @@ class Rabbit(CombatMob):
     loot_gold_max = AttributeProperty(1)
 
     # ── Combat ──
-    initiative_speed = AttributeProperty(4)
+    initiative_speed = AttributeProperty(3)
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)

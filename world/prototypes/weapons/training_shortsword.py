@@ -10,7 +10,7 @@ TRAINING_SHORTSWORD = {
     "material": "wood",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
-    "speed": 3,
+    "speed": 2,
     "weight": 1.5,
     "max_durability": 1440,
 }

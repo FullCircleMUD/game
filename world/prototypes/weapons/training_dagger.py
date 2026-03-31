@@ -10,7 +10,7 @@ TRAINING_DAGGER = {
     "material": "wood",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
-    "speed": 4,
+    "speed": 3,
     "weight": 0.5,
     "max_durability": 1440,
 }

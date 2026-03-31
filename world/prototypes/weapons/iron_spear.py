@@ -10,7 +10,7 @@ IRON_SPEAR = {
     "material": "iron",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "melee",
-    "speed": 2,
+    "speed": 1,
     "weight": 3.0,
     "max_durability": 5400,
 }

@@ -10,7 +10,7 @@ TRAINING_LONGSWORD = {
     "material": "wood",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
-    "speed": 2,
+    "speed": 1,
     "weight": 2.0,
     "max_durability": 1440,
 }

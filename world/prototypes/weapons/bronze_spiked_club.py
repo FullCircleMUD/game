@@ -10,7 +10,7 @@ BRONZE_SPIKED_CLUB = {
     "material": "bronze",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
-    "speed": 1,
+    "speed": 2,
     "weight": 2.8,
     "max_durability": 3600,
 }

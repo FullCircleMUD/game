@@ -33,7 +33,7 @@ class KoboldChieftain(AggressiveMob):
     level = AttributeProperty(3)
 
     # ── Combat ──
-    initiative_speed = AttributeProperty(2)
+    initiative_speed = AttributeProperty(1)
     damage_dice = AttributeProperty("1d6")  # +1 from STR 12
     attack_message = AttributeProperty("slashes at")
     attack_delay_min = AttributeProperty(2)

@@ -10,7 +10,7 @@ WOODEN_CLUB = {
     "material": "wood",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
-    "speed": 1,
+    "speed": 2,
     "weight": 2.5,
     "max_durability": 2880,
 }

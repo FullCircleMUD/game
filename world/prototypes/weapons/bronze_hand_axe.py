@@ -10,7 +10,7 @@ BRONZE_HAND_AXE = {
     "material": "bronze",
     "damage_type": DamageType.SLASHING,
     "weapon_type": "melee",
-    "speed": 3,
+    "speed": 2,
     "weight": 2.0,
     "max_durability": 3600,
     "wear_effects": [],

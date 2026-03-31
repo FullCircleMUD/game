@@ -10,7 +10,7 @@ BRONZE_DAGGER = {
     "material": "bronze",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "melee",
-    "speed": 4,
+    "speed": 3,
     "weight": 0.5,
     "max_durability": 3600,
     "wear_effects": [],

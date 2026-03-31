@@ -10,7 +10,7 @@ IRON_SHORTSWORD = {
     "material": "iron",
     "damage_type": DamageType.SLASHING,
     "weapon_type": "melee",
-    "speed": 3,
+    "speed": 2,
     "weight": 2.0,
     "max_durability": 5400,
 }

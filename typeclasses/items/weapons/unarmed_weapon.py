@@ -74,7 +74,7 @@ class UnarmedWeapon:
     damage_type = DamageType.BLUDGEONING
     is_finesse = False
     two_handed = False
-    speed = 4
+    speed = 3
     key = "fists"  # for combat messages: "attacks with fists"
 
     # ================================================================== #

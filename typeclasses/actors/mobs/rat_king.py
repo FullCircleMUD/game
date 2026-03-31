@@ -30,7 +30,7 @@ class RatKing(CombatMob):
     level = AttributeProperty(2)
 
     # ── Combat ──
-    initiative_speed = AttributeProperty(2)
+    initiative_speed = AttributeProperty(1)
     damage_dice = AttributeProperty("1d4")
     attack_message = AttributeProperty("savagely bites")
     attack_delay_min = AttributeProperty(5)

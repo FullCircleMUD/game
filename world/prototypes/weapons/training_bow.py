@@ -10,7 +10,7 @@ TRAINING_BOW = {
     "material": "wood",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "missile",
-    "speed": 2,
+    "speed": 1,
     "weight": 1.5,
     "max_durability": 2880,
 }

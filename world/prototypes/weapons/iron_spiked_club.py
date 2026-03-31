@@ -10,7 +10,7 @@ IRON_SPIKED_CLUB = {
     "material": "iron",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
-    "speed": 1,
+    "speed": 2,
     "weight": 3.0,
     "max_durability": 5400,
     "wear_effects": [],

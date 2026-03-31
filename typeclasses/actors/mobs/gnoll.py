@@ -31,7 +31,7 @@ class Gnoll(RampageMixin, AggressiveMob):
     level = AttributeProperty(4)
 
     # ── Combat ──
-    initiative_speed = AttributeProperty(1)
+    initiative_speed = AttributeProperty(0)
     damage_dice = AttributeProperty("1d6")  # +2 from STR 14 via effective_damage_bonus
     attack_message = AttributeProperty("slashes at")
     attack_delay_min = AttributeProperty(3)

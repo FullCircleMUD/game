@@ -10,7 +10,7 @@ IRON_DAGGER = {
     "material": "iron",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "melee",
-    "speed": 4,
+    "speed": 3,
     "weight": 0.5,
     "max_durability": 5400,
 }
