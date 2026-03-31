@@ -37,7 +37,7 @@ def _match_fungible(name):
         None                              if no match
     """
     name_lower = name.lower().strip()
-    if name_lower == "gold":
+    if name_lower in ("gold", "coins", "coin", "gold coins", "gold coin"):
         return ("gold", None, None)
 
     for rid, info in get_all_resource_types().items():
