@@ -1,8 +1,9 @@
 """
-Tests for the at_server_start() spawned item cleanup.
+Tests for the spawned item cleanup utility.
 
-Tests the _clear_spawned_items() function which runs on every server start
-to remove ephemeral spawned items and reset mirror DB rows to RESERVE.
+Tests clear_spawned_items() which removes ephemeral spawned items
+and resets mirror DB rows to RESERVE. Called via the wipe_spawns
+superuser command — NOT called on server restart.
 
 evennia test --settings settings tests.server_tests.test_spawned_cleanup
 """
@@ -16,7 +17,7 @@ from evennia.utils.test_resources import EvenniaTest
 
 from blockchain.xrpl.models import NFTGameState, FungibleGameState
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
-from server.conf.at_server_startstop import _clear_spawned_items
+from utils.spawn_cleanup import clear_spawned_items as _clear_spawned_items
 
 
 VAULT = settings.XRPL_VAULT_ADDRESS
