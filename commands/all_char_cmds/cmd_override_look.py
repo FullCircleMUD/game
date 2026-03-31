@@ -48,6 +48,10 @@ class CmdLook(_EvenniaCmdLook):
     def func(self):
         caller = self.caller
 
+        # --- "look around" → same as bare "look" ---
+        if self.args and self.args.strip().lower() == "around":
+            self.args = ""
+
         # --- "look in <container>" ---
         if self.args:
             lower = self.args.lower().strip()
