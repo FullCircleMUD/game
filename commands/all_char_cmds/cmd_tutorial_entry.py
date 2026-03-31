@@ -88,7 +88,16 @@ class CmdLeaveTutorial(Command):
         # Find the tutorial instance for this character
         tutorial_tags = caller.tags.get(category="tutorial_character", return_list=True)
         if not tutorial_tags:
-            caller.msg("You are not in a tutorial.")
+            # Check if they're in the Tutorial Hub — guide them to the exit
+            from world.tutorial.tutorial_hub_builder import get_tutorial_hub
+            hub = get_tutorial_hub()
+            if hub and caller.location == hub:
+                caller.msg(
+                    "You are in the Tutorial Hub. To leave the tutorial, "
+                    "type |wsouth|n."
+                )
+            else:
+                caller.msg("You are not in a tutorial.")
             return
 
         instance_key = tutorial_tags[0] if tutorial_tags else None
