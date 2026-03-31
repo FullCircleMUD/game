@@ -40,3 +40,6 @@ from world.quests.guild import *  # noqa: F401, F403, E402
 from world.quests.rat_cellar import *  # noqa: F401, F403, E402
 from world.quests.bakers_flour import *  # noqa: F401, F403, E402
 from world.quests.oakwright_timber import *  # noqa: F401, F403, E402
+from world.quests.elena_cloth import *  # noqa: F401, F403, E402
+from world.quests.mara_moonpetal import *  # noqa: F401, F403, E402
+from world.quests.hendricks_ore import *  # noqa: F401, F403, E402
