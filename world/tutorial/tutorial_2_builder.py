@@ -125,6 +125,11 @@ def build_tutorial_2(instance):
         ),
         typeclass=RoomHarvesting,
     )
+    rooms["harvest"].details = {
+        "wheat": "Golden stalks of wheat, ripe and ready for harvesting. Type |wharvest|n to gather some.",
+        "stalks": "Golden stalks of wheat, ripe and ready for harvesting. Type |wharvest|n to gather some.",
+        "field": "A sun-drenched field of wheat stretching out before you.",
+    }
     rooms["harvest"].resource_id = 1  # Wheat
     rooms["harvest"].harvest_command = "harvest"
     rooms["harvest"].resource_count = 50 if first_run else 0
@@ -165,6 +170,12 @@ def build_tutorial_2(instance):
         ),
         typeclass=RoomHarvesting,
     )
+    rooms["woodlot"].details = {
+        "timber": "Sturdy trees surround the clearing. Type |wchop|n to fell them for wood.",
+        "trees": "Sturdy trees surround the clearing. Type |wchop|n to fell them for wood.",
+        "stump": "An axe-scarred stump serves as a chopping block, worn smooth from use.",
+        "wood chips": "Sawdust and wood chips carpet the ground around the chopping block.",
+    }
     rooms["woodlot"].resource_id = 6  # Wood
     rooms["woodlot"].harvest_command = "chop"
     rooms["woodlot"].resource_count = 50 if first_run else 0

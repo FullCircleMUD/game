@@ -214,6 +214,12 @@ def build_tutorial_1(instance):
     sign_fixture.tags.add(tag, category="tutorial_item")
     sign_fixture.aliases.add("sign")
 
+    # Room details for objects mentioned in the description
+    rooms["look"].details = {
+        "plaque": "A small brass plaque reads: 'For display only — do not touch.'",
+        "torches": "Iron sconces hold flickering torches that cast dancing shadows.",
+    }
+
     # ================================================================== #
     #  ROOM 3: Supply Room — Inventory (get/drop)
     # ================================================================== #
@@ -251,6 +257,11 @@ def build_tutorial_1(instance):
         ),
     )
     _connect_bidirectional_exit(rooms["look"], rooms["inventory"], "east")
+
+    rooms["inventory"].details = {
+        "shelves": "Wooden shelves line the walls, mostly bare. A few items sit on a table.",
+        "table": "A sturdy wooden table with a few items laid out for you to take.",
+    }
 
     _spawn_pip(rooms["inventory"])
 
