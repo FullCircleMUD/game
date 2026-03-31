@@ -1045,6 +1045,7 @@ Same auto-collecting registry pattern as races. Each class is a frozen `CharClas
 ## Coding Conventions
 
 - **Prefer enums over raw strings** for validation and typo prevention. When a field references a fixed set of values (ability scores, weapon types, alignments, damage types, skills, etc.), use the corresponding enum rather than raw strings. Examples: `WeaponType.BATTLEAXE` not `"battleaxe"`, `Ability.STR` not `"strength"`, `skills.STEALTH.value` not `"stealth"`. Enum `.value` can be extracted when writing to storage (e.g. `weapon.value` for dict keys). Skill commands should set `skill = skills.ENUM.value` (not a raw string) so renaming a skill in the enum automatically propagates.
+- **All exits MUST be created through helper functions** in `utils/exit_helpers.py`. Never use bare `create_object()` for exits in zone builders. If a new exit type isn't covered by an existing helper, create the helper first, then use it. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See `design/EXIT_ARCHITECTURE.md` § Builder Helpers for full documentation.
 
 ## Future Roadmap
 
