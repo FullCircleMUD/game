@@ -66,7 +66,14 @@ class CmdWhisper(Command):
         room = caller.location
 
         if not self.whisper_target or not self.whisper_message:
-            caller.msg("Usage: whisper <character> = <message>")
+            # Helpful hint if they typed "whisper Bob hello" without "="
+            args = self.args.strip() if self.args else ""
+            if args and " " not in args:
+                caller.msg(f"Whisper what to {args}? Usage: |wwhisper {args} = <message>|n")
+            elif args:
+                caller.msg(f"Usage: |wwhisper <character> = <message>|n")
+            else:
+                caller.msg("Usage: |wwhisper <character> = <message>|n")
             return
 
         # --- Determine language from switch ---
