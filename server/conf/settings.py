@@ -172,7 +172,20 @@ TOS_VERSION = "draft-1"
 
 # Bot / Virtual Client login
 BOT_LOGIN_ENABLED = True  # master switch — set True to allow bot accounts to connect
-BOT_ACCOUNT_USERNAMES = ["llm_bot_1", "llm_bot_2", "llm_bot_3", "llm_bot_4"]  # accounts that bypass wallet challenge when enabled
+BOT_ACCOUNT_USERNAMES = ["llm_bot_1", "llm_bot_2", "llm_bot_3", "llm_bot_4"]
+
+# Bot wallet addresses — keyed by username
+BOT_WALLET_ADDRESSES = {
+    "llm_bot_1": "rKdRo1qj366zTNHbTUMPgVnXwVtb7mSxeb",
+    "llm_bot_2": "rN5dJqD6MKGDsfVkf3LEcyqd1WvYFmiWGq",
+    "llm_bot_3": "rMR8oSV9MyAJe3C9gUvpHUrWUv7UMNbrS6",
+    "llm_bot_4": "rJ5dg2oA8ak7J7JKqE9TABRACTN46ovLUF",
+}
+
+# Bot passwords — override per-bot in secret_settings.py
+# Default shared password used if a bot isn't in BOT_PASSWORDS.
+BOT_DEFAULT_PASSWORD = "changeme"  # override in secret_settings.py
+# BOT_PASSWORDS = {"llm_bot_1": "password1", ...}  # per-bot, in secret_settings.py
 
 
 # LLM NPC Configuration
