@@ -62,7 +62,7 @@ class CmdLoot(Command):
                 looted_anything = True
 
         if not looted_anything:
-            caller.msg("There's nothing to loot.")
+            caller.msg("There is nothing to loot on the corpses in the room.")
 
     # ------------------------------------------------------------------ #
     #  List corpses
