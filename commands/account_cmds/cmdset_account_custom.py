@@ -33,6 +33,7 @@ from commands.account_cmds.cmd_botsetup import CmdBotSetup
 from commands.account_cmds.cmd_botlist import CmdBotList
 from commands.account_cmds.cmd_botreset import CmdBotReset
 from commands.account_cmds.cmd_wipe_spawns import CmdWipeSpawns
+from commands.account_cmds.cmd_spawn_report import CmdSpawnReport
 
 
 class CmdSetAccountCustom(CmdSet):
@@ -74,3 +75,4 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdBotList())
         self.add(CmdBotReset())
         self.add(CmdWipeSpawns())
+        self.add(CmdSpawnReport())
