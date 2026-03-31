@@ -6,18 +6,19 @@ by anyone. A well-placed stone to the skull can daze opponents, denying
 them their next action. Simple, reliable, and effective.
 
 Mastery progression:
-    UNSKILLED: -2 hit, no daze, 0 extra attacks
-    BASIC:      0 hit, no daze, 0 extra attacks
-    SKILLED:   +2 hit, 10% daze (1 round stun), 0 extra attacks
-    EXPERT:    +4 hit, 15% daze (1 round stun), 0 extra attacks
-    MASTER:    +6 hit, 20% daze (1 round stun), 0 extra attacks
-    GM:        +8 hit, 25% daze (1 round stun), 0 extra attacks
+    UNSKILLED: -2 hit, no daze
+    BASIC:      0 hit, no daze
+    SKILLED:   +2 hit, 10% daze (1 round stun)
+    EXPERT:    +4 hit, 15% daze (1 round stun)
+    MASTER:    +6 hit, 20% daze (1 round stun)
+    GM:        +8 hit, 25% daze (2 rounds stun)
 
 Daze mechanic:
     On hit → roll d100 vs mastery-scaled chance.
-    Success → target STUNNED for 1 round (action denial, no advantage).
+    Success → target STUNNED (action denial, no advantage).
     HUGE+ targets are immune (stone to a giant does nothing).
     Anti-stacking: can't re-stun already stunned target.
+    GM capstone: 2-round stun duration.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -30,12 +31,12 @@ from utils.dice_roller import dice
 
 # Daze chance % by mastery
 _SLING_DAZE = {
-    MasteryLevel.UNSKILLED: 0,
-    MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 10,
-    MasteryLevel.EXPERT: 15,
-    MasteryLevel.MASTER: 20,
-    MasteryLevel.GRANDMASTER: 25,
+    MasteryLevel.UNSKILLED: (0, 0),
+    MasteryLevel.BASIC: (0, 0),
+    MasteryLevel.SKILLED: (10, 1),
+    MasteryLevel.EXPERT: (15, 1),
+    MasteryLevel.MASTER: (20, 1),
+    MasteryLevel.GRANDMASTER: (25, 2),
 }
 
 # Sizes immune to daze
@@ -83,7 +84,7 @@ class SlingNFTItem(WeaponNFTItem):
         HUGE+ targets are immune. Already-stunned targets are skipped.
         """
         mastery = self.get_wielder_mastery(wielder)
-        chance = _SLING_DAZE.get(mastery, 0)
+        chance, duration = _SLING_DAZE.get(mastery, (0, 0))
         if chance <= 0:
             return
 
@@ -101,7 +102,7 @@ class SlingNFTItem(WeaponNFTItem):
             return
 
         # Apply STUNNED
-        applied = target.apply_stunned(1, source=wielder)
+        applied = target.apply_stunned(duration, source=wielder)
 
         if applied:
             wielder.msg(
