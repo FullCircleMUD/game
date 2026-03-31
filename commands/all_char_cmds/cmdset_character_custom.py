@@ -31,6 +31,7 @@ from commands.all_char_cmds.cmd_override_drop import CmdDrop
 from commands.all_char_cmds.cmd_override_give import CmdGive
 from commands.all_char_cmds.cmd_override_look import CmdLook
 from commands.all_char_cmds.cmd_override_inventory import CmdInventory
+from commands.all_char_cmds.cmd_go import CmdGo
 from commands.all_char_cmds.cmd_override_help import CmdHelp
 
 # new custom commands
@@ -190,6 +191,9 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdToggle())
         self.add(CmdRoomDesc())
         self.add(CmdExits())
+
+        # movement
+        self.add(CmdGo())
 
         # posture
         self.add(CmdSit())
