@@ -286,8 +286,12 @@ class FungibleInventoryMixin:
                 target_wallet, amount, chain_id, contract, target_key,
             )
 
+        elif source_type == "WORLD" and target_type == "WORLD":
+            # SPAWNED → SPAWNED (e.g. mob gold → corpse on death)
+            # Both vault-owned — no DB location change, just move local state.
+            pass
+
         else:
-            # WORLD → WORLD (shouldn't happen for gold — no-op)
             # ACCOUNT → ACCOUNT (shouldn't happen)
             # WORLD → ACCOUNT, ACCOUNT → WORLD (not a normal game flow)
             raise ValueError(
@@ -422,6 +426,11 @@ class FungibleInventoryMixin:
                 target_wallet, resource_id, amount, chain_id, contract,
                 target_key,
             )
+
+        elif source_type == "WORLD" and target_type == "WORLD":
+            # SPAWNED → SPAWNED (e.g. mob resources → corpse on death)
+            # Both vault-owned — no DB location change, just move local state.
+            pass
 
         else:
             raise ValueError(

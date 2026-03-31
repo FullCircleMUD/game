@@ -294,11 +294,13 @@ class TestGoldTransfers(EvenniaTest):
 
     # ── Unsupported transfer types ────────────────────────────────
 
-    def test_room_to_room_raises(self):
-        """WORLD → WORLD gold transfer should raise ValueError."""
+    def test_room_to_room_moves_local_state(self):
+        """WORLD → WORLD gold transfer moves local state (mob → corpse)."""
         self.room1.db.gold = 50
-        with self.assertRaises(ValueError):
-            self.room1.transfer_gold_to(self.room2, 10)
+        self.room2.db.gold = 0
+        self.room1.transfer_gold_to(self.room2, 10)
+        self.assertEqual(self.room1.get_gold(), 40)
+        self.assertEqual(self.room2.get_gold(), 10)
 
     # ── Validation ────────────────────────────────────────────────
 
@@ -506,11 +508,13 @@ class TestResourceTransfers(EvenniaTest):
 
     # ── Unsupported and validation ────────────────────────────────
 
-    def test_room_to_room_raises(self):
-        """WORLD → WORLD resource transfer should raise ValueError."""
+    def test_room_to_room_moves_local_state(self):
+        """WORLD → WORLD resource transfer moves local state (mob → corpse)."""
         self.room1.db.resources = {WHEAT: 50}
-        with self.assertRaises(ValueError):
-            self.room1.transfer_resource_to(self.room2, WHEAT, 10)
+        self.room2.db.resources = {}
+        self.room1.transfer_resource_to(self.room2, WHEAT, 10)
+        self.assertEqual(self.room1.get_resource(WHEAT), 40)
+        self.assertEqual(self.room2.get_resource(WHEAT), 10)
 
     def test_zero_amount_raises(self):
         """Transfer of 0 resources should raise ValueError."""
