@@ -9,9 +9,9 @@ Mastery progression:
     UNSKILLED: -2 hit, no daze
     BASIC:      0 hit, no daze
     SKILLED:   +2 hit, 10% daze (1 round stun)
-    EXPERT:    +4 hit, 15% daze (1 round stun)
-    MASTER:    +6 hit, 20% daze (1 round stun)
-    GM:        +8 hit, 25% daze (2 rounds stun)
+    EXPERT:    +4 hit, 15% daze (1 round stun), +1 extra attack
+    MASTER:    +6 hit, 20% daze (1 round stun), +1 extra attack
+    GM:        +8 hit, 25% daze (2 rounds stun), +1 extra attack
 
 Daze mechanic:
     On hit → roll d100 vs mastery-scaled chance.
@@ -64,6 +64,9 @@ class SlingNFTItem(WeaponNFTItem):
         return 0
 
     def get_extra_attacks(self, wielder):
+        mastery = self.get_wielder_mastery(wielder)
+        if mastery.value >= MasteryLevel.EXPERT.value:
+            return 1
         return 0
 
     # ================================================================== #
