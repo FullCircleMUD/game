@@ -27,12 +27,12 @@ from typeclasses.actors.npcs.llm_roleplay_npc import LLMRoleplayNPC
 
 # ── Default shop command descriptions ────────────────────────────────
 DEFAULT_SHOP_COMMANDS = [
-    ("|wlist|n", "See what the shop trades"),
-    ("|wquote buy <amount> <item>|n", "Get a price quote for buying"),
-    ("|wquote sell <amount> <item>|n", "Get a price quote for selling"),
-    ("|waccept|n", "Accept a pending price quote"),
-    ("|wbuy <amount> <item>|n", "Buy at the current market price"),
-    ("|wsell <amount> <item>|n", "Sell at the current market price"),
+    ("list", "See what the shop trades"),
+    ("quote buy <amount> <item>", "Get a price quote for buying"),
+    ("quote sell <amount> <item>", "Get a price quote for selling"),
+    ("accept", "Accept a pending price quote"),
+    ("buy <amount> <item>", "Buy at the current market price"),
+    ("sell <amount> <item>", "Sell at the current market price"),
 ]
 
 
