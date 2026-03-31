@@ -26,12 +26,10 @@ class GoldCalculator(BaseCalculator):
         """
         cfg = self.get_item_config(item_type, type_key, **overrides)
 
-        # Baseline: 24h rolling average of gold sinks
+        # Baseline: 24h rolling average of gold sinks, floored at default
+        default_rate = float(cfg["default_spawn_rate"])
         avg_consumption = self._get_avg_gold_sinks()
-        if avg_consumption <= 0:
-            base_rate = float(cfg["default_spawn_rate"])
-        else:
-            base_rate = float(avg_consumption)
+        base_rate = max(default_rate, float(avg_consumption))
 
         # Buffer: spawn slightly more than consumed
         buffer = float(cfg.get("buffer", 1.15))
