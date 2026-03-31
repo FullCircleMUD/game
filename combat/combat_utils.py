@@ -504,8 +504,15 @@ def execute_attack(attacker, target, _is_riposte=False,
             killer=attacker,
         )
 
+        # Guard: target may have been deleted by die() in take_damage.
+        # Mobs call delete() on death, which removes them from the DB.
+        # Cache the key and alive status before any further target access.
+        target_deleted = not getattr(target, "pk", None)
+        target_key = target.key if not target_deleted else "someone"
+        target_dead = target_deleted or target.hp <= 0
+
         # --- 9b. Reactive Smite: bonus radiant damage on weapon hit ---
-        if not _is_riposte and target.hp > 0:
+        if not _is_riposte and not target_dead:
             from combat.reactive_spells import check_reactive_smite
             smite_bonus = check_reactive_smite(attacker, target)
             if smite_bonus:
@@ -516,26 +523,27 @@ def execute_attack(attacker, target, _is_riposte=False,
         if weapon and hasattr(weapon, "reduce_durability"):
             weapon.reduce_durability(1)
         # Armor durability: helmet if crit was resisted, body armor otherwise
-        if crit_was_resisted:
-            helmet = target.get_slot("HEAD") if hasattr(target, "get_slot") else None
-            if helmet and hasattr(helmet, "reduce_durability"):
-                helmet.reduce_durability(1)
-        else:
-            body_armor = target.get_slot("BODY") if hasattr(target, "get_slot") else None
-            if body_armor and hasattr(body_armor, "reduce_durability"):
-                body_armor.reduce_durability(1)
+        if not target_deleted:
+            if crit_was_resisted:
+                helmet = target.get_slot("HEAD") if hasattr(target, "get_slot") else None
+                if helmet and hasattr(helmet, "reduce_durability"):
+                    helmet.reduce_durability(1)
+            else:
+                body_armor = target.get_slot("BODY") if hasattr(target, "get_slot") else None
+                if body_armor and hasattr(body_armor, "reduce_durability"):
+                    body_armor.reduce_durability(1)
 
         # Broadcast hit message
         crit_str = " |y*CRITICAL*|n" if is_crit else ""
         if attacker.location:
             attacker.location.msg_contents(
-                f"|r{attacker.key} hits {target.key}{crit_str} "
+                f"|r{attacker.key} hits {target_key}{crit_str} "
                 f"for {damage_dealt} damage!|n",
                 from_obj=attacker,
             )
 
         # --- 11. Kill hook (notification — die() already called by take_damage) ---
-        if target.hp <= 0:
+        if target_dead:
             if weapon:
                 weapon.at_kill(attacker, target)
             # Mob-level kill hook (e.g. gnoll rampage)
