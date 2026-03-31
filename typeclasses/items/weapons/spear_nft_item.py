@@ -1,17 +1,18 @@
 """
 SpearNFTItem — spear-type weapons with reach counter mastery.
 
-Spears are one-handed piercing weapons that excel at support play.
+Spears are two-handed piercing weapons that excel at party support play.
 When an enemy hits an ally, the spear wielder counter-attacks from
-reach — fighting from behind the front line.
+reach — fighting from behind the front line. Two-handed: no shield,
+no parries — the spear wielder relies on the tank for protection.
 
-Mastery progression:
-    UNSKILLED: -2 hit, no reach counters
-    BASIC:      0 hit, no reach counters
-    SKILLED:   +2 hit, 1 reach counter/round
-    EXPERT:    +4 hit, 1 reach counter/round
-    MASTER:    +6 hit, 2 reach counters/round
-    GM:        +8 hit, 3 reach counters/round
+Mastery progression (alternating crit / counter unlocks):
+    UNSKILLED: -2 hit, no counters, no crit bonus
+    BASIC:      0 hit, no counters, no crit bonus
+    SKILLED:   +2 hit, no counters, crit on 19+ (-1)
+    EXPERT:    +4 hit, 1 reach counter/round, crit on 19+
+    MASTER:    +6 hit, 1 reach counter/round, crit on 18+ (-2)
+    GM:        +8 hit, 2 reach counters/round, crit on 18+
 
 Reach counter mechanic:
     When an enemy hits an ally of the spear wielder (same combat),
@@ -30,19 +31,30 @@ from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 _SPEAR_REACH_COUNTERS = {
     MasteryLevel.UNSKILLED: 0,
     MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 1,
+    MasteryLevel.SKILLED: 0,
     MasteryLevel.EXPERT: 1,
-    MasteryLevel.MASTER: 2,
-    MasteryLevel.GRANDMASTER: 3,
+    MasteryLevel.MASTER: 1,
+    MasteryLevel.GRANDMASTER: 2,
+}
+
+# Crit threshold modifier by mastery
+_SPEAR_CRIT_MODIFIER = {
+    MasteryLevel.UNSKILLED: 0,
+    MasteryLevel.BASIC: 0,
+    MasteryLevel.SKILLED: -1,
+    MasteryLevel.EXPERT: -1,
+    MasteryLevel.MASTER: -2,
+    MasteryLevel.GRANDMASTER: -2,
 }
 
 
 class SpearNFTItem(WeaponNFTItem):
     """
-    Spear weapons — melee, one-handed, reach counter mastery path.
+    Spear weapons — melee, two-handed, reach counter + crit mastery path.
     """
 
     weapon_type_key = "spear"
+    two_handed = AttributeProperty(True)
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC,
     ])
@@ -55,6 +67,13 @@ class SpearNFTItem(WeaponNFTItem):
     #  Mastery Overrides
     # ================================================================== #
 
+    def get_parries_per_round(self, wielder):
+        return 0
+
     def get_reach_counters_per_round(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _SPEAR_REACH_COUNTERS.get(mastery, 0)
+
+    def get_mastery_crit_threshold_modifier(self, wielder):
+        mastery = self.get_wielder_mastery(wielder)
+        return _SPEAR_CRIT_MODIFIER.get(mastery, 0)
