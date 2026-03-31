@@ -54,6 +54,14 @@ class CmdImport(Command):
             account.msg("|yImport/export is currently disabled.|n")
             return
 
+        # Bot accounts are always blocked from import/export
+        bot_names = getattr(settings, "BOT_ACCOUNT_USERNAMES", [])
+        bot_wallets = set(getattr(settings, "BOT_WALLET_ADDRESSES", {}).values())
+        wallet = account.attributes.get("wallet_address")
+        if account.key in bot_names or (wallet and wallet in bot_wallets):
+            account.msg("|rBot accounts cannot import assets.|n")
+            return
+
         wallet = account.wallet_address
         if not wallet:
             account.msg("|rNo wallet linked to your account.|n")
