@@ -829,7 +829,7 @@ def _spawn_general_store():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
         key="Merchant Harlow",
         location=room,
     )
@@ -843,7 +843,33 @@ def _spawn_general_store():
         "is worth — and what you're willing to pay for it."
     )
     npc.room_description = "{name} stands behind the counter, watching customers with a shrewd eye."
-    print(f"  Spawned shopkeeper 'Merchant Harlow' in {room.key} ({room.dbref})")
+
+    npc.llm_speech_mode = "name_match"
+    npc.llm_use_vector_memory = False
+    npc.llm_hook_arrive = True
+    npc.llm_personality = (
+        "A portly, ruddy-faced merchant in his late forties with sharp eyes "
+        "and a booming, welcoming voice. Harlow is the quintessential general "
+        "store owner — he knows the price of everything and the value of "
+        "nothing, as he likes to joke. He is chatty, opinionated, and full of "
+        "gossip about Millholm. He greets every customer warmly and takes "
+        "genuine pride in running the best-stocked shop on the Old Trade Way. "
+        "He is shrewd but fair — never cheats a customer, but never gives "
+        "anything away either. He calls regulars by name and newcomers 'friend'. "
+        "He has opinions on everything: the weather, the mayor, the quality of "
+        "Bron's bread, and whether the woods are safe these days. He is always "
+        "happy to explain how his shop works to new adventurers."
+    )
+    npc.llm_knowledge = (
+        "Harlow runs the general store on the Old Trade Way in Millholm. "
+        "He trades in flour, bread, timber, leather, and cloth. "
+        "The store is centrally located between the market square and the "
+        "guild halls. He knows everyone in town and has heard every rumour. "
+        "He worries about kobolds in the old mine and wolves in the woods. "
+        "He recommends new adventurers visit the Warriors Guild or the Temple "
+        "to find work and training."
+    )
+    print(f"  Spawned LLM shopkeeper 'Merchant Harlow' in {room.key} ({room.dbref})")
     return npc
 
 
