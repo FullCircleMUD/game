@@ -1,29 +1,13 @@
 from evennia import CmdSet
-from evennia.commands.default.general import (
-    CmdPose as _CmdPose,
-    CmdNick as _CmdNick,
-    CmdSetDesc as _CmdSetDesc,
-    CmdAccess as _CmdAccess,
-)
 
 from commands.general_skill_cmds.cmdset_general_skills import CmdSetGeneralSkills
 from commands.all_char_cmds.cmdset_socials import CmdSetSocials
 
-
-# ── Thin overrides of Evennia defaults (category only) ──────────────
-
-class CmdPose(_CmdPose):
-    help_category = "Communication"
-
-class CmdNick(_CmdNick):
-    help_category = "System"
-
-class CmdSetDesc(_CmdSetDesc):
-    help_category = "Character"
-
-class CmdAccess(_CmdAccess):
-    help_category = "System"
-
+# overrides of Evennia default commands
+from commands.all_char_cmds.cmd_override_pose import CmdPose
+from commands.all_char_cmds.cmd_override_nick import CmdNick
+from commands.all_char_cmds.cmd_override_setdesc import CmdSetDesc
+from commands.all_char_cmds.cmd_override_access import CmdAccess
 
 # overrides of default commands
 from commands.all_char_cmds.cmd_override_get import CmdGet

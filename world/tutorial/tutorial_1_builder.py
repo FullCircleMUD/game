@@ -228,8 +228,7 @@ def build_tutorial_1(instance):
         "Supply Room",
         "Wooden shelves line this small storeroom, most of them empty. "
         "A few items have been left out on a table for you to take: a "
-        "leather backpack, a sturdy wooden shield, and some gold coins "
-        "glitter on the floor.",
+        "backpack and a wooden shield. Some gold glitters on the floor.",
         "|wTutorial: Inventory & Items|n\n\n"
         "  |wget <item>|n — Pick up an item from the room.\n"
         "  |wget all|n — Pick up everything in the room.\n"
