@@ -34,6 +34,7 @@ from commands.account_cmds.cmd_recover_nft import CmdRecoverNft
 from commands.account_cmds.cmd_botsetup import CmdBotSetup
 from commands.account_cmds.cmd_botlist import CmdBotList
 from commands.account_cmds.cmd_botreset import CmdBotReset
+from commands.account_cmds.cmd_wipe_spawns import CmdWipeSpawns
 
 
 # ── Thin overrides of Evennia defaults (category / lock only) ───────
@@ -199,3 +200,4 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdBotSetup())
         self.add(CmdBotList())
         self.add(CmdBotReset())
+        self.add(CmdWipeSpawns())
