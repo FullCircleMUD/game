@@ -29,17 +29,14 @@ GOLD = settings.GOLD_DISPLAY
 
 class CmdLoot(Command):
     """
-    Loot a corpse.
+    Loot all corpses in the room.
 
     Usage:
-        loot                     — list corpses and contents
-        loot <item>              — take an item from a corpse
-        loot gold [amount]       — take gold
-        loot <resource> [amount] — take a resource
-        loot all                 — take everything
+        loot
 
-    You can only loot your own corpse for the first 5 minutes.
-    After that, anyone can loot it.
+    Takes everything (items, gold, resources) from every lootable
+    corpse in the room. You can only loot your own corpse for the
+    first 5 minutes. After that, anyone can loot it.
     """
 
     key = "loot"
@@ -56,38 +53,16 @@ class CmdLoot(Command):
             caller.msg("There are no corpses here.")
             return
 
-        if not self.args.strip():
-            self._list_corpses(caller, corpses)
-            return
+        # Loot everything from every lootable corpse
+        looted_anything = False
+        for corpse in corpses:
+            if not corpse.can_loot(caller):
+                continue
+            if self._loot_all(caller, corpse):
+                looted_anything = True
 
-        # Find a lootable corpse for this character
-        corpse = self._find_lootable_corpse(caller, corpses)
-        if not corpse:
-            return
-
-        # Parse the loot target
-        parsed = parse_item_args(self.args)
-        if not parsed:
-            caller.msg("Loot what?")
-            return
-
-        if parsed.type == "all":
-            self._loot_all(caller, corpse)
-        elif parsed.type == "gold":
-            self._loot_gold(caller, corpse, parsed.amount)
-        elif parsed.type == "resource":
-            self._loot_resource(
-                caller, corpse, parsed.resource_id, parsed.resource_info, parsed.amount,
-            )
-        elif parsed.type == "token_id":
-            self._loot_by_token_id(caller, corpse, parsed.token_id)
-        else:
-            # Check if the search term matches a corpse rather than an item
-            target_corpse = self._match_corpse(caller, corpses, parsed.search_term)
-            if target_corpse:
-                self._loot_all(caller, target_corpse)
-            else:
-                self._loot_item(caller, corpse, parsed.search_term)
+        if not looted_anything:
+            caller.msg("There's nothing to loot.")
 
     # ------------------------------------------------------------------ #
     #  List corpses
@@ -349,5 +324,5 @@ class CmdLoot(Command):
                 f"{caller.key} loots {summary} from a corpse.",
                 exclude=[caller], from_obj=caller,
             )
-        else:
-            caller.msg("There's nothing to loot.")
+            return True
+        return False
