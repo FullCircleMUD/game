@@ -774,7 +774,7 @@ def build_millholm_sewers():
     guild_token = create_object(
         WorldItem,
         key="a shadow guild token",
-        nohome=True,
+        home=rooms["gauntlet_vault"],
     )
     guild_token.db.desc = (
         "A small disc of blackened iron stamped with the Thieves' "

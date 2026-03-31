@@ -40,3 +40,9 @@ class RoomRecycleBin(DefaultRoom):
             print(f"  RecycleBin: despawning NFT #{moved_obj.token_id}")
             moved_obj._despawn_mirror()
             moved_obj.delete()
+            return
+
+        # Catch-all — any non-player, non-NFT object (WorldItems, fixtures,
+        # corpses, etc.) that ends up here is orphaned and should be deleted.
+        print(f"  RecycleBin: deleting orphaned object '{moved_obj.key}'")
+        moved_obj.delete()
