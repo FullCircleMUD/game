@@ -248,9 +248,13 @@ Delete Character            |gchardelete <charname>|n
 |wBank Commands:|n
 |b--------------------------------------------------------------|n
 In game bank asset list     |gbank|n
-Out of game asset list      |gwallet|n   
-Import assets into game     |gimport <item_id>|n OR |gimport <resource> <number>|n  
-Export assets out of game   |gexport <item_id>|n OR |gexport <resource> <number>|n 
+Out of game asset list      |gwallet|n
+Import assets into game     |gimport gold <amount>|n
+                            |gimport <resource> <amount>|n
+                            |gimport nft|n
+Export assets out of game   |gexport gold <amount>|n
+                            |gexport <resource> <amount>|n
+                            |gexport <token_id>|n
 
 |wGeneral Commands:|n
 |b--------------------------------------------------------------|n
