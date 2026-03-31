@@ -474,8 +474,9 @@ class FCMCharacter(
         """Block most commands while in purgatory."""
         if self.in_purgatory and cmd.key not in self._ALLOWED_IN_PURGATORY:
             self.msg(
-                "You are in purgatory. Wait for release or type "
-                "'release' for early release (50 gold)."
+                "You are in purgatory. You will be released automatically "
+                "in up to 60 seconds, or type |wrelease|n for early release "
+                "(50 gold from your bank)."
             )
             return True
 
@@ -723,7 +724,13 @@ class FCMCharacter(
         purgatory = self._find_purgatory()
         if purgatory:
             self.move_to(purgatory, quiet=True, move_type="teleport")
-            self.msg(purgatory.db.desc)
+            if purgatory.db.desc:
+                self.msg(purgatory.db.desc)
+            self.msg(
+                f"\n|yYou will be released automatically in "
+                f"{self.PURGATORY_DURATION} seconds.|n\n"
+                f"Type |wrelease|n for early release (50 gold from your bank)."
+            )
             delay(self.PURGATORY_DURATION, self._purgatory_release)
         else:
             # No purgatory room — send directly to bound home

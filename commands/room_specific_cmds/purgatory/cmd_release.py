@@ -47,8 +47,8 @@ class CmdRelease(Command):
         if bank_gold < RELEASE_COST:
             caller.msg(
                 f"Early release costs {RELEASE_COST} gold from your bank. "
-                f"You only have {bank_gold} gold in the bank. "
-                "Wait for the automatic release."
+                f"You only have {bank_gold} gold in the bank.\n"
+                "Just wait — you'll be released automatically within 60 seconds."
             )
             return
 
