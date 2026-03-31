@@ -3,8 +3,8 @@ Tests for SpearNFTItem — spear with reach counter mastery.
 
 Validates:
     - No parries, no extra attacks at any mastery
-    - No reach counters at UNSKILLED/BASIC
-    - Reach counters scale with mastery (1/1/2/3)
+    - No reach counters at UNSKILLED/BASIC/SKILLED
+    - Reach counters scale with mastery (0/0/0/1/1/2)
     - weapon_type_key and tag set correctly
 
 evennia test --settings settings tests.typeclass_tests.test_spear
@@ -90,22 +90,22 @@ class TestSpearReachCounters(EvenniaTest):
         _set_mastery(self.char1, 1)
         self.assertEqual(spear.get_reach_counters_per_round(self.char1), 0)
 
-    def test_one_counter_skilled(self):
+    def test_no_counter_skilled(self):
         spear = _make_spear()
         _set_mastery(self.char1, 2)
-        self.assertEqual(spear.get_reach_counters_per_round(self.char1), 1)
+        self.assertEqual(spear.get_reach_counters_per_round(self.char1), 0)
 
     def test_one_counter_expert(self):
         spear = _make_spear()
         _set_mastery(self.char1, 3)
         self.assertEqual(spear.get_reach_counters_per_round(self.char1), 1)
 
-    def test_two_counters_master(self):
+    def test_one_counter_master(self):
         spear = _make_spear()
         _set_mastery(self.char1, 4)
-        self.assertEqual(spear.get_reach_counters_per_round(self.char1), 2)
+        self.assertEqual(spear.get_reach_counters_per_round(self.char1), 1)
 
-    def test_three_counters_gm(self):
+    def test_two_counters_gm(self):
         spear = _make_spear()
         _set_mastery(self.char1, 5)
-        self.assertEqual(spear.get_reach_counters_per_round(self.char1), 3)
+        self.assertEqual(spear.get_reach_counters_per_round(self.char1), 2)

@@ -7,10 +7,10 @@ focuses on off-hand attacks with reducing penalty and light parry.
 Mastery progression:
     UNSKILLED: -2 hit, 0 parries, 0 off-hand attacks
     BASIC:      0 hit, 0 parries, 0 off-hand attacks
-    SKILLED:   +2 hit, 1 parry, 1 off-hand attack (-4 penalty)
-    EXPERT:    +4 hit, 1 parry, 1 off-hand attack (-2 penalty)
-    MASTER:    +6 hit, 1 parry, 1 off-hand attack (no penalty)
-    GM:        +8 hit, 1 parry, 2 off-hand attacks (no penalty)
+    SKILLED:   +2 hit, 1 parry, 0 off-hand attacks
+    EXPERT:    +4 hit, 1 parry, 1 off-hand attack (-4 penalty)
+    MASTER:    +6 hit, 1 parry, 1 off-hand attack (-2 penalty)
+    GM:        +8 hit, 2 parries, 1 off-hand attack (no penalty)
 
 Off-hand attacks only fire when a dual-wield weapon is held in the
 HOLD slot. Main hand mastery drives all bonuses — off-hand weapon
@@ -30,24 +30,24 @@ _SHORTSWORD_PARRIES = {
     MasteryLevel.SKILLED: 1,
     MasteryLevel.EXPERT: 1,
     MasteryLevel.MASTER: 1,
-    MasteryLevel.GRANDMASTER: 1,
+    MasteryLevel.GRANDMASTER: 2,
 }
 
 _SHORTSWORD_OFFHAND_ATTACKS = {
     MasteryLevel.UNSKILLED: 0,
     MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 1,
+    MasteryLevel.SKILLED: 0,
     MasteryLevel.EXPERT: 1,
     MasteryLevel.MASTER: 1,
-    MasteryLevel.GRANDMASTER: 2,
+    MasteryLevel.GRANDMASTER: 1,
 }
 
 _SHORTSWORD_OFFHAND_PENALTY = {
     MasteryLevel.UNSKILLED: 0,
     MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: -4,
-    MasteryLevel.EXPERT: -2,
-    MasteryLevel.MASTER: 0,
+    MasteryLevel.SKILLED: 0,
+    MasteryLevel.EXPERT: -4,
+    MasteryLevel.MASTER: -2,
     MasteryLevel.GRANDMASTER: 0,
 }
 

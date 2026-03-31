@@ -10,10 +10,10 @@ multiple stars per round with increasing precision.
 Mastery progression:
     UNSKILLED: -2 hit, 1 throw, 0 crit mod
     BASIC:      0 hit, 1 throw, 0 crit mod
-    SKILLED:   +2 hit, 1 throw, -1 crit threshold
+    SKILLED:   +2 hit, 2 throws, -1 crit threshold
     EXPERT:    +4 hit, 2 throws, -1 crit threshold
-    MASTER:    +6 hit, 2 throws, -2 crit threshold
-    GM:        +8 hit, 3 throws, -2 crit threshold
+    MASTER:    +6 hit, 3 throws, -2 crit threshold
+    GM:        +8 hit, 4 throws, -2 crit threshold
 
 Consumable mechanic:
     On hit → shuriken moves to target's inventory (can be looted)
@@ -36,10 +36,10 @@ from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 _SHURIKEN_EXTRA_ATTACKS = {
     MasteryLevel.UNSKILLED: 0,
     MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 0,
+    MasteryLevel.SKILLED: 1,
     MasteryLevel.EXPERT: 1,
-    MasteryLevel.MASTER: 1,
-    MasteryLevel.GRANDMASTER: 2,
+    MasteryLevel.MASTER: 2,
+    MasteryLevel.GRANDMASTER: 3,
 }
 
 # Crit threshold modifier by mastery (negative = easier to crit)

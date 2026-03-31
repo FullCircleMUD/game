@@ -5,9 +5,9 @@ Validates:
     - Weapon type key and tag
     - can_dual_wield is True
     - No extra main-hand attacks at any mastery level
-    - Parries: 0/0/1/1/1/1
-    - Off-hand attacks: 0/0/1/1/1/2
-    - Off-hand hit modifier: 0/0/-4/-2/0/0
+    - Parries: 0/0/1/1/1/2
+    - Off-hand attacks: 0/0/0/1/1/1
+    - Off-hand hit modifier: 0/0/0/-4/-2/0
     - Default hit/damage bonuses (from MasteryLevel.bonus)
 
 evennia test --settings settings tests.typeclass_tests.test_shortsword
@@ -90,7 +90,7 @@ class TestShortswordMastery(EvenniaTest):
     def test_parries_gm(self):
         ss = _make_shortsword()
         _set_mastery(self.char1, 5)
-        self.assertEqual(ss.get_parries_per_round(self.char1), 1)
+        self.assertEqual(ss.get_parries_per_round(self.char1), 2)
 
     # ── Off-hand Attacks ─────────────────────────────────────────
 
@@ -107,7 +107,7 @@ class TestShortswordMastery(EvenniaTest):
     def test_offhand_attacks_skilled(self):
         ss = _make_shortsword()
         _set_mastery(self.char1, 2)
-        self.assertEqual(ss.get_offhand_attacks(self.char1), 1)
+        self.assertEqual(ss.get_offhand_attacks(self.char1), 0)
 
     def test_offhand_attacks_expert(self):
         ss = _make_shortsword()
@@ -120,10 +120,10 @@ class TestShortswordMastery(EvenniaTest):
         self.assertEqual(ss.get_offhand_attacks(self.char1), 1)
 
     def test_offhand_attacks_gm(self):
-        """GM shortsword gets 2 off-hand attacks."""
+        """GM shortsword gets 1 off-hand attack."""
         ss = _make_shortsword()
         _set_mastery(self.char1, 5)
-        self.assertEqual(ss.get_offhand_attacks(self.char1), 2)
+        self.assertEqual(ss.get_offhand_attacks(self.char1), 1)
 
     # ── Off-hand Hit Modifier ────────────────────────────────────
 
@@ -138,22 +138,22 @@ class TestShortswordMastery(EvenniaTest):
         self.assertEqual(ss.get_offhand_hit_modifier(self.char1), 0)
 
     def test_offhand_penalty_skilled(self):
-        """SKILLED: -4 off-hand penalty."""
+        """SKILLED: no off-hand attacks, so modifier is 0."""
         ss = _make_shortsword()
         _set_mastery(self.char1, 2)
-        self.assertEqual(ss.get_offhand_hit_modifier(self.char1), -4)
+        self.assertEqual(ss.get_offhand_hit_modifier(self.char1), 0)
 
     def test_offhand_penalty_expert(self):
-        """EXPERT: -2 off-hand penalty."""
+        """EXPERT: -4 off-hand penalty."""
         ss = _make_shortsword()
         _set_mastery(self.char1, 3)
-        self.assertEqual(ss.get_offhand_hit_modifier(self.char1), -2)
+        self.assertEqual(ss.get_offhand_hit_modifier(self.char1), -4)
 
     def test_offhand_penalty_master(self):
-        """MASTER: no off-hand penalty."""
+        """MASTER: -2 off-hand penalty."""
         ss = _make_shortsword()
         _set_mastery(self.char1, 4)
-        self.assertEqual(ss.get_offhand_hit_modifier(self.char1), 0)
+        self.assertEqual(ss.get_offhand_hit_modifier(self.char1), -2)
 
     def test_offhand_penalty_gm(self):
         """GM: no off-hand penalty."""

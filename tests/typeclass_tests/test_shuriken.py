@@ -3,7 +3,7 @@ Tests for ShurikenNFTItem — shuriken with multi-throw + crit + consumable.
 
 Validates:
     - No parries
-    - Extra attacks scale: 0/0/0/1/1/2
+    - Extra attacks scale: 0/0/1/1/2/3 (throws: 1/1/2/2/3/4)
     - Crit threshold modifier: 0/0/-1/-1/-2/-2
     - Unbreakable (reduce_durability is no-op)
     - Consumable: on hit, shuriken moves to target inventory
@@ -54,11 +54,18 @@ class TestShurikenMasteryOverrides(EvenniaTest):
             _set_mastery(self.char1, level)
             self.assertEqual(shuriken.get_parries_per_round(self.char1), 0)
 
-    def test_no_extra_attacks_before_expert(self):
+    def test_no_extra_attacks_unskilled_basic(self):
+        """UNSKILLED and BASIC get 0 extra attacks (1 throw total)."""
         shuriken = _make_shuriken()
-        for level in range(3):  # UNSKILLED through SKILLED
+        for level in range(2):  # UNSKILLED and BASIC
             _set_mastery(self.char1, level)
             self.assertEqual(shuriken.get_extra_attacks(self.char1), 0)
+
+    def test_extra_attacks_skilled(self):
+        """SKILLED gets +1 extra attack (2 throws total)."""
+        shuriken = _make_shuriken()
+        _set_mastery(self.char1, 2)  # SKILLED
+        self.assertEqual(shuriken.get_extra_attacks(self.char1), 1)
 
     def test_extra_attacks_expert(self):
         shuriken = _make_shuriken()
@@ -66,14 +73,16 @@ class TestShurikenMasteryOverrides(EvenniaTest):
         self.assertEqual(shuriken.get_extra_attacks(self.char1), 1)
 
     def test_extra_attacks_master(self):
+        """MASTER gets +2 extra attacks (3 throws total)."""
         shuriken = _make_shuriken()
         _set_mastery(self.char1, 4)  # MASTER
-        self.assertEqual(shuriken.get_extra_attacks(self.char1), 1)
+        self.assertEqual(shuriken.get_extra_attacks(self.char1), 2)
 
     def test_extra_attacks_gm(self):
+        """GM gets +3 extra attacks (4 throws total)."""
         shuriken = _make_shuriken()
         _set_mastery(self.char1, 5)  # GM
-        self.assertEqual(shuriken.get_extra_attacks(self.char1), 2)
+        self.assertEqual(shuriken.get_extra_attacks(self.char1), 3)
 
     def test_crit_mod_unskilled(self):
         shuriken = _make_shuriken()

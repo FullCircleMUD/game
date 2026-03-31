@@ -1,14 +1,13 @@
 """
-Tests for NinjatoNFTItem — ninja signature sword with extra attacks, crit
-reduction, and dual-wield off-hand attacks.
+Tests for NinjatoNFTItem — two-handed finesse ninja sword with extra attacks
+and parries.
 
 Validates:
-    - Finesse flag set, can_dual_wield is True, ninja-only
-    - No parries at any mastery level
+    - Finesse flag set, can_dual_wield is False, ninja-only
+    - Parries: 0/0/1/1/2/2
     - Extra attacks: 0/0/0/+1/+1/+1
-    - Off-hand attacks: 0/0/1/1/1/2
-    - Off-hand penalty: 0/0/-4/-2/0/0
-    - Crit modifier: 0/0/0/-1/-1/-2
+    - No off-hand attacks (two-handed)
+    - No crit modifiers
     - Weapon type key and tag
 
 evennia test --settings settings tests.typeclass_tests.test_ninjato
@@ -54,14 +53,16 @@ class TestNinjatoMastery(EvenniaTest):
 
     def test_can_dual_wield(self):
         ninjato = _make_ninjato()
-        self.assertTrue(ninjato.can_dual_wield)
+        self.assertFalse(ninjato.can_dual_wield)
 
-    def test_no_parries(self):
-        """Ninjato should grant 0 parries at all mastery levels."""
+    def test_parries(self):
+        """Ninjato parries: 0/0/1/1/2/2."""
         ninjato = _make_ninjato()
-        for level in range(6):
+        expected = [0, 0, 1, 1, 2, 2]
+        for level, exp in enumerate(expected):
             _set_mastery(self.char1, level)
-            self.assertEqual(ninjato.get_parries_per_round(self.char1), 0)
+            self.assertEqual(ninjato.get_parries_per_round(self.char1), exp,
+                             f"Level {level}: expected {exp}")
 
     # ── Extra Attacks ────────────────────────────────────────────────
 
@@ -95,93 +96,14 @@ class TestNinjatoMastery(EvenniaTest):
         _set_mastery(self.char1, 5)
         self.assertEqual(ninjato.get_extra_attacks(self.char1), 1)
 
-    # ── Off-hand Attacks ─────────────────────────────────────────────
-
-    def test_offhand_attacks_unskilled(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 0)
-        self.assertEqual(ninjato.get_offhand_attacks(self.char1), 0)
-
-    def test_offhand_attacks_basic(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 1)
-        self.assertEqual(ninjato.get_offhand_attacks(self.char1), 0)
-
-    def test_offhand_attacks_skilled(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 2)
-        self.assertEqual(ninjato.get_offhand_attacks(self.char1), 1)
-
-    def test_offhand_attacks_expert(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 3)
-        self.assertEqual(ninjato.get_offhand_attacks(self.char1), 1)
-
-    def test_offhand_attacks_master(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 4)
-        self.assertEqual(ninjato.get_offhand_attacks(self.char1), 1)
-
-    def test_offhand_attacks_gm(self):
-        """GM ninjato gets 2 off-hand attacks — highest in the game."""
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 5)
-        self.assertEqual(ninjato.get_offhand_attacks(self.char1), 2)
-
-    # ── Off-hand Penalty ─────────────────────────────────────────────
-
-    def test_offhand_penalty_skilled(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 2)
-        self.assertEqual(ninjato.get_offhand_hit_modifier(self.char1), -4)
-
-    def test_offhand_penalty_expert(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 3)
-        self.assertEqual(ninjato.get_offhand_hit_modifier(self.char1), -2)
-
-    def test_offhand_penalty_master(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 4)
-        self.assertEqual(ninjato.get_offhand_hit_modifier(self.char1), 0)
-
-    def test_offhand_penalty_gm(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 5)
-        self.assertEqual(ninjato.get_offhand_hit_modifier(self.char1), 0)
-
     # ── Crit Threshold Modifier ──────────────────────────────────────
 
-    def test_crit_modifier_unskilled(self):
+    def test_no_crit_modifier(self):
+        """Ninjato should have 0 crit modifier at all mastery levels."""
         ninjato = _make_ninjato()
-        _set_mastery(self.char1, 0)
-        self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), 0)
-
-    def test_crit_modifier_basic(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 1)
-        self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), 0)
-
-    def test_crit_modifier_skilled(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 2)
-        self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), 0)
-
-    def test_crit_modifier_expert(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 3)
-        self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), -1)
-
-    def test_crit_modifier_master(self):
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 4)
-        self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), -1)
-
-    def test_crit_modifier_gm(self):
-        """GM ninjato gets -2 crit threshold — crits on 18+."""
-        ninjato = _make_ninjato()
-        _set_mastery(self.char1, 5)
-        self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), -2)
+        for level in range(6):
+            _set_mastery(self.char1, level)
+            self.assertEqual(ninjato.get_mastery_crit_threshold_modifier(self.char1), 0)
 
     # ── Default Bonuses ──────────────────────────────────────────────
 

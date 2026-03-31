@@ -1,11 +1,11 @@
 """
-Tests for NunchakuNFTItem — stun specialist with dual-wield.
+Tests for NunchakuNFTItem — two-handed stun specialist.
 
 Validates:
     - No parries at any mastery level
-    - Extra attacks: 0/0/0/0/+1/+1
-    - Off-hand attacks: 0/0/1/1/1/2
-    - Off-hand penalty: 0/0/-4/-2/0/0
+    - can_dual_wield is False (two-handed)
+    - Extra attacks: 0/0/1/1/2/2
+    - No off-hand attacks (two-handed)
     - Stun checks per round: 0/0/1/1/1/2
     - Stun mechanic (contested DEX vs CON):
         - No stun at UNSKILLED/BASIC
@@ -89,7 +89,7 @@ class TestNunchakuMasteryOverrides(EvenniaTest):
 
     def test_can_dual_wield(self):
         nunchaku = _make_nunchaku()
-        self.assertTrue(nunchaku.can_dual_wield)
+        self.assertFalse(nunchaku.can_dual_wield)
 
     def test_no_parries(self):
         nunchaku = _make_nunchaku()
@@ -99,26 +99,10 @@ class TestNunchakuMasteryOverrides(EvenniaTest):
 
     def test_extra_attacks(self):
         nunchaku = _make_nunchaku()
-        expected = [0, 0, 0, 0, 1, 1]
+        expected = [0, 0, 1, 1, 2, 2]
         for level, exp in enumerate(expected):
             _set_mastery(self.char1, level)
             self.assertEqual(nunchaku.get_extra_attacks(self.char1), exp,
-                             f"Level {level}: expected {exp}")
-
-    def test_offhand_attacks(self):
-        nunchaku = _make_nunchaku()
-        expected = [0, 0, 1, 1, 1, 2]
-        for level, exp in enumerate(expected):
-            _set_mastery(self.char1, level)
-            self.assertEqual(nunchaku.get_offhand_attacks(self.char1), exp,
-                             f"Level {level}: expected {exp}")
-
-    def test_offhand_penalty(self):
-        nunchaku = _make_nunchaku()
-        expected = [0, 0, -4, -2, 0, 0]
-        for level, exp in enumerate(expected):
-            _set_mastery(self.char1, level)
-            self.assertEqual(nunchaku.get_offhand_hit_modifier(self.char1), exp,
                              f"Level {level}: expected {exp}")
 
     def test_stun_checks_per_round(self):
@@ -306,18 +290,22 @@ class TestNunchakuStun(EvenniaTest):
         self.assertEqual(kwargs["source"], self.char1)
 
     @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
-    def test_immune_huge(self, mock_dice):
-        """HUGE targets should be immune to nunchaku stun."""
+    def test_not_immune_huge(self, mock_dice):
+        """HUGE targets are now vulnerable to nunchaku stun."""
         _set_mastery(self.char1, 5)
+        self.char1.dexterity = 10
+        self.char1.get_attribute_bonus = lambda x: 0
         target = _mock_target(size="huge")
         handler = _mock_handler(stun_checks=2)
         self.char1.scripts.get = lambda key: [handler] if key == "combat_handler" else []
 
+        # Attacker: 15 + 0 + 8 = 23, Defender: 10 + 0 = 10, gap = 13
+        mock_dice.roll.side_effect = [15, 10]
+
         self.nunchaku.at_hit(self.char1, target, 5, "bludgeoning")
 
-        mock_dice.roll.assert_not_called()
-        target.apply_stunned.assert_not_called()
-        target.apply_prone.assert_not_called()
+        # Stun roll should have been attempted (not skipped)
+        mock_dice.roll.assert_called()
 
     @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
     def test_immune_gargantuan(self, mock_dice):

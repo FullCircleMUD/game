@@ -1,20 +1,22 @@
 """
 NunchakuNFTItem — nunchaku-type weapons.
 
-Linked sticks swung at high speed. Stun specialist with dual-wield.
+Linked sticks swung at high speed. Two-handed stun specialist.
 Usable by warriors, ninjas, and barbarians.
 
 Mastery progression:
-    UNSKILLED: -2 hit, 0 extra attacks, 0 off-hand, no stun
-    BASIC:      0 hit, 0 extra attacks, 0 off-hand, no stun
-    SKILLED:   +2 hit, 0 extra attacks, 1 off-hand (-4), 1 stun check/round
-    EXPERT:    +4 hit, 0 extra attacks, 1 off-hand (-2), 1 stun check/round
-    MASTER:    +6 hit, +1 extra attack, 1 off-hand (0), 1 stun check/round (PRONE on win by >=5)
-    GM:        +8 hit, +1 extra attack, 2 off-hand (0), 2 stun checks/round (PRONE on win by >=5, 2 rounds)
+    UNSKILLED: -2 hit, 1 attack, no stun
+    BASIC:      0 hit, 1 attack, no stun
+    SKILLED:   +2 hit, 2 attacks, 1 stun check/round
+    EXPERT:    +4 hit, 2 attacks, 1 stun check/round
+    MASTER:    +6 hit, 3 attacks, 1 stun check/round (PRONE on win by >=5)
+    GM:        +8 hit, 3 attacks, 2 stun checks/round (PRONE on win by >=5, 2 rounds)
+
+Two-handed, no dual-wield. GARGANTUAN only immune to stun.
 
 Stun/Knockdown (SKILLED+):
     Contested DEX roll: attacker d20 + DEX bonus + mastery bonus VS
-    defender d20 + CON bonus. Size-gated: HUGE+ enemies are immune.
+    defender d20 + CON bonus. Size-gated: GARGANTUAN immune.
 
     SKILLED/EXPERT: attacker wins → target STUNNED 1 round
     MASTER: win by <5 → STUNNED 1 round, win by >=5 → PRONE 1 round
@@ -32,28 +34,10 @@ from utils.dice_roller import dice
 _NUNCHAKU_EXTRA_ATTACKS = {
     MasteryLevel.UNSKILLED: 0,
     MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 0,
-    MasteryLevel.EXPERT: 0,
-    MasteryLevel.MASTER: 1,
-    MasteryLevel.GRANDMASTER: 1,
-}
-
-_NUNCHAKU_OFFHAND_ATTACKS = {
-    MasteryLevel.UNSKILLED: 0,
-    MasteryLevel.BASIC: 0,
     MasteryLevel.SKILLED: 1,
     MasteryLevel.EXPERT: 1,
-    MasteryLevel.MASTER: 1,
+    MasteryLevel.MASTER: 2,
     MasteryLevel.GRANDMASTER: 2,
-}
-
-_NUNCHAKU_OFFHAND_PENALTY = {
-    MasteryLevel.UNSKILLED: 0,
-    MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: -4,
-    MasteryLevel.EXPERT: -2,
-    MasteryLevel.MASTER: 0,
-    MasteryLevel.GRANDMASTER: 0,
 }
 
 _NUNCHAKU_STUN_CHECKS = {
@@ -66,18 +50,20 @@ _NUNCHAKU_STUN_CHECKS = {
 }
 
 # Sizes immune to nunchaku stun/knockdown
-_STUN_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_STUN_IMMUNE_SIZES = {ActorSize.GARGANTUAN}
 
 
 class NunchakuNFTItem(WeaponNFTItem):
     """
-    Nunchaku weapons — one-handed melee, stun specialist + dual-wield.
+    Nunchaku weapons — two-handed melee, stun specialist.
 
     Contested DEX vs CON stun on hit. PRONE at MASTER+ on big wins.
+    GARGANTUAN only immune to stun.
     """
 
     weapon_type_key = "nanchaku"
-    can_dual_wield = AttributeProperty(True)
+    two_handed = AttributeProperty(True)
+    can_dual_wield = AttributeProperty(False)
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -93,14 +79,6 @@ class NunchakuNFTItem(WeaponNFTItem):
     def get_extra_attacks(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _NUNCHAKU_EXTRA_ATTACKS.get(mastery, 0)
-
-    def get_offhand_attacks(self, wielder):
-        mastery = self.get_wielder_mastery(wielder)
-        return _NUNCHAKU_OFFHAND_ATTACKS.get(mastery, 0)
-
-    def get_offhand_hit_modifier(self, wielder):
-        mastery = self.get_wielder_mastery(wielder)
-        return _NUNCHAKU_OFFHAND_PENALTY.get(mastery, 0)
 
     def get_stun_checks_per_round(self, wielder):
         mastery = self.get_wielder_mastery(wielder)

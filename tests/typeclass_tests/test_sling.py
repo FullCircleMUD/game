@@ -2,7 +2,7 @@
 Tests for SlingNFTItem — sling with concussive daze mastery.
 
 Validates:
-    - No parries, no extra attacks
+    - No parries, extra attacks at EXPERT+ (0/0/0/1/1/1)
     - No daze at UNSKILLED/BASIC
     - Daze chance scales (10/15/20/25%)
     - Daze applies STUNNED named effect (1 round)
@@ -69,11 +69,14 @@ class TestSlingMasteryOverrides(EvenniaTest):
             _set_mastery(self.char1, level)
             self.assertEqual(sling.get_parries_per_round(self.char1), 0)
 
-    def test_no_extra_attacks(self):
+    def test_extra_attacks(self):
+        """Sling gets extra attacks at EXPERT+: 0/0/0/1/1/1."""
         sling = _make_sling()
-        for level in range(6):
+        expected = [0, 0, 0, 1, 1, 1]
+        for level, exp in enumerate(expected):
             _set_mastery(self.char1, level)
-            self.assertEqual(sling.get_extra_attacks(self.char1), 0)
+            self.assertEqual(sling.get_extra_attacks(self.char1), exp,
+                             f"Level {level}: expected {exp}")
 
     def test_weapon_type_key(self):
         sling = _make_sling()

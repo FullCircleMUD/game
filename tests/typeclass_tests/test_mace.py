@@ -174,22 +174,22 @@ class TestMaceCrush(EvenniaTest):
         self.assertEqual(result, 14)
 
     def test_crush_gm_ac18(self):
-        """GM: AC 18 → excess 6, cap 5 → +5 bonus."""
+        """GM: AC 18 → excess 6, cap 8 → +6 bonus."""
         _set_mastery(self.char1, 5)
         target = _mock_target(armor_class=18)
 
         result = self.mace.at_hit(self.char1, target, 10, "bludgeoning")
 
-        self.assertEqual(result, 15)
+        self.assertEqual(result, 16)
 
     def test_crush_gm_ac20(self):
-        """GM: AC 20 → excess 8, cap 5 → +5 bonus (capped)."""
+        """GM: AC 20 → excess 8, cap 8 → +8 bonus."""
         _set_mastery(self.char1, 5)
         target = _mock_target(armor_class=20)
 
         result = self.mace.at_hit(self.char1, target, 10, "bludgeoning")
 
-        self.assertEqual(result, 15)
+        self.assertEqual(result, 18)
 
     def test_crush_ac13(self):
         """AC 13 → excess 1 → +1 bonus (below any cap)."""

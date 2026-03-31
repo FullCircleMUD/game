@@ -5,6 +5,11 @@ Staves are two-handed bludgeoning weapons that offer the best defensive
 scaling in the game. Highest parry count, earliest parry advantage, and
 riposte at high mastery. THE weapon for casters who want to survive melee.
 
+UNIVERSAL PARRY: Staff parries work against ALL physical attack types
+(armed melee, unarmed, animal, missile). Other weapons can only parry
+armed melee attacks. The combat handler will check `universal_parry`
+on the defender's weapon to determine valid parry targets.
+
 Mastery progression:
     UNSKILLED: -2 hit, no parries
     BASIC:      0 hit, no parries
@@ -51,11 +56,15 @@ _STAFF_PARRIES = {
 class StaffNFTItem(WeaponNFTItem):
     """
     Staff weapons — two-handed melee, parry specialist mastery path.
+
+    Universal parry: can parry armed melee, unarmed, animal, and missile
+    attacks (other weapons can only parry armed melee).
     """
 
     weapon_type_key = "staff"
     two_handed = AttributeProperty(True)
     excluded_classes = AttributeProperty([CharacterClass.THIEF])
+    universal_parry = True
 
     def at_object_creation(self):
         super().at_object_creation()

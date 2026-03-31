@@ -1,20 +1,19 @@
 """
 NinjatoNFTItem — ninjatō-type weapons.
 
-A straight-bladed ninja sword. The ninja's signature weapon — combines
-speed, precision, and dual-wield capability. Pure offense, no parries.
+A straight-bladed ninja sword. Two-handed finesse weapon — the ninja's
+signature blade. Combines extra attacks, parries, and at GM mastery,
+parry advantage and riposte.
 
 Mastery progression:
-    UNSKILLED: -2 hit, 0 extra attacks, no crit bonus, 0 off-hand
-    BASIC:      0 hit, 0 extra attacks, no crit bonus, 0 off-hand
-    SKILLED:   +2 hit, 0 extra attacks, no crit bonus, 1 off-hand (-4)
-    EXPERT:    +4 hit, +1 extra attack, crit on 19+ (-1), 1 off-hand (-2)
-    MASTER:    +6 hit, +1 extra attack, crit on 19+ (-1), 1 off-hand (0)
-    GM:        +8 hit, +1 extra attack, crit on 18+ (-2), 2 off-hand (0)
+    UNSKILLED: -2 hit, 1 attack, 0 parries
+    BASIC:      0 hit, 1 attack, 0 parries
+    SKILLED:   +2 hit, 1 attack, 1 parry
+    EXPERT:    +4 hit, 2 attacks, 1 parry
+    MASTER:    +6 hit, 2 attacks, 2 parries
+    GM:        +8 hit, 2 attacks, 2 parries (parry advantage, riposte)
 
-At GM dual-wielding: 1 base + 1 extra + 2 offhand = 4 attacks with crit
-on 18+. The highest attack count of any weapon — justified by being
-ninja-exclusive (prestige class earned through remorts).
+Two-handed, finesse, no dual-wield. Ninja only.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -32,45 +31,28 @@ _NINJATO_EXTRA_ATTACKS = {
     MasteryLevel.GRANDMASTER: 1,
 }
 
-_NINJATO_CRIT_MODIFIER = {
-    MasteryLevel.UNSKILLED: 0,
-    MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 0,
-    MasteryLevel.EXPERT: -1,
-    MasteryLevel.MASTER: -1,
-    MasteryLevel.GRANDMASTER: -2,
-}
-
-_NINJATO_OFFHAND_ATTACKS = {
+_NINJATO_PARRIES = {
     MasteryLevel.UNSKILLED: 0,
     MasteryLevel.BASIC: 0,
     MasteryLevel.SKILLED: 1,
     MasteryLevel.EXPERT: 1,
-    MasteryLevel.MASTER: 1,
+    MasteryLevel.MASTER: 2,
     MasteryLevel.GRANDMASTER: 2,
-}
-
-_NINJATO_OFFHAND_PENALTY = {
-    MasteryLevel.UNSKILLED: 0,
-    MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: -4,
-    MasteryLevel.EXPERT: -2,
-    MasteryLevel.MASTER: 0,
-    MasteryLevel.GRANDMASTER: 0,
 }
 
 
 class NinjatoNFTItem(WeaponNFTItem):
     """
-    Ninjatō weapons — one-handed finesse melee, speed + crit + dual-wield.
+    Ninjatō weapons — two-handed finesse melee, extra attacks + parries.
 
-    Pure offense: extra attacks, crit threshold scaling, off-hand attacks.
-    No parries, no defensive hooks. Ninja only.
+    Balanced offense/defense: extra attacks at EXPERT+, parries scaling
+    to 2 at MASTER+, parry advantage and riposte at GM. Ninja only.
     """
 
     weapon_type_key = "ninjato"
     is_finesse = AttributeProperty(True)
-    can_dual_wield = AttributeProperty(True)
+    two_handed = AttributeProperty(True)
+    can_dual_wield = AttributeProperty(False)
     required_classes = AttributeProperty([CharacterClass.NINJA])
 
     def at_object_creation(self):
@@ -81,21 +63,20 @@ class NinjatoNFTItem(WeaponNFTItem):
     #  Mastery Overrides
     # ================================================================== #
 
-    def get_parries_per_round(self, wielder):
-        return 0
-
     def get_extra_attacks(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _NINJATO_EXTRA_ATTACKS.get(mastery, 0)
 
-    def get_mastery_crit_threshold_modifier(self, wielder):
+    def get_parries_per_round(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
-        return _NINJATO_CRIT_MODIFIER.get(mastery, 0)
+        return _NINJATO_PARRIES.get(mastery, 0)
 
-    def get_offhand_attacks(self, wielder):
+    def get_parry_advantage(self, wielder):
+        """Parry advantage at GM only."""
         mastery = self.get_wielder_mastery(wielder)
-        return _NINJATO_OFFHAND_ATTACKS.get(mastery, 0)
+        return mastery == MasteryLevel.GRANDMASTER
 
-    def get_offhand_hit_modifier(self, wielder):
+    def has_riposte(self, wielder):
+        """Riposte at GM only."""
         mastery = self.get_wielder_mastery(wielder)
-        return _NINJATO_OFFHAND_PENALTY.get(mastery, 0)
+        return mastery == MasteryLevel.GRANDMASTER
