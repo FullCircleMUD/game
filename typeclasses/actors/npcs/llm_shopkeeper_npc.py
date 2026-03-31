@@ -52,6 +52,9 @@ class LLMShopkeeperNPC(LLMRoleplayNPC):
         llm_use_vector_memory: defaults to False (short-term memory only)
     """
 
+    # Use the shopkeeper-specific prompt template
+    llm_prompt_file = AttributeProperty("shopkeeper.md")
+
     # Shopkeeper attributes (same as ShopkeeperNPC)
     tradeable_resources = AttributeProperty([])
     shop_name = AttributeProperty("Shop")
