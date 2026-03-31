@@ -15,7 +15,7 @@ from typeclasses.terrain.exits.exit_tripwire import TripwireExit
 from typeclasses.terrain.rooms.room_pressure_plate import PressurePlateRoom
 from typeclasses.world_objects.sign import WorldSign
 from typeclasses.world_objects.trap_chest import TrapChest
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 
 
 def test_area_economic():
@@ -44,7 +44,7 @@ def test_area_economic():
     sign.sign_text = "Welcome to the Market District"
     sign.sign_style = "post"
 
-    connect(limbo, dt1, "east", desc_ab="a small dirt track")
+    connect_bidirectional_exit(limbo, dt1, "east", desc_ab="a small dirt track")
 
     dt2 = create_object(
         RoomBase,
@@ -56,7 +56,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt1, dt2, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt1, dt2, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
 
     dt3 = create_object(
         RoomBase,
@@ -68,7 +68,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt2, dt3, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt2, dt3, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
 
     dt3.always_lit = True
     dt3.details = {
@@ -93,7 +93,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt3, dt4, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt3, dt4, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
 
     dt5 = create_object(
         RoomBase,
@@ -105,7 +105,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt4, dt5, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt4, dt5, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
 
     # --- Signs in dt5 ---
     # Hidden sign — requires 'search' to discover
@@ -143,7 +143,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt1, wheat_farm, "south", desc_ab="a big field of wheat", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt1, wheat_farm, "south", desc_ab="a big field of wheat", desc_ba="a small dirt track")
 
     windmill = create_object(
         RoomProcessing,
@@ -158,7 +158,7 @@ def test_area_economic():
         ]
     )
 
-    connect(wheat_farm, windmill, "south", desc_ab="a small windmill turns in the breeze", desc_ba="a big field of wheat")
+    connect_bidirectional_exit(wheat_farm, windmill, "south", desc_ab="a small windmill turns in the breeze", desc_ba="a big field of wheat")
 
     bakery = create_object(
         RoomProcessing,
@@ -173,7 +173,7 @@ def test_area_economic():
         ]
     )
 
-    connect_door(windmill, bakery, "south",
+    connect_bidirectional_door_exit(windmill, bakery, "south",
                  key="a heavy door",
                  closed_ab="a heavy door blocks the way",
                  open_ab="through an open door you see a busy, trendy looking Artisanal Bakehouse",
@@ -202,7 +202,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt2, forest, "south", desc_ab="a heavily wooded forest", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt2, forest, "south", desc_ab="a heavily wooded forest", desc_ba="a small dirt track")
 
     sawmill = create_object(
         RoomProcessing,
@@ -217,7 +217,7 @@ def test_area_economic():
         ]
     )
 
-    connect(forest, sawmill, "south", desc_ab="a loud sawmill deep in the forest", desc_ba="a heavily wooded forest")
+    connect_bidirectional_exit(forest, sawmill, "south", desc_ab="a loud sawmill deep in the forest", desc_ba="a heavily wooded forest")
 
     # Woodshop — skilled crafting room for carpentry recipes
     from typeclasses.terrain.rooms.room_crafting import RoomCrafting
@@ -234,7 +234,7 @@ def test_area_economic():
         ]
     )
 
-    connect(sawmill, woodshop, "south", desc_ab="a small woodshop", desc_ba="a sawmill deep in the forest")
+    connect_bidirectional_exit(sawmill, woodshop, "south", desc_ab="a small woodshop", desc_ba="a sawmill deep in the forest")
 
 
     ##########################
@@ -258,7 +258,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt3, cotton, "south", desc_ab="cotton field", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt3, cotton, "south", desc_ab="cotton field", desc_ba="a small dirt track")
 
     textile_mill = create_object(
         RoomProcessing,
@@ -273,7 +273,7 @@ def test_area_economic():
         ]
     )
 
-    connect(cotton, textile_mill, "south", desc_ab="a textile mill", desc_ba="cotton field")
+    connect_bidirectional_exit(cotton, textile_mill, "south", desc_ab="a textile mill", desc_ba="cotton field")
 
     tailor = create_object(
         RoomCrafting,
@@ -290,7 +290,7 @@ def test_area_economic():
         ]
     )
 
-    connect(textile_mill, tailor, "south", desc_ab="a tailors shop", desc_ba="a textile mill")
+    connect_bidirectional_exit(textile_mill, tailor, "south", desc_ab="a tailors shop", desc_ba="a textile mill")
 
 
     #################
@@ -310,7 +310,7 @@ def test_area_economic():
     wolves.tags.add("deep_woods", category="mob_area")
     wolves.tags.add("wolves_den", category="mob_area")
 
-    connect(dt5, wolves, "north", desc_ab="wolves den", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt5, wolves, "north", desc_ab="wolves den", desc_ba="a small dirt track")
 
 
     #################
@@ -345,7 +345,7 @@ def test_area_economic():
         woods[key].tags.add("deep_woods", category="mob_area")
 
     # Connect wolves den → woods west-centre
-    connect(wolves, woods["w"], "east", desc_ab="deep woods", desc_ba="wolves den")
+    connect_bidirectional_exit(wolves, woods["w"], "east", desc_ab="deep woods", desc_ba="wolves den")
 
     # Horizontal connections (west ↔ centre ↔ east)
     for row, (left, mid, right) in [
@@ -353,8 +353,8 @@ def test_area_economic():
         ("mid",   ("w",  "c", "e")),
         ("south", ("sw", "s", "se")),
     ]:
-        connect(woods[left], woods[mid], "east", desc_ab="deep woods", desc_ba="deep woods")
-        connect(woods[mid], woods[right], "east", desc_ab="deep woods", desc_ba="deep woods")
+        connect_bidirectional_exit(woods[left], woods[mid], "east", desc_ab="deep woods", desc_ba="deep woods")
+        connect_bidirectional_exit(woods[mid], woods[right], "east", desc_ab="deep woods", desc_ba="deep woods")
 
     # Vertical connections (north ↔ mid ↔ south)
     for col, (top, mid, bot) in [
@@ -362,8 +362,8 @@ def test_area_economic():
         ("centre", ("n",  "c",  "s")),
         ("east",   ("ne", "e",  "se")),
     ]:
-        connect(woods[top], woods[mid], "south", desc_ab="deep woods", desc_ba="deep woods")
-        connect(woods[mid], woods[bot], "south", desc_ab="deep woods", desc_ba="deep woods")
+        connect_bidirectional_exit(woods[top], woods[mid], "south", desc_ab="deep woods", desc_ba="deep woods")
+        connect_bidirectional_exit(woods[mid], woods[bot], "south", desc_ab="deep woods", desc_ba="deep woods")
 
     tannery = create_object(
         RoomProcessing,
@@ -378,7 +378,7 @@ def test_area_economic():
         ]
     )
 
-    connect(wolves, tannery, "north", desc_ab="a smelly tannery", desc_ba="wolves den")
+    connect_bidirectional_exit(wolves, tannery, "north", desc_ab="a smelly tannery", desc_ba="wolves den")
 
     leathershop = create_object(
         RoomCrafting,
@@ -393,7 +393,7 @@ def test_area_economic():
         ]
     )
 
-    connect(tannery, leathershop, "north", desc_ab="a leathershop", desc_ba="a smelly tannery")
+    connect_bidirectional_exit(tannery, leathershop, "north", desc_ab="a leathershop", desc_ba="a smelly tannery")
 
 
     ##########################
@@ -410,7 +410,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt4, cemetery, "north", desc_ab="a quiet cemetery", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt4, cemetery, "north", desc_ab="a quiet cemetery", desc_ba="a small dirt track")
 
 
     ##########################
@@ -438,7 +438,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt4, smelter, "south", desc_ab="a hot smelter", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt4, smelter, "south", desc_ab="a hot smelter", desc_ba="a small dirt track")
 
     blacksmith = create_object(
         RoomCrafting,
@@ -453,7 +453,7 @@ def test_area_economic():
         ]
     )
 
-    connect(smelter, blacksmith, "west", desc_ab="a blacksmith", desc_ba="smelter")
+    connect_bidirectional_exit(smelter, blacksmith, "west", desc_ab="a blacksmith", desc_ba="smelter")
 
     jeweller = create_object(
         RoomCrafting,
@@ -469,7 +469,7 @@ def test_area_economic():
         ]
     )
 
-    connect(smelter, jeweller, "east", desc_ab="a jewellers workshop", desc_ba="smelter")
+    connect_bidirectional_exit(smelter, jeweller, "east", desc_ab="a jewellers workshop", desc_ba="smelter")
 
     # ── Mine Shaft — N-S corridor from smelter ──────────────────────────
     # Layout: Smelter → Mine Entrance → Ore Passage → Deep Passage
@@ -487,7 +487,7 @@ def test_area_economic():
                      "east and west, and the glow of the smelter is visible to the north."),
         ]
     )
-    connect(smelter, mine_entrance, "south", desc_ab="a mine entrance", desc_ba="the smelter")
+    connect_bidirectional_exit(smelter, mine_entrance, "south", desc_ab="a mine entrance", desc_ba="the smelter")
 
     # -- East: Iron Mine (resource 4) --
     iron_mine = create_object(
@@ -502,7 +502,7 @@ def test_area_economic():
             ("desc_depleted", "The mine walls are bare — every vein of iron has been exhausted. It will take time for new deposits to be exposed."),
         ]
     )
-    connect(mine_entrance, iron_mine, "east", desc_ab="an iron mine", desc_ba="mine entrance")
+    connect_bidirectional_exit(mine_entrance, iron_mine, "east", desc_ab="an iron mine", desc_ba="mine entrance")
 
     # -- West: Coal Mine (resource 36) --
     coal_mine = create_object(
@@ -517,7 +517,7 @@ def test_area_economic():
             ("desc_depleted", "The coal seam is exhausted — nothing but bare rock and coal dust. It will take time for new deposits to be exposed."),
         ]
     )
-    connect(mine_entrance, coal_mine, "west", desc_ab="a coal mine", desc_ba="mine entrance")
+    connect_bidirectional_exit(mine_entrance, coal_mine, "west", desc_ab="a coal mine", desc_ba="mine entrance")
 
     # ── Ore Passage ──────────────────────────────────────────────────
     ore_passage = create_object(
@@ -529,7 +529,7 @@ def test_area_economic():
                      "scar the walls and the air grows warmer. Tunnels branch east and west."),
         ]
     )
-    connect(mine_entrance, ore_passage, "south", desc_ab="a deeper passage", desc_ba="the mine entrance")
+    connect_bidirectional_exit(mine_entrance, ore_passage, "south", desc_ab="a deeper passage", desc_ba="the mine entrance")
 
     # -- East: Copper Mine (resource 23) --
     copper_mine = create_object(
@@ -544,7 +544,7 @@ def test_area_economic():
             ("desc_depleted", "The copper vein is spent — nothing but bare rock remains. It will take time for new deposits to be exposed."),
         ]
     )
-    connect(ore_passage, copper_mine, "east", desc_ab="a copper mine", desc_ba="the ore passage")
+    connect_bidirectional_exit(ore_passage, copper_mine, "east", desc_ab="a copper mine", desc_ba="the ore passage")
 
     # -- West: Tin Mine (resource 25) --
     tin_mine = create_object(
@@ -559,7 +559,7 @@ def test_area_economic():
             ("desc_depleted", "The tin deposits are exhausted — only bare stone remains. It will take time for new deposits to be exposed."),
         ]
     )
-    connect(ore_passage, tin_mine, "west", desc_ab="a tin mine", desc_ba="the ore passage")
+    connect_bidirectional_exit(ore_passage, tin_mine, "west", desc_ab="a tin mine", desc_ba="the ore passage")
 
     # ── Deep Passage ─────────────────────────────────────────────────
     deep_passage = create_object(
@@ -572,7 +572,7 @@ def test_area_economic():
                      "illuminates the passage. Tunnels branch east and west."),
         ]
     )
-    connect(ore_passage, deep_passage, "south", desc_ab="a deep passage", desc_ba="the ore passage")
+    connect_bidirectional_exit(ore_passage, deep_passage, "south", desc_ab="a deep passage", desc_ba="the ore passage")
 
     # -- East: Lead Mine (resource 27) --
     lead_mine = create_object(
@@ -587,7 +587,7 @@ def test_area_economic():
             ("desc_depleted", "The lead deposits are exhausted — only bare rock remains. It will take time for new deposits to be exposed."),
         ]
     )
-    connect(deep_passage, lead_mine, "east", desc_ab="a lead mine", desc_ba="the deep passage")
+    connect_bidirectional_exit(deep_passage, lead_mine, "east", desc_ab="a lead mine", desc_ba="the deep passage")
 
     # -- West: Silver Mine (resource 30) --
     silver_mine = create_object(
@@ -602,7 +602,7 @@ def test_area_economic():
             ("desc_depleted", "The silver vein is spent — the rock walls are bare. It will take time for new deposits to be exposed."),
         ]
     )
-    connect(deep_passage, silver_mine, "west", desc_ab="a silver mine", desc_ba="the deep passage")
+    connect_bidirectional_exit(deep_passage, silver_mine, "west", desc_ab="a silver mine", desc_ba="the deep passage")
 
     # ── Gem Cavern ───────────────────────────────────────────────────
     gem_cavern = create_object(
@@ -615,7 +615,7 @@ def test_area_economic():
                      "Tunnels branch east and west, and a narrow crack leads further south."),
         ]
     )
-    connect(deep_passage, gem_cavern, "south", desc_ab="a glittering cavern", desc_ba="the deep passage")
+    connect_bidirectional_exit(deep_passage, gem_cavern, "south", desc_ab="a glittering cavern", desc_ba="the deep passage")
 
     # -- East: Ruby Mine (resource 33) --
     ruby_mine = create_object(
@@ -630,7 +630,7 @@ def test_area_economic():
             ("desc_depleted", "The ruby deposits are exhausted — only empty sockets remain in the rock. It will take time for new crystals to be exposed."),
         ]
     )
-    connect(gem_cavern, ruby_mine, "east", desc_ab="a ruby mine", desc_ba="the gem cavern")
+    connect_bidirectional_exit(gem_cavern, ruby_mine, "east", desc_ab="a ruby mine", desc_ba="the gem cavern")
 
     # -- West: Emerald Mine (resource 34) --
     emerald_mine = create_object(
@@ -645,7 +645,7 @@ def test_area_economic():
             ("desc_depleted", "The emerald deposits are exhausted — only bare rock and empty sockets remain. It will take time for new crystals to be exposed."),
         ]
     )
-    connect(gem_cavern, emerald_mine, "west", desc_ab="an emerald mine", desc_ba="the gem cavern")
+    connect_bidirectional_exit(gem_cavern, emerald_mine, "west", desc_ab="an emerald mine", desc_ba="the gem cavern")
 
     # ── Diamond Mine — deepest point, dead end ───────────────────────
     diamond_mine = create_object(
@@ -660,7 +660,7 @@ def test_area_economic():
             ("desc_depleted", "The diamond seam is exhausted — nothing but scarred, impenetrable rock remains. It will take time for new crystals to be exposed."),
         ]
     )
-    connect(gem_cavern, diamond_mine, "south", desc_ab="a narrow crack leading deeper", desc_ba="the gem cavern")
+    connect_bidirectional_exit(gem_cavern, diamond_mine, "south", desc_ab="a narrow crack leading deeper", desc_ba="the gem cavern")
 
     ##########################
     # alchemy area
@@ -679,7 +679,7 @@ def test_area_economic():
         ],
     )
 
-    connect(dt5, apothecary, "south", desc_ab="an apothecary", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt5, apothecary, "south", desc_ab="an apothecary", desc_ba="a small dirt track")
 
     # -- South of apothecary: Distillery (processing room) --
     distillery = create_object(
@@ -694,7 +694,7 @@ def test_area_economic():
             ("desc", "A small distillery with copper stills and glass alembics. You can 'distill' raw ingredients into essences here."),
         ],
     )
-    connect(apothecary, distillery, "south", desc_ab="a distillery", desc_ba="the apothecary")
+    connect_bidirectional_exit(apothecary, distillery, "south", desc_ab="a distillery", desc_ba="the apothecary")
 
     # -- East of distillery: Moonpetal Meadow (resource 12) --
     moonpetal_meadow = create_object(
@@ -710,7 +710,7 @@ def test_area_economic():
             ("desc_depleted", "The meadow is bare — every moonpetal has been gathered. They will need time to regrow."),
         ],
     )
-    connect(distillery, moonpetal_meadow, "east", desc_ab="a moonlit meadow of silver-white flowers", desc_ba="the distillery")
+    connect_bidirectional_exit(distillery, moonpetal_meadow, "east", desc_ab="a moonlit meadow of silver-white flowers", desc_ba="the distillery")
 
     # -- West of distillery: Bloodmoss Bog (resource 14) --
     bloodmoss_bog = create_object(
@@ -726,7 +726,7 @@ def test_area_economic():
             ("desc_depleted", "The bog is picked clean — not a trace of bloodmoss remains. It will need time to regrow."),
         ],
     )
-    connect(distillery, bloodmoss_bog, "west", desc_ab="a dark, damp bog", desc_ba="the distillery")
+    connect_bidirectional_exit(distillery, bloodmoss_bog, "west", desc_ab="a dark, damp bog", desc_ba="the distillery")
 
     # -- South of distillery: Windroot Hollow (resource 15) --
     windroot_hollow = create_object(
@@ -742,7 +742,7 @@ def test_area_economic():
             ("desc_depleted", "The hollow is bare — every windroot has been dug up. They will need time to regrow."),
         ],
     )
-    connect(distillery, windroot_hollow, "south", desc_ab="a sheltered hollow", desc_ba="the distillery")
+    connect_bidirectional_exit(distillery, windroot_hollow, "south", desc_ab="a sheltered hollow", desc_ba="the distillery")
 
     # -- Herb passage extending south --
     overgrown_path = create_object(
@@ -753,7 +753,7 @@ def test_area_economic():
             ("desc", "A narrow, overgrown path winds south through dense undergrowth. The air is thick with the scent of herbs and damp earth."),
         ],
     )
-    connect(windroot_hollow, overgrown_path, "south", desc_ab="an overgrown path", desc_ba="a sheltered hollow")
+    connect_bidirectional_exit(windroot_hollow, overgrown_path, "south", desc_ab="an overgrown path", desc_ba="a sheltered hollow")
 
     # -- East of overgrown path: Arcane Ruins (resource 16 — Arcane Dust) --
     arcane_ruins = create_object(
@@ -769,7 +769,7 @@ def test_area_economic():
             ("desc_depleted", "The ruins are scoured clean — not a pinch of arcane dust remains. It will take time for more to accumulate."),
         ],
     )
-    connect(overgrown_path, arcane_ruins, "east", desc_ab="crumbling arcane ruins", desc_ba="an overgrown path")
+    connect_bidirectional_exit(overgrown_path, arcane_ruins, "east", desc_ab="crumbling arcane ruins", desc_ba="an overgrown path")
 
     # -- West of overgrown path: Mushroom Grotto (resource 17 — Ogre's Cap) --
     mushroom_grotto = create_object(
@@ -785,7 +785,7 @@ def test_area_economic():
             ("desc_depleted", "The grotto floor is bare — every ogre's cap has been picked. They will need time to regrow."),
         ],
     )
-    connect(overgrown_path, mushroom_grotto, "west", desc_ab="a damp mushroom grotto", desc_ba="an overgrown path")
+    connect_bidirectional_exit(overgrown_path, mushroom_grotto, "west", desc_ab="a damp mushroom grotto", desc_ba="an overgrown path")
 
     # -- Continue south --
     tangled_path = create_object(
@@ -796,7 +796,7 @@ def test_area_economic():
             ("desc", "Twisted vines and thorny brambles crowd a narrow path winding further south through wild herb gardens."),
         ],
     )
-    connect(overgrown_path, tangled_path, "south", desc_ab="a tangled path", desc_ba="an overgrown path")
+    connect_bidirectional_exit(overgrown_path, tangled_path, "south", desc_ab="a tangled path", desc_ba="an overgrown path")
 
     # -- East of tangled path: Vipervine Thicket (resource 18) --
     vipervine_thicket = create_object(
@@ -812,7 +812,7 @@ def test_area_economic():
             ("desc_depleted", "The thicket has been stripped clean — every tendril of vipervine has been taken. They will need time to regrow."),
         ],
     )
-    connect(tangled_path, vipervine_thicket, "east", desc_ab="a writhing thicket", desc_ba="a tangled path")
+    connect_bidirectional_exit(tangled_path, vipervine_thicket, "east", desc_ab="a writhing thicket", desc_ba="a tangled path")
 
     # -- West of tangled path: Ironbark Grove (resource 19) --
     ironbark_grove = create_object(
@@ -828,7 +828,7 @@ def test_area_economic():
             ("desc_depleted", "The grove trees are stripped bare — not a scrap of ironbark remains. It will take time for the bark to regrow."),
         ],
     )
-    connect(tangled_path, ironbark_grove, "west", desc_ab="a grove of iron-dark trees", desc_ba="a tangled path")
+    connect_bidirectional_exit(tangled_path, ironbark_grove, "west", desc_ab="a grove of iron-dark trees", desc_ba="a tangled path")
 
     # -- Continue south --
     shaded_path = create_object(
@@ -839,7 +839,7 @@ def test_area_economic():
             ("desc", "Thick canopy overhead casts this narrow path in perpetual shade. Strange fungi and herbs thrive in the dappled gloom."),
         ],
     )
-    connect(tangled_path, shaded_path, "south", desc_ab="a shaded path", desc_ba="a tangled path")
+    connect_bidirectional_exit(tangled_path, shaded_path, "south", desc_ab="a shaded path", desc_ba="a tangled path")
 
     # -- East of shaded path: Mindcap Hollow (resource 20) --
     mindcap_hollow = create_object(
@@ -855,7 +855,7 @@ def test_area_economic():
             ("desc_depleted", "The hollow is bare — every mindcap has been taken. They will need time to regrow."),
         ],
     )
-    connect(shaded_path, mindcap_hollow, "east", desc_ab="a hollow glowing with blue mushrooms", desc_ba="a shaded path")
+    connect_bidirectional_exit(shaded_path, mindcap_hollow, "east", desc_ab="a hollow glowing with blue mushrooms", desc_ba="a shaded path")
 
     # -- West of shaded path: Sage Garden (resource 21) --
     sage_garden = create_object(
@@ -871,7 +871,7 @@ def test_area_economic():
             ("desc_depleted", "The garden has been picked clean — not a leaf of sage remains. It will take time to regrow."),
         ],
     )
-    connect(shaded_path, sage_garden, "west", desc_ab="a fragrant sage garden", desc_ba="a shaded path")
+    connect_bidirectional_exit(shaded_path, sage_garden, "west", desc_ab="a fragrant sage garden", desc_ba="a shaded path")
 
     # -- South of shaded path: Siren's Pool (resource 22) --
     sirens_pool = create_object(
@@ -887,7 +887,7 @@ def test_area_economic():
             ("desc_depleted", "The pool's surface is clear — every siren petal has been gathered. They will need time to drift back."),
         ],
     )
-    connect(shaded_path, sirens_pool, "south", desc_ab="an enchanted pool", desc_ba="a shaded path")
+    connect_bidirectional_exit(shaded_path, sirens_pool, "south", desc_ab="an enchanted pool", desc_ba="a shaded path")
 
 
     #################
@@ -904,7 +904,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt1, guild_square, "north", desc_ab="guild square", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt1, guild_square, "north", desc_ab="guild square", desc_ba="a small dirt track")
 
     warriors_guild_entrance = create_object(
         RoomBase,
@@ -916,7 +916,7 @@ def test_area_economic():
         ]
     )
 
-    connect(guild_square, warriors_guild_entrance, "west", desc_ab="Warriors Guild", desc_ba="guild square")
+    connect_bidirectional_exit(guild_square, warriors_guild_entrance, "west", desc_ab="Warriors Guild", desc_ba="guild square")
 
     guildmasters_chamber = create_object(
         RoomBase,
@@ -933,7 +933,7 @@ def test_area_economic():
         ]
     )
 
-    connect(warriors_guild_entrance, guildmasters_chamber, "north", desc_ab="Guildmasters Chamber", desc_ba="Warriors Guild")
+    connect_bidirectional_exit(warriors_guild_entrance, guildmasters_chamber, "north", desc_ab="Guildmasters Chamber", desc_ba="Warriors Guild")
 
     thieves_guild_entrance = create_object(
         RoomBase,
@@ -945,7 +945,7 @@ def test_area_economic():
         ]
     )
 
-    connect(guild_square, thieves_guild_entrance, "down", desc_ab="Thieves Guild", desc_ba="guild square")
+    connect_bidirectional_exit(guild_square, thieves_guild_entrance, "down", desc_ab="Thieves Guild", desc_ba="guild square")
 
     mages_guild_entrance = create_object(
         RoomBase,
@@ -957,7 +957,7 @@ def test_area_economic():
         ]
     )
 
-    connect(guild_square, mages_guild_entrance, "east", desc_ab="Mages Guild", desc_ba="guild square")
+    connect_bidirectional_exit(guild_square, mages_guild_entrance, "east", desc_ab="Mages Guild", desc_ba="guild square")
 
     wizards_workshop = create_object(
         RoomCrafting,
@@ -975,7 +975,7 @@ def test_area_economic():
         ]
     )
 
-    connect(mages_guild_entrance, wizards_workshop, "north", desc_ab="Wizard's Workshop", desc_ba="Mages Guild")
+    connect_bidirectional_exit(mages_guild_entrance, wizards_workshop, "north", desc_ab="Wizard's Workshop", desc_ba="Mages Guild")
 
     clerics_guild_entrance = create_object(
         RoomBase,
@@ -987,7 +987,7 @@ def test_area_economic():
         ]
     )
 
-    connect(guild_square, clerics_guild_entrance, "north", desc_ab="temple", desc_ba="guild square")
+    connect_bidirectional_exit(guild_square, clerics_guild_entrance, "north", desc_ab="temple", desc_ba="guild square")
 
     temple_sanctum = create_object(
         RoomBase,
@@ -1002,7 +1002,7 @@ def test_area_economic():
         ]
     )
 
-    connect(clerics_guild_entrance, temple_sanctum, "east", desc_ab="Temple Sanctum", desc_ba="Temple Entrance")
+    connect_bidirectional_exit(clerics_guild_entrance, temple_sanctum, "east", desc_ab="Temple Sanctum", desc_ba="Temple Entrance")
 
     #################
     ## marketplace branch
@@ -1018,7 +1018,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt2, market_square, "north", desc_ab="market square", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt2, market_square, "north", desc_ab="market square", desc_ba="a small dirt track")
 
     shop_west = create_object(
         RoomBase,
@@ -1033,7 +1033,7 @@ def test_area_economic():
         ]
     )
 
-    connect(market_square, shop_west, "west", desc_ab="a general store", desc_ba="market square")
+    connect_bidirectional_exit(market_square, shop_west, "west", desc_ab="a general store", desc_ba="market square")
 
     shop_east = create_object(
         RoomBase,
@@ -1046,7 +1046,7 @@ def test_area_economic():
         ]
     )
 
-    connect(market_square, shop_east, "east", desc_ab="an arms dealer", desc_ba="market square")
+    connect_bidirectional_exit(market_square, shop_east, "east", desc_ab="an arms dealer", desc_ba="market square")
 
     shop_north = create_object(
         RoomBase,
@@ -1058,7 +1058,7 @@ def test_area_economic():
         ]
     )
 
-    connect(market_square, shop_north, "north", desc_ab="shop north", desc_ba="market square")
+    connect_bidirectional_exit(market_square, shop_north, "north", desc_ab="shop north", desc_ba="market square")
 
 
     #################
@@ -1086,7 +1086,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt3, inn, "north", desc_ab="The Gilded Griffin Inn", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt3, inn, "north", desc_ab="The Gilded Griffin Inn", desc_ba="a small dirt track")
 
 
     #################
@@ -1103,7 +1103,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt5, dt6, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt5, dt6, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
 
     dt7 = create_object(
         RoomBase,
@@ -1115,7 +1115,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt6, dt7, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt6, dt7, "east", desc_ab="a small dirt track", desc_ba="a small dirt track")
 
     #################
     ## bank
@@ -1141,7 +1141,7 @@ def test_area_economic():
         ]
     )
 
-    connect(dt7, bank, "east", desc_ab="First Millholm Community Bank", desc_ba="a small dirt track")
+    connect_bidirectional_exit(dt7, bank, "east", desc_ab="First Millholm Community Bank", desc_ba="a small dirt track")
 
     #############################
     ## trapped passage (south of dt7)
@@ -1171,7 +1171,7 @@ def test_area_economic():
     )
     sign.sign_style = "wall"
 
-    connect(dt7, trap_entrance, "south",
+    connect_bidirectional_exit(dt7, trap_entrance, "south",
             desc_ab="a dark passage",
             desc_ba="a small dirt track")
 

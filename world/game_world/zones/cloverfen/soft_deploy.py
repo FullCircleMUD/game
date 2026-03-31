@@ -16,7 +16,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "cloverfen"
@@ -76,8 +76,8 @@ def build_zone():
 
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["nw_gate"], rooms["halfling_green"], "southeast")
-    connect(rooms["halfling_green"], rooms["e_gate"], "east")
+    connect_bidirectional_exit(rooms["nw_gate"], rooms["halfling_green"], "southeast")
+    connect_bidirectional_exit(rooms["halfling_green"], rooms["e_gate"], "east")
     # ── Tags ──────────────────────────────────────────────────────────
 
     for room in rooms.values():

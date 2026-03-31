@@ -1,16 +1,23 @@
 """
-Exit builder helpers — create bidirectional exits in a single call.
+Exit builder helpers — standardised exit creation for zone builders.
+
+Every exit in the game should be created through one of these helpers.
+The naming convention makes directionality and exit type explicit:
+
+    connect_bidirectional_*    — creates exits in BOTH directions (A→B and B→A)
+    connect_oneway_*           — creates a single exit in ONE direction only
 
 Usage:
-    from utils.exit_helpers import connect, connect_door
+    from utils.exit_helpers import (
+        connect_bidirectional_exit,
+        connect_bidirectional_door_exit,
+        connect_bidirectional_tripwire_exit,
+        connect_oneway_loopback_exit,
+    )
 
-    # Plain bidirectional exits
-    connect(room_a, room_b, "east")
-
-    # Door pair with state descriptions
-    connect_door(room_a, room_b, "south", key="an oak door",
-                 closed_ab="A stout oak door blocks your way.",
-                 open_ab="Through the open door you see a bakehouse.")
+    connect_bidirectional_exit(room_a, room_b, "east")
+    connect_bidirectional_door_exit(room_a, room_b, "south", key="an oak door")
+    connect_oneway_loopback_exit(room, "west", key="Dense Forest")
 """
 
 from evennia import create_object
@@ -33,9 +40,14 @@ OPPOSITES = {
 }
 
 
-def connect(room_a, room_b, direction, desc_ab=None, desc_ba=None):
+# ================================================================== #
+#  Bidirectional Exits
+# ================================================================== #
+
+
+def connect_bidirectional_exit(room_a, room_b, direction, desc_ab=None, desc_ba=None):
     """
-    Create bidirectional ExitVerticalAware exits between two rooms.
+    Create exits in BOTH directions between two rooms (A→B and B→A).
 
     Args:
         room_a: Source room.
@@ -70,7 +82,11 @@ def connect(room_a, room_b, direction, desc_ab=None, desc_ba=None):
     return exit_ab, exit_ba
 
 
-def connect_door(
+# Backward-compatible aliases — will be removed in a future cleanup.
+connect = connect_bidirectional_exit
+
+
+def connect_bidirectional_door_exit(
     room_a,
     room_b,
     direction,
@@ -86,7 +102,10 @@ def connect_door(
     relock_seconds=0,
 ):
     """
-    Create bidirectional ExitDoor exits between two rooms, linked as a pair.
+    Create door exits in BOTH directions between two rooms, linked as a pair.
+
+    The doors are bidirectional — opening/closing/locking one side affects
+    the other via link_door_pair().
 
     Args:
         room_a, room_b: The two rooms.
@@ -139,7 +158,11 @@ def connect_door(
     return door_ab, door_ba
 
 
-def connect_trapped_door(
+# Backward-compatible alias.
+connect_door = connect_bidirectional_door_exit
+
+
+def connect_bidirectional_trapped_door_exit(
     room_a,
     room_b,
     direction,
@@ -159,24 +182,35 @@ def connect_trapped_door(
     trap_damage_type="piercing",
     trap_description="a trap",
     trap_one_shot=True,
+    trap_reset_seconds=0,
+    trap_effect_key=None,
+    trap_effect_duration=None,
+    trap_effect_duration_type=None,
     trap_side="ab",
 ):
     """
-    Create bidirectional door exits with a trap on one side.
+    Create door exits in BOTH directions with a trap on ONE side.
 
-    Same as connect_door but uses TrapDoor for the trapped side.
-    The trap triggers when the door is opened from the trapped side.
+    The exits are bidirectional (you can walk A→B and B→A). The trap is
+    directional — it only triggers when the door is opened from the
+    trapped side. Someone opening from the other side is safe.
+
+    Uses TrapDoor for the trapped side, ExitDoor for the safe side.
 
     Args:
         room_a, room_b, direction, key, closed_ab/ba, open_ab/ba,
             door_name, is_locked, lock_dc, key_tag, relock_seconds:
-            Same as connect_door.
+            Same as connect_bidirectional_door_exit.
         trap_find_dc: DC to detect the trap via search.
         trap_disarm_dc: DC to disarm the trap.
         trap_damage_dice: Damage on trigger (e.g. "1d6").
         trap_damage_type: Damage type (e.g. "piercing").
         trap_description: What the trap looks like when detected.
         trap_one_shot: If True, trap disarms after triggering once.
+        trap_reset_seconds: Auto-reset timer (0 = no reset).
+        trap_effect_key: Named effect to apply on trigger (e.g. "poisoned").
+        trap_effect_duration: Duration for the named effect.
+        trap_effect_duration_type: Duration type ("combat_rounds" or "seconds").
         trap_side: Which side is trapped — "ab" (A→B) or "ba" (B→A).
 
     Returns:
@@ -220,7 +254,7 @@ def connect_trapped_door(
 
     ExitDoor.link_door_pair(door_ab, door_ba)
 
-    # Configure the trap on the trapped side
+    # Configure the trap on the trapped side only
     trapped_door = door_ab if trap_side == "ab" else door_ba
     trapped_door.is_trapped = True
     trapped_door.trap_armed = True
@@ -230,5 +264,144 @@ def connect_trapped_door(
     trapped_door.trap_damage_type = trap_damage_type
     trapped_door.trap_description = trap_description
     trapped_door.trap_one_shot = trap_one_shot
+    trapped_door.trap_reset_seconds = trap_reset_seconds
+    if trap_effect_key:
+        trapped_door.trap_effect_key = trap_effect_key
+    if trap_effect_duration is not None:
+        trapped_door.trap_effect_duration = trap_effect_duration
+    if trap_effect_duration_type:
+        trapped_door.trap_effect_duration_type = trap_effect_duration_type
 
     return door_ab, door_ba
+
+
+# Backward-compatible alias.
+connect_trapped_door = connect_bidirectional_trapped_door_exit
+
+
+def connect_bidirectional_tripwire_exit(
+    room_a,
+    room_b,
+    direction,
+    key=None,
+    trap_find_dc=15,
+    trap_disarm_dc=15,
+    trap_damage_dice="1d6",
+    trap_damage_type="piercing",
+    trap_description="a thin wire stretched across the passage",
+    trap_one_shot=True,
+    trap_reset_seconds=0,
+    trap_effect_key=None,
+    trap_effect_duration=None,
+    trap_effect_duration_type=None,
+    trap_side="ab",
+):
+    """
+    Create exits in BOTH directions with a tripwire trap on ONE side.
+
+    The exits are bidirectional (you can walk A→B and B→A). The tripwire
+    is directional — it only triggers when traversing from the trapped
+    side. Someone walking from the other direction steps over it safely.
+
+    The trapped side uses TripwireExit, the safe side uses ExitVerticalAware.
+
+    Args:
+        room_a: Source room.
+        room_b: Destination room.
+        direction: Direction from A to B. Reverse auto-derived.
+        key: Exit display name (defaults to destination room's key).
+        trap_find_dc: DC to detect the tripwire via search.
+        trap_disarm_dc: DC to disarm the tripwire.
+        trap_damage_dice: Damage on trigger (e.g. "1d6").
+        trap_damage_type: Damage type (e.g. "piercing").
+        trap_description: What the tripwire looks like when detected.
+        trap_one_shot: If True, trap disarms after triggering once.
+        trap_reset_seconds: Auto-reset timer (0 = no reset).
+        trap_effect_key: Named effect to apply on trigger (e.g. "poisoned").
+        trap_effect_duration: Duration for the named effect.
+        trap_effect_duration_type: Duration type ("combat_rounds" or "seconds").
+        trap_side: Which direction is trapped — "ab" (A→B) or "ba" (B→A).
+
+    Returns:
+        (exit_ab, exit_ba): The two exit objects.
+    """
+    from typeclasses.terrain.exits.exit_tripwire import TripwireExit
+    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+
+    reverse = OPPOSITES[direction]
+
+    TrapClass = TripwireExit if trap_side == "ab" else ExitVerticalAware
+    SafeClass = ExitVerticalAware if trap_side == "ab" else TripwireExit
+
+    exit_ab = create_object(
+        TrapClass,
+        key=key or room_b.key,
+        location=room_a,
+        destination=room_b,
+    )
+    exit_ab.set_direction(direction)
+
+    exit_ba = create_object(
+        SafeClass,
+        key=key or room_a.key,
+        location=room_b,
+        destination=room_a,
+    )
+    exit_ba.set_direction(reverse)
+
+    # Configure the trap on the trapped side only
+    trapped_exit = exit_ab if trap_side == "ab" else exit_ba
+    trapped_exit.is_trapped = True
+    trapped_exit.trap_armed = True
+    trapped_exit.trap_find_dc = trap_find_dc
+    trapped_exit.trap_disarm_dc = trap_disarm_dc
+    trapped_exit.trap_damage_dice = trap_damage_dice
+    trapped_exit.trap_damage_type = trap_damage_type
+    trapped_exit.trap_description = trap_description
+    trapped_exit.trap_one_shot = trap_one_shot
+    trapped_exit.trap_reset_seconds = trap_reset_seconds
+    if trap_effect_key:
+        trapped_exit.trap_effect_key = trap_effect_key
+    if trap_effect_duration is not None:
+        trapped_exit.trap_effect_duration = trap_effect_duration
+    if trap_effect_duration_type:
+        trapped_exit.trap_effect_duration_type = trap_effect_duration_type
+
+    return exit_ab, exit_ba
+
+
+# ================================================================== #
+#  One-Way Exits
+# ================================================================== #
+
+
+def connect_oneway_loopback_exit(room, direction, key=None):
+    """
+    Create a single exit that leads back to the same room (boundary illusion).
+
+    Used for forest edges, deep water boundaries, lake shores — anywhere
+    the player should feel like the space continues but mechanically
+    stays in place. ONE-WAY — only creates one exit, no return.
+
+    Args:
+        room: The room to loop back to.
+        direction: Direction the exit faces (e.g. "west").
+        key: Exit display name (defaults to room.key).
+
+    Returns:
+        The exit object.
+    """
+    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+
+    exit_obj = create_object(
+        ExitVerticalAware,
+        key=key or room.key,
+        location=room,
+        destination=room,
+    )
+    exit_obj.set_direction(direction)
+    return exit_obj
+
+
+# Backward-compatible aliases.
+connect_loopback_exit = connect_oneway_loopback_exit

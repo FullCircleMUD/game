@@ -22,7 +22,7 @@ from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_crafting import RoomCrafting
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit, connect_oneway_loopback_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -685,11 +685,11 @@ def build_millholm_northern():
     # EXITS — lake shore connections
     # ══════════════════════════════════════════════════════════════════
 
-    connect(rooms["lake_shore_west"], rooms["lake_shore"], "east")
-    connect(rooms["lake_shore"], rooms["lake_shore_east"], "east")
+    connect_bidirectional_exit(rooms["lake_shore_west"], rooms["lake_shore"], "east")
+    connect_bidirectional_exit(rooms["lake_shore"], rooms["lake_shore_east"], "east")
 
     # Eastern shore → Sailing Club (door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["lake_shore_east"], rooms["sailing_club"], "east",
         key="a weathered door",
         closed_ab=(
@@ -710,20 +710,20 @@ def build_millholm_northern():
     )
 
     # Sailing club → Boatyard
-    connect(rooms["sailing_club"], rooms["boatyard"], "east")
+    connect_bidirectional_exit(rooms["sailing_club"], rooms["boatyard"], "east")
 
     # Shallows row (east-west)
-    connect(rooms["shallows_w"], rooms["shallows_c"], "east")
-    connect(rooms["shallows_c"], rooms["shallows_e"], "east")
-    connect(rooms["shallows_e"], rooms["shallows_dock"], "east")
-    connect(rooms["shallows_dock"], rooms["shallows_yard"], "east")
+    connect_bidirectional_exit(rooms["shallows_w"], rooms["shallows_c"], "east")
+    connect_bidirectional_exit(rooms["shallows_c"], rooms["shallows_e"], "east")
+    connect_bidirectional_exit(rooms["shallows_e"], rooms["shallows_dock"], "east")
+    connect_bidirectional_exit(rooms["shallows_dock"], rooms["shallows_yard"], "east")
 
     # Shore → Shallows (north-south)
-    connect(rooms["lake_shore_west"], rooms["shallows_w"], "north")
-    connect(rooms["lake_shore"], rooms["shallows_c"], "north")
-    connect(rooms["lake_shore_east"], rooms["shallows_e"], "north")
-    connect(rooms["sailing_club"], rooms["shallows_dock"], "north")
-    connect(rooms["boatyard"], rooms["shallows_yard"], "north")
+    connect_bidirectional_exit(rooms["lake_shore_west"], rooms["shallows_w"], "north")
+    connect_bidirectional_exit(rooms["lake_shore"], rooms["shallows_c"], "north")
+    connect_bidirectional_exit(rooms["lake_shore_east"], rooms["shallows_e"], "north")
+    connect_bidirectional_exit(rooms["sailing_club"], rooms["shallows_dock"], "north")
+    connect_bidirectional_exit(rooms["boatyard"], rooms["shallows_yard"], "north")
 
     # Gateway destinations — sail across the lake (BASIC cartography + Cog)
     rooms["sailing_club"].destinations = [
@@ -756,54 +756,29 @@ def build_millholm_northern():
     ]
 
     # Deep row (east-west)
-    connect(rooms["deep_w"], rooms["deep_c"], "east")
-    connect(rooms["deep_c"], rooms["deep_e"], "east")
-    connect(rooms["deep_e"], rooms["deep_dock"], "east")
-    connect(rooms["deep_dock"], rooms["deep_yard"], "east")
+    connect_bidirectional_exit(rooms["deep_w"], rooms["deep_c"], "east")
+    connect_bidirectional_exit(rooms["deep_c"], rooms["deep_e"], "east")
+    connect_bidirectional_exit(rooms["deep_e"], rooms["deep_dock"], "east")
+    connect_bidirectional_exit(rooms["deep_dock"], rooms["deep_yard"], "east")
 
     # Shallows → Deep (north-south)
-    connect(rooms["shallows_w"], rooms["deep_w"], "north")
-    connect(rooms["shallows_c"], rooms["deep_c"], "north")
-    connect(rooms["shallows_e"], rooms["deep_e"], "north")
-    connect(rooms["shallows_dock"], rooms["deep_dock"], "north")
-    connect(rooms["shallows_yard"], rooms["deep_yard"], "north")
+    connect_bidirectional_exit(rooms["shallows_w"], rooms["deep_w"], "north")
+    connect_bidirectional_exit(rooms["shallows_c"], rooms["deep_c"], "north")
+    connect_bidirectional_exit(rooms["shallows_e"], rooms["deep_e"], "north")
+    connect_bidirectional_exit(rooms["shallows_dock"], rooms["deep_dock"], "north")
+    connect_bidirectional_exit(rooms["shallows_yard"], rooms["deep_yard"], "north")
 
-    # Trick exits — deep row edges loop back
-    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-    trick_deep_w = create_object(
-        ExitVerticalAware,
-        key="Deep Water - Western Reach",
-        location=rooms["deep_w"],
-        destination=rooms["deep_w"],
-    )
-    trick_deep_w.set_direction("west")
-
-    trick_deep_e = create_object(
-        ExitVerticalAware,
-        key="Deep Water - Off the Slipway",
-        location=rooms["deep_yard"],
-        destination=rooms["deep_yard"],
-    )
-    trick_deep_e.set_direction("east")
+    # Loopback exits — deep row edges loop back
+    connect_oneway_loopback_exit(rooms["deep_w"], "west", key="Deep Water - Western Reach")
+    connect_oneway_loopback_exit(rooms["deep_yard"], "east", key="Deep Water - Off the Slipway")
 
     # Deep row north loops back (no further north) — except deep_c
     for rkey in ["deep_w", "deep_e", "deep_dock", "deep_yard"]:
-        trick_n = create_object(
-            ExitVerticalAware,
-            key=rooms[rkey].key,
-            location=rooms[rkey],
-            destination=rooms[rkey],
-        )
-        trick_n.set_direction("north")
+        connect_oneway_loopback_exit(rooms[rkey], "north")
 
-    # deep_c north: trick loop at heights 0 to -1, cave at depth -2
-    trick_c_n = create_object(
-        ExitVerticalAware,
-        key=rooms["deep_c"].key,
-        location=rooms["deep_c"],
-        destination=rooms["deep_c"],
-    )
-    trick_c_n.set_direction("north")
+    # deep_c north: loopback at heights 0 to -1, cave at depth -2
+    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+    trick_c_n = connect_oneway_loopback_exit(rooms["deep_c"], "north")
     trick_c_n.required_min_height = -1
     trick_c_n.required_max_height = 1
 
@@ -829,31 +804,12 @@ def build_millholm_northern():
     exit_from_cave.set_direction("south")
     exit_from_cave.arrival_heights = {0: -2}
 
-    # Trick exits — shallows edges loop back to themselves
-    trick_shallows_w = create_object(
-        ExitVerticalAware,
-        key="Sheltered Shallows",
-        location=rooms["shallows_w"],
-        destination=rooms["shallows_w"],
-    )
-    trick_shallows_w.set_direction("west")
+    # Loopback exits — shallows edges loop back to themselves
+    connect_oneway_loopback_exit(rooms["shallows_w"], "west", key="Sheltered Shallows")
+    connect_oneway_loopback_exit(rooms["shallows_yard"], "east", key="Boatyard Shallows")
 
-    trick_shallows_e = create_object(
-        ExitVerticalAware,
-        key="Boatyard Shallows",
-        location=rooms["shallows_yard"],
-        destination=rooms["shallows_yard"],
-    )
-    trick_shallows_e.set_direction("east")
-
-    # Trick exit — west from western shore loops back to itself
-    trick_west = create_object(
-        ExitVerticalAware,
-        key="Western Lake Shore",
-        location=rooms["lake_shore_west"],
-        destination=rooms["lake_shore_west"],
-    )
-    trick_west.set_direction("west")
+    # Loopback exit — west from western shore loops back to itself
+    connect_oneway_loopback_exit(rooms["lake_shore_west"], "west", key="Western Lake Shore")
 
     print("  Created 5 lake shore exits.")
 

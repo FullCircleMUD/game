@@ -142,7 +142,7 @@ class TestCmdShout(EvenniaCommandTest):
 
     def test_adjacent_room_hears_muffled_shout(self):
         """Character in adjacent room hears muffled shout with direction."""
-        from utils.exit_helpers import connect
+        from utils.exit_helpers import connect_bidirectional_exit
 
         # Create adjacent room and connect via "north" exit
         adj_room = create.create_object(
@@ -150,7 +150,7 @@ class TestCmdShout(EvenniaCommandTest):
             key="Adjacent Room",
             nohome=True,
         )
-        connect(self.room1, adj_room, "north")
+        connect_bidirectional_exit(self.room1, adj_room, "north")
 
         # Move char2 to adjacent room
         self.char2.location = adj_room
@@ -176,14 +176,14 @@ class TestCmdShout(EvenniaCommandTest):
 
     def test_adjacent_room_language_garble(self):
         """Adjacent room hears garbled muffled text in foreign language."""
-        from utils.exit_helpers import connect
+        from utils.exit_helpers import connect_bidirectional_exit
 
         adj_room = create.create_object(
             "typeclasses.terrain.rooms.room_base.RoomBase",
             key="Adjacent Room 2",
             nohome=True,
         )
-        connect(self.room1, adj_room, "east")
+        connect_bidirectional_exit(self.room1, adj_room, "east")
 
         self.char1.db.languages = {"common", "dwarven"}
         self.char2.db.languages = {"common"}

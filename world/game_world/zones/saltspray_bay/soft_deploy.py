@@ -17,7 +17,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "saltspray_bay"
@@ -90,9 +90,9 @@ def build_zone():
 
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["w_gate"], rooms["market_square"], "east")
-    connect(rooms["market_square"], rooms["harbour_road"], "east")
-    connect(rooms["harbour_road"], rooms["dock"], "east")
+    connect_bidirectional_exit(rooms["w_gate"], rooms["market_square"], "east")
+    connect_bidirectional_exit(rooms["market_square"], rooms["harbour_road"], "east")
+    connect_bidirectional_exit(rooms["harbour_road"], rooms["dock"], "east")
 
     # ── Tags ──────────────────────────────────────────────────────────
 

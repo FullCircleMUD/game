@@ -3,7 +3,7 @@ from evennia import create_object, ObjectDB
 
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 def _create_arena_room(key, desc):
@@ -116,28 +116,28 @@ def test_area_arena():
     # --- Grid connections (N/S/E/W only, no diagonals) ---
 
     # Top row (east/west)
-    connect(nw, n, "east")
-    connect(n, ne, "east")
+    connect_bidirectional_exit(nw, n, "east")
+    connect_bidirectional_exit(n, ne, "east")
 
     # Middle row (east/west)
-    connect(w, centre, "east")
-    connect(centre, e, "east")
+    connect_bidirectional_exit(w, centre, "east")
+    connect_bidirectional_exit(centre, e, "east")
 
     # Bottom row (east/west)
-    connect(sw, s, "east")
-    connect(s, se, "east")
+    connect_bidirectional_exit(sw, s, "east")
+    connect_bidirectional_exit(s, se, "east")
 
     # Left column (north/south)
-    connect(nw, w, "south")
-    connect(w, sw, "south")
+    connect_bidirectional_exit(nw, w, "south")
+    connect_bidirectional_exit(w, sw, "south")
 
     # Middle column (north/south)
-    connect(n, centre, "south")
-    connect(centre, s, "south")
+    connect_bidirectional_exit(n, centre, "south")
+    connect_bidirectional_exit(centre, s, "south")
 
     # Right column (north/south)
-    connect(ne, e, "south")
-    connect(e, se, "south")
+    connect_bidirectional_exit(ne, e, "south")
+    connect_bidirectional_exit(e, se, "south")
 
     # --- Arena Infirmary (defeat destination) ---
     infirmary = create_object(
@@ -161,10 +161,10 @@ def test_area_arena():
         room.defeat_destination = infirmary
 
     # Connect infirmary to the south room (main entrance area)
-    connect(s, infirmary, "west")
+    connect_bidirectional_exit(s, infirmary, "west")
 
     # --- Connect to main world ---
-    connect(limbo, s, "north")
+    connect_bidirectional_exit(limbo, s, "north")
 
     ##########################
     # Zone and District tags

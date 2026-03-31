@@ -16,7 +16,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "aethenveil"
@@ -76,8 +76,8 @@ def build_zone():
 
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["ne_gate"], rooms["silver_glade"], "southwest")
-    connect(rooms["silver_glade"], rooms["w_gate"], "west")
+    connect_bidirectional_exit(rooms["ne_gate"], rooms["silver_glade"], "southwest")
+    connect_bidirectional_exit(rooms["silver_glade"], rooms["w_gate"], "west")
 
     # ── Tags ──────────────────────────────────────────────────────────
 

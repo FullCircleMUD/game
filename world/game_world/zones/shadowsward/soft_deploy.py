@@ -16,7 +16,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "shadowsward"
@@ -77,8 +77,8 @@ def build_zone():
 
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["ne_gate"], rooms["watchtower_road"], "south")
-    connect(rooms["watchtower_road"], rooms["s_gate"], "south")
+    connect_bidirectional_exit(rooms["ne_gate"], rooms["watchtower_road"], "south")
+    connect_bidirectional_exit(rooms["watchtower_road"], rooms["s_gate"], "south")
 
     # ── Tags ──────────────────────────────────────────────────────────
 

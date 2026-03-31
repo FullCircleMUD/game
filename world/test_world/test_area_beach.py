@@ -5,7 +5,7 @@ from evennia import ObjectDB
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.terrain.rooms.room_base import RoomBase
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 def test_area_beach():
@@ -95,10 +95,10 @@ def test_area_beach():
     )
 
     # --- Exits ---
-    connect(limbo, beach, "west", desc_ab="white sand beach", desc_ba="Limbo")
-    connect(beach, cabin, "north", desc_ab="small beach cabin", desc_ba="door to the beach")
-    connect(beach, coastal, "south", desc_ab="rolling surf", desc_ba="white sand beach")
-    connect(coastal, ocean, "south", desc_ab="deep rolling ocean", desc_ba="the breaking waves")
+    connect_bidirectional_exit(limbo, beach, "west", desc_ab="white sand beach", desc_ba="Limbo")
+    connect_bidirectional_exit(beach, cabin, "north", desc_ab="small beach cabin", desc_ba="door to the beach")
+    connect_bidirectional_exit(beach, coastal, "south", desc_ab="rolling surf", desc_ba="white sand beach")
+    connect_bidirectional_exit(coastal, ocean, "south", desc_ab="deep rolling ocean", desc_ba="the breaking waves")
 
     # Height-routed exits from ocean south:
     # Exit 1: surface/shallow/flying → deep ocean

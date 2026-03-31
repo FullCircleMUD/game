@@ -16,7 +16,7 @@ from evennia import create_object
 from typeclasses.terrain.exits.conditional_dungeon_exit import ConditionalDungeonExit
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonExit
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 from world.game_world.zones.millholm.faerie_hollow import build_faerie_hollow
 from world.game_world.zones.millholm.farms import build_millholm_farms
@@ -72,14 +72,14 @@ def build_zone(one_way_limbo=False):
     cemetery_rooms = build_millholm_cemetery()
 
     print("[3c] Connecting north road → cemetery gates...")
-    connect(town_rooms["north_road"], cemetery_rooms["cemetery_gates"], "west")
+    connect_bidirectional_exit(town_rooms["north_road"], cemetery_rooms["cemetery_gates"], "west")
 
     print("[4] Building Millholm Sewers...")
     sewer_rooms = build_millholm_sewers()
 
     # ── Cross-district hidden doors (town ↔ sewers) ──────────────────
     print("[4a] Connecting cellar → sewer entrance (hidden)...")
-    door_ab, _ = connect_door(
+    door_ab, _ = connect_bidirectional_door_exit(
         town_rooms["cellar"],
         sewer_rooms["sewer_entrance"],
         "west",
@@ -103,7 +103,7 @@ def build_zone(one_way_limbo=False):
     door_ab.find_dc = 10
 
     print("[4b] Connecting abandoned house → old cistern (hidden)...")
-    door_ab2, _ = connect_door(
+    door_ab2, _ = connect_bidirectional_door_exit(
         town_rooms["abandoned_house"],
         sewer_rooms["old_cistern"],
         "down",
@@ -133,7 +133,7 @@ def build_zone(one_way_limbo=False):
     import world.dungeons.templates.rat_cellar  # noqa: F401
 
     # Door from stairwell down to the permanent cellar
-    connect_door(
+    connect_bidirectional_door_exit(
         town_rooms["cellar_stairwell"],
         town_rooms["cellar"],
         "south",
@@ -240,10 +240,10 @@ def build_zone(one_way_limbo=False):
     southern_rooms = build_millholm_southern()
 
     print("[7a] Connecting town south gate → southern district...")
-    connect(town_rooms["south_gate"], southern_rooms["countryside_road"], "south")
+    connect_bidirectional_exit(town_rooms["south_gate"], southern_rooms["countryside_road"], "south")
 
     print("[7b] Connecting farm south fork → southern countryside...")
-    connect(farm_rooms["south_fork_end"], southern_rooms["countryside_road"], "east")
+    connect_bidirectional_exit(farm_rooms["south_fork_end"], southern_rooms["countryside_road"], "east")
 
     # ── Rooftops District ──────────────────────────────────────────────
     print("[8] Building Millholm Rooftops...")
@@ -272,7 +272,7 @@ def build_zone(one_way_limbo=False):
     exit_roof_aw1.arrival_heights = {0: 1, 1: 2}
 
     print("[8b] Connecting vacant workshop → back alley (hidden door)...")
-    door_ab, door_ba = connect_door(
+    door_ab, door_ba = connect_bidirectional_door_exit(
         town_rooms["vacant_w1"], town_rooms["back_alley"], "north",
         key="a sheet of corrugated iron",
         closed_ab=(
@@ -319,7 +319,7 @@ def build_zone(one_way_limbo=False):
     exit_to_alley.arrival_heights = {0: 0}
 
     print("[8d] Connecting Gareth's bedroom → General Store Rooftop (hidden wardrobe)...")
-    door_wardrobe, door_wardrobe_ba = connect_door(
+    door_wardrobe, door_wardrobe_ba = connect_bidirectional_door_exit(
         town_rooms["gareth_bedroom"], roof_rooms["rooftops_store"], "east",
         key="an oak wardrobe",
         closed_ab=(
@@ -351,7 +351,7 @@ def build_zone(one_way_limbo=False):
     northern_rooms = build_millholm_northern()
 
     print("[9a] Connecting north road → lake track...")
-    connect(town_rooms["north_road"], northern_rooms["lake_track"], "north")
+    connect_bidirectional_exit(town_rooms["north_road"], northern_rooms["lake_track"], "north")
 
     print("[9b] Connecting lake track ↔ lake shore (procedural passage)...")
     import world.dungeons.templates.lake_passage  # noqa: F401

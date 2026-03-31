@@ -22,7 +22,7 @@ from typeclasses.actors.npc import BaseNPC
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.world_objects.base_fixture import WorldFixture
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 class FollowableNPC(FollowableMixin, BaseNPC):
@@ -61,9 +61,9 @@ def build_tutorial_3(instance):
         room.allow_death = False
         return room
 
-    def _connect(room_a, room_b, direction, **kwargs):
+    def _connect_bidirectional_exit(room_a, room_b, direction, **kwargs):
         """Create tagged bidirectional exits."""
-        exit_ab, exit_ba = connect(room_a, room_b, direction, **kwargs)
+        exit_ab, exit_ba = connect_bidirectional_exit(room_a, room_b, direction, **kwargs)
         exit_ab.tags.add(tag, category="tutorial_exit")
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
@@ -180,7 +180,7 @@ def build_tutorial_3(instance):
             "language hear garbled text."
         ),
     )
-    _connect(rooms["records"], rooms["speaking"], "east")
+    _connect_bidirectional_exit(rooms["records"], rooms["speaking"], "east")
 
     _spawn_pip(rooms["speaking"])
 
@@ -225,7 +225,7 @@ def build_tutorial_3(instance):
             "up and spent at trainers."
         ),
     )
-    _connect(rooms["speaking"], rooms["skills"], "east")
+    _connect_bidirectional_exit(rooms["speaking"], rooms["skills"], "east")
 
     _spawn_pip(rooms["skills"])
 
@@ -269,7 +269,7 @@ def build_tutorial_3(instance):
             "point and gold for this. Suggest trying |wtrain blacksmith|n."
         ),
     )
-    _connect(rooms["skills"], rooms["training"], "east")
+    _connect_bidirectional_exit(rooms["skills"], rooms["training"], "east")
 
     _spawn_pip(rooms["training"])
 
@@ -323,7 +323,7 @@ def build_tutorial_3(instance):
             "character creation."
         ),
     )
-    _connect(rooms["training"], rooms["guild"], "east")
+    _connect_bidirectional_exit(rooms["training"], rooms["guild"], "east")
 
     _spawn_pip(rooms["guild"])
 
@@ -372,7 +372,7 @@ def build_tutorial_3(instance):
             "|wfollow Finn|n and then |wgroup|n to see the display."
         ),
     )
-    _connect(rooms["guild"], rooms["companion"], "east")
+    _connect_bidirectional_exit(rooms["guild"], rooms["companion"], "east")
 
     _spawn_pip(rooms["companion"])
 
@@ -418,7 +418,7 @@ def build_tutorial_3(instance):
             "the hub for their reward. Wish them well!"
         ),
     )
-    _connect(rooms["companion"], rooms["complete"], "east")
+    _connect_bidirectional_exit(rooms["companion"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
     # ================================================================== #

@@ -17,7 +17,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "kashoryu"
@@ -101,10 +101,10 @@ def build_zone():
 
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["n_gate"], rooms["jungle_edge"], "south")
-    connect(rooms["jungle_edge"], rooms["temple_road"], "south")
-    connect(rooms["temple_road"], rooms["market_district"], "east")
-    connect(rooms["market_district"], rooms["dock"], "east")
+    connect_bidirectional_exit(rooms["n_gate"], rooms["jungle_edge"], "south")
+    connect_bidirectional_exit(rooms["jungle_edge"], rooms["temple_road"], "south")
+    connect_bidirectional_exit(rooms["temple_road"], rooms["market_district"], "east")
+    connect_bidirectional_exit(rooms["market_district"], rooms["dock"], "east")
 
     # ── Tags ──────────────────────────────────────────────────────────
 

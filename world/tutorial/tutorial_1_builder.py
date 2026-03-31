@@ -19,7 +19,7 @@ from evennia import create_object
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 def _spawn_nft_item(item_type_name, location, instance_tag):
@@ -81,9 +81,9 @@ def build_tutorial_1(instance):
             room.vert_descriptions = extra_attrs["vert_descriptions"]
         return room
 
-    def _connect(room_a, room_b, direction, **kwargs):
+    def _connect_bidirectional_exit(room_a, room_b, direction, **kwargs):
         """Create tagged bidirectional exits."""
-        exit_ab, exit_ba = connect(room_a, room_b, direction, **kwargs)
+        exit_ab, exit_ba = connect_bidirectional_exit(room_a, room_b, direction, **kwargs)
         exit_ab.tags.add(tag, category="tutorial_exit")
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
@@ -173,7 +173,7 @@ def build_tutorial_1(instance):
             "Also mention |wlook self|n and |wlook <player>|n."
         ),
     )
-    _connect(rooms["welcome"], rooms["look"], "east")
+    _connect_bidirectional_exit(rooms["welcome"], rooms["look"], "east")
 
     _spawn_pip(rooms["look"])
 
@@ -249,7 +249,7 @@ def build_tutorial_1(instance):
             "capacity."
         ),
     )
-    _connect(rooms["look"], rooms["inventory"], "east")
+    _connect_bidirectional_exit(rooms["look"], rooms["inventory"], "east")
 
     _spawn_pip(rooms["inventory"])
 
@@ -303,7 +303,7 @@ def build_tutorial_1(instance):
             "they'll need both in the next room."
         ),
     )
-    _connect(rooms["inventory"], rooms["armoury"], "east")
+    _connect_bidirectional_exit(rooms["inventory"], rooms["armoury"], "east")
 
     _spawn_pip(rooms["armoury"])
 
@@ -385,7 +385,7 @@ def build_tutorial_1(instance):
             ),
         },
     )
-    _connect(rooms["armoury"], rooms["courtyard"], "east")
+    _connect_bidirectional_exit(rooms["armoury"], rooms["courtyard"], "east")
     _spawn_pip(rooms["courtyard"])
 
     # ================================================================== #
@@ -426,7 +426,7 @@ def build_tutorial_1(instance):
         natural_light=False,
         sheltered=True,
     )
-    _connect(rooms["courtyard"], rooms["dark"], "east")
+    _connect_bidirectional_exit(rooms["courtyard"], rooms["dark"], "east")
 
     _spawn_pip(rooms["dark"])
 
@@ -469,7 +469,7 @@ def build_tutorial_1(instance):
         allow_death=False,
         natural_light=True,
     )
-    _connect(rooms["dark"], rooms["combat"], "east")
+    _connect_bidirectional_exit(rooms["dark"], rooms["combat"], "east")
 
     _spawn_pip(rooms["combat"])
 
@@ -531,7 +531,7 @@ def build_tutorial_1(instance):
             "covers the economics."
         ),
     )
-    _connect(rooms["combat"], rooms["pantry"], "east")
+    _connect_bidirectional_exit(rooms["combat"], rooms["pantry"], "east")
 
     _spawn_pip(rooms["pantry"])
 
@@ -578,7 +578,7 @@ def build_tutorial_1(instance):
             "available from the hub."
         ),
     )
-    _connect(rooms["pantry"], rooms["complete"], "east")
+    _connect_bidirectional_exit(rooms["pantry"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
     # ================================================================== #

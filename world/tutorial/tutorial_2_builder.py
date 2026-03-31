@@ -20,7 +20,7 @@ from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from typeclasses.terrain.rooms.room_bank import RoomBank
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 def build_tutorial_2(instance):
@@ -55,9 +55,9 @@ def build_tutorial_2(instance):
         room.allow_death = False
         return room
 
-    def _connect(room_a, room_b, direction, **kwargs):
+    def _connect_bidirectional_exit(room_a, room_b, direction, **kwargs):
         """Create tagged bidirectional exits."""
-        exit_ab, exit_ba = connect(room_a, room_b, direction, **kwargs)
+        exit_ab, exit_ba = connect_bidirectional_exit(room_a, room_b, direction, **kwargs)
         exit_ab.tags.add(tag, category="tutorial_exit")
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
@@ -177,7 +177,7 @@ def build_tutorial_2(instance):
     rooms["woodlot"].desc_depleted = (
         "The woodlot has been cleared. No trees remain."
     )
-    _connect(rooms["harvest"], rooms["woodlot"], "east")
+    _connect_bidirectional_exit(rooms["harvest"], rooms["woodlot"], "east")
     _spawn_pip(rooms["woodlot"])
 
     # ================================================================== #
@@ -209,7 +209,7 @@ def build_tutorial_2(instance):
     rooms["windmill"].recipes = [
         {"inputs": {1: 1}, "output": 2, "amount": 1, "cost": 1},
     ]
-    _connect(rooms["woodlot"], rooms["windmill"], "east")
+    _connect_bidirectional_exit(rooms["woodlot"], rooms["windmill"], "east")
     _spawn_pip(rooms["windmill"])
 
     # ================================================================== #
@@ -243,7 +243,7 @@ def build_tutorial_2(instance):
     rooms["bakery"].recipes = [
         {"inputs": {2: 1, 6: 1}, "output": 3, "amount": 1, "cost": 1},
     ]
-    _connect(rooms["windmill"], rooms["bakery"], "east")
+    _connect_bidirectional_exit(rooms["windmill"], rooms["bakery"], "east")
     _spawn_pip(rooms["bakery"])
 
     # ================================================================== #
@@ -276,7 +276,7 @@ def build_tutorial_2(instance):
         ),
         typeclass=RoomBank,
     )
-    _connect(rooms["bakery"], rooms["vault"], "east")
+    _connect_bidirectional_exit(rooms["bakery"], rooms["vault"], "east")
     _spawn_pip(rooms["vault"])
 
     # ================================================================== #
@@ -305,7 +305,7 @@ def build_tutorial_2(instance):
             "|weast|n takes them to the hub for their reward."
         ),
     )
-    _connect(rooms["vault"], rooms["complete"], "east")
+    _connect_bidirectional_exit(rooms["vault"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
     # ================================================================== #

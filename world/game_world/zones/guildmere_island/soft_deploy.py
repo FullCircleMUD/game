@@ -16,7 +16,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "guildmere_island"
@@ -91,9 +91,9 @@ def build_zone():
 
     # ── Exits ─────────────────────────────────────────────────────────
 
-    connect(rooms["dock"], rooms["guild_promenade"], "west")
-    connect(rooms["guild_promenade"], rooms["coastal_path"], "north")
-    connect(rooms["coastal_path"], rooms["n_gate"], "north")
+    connect_bidirectional_exit(rooms["dock"], rooms["guild_promenade"], "west")
+    connect_bidirectional_exit(rooms["guild_promenade"], rooms["coastal_path"], "north")
+    connect_bidirectional_exit(rooms["coastal_path"], rooms["n_gate"], "north")
 
     # ── Tags ──────────────────────────────────────────────────────────
 

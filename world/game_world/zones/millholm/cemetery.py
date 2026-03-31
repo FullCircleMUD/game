@@ -28,7 +28,12 @@ from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_cemetery import RoomCemetery
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from utils.exit_helpers import connect, connect_door, connect_trapped_door
+from utils.exit_helpers import (
+    connect_bidirectional_exit,
+    connect_bidirectional_door_exit,
+    connect_bidirectional_trapped_door_exit,
+    connect_bidirectional_tripwire_exit,
+)
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -445,7 +450,7 @@ def build_millholm_cemetery():
     exit_count = 0
 
     # Gate → Cemetery (wrought-iron gates)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["cemetery_gates"], rooms["cemetery"], "west",
         key="wrought-iron gates",
         door_name="gates",
@@ -476,22 +481,22 @@ def build_millholm_cemetery():
     #   SW -- SE
 
     # East column N-S
-    connect(rooms["graves_ne"], rooms["cemetery"], "south")
-    connect(rooms["cemetery"], rooms["graves_se"], "south")
+    connect_bidirectional_exit(rooms["graves_ne"], rooms["cemetery"], "south")
+    connect_bidirectional_exit(rooms["cemetery"], rooms["graves_se"], "south")
 
     # West column N-S
-    connect(rooms["graves_nw"], rooms["graves_e"], "south")
-    connect(rooms["graves_e"], rooms["graves_sw"], "south")
+    connect_bidirectional_exit(rooms["graves_nw"], rooms["graves_e"], "south")
+    connect_bidirectional_exit(rooms["graves_e"], rooms["graves_sw"], "south")
 
     # East-West rows
-    connect(rooms["graves_nw"], rooms["graves_ne"], "east")
-    connect(rooms["graves_e"], rooms["cemetery"], "east")
-    connect(rooms["graves_sw"], rooms["graves_se"], "east")
+    connect_bidirectional_exit(rooms["graves_nw"], rooms["graves_ne"], "east")
+    connect_bidirectional_exit(rooms["graves_e"], rooms["cemetery"], "east")
+    connect_bidirectional_exit(rooms["graves_sw"], rooms["graves_se"], "east")
 
     exit_count += 14  # 7 bidirectional pairs
 
     # Family tombs — doors west off the west column
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["graves_nw"], rooms["tomb_stonefield"], "west",
         key="a stone door",
         closed_ab="A heavy stone door bears the Stonefield crest — a ship above crossed keys.",
@@ -500,7 +505,7 @@ def build_millholm_cemetery():
         open_ba="Daylight filters through the open door.",
         door_name="stone door",
     )
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["graves_e"], rooms["tomb_goldwheat"], "west",
         key="a stone door",
         closed_ab="A stone door carved with sheaves of wheat marks the Goldwheat family tomb.",
@@ -509,7 +514,7 @@ def build_millholm_cemetery():
         open_ba="The cemetery is visible through the open door.",
         door_name="stone door",
     )
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["graves_sw"], rooms["tomb_ironhand"], "west",
         key="a stone door",
         closed_ab="A stone door bearing a clenched iron fist marks the Ironhand family crypt.",
@@ -521,7 +526,7 @@ def build_millholm_cemetery():
     exit_count += 6
 
     # Stonefield tomb interior — trapped iron door → inner passage
-    connect_trapped_door(
+    connect_bidirectional_trapped_door_exit(
         rooms["tomb_stonefield"], rooms["tomb_stonefield_inner"], "west",
         key="an iron door",
         closed_ab="A rusted iron door blocks the passage deeper into the tomb.",
@@ -540,32 +545,15 @@ def build_millholm_cemetery():
     exit_count += 2
 
     # Tripwire between inner passage and burial chamber
-    from typeclasses.terrain.exits.exit_tripwire import TripwireExit
-
-    tripwire_ab = create_object(
-        TripwireExit,
-        key="Stonefield Burial Chamber",
-        location=rooms["tomb_stonefield_inner"],
-        destination=rooms["tomb_stonefield_burial"],
+    connect_bidirectional_tripwire_exit(
+        rooms["tomb_stonefield_inner"], rooms["tomb_stonefield_burial"], "west",
+        trap_find_dc=8,
+        trap_disarm_dc=8,
+        trap_damage_dice="1d4",
+        trap_damage_type="piercing",
+        trap_description="a thin wire stretched across the passage",
+        trap_one_shot=True,
     )
-    tripwire_ab.set_direction("west")
-    tripwire_ab.is_trapped = True
-    tripwire_ab.trap_armed = True
-    tripwire_ab.trap_find_dc = 8
-    tripwire_ab.trap_disarm_dc = 8
-    tripwire_ab.trap_damage_dice = "1d4"
-    tripwire_ab.trap_damage_type = "piercing"
-    tripwire_ab.trap_description = "a thin wire stretched across the passage"
-    tripwire_ab.trap_one_shot = True
-
-    # Return exit from burial chamber (no trap)
-    exit_burial_back = create_object(
-        ExitVerticalAware,
-        key="Inner Passage",
-        location=rooms["tomb_stonefield_burial"],
-        destination=rooms["tomb_stonefield_inner"],
-    )
-    exit_burial_back.set_direction("east")
     exit_count += 2
 
     print(f"  Created {exit_count} cemetery exits.")

@@ -28,7 +28,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -553,34 +553,34 @@ def build_millholm_mine():
     exit_count = 0
 
     # ── Surface connections ───────────────────────────────────────────
-    connect(rooms["miners_camp"], rooms["windroot_hollow"], "north")
-    connect(rooms["miners_camp"], rooms["mine_entrance"], "east")
+    connect_bidirectional_exit(rooms["miners_camp"], rooms["windroot_hollow"], "north")
+    connect_bidirectional_exit(rooms["miners_camp"], rooms["mine_entrance"], "east")
     exit_count += 4
 
     # ── Upper Mine — Copper Level ─────────────────────────────────────
-    connect(rooms["mine_entrance"], rooms["entry_shaft"], "east")
-    connect(rooms["entry_shaft"], rooms["copper_drift"], "west")
-    connect(rooms["copper_drift"], rooms["copper_seam"], "south")
-    connect(rooms["entry_shaft"], rooms["timbered_corridor"], "south")
-    connect(rooms["timbered_corridor"], rooms["ore_cart_track"], "south")
+    connect_bidirectional_exit(rooms["mine_entrance"], rooms["entry_shaft"], "east")
+    connect_bidirectional_exit(rooms["entry_shaft"], rooms["copper_drift"], "west")
+    connect_bidirectional_exit(rooms["copper_drift"], rooms["copper_seam"], "south")
+    connect_bidirectional_exit(rooms["entry_shaft"], rooms["timbered_corridor"], "south")
+    connect_bidirectional_exit(rooms["timbered_corridor"], rooms["ore_cart_track"], "south")
     exit_count += 10
 
     # ── Kobold Territory ──────────────────────────────────────────────
-    connect(rooms["ore_cart_track"], rooms["kobold_lookout"], "south")
-    connect(rooms["kobold_lookout"], rooms["flooded_gallery"], "west")
-    connect(rooms["kobold_lookout"], rooms["descent_shaft"], "down")
+    connect_bidirectional_exit(rooms["ore_cart_track"], rooms["kobold_lookout"], "south")
+    connect_bidirectional_exit(rooms["kobold_lookout"], rooms["flooded_gallery"], "west")
+    connect_bidirectional_exit(rooms["kobold_lookout"], rooms["descent_shaft"], "down")
     exit_count += 6
 
     # ── Lower Mine — Tin Level ────────────────────────────────────────
-    connect(rooms["descent_shaft"], rooms["lower_junction"], "down")
-    connect(rooms["lower_junction"], rooms["tin_seam"], "west")
-    connect(rooms["lower_junction"], rooms["tin_vein"], "east")
-    connect(rooms["lower_junction"], rooms["kobold_warren"], "south")
+    connect_bidirectional_exit(rooms["descent_shaft"], rooms["lower_junction"], "down")
+    connect_bidirectional_exit(rooms["lower_junction"], rooms["tin_seam"], "west")
+    connect_bidirectional_exit(rooms["lower_junction"], rooms["tin_vein"], "east")
+    connect_bidirectional_exit(rooms["lower_junction"], rooms["kobold_warren"], "south")
     exit_count += 8
 
     # ── Deep Mine — Mystery ───────────────────────────────────────────
-    connect(rooms["kobold_warren"], rooms["ancient_passage"], "south")
-    connect(rooms["ancient_passage"], rooms["sealed_door"], "south")
+    connect_bidirectional_exit(rooms["kobold_warren"], rooms["ancient_passage"], "south")
+    connect_bidirectional_exit(rooms["ancient_passage"], rooms["sealed_door"], "south")
     exit_count += 4
 
     print(f"  Created {exit_count} exits.")

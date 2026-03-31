@@ -34,7 +34,7 @@ from typeclasses.terrain.exits.exit_door import ExitDoor
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -272,9 +272,9 @@ def build_faerie_hollow():
     exit_count += 1
 
     # ── Hollow interior connections ───────────────────────────────────
-    connect(rooms["shimmering_threshold"], rooms["faerie_hollow"], "north")
-    connect(rooms["faerie_hollow"], rooms["moonlit_glade"], "west")
-    connect(rooms["faerie_hollow"], rooms["crystalline_grotto"], "east")
+    connect_bidirectional_exit(rooms["shimmering_threshold"], rooms["faerie_hollow"], "north")
+    connect_bidirectional_exit(rooms["faerie_hollow"], rooms["moonlit_glade"], "west")
+    connect_bidirectional_exit(rooms["faerie_hollow"], rooms["crystalline_grotto"], "east")
     exit_count += 6
 
     print(f"  Created {exit_count} exits.")

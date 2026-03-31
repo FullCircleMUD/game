@@ -19,7 +19,7 @@ from enums.room_crafting_type import RoomCraftingType
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_crafting import RoomCrafting
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 def _find_room(key):
@@ -65,7 +65,7 @@ def test_area_gateway():
         bush_track.set_terrain(TerrainType.FOREST.value)
         print(f"  Created gateway: The Bush Track {bush_track.dbref}")
 
-        connect(dt6, bush_track, "north",
+        connect_bidirectional_exit(dt6, bush_track, "north",
                 desc_ab="a narrow bush track", desc_ba="dirt track 6")
     else:
         print(f"  Bush Track already exists: {bush_track.dbref}")
@@ -85,7 +85,7 @@ def test_area_gateway():
         coastal_trail.set_terrain(TerrainType.COASTAL.value)
         print(f"  Created gateway: The Coastal Trail {coastal_trail.dbref}")
 
-        connect(cabin, coastal_trail, "north",
+        connect_bidirectional_exit(cabin, coastal_trail, "north",
                 desc_ab="a coastal trail", desc_ba="small beach cabin")
     else:
         print(f"  Coastal Trail already exists: {coastal_trail.dbref}")
@@ -145,7 +145,7 @@ def test_area_gateway():
         town_dock.set_terrain(TerrainType.COASTAL.value)
         print(f"  Created dock: The Town Dock {town_dock.dbref}")
 
-        connect(dt6, town_dock, "south",
+        connect_bidirectional_exit(dt6, town_dock, "south",
                 desc_ab="a wooden jetty", desc_ba="dirt track 6")
     else:
         print(f"  Town Dock already exists: {town_dock.dbref}")
@@ -165,7 +165,7 @@ def test_area_gateway():
         beach_dock.set_terrain(TerrainType.COASTAL.value)
         print(f"  Created dock: The Beach Dock {beach_dock.dbref}")
 
-        connect(beach, beach_dock, "west",
+        connect_bidirectional_exit(beach, beach_dock, "west",
                 desc_ab="a rough timber dock", desc_ba="white sand beach")
     else:
         print(f"  Beach Dock already exists: {beach_dock.dbref}")
@@ -223,7 +223,7 @@ def test_area_gateway():
         shipyard.db.always_lit = True
         print(f"  Created shipyard: The Shipyard {shipyard.dbref}")
 
-        connect(town_dock, shipyard, "east",
+        connect_bidirectional_exit(town_dock, shipyard, "east",
                 desc_ab="a sprawling shipyard", desc_ba="the town dock")
     else:
         print(f"  Shipyard already exists: {shipyard.dbref}")

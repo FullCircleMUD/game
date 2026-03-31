@@ -26,7 +26,7 @@ from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from typeclasses.world_objects.chest import WorldChest
 from typeclasses.world_objects.key_item import KeyItem
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -932,7 +932,7 @@ def build_millholm_farms(town_rooms):
     exit_count = 0
 
     # ── Connect to Millholm Town ──────────────────────────────────
-    connect(town_rooms["road_far_west"], rooms["farm_road_1"], "west")
+    connect_bidirectional_exit(town_rooms["road_far_west"], rooms["farm_road_1"], "west")
     exit_count += 2
 
     # ── Main road chain (east to west) ─────────────────────────────
@@ -942,48 +942,48 @@ def build_millholm_farms(town_rooms):
         "farm_road_west", "farm_road_cotton", "farm_road_mill",
     ]
     for i in range(len(road_chain) - 1):
-        connect(rooms[road_chain[i]], rooms[road_chain[i + 1]], "west")
+        connect_bidirectional_exit(rooms[road_chain[i]], rooms[road_chain[i + 1]], "west")
         exit_count += 2
 
     # Road end → Windmill (enter the building)
-    connect(rooms["farm_road_mill"], rooms["windmill"], "west")
+    connect_bidirectional_exit(rooms["farm_road_mill"], rooms["windmill"], "west")
     exit_count += 2
 
     # ── Weaving House spur (south of meadow) ─────────────────────
-    connect(rooms["farm_road_meadow"], rooms["weavers_track"], "south")
-    connect(rooms["weavers_track"], rooms["weaving_house"], "south")
+    connect_bidirectional_exit(rooms["farm_road_meadow"], rooms["weavers_track"], "south")
+    connect_bidirectional_exit(rooms["weavers_track"], rooms["weaving_house"], "south")
     exit_count += 4
 
     # ── South Fork (branching south from crossroads) ───────────────
-    connect(rooms["farm_road_crossroads"], rooms["south_fork_1"], "south")
-    connect(rooms["south_fork_1"], rooms["south_fork_2"], "south")
-    connect(rooms["south_fork_2"], rooms["south_fork_3"], "south")
-    connect(rooms["south_fork_3"], rooms["south_fork_end"], "south")
+    connect_bidirectional_exit(rooms["farm_road_crossroads"], rooms["south_fork_1"], "south")
+    connect_bidirectional_exit(rooms["south_fork_1"], rooms["south_fork_2"], "south")
+    connect_bidirectional_exit(rooms["south_fork_2"], rooms["south_fork_3"], "south")
+    connect_bidirectional_exit(rooms["south_fork_3"], rooms["south_fork_end"], "south")
     exit_count += 8
 
     # ── South Fork → Abandoned Farm ────────────────────────────────
-    connect(rooms["south_fork_3"], rooms["ab_path"], "east")
+    connect_bidirectional_exit(rooms["south_fork_3"], rooms["ab_path"], "east")
     exit_count += 2
 
     # ── Goldwheat Farm ─────────────────────────────────────────────
-    connect(rooms["farm_road_oak"], rooms["gw_lane"], "north")
-    connect(rooms["gw_lane"], gw_grid[0][3], "north")
+    connect_bidirectional_exit(rooms["farm_road_oak"], rooms["gw_lane"], "north")
+    connect_bidirectional_exit(rooms["gw_lane"], gw_grid[0][3], "north")
     exit_count += 4
 
     # Grid: horizontal connections (east-west)
     for row in range(3):
         for col in range(6):
-            connect(gw_grid[row][col], gw_grid[row][col + 1], "east")
+            connect_bidirectional_exit(gw_grid[row][col], gw_grid[row][col + 1], "east")
     exit_count += 36
 
     # Grid: vertical connections (north-south)
     for col in range(7):
         for row in range(2):
-            connect(gw_grid[row][col], gw_grid[row + 1][col], "north")
+            connect_bidirectional_exit(gw_grid[row][col], gw_grid[row + 1][col], "north")
     exit_count += 28
 
     # North track → garden (openable gate)
-    gate_ab, gate_ba = connect_door(
+    gate_ab, gate_ba = connect_bidirectional_door_exit(
         gw_grid[2][3], rooms["gw_garden"], "north",
         key="a wooden farm gate",
         closed_ab=(
@@ -1007,11 +1007,11 @@ def build_millholm_farms(town_rooms):
     exit_count += 2
 
     # Garden → homestead
-    connect(rooms["gw_garden"], rooms["gw_homestead"], "north")
+    connect_bidirectional_exit(rooms["gw_garden"], rooms["gw_homestead"], "north")
     exit_count += 2
 
     # North-east wheat → barn (barn doors)
-    connect_door(
+    connect_bidirectional_door_exit(
         gw_grid[2][6], rooms["gw_barn"], "north",
         key="a pair of barn doors",
         closed_ab=(
@@ -1035,45 +1035,45 @@ def build_millholm_farms(town_rooms):
     exit_count += 2
 
     # ── Brightwater Cotton Farm (branching north from cotton road) ──
-    connect(rooms["farm_road_cotton"], rooms["bw_track"], "north")
-    connect(rooms["bw_track"], rooms["bw_yard"], "north")
+    connect_bidirectional_exit(rooms["farm_road_cotton"], rooms["bw_track"], "north")
+    connect_bidirectional_exit(rooms["bw_track"], rooms["bw_yard"], "north")
     exit_count += 4
 
     # Yard → farm buildings
-    connect(rooms["bw_yard"], rooms["bw_barn"], "west")
-    connect(rooms["bw_yard"], rooms["bw_shed"], "east")
-    connect(rooms["bw_yard"], rooms["bw_well"], "north")
-    connect(rooms["bw_yard"], rooms["bw_farmhouse"], "northwest")
+    connect_bidirectional_exit(rooms["bw_yard"], rooms["bw_barn"], "west")
+    connect_bidirectional_exit(rooms["bw_yard"], rooms["bw_shed"], "east")
+    connect_bidirectional_exit(rooms["bw_yard"], rooms["bw_well"], "north")
+    connect_bidirectional_exit(rooms["bw_yard"], rooms["bw_farmhouse"], "northwest")
     exit_count += 8
 
     # Well → cotton field grid (south entrance)
-    connect(rooms["bw_well"], rooms["bw_field_s"], "north")
+    connect_bidirectional_exit(rooms["bw_well"], rooms["bw_field_s"], "north")
     exit_count += 2
 
     # Cotton field 3×3 grid connections
     # Top row (east-west)
-    connect(rooms["bw_field_nw"], rooms["bw_field_n"], "east")
-    connect(rooms["bw_field_n"], rooms["bw_field_ne"], "east")
+    connect_bidirectional_exit(rooms["bw_field_nw"], rooms["bw_field_n"], "east")
+    connect_bidirectional_exit(rooms["bw_field_n"], rooms["bw_field_ne"], "east")
     # Middle row (east-west)
-    connect(rooms["bw_field_w"], rooms["bw_field_center"], "east")
-    connect(rooms["bw_field_center"], rooms["bw_field_e"], "east")
+    connect_bidirectional_exit(rooms["bw_field_w"], rooms["bw_field_center"], "east")
+    connect_bidirectional_exit(rooms["bw_field_center"], rooms["bw_field_e"], "east")
     # Bottom row (east-west)
-    connect(rooms["bw_field_sw"], rooms["bw_field_s"], "east")
-    connect(rooms["bw_field_s"], rooms["bw_field_se"], "east")
+    connect_bidirectional_exit(rooms["bw_field_sw"], rooms["bw_field_s"], "east")
+    connect_bidirectional_exit(rooms["bw_field_s"], rooms["bw_field_se"], "east")
     exit_count += 12
 
     # Columns (north-south)
-    connect(rooms["bw_field_nw"], rooms["bw_field_w"], "south")
-    connect(rooms["bw_field_w"], rooms["bw_field_sw"], "south")
-    connect(rooms["bw_field_n"], rooms["bw_field_center"], "south")
-    connect(rooms["bw_field_center"], rooms["bw_field_s"], "south")
-    connect(rooms["bw_field_ne"], rooms["bw_field_e"], "south")
-    connect(rooms["bw_field_e"], rooms["bw_field_se"], "south")
+    connect_bidirectional_exit(rooms["bw_field_nw"], rooms["bw_field_w"], "south")
+    connect_bidirectional_exit(rooms["bw_field_w"], rooms["bw_field_sw"], "south")
+    connect_bidirectional_exit(rooms["bw_field_n"], rooms["bw_field_center"], "south")
+    connect_bidirectional_exit(rooms["bw_field_center"], rooms["bw_field_s"], "south")
+    connect_bidirectional_exit(rooms["bw_field_ne"], rooms["bw_field_e"], "south")
+    connect_bidirectional_exit(rooms["bw_field_e"], rooms["bw_field_se"], "south")
     exit_count += 12
 
     # ── Brightwater Underground ────────────────────────────────────
     # Hidden trapdoor in the barn floor — the Brightwaters' secret entrance
-    barn_trap_ab, barn_trap_ba = connect_door(
+    barn_trap_ab, barn_trap_ba = connect_bidirectional_door_exit(
         rooms["bw_barn"], rooms["bw_cellar"], "down",
         key="a trapdoor",
         closed_ab=(
@@ -1097,13 +1097,13 @@ def build_millholm_farms(town_rooms):
     barn_trap_ab.is_hidden = True
     barn_trap_ab.find_dc = 16
 
-    connect(rooms["bw_cellar"], rooms["bw_tunnel"], "south")
-    connect(rooms["bw_tunnel"], rooms["bw_chamber"], "south")
-    connect(rooms["bw_chamber"], rooms["bw_exit"], "east")
+    connect_bidirectional_exit(rooms["bw_cellar"], rooms["bw_tunnel"], "south")
+    connect_bidirectional_exit(rooms["bw_tunnel"], rooms["bw_chamber"], "south")
+    connect_bidirectional_exit(rooms["bw_chamber"], rooms["bw_exit"], "east")
     exit_count += 8
 
     # Hidden exit surfaces near the south fork — concealed by brambles
-    tunnel_exit_ab, tunnel_exit_ba = connect_door(
+    tunnel_exit_ab, tunnel_exit_ba = connect_bidirectional_door_exit(
         rooms["bw_exit"], rooms["south_fork_end"], "up",
         key="a gap in the brambles",
         closed_ab=(
@@ -1165,31 +1165,31 @@ def build_millholm_farms(town_rooms):
     )
 
     # ── Abandoned Farm ─────────────────────────────────────────────
-    connect(rooms["ab_path"], rooms["ab_yard"], "east")
-    connect(rooms["ab_yard"], rooms["ab_barn"], "north")
+    connect_bidirectional_exit(rooms["ab_path"], rooms["ab_yard"], "east")
+    connect_bidirectional_exit(rooms["ab_yard"], rooms["ab_barn"], "north")
     exit_count += 4
 
     # Abandoned fields: 4×2 grid south of yard
-    connect(rooms["ab_yard"], rooms["ab_field_1"], "south")
+    connect_bidirectional_exit(rooms["ab_yard"], rooms["ab_field_1"], "south")
     exit_count += 2
 
     # Top row (east-west)
-    connect(rooms["ab_field_1"], rooms["ab_field_2"], "east")
-    connect(rooms["ab_field_2"], rooms["ab_field_3"], "east")
-    connect(rooms["ab_field_3"], rooms["ab_field_4"], "east")
+    connect_bidirectional_exit(rooms["ab_field_1"], rooms["ab_field_2"], "east")
+    connect_bidirectional_exit(rooms["ab_field_2"], rooms["ab_field_3"], "east")
+    connect_bidirectional_exit(rooms["ab_field_3"], rooms["ab_field_4"], "east")
     exit_count += 6
 
     # Bottom row (east-west)
-    connect(rooms["ab_field_5"], rooms["ab_field_6"], "east")
-    connect(rooms["ab_field_6"], rooms["ab_field_7"], "east")
-    connect(rooms["ab_field_7"], rooms["ab_field_8"], "east")
+    connect_bidirectional_exit(rooms["ab_field_5"], rooms["ab_field_6"], "east")
+    connect_bidirectional_exit(rooms["ab_field_6"], rooms["ab_field_7"], "east")
+    connect_bidirectional_exit(rooms["ab_field_7"], rooms["ab_field_8"], "east")
     exit_count += 6
 
     # Columns (north-south)
-    connect(rooms["ab_field_1"], rooms["ab_field_5"], "south")
-    connect(rooms["ab_field_2"], rooms["ab_field_6"], "south")
-    connect(rooms["ab_field_3"], rooms["ab_field_7"], "south")
-    connect(rooms["ab_field_4"], rooms["ab_field_8"], "south")
+    connect_bidirectional_exit(rooms["ab_field_1"], rooms["ab_field_5"], "south")
+    connect_bidirectional_exit(rooms["ab_field_2"], rooms["ab_field_6"], "south")
+    connect_bidirectional_exit(rooms["ab_field_3"], rooms["ab_field_7"], "south")
+    connect_bidirectional_exit(rooms["ab_field_4"], rooms["ab_field_8"], "south")
     exit_count += 8
 
     print(f"  Created {exit_count} exits.")

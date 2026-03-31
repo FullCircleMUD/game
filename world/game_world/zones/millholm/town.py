@@ -30,7 +30,7 @@ from typeclasses.terrain.rooms.room_inn import RoomInn
 from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -1811,66 +1811,66 @@ def build_millholm_town(one_way_limbo=False):
         exit_ab.set_direction("down")
         exit_count += 1
     else:
-        connect(limbo, rooms["inn"], "down")
+        connect_bidirectional_exit(limbo, rooms["inn"], "down")
         exit_count += 2
 
     # ── Trade Way: west approach → square → east departure ───────────
     #
     #  road_far_west → road_mid_west → road_west → sq_w → sq_center → sq_e → road_east → road_mid_east → road_far_east
     #
-    connect(rooms["road_far_west"], rooms["road_mid_west"], "east")
-    connect(rooms["road_mid_west"], rooms["road_west"], "east")
-    connect(rooms["road_west"], rooms["sq_w"], "east")
-    connect(rooms["sq_w"], rooms["sq_center"], "east")
-    connect(rooms["sq_center"], rooms["sq_e"], "east")
-    connect(rooms["sq_e"], rooms["road_east"], "east")
-    connect(rooms["road_east"], rooms["road_mid_east"], "east")
-    connect(rooms["road_mid_east"], rooms["road_far_east"], "east")
+    connect_bidirectional_exit(rooms["road_far_west"], rooms["road_mid_west"], "east")
+    connect_bidirectional_exit(rooms["road_mid_west"], rooms["road_west"], "east")
+    connect_bidirectional_exit(rooms["road_west"], rooms["sq_w"], "east")
+    connect_bidirectional_exit(rooms["sq_w"], rooms["sq_center"], "east")
+    connect_bidirectional_exit(rooms["sq_center"], rooms["sq_e"], "east")
+    connect_bidirectional_exit(rooms["sq_e"], rooms["road_east"], "east")
+    connect_bidirectional_exit(rooms["road_east"], rooms["road_mid_east"], "east")
+    connect_bidirectional_exit(rooms["road_mid_east"], rooms["road_far_east"], "east")
     exit_count += 16
 
     # ── NS road through square ───────────────────────────────────────
-    connect(rooms["sq_n"], rooms["sq_center"], "south")
-    connect(rooms["sq_center"], rooms["sq_s"], "south")
+    connect_bidirectional_exit(rooms["sq_n"], rooms["sq_center"], "south")
+    connect_bidirectional_exit(rooms["sq_center"], rooms["sq_s"], "south")
     exit_count += 4
 
     # ── 3x3 square internal connections ──────────────────────────────
     # North row: nw ↔ n ↔ ne
-    connect(rooms["sq_nw"], rooms["sq_n"], "east")
-    connect(rooms["sq_n"], rooms["sq_ne"], "east")
+    connect_bidirectional_exit(rooms["sq_nw"], rooms["sq_n"], "east")
+    connect_bidirectional_exit(rooms["sq_n"], rooms["sq_ne"], "east")
     exit_count += 4
 
     # South row: sw ↔ s ↔ se
-    connect(rooms["sq_sw"], rooms["sq_s"], "east")
-    connect(rooms["sq_s"], rooms["sq_se"], "east")
+    connect_bidirectional_exit(rooms["sq_sw"], rooms["sq_s"], "east")
+    connect_bidirectional_exit(rooms["sq_s"], rooms["sq_se"], "east")
     exit_count += 4
 
     # North-south between corner rows and middle row
     # West column: nw ↔ w ↔ sw
-    connect(rooms["sq_nw"], rooms["sq_w"], "south")
-    connect(rooms["sq_w"], rooms["sq_sw"], "south")
+    connect_bidirectional_exit(rooms["sq_nw"], rooms["sq_w"], "south")
+    connect_bidirectional_exit(rooms["sq_w"], rooms["sq_sw"], "south")
     exit_count += 4
 
     # East column: ne ↔ e ↔ se
-    connect(rooms["sq_ne"], rooms["sq_e"], "south")
-    connect(rooms["sq_e"], rooms["sq_se"], "south")
+    connect_bidirectional_exit(rooms["sq_ne"], rooms["sq_e"], "south")
+    connect_bidirectional_exit(rooms["sq_e"], rooms["sq_se"], "south")
     exit_count += 4
 
     # ── North road ─────────────────────────────────────────────────
-    connect(rooms["sq_n"], rooms["north_road"], "north")
+    connect_bidirectional_exit(rooms["sq_n"], rooms["north_road"], "north")
     exit_count += 2
 
     # ── South road (full spine to south gate) ─────────────────────────
-    connect(rooms["sq_s"], rooms["south_road"], "south")
-    connect(rooms["south_road"], rooms["mid_south_road"], "south")
-    connect(rooms["mid_south_road"], rooms["upper_south_road"], "south")
-    connect(rooms["upper_south_road"], rooms["artisans_way"], "south")
-    connect(rooms["artisans_way"], rooms["lower_south_road"], "south")
-    connect(rooms["lower_south_road"], rooms["far_south_road"], "south")
-    connect(rooms["far_south_road"], rooms["south_gate"], "south")
+    connect_bidirectional_exit(rooms["sq_s"], rooms["south_road"], "south")
+    connect_bidirectional_exit(rooms["south_road"], rooms["mid_south_road"], "south")
+    connect_bidirectional_exit(rooms["mid_south_road"], rooms["upper_south_road"], "south")
+    connect_bidirectional_exit(rooms["upper_south_road"], rooms["artisans_way"], "south")
+    connect_bidirectional_exit(rooms["artisans_way"], rooms["lower_south_road"], "south")
+    connect_bidirectional_exit(rooms["lower_south_road"], rooms["far_south_road"], "south")
+    connect_bidirectional_exit(rooms["far_south_road"], rooms["south_gate"], "south")
     exit_count += 14
 
     # Lower south road — west to jeweller (second entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["lower_south_road"], rooms["jeweller"], "west",
         key="a wooden door",
         closed_ab="A wooden door with a gem-and-ring sign leads west.",
@@ -1881,7 +1881,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # Upper south road — east to apothecary (second entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["upper_south_road"], rooms["apothecary"], "east",
         key="a wooden door",
         closed_ab="A wooden door with a mortar and pestle sign leads east.",
@@ -1892,21 +1892,21 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # Artisan's Way — west branch
-    connect(rooms["artisans_way"], rooms["artisans_way_w1"], "west")
-    connect(rooms["artisans_way_w1"], rooms["artisans_way_w2"], "west")
-    connect(rooms["artisans_way_w2"], rooms["artisans_way_w3"], "west")
+    connect_bidirectional_exit(rooms["artisans_way"], rooms["artisans_way_w1"], "west")
+    connect_bidirectional_exit(rooms["artisans_way_w1"], rooms["artisans_way_w2"], "west")
+    connect_bidirectional_exit(rooms["artisans_way_w2"], rooms["artisans_way_w3"], "west")
     exit_count += 6
 
     # Artisan's Way — east branch
-    connect(rooms["artisans_way"], rooms["artisans_way_e1"], "east")
-    connect(rooms["artisans_way_e1"], rooms["artisans_way_e2"], "east")
-    connect(rooms["artisans_way_e2"], rooms["artisans_way_e3"], "east")
+    connect_bidirectional_exit(rooms["artisans_way"], rooms["artisans_way_e1"], "east")
+    connect_bidirectional_exit(rooms["artisans_way_e1"], rooms["artisans_way_e2"], "east")
+    connect_bidirectional_exit(rooms["artisans_way_e2"], rooms["artisans_way_e3"], "east")
     exit_count += 6
 
     # ── Artisan's Way — craft room doors (north and south off lane) ──
 
     # W3 north: Hendricks House — south: Leathershop
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_w3"], rooms["hendricks_house"], "north",
         key="a wooden door",
         closed_ab="A wooden door leads north to a modest dwelling.",
@@ -1914,7 +1914,7 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A wooden door leads south to Artisan's Way.",
         open_ba="Artisan's Way is visible through the open door.",
     )
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_w3"], rooms["leathershop"], "south",
         key="a wooden door",
         closed_ab="A wooden door with a leather hide sign leads south.",
@@ -1925,7 +1925,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 4
 
     # W2 north: Smithy — south: Vacant
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_w2"], rooms["smithy"], "north",
         key="a heavy iron door",
         closed_ab="A heavy iron door leads north into a smithy.",
@@ -1933,16 +1933,16 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A heavy iron door leads south to Artisan's Way.",
         open_ba="Artisan's Way is visible through the open door.",
     )
-    connect(rooms["artisans_way_w2"], rooms["vacant_w2"], "south",
+    connect_bidirectional_exit(rooms["artisans_way_w2"], rooms["vacant_w2"], "south",
             desc_ab="a boarded-up workshop", desc_ba="Artisan's Way")
     exit_count += 4
 
     # W1 north: Vacant (ground only) — south: Jeweller
-    exit_to_vacant, _ = connect(rooms["artisans_way_w1"], rooms["vacant_w1"], "north",
+    exit_to_vacant, _ = connect_bidirectional_exit(rooms["artisans_way_w1"], rooms["vacant_w1"], "north",
             desc_ab="a shuttered workshop", desc_ba="Artisan's Way")
     exit_to_vacant.required_min_height = 0
     exit_to_vacant.required_max_height = 0
-    door_jeweller_ab, _ = connect_door(
+    door_jeweller_ab, _ = connect_bidirectional_door_exit(
         rooms["artisans_way_w1"], rooms["jeweller"], "south",
         key="a wooden door",
         closed_ab="A wooden door with a gem-and-ring sign leads south.",
@@ -1955,7 +1955,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 4
 
     # E1 north: Apothecary — south: Distillery (back room off apothecary)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_e1"], rooms["apothecary"], "north",
         key="a wooden door",
         closed_ab="A wooden door with a mortar and pestle sign leads north.",
@@ -1963,12 +1963,12 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A wooden door leads south to Artisan's Way.",
         open_ba="Artisan's Way is visible through the open door.",
     )
-    connect(rooms["apothecary"], rooms["distillery"], "east",
+    connect_bidirectional_exit(rooms["apothecary"], rooms["distillery"], "east",
             desc_ab="the distillery", desc_ba="the apothecary")
     exit_count += 4
 
     # E2 north: Textiles — south: Vacant
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_e2"], rooms["textiles"], "north",
         key="a wooden door",
         closed_ab="A wooden door with colourful fabric samples in the window leads north.",
@@ -1976,12 +1976,12 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A wooden door leads south to Artisan's Way.",
         open_ba="Artisan's Way is visible through the open door.",
     )
-    connect(rooms["artisans_way_e2"], rooms["vacant_e2"], "south",
+    connect_bidirectional_exit(rooms["artisans_way_e2"], rooms["vacant_e2"], "south",
             desc_ab="a disused workshop", desc_ba="Artisan's Way")
     exit_count += 4
 
     # E3 north: Elena Copperkettle's House — south: Woodshop
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_e3"], rooms["elena_house"], "north",
         key="a wooden door",
         closed_ab="A wooden door leads north to a cosy cottage.",
@@ -1989,7 +1989,7 @@ def build_millholm_town(one_way_limbo=False):
         closed_ba="A wooden door leads south to Artisan's Way.",
         open_ba="Artisan's Way is visible through the open door.",
     )
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["artisans_way_e3"], rooms["woodshop"], "south",
         key="a wooden door",
         closed_ab="A wooden door with a carved oak leaf sign leads south.",
@@ -2002,7 +2002,7 @@ def build_millholm_town(one_way_limbo=False):
     # ── Buildings off the square (doors) ─────────────────────────────
 
     # NW — Inn (south door from inn to sq_nw)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["inn"], rooms["sq_nw"], "south",
         key="a wooden door",
         closed_ab="A wooden door leads south to the market square.",
@@ -2013,7 +2013,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # NE — Stables (north door from sq_ne)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_ne"], rooms["stables"], "north",
         key="large double doors",
         door_name="doors",
@@ -2025,7 +2025,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # NE — Bakery (east door from sq_ne)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_ne"], rooms["bakery"], "east",
         key="a wooden door",
         closed_ab="A wooden door leads east into Goldencrust Bakery.",
@@ -2036,7 +2036,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_mid_west — Armorer (north door, replaces old smithy)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_mid_west"], rooms["armorer"], "north",
         key="a reinforced door",
         closed_ab="A reinforced door with crossed-swords insignia leads north.",
@@ -2047,7 +2047,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_far_west — Abandoned House (south door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_far_west"], rooms["abandoned_house"], "south",
         key="a boarded-up door",
         closed_ab="A boarded-up door leads south into a disused building.",
@@ -2058,7 +2058,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # SW — Shrine (south door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_sw"], rooms["shrine"], "south",
         key="ornate double doors",
         door_name="doors",
@@ -2070,7 +2070,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # SW — General Store (west door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_sw"], rooms["general_store"], "west",
         key="a wooden door",
         closed_ab="A wooden door with a painted 'General Store' sign leads west.",
@@ -2081,7 +2081,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_west — General Store (south door, 2nd entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_west"], rooms["general_store"], "south",
         key="a wooden door",
         closed_ab="A wooden door with a painted 'General Store' sign leads south.",
@@ -2092,7 +2092,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # SE — Mages Guild (south door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_se"], rooms["mages_guild"], "south",
         key="a plain wooden door",
         closed_ab="A plain wooden door leads south into a modest building.",
@@ -2103,7 +2103,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # sq_se — Bank (east door, 2nd entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_se"], rooms["bank"], "east",
         key="a grand bronze door",
         closed_ab=(
@@ -2119,7 +2119,7 @@ def build_millholm_town(one_way_limbo=False):
     # ── Buildings off the approach roads (doors) ─────────────────────
 
     # road_far_west — Weapons Shop (north door, replaces old textiles)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_far_west"], rooms["weapons_shop"], "north",
         key="a wooden door",
         closed_ab="A wooden door beneath a sign reading 'Blades & Blunts' leads north.",
@@ -2130,7 +2130,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_west — Clothing Shop (north door, replaces old woodshop)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_west"], rooms["clothing_shop"], "north",
         key="a wooden door",
         closed_ab="A wooden door with elegant fabric drapes in the window leads north.",
@@ -2141,7 +2141,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_mid_west — Gareth Stonefield's House (south door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_mid_west"], rooms["gareth_house"], "south",
         key="an impressive oak door",
         closed_ab=(
@@ -2155,7 +2155,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # sq_nw — Clothing Shop (west door, 2nd entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["sq_nw"], rooms["clothing_shop"], "west",
         key="a wooden door",
         closed_ab="A wooden door leads west into The Silken Thread.",
@@ -2166,7 +2166,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_east — Bakery (north door, 2nd entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_east"], rooms["bakery"], "north",
         key="a wooden door",
         closed_ab="A wooden door leads north into Goldencrust Bakery.",
@@ -2177,7 +2177,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_east — Bank (south door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_east"], rooms["bank"], "south",
         key="a grand bronze door",
         closed_ab=(
@@ -2191,7 +2191,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_mid_east — Magical Supplies (north door, replaces old apothecary)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_mid_east"], rooms["magical_supplies"], "north",
         key="a wooden door",
         closed_ab="A wooden door with a bubbling flask sign leads north.",
@@ -2202,7 +2202,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_mid_east — Post Office (south door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_mid_east"], rooms["post_office"], "south",
         key="a sturdy oak door",
         closed_ab="A sturdy oak door with a brass letterbox leads south.",
@@ -2213,7 +2213,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_far_east — Jeweller's Showroom (north door, replaces old jeweller)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_far_east"], rooms["jewellers_showroom"], "north",
         key="a wooden door",
         closed_ab="A wooden door with a gilded window display leads north.",
@@ -2224,7 +2224,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # road_far_east — Vacant Shopfront (south door, replaces old leathershop)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["road_far_east"], rooms["vacant_shop"], "south",
         key="a glass door",
         closed_ab="A glass-panelled door with a 'To Let' notice leads south.",
@@ -2237,7 +2237,7 @@ def build_millholm_town(one_way_limbo=False):
     # ── Buildings off South Road (doors) ───────────────────────────
 
     # south_road — Temple (west door, 2nd entrance)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["south_road"], rooms["shrine"], "west",
         key="ornate double doors",
         door_name="doors",
@@ -2249,7 +2249,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # mid_south_road — Warriors Guild (east door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["mid_south_road"], rooms["warriors_guild"], "east",
         key="a sturdy wooden door",
         closed_ab="A sturdy door marked with The Iron Company coat of arms leads east.",
@@ -2260,11 +2260,11 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # mid_south_road — Beggar's Alley (west)
-    connect(rooms["mid_south_road"], rooms["beggars_alley"], "west")
+    connect_bidirectional_exit(rooms["mid_south_road"], rooms["beggars_alley"], "west")
     exit_count += 2
 
     # far_south_road — Broken Crown (west door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["far_south_road"], rooms["broken_crown"], "west",
         key="a battered wooden door",
         closed_ab="A battered wooden door beneath a cracked crown sign leads west.",
@@ -2275,7 +2275,7 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # far_south_road — Gaol (east door)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["far_south_road"], rooms["gaol"], "east",
         key="a heavy iron-banded door",
         closed_ab="A heavy iron-banded door leads east into the town gaol.",
@@ -2285,7 +2285,7 @@ def build_millholm_town(one_way_limbo=False):
     )
 
     # Gaol — Cell (locked door north)
-    connect_door(
+    connect_bidirectional_door_exit(
         rooms["gaol"], rooms["gaol_cell"], "north",
         key="a barred cell door",
         closed_ab="A barred iron cell door leads north. It is locked.",
@@ -2300,12 +2300,12 @@ def build_millholm_town(one_way_limbo=False):
     exit_count += 2
 
     # ── Gareth's House → Bedroom (upstairs) ─────────────────────────
-    connect(rooms["gareth_house"], rooms["gareth_bedroom"], "up",
+    connect_bidirectional_exit(rooms["gareth_house"], rooms["gareth_bedroom"], "up",
             desc_ab="the bedroom upstairs", desc_ba="the house below")
     exit_count += 2
 
     # ── Secret passage: Gareth's House ↔ Abandoned House (hidden) ────
-    secret_ab, secret_ba = connect(
+    secret_ab, secret_ba = connect_bidirectional_exit(
         rooms["gareth_house"], rooms["abandoned_house"], "west",
         desc_ab=(
             "The west wall is decorated with an impressive bookcase housing "
@@ -2329,38 +2329,38 @@ def build_millholm_town(one_way_limbo=False):
     # Elena's House — now accessed from Artisan's Way E3 (north door above)
 
     # Mara Brightwater — behind (north of) apothecary (stays as internal connection)
-    connect(rooms["apothecary"], rooms["mara_house"], "north",
+    connect_bidirectional_exit(rooms["apothecary"], rooms["mara_house"], "north",
             desc_ab="a door to a cottage",
             desc_ba="the apothecary workshop")
     exit_count += 2
 
     # ── Inn vertical chain ───────────────────────────────────────────
-    connect(rooms["inn"], rooms["stairwell"], "north",
+    connect_bidirectional_exit(rooms["inn"], rooms["stairwell"], "north",
             desc_ab="a narrow stairwell", desc_ba="The Harvest Moon")
-    connect(rooms["stairwell"], rooms["cellar_stairwell"], "down",
+    connect_bidirectional_exit(rooms["stairwell"], rooms["cellar_stairwell"], "down",
             desc_ab="stairs descending into the cellar",
             desc_ba="stairs leading back up")
-    connect(rooms["stairwell"], rooms["first_floor_stairwell"], "up",
+    connect_bidirectional_exit(rooms["stairwell"], rooms["first_floor_stairwell"], "up",
             desc_ab="stairs leading to the first floor",
             desc_ba="stairs leading back down")
     # NOTE: cellar_stairwell → cellar connection is now a door (soft_deploy.py)
     # created in build_game_world.py (rat cellar quest). Return exit from cellar
     # back to cellar_stairwell is also wired there.
-    connect(rooms["first_floor_stairwell"], rooms["hallway"], "south",
+    connect_bidirectional_exit(rooms["first_floor_stairwell"], rooms["hallway"], "south",
             desc_ab="the upstairs hallway",
             desc_ba="the first floor stairwell")
-    connect(rooms["hallway"], rooms["bedroom_east"], "east",
+    connect_bidirectional_exit(rooms["hallway"], rooms["bedroom_east"], "east",
             desc_ab="a bedroom", desc_ba="the hallway")
-    connect(rooms["hallway"], rooms["bedroom_west"], "west",
+    connect_bidirectional_exit(rooms["hallway"], rooms["bedroom_west"], "west",
             desc_ab="a bedroom", desc_ba="the hallway")
     exit_count += 12  # was 14, minus 2 for cellar door (moved to build_game_world)
 
     # ── Guild back rooms ─────────────────────────────────────────────
-    connect(rooms["shrine"], rooms["priest_quarters"], "up",
+    connect_bidirectional_exit(rooms["shrine"], rooms["priest_quarters"], "up",
             desc_ab="the priest's quarters", desc_ba="the shrine")
-    connect(rooms["mages_guild"], rooms["arcane_study"], "east",
+    connect_bidirectional_exit(rooms["mages_guild"], rooms["arcane_study"], "east",
             desc_ab="an arcane study", desc_ba="the guild hall")
-    connect(rooms["warriors_guild"], rooms["barracks"], "south",
+    connect_bidirectional_exit(rooms["warriors_guild"], rooms["barracks"], "south",
             desc_ab="the barracks", desc_ba="the guild hall")
     exit_count += 6
 

@@ -31,7 +31,7 @@ from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit, connect_oneway_loopback_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -270,14 +270,7 @@ NORTHERN_WOODS = [
 
 def _self_loop(room, direction, desc=None):
     """Create an exit that leads back to the same room (forest boundary)."""
-    exit_obj = create_object(
-        ExitVerticalAware,
-        key=desc or room.key,
-        location=room,
-        destination=room,
-    )
-    exit_obj.set_direction(direction)
-    return exit_obj
+    return connect_oneway_loopback_exit(room, direction, key=desc)
 
 
 def build_millholm_woods(town_rooms):
@@ -846,7 +839,7 @@ def build_millholm_woods(town_rooms):
     exit_count = 0
 
     # ── Connect to Millholm Town ──────────────────────────────────
-    connect(town_rooms["road_far_east"], rooms["forest_path_east"], "east")
+    connect_bidirectional_exit(town_rooms["road_far_east"], rooms["forest_path_east"], "east")
     exit_count += 2
 
     # ── Main path chain (winding east) ─────────────────────────────
@@ -870,21 +863,21 @@ def build_millholm_woods(town_rooms):
         ("scattered_groves", "wooded_foothills", "east"),
     ]
     for key_a, key_b, direction in path_connections:
-        connect(rooms[key_a], rooms[key_b], direction)
+        connect_bidirectional_exit(rooms[key_a], rooms[key_b], direction)
         exit_count += 2
 
     # ── East gate (zone boundary) ─────────────────────────────────
-    connect(rooms["wooded_foothills"], rooms["east_gate"], "east")
+    connect_bidirectional_exit(rooms["wooded_foothills"], rooms["east_gate"], "east")
     exit_count += 2
 
     # ── Sawmill spur ───────────────────────────────────────────────
-    connect(rooms["edge_of_woods"], rooms["northern_track"], "north")
-    connect(rooms["northern_track"], rooms["sawmill"], "north")
+    connect_bidirectional_exit(rooms["edge_of_woods"], rooms["northern_track"], "north")
+    connect_bidirectional_exit(rooms["northern_track"], rooms["sawmill"], "north")
     exit_count += 4
 
     # ── Smelter spur ───────────────────────────────────────────────
-    connect(rooms["edge_of_woods"], rooms["southern_track"], "south")
-    connect(rooms["southern_track"], rooms["smelter"], "south")
+    connect_bidirectional_exit(rooms["edge_of_woods"], rooms["southern_track"], "south")
+    connect_bidirectional_exit(rooms["southern_track"], rooms["smelter"], "south")
     exit_count += 4
 
     # ── Main path → grid row 1 (10 connections) ───────────────────
@@ -895,19 +888,19 @@ def build_millholm_woods(town_rooms):
         "rolling_rise",
     ]
     for col, path_key in enumerate(grid_entry_keys):
-        connect(rooms[path_key], grid[0][col], "south")
+        connect_bidirectional_exit(rooms[path_key], grid[0][col], "south")
         exit_count += 2
 
     # ── Grid east-west connections (bidirectional) ─────────────────
     for r in range(6):
         for c in range(9):
-            connect(grid[r][c], grid[r][c + 1], "east")
+            connect_bidirectional_exit(grid[r][c], grid[r][c + 1], "east")
             exit_count += 2
 
     # ── Grid north-south connections (bidirectional) ───────────────
     for r in range(5):
         for c in range(10):
-            connect(grid[r][c], grid[r + 1][c], "south")
+            connect_bidirectional_exit(grid[r][c], grid[r + 1][c], "south")
             exit_count += 2
 
     # ── Grid boundary self-loops ───────────────────────────────────
@@ -931,12 +924,12 @@ def build_millholm_woods(town_rooms):
 
     # ── Main path → northern woods (bidirectional, 10 pairs) ─────
     for i, path_key in enumerate(grid_entry_keys):
-        connect(rooms[path_key], northern_woods[i], "north")
+        connect_bidirectional_exit(rooms[path_key], northern_woods[i], "north")
         exit_count += 2
 
     # ── Northern woods east-west connections ──────────────────────
     for i in range(9):
-        connect(northern_woods[i], northern_woods[i + 1], "east")
+        connect_bidirectional_exit(northern_woods[i], northern_woods[i + 1], "east")
         exit_count += 2
 
     # ── Northern woods → deep woods entry (many-to-one, north) ───

@@ -21,7 +21,12 @@ from evennia import create_object
 
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
-from utils.exit_helpers import connect, connect_door, connect_trapped_door
+from utils.exit_helpers import (
+    connect_bidirectional_exit,
+    connect_bidirectional_door_exit,
+    connect_bidirectional_trapped_door_exit,
+    connect_bidirectional_tripwire_exit,
+)
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -575,33 +580,33 @@ def build_millholm_sewers():
     # ====================================================================
 
     # Main sewer spine (north to south)
-    connect(rooms["sewer_entrance"], rooms["main_drain"], "south")
-    connect(rooms["main_drain"], rooms["drain_junction"], "south")
-    connect(rooms["drain_junction"], rooms["flooded_tunnel"], "south")
-    connect(rooms["flooded_tunnel"], rooms["deep_sewer"], "south")
-    connect(rooms["deep_sewer"], rooms["overflow_chamber"], "south")
-    connect(rooms["overflow_chamber"], rooms["crumbling_wall"], "south")
+    connect_bidirectional_exit(rooms["sewer_entrance"], rooms["main_drain"], "south")
+    connect_bidirectional_exit(rooms["main_drain"], rooms["drain_junction"], "south")
+    connect_bidirectional_exit(rooms["drain_junction"], rooms["flooded_tunnel"], "south")
+    connect_bidirectional_exit(rooms["flooded_tunnel"], rooms["deep_sewer"], "south")
+    connect_bidirectional_exit(rooms["deep_sewer"], rooms["overflow_chamber"], "south")
+    connect_bidirectional_exit(rooms["overflow_chamber"], rooms["crumbling_wall"], "south")
 
     # Dead-end branches
-    connect(rooms["drain_junction"], rooms["eastern_pipe"], "east")
-    connect(rooms["eastern_pipe"], rooms["blocked_grate"], "east")
-    connect(rooms["flooded_tunnel"], rooms["rat_nest"], "west")
-    connect(rooms["deep_sewer"], rooms["collapsed_section"], "east")
+    connect_bidirectional_exit(rooms["drain_junction"], rooms["eastern_pipe"], "east")
+    connect_bidirectional_exit(rooms["eastern_pipe"], rooms["blocked_grate"], "east")
+    connect_bidirectional_exit(rooms["flooded_tunnel"], rooms["rat_nest"], "west")
+    connect_bidirectional_exit(rooms["deep_sewer"], rooms["collapsed_section"], "east")
 
     # Cistern branch (Old Cistern → Overflow Chamber via 4 rooms + 2 dead ends)
-    connect(rooms["old_cistern"], rooms["waterlogged_passage"], "south")
-    connect(rooms["waterlogged_passage"], rooms["fungal_grotto"], "south")
-    connect(rooms["fungal_grotto"], rooms["submerged_alcove"], "east")
-    connect(rooms["fungal_grotto"], rooms["narrow_crawlway"], "south")
-    connect(rooms["narrow_crawlway"], rooms["ancient_drain"], "south")
-    connect(rooms["ancient_drain"], rooms["bricked_up_passage"], "west")
-    connect(rooms["ancient_drain"], rooms["overflow_chamber"], "east")
+    connect_bidirectional_exit(rooms["old_cistern"], rooms["waterlogged_passage"], "south")
+    connect_bidirectional_exit(rooms["waterlogged_passage"], rooms["fungal_grotto"], "south")
+    connect_bidirectional_exit(rooms["fungal_grotto"], rooms["submerged_alcove"], "east")
+    connect_bidirectional_exit(rooms["fungal_grotto"], rooms["narrow_crawlway"], "south")
+    connect_bidirectional_exit(rooms["narrow_crawlway"], rooms["ancient_drain"], "south")
+    connect_bidirectional_exit(rooms["ancient_drain"], rooms["bricked_up_passage"], "west")
+    connect_bidirectional_exit(rooms["ancient_drain"], rooms["overflow_chamber"], "east")
 
     # ====================================================================
     #  EXIT — Hidden door: Crumbling Wall → Thieves' Tunnel (find_dc=20)
     # ====================================================================
 
-    door_ab, door_ba = connect_door(
+    door_ab, door_ba = connect_bidirectional_door_exit(
         rooms["crumbling_wall"], rooms["thieves_tunnel"], "south",
         key="a section of loose masonry",
         closed_ab=(
@@ -628,18 +633,18 @@ def build_millholm_sewers():
     #  EXITS — Thieves' Lair
     # ====================================================================
 
-    connect(rooms["thieves_tunnel"], rooms["guard_post"], "south")
-    connect(rooms["guard_post"], rooms["thieves_hall"], "south")
-    connect(rooms["thieves_hall"], rooms["planning_room"], "east")
-    connect(rooms["thieves_hall"], rooms["barracks"], "west")
-    connect(rooms["thieves_hall"], rooms["stolen_goods"], "south")
-    connect(rooms["stolen_goods"], rooms["shadow_mistress_chamber"], "east")
-    connect(rooms["guard_post"], rooms["training_alcove"], "east")
+    connect_bidirectional_exit(rooms["thieves_tunnel"], rooms["guard_post"], "south")
+    connect_bidirectional_exit(rooms["guard_post"], rooms["thieves_hall"], "south")
+    connect_bidirectional_exit(rooms["thieves_hall"], rooms["planning_room"], "east")
+    connect_bidirectional_exit(rooms["thieves_hall"], rooms["barracks"], "west")
+    connect_bidirectional_exit(rooms["thieves_hall"], rooms["stolen_goods"], "south")
+    connect_bidirectional_exit(rooms["stolen_goods"], rooms["shadow_mistress_chamber"], "east")
+    connect_bidirectional_exit(rooms["guard_post"], rooms["training_alcove"], "east")
 
     # ── Thieves' Gauntlet exits + fixtures ───────────────────────────────
 
     # Hidden entrance from Training Alcove (dc 5)
-    door_gauntlet, _ = connect_door(
+    door_gauntlet, _ = connect_bidirectional_door_exit(
         rooms["training_alcove"], rooms["gauntlet_corridor"], "south",
         key="a concealed panel",
         closed_ab=(
@@ -658,7 +663,7 @@ def build_millholm_sewers():
     door_gauntlet.find_dc = 5
 
     # Trapped door from corridor to lever room (darts, dc 6)
-    connect_trapped_door(
+    connect_bidirectional_trapped_door_exit(
         rooms["gauntlet_corridor"], rooms["gauntlet_lever_room"], "west",
         key="an iron door",
         closed_ab=(
@@ -678,34 +683,16 @@ def build_millholm_sewers():
         trap_side="ab",
     )
 
-    # Tripwire from lever room to vault
-    from typeclasses.terrain.exits.exit_tripwire import TripwireExit
-    from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-
-    tripwire = create_object(
-        TripwireExit,
-        key="The Vault",
-        location=rooms["gauntlet_lever_room"],
-        destination=rooms["gauntlet_vault"],
+    # Tripwire from lever room to vault (bidirectional, trap on A→B side only)
+    connect_bidirectional_tripwire_exit(
+        rooms["gauntlet_lever_room"], rooms["gauntlet_vault"], "west",
+        trap_find_dc=6,
+        trap_disarm_dc=6,
+        trap_damage_dice="1d2",
+        trap_damage_type="piercing",
+        trap_description="a thin wire stretched across the archway",
+        trap_one_shot=True,
     )
-    tripwire.set_direction("west")
-    tripwire.is_trapped = True
-    tripwire.trap_armed = True
-    tripwire.trap_find_dc = 6
-    tripwire.trap_disarm_dc = 6
-    tripwire.trap_damage_dice = "1d2"
-    tripwire.trap_damage_type = "piercing"
-    tripwire.trap_description = "a thin wire stretched across the archway"
-    tripwire.trap_one_shot = True
-
-    # Return from vault (no trap)
-    vault_back = create_object(
-        ExitVerticalAware,
-        key="Damp Chamber",
-        location=rooms["gauntlet_vault"],
-        destination=rooms["gauntlet_lever_room"],
-    )
-    vault_back.set_direction("east")
 
     # Hidden lever in lever room — disarms the tripwire
     from typeclasses.world_objects.switch_fixture import SwitchFixture

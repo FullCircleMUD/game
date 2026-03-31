@@ -16,7 +16,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "scalded_waste"
@@ -70,8 +70,8 @@ def build_zone():
         ],
     )
 
-    connect(rooms["n_gate"], rooms["salt_flats"], "south")
-    connect(rooms["salt_flats"], rooms["s_gate"], "south")
+    connect_bidirectional_exit(rooms["n_gate"], rooms["salt_flats"], "south")
+    connect_bidirectional_exit(rooms["salt_flats"], rooms["s_gate"], "south")
 
     for room in rooms.values():
         room.tags.add(ZONE_KEY, category="zone")

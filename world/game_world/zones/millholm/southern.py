@@ -34,7 +34,7 @@ from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
-from utils.exit_helpers import connect, connect_door
+from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -682,44 +682,44 @@ def build_millholm_southern():
     # ── Countryside connections ──────────────────────────────────────
     # countryside_road ← south_gate (wired in build_game_world.py)
     # countryside_road ← south_fork_end (wired in build_game_world.py)
-    connect(rooms["countryside_road"], rooms["farmstead_fork"], "south")
-    connect(rooms["farmstead_fork"], rooms["bandit_holdfast"], "west")
-    connect(rooms["bandit_holdfast"], rooms["bandit_camp"], "west")
+    connect_bidirectional_exit(rooms["countryside_road"], rooms["farmstead_fork"], "south")
+    connect_bidirectional_exit(rooms["farmstead_fork"], rooms["bandit_holdfast"], "west")
+    connect_bidirectional_exit(rooms["bandit_holdfast"], rooms["bandit_camp"], "west")
     exit_count += 8
 
     # ── Moonpetal Fields ─────────────────────────────────────────────
     # Grid flows south: approach → row 2 (north) → row 1 → row 0 (south)
-    connect(rooms["farmstead_fork"], rooms["moonpetal_approach"], "south")
-    connect(rooms["moonpetal_approach"], mp_grid[2][0], "south")
+    connect_bidirectional_exit(rooms["farmstead_fork"], rooms["moonpetal_approach"], "south")
+    connect_bidirectional_exit(rooms["moonpetal_approach"], mp_grid[2][0], "south")
     exit_count += 4
 
     # Grid: horizontal connections (east-west)
     for row in range(3):
-        connect(mp_grid[row][0], mp_grid[row][1], "east")
+        connect_bidirectional_exit(mp_grid[row][0], mp_grid[row][1], "east")
     exit_count += 6
 
     # Grid: vertical connections — south flows deeper into district
     for col in range(2):
         for row in range(2):
-            connect(mp_grid[row + 1][col], mp_grid[row][col], "south")
+            connect_bidirectional_exit(mp_grid[row + 1][col], mp_grid[row][col], "south")
     exit_count += 8
 
     # ── Gnoll Territory ──────────────────────────────────────────────
     # Path continues south: moonpetal grid → grasslands → hunting grounds
     # → gnoll camp → lookout → shadowsward
-    connect(mp_grid[0][0], rooms["wild_grasslands"], "south")
-    connect(rooms["wild_grasslands"], rooms["gnoll_hunting_grounds"], "south")
-    connect(rooms["gnoll_hunting_grounds"], rooms["ravaged_farmstead"], "west")
-    connect(rooms["gnoll_hunting_grounds"], rooms["gnoll_camp"], "south")
-    connect(rooms["gnoll_camp"], rooms["gnoll_lookout"], "south")
+    connect_bidirectional_exit(mp_grid[0][0], rooms["wild_grasslands"], "south")
+    connect_bidirectional_exit(rooms["wild_grasslands"], rooms["gnoll_hunting_grounds"], "south")
+    connect_bidirectional_exit(rooms["gnoll_hunting_grounds"], rooms["ravaged_farmstead"], "west")
+    connect_bidirectional_exit(rooms["gnoll_hunting_grounds"], rooms["gnoll_camp"], "south")
+    connect_bidirectional_exit(rooms["gnoll_camp"], rooms["gnoll_lookout"], "south")
     exit_count += 10
 
     # ── Barrow (hidden entrance) ─────────────────────────────────────
-    connect(rooms["gnoll_hunting_grounds"], rooms["barrow_hill"], "east")
+    connect_bidirectional_exit(rooms["gnoll_hunting_grounds"], rooms["barrow_hill"], "east")
     exit_count += 2
 
     # Hidden door from barrow hill into the barrow entrance
-    door_ab, door_ba = connect_door(
+    door_ab, door_ba = connect_bidirectional_door_exit(
         rooms["barrow_hill"], rooms["barrow_entrance"], "down",
         key="a dark opening",
         closed_ab=(
@@ -745,15 +745,15 @@ def build_millholm_southern():
     exit_count += 2
 
     # Barrow interior
-    connect(rooms["barrow_entrance"], rooms["bone_passage"], "south")
-    connect(rooms["bone_passage"], rooms["ancient_catacombs"], "south")
-    connect(rooms["ancient_catacombs"], rooms["necromancers_study"], "south")
+    connect_bidirectional_exit(rooms["barrow_entrance"], rooms["bone_passage"], "south")
+    connect_bidirectional_exit(rooms["bone_passage"], rooms["ancient_catacombs"], "south")
+    connect_bidirectional_exit(rooms["ancient_catacombs"], rooms["necromancers_study"], "south")
     exit_count += 6
 
     # ── Shadowsward ────────────────────────────────────────────────────
     # Path continues south past gnoll territory
-    connect(rooms["gnoll_lookout"], rooms["southern_approach"], "south")
-    connect(rooms["southern_approach"], rooms["shadowsward_gate"], "south")
+    connect_bidirectional_exit(rooms["gnoll_lookout"], rooms["southern_approach"], "south")
+    connect_bidirectional_exit(rooms["southern_approach"], rooms["shadowsward_gate"], "south")
     exit_count += 4
 
     print(f"  Created {exit_count} exits.")

@@ -20,7 +20,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 
 
 # ── Zone / district constants ─────────────────────────────────────────
@@ -412,11 +412,11 @@ def build_millholm_rooftops():
     exit_count = 0
 
     # South row
-    connect(rooms["rooftops_w3"], rooms["rooftops_w2"], "east")
-    connect(rooms["rooftops_w2"], rooms["rooftops_w1"], "east")
+    connect_bidirectional_exit(rooms["rooftops_w3"], rooms["rooftops_w2"], "east")
+    connect_bidirectional_exit(rooms["rooftops_w2"], rooms["rooftops_w1"], "east")
     # Middle row
-    connect(rooms["rooftops_ridge"], rooms["rooftops_chimney"], "east")
-    connect(rooms["rooftops_chimney"], rooms["rooftops_gutter"], "east")
+    connect_bidirectional_exit(rooms["rooftops_ridge"], rooms["rooftops_chimney"], "east")
+    connect_bidirectional_exit(rooms["rooftops_chimney"], rooms["rooftops_gutter"], "east")
     # North row
     # Gareth's roof is higher — need height 1 to reach it from flat roof
     exit_flat_gareth = create_object(
@@ -459,10 +459,10 @@ def build_millholm_rooftops():
     exit_gareth_store.set_direction("east")
     exit_gareth_store.arrival_heights = {0: 1}
     # North-south connections
-    connect(rooms["rooftops_w3"], rooms["rooftops_ridge"], "north")
-    connect(rooms["rooftops_w2"], rooms["rooftops_chimney"], "north")
-    connect(rooms["rooftops_w1"], rooms["rooftops_gutter"], "north")
-    connect(rooms["rooftops_ridge"], rooms["rooftops_flat"], "north")
+    connect_bidirectional_exit(rooms["rooftops_w3"], rooms["rooftops_ridge"], "north")
+    connect_bidirectional_exit(rooms["rooftops_w2"], rooms["rooftops_chimney"], "north")
+    connect_bidirectional_exit(rooms["rooftops_w1"], rooms["rooftops_gutter"], "north")
+    connect_bidirectional_exit(rooms["rooftops_ridge"], rooms["rooftops_flat"], "north")
     # Gareth's roof is higher — need height 1 to reach it from chimney
     exit_chimney_gareth = create_object(
         ExitVerticalAware,
@@ -483,7 +483,7 @@ def build_millholm_rooftops():
     )
     exit_gareth_chimney.set_direction("south")
     exit_gareth_chimney.arrival_heights = {0: 1}
-    connect(rooms["rooftops_gutter"], rooms["rooftops_store"], "north")
+    connect_bidirectional_exit(rooms["rooftops_gutter"], rooms["rooftops_store"], "north")
     exit_count += 24
 
     print(f"  Created {exit_count} rooftop exits.")

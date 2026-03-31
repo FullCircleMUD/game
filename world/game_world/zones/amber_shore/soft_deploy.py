@@ -15,7 +15,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
-from utils.exit_helpers import connect
+from utils.exit_helpers import connect_bidirectional_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
 ZONE_KEY = "amber_shore"
@@ -57,7 +57,7 @@ def build_zone():
         ],
     )
 
-    connect(rooms["dock"], rooms["colonial_road"], "west")
+    connect_bidirectional_exit(rooms["dock"], rooms["colonial_road"], "west")
 
     for room in rooms.values():
         room.tags.add(ZONE_KEY, category="zone")
