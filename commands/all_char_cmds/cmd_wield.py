@@ -56,7 +56,11 @@ class CmdWield(Command):
 
         # Type check
         if not isinstance(item, WeaponNFTItem):
-            caller.msg("That's not a weapon.")
+            from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
+            if isinstance(item, HoldableNFTItem):
+                caller.msg(f"That's not a weapon. Try |whold {item.key}|n instead.")
+            else:
+                caller.msg("That's not a weapon.")
             return
 
         # Two-handed weapon check — can't wield 2H while holding something
