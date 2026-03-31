@@ -2551,6 +2551,9 @@ def build_millholm_town(one_way_limbo=False):
         rooms["clothing_shop"], rooms["magical_supplies"],
         rooms["jewellers_showroom"], rooms["vacant_shop"],
         rooms["gareth_bedroom"],
+        rooms["elena_house"],
+        rooms["hendricks_house"],
+        rooms["mara_house"],
     ]
     for room in lit_interiors:
         room.always_lit = True
