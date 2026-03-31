@@ -710,6 +710,9 @@ def enter_combat(combatant, target, instigator=None, instigator_advantage=False)
 
     initiative_rolls = {}
     for obj in new_combatants:
+        # Guard: target may have been killed and deleted by the free attack above
+        if not getattr(obj, "pk", None):
+            continue
         handlers = obj.scripts.get("combat_handler")
         if handlers:
             init_roll = roll_initiative(obj)
@@ -721,6 +724,8 @@ def enter_combat(combatant, target, instigator=None, instigator_advantage=False)
     # Store delays on handlers so commands that override queue_action
     # (stab, bash, pummel) can read their initiative delay.
     for obj, delay in delays.items():
+        if not getattr(obj, "pk", None):
+            continue
         handlers = obj.scripts.get("combat_handler")
         if handlers:
             handlers[0].ndb.initiative_delay = delay
