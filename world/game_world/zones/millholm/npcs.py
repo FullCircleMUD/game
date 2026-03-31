@@ -844,7 +844,7 @@ def _spawn_general_store():
     )
     npc.room_description = "{name} stands behind the counter, watching customers with a shrewd eye."
 
-    npc.llm_speech_mode = "name_match"
+    npc.llm_speech_mode = "always"
     npc.llm_use_vector_memory = False
     npc.llm_hook_arrive = True
     npc.llm_personality = (
