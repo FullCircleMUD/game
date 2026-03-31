@@ -6,7 +6,7 @@ CROSSBOW = {
     "key": "Crossbow",
     "aliases": ["crossbow"],
     "desc": "A mechanical crossbow with an iron prod and timber stock. High damage, slow to reload.",
-    "base_damage": "d8",
+    "base_damage": "d12",
     "material": "wood",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "missile",

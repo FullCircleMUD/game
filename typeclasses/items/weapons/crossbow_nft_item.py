@@ -1,24 +1,26 @@
 """
 CrossbowNFTItem — crossbow-type missile weapons with knockback mastery.
 
-Crossbows are heavy, mechanical ranged weapons. Slow to reload but
-devastating on impact. No extra attacks — compensated by the chance
-to knock targets PRONE, granting advantage to all attackers. The
-anti-tank ranged option: one good bolt can turn a fight.
+Crossbows are heavy, mechanical ranged weapons (d12 base). Slow to
+reload but devastating on impact. No extra attacks — compensated by
+the higher per-bolt damage and chance to knock targets PRONE. The
+ranged shortsword: easier to learn, better early, surpassed by the
+bow at endgame when the bow gets its second attack.
 
 Mastery progression:
-    UNSKILLED: -2 hit, no knockback, 0 extra attacks
-    BASIC:      0 hit, no knockback, 0 extra attacks
-    SKILLED:   +2 hit, 15% knockback (1 round prone), 0 extra attacks
-    EXPERT:    +4 hit, 20% knockback (1 round prone), 0 extra attacks
-    MASTER:    +6 hit, 25% knockback (1 round prone), 0 extra attacks
-    GM:        +8 hit, 30% knockback (1 round prone), 0 extra attacks
+    UNSKILLED: -2 hit, no knockback
+    BASIC:      0 hit, no knockback
+    SKILLED:   +2 hit, 15% knockback (1 round prone)
+    EXPERT:    +4 hit, 25% knockback (1 round prone)
+    MASTER:    +6 hit, 35% knockback (1 round prone)
+    GM:        +8 hit, 40% knockback (2 rounds prone)
 
 Knockback mechanic:
     On hit → roll d100 vs mastery-scaled chance.
     Success → target is knocked PRONE (action denial + advantage for attackers).
     HUGE+ targets are immune (too massive to knock down).
     Anti-stacking: can't re-prone already prone target.
+    GM capstone: 2-round prone duration creates devastating setup windows.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -32,12 +34,12 @@ from utils.dice_roller import dice
 
 # Knockback chance % by mastery
 _CROSSBOW_KNOCKBACK = {
-    MasteryLevel.UNSKILLED: 0,
-    MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 15,
-    MasteryLevel.EXPERT: 20,
-    MasteryLevel.MASTER: 25,
-    MasteryLevel.GRANDMASTER: 30,
+    MasteryLevel.UNSKILLED: (0, 0),
+    MasteryLevel.BASIC: (0, 0),
+    MasteryLevel.SKILLED: (15, 1),
+    MasteryLevel.EXPERT: (25, 1),
+    MasteryLevel.MASTER: (35, 1),
+    MasteryLevel.GRANDMASTER: (40, 2),
 }
 
 # Sizes immune to knockback
@@ -89,7 +91,7 @@ class CrossbowNFTItem(WeaponNFTItem):
         HUGE+ targets are immune. Already-prone targets are skipped.
         """
         mastery = self.get_wielder_mastery(wielder)
-        chance = _CROSSBOW_KNOCKBACK.get(mastery, 0)
+        chance, duration = _CROSSBOW_KNOCKBACK.get(mastery, (0, 0))
         if chance <= 0:
             return
 
@@ -107,7 +109,7 @@ class CrossbowNFTItem(WeaponNFTItem):
             return
 
         # Apply PRONE
-        applied = target.apply_prone(1, source=wielder)
+        applied = target.apply_prone(duration, source=wielder)
 
         if applied:
             wielder.msg(
