@@ -2,13 +2,13 @@ from enums.mastery_level import MasteryLevel
 from enums.room_crafting_type import RoomCraftingType
 from enums.skills_enum import skills
 
-RECIPE_IRON_SPIKED_CLUB = {
-    "recipe_key": "iron_spiked_club",
-    "name": "Iron Spiked Club",
+RECIPE_BRONZE_SPIKED_CLUB = {
+    "recipe_key": "bronze_spiked_club",
+    "name": "Bronze Spiked Club",
     "skill": skills.BLACKSMITH,
-    "min_mastery": MasteryLevel.SKILLED,
+    "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.SMITHY,
-    "ingredients": {5: 1},              # 1 Iron Ingot (resource_id 5)
+    "ingredients": {32: 1},              # 1 Bronze Ingot (resource_id 32)
     "nft_ingredients": {"wooden club": 1},  # 1 Wooden Club (carpenter item)
-    "output_prototype": "iron_spiked_club",
+    "output_prototype": "bronze_spiked_club",
 }

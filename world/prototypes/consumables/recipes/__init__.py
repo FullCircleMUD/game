@@ -3,6 +3,7 @@ from world.prototypes.consumables.recipes.training_dagger_recipe import *       
 from world.prototypes.consumables.recipes.training_shortsword_recipe import *      # noqa: F401,F403
 from world.prototypes.consumables.recipes.training_bow_recipe import *             # noqa: F401,F403
 from world.prototypes.consumables.recipes.club_recipe import *                     # noqa: F401,F403
+from world.prototypes.consumables.recipes.bronze_spiked_club_recipe import *      # noqa: F401,F403
 from world.prototypes.consumables.recipes.shaft_recipe import *                    # noqa: F401,F403
 from world.prototypes.consumables.recipes.haft_recipe import *                    # noqa: F401,F403
 from world.prototypes.consumables.recipes.training_greatsword_recipe import *    # noqa: F401,F403

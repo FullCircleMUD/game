@@ -14,6 +14,7 @@ from world.recipes.blacksmithing.bronze_mace import *               # noqa: F401
 from world.recipes.blacksmithing.bronze_hammer import *             # noqa: F401,F403
 from world.recipes.blacksmithing.ironbound_shield import *          # noqa: F401,F403
 from world.recipes.blacksmithing.crossbow import *                 # noqa: F401,F403
+from world.recipes.blacksmithing.bronze_spiked_club import *       # noqa: F401,F403
 from world.recipes.blacksmithing.iron_spiked_club import *         # noqa: F401,F403
 from world.recipes.blacksmithing.studded_leather_armor import *    # noqa: F401,F403
 from world.recipes.blacksmithing.bronze_greatsword import *        # noqa: F401,F403
