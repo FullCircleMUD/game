@@ -258,3 +258,66 @@ class TestCmdGetVaultWallet(EvenniaCommandTest):
         # Fungibles should NOT move
         self.assertEqual(self.char1.get_gold(), 0)
         self.assertEqual(self.room1.get_gold(), 50)
+
+
+class TestCmdGetContainerAmbiguity(EvenniaCommandTest):
+    """Test that multi-word item names aren't misread as container syntax."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+
+        # A container named "Backpack" in the room
+        self.backpack = create.create_object(
+            "typeclasses.items.containers.container_nft_item.ContainerNFTItem",
+            key="Backpack",
+            location=self.room1,
+            nohome=True,
+        )
+        self.backpack.is_open = True
+
+        # An item whose name ends with the container's name
+        self.leather_backpack = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="Leather Backpack",
+            location=self.room1,
+        )
+
+        # An item inside the container
+        self.sword = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="Sword",
+            location=self.backpack,
+        )
+
+    def test_get_multiword_item_not_parsed_as_container(self):
+        """'get leather backpack' should pick up the item, not try to get
+        'leather' from 'backpack'."""
+        self.call(CmdGet(), "leather backpack")
+        self.assertIn(self.leather_backpack, self.char1.contents)
+
+    def test_get_from_container_explicit(self):
+        """'get sword from backpack' should get the sword from inside the
+        backpack using the explicit 'from' preposition."""
+        result = self.call(CmdGet(), "sword from backpack")
+        self.assertIn(self.sword, self.char1.contents)
+
+    def test_get_from_container_shorthand_f(self):
+        """'get sword f backpack' should work as shorthand for 'from'."""
+        result = self.call(CmdGet(), "sword f backpack")
+        self.assertIn(self.sword, self.char1.contents)
+
+    def test_get_container_fallback_when_no_direct_match(self):
+        """If no item matches the full name, fall back to container split.
+        'get sword backpack' should get sword from backpack when there's
+        no item called 'sword backpack'."""
+        result = self.call(CmdGet(), "sword backpack")
+        self.assertIn(self.sword, self.char1.contents)

@@ -632,36 +632,39 @@ def _prompt_tos_reaccept(account, session, current_tos):
         "\nincluding the jurisdictional restrictions on the gold redemption feature."
         "\n\nDo you agree to the updated Terms of Service? Y/[N]: "
     )
-    get_input(session, prompt, _handle_tos_reaccept, account=account, tos_version=current_tos)
+    get_input(account, prompt, _handle_tos_reaccept, session=session, tos_version=current_tos)
 
 
-def _handle_tos_reaccept(caller, prompt, result, account=None, tos_version=None):
+def _handle_tos_reaccept(caller, prompt, result, session=None, tos_version=None):
     """
     Callback for get_input() — handles ToS re-acceptance on login.
 
     Defaults to No if the player just presses Enter without typing Y.
     Returns False to finish the prompt chain.
     """
-    session = caller
+    account = caller
 
     if result.strip().lower() not in ("y", "yes"):
-        session.msg(
+        account.msg(
             "\n|rYou must agree to the updated Terms of Service to continue playing.|n"
             "\nYour session has been disconnected."
             "\nType |wconnect|n and agree to the Terms of Service to play again."
         )
-        from evennia.server.sessionhandler import SESSIONS
-        SESSIONS.disconnect(session, reason="ToS not accepted.")
+        if session:
+            from evennia.server.sessionhandler import SESSIONS
+            SESSIONS.disconnect(session, reason="ToS not accepted.")
         return False
 
     # Accepted — record updated version and timestamp
     from datetime import datetime, timezone
     account.db.tos_version = tos_version
     account.db.tos_agreed_at = datetime.now(timezone.utc).isoformat()
-    session.msg(
+    account.msg(
         "\n|gThank you — Terms of Service accepted.|n"
-        "\nWelcome back!"
+        "\nWelcome back!\n"
     )
+    # Show the main menu again so the player can proceed
+    account.msg(account.at_look(session=session))
     return False
 
 

@@ -11,10 +11,19 @@ Usage:
     get all <fungible>              — pick up all of a fungible
     get all                         — pick up everything in the room
     get #<id>                       — pick up an NFT by token ID
-    get <obj> [from] <container>    — take from container
-    get <amount> gold [from] <container>
-    get <amount> <resource> [from] <container>
-    get all [from] <container>      — take everything from container
+    get <obj> from <container>      — take from container (shorthand: f)
+    get <amount> gold from <container>
+    get <amount> <resource> from <container>
+    get all from <container>        — take everything from container
+
+Container syntax requires 'from' (or shorthand 'f'):
+    get sword from backpack    — explicit
+    get lea f bac              — shorthand
+
+If no preposition is used, the full args are matched as an item name
+first. Only if that fails does the parser try splitting the last word
+as a container name (fallback). This prevents "get leather backpack"
+from being misread as "get leather FROM backpack".
 
 Ownership model (from container): item transitions from container's
 current ownership → actor's ownership. Same-owner is a no-op for
@@ -49,13 +58,13 @@ class CmdGet(NumberedTargetCommand):
         get all <resource>
         get all
         get #<id>
-        get <obj> [from] <container>
-        get <amount> gold [from] <container>
-        get <amount> <resource> [from] <container>
-        get all [from] <container>
+        get <obj> from <container>
+        get <amount> gold from <container>
+        get <amount> <resource> from <container>
+        get all from <container>
 
     Pick up an object, gold, or resources from your location
-    or from a container. The word 'from' is optional.
+    or from a container. Use 'from' (or 'f') for container access.
     """
 
     key = "get"
@@ -72,24 +81,31 @@ class CmdGet(NumberedTargetCommand):
             return
 
         # ---------------------------------------------------------- #
-        #  Parse for "from <container>" — take from container
+        #  Parse for "from"/"f" <container> — take from container
         # ---------------------------------------------------------- #
         lower = self.args.lower()
         idx = lower.rfind(" from ")
+        offset = 6  # len(" from ")
+        if idx == -1:
+            idx = lower.rfind(" f ")
+            offset = 3  # len(" f ")
         if idx != -1:
             item_part = self.args[:idx].strip()
-            container_name = self.args[idx + 6:].strip()
+            container_name = self.args[idx + offset:].strip()
             if item_part and container_name:
                 self._get_from_container(caller, item_part, container_name)
                 return
 
         # ---------------------------------------------------------- #
-        #  Fallback: try last word as container name
+        #  Multi-word args: try full string as an item name first.
+        #  This prevents "get leather backpack" being misread as
+        #  "get leather(resource) FROM backpack(container)".
         # ---------------------------------------------------------- #
-        container, item_part = self._try_split_container(caller)
-        if container:
-            self._get_from_container(caller, item_part, container.key)
-            return
+        if " " in self.args.strip():
+            obj = caller.search(self.args.strip(), location=caller.location, quiet=True)
+            if obj:
+                self._get_object(caller, self.args.strip())
+                return
 
         # ---------------------------------------------------------- #
         #  Parse args through shared parser
@@ -119,8 +135,14 @@ class CmdGet(NumberedTargetCommand):
             )
         elif parsed.type == "token_id":
             self._get_by_token_id(caller, parsed.token_id)
-        else:  # type == "item"
-            self._get_object(caller, parsed.search_term)
+        else:
+            # Fallback: try last word as container name
+            container, item_part = self._try_split_container(caller)
+            if container:
+                self._get_from_container(caller, item_part, container.key)
+            else:
+                # No match — run normal get which will show the error
+                self._get_object(caller, parsed.search_term)
 
     # ============================================================== #
     #  Try last word as container (no-preposition fallback)
