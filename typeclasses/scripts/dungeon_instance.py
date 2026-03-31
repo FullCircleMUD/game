@@ -156,10 +156,8 @@ class DungeonInstanceScript(DefaultScript):
         self.db.xy_grid = {(0, 0): first_room.id}
         self.db.unvisited_exits = []
 
-        # Create initial exits from the first room
-        self._create_forward_exits(first_room, (0, 0))
-
         # Return exit from room (0,0) back to the entrance
+        return_dir = None
         if self.entrance_room_id:
             entrance = self.entrance_room
             if entrance:
@@ -167,6 +165,10 @@ class DungeonInstanceScript(DefaultScript):
                 return_dir = OPPOSITES.get(self.entrance_direction, "out") \
                     if self.entrance_direction else "out"
                 self._create_passage_exit(first_room, entrance, return_dir)
+
+        # Create initial exits from the first room, excluding the return direction
+        exclude = {return_dir} if return_dir else set()
+        self._create_forward_exits(first_room, (0, 0), exclude_directions=exclude)
 
         # Move characters in
         for char in characters:
@@ -241,7 +243,10 @@ class DungeonInstanceScript(DefaultScript):
                     if boss:
                         boss.tags.add(self.instance_key, category="dungeon_mob")
         else:
-            self._create_forward_exits(new_room, new_coords)
+            # Exclude the return direction to avoid duplicate exits
+            self._create_forward_exits(
+                new_room, new_coords, exclude_directions={opposite}
+            )
 
         return new_room
 
@@ -249,15 +254,26 @@ class DungeonInstanceScript(DefaultScript):
     #  Exit creation helpers
     # ------------------------------------------------------------------ #
 
-    def _create_forward_exits(self, room, coords):
-        """Create 1-N forward exits from a room, respecting exit budget."""
+    def _create_forward_exits(self, room, coords, exclude_directions=None):
+        """Create 1-N forward exits from a room, respecting exit budget.
+
+        Args:
+            room: The room to create exits in.
+            coords: (x, y) coordinates of the room.
+            exclude_directions: set of directions to skip (e.g. the return
+                exit direction, to avoid duplicate exits in the same direction).
+        """
         template = self.template
         unvisited = list(self.db.unvisited_exits or [])
         grid = dict(self.db.xy_grid or {})
+        exclude = exclude_directions or set()
 
         # Available directions that don't loop back to existing rooms
+        # and aren't excluded (e.g. the return exit direction)
         available = []
         for direction, (dx, dy) in DIRECTION_VECTORS.items():
+            if direction in exclude:
+                continue
             target_coords = (coords[0] + dx, coords[1] + dy)
             if target_coords not in grid:
                 available.append(direction)

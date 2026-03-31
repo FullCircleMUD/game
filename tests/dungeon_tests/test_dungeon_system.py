@@ -207,10 +207,10 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
         first_room = self.char1.location
         exits = first_room.contents_get(content_type="exit")
 
-        # Find a forward exit (not return)
+        # Find a forward exit (not return/passage)
         forward_exit = None
         for ex in exits:
-            if not ex.is_return_exit:
+            if not getattr(ex, "is_return_exit", True):
                 forward_exit = ex
                 break
         self.assertIsNotNone(forward_exit)
