@@ -84,6 +84,7 @@ class CmdSleep(_PostureCommand):
     You must wake before you can move.
     """
     key = "sleep"
+    aliases = ["sl"]
     target_position = "sleeping"
     self_msg = "You lie down and go to sleep."
     room_msg = "{name} lies down and goes to sleep."
@@ -115,6 +116,7 @@ class CmdWake(Command):
     Wakes you up and puts you in a standing position.
     """
     key = "wake"
+    aliases = ["wa"]
     locks = "cmd:all()"
     help_category = "General"
 
