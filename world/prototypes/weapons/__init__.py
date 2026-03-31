@@ -23,7 +23,8 @@ from world.prototypes.weapons.shortbow import *          # noqa: F401,F403
 from world.prototypes.weapons.quarterstaff import *      # noqa: F401,F403
 from world.prototypes.weapons.training_lance import *    # noqa: F401,F403
 from world.prototypes.weapons.crossbow import *          # noqa: F401,F403
-from world.prototypes.weapons.iron_spiked_club import *  # noqa: F401,F403
+from world.prototypes.weapons.bronze_spiked_club import *  # noqa: F401,F403
+from world.prototypes.weapons.iron_spiked_club import *    # noqa: F401,F403
 from world.prototypes.weapons.bronze_greatsword import * # noqa: F401,F403
 from world.prototypes.weapons.bronze_battleaxe import *  # noqa: F401,F403
 from world.prototypes.weapons.bronze_rapier import *     # noqa: F401,F403

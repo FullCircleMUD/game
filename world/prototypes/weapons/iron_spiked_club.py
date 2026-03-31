@@ -6,7 +6,7 @@ IRON_SPIKED_CLUB = {
     "key": "Iron Spiked Club",
     "aliases": ["club", "spiked club", "iron spiked club"],
     "desc": "A heavy wooden club studded with iron spikes. Brutal and effective.",
-    "base_damage": "d4",
+    "base_damage": "d6",
     "material": "iron",
     "damage_type": DamageType.BLUDGEONING,
     "weapon_type": "melee",
