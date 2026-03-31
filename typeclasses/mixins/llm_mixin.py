@@ -349,12 +349,13 @@ class LLMMixin:
     #  Hook: Say (room speech)
     # ==================================================================
 
-    def at_llm_say_heard(self, speaker, message, language="common"):
+    def at_llm_say_heard(self, speaker, message, language="common", target=None):
         """
         Called when someone uses ``say`` in this NPC's room.
 
         Applies ``llm_speech_mode`` to decide if the NPC should respond:
           - ``"name_match"`` — responds if NPC's name appears in message
+            OR if the speaker directed speech at this NPC (``say to <npc>``)
           - ``"llm_decide"`` — asks LLM if this speech is relevant
           - ``"always"``     — always responds
           - ``"whisper_only"`` — ignores all say speech
@@ -363,6 +364,8 @@ class LLMMixin:
             speaker: the character who spoke
             message: what they said
             language: the language spoken in
+            target: the object the speech was directed at via ``say to <target>``,
+                or None for undirected speech
         """
         from twisted.internet import reactor
 
@@ -382,7 +385,12 @@ class LLMMixin:
             return
 
         if mode == "name_match":
-            if self._name_mentioned_in(message) or self._is_engaged_with(speaker):
+            addressed = (
+                target == self
+                or self._name_mentioned_in(message)
+                or self._is_engaged_with(speaker)
+            )
+            if addressed:
                 reactor.callLater(0, self._emote_and_respond, speaker, message, "say")
             return
 

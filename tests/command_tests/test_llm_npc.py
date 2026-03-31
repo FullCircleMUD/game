@@ -324,5 +324,6 @@ class TestSayLLMIntegration(EvenniaCommandTest):
         self.call(CmdSay(), "hello world")
 
         mock_heard.assert_called_once_with(
-            speaker=self.char1, message="hello world", language="common"
+            speaker=self.char1, message="hello world", language="common",
+            target=None,
         )

@@ -33,18 +33,22 @@ class CmdSay(Command):
 
     Usage:
         say <message>              — speak in Common
+        say to <target> <message>  — speak to a specific person/NPC
         say/dwarven <message>      — speak in Dwarven
         say/dw <message>           — short alias for Dwarven
         "<message>                 — shortcut for say (Common)
+        talk                       — alias for say
 
     Available languages: common, dwarven, elfish, kobold, goblin, dragon.
     Short aliases: co, dw, el, ko, go, dr.
 
     Characters who don't know the language hear garbled speech.
+    When you say something to a specific target, they are more likely
+    to respond (especially NPCs).
     """
 
     key = "say"
-    aliases = ['"']
+    aliases = ['"', 'talk']
     locks = "cmd:all()"
     help_category = "Communication"
 
@@ -96,6 +100,24 @@ class CmdSay(Command):
             caller.msg("You can't speak while silenced.")
             return
 
+        # --- Parse directed speech: "say to <target> <message>" ---
+        say_target = None
+        if speech.lower().startswith("to "):
+            rest = speech[3:]  # strip "to "
+            words = rest.split(None, 1)
+            if words:
+                candidate = words[0]
+                # Quiet search for the candidate as a character/NPC in the room
+                found = caller.search(candidate, location=room, quiet=True)
+                if found:
+                    if isinstance(found, list):
+                        found = found[0]
+                    say_target = found
+                    speech = words[1] if len(words) > 1 else ""
+                    if not speech.strip():
+                        caller.msg(f"Say what to {say_target.key}?")
+                        return
+
         # --- Determine visibility ---
         is_invisible = (
             hasattr(caller, "has_condition")
@@ -106,11 +128,14 @@ class CmdSay(Command):
         is_common = language == "common"
         lang_display = language.capitalize()
 
+        # --- Build directed speech prefix ---
+        target_suffix = f" to {say_target.key}" if say_target else ""
+
         # --- Caller's own message ---
         if is_common:
-            caller.msg(f'|cYou say:|n "{speech}"')
+            caller.msg(f'|cYou say{target_suffix}:|n "{speech}"')
         else:
-            caller.msg(f'|cYou say in {lang_display}:|n "{speech}"')
+            caller.msg(f'|cYou say{target_suffix} in {lang_display}:|n "{speech}"')
 
         # --- Per-listener messages ---
         for obj in room.contents:
@@ -149,10 +174,19 @@ class CmdSay(Command):
             else:
                 heard = garble(speech, language)
 
-            if is_common:
-                obj.msg(f'|c{speaker_name} says:|n "{heard}"')
+            # Build the target display for this listener
+            if say_target:
+                if obj == say_target:
+                    listener_target = " to you"
+                else:
+                    listener_target = f" to {say_target.key}"
             else:
-                obj.msg(f'|c{speaker_name} says in {lang_display}:|n "{heard}"')
+                listener_target = ""
+
+            if is_common:
+                obj.msg(f'|c{speaker_name} says{listener_target}:|n "{heard}"')
+            else:
+                obj.msg(f'|c{speaker_name} says{listener_target} in {lang_display}:|n "{heard}"')
 
         # --- Notify LLM-enabled NPCs in the room ---
         for obj in room.contents:
@@ -160,5 +194,6 @@ class CmdSay(Command):
                 continue
             if hasattr(obj, "at_llm_say_heard"):
                 obj.at_llm_say_heard(
-                    speaker=caller, message=speech, language=language
+                    speaker=caller, message=speech, language=language,
+                    target=say_target,
                 )
