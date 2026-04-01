@@ -141,3 +141,71 @@ class TestMobCorpse(EvenniaTest):
         self.mob.die("combat")
         corpse = self._find_corpse(self.room1)
         self.assertTrue(corpse.can_loot(self.char1))
+
+    @patch("evennia.utils.utils.delay")
+    def test_loot_tagged_nft_transfers_to_corpse(self, mock_delay):
+        """NFT items tagged 'loot' should transfer to the corpse."""
+        item = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a spell scroll",
+            location=self.mob,
+        )
+        item.tags.add("loot", category="item")
+        self.mob.die("combat")
+        corpse = self._find_corpse(self.room1)
+        self.assertIn(item, corpse.contents)
+
+    @patch("evennia.utils.utils.delay")
+    def test_untagged_nft_deleted_on_death(self, mock_delay):
+        """NFT items without 'loot' tag (mob equipment) should be deleted."""
+        item = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a bronze longsword",
+            location=self.mob,
+        )
+        item_pk = item.pk
+        self.mob.die("combat")
+        corpse = self._find_corpse(self.room1)
+        self.assertNotIn(item, corpse.contents)
+        from typeclasses.items.base_nft_item import BaseNFTItem
+        self.assertFalse(BaseNFTItem.objects.filter(pk=item_pk).exists())
+
+    @patch("evennia.utils.utils.delay")
+    def test_non_nft_items_always_transfer(self, mock_delay):
+        """Non-NFT objects (e.g. plain items) should always transfer."""
+        item = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="a shiny coin",
+            location=self.mob,
+        )
+        self.mob.die("combat")
+        corpse = self._find_corpse(self.room1)
+        self.assertIn(item, corpse.contents)
+
+    @patch("evennia.utils.utils.delay")
+    def test_mixed_loot_and_equipment(self, mock_delay):
+        """Only loot-tagged NFTs and non-NFTs transfer; equipment deleted."""
+        scroll = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a recipe scroll",
+            location=self.mob,
+        )
+        scroll.tags.add("loot", category="item")
+        weapon = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a bronze sword",
+            location=self.mob,
+        )
+        weapon_pk = weapon.pk
+        trinket = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="a trinket",
+            location=self.mob,
+        )
+        self.mob.die("combat")
+        corpse = self._find_corpse(self.room1)
+        self.assertIn(scroll, corpse.contents)
+        self.assertIn(trinket, corpse.contents)
+        self.assertNotIn(weapon, corpse.contents)
+        from typeclasses.items.base_nft_item import BaseNFTItem
+        self.assertFalse(BaseNFTItem.objects.filter(pk=weapon_pk).exists())
