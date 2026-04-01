@@ -68,49 +68,41 @@ SPAWN_CONFIG = {
     ),   
 
     # NOT SPAWNING IN MILLHOLM ZONE - ZEROED OUT UNTIL NEW ZONES ADDED
-    """
     # Lead Ore
-    ("resource", 27): _res(                                           
+    ("resource", 27): _res(
         target_price_low=4, target_price_high=5,
-        default_spawn_rate=10,
-    ),    
-
+        default_spawn_rate=0,
+    ),
     # Iron Ore
-    ("resource", 4): _res(                                           
+    ("resource", 4): _res(
         target_price_low=2, target_price_high=3,
-        default_spawn_rate=10,
-    ),                                             
-
+        default_spawn_rate=0,
+    ),
     # Coal
-    ("resource", 36): _res(                                           
+    ("resource", 36): _res(
         target_price_low=2, target_price_high=3,
-        default_spawn_rate=10,
-    ),                                                 
-
-    # Silver Ore - 
-    ("resource", 30): _res(                                           
+        default_spawn_rate=0,
+    ),
+    # Silver Ore
+    ("resource", 30): _res(
         target_price_low=15, target_price_high=30,
         default_spawn_rate=0,
     ),
-
     # Ruby
-    ("resource", 33): _res(                                           
+    ("resource", 33): _res(
         target_price_low=20, target_price_high=30,
-        default_spawn_rate=2,
+        default_spawn_rate=0,
     ),
-
     # Emerald
-    ("resource", 34): _res(                                           
+    ("resource", 34): _res(
         target_price_low=30, target_price_high=50,
-        default_spawn_rate=2,
+        default_spawn_rate=0,
     ),
-
     # Diamond
-    ("resource", 35): _res(                                           
+    ("resource", 35): _res(
         target_price_low=50, target_price_high=100,
-        default_spawn_rate=1,
+        default_spawn_rate=0,
     ),
-    """
 
     # ── Gathering — alchemy ──
     # Moonpetal
