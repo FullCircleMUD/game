@@ -6,9 +6,13 @@ which runs all calculators and distributors for every SPAWN_CONFIG entry.
 """
 
 from evennia import DefaultScript
+from twisted.internet import threads
 
 
-TICK_INTERVAL_SECONDS = 3600  # 1 hour
+# How often (real seconds) the spawn service runs.
+# Runs last in the hourly pipeline: telemetry → saturation → spawn.
+# 120s after telemetry so both telemetry and saturation data are fresh.
+TICK_INTERVAL_SECONDS = 3720  # 1 hour + 120s offset
 
 
 class UnifiedSpawnScript(DefaultScript):
@@ -35,6 +39,6 @@ class UnifiedSpawnScript(DefaultScript):
         set_spawn_service(self._service)
 
     def at_repeat(self):
-        """Run the full hourly spawn cycle."""
+        """Run the full hourly spawn cycle in a background thread."""
         if hasattr(self, "_service"):
-            self._service.run_hourly_cycle()
+            threads.deferToThread(self._service.run_hourly_cycle)

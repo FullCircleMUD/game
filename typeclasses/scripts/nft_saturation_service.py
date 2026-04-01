@@ -16,7 +16,9 @@ from twisted.internet import threads
 
 
 # How often (real seconds) the saturation service runs.
-TICK_INTERVAL_SECONDS = 3600  # 1 hour
+# Runs second in the hourly pipeline: telemetry → saturation → spawn.
+# 60s after telemetry so player activity data is fresh.
+TICK_INTERVAL_SECONDS = 3660  # 1 hour + 60s offset
 
 
 class NFTSaturationScript(DefaultScript):

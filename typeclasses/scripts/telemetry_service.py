@@ -11,7 +11,10 @@ from twisted.internet import threads
 
 
 # How often (real seconds) the aggregator runs.
-TICK_INTERVAL_SECONDS = 3600  # 1 hour
+# Runs first in the hourly pipeline: telemetry → saturation → spawn.
+# Staggered by 60s offsets (3600 / 3660 / 3720) so each service
+# has fresh data from the previous one.
+TICK_INTERVAL_SECONDS = 3600  # 1 hour (fires first)
 
 
 class TelemetryAggregatorScript(DefaultScript):
