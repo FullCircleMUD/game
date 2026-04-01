@@ -62,9 +62,12 @@ class CmdRunSpawns(Command):
                     caller.msg(f"  |r{item_type}/{type_key}: ERROR {e}|n")
                     continue
 
+                # Fixed-width name column (30 chars, truncated if needed)
+                W = 30
+
                 if item_type == "resource":
                     rt = get_resource_type(type_key)
-                    name = rt["name"] if rt else f"id={type_key}"
+                    name = (rt["name"] if rt else f"id={type_key}")[:W].ljust(W)
                     avg = ResourceCalculator._get_avg_consumption(type_key)
                     price = ResourceCalculator._get_latest_buy_price(type_key)
                     p_mod = ResourceCalculator.price_modifier(price, cfg)
@@ -75,7 +78,7 @@ class CmdRunSpawns(Command):
                     color = "" if budget > 0 else "|x"
                     end = "" if budget > 0 else "|n"
                     caller.msg(
-                        f"  {color}{name}: budget={budget} "
+                        f"  {color}{name} budget={budget} "
                         f"(base={base:.1f}, price={price_str} [{low}-{high}], "
                         f"p_mod={p_mod:.2f}){end}"
                     )
@@ -86,14 +89,16 @@ class CmdRunSpawns(Command):
                     sat_str = f"{saturation:.0%}" if saturation is not None else "no data"
                     kind = "scroll" if str(type_key).startswith("scroll_") else "recipe"
                     display_name = str(type_key).replace("scroll_", "").replace("recipe_", "").replace("_", " ").title()
+                    label = f"[{kind}] {display_name}"[:W].ljust(W)
                     color = "" if budget > 0 else "|x"
                     end = "" if budget > 0 else "|n"
                     caller.msg(
-                        f"  {color}[{kind}] {display_name}: budget={budget} "
+                        f"  {color}{label} budget={budget} "
                         f"(base={base_rate:.1f}, sat={sat_str}, tier={tier}){end}"
                     )
                 elif budget > 0:
-                    caller.msg(f"  {item_type}/{type_key}: budget={budget}")
+                    label = f"{item_type}/{type_key}"[:W].ljust(W)
+                    caller.msg(f"  {label} budget={budget}")
 
             service.run_hourly_cycle()
             return True
