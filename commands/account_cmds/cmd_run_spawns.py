@@ -41,7 +41,7 @@ class CmdRunSpawns(Command):
         self.msg("|yRunning spawn cycle...|n")
 
         # Show budgets before distributing
-        verbose = "verbose" in (self.args or "").lower()
+        from blockchain.xrpl.currency_cache import get_resource_type
         for (item_type, type_key), cfg in service.config.items():
             calculator_name = cfg.get("calculator")
             if not calculator_name:
@@ -52,21 +52,36 @@ class CmdRunSpawns(Command):
             try:
                 budget = calculator.calculate(item_type, type_key)
             except Exception as e:
-                budget = 0
-                if verbose:
-                    self.msg(f"  |r{item_type}/{type_key}: ERROR {e}|n")
+                self.msg(f"  |r{item_type}/{type_key}: ERROR {e}|n")
+                continue
+            # Resolve display name for resources
+            name = type_key
+            if item_type == "resource":
+                rt = get_resource_type(type_key)
+                name = rt["name"] if rt else f"id={type_key}"
+
             if budget > 0:
-                self.msg(f"  {item_type}/{type_key}: budget={budget}")
-            elif verbose and item_type == "resource":
-                # Show why zero for debugging
+                if item_type == "resource":
+                    from blockchain.xrpl.services.spawn.calculators.resource import ResourceCalculator
+                    avg = ResourceCalculator._get_avg_consumption(type_key)
+                    price = ResourceCalculator._get_latest_buy_price(type_key)
+                    p_mod = ResourceCalculator.price_modifier(price, cfg)
+                    base = max(float(cfg["default_spawn_rate"]), float(avg))
+                    self.msg(
+                        f"  {name}: budget={budget} "
+                        f"(base={base:.1f}, price={price}, p_mod={p_mod:.2f})"
+                    )
+                else:
+                    self.msg(f"  {item_type}/{type_key}: budget={budget}")
+            elif item_type == "resource":
                 from blockchain.xrpl.services.spawn.calculators.resource import ResourceCalculator
                 avg = ResourceCalculator._get_avg_consumption(type_key)
                 price = ResourceCalculator._get_latest_buy_price(type_key)
                 p_mod = ResourceCalculator.price_modifier(price, cfg)
-                base = float(cfg["default_spawn_rate"]) if avg <= 0 else float(avg)
+                base = max(float(cfg["default_spawn_rate"]), float(avg))
                 self.msg(
-                    f"  |x{item_type}/{type_key}: budget=0 "
-                    f"(base={base}, price={price}, p_mod={p_mod:.2f})|n"
+                    f"  |x{name}: budget=0 "
+                    f"(base={base:.1f}, price={price}, p_mod={p_mod:.2f})|n"
                 )
 
         service.run_hourly_cycle()

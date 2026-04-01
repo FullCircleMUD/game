@@ -30,12 +30,10 @@ class ResourceCalculator(BaseCalculator):
         """
         cfg = self.get_item_config(item_type, type_key, **overrides)
 
-        # Baseline: 24h rolling average consumption
+        # Baseline: 24h rolling average consumption, floored at default
+        default_rate = float(cfg["default_spawn_rate"])
         avg_consumption = self._get_avg_consumption(type_key)
-        if avg_consumption <= 0:
-            base_rate = float(cfg["default_spawn_rate"])
-        else:
-            base_rate = float(avg_consumption)
+        base_rate = max(default_rate, float(avg_consumption))
 
         # Price modifier from AMM
         buy_price = self._get_latest_buy_price(type_key)
