@@ -28,54 +28,111 @@ def _res(**overrides):
 
 
 SPAWN_CONFIG = {
-    # ── Farming ──
-    ("resource", 1): _res(),                                          # Wheat
-    ("resource", 10): _res(),                                         # Cotton
+    # wheat
+    ("resource", 1): _res(                                           
+        target_price_low=1, target_price_high=2,
+        default_spawn_rate=20,
+    ),
 
-    # ── Forestry ──
-    ("resource", 6): _res(),                                          # Wood
+    # Cotton                                                                             
+    ("resource", 10): _res(                                           
+        target_price_low=1, target_price_high=2,
+        default_spawn_rate=10,
+    ),                                        
 
-    # ── Hunting ──
-    ("resource", 8): _res(),                                          # Hide
+    # Wood
+    ("resource", 6): _res(                                           
+        target_price_low=1, target_price_high=2,
+        default_spawn_rate=10,
+    ), 
 
-    # ── Mining — common ores ──
-    ("resource", 4): _res(),                                          # Iron Ore
-    ("resource", 23): _res(),                                         # Copper Ore
-    ("resource", 25): _res(),                                         # Tin Ore
-    ("resource", 27): _res(),                                         # Lead Ore
-    ("resource", 36): _res(),                                         # Coal
+    # Hide
+    ("resource", 8): _res(                                           
+        target_price_low=2, target_price_high=3,
+        default_spawn_rate=10,
+    ), 
 
-    # ── Mining — precious ──
-    ("resource", 30): _res(                                           # Silver Ore
+    # Copper Ore
+    ("resource", 23): _res(                                           
+        target_price_low=2, target_price_high=3,
+        default_spawn_rate=10,
+    ),                                     
+
+
+    # not spawning in Millholm - zeroed out until new zones built
+
+    # Tin Ore
+    ("resource", 25): _res(                                           
+        target_price_low=2, target_price_high=3,
+        default_spawn_rate=10,
+    ),   
+
+    # NOT SPAWNING IN MILLHOLM ZONE - ZEROED OUT UNTIL NEW ZONES ADDED
+    """
+    # Lead Ore
+    ("resource", 27): _res(                                           
+        target_price_low=4, target_price_high=5,
+        default_spawn_rate=10,
+    ),    
+
+    # Iron Ore
+    ("resource", 4): _res(                                           
+        target_price_low=2, target_price_high=3,
+        default_spawn_rate=10,
+    ),                                             
+
+    # Coal
+    ("resource", 36): _res(                                           
+        target_price_low=2, target_price_high=3,
+        default_spawn_rate=10,
+    ),                                                 
+
+    # Silver Ore - 
+    ("resource", 30): _res(                                           
         target_price_low=15, target_price_high=30,
-        default_spawn_rate=5,
+        default_spawn_rate=0,
     ),
 
-    # ── Mining — gems (rare) ──
-    ("resource", 33): _res(                                           # Ruby
-        target_price_low=30, target_price_high=60,
+    # Ruby
+    ("resource", 33): _res(                                           
+        target_price_low=20, target_price_high=30,
         default_spawn_rate=2,
     ),
-    ("resource", 34): _res(                                           # Emerald
-        target_price_low=30, target_price_high=60,
+
+    # Emerald
+    ("resource", 34): _res(                                           
+        target_price_low=30, target_price_high=50,
         default_spawn_rate=2,
     ),
-    ("resource", 35): _res(                                           # Diamond
+
+    # Diamond
+    ("resource", 35): _res(                                           
         target_price_low=50, target_price_high=100,
         default_spawn_rate=1,
     ),
+    """
 
     # ── Gathering — alchemy ──
-    ("resource", 12): _res(default_spawn_rate=6),                     # Moonpetal
-    ("resource", 14): _res(default_spawn_rate=6),                     # Bloodmoss
-    ("resource", 15): _res(default_spawn_rate=6),                     # Windroot
-    ("resource", 16): _res(default_spawn_rate=6),                     # Arcane Dust
-    ("resource", 17): _res(default_spawn_rate=6),                     # Ogre's Cap
-    ("resource", 18): _res(default_spawn_rate=6),                     # Vipervine
-    ("resource", 19): _res(default_spawn_rate=6),                     # Ironbark
-    ("resource", 20): _res(default_spawn_rate=6),                     # Mindcap
-    ("resource", 21): _res(default_spawn_rate=6),                     # Sage Leaf
-    ("resource", 22): _res(default_spawn_rate=6),                     # Siren Petal
+    # Moonpetal
+    ("resource", 12): _res(default_spawn_rate=6),
+    # Bloodmoss                     
+    ("resource", 14): _res(default_spawn_rate=6),
+    # Windroot
+    ("resource", 15): _res(default_spawn_rate=6),
+    # Arcane Dust                     
+    ("resource", 16): _res(default_spawn_rate=6),
+    # Ogre's Cap                     
+    ("resource", 17): _res(default_spawn_rate=6),
+    # Vipervine                     
+    ("resource", 18): _res(default_spawn_rate=6),
+    # Ironbark                     
+    ("resource", 19): _res(default_spawn_rate=6),
+    # Mindcap                     
+    ("resource", 20): _res(default_spawn_rate=6),
+    # Sage Leaf
+    ("resource", 21): _res(default_spawn_rate=6),
+    # Siren Petal
+    ("resource", 22): _res(default_spawn_rate=6),                     
 
     # ── Gold ──
     ("gold", "gold"): {
