@@ -41,6 +41,7 @@ class PlayerPreferencesMixin:
     auto_exits = AttributeProperty(True, autocreate=False)
     # nofollow is defined in FollowableMixin
     afk = AttributeProperty(False, autocreate=False)
+    prompt_active = AttributeProperty(True, autocreate=False)
     smite_active = AttributeProperty(False, autocreate=False)
     shield_active = AttributeProperty(False, autocreate=False)
 
@@ -56,6 +57,10 @@ class PlayerPreferencesMixin:
         "brief": {
             "attr": "brief_mode",
             "desc": "Skip room descriptions on movement",
+        },
+        "prompt": {
+            "attr": "prompt_active",
+            "desc": "Show status prompt after every command",
         },
         "autoexit": {
             "attr": "auto_exits",

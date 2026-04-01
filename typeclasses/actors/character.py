@@ -98,6 +98,11 @@ class FCMCharacter(
     # ── Combat preferences ──
     wimpy_threshold = AttributeProperty(0)  # 0 = disabled, >0 = auto-flee HP
 
+    # ── Prompt ──
+    # Tokens: %h=HP, %H=maxHP, %m=Mana, %M=maxMana, %v=Move, %V=maxMove,
+    #         %g=Gold, %x=XP, %l=Level
+    prompt_format = AttributeProperty("%hH %mM %vV > ")
+
     # ── Death / respawn ──
     # respawn_location: where the character goes after death (set by cemetery
     #   'bind' command). Default: Millholm Cemetery.
@@ -986,6 +991,30 @@ class FCMCharacter(
 
         # Send initial vitals for the split webclient panel
         self.send_vitals_update()
+
+    # ── Prompt ──────────────────────────────────────────────────────
+
+    _PROMPT_TOKENS = {
+        "%h": lambda s: str(s.hp),
+        "%H": lambda s: str(s.effective_hp_max),
+        "%m": lambda s: str(s.mana),
+        "%M": lambda s: str(s.mana_max),
+        "%v": lambda s: str(s.move),
+        "%V": lambda s: str(s.move_max),
+        "%g": lambda s: str(s.get_gold()),
+        "%x": lambda s: str(getattr(s.db, "xp", 0) or 0),
+        "%l": lambda s: str(s.get_level()),
+    }
+
+    def get_prompt(self):
+        """Build the text prompt string from the player's format template."""
+        fmt = self.prompt_format or "%hH %mM %vV > "
+        for token, resolver in self._PROMPT_TOKENS.items():
+            if token in fmt:
+                fmt = fmt.replace(token, resolver(self))
+        return fmt
+
+    # ── OOB Vitals ─────────────────────────────────────────────────
 
     def send_vitals_update(self):
         """Send structured vitals data via OOB for the split webclient panel."""

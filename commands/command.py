@@ -32,9 +32,11 @@ class Command(BaseCommand):
     #
 
     def at_post_cmd(self):
-        """Send vitals update after every command (for the split webclient)."""
+        """Send vitals update and text prompt after every command."""
         if hasattr(self.caller, "send_vitals_update"):
             self.caller.send_vitals_update()
+        if hasattr(self.caller, "get_prompt") and getattr(self.caller, "prompt_active", False):
+            self.caller.msg(prompt=self.caller.get_prompt())
 
 
 # -------------------------------------------------------------
