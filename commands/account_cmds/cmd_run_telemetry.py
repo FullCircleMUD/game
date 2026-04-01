@@ -7,6 +7,7 @@ is available for the spawn system and economy dashboard.
 """
 
 from evennia import Command
+from twisted.internet import threads
 
 
 class CmdRunTelemetry(Command):
@@ -19,6 +20,7 @@ class CmdRunTelemetry(Command):
     Triggers the hourly economy + resource snapshot immediately.
     Updates AMM prices, circulation data, and velocity metrics
     used by the spawn system and the /markets/ web dashboard.
+    Runs in a background thread so the game stays responsive.
     """
 
     key = "run_telemetry"
@@ -29,5 +31,8 @@ class CmdRunTelemetry(Command):
         from blockchain.xrpl.services.telemetry import TelemetryService
 
         self.msg("|yTaking telemetry snapshot...|n")
-        TelemetryService.take_snapshot()
-        self.msg("|gTelemetry snapshot complete.|n")
+        d = threads.deferToThread(TelemetryService.take_snapshot)
+        d.addCallback(lambda _: self.msg("|gTelemetry snapshot complete.|n"))
+        d.addErrback(
+            lambda f: self.msg(f"|rTelemetry snapshot failed: {f.getErrorMessage()}|n")
+        )

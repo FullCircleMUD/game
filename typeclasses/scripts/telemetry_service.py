@@ -7,6 +7,7 @@ gold flows, and AMM prices into snapshot tables.
 """
 
 from evennia import DefaultScript
+from twisted.internet import threads
 
 
 # How often (real seconds) the aggregator runs.
@@ -29,7 +30,7 @@ class TelemetryAggregatorScript(DefaultScript):
         self.repeats = 0  # repeat forever
 
     def at_repeat(self):
-        """Take an economy snapshot."""
+        """Take an economy snapshot in a background thread."""
         from blockchain.xrpl.services.telemetry import TelemetryService
 
-        TelemetryService.take_snapshot()
+        threads.deferToThread(TelemetryService.take_snapshot)
