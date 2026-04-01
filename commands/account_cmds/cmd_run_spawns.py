@@ -60,29 +60,24 @@ class CmdRunSpawns(Command):
                 rt = get_resource_type(type_key)
                 name = rt["name"] if rt else f"id={type_key}"
 
-            if budget > 0:
-                if item_type == "resource":
-                    from blockchain.xrpl.services.spawn.calculators.resource import ResourceCalculator
-                    avg = ResourceCalculator._get_avg_consumption(type_key)
-                    price = ResourceCalculator._get_latest_buy_price(type_key)
-                    p_mod = ResourceCalculator.price_modifier(price, cfg)
-                    base = max(float(cfg["default_spawn_rate"]), float(avg))
-                    self.msg(
-                        f"  {name}: budget={budget} "
-                        f"(base={base:.1f}, price={price}, p_mod={p_mod:.2f})"
-                    )
-                else:
-                    self.msg(f"  {item_type}/{type_key}: budget={budget}")
-            elif item_type == "resource":
+            if item_type == "resource":
                 from blockchain.xrpl.services.spawn.calculators.resource import ResourceCalculator
                 avg = ResourceCalculator._get_avg_consumption(type_key)
                 price = ResourceCalculator._get_latest_buy_price(type_key)
                 p_mod = ResourceCalculator.price_modifier(price, cfg)
                 base = max(float(cfg["default_spawn_rate"]), float(avg))
+                low = cfg["target_price_low"]
+                high = cfg["target_price_high"]
+                price_str = f"{float(price):.2f}" if price is not None else "N/A"
+                color = "" if budget > 0 else "|x"
+                end = "" if budget > 0 else "|n"
                 self.msg(
-                    f"  |x{name}: budget=0 "
-                    f"(base={base:.1f}, price={price}, p_mod={p_mod:.2f})|n"
+                    f"  {color}{name}: budget={budget} "
+                    f"(base={base:.1f}, price={price_str} [{low}-{high}], "
+                    f"p_mod={p_mod:.2f}){end}"
                 )
+            elif budget > 0:
+                self.msg(f"  {item_type}/{type_key}: budget={budget}")
 
         service.run_hourly_cycle()
         self.msg("|gSpawn cycle complete.|n")
