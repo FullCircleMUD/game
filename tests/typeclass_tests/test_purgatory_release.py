@@ -46,15 +46,15 @@ class TestPurgatoryRelease(EvenniaTest):
     # ── Purgatory release with bound cemetery ────────────────────
 
     def test_release_to_bound_cemetery(self):
-        """Character with home set releases to that home."""
-        self.char1.home = self.cemetery
+        """Character with respawn_location set releases to that location."""
+        self.char1.respawn_location = self.cemetery
         self.char1.move_to(self.purgatory, quiet=True)
         self.char1._purgatory_release()
         self.assertEqual(self.char1.location, self.cemetery)
 
     def test_release_message(self):
         """Character receives the release message."""
-        self.char1.home = self.cemetery
+        self.char1.respawn_location = self.cemetery
         self.char1.move_to(self.purgatory, quiet=True)
         self.char1.msg = MagicMock()
         self.char1._purgatory_release()
@@ -62,10 +62,19 @@ class TestPurgatoryRelease(EvenniaTest):
             "You feel yourself drawn back to the world of the living..."
         )
 
+    def test_release_falls_back_to_home_when_no_respawn(self):
+        """respawn_location=None falls through to home."""
+        self.char1.respawn_location = None
+        self.char1.home = self.cemetery
+        self.char1.move_to(self.purgatory, quiet=True)
+        self.char1._purgatory_release()
+        self.assertEqual(self.char1.location, self.cemetery)
+
     # ── Purgatory release with no home (Limbo fallback) ──────────
 
     def test_release_no_home_falls_back_to_limbo(self):
-        """Character with home=None should release to Limbo, not stay stuck."""
+        """Character with no respawn_location or home releases to Limbo."""
+        self.char1.respawn_location = None
         self.char1.home = None
         self.char1.move_to(self.purgatory, quiet=True)
         self.char1._purgatory_release()
@@ -78,7 +87,7 @@ class TestPurgatoryRelease(EvenniaTest):
 
     def test_release_skips_if_not_in_purgatory(self):
         """If character is already out of purgatory, release is a no-op."""
-        self.char1.home = self.cemetery
+        self.char1.respawn_location = self.cemetery
         self.char1.move_to(self.room1, quiet=True)
         original_location = self.char1.location
         self.char1._purgatory_release()
@@ -89,7 +98,7 @@ class TestPurgatoryRelease(EvenniaTest):
     @patch("evennia.utils.utils.delay")
     def test_at_post_puppet_reschedules_timer_in_purgatory(self, mock_delay):
         """Logging in while stuck in purgatory should reschedule the release timer."""
-        self.char1.home = self.cemetery
+        self.char1.respawn_location = self.cemetery
         self.char1.move_to(self.purgatory, quiet=True)
         self.char1.at_post_puppet()
         # Should still be in purgatory (not instant release)

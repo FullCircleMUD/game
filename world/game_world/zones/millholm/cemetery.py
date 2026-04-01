@@ -566,6 +566,9 @@ def build_millholm_cemetery():
         room.tags.add(ZONE, category="zone")
         room.tags.add(DISTRICT, category="district")
 
+    # Findable by at_object_creation() for default respawn_location
+    rooms["cemetery"].tags.add("millholm_cemetery", category="special_room")
+
     # Outdoor rooms — cemetery grounds (max_height 1, weather-exposed)
     outdoor = [
         rooms["cemetery_gates"], rooms["cemetery"],

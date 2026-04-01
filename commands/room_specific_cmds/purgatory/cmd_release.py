@@ -57,8 +57,8 @@ class CmdRelease(Command):
 
         caller.msg(f"{RELEASE_COST} gold deducted from your bank account.")
 
-        # Release the character to their home (bound cemetery / Limbo fallback)
-        destination = caller.home or caller._get_limbo()
+        # Release the character to their respawn point (cemetery / home / Limbo)
+        destination = caller.respawn_location or caller.home or caller._get_limbo()
         caller.move_to(destination, quiet=True, move_type="teleport")
         caller.msg("You feel yourself drawn back to the world of the living...")
         caller._dying = False  # allow future deaths

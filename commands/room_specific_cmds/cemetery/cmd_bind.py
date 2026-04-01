@@ -23,7 +23,7 @@ class CmdBind(Command):
         caller = self.caller
         room = caller.location
 
-        if caller.home == room:
+        if caller.respawn_location == room:
             caller.msg("You are already bound to this cemetery.")
             return
 
@@ -38,7 +38,7 @@ class CmdBind(Command):
 
             caller.return_gold_to_sink(cost)
 
-        caller.home = room
+        caller.respawn_location = room
         if cost > 0:
             caller.msg(
                 f"You bind your soul to {room.key} for {cost} gold. "

@@ -1,5 +1,5 @@
 """
-Tests for CmdBind — verifies binding to a cemetery sets home,
+Tests for CmdBind — verifies binding to a cemetery sets respawn_location,
 deducts gold, and handles edge cases.
 """
 
@@ -27,15 +27,15 @@ class TestCmdBind(EvenniaCommandTest):
         self.account.attributes.add("wallet_address", WALLET_A)
         self.char1.db.gold = 10
         # Ensure char is not already bound here
-        self.char1.home = None
+        self.char1.respawn_location = None
 
     # ── Success ──
 
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_bind_success(self, mock_gold):
-        """Binding sets home to the cemetery room."""
+        """Binding sets respawn_location to the cemetery room."""
         self.call(CmdBind(), "", "You bind your soul to")
-        self.assertEqual(self.char1.home, self.room1)
+        self.assertEqual(self.char1.respawn_location, self.room1)
 
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_bind_deducts_gold(self, mock_gold):
@@ -56,18 +56,18 @@ class TestCmdBind(EvenniaCommandTest):
         self.room1.bind_cost = 0
         self.call(CmdBind(), "", "You bind your soul to")
         self.assertEqual(self.char1.db.gold, 10)  # unchanged
-        self.assertEqual(self.char1.home, self.room1)
+        self.assertEqual(self.char1.respawn_location, self.room1)
 
     # ── Already bound ──
 
     def test_bind_already_bound(self):
         """Binding to the same cemetery shows already-bound message."""
-        self.char1.home = self.room1
+        self.char1.respawn_location = self.room1
         self.call(CmdBind(), "", "You are already bound to this cemetery.")
 
     def test_bind_already_bound_no_gold_change(self):
         """Already-bound check doesn't deduct gold."""
-        self.char1.home = self.room1
+        self.char1.respawn_location = self.room1
         self.call(CmdBind(), "", "You are already bound")
         self.assertEqual(self.char1.db.gold, 10)
 
@@ -81,7 +81,7 @@ class TestCmdBind(EvenniaCommandTest):
     def test_bind_not_enough_gold_no_home_change(self):
         """Failed bind doesn't change home."""
         self.char1.db.gold = 0
-        self.char1.home = None
+        self.char1.respawn_location = None
         self.call(CmdBind(), "", "You need 1 gold")
-        self.assertIsNone(self.char1.home)
+        self.assertIsNone(self.char1.respawn_location)
 

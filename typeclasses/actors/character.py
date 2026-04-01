@@ -98,6 +98,14 @@ class FCMCharacter(
     # ── Combat preferences ──
     wimpy_threshold = AttributeProperty(0)  # 0 = disabled, >0 = auto-flee HP
 
+    # ── Death / respawn ──
+    # respawn_location: where the character goes after death (set by cemetery
+    #   'bind' command). Default: Millholm Cemetery.
+    # home: Evennia built-in. Where the character goes on recall (future).
+    #   Default: Harvest Moon Inn. Also used as defeat fallback (non-lethal).
+    # Fallback chain on death: respawn_location → home → Limbo.
+    respawn_location = AttributeProperty(None)
+
     # ── Quest handler ──
 
     @lazy_property
@@ -733,8 +741,8 @@ class FCMCharacter(
             )
             delay(self.PURGATORY_DURATION, self._purgatory_release)
         else:
-            # No purgatory room — send directly to bound home
-            destination = self.home or self._get_limbo()
+            # No purgatory room — send directly to respawn location
+            destination = self.respawn_location or self.home or self._get_limbo()
             if destination:
                 self.move_to(destination, quiet=True, move_type="teleport")
             self.msg("You feel yourself drawn back to the world of the living...")
@@ -747,11 +755,12 @@ class FCMCharacter(
 
         if not self.in_purgatory:
             return  # already released early via CmdRelease
-        destination = self.home
+        destination = self.respawn_location or self.home
         if not destination:
             destination = self._get_limbo()
             logger.log_warn(
-                f"Purgatory release: {self.key} has no home, falling back to Limbo"
+                f"Purgatory release: {self.key} has no respawn_location or home, "
+                f"falling back to Limbo"
             )
         self.move_to(destination, quiet=True, move_type="teleport")
         self.msg("You feel yourself drawn back to the world of the living...")
@@ -793,10 +802,10 @@ class FCMCharacter(
         Add the all-character skill CmdSet here.
         """
         super().at_object_creation()
-        # Set default home to Harvest Moon Inn — players upgrade via 'bind'
-        if not self.home:
-            from evennia.utils.search import search_tag
+        from evennia.utils.search import search_tag
 
+        # Set default home to Harvest Moon Inn (future recall destination)
+        if not self.home:
             inn_rooms = search_tag("harvest_moon_inn", category="special_room")
             if inn_rooms:
                 self.home = inn_rooms[0]
@@ -804,6 +813,12 @@ class FCMCharacter(
                 limbo = self._get_limbo()
                 if limbo:
                     self.home = limbo
+
+        # Set default respawn to Millholm Cemetery (death respawn point)
+        if not self.respawn_location:
+            cemetery_rooms = search_tag("millholm_cemetery", category="special_room")
+            if cemetery_rooms:
+                self.respawn_location = cemetery_rooms[0]
         self.at_fungible_init()
         self.at_carrying_capacity_init()
         self.at_wearslots_init()
@@ -855,6 +870,21 @@ class FCMCharacter(
             from blockchain.xrpl.services.telemetry import TelemetryService
 
             TelemetryService.record_session_start(self.account.id, self.key)
+        # Backfill respawn_location and home for characters created before
+        # these defaults existed, or created before the world was built.
+        if not self.respawn_location:
+            from evennia.utils.search import search_tag
+
+            cemetery_rooms = search_tag("millholm_cemetery", category="special_room")
+            if cemetery_rooms:
+                self.respawn_location = cemetery_rooms[0]
+        if not self.home or self.home.id == 2:  # 2 = Limbo
+            from evennia.utils.search import search_tag
+
+            inn_rooms = search_tag("harvest_moon_inn", category="special_room")
+            if inn_rooms:
+                self.home = inn_rooms[0]
+
         # Safety net: if stuck in purgatory (e.g. server crash lost the timer),
         # reschedule the release so they don't wait forever.
         if self.in_purgatory:
