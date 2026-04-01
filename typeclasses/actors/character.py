@@ -130,8 +130,8 @@ class FCMCharacter(
                 if msg:
                     self.msg(msg)
                 return False
-        # Movement point cost — normal moves and follows (not teleport, etc.)
-        if move_type in ("move", "follow") and self.move < 1:
+        # Movement point cost — normal moves, follows, and exit traversals
+        if move_type in ("move", "follow", "traverse") and self.move < 1:
             self.msg("You are too exhausted to move.")
             return False
         return super().at_pre_move(destination, move_type=move_type, **kwargs)
@@ -140,8 +140,8 @@ class FCMCharacter(
         """Deduct movement and auto-move followers when this character moves."""
         super().at_post_move(source_location, move_type=move_type, **kwargs)
 
-        # Deduct 1 movement point for normal moves and follows
-        if move_type in ("move", "follow"):
+        # Deduct 1 movement point for normal moves, follows, and exit traversals
+        if move_type in ("move", "follow", "traverse"):
             self.move = max(0, self.move - 1)
 
         # Breath timer — start if we moved into underwater without one
