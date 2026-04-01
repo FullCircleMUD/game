@@ -113,9 +113,10 @@ class NFTSaturationService:
             school_dist = spell_school_dist.get(spell.school_key, {})
             eligible = _players_at_or_above(school_dist, spell.min_mastery.value)
             sat = (known_by + unlearned) / eligible if eligible > 0 else 0.0
+            # Prefixed key matches spawn config type_key (scroll_X)
             SaturationSnapshot.objects.update_or_create(
                 day=today,
-                item_key=spell_key,
+                item_key=f"scroll_{spell_key}",
                 category=SaturationSnapshot.CATEGORY_SPELL,
                 defaults={
                     "active_players_7d": active_count,
@@ -138,9 +139,10 @@ class NFTSaturationService:
             skill_dist = recipe_skill_dist.get(skill_key, {})
             eligible = _players_at_or_above(skill_dist, recipe["min_mastery"].value)
             sat = (known_by + unlearned) / eligible if eligible > 0 else 0.0
+            # Prefixed key matches spawn config type_key (recipe_X)
             SaturationSnapshot.objects.update_or_create(
                 day=today,
-                item_key=recipe_key,
+                item_key=f"recipe_{recipe_key}",
                 category=SaturationSnapshot.CATEGORY_RECIPE,
                 defaults={
                     "active_players_7d": active_count,
