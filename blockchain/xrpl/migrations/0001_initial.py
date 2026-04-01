@@ -720,6 +720,10 @@ class Migration(migrations.Migration):
                 ("imported_1h", models.DecimalField(decimal_places=6, default=0, help_text="deposit_from_chain in past hour", max_digits=36)),
                 ("amm_buy_price", models.DecimalField(blank=True, decimal_places=6, help_text="Gold cost to buy 1 unit from AMM", max_digits=36, null=True)),
                 ("amm_sell_price", models.DecimalField(blank=True, decimal_places=6, help_text="Gold received from selling 1 unit to AMM", max_digits=36, null=True)),
+                ("spawn_budget", models.IntegerField(default=0, help_text="Calculator budget for this hour")),
+                ("spawn_quest_debt", models.IntegerField(default=0, help_text="Budget redirected to quest rewards")),
+                ("spawn_placed", models.IntegerField(default=0, help_text="Units actually placed on targets")),
+                ("spawn_dropped", models.IntegerField(default=0, help_text="Surplus dropped (no targets with headroom)")),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
@@ -764,6 +768,10 @@ class Migration(migrations.Migration):
                 ("unlearned_copies", models.IntegerField(default=0)),
                 ("in_circulation", models.IntegerField(default=0)),
                 ("saturation", models.FloatField(default=0.0)),
+                ("spawn_budget", models.IntegerField(default=0, help_text="Calculator budget for this cycle")),
+                ("spawn_quest_debt", models.IntegerField(default=0, help_text="Budget redirected to quest rewards")),
+                ("spawn_placed", models.IntegerField(default=0, help_text="Units actually placed on targets")),
+                ("spawn_dropped", models.IntegerField(default=0, help_text="Surplus dropped (no targets with headroom)")),
             ],
             options={
                 "ordering": ["-day"],

@@ -154,6 +154,9 @@ class SpawnService:
             distributor.distribute(type_key, bs)
             summary.append(f"{item_type}/{type_key}={budget}")
 
+        # Persist spawn metrics to snapshot tables
+        self._persist_spawn_telemetry()
+
         if summary:
             logger.info(f"SpawnService: {', '.join(summary)}")
         else:
@@ -206,6 +209,54 @@ class SpawnService:
 
         bs.add_quest_debt(amount)
         return True
+
+    def _persist_spawn_telemetry(self):
+        """Write BudgetState counters to snapshot tables.
+
+        Called at the end of run_hourly_cycle(). Updates existing
+        snapshot rows created by telemetry (+0s) and saturation (+60s)
+        services earlier in the pipeline.
+        """
+        from blockchain.xrpl.models import ResourceSnapshot, SaturationSnapshot
+        from blockchain.xrpl.currency_cache import get_currency_code
+        from django.conf import settings
+        from django.utils import timezone
+
+        now = timezone.now()
+        bucket = now.replace(minute=0, second=0, microsecond=0)
+        today = now.date()
+
+        for (item_type, type_key), bs in self.budget_states.items():
+            if item_type == "resource":
+                currency_code = get_currency_code(type_key)
+                if currency_code:
+                    ResourceSnapshot.objects.filter(
+                        hour=bucket, currency_code=currency_code,
+                    ).update(
+                        spawn_budget=bs.total,
+                        spawn_quest_debt=bs.quest_debt,
+                        spawn_placed=bs.spawned_this_hour,
+                        spawn_dropped=bs.dropped_this_hour,
+                    )
+            elif item_type == "gold":
+                gold_code = settings.XRPL_GOLD_CURRENCY_CODE
+                ResourceSnapshot.objects.filter(
+                    hour=bucket, currency_code=gold_code,
+                ).update(
+                    spawn_budget=bs.total,
+                    spawn_quest_debt=bs.quest_debt,
+                    spawn_placed=bs.spawned_this_hour,
+                    spawn_dropped=bs.dropped_this_hour,
+                )
+            elif item_type == "knowledge":
+                SaturationSnapshot.objects.filter(
+                    day=today, item_key=type_key,
+                ).update(
+                    spawn_budget=bs.total,
+                    spawn_quest_debt=bs.quest_debt,
+                    spawn_placed=bs.spawned_this_hour,
+                    spawn_dropped=bs.dropped_this_hour,
+                )
 
     @staticmethod
     def _resolve_category_key(category, key):

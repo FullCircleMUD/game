@@ -518,6 +518,20 @@ class ResourceSnapshot(models.Model):
         help_text="Gold received from selling 1 unit to AMM",
     )
 
+    # Spawn system metrics (written by SpawnService at end of cycle)
+    spawn_budget = models.IntegerField(
+        default=0, help_text="Calculator budget for this hour",
+    )
+    spawn_quest_debt = models.IntegerField(
+        default=0, help_text="Budget redirected to quest rewards",
+    )
+    spawn_placed = models.IntegerField(
+        default=0, help_text="Units actually placed on targets",
+    )
+    spawn_dropped = models.IntegerField(
+        default=0, help_text="Surplus dropped (no targets with headroom)",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -595,6 +609,20 @@ class SaturationSnapshot(models.Model):
     unlearned_copies = models.IntegerField(default=0)
     in_circulation = models.IntegerField(default=0)
     saturation = models.FloatField(default=0.0)
+
+    # Spawn system metrics (written by SpawnService at end of cycle)
+    spawn_budget = models.IntegerField(
+        default=0, help_text="Calculator budget for this cycle",
+    )
+    spawn_quest_debt = models.IntegerField(
+        default=0, help_text="Budget redirected to quest rewards",
+    )
+    spawn_placed = models.IntegerField(
+        default=0, help_text="Units actually placed on targets",
+    )
+    spawn_dropped = models.IntegerField(
+        default=0, help_text="Surplus dropped (no targets with headroom)",
+    )
 
     class Meta:
         app_label = "xrpl"
