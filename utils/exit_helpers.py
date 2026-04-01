@@ -375,29 +375,31 @@ def connect_bidirectional_tripwire_exit(
 # ================================================================== #
 
 
-def connect_oneway_loopback_exit(room, direction, key=None):
+def connect_oneway_loopback_exit(room, direction, key=None, destination=None):
     """
-    Create a single exit that leads back to the same room (boundary illusion).
+    Create a single exit that loops back to the same room or another room.
 
     Used for forest edges, deep water boundaries, lake shores — anywhere
     the player should feel like the space continues but mechanically
-    stays in place. ONE-WAY — only creates one exit, no return.
+    redirects them. ONE-WAY — only creates one exit, no return.
 
     Args:
-        room: The room to loop back to.
+        room: The room the exit is placed in.
         direction: Direction the exit faces (e.g. "west").
-        key: Exit display name (defaults to room.key).
+        key: Exit display name (defaults to destination room's key).
+        destination: Where the exit leads (defaults to room itself).
 
     Returns:
         The exit object.
     """
     from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 
+    dest = destination or room
     exit_obj = create_object(
         ExitVerticalAware,
-        key=key or room.key,
+        key=key or dest.key,
         location=room,
-        destination=room,
+        destination=dest,
     )
     exit_obj.set_direction(direction)
     return exit_obj

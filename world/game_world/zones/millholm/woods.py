@@ -903,23 +903,36 @@ def build_millholm_woods(town_rooms):
             connect_bidirectional_exit(grid[r][c], grid[r + 1][c], "south")
             exit_count += 2
 
-    # ── Grid boundary self-loops ───────────────────────────────────
-    # West edge (column 0): going west loops back to same room
+    # ── Grid boundary redirects ─────────────────────────────────────
+    # Edge rooms redirect 2 rooms back in the opposite direction,
+    # creating a 3-room cycle (A→B→C(edge)→A→B→C→...) so the
+    # player sees varied rooms instead of bouncing off a wall.
+
+    # West edge (column 0): going west → column 2 (same row)
     for r in range(6):
-        _self_loop(grid[r][0], "west",
-                   "The forest turns you back the way you came.")
+        connect_oneway_loopback_exit(
+            grid[r][0], "west",
+            key="The forest turns you back the way you came.",
+            destination=grid[r][2],
+        )
         exit_count += 1
 
-    # East edge (column 9): going east loops back to same room
+    # East edge (column 9): going east → column 7 (same row)
     for r in range(6):
-        _self_loop(grid[r][9], "east",
-                   "However you try, you end up where you began.")
+        connect_oneway_loopback_exit(
+            grid[r][9], "east",
+            key="However you try, you end up where you began.",
+            destination=grid[r][7],
+        )
         exit_count += 1
 
-    # South edge (row 5): going south loops back to same room
+    # South edge (row 5): going south → row 3 (same column)
     for c in range(10):
-        _self_loop(grid[5][c], "south",
-                   "The woods grow impenetrable further south.")
+        connect_oneway_loopback_exit(
+            grid[5][c], "south",
+            key="The woods grow impenetrable further south.",
+            destination=grid[3][c],
+        )
         exit_count += 1
 
     # ── Main path → northern woods (bidirectional, 10 pairs) ─────
