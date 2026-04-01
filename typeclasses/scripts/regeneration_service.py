@@ -84,7 +84,8 @@ class RegenerationService(DefaultScript):
 
         character.hp = min(character.effective_hp_max, character.hp + regen_rate)
         character.mana = min(character.mana_max, character.mana + regen_rate)
-        character.move = min(character.move_max, character.move + regen_rate)
+        # regen movement saster than hits or mana because it gets used so quickly moving around
+        character.move = min(character.move_max, character.move + (regen_rate * 2))
 
         # old regen amoutn logic from pre evennia FCM
         # based on taking 20 turns to regen to full health
