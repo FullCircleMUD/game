@@ -28,44 +28,41 @@ def _res(**overrides):
 
 
 SPAWN_CONFIG = {
-    # wheat
-    ("resource", 1): _res(                                           
+    # Wheat
+    ("resource", 1): _res(
         target_price_low=1, target_price_high=2,
         default_spawn_rate=20,
     ),
 
-    # Cotton                                                                             
-    ("resource", 10): _res(                                           
+    # Cotton
+    ("resource", 10): _res(
         target_price_low=1, target_price_high=2,
         default_spawn_rate=10,
-    ),                                        
+    ),
 
     # Wood
-    ("resource", 6): _res(                                           
+    ("resource", 6): _res(
         target_price_low=1, target_price_high=2,
         default_spawn_rate=10,
-    ), 
+    ),
 
     # Hide
-    ("resource", 8): _res(                                           
+    ("resource", 8): _res(
         target_price_low=2, target_price_high=3,
         default_spawn_rate=10,
-    ), 
+    ),
 
     # Copper Ore
-    ("resource", 23): _res(                                           
+    ("resource", 23): _res(
         target_price_low=2, target_price_high=3,
         default_spawn_rate=10,
-    ),                                     
-
-
-    # not spawning in Millholm - zeroed out until new zones built
+    ),
 
     # Tin Ore
-    ("resource", 25): _res(                                           
+    ("resource", 25): _res(
         target_price_low=2, target_price_high=3,
         default_spawn_rate=10,
-    ),   
+    ),
 
     # NOT SPAWNING IN MILLHOLM ZONE - ZEROED OUT UNTIL NEW ZONES ADDED
     # Lead Ore
@@ -106,25 +103,64 @@ SPAWN_CONFIG = {
 
     # ── Gathering — alchemy ──
     # Moonpetal
-    ("resource", 12): _res(default_spawn_rate=6),
-    # Bloodmoss                     
-    ("resource", 14): _res(default_spawn_rate=6),
+    ("resource", 12): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
+    # Bloodmoss
+    ("resource", 14): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
     # Windroot
-    ("resource", 15): _res(default_spawn_rate=6),
-    # Arcane Dust                     
-    ("resource", 16): _res(default_spawn_rate=6),
-    # Ogre's Cap                     
-    ("resource", 17): _res(default_spawn_rate=6),
-    # Vipervine                     
-    ("resource", 18): _res(default_spawn_rate=6),
-    # Ironbark                     
-    ("resource", 19): _res(default_spawn_rate=6),
-    # Mindcap                     
-    ("resource", 20): _res(default_spawn_rate=6),
+    ("resource", 15): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
+    # Arcane Dust
+    ("resource", 16): _res(
+        target_price_low=6, target_price_high=10,
+        default_spawn_rate=6,
+    ),
+
+    # Ogre's Cap
+    ("resource", 17): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
+    # Vipervine
+    ("resource", 18): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
+    # Ironbark
+    ("resource", 19): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
+    # Mindcap
+    ("resource", 20): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
     # Sage Leaf
-    ("resource", 21): _res(default_spawn_rate=6),
+    ("resource", 21): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
+
     # Siren Petal
-    ("resource", 22): _res(default_spawn_rate=6),                     
+    ("resource", 22): _res(
+        target_price_low=4, target_price_high=8,
+        default_spawn_rate=6,
+    ),
 
     # ── Gold ──
     ("gold", "gold"): {
