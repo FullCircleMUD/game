@@ -37,6 +37,7 @@ from commands.account_cmds.cmd_spawn_report import CmdSpawnReport
 from commands.account_cmds.cmd_run_saturation import CmdRunSaturation
 from commands.account_cmds.cmd_run_spawns import CmdRunSpawns
 from commands.account_cmds.cmd_run_telemetry import CmdRunTelemetry
+from commands.account_cmds.cmd_broadcast import CmdBroadcast
 
 
 class CmdSetAccountCustom(CmdSet):
@@ -82,3 +83,4 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdRunSaturation())
         self.add(CmdRunSpawns())
         self.add(CmdRunTelemetry())
+        self.add(CmdBroadcast())
