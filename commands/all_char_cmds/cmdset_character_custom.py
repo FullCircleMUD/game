@@ -45,6 +45,7 @@ from commands.all_char_cmds.cmd_quests import CmdQuests
 from commands.all_char_cmds.cmd_hide import CmdHide
 from commands.all_char_cmds.cmd_trade import CmdTrade
 from commands.all_char_cmds.cmd_toggle import CmdToggle
+from commands.all_char_cmds.cmd_afk import CmdAfk
 from commands.all_char_cmds.cmd_roomdesc import CmdRoomDesc
 from commands.all_char_cmds.cmd_exits import CmdExits
 from commands.all_char_cmds.cmd_posture import CmdSit, CmdRest, CmdSleep, CmdStand, CmdWake
@@ -173,6 +174,7 @@ class CmdSetCharacterCustom(CmdSet):
 
         # preferences
         self.add(CmdToggle())
+        self.add(CmdAfk())
         self.add(CmdRoomDesc())
         self.add(CmdExits())
 

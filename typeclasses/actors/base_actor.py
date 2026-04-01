@@ -157,8 +157,9 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
                     base = f"{self.key}{desc}"
                 else:
                     base = f"{self.key} {desc}"
+            afk_tag = " |w(AFK)|n" if getattr(self, "afk", False) else ""
             if pos == "standing":
-                return base
+                return base + afk_tag
             # Append position for non-standing with custom desc
             suffix = {
                 "sitting": "is sitting here.",
@@ -166,11 +167,14 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
                 "sleeping": "is sleeping here.",
                 "fighting": f"is here, fighting {self._get_fight_target()}!",
             }
-            return f"{self.key} {suffix.get(pos, 'stands here.')}"
+            return f"{self.key} {suffix.get(pos, 'stands here.')}" + afk_tag
 
         template = self._POSITION_TEMPLATES.get(pos, self._POSITION_TEMPLATES["standing"])
         target = self._get_fight_target() if pos == "fighting" else ""
-        return template.format(name=self.key, target=target)
+        desc = template.format(name=self.key, target=target)
+        if getattr(self, "afk", False):
+            desc += " |w(AFK)|n"
+        return desc
 
     def _get_fight_target(self):
         """Return the name of who this actor is fighting, or 'someone'."""

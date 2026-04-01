@@ -40,6 +40,7 @@ class PlayerPreferencesMixin:
     brief_mode = AttributeProperty(False, autocreate=False)
     auto_exits = AttributeProperty(True, autocreate=False)
     # nofollow is defined in FollowableMixin
+    afk = AttributeProperty(False, autocreate=False)
     smite_active = AttributeProperty(False, autocreate=False)
     shield_active = AttributeProperty(False, autocreate=False)
 
@@ -48,6 +49,10 @@ class PlayerPreferencesMixin:
     # Optional ``gate``: callable(char) → bool. If False, toggle is blocked.
     # Optional ``gate_fail``: message shown when gate fails.
     PREFERENCES = {
+        "afk": {
+            "attr": "afk",
+            "desc": "Mark yourself as away from keyboard",
+        },
         "brief": {
             "attr": "brief_mode",
             "desc": "Skip room descriptions on movement",

@@ -118,6 +118,10 @@ class CmdSay(Command):
                         caller.msg(f"Say what to {say_target.key}?")
                         return
 
+        # --- AFK notification for targeted speech ---
+        if say_target and getattr(say_target, "afk", False):
+            caller.msg(f"|y{say_target.key} is currently AFK.|n")
+
         # --- Determine visibility ---
         is_invisible = (
             hasattr(caller, "has_condition")

@@ -115,6 +115,8 @@ class FCMCharacter(
 
     def at_pre_move(self, destination, move_type="move", **kwargs):
         """Check movement blockers before moving."""
+        if getattr(self, "afk", False) and move_type in ("move", "follow"):
+            self.msg("|yReminder: You are currently flagged as AFK.|n")
         if self.ndb.is_processing:
             self.msg("You can't leave in the middle of a job! Wait for it to finish.")
             return False

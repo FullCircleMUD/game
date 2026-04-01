@@ -111,6 +111,11 @@ class CmdWhisper(Command):
         if not receivers:
             return
 
+        # --- AFK notification ---
+        for recv in receivers:
+            if getattr(recv, "afk", False):
+                caller.msg(f"|y{recv.key} is currently AFK.|n")
+
         speech = self.whisper_message
         is_common = language == "common"
         lang_display = language.capitalize()

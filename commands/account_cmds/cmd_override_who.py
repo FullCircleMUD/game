@@ -53,7 +53,8 @@ class CmdWho(_CmdWho):
                 idle_str = f"{int(idle_secs // 3600)}h"
 
             if char:
-                name = utils.crop(char.key, width=20)
+                afk_tag = " |r(AFK)|n" if getattr(char, "afk", False) else ""
+                name = utils.crop(char.key, width=20) + afk_tag
 
                 level = getattr(char, "total_level", 0)
 
