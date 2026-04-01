@@ -18,13 +18,8 @@ from django.urls import include, path
 # default evennia patterns
 from evennia.web.urls import urlpatterns as evennia_default_urlpatterns
 
-from web.website.views.nft_metadata import nft_metadata_view
-
 # add patterns
 urlpatterns = [
-    # NFT metadata API (served at api.fcmud.world/nft/<id> via reverse proxy)
-    path("nft/<int:token_id>", nft_metadata_view, name="nft_metadata"),
-    path("nft/<int:token_id>/", nft_metadata_view, name="nft_metadata_slash"),
     # website
     path("", include("web.website.urls")),
     # webclient
