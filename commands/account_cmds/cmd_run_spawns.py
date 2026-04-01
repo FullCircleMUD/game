@@ -84,9 +84,16 @@ class CmdRunSpawns(Command):
                     )
                 elif item_type == "knowledge":
                     tier = cfg.get("tier", "?")
-                    base_rate = float(cfg.get("base_drop_rate", 0))
-                    saturation = KnowledgeCalculator._get_saturation(type_key)
-                    sat_str = f"{saturation:.0%}" if saturation is not None else "no data"
+                    snapshot = KnowledgeCalculator._get_snapshot(type_key)
+                    if snapshot:
+                        elig = snapshot.eligible_players
+                        known = snapshot.known_by
+                        unlearned = snapshot.unlearned_copies
+                        sat_str = f"{snapshot.saturation:.0%}"
+                        gap_str = f"gap={elig}-{known}-{unlearned}={budget}"
+                    else:
+                        sat_str = "no data"
+                        gap_str = f"gap=?"
                     kind = "scroll" if str(type_key).startswith("scroll_") else "recipe"
                     display_name = str(type_key).replace("scroll_", "").replace("recipe_", "").replace("_", " ").title()
                     label = f"[{kind}] {display_name}"[:W].ljust(W)
@@ -94,7 +101,7 @@ class CmdRunSpawns(Command):
                     end = "" if budget > 0 else "|n"
                     caller.msg(
                         f"  {color}{label} budget={budget} "
-                        f"(base={base_rate:.1f}, sat={sat_str}, tier={tier}){end}"
+                        f"({gap_str}, sat={sat_str}, tier={tier}){end}"
                     )
                 elif budget > 0:
                     label = f"{item_type}/{type_key}"[:W].ljust(W)
