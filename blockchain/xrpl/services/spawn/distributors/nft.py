@@ -91,7 +91,9 @@ class ScrollDistributor(BaseDistributor):
         for _ in range(amount):
             try:
                 token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
-                BaseNFTItem.spawn_into(token_id, target)
+                obj = BaseNFTItem.spawn_into(token_id, target)
+                if obj:
+                    obj.tags.add("loot", category="item")
             except Exception:
                 logger.log_trace(
                     f"ScrollDistributor: failed to place {type_key} on {target}"
@@ -139,7 +141,9 @@ class RecipeDistributor(BaseDistributor):
         for _ in range(amount):
             try:
                 token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
-                BaseNFTItem.spawn_into(token_id, target)
+                obj = BaseNFTItem.spawn_into(token_id, target)
+                if obj:
+                    obj.tags.add("loot", category="item")
             except Exception:
                 logger.log_trace(
                     f"RecipeDistributor: failed to place {type_key} on {target}"
@@ -161,7 +165,9 @@ class RareNFTDistributor(BaseDistributor):
         for _ in range(amount):
             try:
                 token_id = BaseNFTItem.assign_to_blank_token(type_key)
-                BaseNFTItem.spawn_into(token_id, target)
+                obj = BaseNFTItem.spawn_into(token_id, target)
+                if obj:
+                    obj.tags.add("loot", category="item")
             except Exception:
                 logger.log_trace(
                     f"RareNFTDistributor: failed to place {type_key} on {target}"
