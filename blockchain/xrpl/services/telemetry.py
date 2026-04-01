@@ -210,8 +210,8 @@ class TelemetryService:
                     ),
                     "exported_1h": Decimal(0),
                     "imported_1h": Decimal(0),
-                    "amm_buy_price": prices.get("buy_1"),
-                    "amm_sell_price": prices.get("sell_1"),
+                    "amm_buy_price": prices.get("buy_1_raw"),
+                    "amm_sell_price": prices.get("sell_1_raw"),
                 }
             else:
                 # Regular fungible currency — circulation from FungibleGameState
@@ -246,8 +246,8 @@ class TelemetryService:
                     "imported_1h": _transfer_volume(
                         code, ["deposit_from_chain"], hour_ago, now,
                     ),
-                    "amm_buy_price": prices.get("buy_1"),
-                    "amm_sell_price": prices.get("sell_1"),
+                    "amm_buy_price": prices.get("buy_1_raw"),
+                    "amm_sell_price": prices.get("sell_1_raw"),
                 }
 
             ResourceSnapshot.objects.update_or_create(

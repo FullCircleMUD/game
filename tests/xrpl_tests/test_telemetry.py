@@ -412,7 +412,10 @@ class TestResourceSnapshot(TestCase):
         """AMM prices are populated when available."""
         mock_tz.now.return_value = SNAP_NOW
         mock_prices = {
-            "FCMWheat": {"buy_1": Decimal("2"), "sell_1": Decimal("1")},
+            "FCMWheat": {
+                "buy_1": 2, "sell_1": 1,
+                "buy_1_raw": 1.85, "sell_1_raw": 0.92,
+            },
         }
 
         with patch(
@@ -422,8 +425,8 @@ class TestResourceSnapshot(TestCase):
             TelemetryService.take_snapshot()
 
         snap = ResourceSnapshot.objects.get(currency_code="FCMWheat")
-        self.assertEqual(snap.amm_buy_price, Decimal("2"))
-        self.assertEqual(snap.amm_sell_price, Decimal("1"))
+        self.assertEqual(snap.amm_buy_price, Decimal("1.85"))
+        self.assertEqual(snap.amm_sell_price, Decimal("0.92"))
 
     @patch("blockchain.xrpl.services.telemetry._fetch_amm_prices", return_value={})
     @patch("blockchain.xrpl.services.telemetry.timezone")

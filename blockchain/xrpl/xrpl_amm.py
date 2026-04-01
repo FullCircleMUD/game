@@ -306,6 +306,8 @@ async def _get_multi_pool_prices_async(network_url, gold_currency,
                 results[rc] = {
                     "buy_1": int(math.ceil(float(buy_1))),
                     "sell_1": int(math.floor(float(sell_1))),
+                    "buy_1_raw": round(float(buy_1), 2),
+                    "sell_1_raw": round(float(sell_1), 2),
                     "gold_reserve": gold_reserve,
                     "resource_reserve": resource_reserve,
                 }

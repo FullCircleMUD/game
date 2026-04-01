@@ -59,16 +59,19 @@ class MarketsView(TemplateView):
                 code = snap.currency_code
 
                 if code in resource_codes:
-                    # Resource tab
+                    # Resource tab — round for display (players see integer prices)
+                    from math import ceil, floor
                     ct_name = names.get(code, code)
+                    buy_display = int(ceil(float(snap.amm_buy_price))) if snap.amm_buy_price else None
+                    sell_display = int(floor(float(snap.amm_sell_price))) if snap.amm_sell_price else None
                     resources.append(
                         {
                             "name": ct_name,
-                            "buy_price": snap.amm_buy_price,
-                            "sell_price": snap.amm_sell_price,
+                            "buy_price": buy_display,
+                            "sell_price": sell_display,
                             "spread": (
-                                (snap.amm_buy_price - snap.amm_sell_price)
-                                if snap.amm_buy_price and snap.amm_sell_price
+                                (buy_display - sell_display)
+                                if buy_display and sell_display
                                 else None
                             ),
                             "in_circulation": (
@@ -79,16 +82,18 @@ class MarketsView(TemplateView):
                     )
 
                 elif code in proxy_codes:
-                    # Equipment tab — NFT items with proxy token AMM pricing
+                    # Equipment tab — round for display
                     item_name = proxy_item_types.get(code, code)
+                    eq_buy = int(ceil(float(snap.amm_buy_price))) if snap.amm_buy_price else None
+                    eq_sell = int(floor(float(snap.amm_sell_price))) if snap.amm_sell_price else None
                     equipment.append(
                         {
                             "name": item_name,
-                            "buy_price": snap.amm_buy_price,
-                            "sell_price": snap.amm_sell_price,
+                            "buy_price": eq_buy,
+                            "sell_price": eq_sell,
                             "spread": (
-                                (snap.amm_buy_price - snap.amm_sell_price)
-                                if snap.amm_buy_price and snap.amm_sell_price
+                                (eq_buy - eq_sell)
+                                if eq_buy and eq_sell
                                 else None
                             ),
                             "in_circulation": (
