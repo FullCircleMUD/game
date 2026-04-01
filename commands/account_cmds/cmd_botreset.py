@@ -24,7 +24,7 @@ class CmdBotReset(Command):
 
     key = "botreset"
     locks = "cmd:id(1)"
-    help_category = "System"
+    help_category = "Bots"
 
     def func(self):
         from evennia.accounts.models import AccountDB
