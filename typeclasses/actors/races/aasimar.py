@@ -14,7 +14,7 @@ AASIMAR = RaceBase(
     size=ActorSize.MEDIUM,
     base_hp=12,
     base_mana=14,
-    base_move=50,
+    base_move=100,
     ability_score_bonuses={Ability.WIS: 1, Ability.CHA: 1},
     racial_effects=[
         {"type": "condition", "condition": "darkvision"},

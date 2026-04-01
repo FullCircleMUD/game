@@ -13,5 +13,5 @@ HUMAN = RaceBase(
     size=ActorSize.MEDIUM,
     base_hp=10,
     base_mana=10,
-    base_move=50,
+    base_move=100,
 )

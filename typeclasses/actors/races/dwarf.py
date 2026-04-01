@@ -15,7 +15,7 @@ DWARF = RaceBase(
     size=ActorSize.MEDIUM,
     base_hp=14,
     base_mana=6,
-    base_move=40,
+    base_move=80,
     ability_score_bonuses={Ability.CON: 2, Ability.DEX: -1},
     racial_effects=[
         {"type": "condition", "condition": "darkvision"},
