@@ -33,6 +33,7 @@ class _TauntTestBase(EvenniaCommandTest):
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
+        self.char1.move = 100
         self.char2.hp = 20
         self.char2.hp_max = 20
 

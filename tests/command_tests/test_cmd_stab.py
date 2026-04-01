@@ -32,6 +32,7 @@ class TestStabGates(EvenniaCommandTest):
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
+        self.char1.move = 100
         self.char2.hp = 20
         self.char2.hp_max = 20
         # Equip a finesse melee weapon so stab's weapon gate passes
@@ -159,6 +160,7 @@ class TestStabOpener(EvenniaCommandTest):
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
+        self.char1.move = 100
         self.char2.hp = 20
         self.char2.hp_max = 20
         self.dagger = create.create_object(
@@ -267,6 +269,7 @@ class TestStabMidCombat(EvenniaCommandTest):
         self.room1.allow_pvp = True  # PvP needed so PCs are enemies
         self.char1.hp = 20
         self.char1.hp_max = 20
+        self.char1.move = 100
         self.char2.hp = 20
         self.char2.hp_max = 20
         self.dagger = create.create_object(
@@ -369,6 +372,7 @@ class TestStabDamage(EvenniaCommandTest):
         self.room1.allow_pvp = True
         self.char1.hp = 100
         self.char1.hp_max = 100
+        self.char1.move = 100
         self.char2.hp = 100
         self.char2.hp_max = 100
 

@@ -45,6 +45,14 @@ class CmdDodge(CmdSkillBase):
             return False
 
         handler = handler[0]
+
+        # ── Movement cost ──
+        DODGE_MOVE_COST = 1
+        if caller.move < DODGE_MOVE_COST:
+            caller.msg("You are too exhausted to dodge.")
+            return False
+        caller.move = max(0, caller.move - DODGE_MOVE_COST)
+
         _, enemies = get_sides(caller)
 
         # Give all enemies disadvantage against the dodger

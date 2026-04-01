@@ -114,6 +114,13 @@ class CmdRetreat(CmdSkillBase):
         # ── Capture enemies before any movement ──
         _, enemies = get_sides(caller)
 
+        # ── Movement cost ──
+        RETREAT_MOVE_COST = 2
+        if caller.move < RETREAT_MOVE_COST:
+            caller.msg("You are too exhausted to lead a retreat.")
+            return
+        caller.move = max(0, caller.move - RETREAT_MOVE_COST)
+
         # ── Gather group members in combat in same room ──
         group = [caller]
         if hasattr(caller, "get_followers"):

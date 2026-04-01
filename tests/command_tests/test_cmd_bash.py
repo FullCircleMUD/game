@@ -30,8 +30,10 @@ class _BashTestBase(EvenniaCommandTest):
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
+        self.char1.move = 100
         self.char2.hp = 20
         self.char2.hp_max = 20
+        self.char2.move = 100
 
     def tearDown(self):
         for char in (self.char1, self.char2):
@@ -58,6 +60,7 @@ class TestBashGates(_BashTestBase):
 
     def setUp(self):
         super().setUp()
+        self.char1.move = 100
         self.mob = create.create_object(
             "typeclasses.actors.mobs.dire_wolf.DireWolf",
             key="dire wolf",
@@ -117,6 +120,7 @@ class TestBashCombat(_BashTestBase):
 
     def setUp(self):
         super().setUp()
+        self.char1.move = 100
         self.mob = create.create_object(
             "typeclasses.actors.mobs.dire_wolf.DireWolf",
             key="dire wolf",

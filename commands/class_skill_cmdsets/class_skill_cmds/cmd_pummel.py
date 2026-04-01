@@ -171,6 +171,13 @@ class CmdPummel(CmdSkillBase):
             )
             return
 
+        # ── Movement cost ──
+        PUMMEL_MOVE_COST = 1
+        if caller.move < PUMMEL_MOVE_COST:
+            caller.msg("You are too exhausted to pummel.")
+            return
+        caller.move = max(0, caller.move - PUMMEL_MOVE_COST)
+
         # ── Contested roll: STR + mastery vs target DEX ──
         attacker_roll = dice.roll("1d20")
         attacker_str = caller.get_attribute_bonus(caller.strength)

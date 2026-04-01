@@ -126,6 +126,13 @@ class CmdBackstab(CmdSkillBase):
             caller.msg("You can't stab with a ranged weapon.")
             return
 
+        # ── Movement cost ──
+        STAB_MOVE_COST = 2
+        if caller.move < STAB_MOVE_COST:
+            caller.msg("You are too exhausted to stab.")
+            return
+        caller.move = max(0, caller.move - STAB_MOVE_COST)
+
         # ── Determine advantage source ──
         in_combat = handler is not None
         is_hidden = (

@@ -173,6 +173,13 @@ class CmdBash(CmdSkillBase):
             )
             return
 
+        # ── Movement cost ──
+        BASH_MOVE_COST = 2
+        if caller.move < BASH_MOVE_COST:
+            caller.msg("You are too exhausted to bash.")
+            return
+        caller.move = max(0, caller.move - BASH_MOVE_COST)
+
         # ── Contested roll: STR + mastery vs target STR ──
         attacker_roll = dice.roll("1d20")
         attacker_str = caller.get_attribute_bonus(caller.strength)

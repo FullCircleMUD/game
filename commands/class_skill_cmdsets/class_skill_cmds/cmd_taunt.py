@@ -151,6 +151,13 @@ class CmdTaunt(CmdSkillBase):
                 )
                 return
 
+        # ── Movement cost ──
+        TAUNT_MOVE_COST = 1
+        if caller.move < TAUNT_MOVE_COST:
+            caller.msg("You are too exhausted to taunt.")
+            return
+        caller.move = max(0, caller.move - TAUNT_MOVE_COST)
+
         # ── Must be an enemy (if in combat) ──
         if in_combat:
             _, enemies = get_sides(caller)
