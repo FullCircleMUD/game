@@ -26,15 +26,17 @@ class CmdRunSpawns(Command):
     help_category = "System"
 
     def func(self):
-        from blockchain.xrpl.services.spawn.service import get_spawn_service
+        from blockchain.xrpl.services.spawn.service import (
+            get_spawn_service, set_spawn_service, SpawnService,
+        )
 
         service = get_spawn_service()
         if not service:
-            self.msg(
-                "|rSpawn service not running. "
-                "Ensure UnifiedSpawnScript is active.|n"
-            )
-            return
+            # Service singleton not set — create it on the fly
+            from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
+            service = SpawnService(SPAWN_CONFIG)
+            set_spawn_service(service)
+            self.msg("|y[Created SpawnService on the fly]|n")
 
         self.msg("|yRunning spawn cycle...|n")
 
