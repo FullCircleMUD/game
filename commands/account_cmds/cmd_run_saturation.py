@@ -24,7 +24,7 @@ class CmdRunSaturation(Command):
 
     key = "run_saturation"
     locks = "cmd:id(1)"
-    help_category = "System"
+    help_category = "Economy"
 
     def func(self):
         from blockchain.xrpl.services.nft_saturation import NFTSaturationService

@@ -23,7 +23,7 @@ class CmdRunSpawns(Command):
 
     key = "run_spawns"
     locks = "cmd:id(1)"
-    help_category = "System"
+    help_category = "Economy"
 
     def func(self):
         from blockchain.xrpl.services.spawn.service import (

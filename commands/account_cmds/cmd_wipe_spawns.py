@@ -30,7 +30,7 @@ class CmdWipeSpawns(Command):
 
     key = "wipe_spawns"
     locks = "cmd:id(1)"
-    help_category = "System"
+    help_category = "Economy"
 
     def func(self):
         from utils.spawn_cleanup import clear_spawned_items

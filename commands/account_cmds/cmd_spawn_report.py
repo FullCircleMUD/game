@@ -22,7 +22,7 @@ class CmdSpawnReport(Command):
 
     key = "spawn_report"
     locks = "cmd:id(1)"
-    help_category = "System"
+    help_category = "Economy"
 
     def func(self):
         from collections import defaultdict
