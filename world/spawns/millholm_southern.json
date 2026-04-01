@@ -3,7 +3,25 @@
         "typeclass": "typeclasses.actors.mobs.gnoll.Gnoll",
         "key": "a gnoll raider",
         "area_tag": "gnoll_territory",
-        "target": 8,
+        "target": 5,
+        "max_per_room": 2,
+        "respawn_seconds": 180,
+        "desc": "A hulking, hyena-headed humanoid covered in crude hide armor. Its yellow eyes gleam with predatory hunger, and a jagged spear is clutched in one clawed hand."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.gnoll.GnollRecipeLoad",
+        "key": "a gnoll raider",
+        "area_tag": "gnoll_territory",
+        "target": 2,
+        "max_per_room": 2,
+        "respawn_seconds": 180,
+        "desc": "A hulking, hyena-headed humanoid covered in crude hide armor. Its yellow eyes gleam with predatory hunger, and a jagged spear is clutched in one clawed hand."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.gnoll.GnollScrollLoad",
+        "key": "a gnoll raider",
+        "area_tag": "gnoll_territory",
+        "target": 1,
         "max_per_room": 2,
         "respawn_seconds": 180,
         "desc": "A hulking, hyena-headed humanoid covered in crude hide armor. Its yellow eyes gleam with predatory hunger, and a jagged spear is clutched in one clawed hand."

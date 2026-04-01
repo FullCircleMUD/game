@@ -9,6 +9,13 @@ slays a target, it immediately attacks the next enemy with zero delay
 Stats: L4, 40HP, 1d6+2 damage, AC 14, STR 14, DEX 10.
 Designed for parties of level 4-5. A solo L4 can beat one with effort;
 solo L2-3 should avoid them.
+
+Three variants share identical appearance, stats, and behaviour so
+players cannot tell them apart:
+
+- **Gnoll** — drops gold, no knowledge loot.
+- **GnollRecipeLoad** — drops a recipe instead of gold.
+- **GnollScrollLoad** — drops a scroll instead of gold.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -38,11 +45,7 @@ class Gnoll(RampageMixin, AggressiveMob):
     attack_delay_max = AttributeProperty(6)
 
     # ── Gold loot ──
-    loot_gold_max = AttributeProperty(8)
-
-    # ── Knowledge loot ──
-    spawn_scrolls_max = AttributeProperty({"basic": 1})
-    spawn_recipes_max = AttributeProperty({"basic": 1})
+    loot_gold_max = AttributeProperty(3)
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.25)  # fights to 25% HP before fleeing
@@ -74,3 +77,17 @@ class Gnoll(RampageMixin, AggressiveMob):
                     exclude=[self],
                 )
             self.move_to(exi.destination, quiet=False)
+
+
+class GnollRecipeLoad(Gnoll):
+    """Gnoll variant that carries a recipe instead of gold."""
+
+    loot_gold_max = AttributeProperty(0)
+    spawn_recipes_max = AttributeProperty({"basic": 1})
+
+
+class GnollScrollLoad(Gnoll):
+    """Gnoll variant that carries a scroll instead of gold."""
+
+    loot_gold_max = AttributeProperty(0)
+    spawn_scrolls_max = AttributeProperty({"basic": 1})

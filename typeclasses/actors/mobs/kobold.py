@@ -8,6 +8,12 @@ valid exit) fight desperately.
 
 Designed for the Millholm Mine — L2 mobs, individually weak but
 dangerous in groups of 2-3.
+
+Two variants share identical appearance, stats, and behaviour so players
+cannot tell them apart:
+
+- **Kobold** — drops gold, no knowledge loot.
+- **KoboldRecipeLoad** — drops a recipe instead of gold.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -41,9 +47,6 @@ class Kobold(PackCourageMixin, AggressiveMob):
     # ── Gold loot ──
     loot_gold_max = AttributeProperty(2)
 
-    # ── Knowledge loot ──
-    spawn_recipes_max = AttributeProperty({"basic": 1})
-
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.7)  # flee early
     min_allies_to_attack = AttributeProperty(1)   # need 1+ ally
@@ -52,3 +55,10 @@ class Kobold(PackCourageMixin, AggressiveMob):
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
     respawn_delay = AttributeProperty(120)
+
+
+class KoboldRecipeLoad(Kobold):
+    """Kobold variant that carries a recipe instead of gold."""
+
+    loot_gold_max = AttributeProperty(0)
+    spawn_recipes_max = AttributeProperty({"basic": 1})
