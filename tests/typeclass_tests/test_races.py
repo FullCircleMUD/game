@@ -110,10 +110,10 @@ class TestHumanRace(EvenniaTest):
         self.assertEqual(self.char1.mana_max, 10)
 
     def test_sets_move(self):
-        """Human starting move should be 50."""
+        """Human starting move should be 100."""
         self.race.at_taking_race(self.char1)
-        self.assertEqual(self.char1.move, 50)
-        self.assertEqual(self.char1.move_max, 50)
+        self.assertEqual(self.char1.move, 100)
+        self.assertEqual(self.char1.move_max, 100)
 
     def test_no_ability_bonuses(self):
         """Human should have no ability score changes."""
@@ -187,9 +187,9 @@ class TestDwarfRace(EvenniaTest):
         self.assertEqual(self.char1.mana, 6)
 
     def test_sets_move(self):
-        """Dwarf starting move should be 40."""
+        """Dwarf starting move should be 80."""
         self.race.at_taking_race(self.char1)
-        self.assertEqual(self.char1.move, 40)
+        self.assertEqual(self.char1.move, 80)
 
     def test_constitution_bonus_base(self):
         """Dwarf should get +2 to base_constitution."""
@@ -273,9 +273,9 @@ class TestElfRace(EvenniaTest):
         self.assertEqual(self.char1.mana, 14)
 
     def test_sets_move(self):
-        """Elf starting move should be 50."""
+        """Elf starting move should be 100."""
         self.race.at_taking_race(self.char1)
-        self.assertEqual(self.char1.move, 50)
+        self.assertEqual(self.char1.move, 100)
 
     def test_dexterity_bonus(self):
         """Elf should get +1 to dexterity (both base and current)."""
@@ -430,10 +430,10 @@ class TestHalflingRace(EvenniaTest):
         self.assertEqual(self.char1.mana_max, 10)
 
     def test_sets_move(self):
-        """Halfling starting move should be 45."""
+        """Halfling starting move should be 80."""
         self.race.at_taking_race(self.char1)
-        self.assertEqual(self.char1.move, 45)
-        self.assertEqual(self.char1.move_max, 45)
+        self.assertEqual(self.char1.move, 80)
+        self.assertEqual(self.char1.move_max, 80)
 
     def test_dexterity_bonus(self):
         """Halfling should get +2 to dexterity (both base and current)."""
@@ -511,10 +511,10 @@ class TestAasimarRace(EvenniaTest):
         self.assertEqual(self.char1.mana_max, 14)
 
     def test_sets_move(self):
-        """Aasimar starting move should be 50."""
+        """Aasimar starting move should be 100."""
         self.race.at_taking_race(self.char1)
-        self.assertEqual(self.char1.move, 50)
-        self.assertEqual(self.char1.move_max, 50)
+        self.assertEqual(self.char1.move, 100)
+        self.assertEqual(self.char1.move_max, 100)
 
     def test_wisdom_bonus(self):
         """Aasimar should get +1 to wisdom (both base and current)."""

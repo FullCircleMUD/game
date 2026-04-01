@@ -10,7 +10,7 @@ evennia test --settings settings tests.server_tests.test_at_server_startstop
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from server.conf.at_server_startstop import _is_player_owned
+from utils.spawn_cleanup import _is_player_owned
 
 
 class TestIsPlayerOwned(TestCase):

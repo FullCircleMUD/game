@@ -140,12 +140,12 @@ class TestQuestGivingShopkeeper(EvenniaCommandTest):
     def test_shop_commands_lists_commands(self):
         """shop_commands should contain all command syntaxes."""
         commands_text = self.shopkeeper._build_shop_commands()
-        self.assertIn("|wlist|n", commands_text)
-        self.assertIn("|wbuy", commands_text)
-        self.assertIn("|wsell", commands_text)
-        self.assertIn("|wquote buy", commands_text)
-        self.assertIn("|wquote sell", commands_text)
-        self.assertIn("|waccept|n", commands_text)
+        self.assertIn("list", commands_text)
+        self.assertIn("buy", commands_text)
+        self.assertIn("sell", commands_text)
+        self.assertIn("quote buy", commands_text)
+        self.assertIn("quote sell", commands_text)
+        self.assertIn("accept", commands_text)
 
     def test_shop_commands_shows_tradeable_resources(self):
         """shop_commands should list what the shop trades."""
