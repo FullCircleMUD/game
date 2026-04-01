@@ -164,10 +164,10 @@ class CmdPummel(CmdSkillBase):
             return
 
         # ── Cooldown check ──
-        if handler.pummel_cooldown > 0:
+        if handler.skill_cooldown > 0:
             caller.msg(
-                f"Pummel is on cooldown ({handler.pummel_cooldown} "
-                f"round{'s' if handler.pummel_cooldown > 1 else ''} remaining)."
+                f"Combat skill cooldown ({handler.skill_cooldown} "
+                f"round{'s' if handler.skill_cooldown > 1 else ''} remaining)."
             )
             return
 
@@ -188,7 +188,7 @@ class CmdPummel(CmdSkillBase):
         defender_total = defender_roll + defender_dex
 
         # Set cooldown regardless of outcome
-        handler.pummel_cooldown = PUMMEL_COOLDOWNS[mastery]
+        handler.skill_cooldown = PUMMEL_COOLDOWNS[mastery]
 
         if attacker_total > defender_total:
             # ── Success: stun target ──

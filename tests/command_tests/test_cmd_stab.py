@@ -133,16 +133,16 @@ class TestStabGates(EvenniaCommandTest):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_already_used_this_round(self, mock_ticker):
-        """Can't stab twice in one round."""
+        """Can't stab twice — shared skill cooldown blocks it."""
         self._set_stab_mastery(self.char1, MasteryLevel.SKILLED)
         enter_combat(self.char1, self.char2)
         handler = self.char1.scripts.get("combat_handler")[0]
         handler.set_advantage(self.char2, rounds=2)
         # First stab
         self.call(CmdBackstab(), self.char2.key)
-        # Second stab — should be blocked
+        # Second stab — should be blocked by shared cooldown
         result = self.call(CmdBackstab(), self.char2.key)
-        self.assertIn("already used stab", result)
+        self.assertIn("cooldown", result)
 
 
 class TestStabOpener(EvenniaCommandTest):
@@ -202,8 +202,8 @@ class TestStabOpener(EvenniaCommandTest):
         self.assertTrue(handler[0].has_advantage(self.char2))
         # Bonus dice set
         self.assertEqual(handler[0].bonus_attack_dice, "6d6")
-        # Stab used flag set
-        self.assertTrue(handler[0].stab_used)
+        # Shared skill cooldown set
+        self.assertGreater(handler[0].skill_cooldown, 0)
         # Message
         self.assertIn("shadows", result)
         self.assertIn("+6d6", result)
@@ -296,7 +296,7 @@ class TestStabMidCombat(EvenniaCommandTest):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_mid_combat_with_advantage(self, mock_ticker):
-        """Mid-combat stab with advantage sets bonus dice and stab_used."""
+        """Mid-combat stab with advantage sets bonus dice and skill_cooldown."""
         self._set_stab_mastery(self.char1, MasteryLevel.MASTER)
         enter_combat(self.char1, self.char2)
         handler = self.char1.scripts.get("combat_handler")[0]
@@ -305,7 +305,7 @@ class TestStabMidCombat(EvenniaCommandTest):
         result = self.call(CmdBackstab(), self.char2.key)
 
         self.assertEqual(handler.bonus_attack_dice, "8d6")
-        self.assertTrue(handler.stab_used)
+        self.assertGreater(handler.skill_cooldown, 0)
         self.assertIn("+8d6", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -322,23 +322,23 @@ class TestStabMidCombat(EvenniaCommandTest):
         result = self.call(CmdBackstab(), "")
 
         self.assertEqual(handler.bonus_attack_dice, "2d6")
-        self.assertTrue(handler.stab_used)
+        self.assertGreater(handler.skill_cooldown, 0)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_stab_used_resets_each_tick(self, mock_ticker):
-        """stab_used is reset to False at the start of each tick."""
+    def test_skill_cooldown_decrements_each_tick(self, mock_ticker):
+        """skill_cooldown decrements by 1 each combat tick."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.char2)
         handler = self.char1.scripts.get("combat_handler")[0]
-        handler.stab_used = True
+        handler.skill_cooldown = 3
 
-        # Simulate tick — execute_next_action resets per-round flags
+        # Simulate tick — execute_next_action decrements cooldown
         handler.queue_action({
             "key": "attack", "target": self.char2, "dt": 4, "repeat": True,
         })
         handler.execute_next_action()
 
-        self.assertFalse(handler.stab_used)
+        self.assertEqual(handler.skill_cooldown, 2)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_hidden_mid_combat_grants_advantage(self, mock_ticker):
@@ -353,7 +353,7 @@ class TestStabMidCombat(EvenniaCommandTest):
 
         self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
         self.assertEqual(handler.bonus_attack_dice, "4d6")
-        self.assertTrue(handler.stab_used)
+        self.assertGreater(handler.skill_cooldown, 0)
 
 
 class TestStabDamage(EvenniaCommandTest):

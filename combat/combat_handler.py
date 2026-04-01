@@ -56,10 +56,7 @@ class CombatHandler(DefaultScript):
     stun_checks_remaining = AttributeProperty(0)       # unarmed/nunchaku stun attempts left this round
     disarm_checks_remaining = AttributeProperty(0)      # sai disarm attempts left this round
     executioner_used = AttributeProperty(False)         # GM greatsword: 1 free attack on kill/round
-    stab_used = AttributeProperty(False)               # thief stab: once per round
-    bash_cooldown = AttributeProperty(0)                # rounds until bash can be used again
-    pummel_cooldown = AttributeProperty(0)              # rounds until pummel can be used again
-    taunt_cooldown = AttributeProperty(0)               # rounds until taunt can be used again
+    skill_cooldown = AttributeProperty(0)               # shared cooldown for all combat skills
     protecting = AttributeProperty(None)                 # dbref (int) of character being protected
     reach_counters_remaining = AttributeProperty(0)       # spear: reach counter-attacks left this round
     bonus_attack_dice = AttributeProperty("")           # e.g. "6d6" — consumed on next attack
@@ -148,15 +145,10 @@ class CombatHandler(DefaultScript):
 
         # Reset per-round flags
         self.executioner_used = False
-        self.stab_used = False
 
-        # Decrement multi-round ability cooldowns
-        if self.bash_cooldown > 0:
-            self.bash_cooldown -= 1
-        if self.pummel_cooldown > 0:
-            self.pummel_cooldown -= 1
-        if self.taunt_cooldown > 0:
-            self.taunt_cooldown -= 1
+        # Decrement shared combat skill cooldown
+        if self.skill_cooldown > 0:
+            self.skill_cooldown -= 1
 
         # Reset parries for this round based on wielded weapon
         from combat.combat_utils import get_weapon

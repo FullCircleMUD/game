@@ -641,13 +641,73 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     #  Damage Pipeline
     # ================================================================== #
 
+    def calculate_damage(self, raw_damage, damage_type=None,
+                         ignore_resistance=False):
+        """
+        Calculate final damage after resistance/vulnerability. Does NOT apply.
+
+        Use this when you need to know the damage amount before applying it
+        (e.g. to broadcast a hit message before triggering death).
+
+        Args:
+            raw_damage (int): Pre-resistance damage amount.
+            damage_type (str|None): Damage type string for resistance lookup.
+            ignore_resistance (bool): If True, skip resistance entirely.
+
+        Returns:
+            int: Final damage after resistance/vulnerability (minimum 1).
+        """
+        damage = raw_damage
+
+        if not ignore_resistance and damage_type and hasattr(self, "get_resistance"):
+            resistance = self.get_resistance(damage_type)
+            if resistance > 0:
+                reduction = max(1, int(damage * resistance / 100))
+                damage = damage - reduction
+            elif resistance < 0:
+                extra = max(1, int(damage * abs(resistance) / 100))
+                damage = damage + extra
+
+        return max(1, damage)
+
+    def apply_damage(self, damage, cause="combat", killer=None):
+        """
+        Apply pre-calculated damage. Subtracts HP, triggers wimpy and death.
+
+        Use after calculate_damage() when you need to control message
+        ordering (e.g. broadcast hit message before death message).
+
+        Args:
+            damage (int): Final damage amount to apply.
+            cause (str): Death cause passed to die() if HP reaches 0.
+            killer: The entity that dealt the killing blow, if any.
+
+        Returns:
+            int: The damage amount (pass-through for convenience).
+        """
+        self.hp = max(0, self.hp - damage)
+
+        if self.hp > 0 and hasattr(self, "_wimpy_flee"):
+            self._wimpy_flee()
+
+        if self.hp <= 0:
+            already_dead = (
+                not getattr(self, "is_alive", True)
+            ) or getattr(self, "_dying", False)
+            if not already_dead:
+                self.die(cause, killer=killer)
+
+        return damage
+
     def take_damage(self, raw_damage, damage_type=None, cause="combat",
                     ignore_resistance=False, killer=None):
         """
-        Central damage application method — ALL damage sources should use this.
+        Central damage method — calculate resistance and apply in one call.
 
-        Handles resistance/vulnerability calculation, enforces minimum damage,
-        subtracts HP, and triggers death when HP reaches 0.
+        Convenience wrapper around calculate_damage() + apply_damage().
+        Most callers should use this. Use the split methods only when you
+        need to insert logic (like broadcasting a hit message) between
+        damage calculation and application.
 
         Args:
             raw_damage (int): Pre-resistance damage amount.
@@ -658,57 +718,13 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
             ignore_resistance (bool): If True, skip resistance entirely.
                 Use for environmental damage (fall, drowning) that bypasses
                 all resistances.
+            killer: The entity that dealt the killing blow, if any.
 
         Returns:
             int: Actual damage dealt after resistance/vulnerability.
-
-        Resistance/Vulnerability Rules:
-            - Positive resistance (e.g. 50% fire res) reduces damage.
-              Even 1% resistance always saves at least 1 HP.
-            - Negative resistance = vulnerability (e.g. -25% = 25% vuln).
-              Even -1% vulnerability always adds at least 1 HP extra.
-            - Final damage is always at least 1 HP (you always feel it).
-            - get_resistance() clamps raw values to [-75, 75].
-
-        Usage:
-            # Combat damage (resistance applies):
-            dealt = target.take_damage(10, damage_type="fire", cause="combat")
-
-            # Environmental damage (no resistance):
-            dealt = self.take_damage(20, cause="fall", ignore_resistance=True)
-
-            # Spell damage (prefer apply_spell_damage() wrapper):
-            dealt = target.take_damage(15, damage_type="cold", cause="spell")
         """
-        damage = raw_damage
-
-        if not ignore_resistance and damage_type and hasattr(self, "get_resistance"):
-            resistance = self.get_resistance(damage_type)
-            if resistance > 0:
-                # Resistance: always saves at least 1 HP
-                reduction = max(1, int(damage * resistance / 100))
-                damage = damage - reduction
-            elif resistance < 0:
-                # Vulnerability: always adds at least 1 HP
-                extra = max(1, int(damage * abs(resistance) / 100))
-                damage = damage + extra
-
-        # Minimum 1 HP damage always dealt
-        damage = max(1, damage)
-        self.hp = max(0, self.hp - damage)
-
-        # Wimpy auto-flee (characters only — mobs don't have _wimpy_flee)
-        if self.hp > 0 and hasattr(self, "_wimpy_flee"):
-            self._wimpy_flee()
-
-        if self.hp <= 0:
-            # Mobs guard with is_alive, characters with _dying — check both
-            already_dead = (
-                not getattr(self, "is_alive", True)
-            ) or getattr(self, "_dying", False)
-            if not already_dead:
-                self.die(cause, killer=killer)
-
+        damage = self.calculate_damage(raw_damage, damage_type, ignore_resistance)
+        self.apply_damage(damage, cause, killer)
         return damage
 
     # ── Breath timer helpers ──

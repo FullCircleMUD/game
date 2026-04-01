@@ -239,7 +239,7 @@ class TestBashCombat(_BashTestBase):
         self.call(CmdBash(), self.mob.key, caller=self.char1)
 
         handler = self.char1.scripts.get("combat_handler")[0]
-        self.assertEqual(handler.bash_cooldown, BASH_COOLDOWNS[MasteryLevel.BASIC])
+        self.assertEqual(handler.skill_cooldown, BASH_COOLDOWNS[MasteryLevel.BASIC])
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     @patch("utils.dice_roller.DiceRoller.roll")
@@ -285,9 +285,9 @@ class TestBashCombat(_BashTestBase):
 
             handler = self.char1.scripts.get("combat_handler")[0]
             self.assertEqual(
-                handler.bash_cooldown, expected_cooldown,
+                handler.skill_cooldown, expected_cooldown,
                 f"Mastery {mastery.name}: expected cooldown {expected_cooldown}, "
-                f"got {handler.bash_cooldown}",
+                f"got {handler.skill_cooldown}",
             )
             # Clear prone for next iteration
             self.mob.remove_named_effect("prone")

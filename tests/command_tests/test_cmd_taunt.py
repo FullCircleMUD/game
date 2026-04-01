@@ -113,7 +113,7 @@ class TestTauntGates(_TauntTestBase):
         self._set_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
         handler = self.char1.scripts.get("combat_handler")[0]
-        handler.taunt_cooldown = 3
+        handler.skill_cooldown = 3
         result = self.call(CmdTaunt(), self.mob.key)
         self.assertIn("cooldown", result)
 
@@ -211,7 +211,7 @@ class TestTauntInCombat(_TauntTestBase):
             self.call(CmdTaunt(), self.mob.key, caller=self.char1)
 
         handler = self.char1.scripts.get("combat_handler")[0]
-        self.assertEqual(handler.taunt_cooldown, TAUNT_COOLDOWNS[MasteryLevel.SKILLED])
+        self.assertEqual(handler.skill_cooldown, TAUNT_COOLDOWNS[MasteryLevel.SKILLED])
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     @patch("utils.dice_roller.DiceRoller.roll")
@@ -238,13 +238,13 @@ class TestTauntInCombat(_TauntTestBase):
             self._set_mastery(self.char1, level)
             enter_combat(self.char1, self.mob)
             handler = self.char1.scripts.get("combat_handler")[0]
-            handler.taunt_cooldown = 0
+            handler.skill_cooldown = 0
 
             mock_roll.side_effect = [18, 5]
             with patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_taunt.random.randint", return_value=4):
                 self.call(CmdTaunt(), self.mob.key, caller=self.char1)
 
-            self.assertEqual(handler.taunt_cooldown, TAUNT_COOLDOWNS[level])
+            self.assertEqual(handler.skill_cooldown, TAUNT_COOLDOWNS[level])
 
 
 # ================================================================== #

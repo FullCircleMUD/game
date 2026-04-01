@@ -133,10 +133,10 @@ class CmdTaunt(CmdSkillBase):
 
         # ── Cooldown check ──
         if in_combat:
-            if handler.taunt_cooldown > 0:
+            if handler.skill_cooldown > 0:
                 caller.msg(
-                    f"Taunt is on cooldown ({handler.taunt_cooldown} "
-                    f"round{'s' if handler.taunt_cooldown > 1 else ''} remaining)."
+                    f"Combat skill cooldown ({handler.skill_cooldown} "
+                    f"round{'s' if handler.skill_cooldown > 1 else ''} remaining)."
                 )
                 return
         else:
@@ -176,7 +176,7 @@ class CmdTaunt(CmdSkillBase):
 
         if in_combat:
             # ── IN-COMBAT PATH ──
-            handler.taunt_cooldown = TAUNT_COOLDOWNS[mastery]
+            handler.skill_cooldown = TAUNT_COOLDOWNS[mastery]
 
             if attacker_total > defender_total:
                 # Success — switch mob's target
@@ -233,7 +233,7 @@ class CmdTaunt(CmdSkillBase):
                         "repeat": True,
                         "initial_delay": init_delay,
                     })
-                    handler.taunt_cooldown = TAUNT_COOLDOWNS[mastery]
+                    handler.skill_cooldown = TAUNT_COOLDOWNS[mastery]
 
                 caller.msg(
                     f"|g*TAUNT* You provoke {target.key} into attacking!|n "

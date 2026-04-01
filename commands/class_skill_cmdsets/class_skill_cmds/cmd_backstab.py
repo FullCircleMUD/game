@@ -24,6 +24,14 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from .cmd_skill_base import CmdSkillBase
 
+STAB_COOLDOWNS = {
+    MasteryLevel.BASIC: 6,
+    MasteryLevel.SKILLED: 5,
+    MasteryLevel.EXPERT: 4,
+    MasteryLevel.MASTER: 3,
+    MasteryLevel.GRANDMASTER: 2,
+}
+
 STAB_DICE = {
     MasteryLevel.BASIC: "2d6",
     MasteryLevel.SKILLED: "4d6",
@@ -146,9 +154,12 @@ class CmdBackstab(CmdSkillBase):
                 caller.msg("You need advantage to use stab!")
                 return
 
-            # Once-per-round check
-            if handler.stab_used:
-                caller.msg("You already used stab this round.")
+            # Shared combat skill cooldown check
+            if handler.skill_cooldown > 0:
+                caller.msg(
+                    f"Combat skill cooldown ({handler.skill_cooldown} "
+                    f"round{'s' if handler.skill_cooldown > 1 else ''} remaining)."
+                )
                 return
 
             # If hidden mid-combat, break hidden and grant advantage
@@ -185,7 +196,7 @@ class CmdBackstab(CmdSkillBase):
 
             handler.set_advantage(target, rounds=1)
             handler.bonus_attack_dice = bonus_dice
-            handler.stab_used = True
+            handler.skill_cooldown = STAB_COOLDOWNS[mastery]
 
             # Queue repeating attack with initiative delay
             from django.conf import settings as django_settings
@@ -207,7 +218,7 @@ class CmdBackstab(CmdSkillBase):
         else:
             # MID-COMBAT PATH
             handler.bonus_attack_dice = bonus_dice
-            handler.stab_used = True
+            handler.skill_cooldown = STAB_COOLDOWNS[mastery]
 
             caller.msg(
                 f"|yYou aim for a vital spot! (+{bonus_dice})|n"

@@ -203,7 +203,7 @@ class TestPummelCombat(_PummelTestBase):
         self.call(CmdPummel(), self.mob.key, caller=self.char1)
 
         handler = self.char1.scripts.get("combat_handler")[0]
-        self.assertEqual(handler.pummel_cooldown, PUMMEL_COOLDOWNS[MasteryLevel.BASIC])
+        self.assertEqual(handler.skill_cooldown, PUMMEL_COOLDOWNS[MasteryLevel.BASIC])
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     @patch("utils.dice_roller.DiceRoller.roll")
@@ -249,9 +249,9 @@ class TestPummelCombat(_PummelTestBase):
 
             handler = self.char1.scripts.get("combat_handler")[0]
             self.assertEqual(
-                handler.pummel_cooldown, expected_cooldown,
+                handler.skill_cooldown, expected_cooldown,
                 f"Mastery {mastery.name}: expected cooldown {expected_cooldown}, "
-                f"got {handler.pummel_cooldown}",
+                f"got {handler.skill_cooldown}",
             )
             # Clear stunned for next iteration
             self.mob.remove_named_effect("stunned")

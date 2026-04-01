@@ -166,10 +166,10 @@ class CmdBash(CmdSkillBase):
             return
 
         # ── Cooldown check ──
-        if handler.bash_cooldown > 0:
+        if handler.skill_cooldown > 0:
             caller.msg(
-                f"Bash is on cooldown ({handler.bash_cooldown} "
-                f"round{'s' if handler.bash_cooldown > 1 else ''} remaining)."
+                f"Combat skill cooldown ({handler.skill_cooldown} "
+                f"round{'s' if handler.skill_cooldown > 1 else ''} remaining)."
             )
             return
 
@@ -190,7 +190,7 @@ class CmdBash(CmdSkillBase):
         defender_total = defender_roll + defender_str
 
         # Set cooldown regardless of outcome
-        handler.bash_cooldown = BASH_COOLDOWNS[mastery]
+        handler.skill_cooldown = BASH_COOLDOWNS[mastery]
 
         if attacker_total > defender_total:
             # ── Success: knock target prone ──
