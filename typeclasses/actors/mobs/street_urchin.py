@@ -98,6 +98,12 @@ class StreetUrchin(CombatMob):
         if self.scripts.get("combat_handler"):
             return  # got into a fight in the meantime
 
+        # Not stupid enough to steal in front of the watch
+        from typeclasses.actors.mobs.city_watch import CityWatch
+        for obj in self.location.contents:
+            if isinstance(obj, CityWatch) and getattr(obj, "is_alive", False):
+                return
+
         # Check target has gold
         gold = target.get_gold() if hasattr(target, "get_gold") else 0
         if gold < 1:
