@@ -71,7 +71,7 @@ class TestRegeneration(RegenServiceTestBase):
         # regen_rate = ceil(8/4) + floor((14-10)/2) = 2 + 2 = 4
         self.assertEqual(self.char1.hp, 54)
         self.assertEqual(self.char1.mana, 34)
-        self.assertEqual(self.char1.move, 44)
+        self.assertEqual(self.char1.move, 48)  # move regens at 2x: 40 + (4*2)
 
     def test_regen_at_satisfied(self):
         """SATISFIED hunger should trigger regeneration."""
@@ -132,7 +132,7 @@ class TestRegeneration(RegenServiceTestBase):
         self._run_tick([self.char1])
         self.assertEqual(self.char1.hp, 65)
         self.assertEqual(self.char1.mana, 45)
-        self.assertEqual(self.char1.move, 55)
+        self.assertEqual(self.char1.move, 70)  # move regens at 2x: 40 + (15*2)
 
 
 class TestNoActionAtHungry(RegenServiceTestBase):

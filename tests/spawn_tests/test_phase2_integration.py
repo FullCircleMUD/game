@@ -98,16 +98,6 @@ class TestCombatMobSpawnTags(EvenniaTest):
         )
         self.assertIsNone(mob.db.spawn_resources_max)
 
-    def test_no_old_loot_resource_tags(self):
-        """Old loot_resource_<id> tags should NOT be registered (removed in Phase 3)."""
-        wolf = create.create_object(
-            "typeclasses.actors.mobs.wolf.Wolf",
-            key="a grey wolf",
-            location=self.room,
-        )
-        tags = wolf.tags.get(category="loot_resource", return_list=True)
-        self.assertEqual(tags, [])
-
 
 class TestUnifiedSpawnScript(EvenniaTest):
     """UnifiedSpawnScript creates and registers SpawnService singleton."""
@@ -136,25 +126,27 @@ class TestUnifiedSpawnScript(EvenniaTest):
 
     def test_script_properties(self):
         """Script should have correct interval and persistence settings."""
+        from typeclasses.scripts.unified_spawn_service import TICK_INTERVAL_SECONDS
+
         script = create.create_script(
             "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",
             key="unified_spawn_service",
         )
-        self.assertEqual(script.interval, 3600)
+        self.assertEqual(script.interval, TICK_INTERVAL_SECONDS)
         self.assertTrue(script.persistent)
 
         # Cleanup
         script.delete()
 
-    @patch("blockchain.xrpl.services.spawn.service.SpawnService.run_hourly_cycle")
-    def test_at_repeat_calls_service(self, mock_cycle):
-        """at_repeat() should call SpawnService.run_hourly_cycle()."""
+    @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
+    def test_at_repeat_calls_service(self, mock_defer):
+        """at_repeat() should defer SpawnService.run_hourly_cycle() to a thread."""
         script = create.create_script(
             "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",
             key="unified_spawn_service",
         )
         script.at_repeat()
-        mock_cycle.assert_called_once()
+        mock_defer.assert_called_once_with(script._service.run_hourly_cycle)
 
         # Cleanup
         script.delete()

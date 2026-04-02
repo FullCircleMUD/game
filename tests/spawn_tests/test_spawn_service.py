@@ -164,3 +164,51 @@ class TestSpawnServiceDistributorRouting(EvenniaTest):
         svc = SpawnService(_MINI_CONFIG)
         dist = svc._get_distributor("unknown", "foo")
         self.assertIsNone(dist)
+
+
+class TestResolveCategoryKey(EvenniaTest):
+    """Tests for SpawnService._resolve_category_key()."""
+
+    def create_script(self):
+        pass
+
+    def test_resources_maps_to_resource_int(self):
+        """'resources' category maps key to ('resource', int)."""
+        item_type, type_key = SpawnService._resolve_category_key("resources", "1")
+        self.assertEqual(item_type, "resource")
+        self.assertEqual(type_key, 1)
+        self.assertIsInstance(type_key, int)
+
+    def test_gold_maps_to_gold_gold(self):
+        """'gold' category always maps to ('gold', 'gold')."""
+        item_type, type_key = SpawnService._resolve_category_key("gold", "gold")
+        self.assertEqual((item_type, type_key), ("gold", "gold"))
+
+    def test_scrolls_maps_to_knowledge(self):
+        """'scrolls' category maps to ('knowledge', key)."""
+        item_type, type_key = SpawnService._resolve_category_key(
+            "scrolls", "scroll_magic_missile",
+        )
+        self.assertEqual((item_type, type_key), ("knowledge", "scroll_magic_missile"))
+
+    def test_recipes_maps_to_knowledge(self):
+        """'recipes' category maps to ('knowledge', key)."""
+        item_type, type_key = SpawnService._resolve_category_key(
+            "recipes", "recipe_iron_sword",
+        )
+        self.assertEqual((item_type, type_key), ("knowledge", "recipe_iron_sword"))
+
+    def test_nfts_maps_to_rare_nft(self):
+        """'nfts' category maps to ('rare_nft', key)."""
+        item_type, type_key = SpawnService._resolve_category_key(
+            "nfts", "UniqueWeapon.jupiters_lightning",
+        )
+        self.assertEqual(
+            (item_type, type_key),
+            ("rare_nft", "UniqueWeapon.jupiters_lightning"),
+        )
+
+    def test_unknown_category_passes_through(self):
+        """Unknown category passes through unchanged."""
+        item_type, type_key = SpawnService._resolve_category_key("other", "foo")
+        self.assertEqual((item_type, type_key), ("other", "foo"))
