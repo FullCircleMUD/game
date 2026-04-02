@@ -33,22 +33,8 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Combat
 
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
 
-    # ── Stats ──
-    hp = AttributeProperty(65)
-    hp_max = AttributeProperty(65)
-    strength = AttributeProperty(14)
-    dexterity = AttributeProperty(12)
-    constitution = AttributeProperty(12)
-    intelligence = AttributeProperty(10)
-    wisdom = AttributeProperty(10)
-    charisma = AttributeProperty(10)
-    base_armor_class = AttributeProperty(10)
-    armor_class = AttributeProperty(10)
-    level = AttributeProperty(5)
-
-    # ── Combat ──
-    initiative_speed = AttributeProperty(1)
-    damage_dice = AttributeProperty("1d6")  # fallback if weapon fails
+    # ── Combat fallbacks ──
+    damage_dice = AttributeProperty("1d6")
     attack_message = AttributeProperty("swings at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(5)
@@ -58,15 +44,35 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Combat
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.2)
-    max_per_room = AttributeProperty(0)  # no limit
+    max_per_room = AttributeProperty(0)
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(3600)  # 1 hour
+    respawn_delay = AttributeProperty(3600)
 
     def at_object_creation(self):
         super().at_object_creation()
+        self._set_stats()
         self._equip_gear()
+
+    def _set_stats(self):
+        """Set stats explicitly — AttributeProperty overrides are unreliable
+        across deep MRO chains."""
+        self.hp = 65
+        self.hp_max = 65
+        self.strength = 14
+        self.base_strength = 14
+        self.dexterity = 12
+        self.base_dexterity = 12
+        self.constitution = 12
+        self.base_constitution = 12
+        self.intelligence = 10
+        self.wisdom = 10
+        self.charisma = 10
+        self.base_armor_class = 10
+        self.armor_class = 10
+        self.level = 5
+        self.initiative_speed = 1
 
     def _equip_gear(self):
         """Spawn and equip gear from prototypes."""
@@ -86,21 +92,7 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Comba
 
     default_weapon_masteries = {"bow": MasteryLevel.SKILLED.value}
 
-    # ── Stats ──
-    hp = AttributeProperty(65)
-    hp_max = AttributeProperty(65)
-    strength = AttributeProperty(14)
-    dexterity = AttributeProperty(12)
-    constitution = AttributeProperty(12)
-    intelligence = AttributeProperty(10)
-    wisdom = AttributeProperty(10)
-    charisma = AttributeProperty(10)
-    base_armor_class = AttributeProperty(10)
-    armor_class = AttributeProperty(10)
-    level = AttributeProperty(5)
-
-    # ── Combat ──
-    initiative_speed = AttributeProperty(1)
+    # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")
     attack_message = AttributeProperty("fires at")
     attack_delay_min = AttributeProperty(3)
@@ -119,7 +111,25 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Comba
 
     def at_object_creation(self):
         super().at_object_creation()
+        self._set_stats()
         self._equip_gear()
+
+    def _set_stats(self):
+        self.hp = 65
+        self.hp_max = 65
+        self.strength = 14
+        self.base_strength = 14
+        self.dexterity = 12
+        self.base_dexterity = 12
+        self.constitution = 12
+        self.base_constitution = 12
+        self.intelligence = 10
+        self.wisdom = 10
+        self.charisma = 10
+        self.base_armor_class = 10
+        self.armor_class = 10
+        self.level = 5
+        self.initiative_speed = 1
 
     def _equip_gear(self):
         """Spawn and equip gear from prototypes."""
@@ -140,21 +150,7 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
 
     is_unique = AttributeProperty(True)
 
-    # ── Stats ──
-    hp = AttributeProperty(98)
-    hp_max = AttributeProperty(98)
-    strength = AttributeProperty(14)
-    dexterity = AttributeProperty(12)
-    constitution = AttributeProperty(12)
-    intelligence = AttributeProperty(10)
-    wisdom = AttributeProperty(10)
-    charisma = AttributeProperty(10)
-    base_armor_class = AttributeProperty(10)
-    armor_class = AttributeProperty(10)
-    level = AttributeProperty(8)
-
-    # ── Combat ──
-    initiative_speed = AttributeProperty(0)
+    # ── Combat fallbacks ──
     damage_dice = AttributeProperty("2d6")
     attack_message = AttributeProperty("swings at")
     attack_delay_min = AttributeProperty(3)
@@ -173,7 +169,25 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
 
     def at_object_creation(self):
         super().at_object_creation()
+        self._set_stats()
         self._equip_gear()
+
+    def _set_stats(self):
+        self.hp = 98
+        self.hp_max = 98
+        self.strength = 14
+        self.base_strength = 14
+        self.dexterity = 12
+        self.base_dexterity = 12
+        self.constitution = 12
+        self.base_constitution = 12
+        self.intelligence = 10
+        self.wisdom = 10
+        self.charisma = 10
+        self.base_armor_class = 10
+        self.armor_class = 10
+        self.level = 8
+        self.initiative_speed = 0
 
     def _equip_gear(self):
         """Spawn and equip gear from prototypes."""

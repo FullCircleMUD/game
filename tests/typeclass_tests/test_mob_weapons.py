@@ -237,3 +237,210 @@ class TestSpawnMobItem(EvenniaTest):
         weapon = MobItem.spawn_mob_item("iron_dagger", location=self.room1)
         self.assertIsNotNone(weapon)
         self.assertIsInstance(weapon, WeaponMechanicsMixin)
+
+    def test_spawn_mob_wearable_from_prototype(self):
+        """spawn_mob_item should create a MobWearable from leather_armor prototype."""
+        from typeclasses.items.mob_items.mob_wearable import MobWearable
+        armor = MobItem.spawn_mob_item("leather_armor", location=self.room1)
+        self.assertIsNotNone(armor)
+        self.assertIsInstance(armor, MobWearable)
+
+    def test_spawn_mob_holdable_from_prototype(self):
+        """spawn_mob_item should create a MobHoldable from wooden_shield prototype."""
+        from typeclasses.items.mob_items.mob_holdable import MobHoldable
+        shield = MobItem.spawn_mob_item("wooden_shield", location=self.room1)
+        self.assertIsNotNone(shield)
+        self.assertIsInstance(shield, MobHoldable)
+
+
+class TestMobEquipmentDisplay(EvenniaTest):
+    """Test that return_appearance shows equipped items on mobs."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def test_mob_without_equipment_no_equip_section(self):
+        """A mob with no equipment should not show an equipment section."""
+        mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a wolf",
+            location=self.room1,
+        )
+        appearance = mob.return_appearance(self.char1)
+        self.assertNotIn("equipped with", appearance)
+
+
+class TestTownGuardCreation(EvenniaTest):
+    """Test that town guard mobs spawn with correct equipment and mastery."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def test_melee_guard_has_wearslots(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        self.assertTrue(hasattr(guard, "get_slot"))
+        self.assertTrue(hasattr(guard, "get_all_worn"))
+
+    def test_melee_guard_has_weapon_equipped(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        weapon = guard.get_slot("WIELD")
+        self.assertIsNotNone(weapon, "Melee guard should have a weapon wielded")
+        self.assertEqual(weapon.key, "Bronze Shortsword")
+
+    def test_melee_guard_has_shield(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        held = guard.get_slot("HOLD")
+        self.assertIsNotNone(held, "Melee guard should have a shield held")
+        self.assertEqual(held.key, "Wooden Shield")
+
+    def test_melee_guard_has_armor(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        body = guard.get_slot("BODY")
+        self.assertIsNotNone(body, "Melee guard should have body armor")
+        self.assertEqual(body.key, "Leather Armor")
+
+    def test_melee_guard_weapon_mastery(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        levels = guard.db.weapon_skill_mastery_levels or {}
+        self.assertEqual(levels.get("shortsword"), MasteryLevel.SKILLED.value)
+
+    def test_melee_guard_bash_mastery(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        levels = guard.db.class_skill_mastery_levels or {}
+        self.assertEqual(levels.get("bash"), MasteryLevel.SKILLED.value)
+
+    def test_melee_guard_bash_in_combat_commands(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        commands = guard.db.combat_commands or {}
+        self.assertIn("bash", commands)
+
+    def test_ranged_guard_has_bow(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.RangedGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        weapon = guard.get_slot("WIELD")
+        self.assertIsNotNone(weapon, "Ranged guard should have a bow wielded")
+        self.assertIn("bow", weapon.key.lower())
+
+    def test_ranged_guard_bow_mastery(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.RangedGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        levels = guard.db.weapon_skill_mastery_levels or {}
+        self.assertEqual(levels.get("bow"), MasteryLevel.SKILLED.value)
+
+    def test_sergeant_has_greatsword(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.GuardSergeant",
+            key="the guard sergeant",
+            location=self.room1,
+        )
+        weapon = guard.get_slot("WIELD")
+        self.assertIsNotNone(weapon, "Sergeant should have a greatsword wielded")
+        self.assertEqual(weapon.key, "Bronze Greatsword")
+
+    def test_sergeant_has_studded_leather(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.GuardSergeant",
+            key="the guard sergeant",
+            location=self.room1,
+        )
+        body = guard.get_slot("BODY")
+        self.assertIsNotNone(body, "Sergeant should have studded leather")
+        self.assertEqual(body.key, "Studded Leather Armor")
+
+    def test_sergeant_greatsword_mastery(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.GuardSergeant",
+            key="the guard sergeant",
+            location=self.room1,
+        )
+        levels = guard.db.weapon_skill_mastery_levels or {}
+        self.assertEqual(levels.get("greatsword"), MasteryLevel.EXPERT.value)
+
+    def test_sergeant_bash_expert(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.GuardSergeant",
+            key="the guard sergeant",
+            location=self.room1,
+        )
+        levels = guard.db.class_skill_mastery_levels or {}
+        self.assertEqual(levels.get("bash"), MasteryLevel.EXPERT.value)
+
+    def test_sergeant_is_unique(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.GuardSergeant",
+            key="the guard sergeant",
+            location=self.room1,
+        )
+        self.assertTrue(guard.is_unique)
+
+    def test_guard_stats(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        self.assertEqual(guard.hp, 65)
+        self.assertEqual(guard.hp_max, 65)
+        self.assertEqual(guard.strength, 14)
+        self.assertEqual(guard.dexterity, 12)
+        self.assertEqual(guard.level, 5)
+
+    def test_sergeant_stats(self):
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.GuardSergeant",
+            key="the guard sergeant",
+            location=self.room1,
+        )
+        self.assertEqual(guard.hp, 98)
+        self.assertEqual(guard.hp_max, 98)
+        self.assertEqual(guard.level, 8)
+
+    def test_guard_equipment_in_appearance(self):
+        """Looking at a guard should show their equipment."""
+        guard = create.create_object(
+            "typeclasses.actors.mobs.town_guard.MeleeGuard",
+            key="a town guard",
+            location=self.room1,
+        )
+        appearance = guard.return_appearance(self.char1)
+        self.assertIn("Bronze Shortsword", appearance)
+        self.assertIn("Leather Armor", appearance)
+        self.assertIn("Wooden Shield", appearance)
