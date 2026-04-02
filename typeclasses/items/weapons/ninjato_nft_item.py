@@ -1,5 +1,8 @@
 """
-NinjatoNFTItem — ninjatō-type weapons.
+NinjatoNFTItem — ninjato-type weapons.
+
+NinjatoMixin defines all mastery tables and overrides — shared by
+both NinjatoNFTItem (player weapons) and MobNinjato (mob weapons).
 
 A straight-bladed ninja sword. Two-handed finesse weapon — the ninja's
 signature blade. Combines extra attacks, parries, and at GM mastery,
@@ -41,23 +44,17 @@ _NINJATO_PARRIES = {
 }
 
 
-class NinjatoNFTItem(WeaponNFTItem):
-    """
-    Ninjatō weapons — two-handed finesse melee, extra attacks + parries.
+class NinjatoMixin:
+    """Ninjato weapon identity — mastery tables and overrides.
 
-    Balanced offense/defense: extra attacks at EXPERT+, parries scaling
-    to 2 at MASTER+, parry advantage and riposte at GM. Ninja only.
+    Shared by NinjatoNFTItem and MobNinjato. Single source of truth
+    for ninjato combat mechanics.
     """
 
     weapon_type_key = "ninjato"
     is_finesse = AttributeProperty(True)
     two_handed = AttributeProperty(True)
     can_dual_wield = AttributeProperty(False)
-    required_classes = AttributeProperty([CharacterClass.NINJA])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("ninjato", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -80,3 +77,18 @@ class NinjatoNFTItem(WeaponNFTItem):
         """Riposte at GM only."""
         mastery = self.get_wielder_mastery(wielder)
         return mastery == MasteryLevel.GRANDMASTER
+
+
+class NinjatoNFTItem(NinjatoMixin, WeaponNFTItem):
+    """
+    Ninjato weapons — two-handed finesse melee, extra attacks + parries.
+
+    Balanced offense/defense: extra attacks at EXPERT+, parries scaling
+    to 2 at MASTER+, parry advantage and riposte at GM. Ninja only.
+    """
+
+    required_classes = AttributeProperty([CharacterClass.NINJA])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("ninjato", category="weapon_type")

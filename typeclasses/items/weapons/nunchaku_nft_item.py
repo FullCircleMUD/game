@@ -1,6 +1,9 @@
 """
 NunchakuNFTItem — nunchaku-type weapons.
 
+NunchakuMixin defines all mastery tables and overrides — shared by
+both NunchakuNFTItem (player weapons) and MobNunchaku (mob weapons).
+
 Linked sticks swung at high speed. Two-handed stun specialist.
 Usable by warriors, ninjas, and barbarians.
 
@@ -53,21 +56,16 @@ _NUNCHAKU_STUN_CHECKS = {
 _STUN_IMMUNE_SIZES = {ActorSize.GARGANTUAN}
 
 
-class NunchakuNFTItem(WeaponNFTItem):
-    """
-    Nunchaku weapons — two-handed melee, stun specialist.
+class NunchakuMixin:
+    """Nunchaku weapon identity — mastery tables and overrides.
 
-    Contested DEX vs CON stun on hit. PRONE at MASTER+ on big wins.
-    GARGANTUAN only immune to stun.
+    Shared by NunchakuNFTItem and MobNunchaku. Single source of truth
+    for nunchaku combat mechanics.
     """
 
     weapon_type_key = "nanchaku"
     two_handed = AttributeProperty(True)
     can_dual_wield = AttributeProperty(False)
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("nanchaku", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -174,3 +172,16 @@ class NunchakuNFTItem(WeaponNFTItem):
             f"|r*KNOCKDOWN* {wielder.key}'s nunchaku sends you sprawling "
             f"for {rounds} round{'s' if rounds > 1 else ''}!|n"
         )
+
+
+class NunchakuNFTItem(NunchakuMixin, WeaponNFTItem):
+    """
+    Nunchaku weapons — two-handed melee, stun specialist.
+
+    Contested DEX vs CON stun on hit. PRONE at MASTER+ on big wins.
+    GARGANTUAN only immune to stun.
+    """
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("nanchaku", category="weapon_type")

@@ -1,6 +1,9 @@
 """
 SpearNFTItem — spear-type weapons with reach counter mastery.
 
+SpearMixin defines all mastery tables and overrides — shared by
+both SpearNFTItem (player weapons) and MobSpear (mob weapons).
+
 Spears are two-handed piercing weapons that excel at party support play.
 When an enemy hits an ally, the spear wielder counter-attacks from
 reach — fighting from behind the front line. Two-handed: no shield,
@@ -48,24 +51,15 @@ _SPEAR_CRIT_MODIFIER = {
 }
 
 
-class SpearNFTItem(WeaponNFTItem):
-    """
-    Spear weapons — melee, two-handed, reach counter + crit mastery path.
+class SpearMixin:
+    """Spear weapon identity — mastery tables and overrides.
+
+    Shared by SpearNFTItem and MobSpear. Single source of truth
+    for spear combat mechanics.
     """
 
     weapon_type_key = "spear"
     two_handed = AttributeProperty(True)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("spear", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_parries_per_round(self, wielder):
         return 0
@@ -77,3 +71,17 @@ class SpearNFTItem(WeaponNFTItem):
     def get_mastery_crit_threshold_modifier(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _SPEAR_CRIT_MODIFIER.get(mastery, 0)
+
+
+class SpearNFTItem(SpearMixin, WeaponNFTItem):
+    """
+    Spear weapons — melee, two-handed, reach counter + crit mastery path.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("spear", category="weapon_type")

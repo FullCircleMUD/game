@@ -1,6 +1,9 @@
 """
 HammerNFTItem — hammer-type weapons with devastating blow mastery.
 
+HammerMixin defines all mastery tables and overrides — shared by
+both HammerNFTItem (player weapons) and MobHammer (mob weapons).
+
 Hammers are heavy bludgeoning weapons. Their unique mastery path
 amplifies critical hit damage with a scaling multiplier. Normal crits
 double the weapon dice; hammer mastery multiplies the entire crit
@@ -39,17 +42,14 @@ _HAMMER_CRIT_MULTIPLIER = {
 }
 
 
-class HammerNFTItem(WeaponNFTItem):
-    """
-    Hammer weapons — melee, bludgeoning, devastating blow crit mastery.
+class HammerMixin:
+    """Hammer weapon identity — mastery tables and overrides.
+
+    Shared by HammerNFTItem and MobHammer. Single source of truth
+    for hammer combat mechanics.
     """
 
     weapon_type_key = "hammer"
-    excluded_classes = AttributeProperty([CharacterClass.MAGE])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("hammer", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -94,3 +94,15 @@ class HammerNFTItem(WeaponNFTItem):
                 )
 
         return damage
+
+
+class HammerNFTItem(HammerMixin, WeaponNFTItem):
+    """
+    Hammer weapons — melee, bludgeoning, devastating blow crit mastery.
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.MAGE])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("hammer", category="weapon_type")

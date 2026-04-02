@@ -56,19 +56,14 @@ _AXE_EXTRA_ATTACKS = {
 _SUNDER_AC_FLOOR = 10
 
 
-class AxeNFTItem(WeaponNFTItem):
-    """
-    Handaxe weapons — melee, one-handed, sunder + extra attack mastery.
+class AxeMixin:
+    """Handaxe weapon identity — mastery tables and overrides.
+
+    Shared by AxeNFTItem and MobAxe. Single source of truth
+    for handaxe combat mechanics (sunder + extra attacks).
     """
 
     weapon_type_key = "handaxe"
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("axe", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -152,3 +147,17 @@ class AxeNFTItem(WeaponNFTItem):
                 f"{target.key}'s armour!|n",
                 exclude=[wielder, target],
             )
+
+
+class AxeNFTItem(AxeMixin, WeaponNFTItem):
+    """
+    Handaxe weapons — melee, one-handed, sunder + extra attack mastery.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("axe", category="weapon_type")

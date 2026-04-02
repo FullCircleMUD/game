@@ -43,18 +43,16 @@ _SLING_DAZE = {
 _DAZE_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
 
 
-class SlingNFTItem(WeaponNFTItem):
-    """
-    Sling weapons — missile, concussive daze mastery. No class restrictions.
+class SlingMixin:
+    """Sling weapon identity — mastery tables and overrides.
+
+    Shared by SlingNFTItem and MobSling. Single source of truth
+    for sling combat mechanics (concussive daze).
     """
 
     weapon_type_key = "sling"
     weapon_type = AttributeProperty("missile")
     range = AttributeProperty(1)
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("sling", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -121,3 +119,13 @@ class SlingNFTItem(WeaponNFTItem):
                     f"{target.key} in the skull!|n",
                     exclude=[wielder, target],
                 )
+
+
+class SlingNFTItem(SlingMixin, WeaponNFTItem):
+    """
+    Sling weapons — missile, concussive daze mastery. No class restrictions.
+    """
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("sling", category="weapon_type")

@@ -1,6 +1,9 @@
 """
 LanceNFTItem — lance-type weapons with mounted combat mastery.
 
+LanceMixin defines all mastery tables and overrides — shared by
+both LanceNFTItem (player weapons) and MobLance (mob weapons).
+
 Lances are two-handed piercing weapons that are devastating on horseback
 but terrible on foot. The only weapon that can knock HUGE creatures prone.
 
@@ -69,21 +72,15 @@ def _is_mounted(wielder):
     return getattr(wielder.db, "active_mount", None) is not None
 
 
-class LanceNFTItem(WeaponNFTItem):
-    """
-    Lance weapons — two-handed melee, mounted combat mastery.
-    Devastating when mounted, deliberately terrible on foot.
+class LanceMixin:
+    """Lance weapon identity — mastery tables and overrides.
+
+    Shared by LanceNFTItem and MobLance. Single source of truth
+    for lance combat mechanics.
     """
 
     weapon_type_key = "lance"
     two_handed = AttributeProperty(True)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("lance", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -175,3 +172,18 @@ class LanceNFTItem(WeaponNFTItem):
                 f"knocks {target.key} to the ground!|n",
                 exclude=[wielder, target],
             )
+
+
+class LanceNFTItem(LanceMixin, WeaponNFTItem):
+    """
+    Lance weapons — two-handed melee, mounted combat mastery.
+    Devastating when mounted, deliberately terrible on foot.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("lance", category="weapon_type")

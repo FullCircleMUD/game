@@ -41,24 +41,15 @@ _RAPIER_PARRIES = {
 }
 
 
-class RapierNFTItem(WeaponNFTItem):
-    """
-    Rapier weapons — melee, one-handed, finesse, riposte-focused mastery path.
+class RapierMixin:
+    """Rapier weapon identity — mastery tables and overrides.
+
+    Shared by RapierNFTItem and MobRapier. Single source of truth
+    for rapier combat mechanics.
     """
 
     weapon_type_key = "rapier"
     is_finesse = AttributeProperty(True)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("rapier", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_mastery_hit_bonus(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
@@ -76,3 +67,17 @@ class RapierNFTItem(WeaponNFTItem):
     def get_parry_advantage(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return mastery == MasteryLevel.GRANDMASTER
+
+
+class RapierNFTItem(RapierMixin, WeaponNFTItem):
+    """
+    Rapier weapons — melee, one-handed, finesse, riposte-focused mastery path.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("rapier", category="weapon_type")

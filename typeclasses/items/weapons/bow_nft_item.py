@@ -50,21 +50,16 @@ _BOW_EXTRA_ATTACKS = {
 }
 
 
-class BowNFTItem(WeaponNFTItem):
-    """
-    Bow weapons — missile, slowing shot + rapid fire mastery path.
+class BowMixin:
+    """Bow weapon identity — mastery tables and overrides.
+
+    Shared by BowNFTItem and MobBow. Single source of truth
+    for bow combat mechanics (slowing shot + rapid fire).
     """
 
     weapon_type_key = "bow"
     weapon_type = AttributeProperty("missile")
     range = AttributeProperty(1)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("bow", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -133,3 +128,17 @@ class BowNFTItem(WeaponNFTItem):
                     f"{target.key}'s movement!|n",
                     exclude=[wielder, target],
                 )
+
+
+class BowNFTItem(BowMixin, WeaponNFTItem):
+    """
+    Bow weapons — missile, slowing shot + rapid fire mastery path.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("bow", category="weapon_type")

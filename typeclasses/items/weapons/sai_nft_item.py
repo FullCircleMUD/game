@@ -1,6 +1,9 @@
 """
 SaiNFTItem — sai-type weapons.
 
+SaiMixin defines all mastery tables and overrides — shared by
+both SaiNFTItem (player weapons) and MobSai (mob weapons).
+
 A pronged defensive weapon. Pure parry specialist — the highest parry
 count of any one-handed weapon. Disarm triggers on successful parry
 (parry-to-disarm mechanic to be implemented separately).
@@ -33,22 +36,15 @@ _SAI_PARRIES = {
 }
 
 
-class SaiNFTItem(WeaponNFTItem):
-    """
-    Sai weapons — one-handed melee, pure parry specialist.
+class SaiMixin:
+    """Sai weapon identity — mastery tables and overrides.
 
-    Highest parry count of any one-handed weapon (up to 5 at GM).
-    No extra attacks, no off-hand attacks, no parry advantage, no riposte.
-    Disarm will trigger on successful parry (separate mechanic). Ninja only.
+    Shared by SaiNFTItem and MobSai. Single source of truth
+    for sai combat mechanics.
     """
 
     weapon_type_key = "sai"
-    required_classes = AttributeProperty([CharacterClass.NINJA])
     can_dual_wield = AttributeProperty(True)
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("sai", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -60,3 +56,19 @@ class SaiNFTItem(WeaponNFTItem):
 
     def get_extra_attacks(self, wielder):
         return 0
+
+
+class SaiNFTItem(SaiMixin, WeaponNFTItem):
+    """
+    Sai weapons — one-handed melee, pure parry specialist.
+
+    Highest parry count of any one-handed weapon (up to 5 at GM).
+    No extra attacks, no off-hand attacks, no parry advantage, no riposte.
+    Disarm will trigger on successful parry (separate mechanic). Ninja only.
+    """
+
+    required_classes = AttributeProperty([CharacterClass.NINJA])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("sai", category="weapon_type")

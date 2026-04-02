@@ -72,14 +72,15 @@ _BLOWGUN_PARALYSIS_ROUNDS = {
 }
 
 
-class BlowgunNFTItem(WeaponNFTItem):
-    """
-    Blowgun weapons — missile, poison-focused mastery path.
+class BlowgunMixin:
+    """Blowgun weapon identity — mastery tables and overrides.
+
+    Shared by BlowgunNFTItem and MobBlowgun. Single source of truth
+    for blowgun combat mechanics (poison + paralysis).
     """
 
     weapon_type_key = "blowgun"
     weapon_type = AttributeProperty("missile")
-    excluded_classes = AttributeProperty([CharacterClass.MAGE])
     damage_type = AttributeProperty(DamageType.PIERCING)
     is_finesse = AttributeProperty(True)
     two_handed = AttributeProperty(False)
@@ -94,10 +95,6 @@ class BlowgunNFTItem(WeaponNFTItem):
         MasteryLevel.MASTER: "1",
         MasteryLevel.GRANDMASTER: "1",
     })
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("blowgun", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -232,3 +229,15 @@ class BlowgunNFTItem(WeaponNFTItem):
             f"|r*PARALYSIS* You are paralysed for {rounds} round{s}! "
             f"(rolled {save_roll} vs DC {dc})|n"
         )
+
+
+class BlowgunNFTItem(BlowgunMixin, WeaponNFTItem):
+    """
+    Blowgun weapons — missile, poison-focused mastery path.
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.MAGE])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("blowgun", category="weapon_type")

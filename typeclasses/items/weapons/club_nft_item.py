@@ -1,6 +1,9 @@
 """
 ClubNFTItem — club-type weapons with stagger mastery.
 
+ClubMixin defines all mastery tables and overrides — shared by
+both ClubNFTItem (player weapons) and MobClub (mob weapons).
+
 Clubs are simple one-handed bludgeoning weapons. Their stagger mechanic
 applies a hit penalty debuff to the target, representing being thrown
 off-balance by a heavy blow. At high mastery, clubs gain extra attacks.
@@ -47,17 +50,14 @@ _CLUB_EXTRA_ATTACKS = {
 }
 
 
-class ClubNFTItem(WeaponNFTItem):
-    """
-    Club weapons — melee, bludgeoning, light stagger mastery.
+class ClubMixin:
+    """Club weapon identity — mastery tables and overrides.
+
+    Shared by ClubNFTItem and MobClub. Single source of truth
+    for club combat mechanics.
     """
 
     weapon_type_key = "club"
-    excluded_classes = AttributeProperty([CharacterClass.MAGE])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("club", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -116,3 +116,15 @@ class ClubNFTItem(WeaponNFTItem):
                 f"{target.key} reeling!|n",
                 exclude=[wielder, target],
             )
+
+
+class ClubNFTItem(ClubMixin, WeaponNFTItem):
+    """
+    Club weapons — melee, bludgeoning, light stagger mastery.
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.MAGE])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("club", category="weapon_type")

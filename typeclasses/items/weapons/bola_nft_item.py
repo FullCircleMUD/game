@@ -48,14 +48,15 @@ _BOLA_MAX_ENTANGLE_ROUNDS = {
 }
 
 
-class BolaNFTItem(WeaponNFTItem):
-    """
-    Bola weapons — missile, entangle-focused mastery path.
+class BolaMixin:
+    """Bola weapon identity — mastery tables and overrides.
+
+    Shared by BolaNFTItem and MobBola. Single source of truth
+    for bola combat mechanics (entangle).
     """
 
     weapon_type_key = "bola"
     weapon_type = AttributeProperty("missile")
-    excluded_classes = AttributeProperty([CharacterClass.MAGE])
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     is_finesse = AttributeProperty(True)
     two_handed = AttributeProperty(False)
@@ -70,10 +71,6 @@ class BolaNFTItem(WeaponNFTItem):
         MasteryLevel.MASTER: "1",
         MasteryLevel.GRANDMASTER: "1",
     })
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("bola", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -162,3 +159,15 @@ class BolaNFTItem(WeaponNFTItem):
         )
 
         return damage
+
+
+class BolaNFTItem(BolaMixin, WeaponNFTItem):
+    """
+    Bola weapons — missile, entangle-focused mastery path.
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.MAGE])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("bola", category="weapon_type")

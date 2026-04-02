@@ -45,23 +45,14 @@ _GREATSWORD_CLEAVE_CHANCES = {
 }
 
 
-class GreatswordNFTItem(WeaponNFTItem):
-    """
-    Greatsword weapons — melee, two-handed, cleave-focused mastery path.
+class GreatswordMixin:
+    """Greatsword weapon identity — mastery tables and overrides.
+
+    Shared by GreatswordNFTItem and MobGreatsword. Single source of truth
+    for greatsword combat mechanics (cleave + executioner).
     """
 
     weapon_type_key = "greatsword"
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("greatsword", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_parries_per_round(self, wielder):
         return 0
@@ -187,3 +178,17 @@ class GreatswordNFTItem(WeaponNFTItem):
             )
 
         execute_attack(wielder, new_target)
+
+
+class GreatswordNFTItem(GreatswordMixin, WeaponNFTItem):
+    """
+    Greatsword weapons — melee, two-handed, cleave-focused mastery path.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("greatsword", category="weapon_type")

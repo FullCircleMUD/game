@@ -47,23 +47,14 @@ _LONGSWORD_EXTRA_ATTACKS = {
 }
 
 
-class LongswordNFTItem(WeaponNFTItem):
-    """
-    Longsword weapons — melee, parry-focused mastery path.
+class LongswordMixin:
+    """Longsword weapon identity — mastery tables and overrides.
+
+    Shared by LongswordNFTItem and MobLongsword. Single source of truth
+    for longsword combat mechanics.
     """
 
     weapon_type_key = "long_sword"
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("long_sword", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_mastery_hit_bonus(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
@@ -80,3 +71,17 @@ class LongswordNFTItem(WeaponNFTItem):
     def get_parry_advantage(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return mastery == MasteryLevel.GRANDMASTER
+
+
+class LongswordNFTItem(LongswordMixin, WeaponNFTItem):
+    """
+    Longsword weapons — melee, parry-focused mastery path.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("long_sword", category="weapon_type")

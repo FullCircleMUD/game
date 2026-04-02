@@ -1,6 +1,9 @@
 """
 MaceNFTItem — mace-type weapons with anti-armor crush mastery.
 
+MaceMixin defines all mastery tables and overrides — shared by
+both MaceNFTItem (player weapons) and MobMace (mob weapons).
+
 Maces are one-handed bludgeoning weapons (d6 base) that excel against
 armoured targets. Their crush mechanic deals bonus damage that scales
 with the target's equipment AC — the heavier the armour, the more bonus
@@ -56,17 +59,14 @@ _MACE_EXTRA_ATTACKS = {
 }
 
 
-class MaceNFTItem(WeaponNFTItem):
-    """
-    Mace weapons — melee, bludgeoning, anti-armor crush mastery.
+class MaceMixin:
+    """Mace weapon identity — mastery tables and overrides.
+
+    Shared by MaceNFTItem and MobMace. Single source of truth
+    for mace combat mechanics.
     """
 
     weapon_type_key = "mace"
-    excluded_classes = AttributeProperty([CharacterClass.MAGE])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("mace", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -123,3 +123,15 @@ class MaceNFTItem(WeaponNFTItem):
             return 0
 
         return min(cap, excess)
+
+
+class MaceNFTItem(MaceMixin, WeaponNFTItem):
+    """
+    Mace weapons — melee, bludgeoning, anti-armor crush mastery.
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.MAGE])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("mace", category="weapon_type")

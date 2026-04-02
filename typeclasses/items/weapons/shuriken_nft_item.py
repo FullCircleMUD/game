@@ -53,25 +53,17 @@ _SHURIKEN_CRIT_MOD = {
 }
 
 
-class ShurikenNFTItem(WeaponNFTItem):
-    """
-    Shuriken weapons — missile, finesse, multi-throw + crit mastery.
-    Consumable: each throw moves the shuriken to target or room.
+class ShurikenMixin:
+    """Shuriken weapon identity — mastery tables and overrides.
+
+    Shared by ShurikenNFTItem and MobShuriken. Single source of truth
+    for shuriken combat mechanics (multi-throw + crit scaling).
     """
 
     weapon_type_key = "shuriken"
-    required_classes = AttributeProperty([CharacterClass.NINJA])
     weapon_type = AttributeProperty("missile")
     is_finesse = AttributeProperty(True)
     range = AttributeProperty(1)
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("shuriken", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_parries_per_round(self, wielder):
         return 0
@@ -83,6 +75,19 @@ class ShurikenNFTItem(WeaponNFTItem):
     def get_mastery_crit_threshold_modifier(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _SHURIKEN_CRIT_MOD.get(mastery, 0)
+
+
+class ShurikenNFTItem(ShurikenMixin, WeaponNFTItem):
+    """
+    Shuriken weapons — missile, finesse, multi-throw + crit mastery.
+    Consumable: each throw moves the shuriken to target or room.
+    """
+
+    required_classes = AttributeProperty([CharacterClass.NINJA])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("shuriken", category="weapon_type")
 
     # ================================================================== #
     #  Unbreakable — shurikens don't lose durability

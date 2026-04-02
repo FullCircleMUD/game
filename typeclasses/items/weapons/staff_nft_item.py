@@ -1,6 +1,9 @@
 """
 StaffNFTItem — staff-type weapons with parry specialist mastery.
 
+StaffMixin defines all mastery tables and overrides — shared by
+both StaffNFTItem (player weapons) and MobStaff (mob weapons).
+
 Staves are two-handed bludgeoning weapons that offer the best defensive
 scaling in the game. Highest parry count, earliest parry advantage, and
 riposte at high mastery. THE weapon for casters who want to survive melee.
@@ -53,26 +56,16 @@ _STAFF_PARRIES = {
 }
 
 
-class StaffNFTItem(WeaponNFTItem):
-    """
-    Staff weapons — two-handed melee, parry specialist mastery path.
+class StaffMixin:
+    """Staff weapon identity — mastery tables and overrides.
 
-    Universal parry: can parry armed melee, unarmed, animal, and missile
-    attacks (other weapons can only parry armed melee).
+    Shared by StaffNFTItem and MobStaff. Single source of truth
+    for staff combat mechanics.
     """
 
     weapon_type_key = "staff"
     two_handed = AttributeProperty(True)
-    excluded_classes = AttributeProperty([CharacterClass.THIEF])
     universal_parry = True
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("staff", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_mastery_hit_bonus(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
@@ -91,3 +84,18 @@ class StaffNFTItem(WeaponNFTItem):
         """Riposte unlocks at MASTER mastery."""
         mastery = self.get_wielder_mastery(wielder)
         return mastery.value >= MasteryLevel.MASTER.value
+
+
+class StaffNFTItem(StaffMixin, WeaponNFTItem):
+    """
+    Staff weapons — two-handed melee, parry specialist mastery path.
+
+    Universal parry: can parry armed melee, unarmed, animal, and missile
+    attacks (other weapons can only parry armed melee).
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.THIEF])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("staff", category="weapon_type")

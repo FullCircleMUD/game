@@ -52,25 +52,16 @@ _SHORTSWORD_OFFHAND_PENALTY = {
 }
 
 
-class ShortswordNFTItem(WeaponNFTItem):
-    """
-    Shortsword weapons — melee, dual-wield specialist with light parry.
+class ShortswordMixin:
+    """Shortsword weapon identity — mastery tables and overrides.
+
+    Shared by ShortswordNFTItem and MobShortsword. Single source of truth
+    for shortsword combat mechanics.
     """
 
     weapon_type_key = "shortsword"
     is_finesse = AttributeProperty(True)
     can_dual_wield = AttributeProperty(True)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("shortsword", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_parries_per_round(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
@@ -86,3 +77,17 @@ class ShortswordNFTItem(WeaponNFTItem):
     def get_offhand_hit_modifier(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _SHORTSWORD_OFFHAND_PENALTY.get(mastery, 0)
+
+
+class ShortswordNFTItem(ShortswordMixin, WeaponNFTItem):
+    """
+    Shortsword weapons — melee, dual-wield specialist with light parry.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("shortsword", category="weapon_type")

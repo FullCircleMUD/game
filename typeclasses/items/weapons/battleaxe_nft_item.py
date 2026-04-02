@@ -62,20 +62,15 @@ _BATTLEAXE_SUNDER = {
 _SUNDER_AC_FLOOR = 10
 
 
-class BattleaxeNFTItem(WeaponNFTItem):
-    """
-    Battleaxe weapons — melee, two-handed, cleave + sunder mastery path.
+class BattleaxeMixin:
+    """Battleaxe weapon identity — mastery tables and overrides.
+
+    Shared by BattleaxeNFTItem and MobBattleaxe. Single source of truth
+    for battleaxe combat mechanics (cleave + sunder).
     """
 
     weapon_type_key = "battleaxe"
     two_handed = AttributeProperty(True)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("battleaxe", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -229,3 +224,17 @@ class BattleaxeNFTItem(WeaponNFTItem):
                 f"{target.key}'s armour!|n",
                 exclude=[wielder, target],
             )
+
+
+class BattleaxeNFTItem(BattleaxeMixin, WeaponNFTItem):
+    """
+    Battleaxe weapons — melee, two-handed, cleave + sunder mastery path.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("battleaxe", category="weapon_type")

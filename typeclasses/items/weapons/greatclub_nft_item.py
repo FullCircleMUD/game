@@ -1,6 +1,9 @@
 """
 GreatclubNFTItem — two-handed club with heavy stagger mastery.
 
+GreatclubMixin defines all mastery tables and overrides — shared by
+both GreatclubNFTItem (player weapons) and MobGreatclub (mob weapons).
+
 Greatclubs are massive two-handed bludgeoning weapons. Their heavy
 stagger mechanic is stronger than the one-handed club: higher proc
 chance, bigger hit penalty, and longer duration at high mastery.
@@ -39,20 +42,15 @@ _GREATCLUB_STAGGER = {
 }
 
 
-class GreatclubNFTItem(WeaponNFTItem):
-    """
-    Greatclub weapons — melee, two-handed, bludgeoning, heavy stagger mastery.
+class GreatclubMixin:
+    """Greatclub weapon identity — mastery tables and overrides.
+
+    Shared by GreatclubNFTItem and MobGreatclub. Single source of truth
+    for greatclub combat mechanics.
     """
 
     weapon_type_key = "greatclub"
     two_handed = AttributeProperty(True)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.THIEF,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("greatclub", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -111,3 +109,17 @@ class GreatclubNFTItem(WeaponNFTItem):
                 f"{target.key} reeling!|n",
                 exclude=[wielder, target],
             )
+
+
+class GreatclubNFTItem(GreatclubMixin, WeaponNFTItem):
+    """
+    Greatclub weapons — melee, two-handed, bludgeoning, heavy stagger mastery.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.THIEF,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("greatclub", category="weapon_type")

@@ -46,21 +46,16 @@ _CROSSBOW_KNOCKBACK = {
 _KNOCKBACK_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
 
 
-class CrossbowNFTItem(WeaponNFTItem):
-    """
-    Crossbow weapons — missile, knockback mastery path. No extra attacks.
+class CrossbowMixin:
+    """Crossbow weapon identity — mastery tables and overrides.
+
+    Shared by CrossbowNFTItem and MobCrossbow. Single source of truth
+    for crossbow combat mechanics (knockback).
     """
 
     weapon_type_key = "crossbow"
     weapon_type = AttributeProperty("missile")
     range = AttributeProperty(1)
-    excluded_classes = AttributeProperty([
-        CharacterClass.MAGE, CharacterClass.CLERIC,
-    ])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("crossbow", category="weapon_type")
 
     # ================================================================== #
     #  Mastery Overrides
@@ -126,3 +121,17 @@ class CrossbowNFTItem(WeaponNFTItem):
                     f"{target.key} to the ground!|n",
                     exclude=[wielder, target],
                 )
+
+
+class CrossbowNFTItem(CrossbowMixin, WeaponNFTItem):
+    """
+    Crossbow weapons — missile, knockback mastery path. No extra attacks.
+    """
+
+    excluded_classes = AttributeProperty([
+        CharacterClass.MAGE, CharacterClass.CLERIC,
+    ])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("crossbow", category="weapon_type")
