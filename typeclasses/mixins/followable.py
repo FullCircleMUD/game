@@ -59,7 +59,7 @@ class FollowableMixin:
                     db_tags__db_key="followable",
                     db_tags__db_category="system",
                 )
-                if obj.following == self
+                if getattr(obj, "following", None) == self and obj != self
             ]
         for f in direct:
             if same_room and f.location != self.location:

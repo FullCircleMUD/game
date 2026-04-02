@@ -36,7 +36,7 @@ class MobFollowableMixin(FollowableMixin):
 
     def ai_idle(self):
         """If not following anyone, look for the squad leader."""
-        if not self.following and self.squad_leader_typeclass and self.location:
+        if not getattr(self, "following", None) and self.squad_leader_typeclass and self.location:
             for obj in self.location.contents:
                 if (isinstance(obj, self.squad_leader_typeclass)
                         and obj != self
