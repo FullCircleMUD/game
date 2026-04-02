@@ -162,11 +162,29 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, BaseNP
             return "|ris on the verge of death!|n"
 
     def return_appearance(self, looker, **kwargs):
-        """Add HP condition line to the default appearance."""
+        """Add HP condition line and visible equipment to appearance."""
         text = super().return_appearance(looker, **kwargs)
         condition = self.get_condition_text()
         name = self.get_display_name(looker)
-        return f"{text}\n{name} {condition}"
+        text = f"{text}\n{name} {condition}"
+        # Show equipped items (only for mobs with wearslots)
+        equip_text = self._get_visible_equipment()
+        if equip_text:
+            text = f"{text}\n{equip_text}"
+        return text
+
+    def _get_visible_equipment(self):
+        """Return a formatted string of equipped items, or empty string."""
+        if not hasattr(self, "get_all_worn"):
+            return ""
+        worn = self.get_all_worn()
+        items = [item for item in worn.values() if item is not None]
+        if not items:
+            return ""
+        lines = [f"|w{self.key} is equipped with:|n"]
+        for item in items:
+            lines.append(f"  |g{item.key}|n")
+        return "\n".join(lines)
 
     # ================================================================== #
     #  Ticker Management

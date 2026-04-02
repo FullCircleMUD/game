@@ -865,6 +865,18 @@ class FCMCharacter(
         self.db.general_skill_mastery_levels["carpenter"] = MasteryLevel.BASIC.value
         """
 
+    def return_appearance(self, looker, **kwargs):
+        """Add visible equipment to appearance when looked at."""
+        text = super().return_appearance(looker, **kwargs)
+        worn = self.get_all_worn()
+        items = [item for item in worn.values() if item is not None]
+        if items:
+            lines = [f"|w{self.key} is equipped with:|n"]
+            for item in items:
+                lines.append(f"  |g{item.key}|n")
+            text = f"{text}\n" + "\n".join(lines)
+        return text
+
     def at_post_puppet(self, **kwargs):
         """Called after player connects to this character."""
         super().at_post_puppet(**kwargs)
