@@ -72,6 +72,10 @@ class StreetUrchin(CombatMob):
         self.hp = 12
         self.level = 3
 
+    def at_combat_tick(self, handler):
+        """Always flee — urchin doesn't stand and fight."""
+        self.execute_cmd("flee")
+
     def at_new_arrival(self, arriving_obj):
         """When a player enters, schedule a pickpocket attempt."""
         if not getattr(arriving_obj, "is_pc", False):
