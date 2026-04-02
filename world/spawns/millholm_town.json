@@ -25,5 +25,14 @@
         "max_per_room": 1,
         "respawn_seconds": 3600,
         "desc": "A grizzled veteran in studded leather, a massive bronze greatsword resting across broad shoulders. Scars crisscross weathered forearms. This one has seen real fighting."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.city_watch.CityWatch",
+        "key": "a city watchman",
+        "area_tag": "city_watch_patrol",
+        "target": 4,
+        "max_per_room": 1,
+        "respawn_seconds": 3600,
+        "desc": "A town watchman in leather armor patrols the streets, bronze shortsword at the hip and a round wooden shield on one arm. The sigil of Millholm is stitched onto a tabard over the armor."
     }
 ]

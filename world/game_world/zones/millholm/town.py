@@ -2425,6 +2425,21 @@ def build_millholm_town(one_way_limbo=False):
     rooms["south_gate"].tags.add("south_gate_guards", category="mob_area")
     print("  Tagged south_gate with mob_area=south_gate_guards.")
 
+    # City watch patrol area — main town streets
+    city_watch_rooms = [
+        "road_far_west", "road_west", "road_east", "road_far_east",
+        "north_road",
+        "south_road", "mid_south_road", "far_south_road",
+        "upper_south_road", "lower_south_road",
+        "artisans_way",
+        "sq_nw", "sq_n", "sq_ne",
+        "sq_w", "sq_center", "sq_e",
+        "sq_sw", "sq_s", "sq_se",
+    ]
+    for key in city_watch_rooms:
+        rooms[key].tags.add("city_watch_patrol", category="mob_area")
+    print(f"  Tagged {len(city_watch_rooms)} rooms with mob_area=city_watch_patrol.")
+
     # ── Street flying height ─────────────────────────────────────────
     # All outdoor streets allow flight up to height 2 so flying
     # characters see a consistent sky layer across town. Rooftop
