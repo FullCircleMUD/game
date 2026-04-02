@@ -43,5 +43,14 @@
         "max_per_room": 1,
         "respawn_seconds": 600,
         "desc": "An ordinary townsperson hurrying along on some errand, paying little attention to their surroundings."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.street_urchin.StreetUrchin",
+        "key": "a street urchin",
+        "area_tag": "city_watch_patrol",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 600,
+        "desc": "A scrawny, barefoot child in ragged clothes, darting furtive glances at passers-by. Quick eyes and quicker fingers."
     }
 ]
