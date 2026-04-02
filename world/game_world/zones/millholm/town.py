@@ -2421,6 +2421,10 @@ def build_millholm_town(one_way_limbo=False):
 
     print("  Tagged all rooms with zone, district, and terrain.")
 
+    # ── Mob area tags ──
+    rooms["south_gate"].tags.add("south_gate_guards", category="mob_area")
+    print("  Tagged south_gate with mob_area=south_gate_guards.")
+
     # ── Street flying height ─────────────────────────────────────────
     # All outdoor streets allow flight up to height 2 so flying
     # characters see a consistent sky layer across town. Rooftop

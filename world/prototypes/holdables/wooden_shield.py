@@ -1,6 +1,7 @@
 WOODEN_SHIELD = {
     "prototype_key": "wooden_shield",
     "typeclass": "typeclasses.items.holdables.holdable_nft_item.HoldableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_holdable.MobHoldable",
     "key": "Wooden Shield",
     "aliases": ["shield", "wooden shield", "sturdy wooden shield"],
     "desc": "A round wooden shield banded with iron.",

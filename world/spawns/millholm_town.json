@@ -1,0 +1,29 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.town_guard.MeleeGuard",
+        "key": "a town guard",
+        "area_tag": "south_gate_guards",
+        "target": 2,
+        "max_per_room": 4,
+        "respawn_seconds": 3600,
+        "desc": "A sturdy guard in leather armor, bronze shortsword at the hip and a round wooden shield slung on one arm. Alert eyes scan the approaches beyond the gate."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.town_guard.RangedGuard",
+        "key": "a town guard",
+        "area_tag": "south_gate_guards",
+        "target": 2,
+        "max_per_room": 4,
+        "respawn_seconds": 3600,
+        "desc": "A keen-eyed guard in leather armor, a shortbow held ready with a quiver of arrows at the hip. Stationed to cover the approaches to the gate."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.town_guard.GuardSergeant",
+        "key": "the guard sergeant",
+        "area_tag": "south_gate_guards",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 3600,
+        "desc": "A grizzled veteran in studded leather, a massive bronze greatsword resting across broad shoulders. Scars crisscross weathered forearms. This one has seen real fighting."
+    }
+]
