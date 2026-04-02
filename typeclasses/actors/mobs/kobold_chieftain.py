@@ -32,9 +32,13 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
 
     # ── Stats ──
     hp = AttributeProperty(28)
+    base_hp_max = AttributeProperty(28)
     hp_max = AttributeProperty(28)
+    base_strength = AttributeProperty(12)
     strength = AttributeProperty(12)
+    base_dexterity = AttributeProperty(14)
     dexterity = AttributeProperty(14)
+    base_constitution = AttributeProperty(12)
     constitution = AttributeProperty(12)
     base_armor_class = AttributeProperty(13)
     armor_class = AttributeProperty(13)

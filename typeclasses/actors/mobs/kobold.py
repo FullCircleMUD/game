@@ -34,9 +34,13 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
 
     # ── Stats ──
     hp = AttributeProperty(14)
+    base_hp_max = AttributeProperty(14)
     hp_max = AttributeProperty(14)
+    base_strength = AttributeProperty(8)
     strength = AttributeProperty(8)
+    base_dexterity = AttributeProperty(14)
     dexterity = AttributeProperty(14)
+    base_constitution = AttributeProperty(10)
     constitution = AttributeProperty(10)
     base_armor_class = AttributeProperty(12)
     armor_class = AttributeProperty(12)

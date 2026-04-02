@@ -19,9 +19,13 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
 
     # ── Stats — tougher than a regular wolf ──
     hp = AttributeProperty(30)
+    base_hp_max = AttributeProperty(30)
     hp_max = AttributeProperty(30)
+    base_strength = AttributeProperty(16)
     strength = AttributeProperty(16)
+    base_dexterity = AttributeProperty(12)
     dexterity = AttributeProperty(12)
+    base_constitution = AttributeProperty(14)
     constitution = AttributeProperty(14)
     base_armor_class = AttributeProperty(13)
     armor_class = AttributeProperty(13)

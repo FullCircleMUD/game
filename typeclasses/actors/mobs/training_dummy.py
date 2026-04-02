@@ -15,9 +15,13 @@ class TrainingDummy(CombatMob):
 
     # ── Stats ──
     hp = AttributeProperty(20)
+    base_hp_max = AttributeProperty(20)
     hp_max = AttributeProperty(20)
+    base_strength = AttributeProperty(6)
     strength = AttributeProperty(6)
+    base_dexterity = AttributeProperty(6)
     dexterity = AttributeProperty(6)
+    base_constitution = AttributeProperty(10)
     constitution = AttributeProperty(10)
     base_armor_class = AttributeProperty(8)
     armor_class = AttributeProperty(8)

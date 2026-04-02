@@ -21,9 +21,13 @@ class CellarRat(AggressiveMob):
 
     # ── Stats — level 1, fragile ──
     hp = AttributeProperty(2)
+    base_hp_max = AttributeProperty(2)
     hp_max = AttributeProperty(2)
+    base_strength = AttributeProperty(4)
     strength = AttributeProperty(4)
+    base_dexterity = AttributeProperty(14)
     dexterity = AttributeProperty(14)
+    base_constitution = AttributeProperty(8)
     constitution = AttributeProperty(8)
     base_armor_class = AttributeProperty(10)
     armor_class = AttributeProperty(10)

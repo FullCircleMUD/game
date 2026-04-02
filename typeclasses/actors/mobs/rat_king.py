@@ -21,9 +21,13 @@ class RatKing(CombatMob):
 
     # ── Stats — level 2, weakened mini-boss ──
     hp = AttributeProperty(5)
+    base_hp_max = AttributeProperty(5)
     hp_max = AttributeProperty(5)
+    base_strength = AttributeProperty(10)
     strength = AttributeProperty(10)
+    base_dexterity = AttributeProperty(12)
     dexterity = AttributeProperty(12)
+    base_constitution = AttributeProperty(10)
     constitution = AttributeProperty(10)
     base_armor_class = AttributeProperty(11)
     armor_class = AttributeProperty(11)

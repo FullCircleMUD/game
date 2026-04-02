@@ -23,9 +23,13 @@ class Wolf(AggressiveMob):
 
     # ── Stats ──
     hp = AttributeProperty(12)
+    base_hp_max = AttributeProperty(12)
     hp_max = AttributeProperty(12)
+    base_strength = AttributeProperty(12)
     strength = AttributeProperty(12)
+    base_dexterity = AttributeProperty(13)
     dexterity = AttributeProperty(13)
+    base_constitution = AttributeProperty(12)
     constitution = AttributeProperty(12)
     base_armor_class = AttributeProperty(11)
     armor_class = AttributeProperty(11)

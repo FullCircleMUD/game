@@ -39,9 +39,13 @@ class Gnoll(RampageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressive
 
     # ── Stats ──
     hp = AttributeProperty(40)
+    base_hp_max = AttributeProperty(40)
     hp_max = AttributeProperty(40)
+    base_strength = AttributeProperty(14)
     strength = AttributeProperty(14)
+    base_dexterity = AttributeProperty(10)
     dexterity = AttributeProperty(10)
+    base_constitution = AttributeProperty(14)
     constitution = AttributeProperty(14)
     base_armor_class = AttributeProperty(14)
     armor_class = AttributeProperty(14)

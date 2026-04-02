@@ -34,9 +34,13 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
 
     # ── Stats — fragile individually ──
     hp = AttributeProperty(4)
+    base_hp_max = AttributeProperty(4)
     hp_max = AttributeProperty(4)
+    base_strength = AttributeProperty(3)
     strength = AttributeProperty(3)
+    base_dexterity = AttributeProperty(15)
     dexterity = AttributeProperty(15)
+    base_constitution = AttributeProperty(4)
     constitution = AttributeProperty(4)
     base_armor_class = AttributeProperty(13)
     armor_class = AttributeProperty(13)

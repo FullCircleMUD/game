@@ -30,9 +30,13 @@ class GnollWarlord(Gnoll):
 
     # ── Stats ──
     hp = AttributeProperty(75)
+    base_hp_max = AttributeProperty(75)
     hp_max = AttributeProperty(75)
+    base_strength = AttributeProperty(16)
     strength = AttributeProperty(16)
+    base_dexterity = AttributeProperty(12)
     dexterity = AttributeProperty(12)
+    base_constitution = AttributeProperty(16)
     constitution = AttributeProperty(16)
     base_armor_class = AttributeProperty(16)
     armor_class = AttributeProperty(16)
