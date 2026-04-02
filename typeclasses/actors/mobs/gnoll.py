@@ -22,9 +22,10 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.mob_behaviours.rampage_mixin import RampageMixin
+from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
-class Gnoll(RampageMixin, AggressiveMob):
+class Gnoll(RampageMixin, HumanoidWearslotsMixin, AggressiveMob):
     """A savage gnoll raider. Rampages through enemies on a kill."""
 
     # ── Stats ──

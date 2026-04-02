@@ -20,9 +20,10 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.mob_behaviours.pack_courage_mixin import PackCourageMixin
+from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
-class Kobold(PackCourageMixin, AggressiveMob):
+class Kobold(PackCourageMixin, HumanoidWearslotsMixin, AggressiveMob):
     """A small, cowardly kobold. Fights in packs, flees when alone."""
 
     size = AttributeProperty("small")

@@ -826,11 +826,9 @@ class FCMCharacter(
             cemetery_rooms = search_tag("millholm_cemetery", category="special_room")
             if cemetery_rooms:
                 self.respawn_location = cemetery_rooms[0]
-        self.at_fungible_init()
-        self.at_carrying_capacity_init()
-        self.at_wearslots_init()
-        self.at_recipe_book_init()
-        self.at_spellbook_init()
+        # Mixin inits (at_fungible_init, at_wearslots_init, etc.) are
+        # handled automatically by BaseActor.at_object_creation() via
+        # hasattr detection — no explicit calls needed here.
 
         # Initialize the dict if it doesn't exist
 

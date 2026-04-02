@@ -27,9 +27,10 @@ from evennia.utils.utils import delay
 from typeclasses.actors.ai_handler import StateMachineAIMixin
 from typeclasses.actors.npc import BaseNPC
 from typeclasses.mixins.combat_mixin import CombatMixin
+from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 
 
-class CombatMob(CombatMixin, StateMachineAIMixin, BaseNPC):
+class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, BaseNPC):
     """
     Base class for killable mobs with AI behavior.
 
@@ -114,6 +115,8 @@ class CombatMob(CombatMixin, StateMachineAIMixin, BaseNPC):
 
     def at_object_creation(self):
         super().at_object_creation()  # CombatMixin adds CmdSetMobCombat + call:false()
+        # FungibleInventoryMixin and HumanoidWearslotsMixin init handled
+        # by BaseNPC.at_object_creation() conditional hasattr checks.
         if self.location:
             self.spawn_room_id = self.location.id
 

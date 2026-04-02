@@ -14,6 +14,21 @@ from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 
 class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
 
+    def at_object_creation(self):
+        super().at_object_creation()
+        # Auto-init composed mixins if present. Defensive pattern —
+        # avoids subclasses forgetting to call init when composing mixins.
+        # All init methods are idempotent (guard against double-init).
+        for init_method in (
+            "at_fungible_init",
+            "at_wearslots_init",
+            "at_carrying_capacity_init",
+            "at_recipe_book_init",
+            "at_spellbook_init",
+        ):
+            if hasattr(self, init_method):
+                getattr(self, init_method)()
+
     #########################################################
     # Ability Scores (point buy system)
     #########################################################

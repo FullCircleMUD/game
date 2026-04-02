@@ -14,9 +14,10 @@ import random
 from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
-class KoboldChieftain(AggressiveMob):
+class KoboldChieftain(HumanoidWearslotsMixin, AggressiveMob):
     """A cunning kobold chieftain. Fights alone, dodges, rallies allies."""
 
     is_unique = AttributeProperty(True)

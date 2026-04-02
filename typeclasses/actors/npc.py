@@ -19,7 +19,6 @@ from evennia import CmdSet
 from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.base_actor import BaseActor
-from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 
 
 class _EmptyNPCCmdSet(CmdSet):
@@ -36,14 +35,15 @@ class _EmptyNPCCmdSet(CmdSet):
         pass
 
 
-class BaseNPC(FungibleInventoryMixin, BaseActor):
+class BaseNPC(BaseActor):
     """
     Base class for all non-player actors.
 
-    Inherits the full combat/condition/effect infrastructure from BaseActor
-    and FungibleInventoryMixin for gold/resource inventory. NPC fungibles are
-    classified as "WORLD" by the mixin — transfers to players use the same
-    GoldService.pickup / ResourceService.pickup path as corpse looting.
+    Inherits the full combat/condition/effect infrastructure from BaseActor.
+    FungibleInventoryMixin is NOT included here — only CombatMob needs it
+    (for loot). Service NPCs transact via AMMs/training mechanisms, not
+    direct gold/resource inventory. Compose FungibleInventoryMixin into
+    individual NPCs that need it (e.g. pickpocketable NPCs).
     """
 
     is_pc = False  # Evennia convention — marks as non-player
@@ -58,7 +58,9 @@ class BaseNPC(FungibleInventoryMixin, BaseActor):
 
     def at_object_creation(self):
         super().at_object_creation()
-        self.at_fungible_init()
+        # Mixin inits (at_fungible_init, at_wearslots_init, etc.) are
+        # handled automatically by BaseActor.at_object_creation() via
+        # hasattr detection — no explicit calls needed here.
         # DefaultCharacter doesn't set call:true() — without it, Evennia
         # won't merge this NPC's CmdSet into nearby characters' commands.
         self.locks.add("call:true()")
