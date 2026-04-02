@@ -13,15 +13,22 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from typeclasses.items.mob_items.mob_item import MobItem
+from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
-class KoboldChieftain(HumanoidWearslotsMixin, AggressiveMob):
-    """A cunning kobold chieftain. Fights alone, dodges, rallies allies."""
+class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
+    """A cunning kobold chieftain. Fights alone, dodges, rallies allies.
+
+    Club + wooden shield. SKILLED club mastery gives stagger chance.
+    """
 
     is_unique = AttributeProperty(True)
     size = AttributeProperty("small")
+    default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
 
     # ── Stats ──
     hp = AttributeProperty(28)
@@ -53,6 +60,15 @@ class KoboldChieftain(HumanoidWearslotsMixin, AggressiveMob):
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
     respawn_delay = AttributeProperty(600)  # 10 minutes
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        weapon = MobItem.spawn_mob_item("club", location=self)
+        if weapon:
+            self.wear(weapon)
+        shield = MobItem.spawn_mob_item("wooden_shield", location=self)
+        if shield:
+            self.wear(shield)
 
     # ── Combat Tick — dodge 20% + rally cry ──
 

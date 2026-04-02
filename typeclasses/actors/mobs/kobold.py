@@ -18,15 +18,19 @@ cannot tell them apart:
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from typeclasses.items.mob_items.mob_item import MobItem
+from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.mob_behaviours.pack_courage_mixin import PackCourageMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
-class Kobold(PackCourageMixin, HumanoidWearslotsMixin, AggressiveMob):
+class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
     """A small, cowardly kobold. Fights in packs, flees when alone."""
 
     size = AttributeProperty("small")
+    default_weapon_masteries = {"dagger": MasteryLevel.BASIC.value}
 
     # ── Stats ──
     hp = AttributeProperty(14)
@@ -56,6 +60,12 @@ class Kobold(PackCourageMixin, HumanoidWearslotsMixin, AggressiveMob):
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
     respawn_delay = AttributeProperty(120)
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        weapon = MobItem.spawn_mob_item("training_dagger", location=self)
+        if weapon:
+            self.wear(weapon)
 
 
 class KoboldRecipeLoad(Kobold):
