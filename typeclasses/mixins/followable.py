@@ -6,9 +6,10 @@ Provides:
   - nofollow: whether others can follow this object
   - get_group_leader(): walk the follow chain to the root
   - get_followers(): find all direct/indirect followers
+  - at_followable_init(): tag for efficient DB queries
 
-Used by FCMCharacter and any NPC that should be followable
-(e.g. tutorial companion).
+Used by FCMCharacter (via direct composition) and combat mobs
+(via MobFollowableMixin which adds auto-reacquire logic).
 """
 
 from evennia import ObjectDB
@@ -21,6 +22,11 @@ class FollowableMixin:
     following = AttributeProperty(None)
     nofollow = AttributeProperty(False)
 
+    def at_followable_init(self):
+        """Tag this actor as followable for efficient DB queries."""
+        if not self.tags.has("followable", category="system"):
+            self.tags.add("followable", category="system")
+
     def get_group_leader(self):
         """Walk the follow chain to the root (the leader)."""
         visited = {self}
@@ -32,18 +38,29 @@ class FollowableMixin:
 
     def get_followers(self, same_room=False):
         """
-        Get all characters directly or indirectly following this object.
+        Get all actors directly or indirectly following this object.
 
         Args:
-            same_room: If True, only return followers in the same room.
+            same_room: If True, only return followers in the same room
+                       (uses room contents scan — fast, no DB query).
+                       If False, queries all followable actors globally.
         """
         results = []
-        direct = [
-            obj for obj in ObjectDB.objects.filter(
-                db_typeclass_path__contains="character"
-            )
-            if obj.following == self
-        ]
+        if same_room and self.location:
+            # Room scan — finds any actor type (characters + mobs)
+            direct = [
+                obj for obj in self.location.contents
+                if getattr(obj, "following", None) == self and obj != self
+            ]
+        else:
+            # Global query — uses followable tag for efficient filtering
+            direct = [
+                obj for obj in ObjectDB.objects.filter(
+                    db_tags__db_key="followable",
+                    db_tags__db_category="system",
+                )
+                if obj.following == self
+            ]
         for f in direct:
             if same_room and f.location != self.location:
                 continue

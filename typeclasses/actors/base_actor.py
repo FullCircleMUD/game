@@ -22,6 +22,7 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         for init_method in (
             "at_fungible_init",
             "at_wearslots_init",
+            "at_followable_init",
             "at_carrying_capacity_init",
             "at_recipe_book_init",
             "at_spellbook_init",

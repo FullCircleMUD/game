@@ -9,7 +9,12 @@ variants, all passive (fight back when attacked, don't aggro):
 - **RangedGuard** — leather armor, shortbow. Skilled bow, skilled
   bash. Level 5, 65 HP.
 - **GuardSergeant** — studded leather armor, bronze greatsword.
-  Expert greatsword, expert bash. Level 8, 98 HP. Unique boss.
+  Expert greatsword, expert bash. Level 8, 98 HP.
+
+Guards follow the sergeant via MobFollowableMixin. When any guard
+is attacked, enter_combat() pulls in the entire group — all guards
+and the sergeant fight together. Groups auto-reform after staggered
+respawns via ai_idle() reacquire.
 
 All guards are human warriors (emulated — no actual class needed).
 Stats: STR 14, DEX 12, CON 12, INT 10, WIS 10, CHA 10.
@@ -25,6 +30,7 @@ from typeclasses.actors.mob import CombatMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.combat_abilities import BashAbility
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
+from typeclasses.mixins.mob_behaviours.mob_followable_mixin import MobFollowableMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
@@ -61,10 +67,63 @@ def _set_guard_stats(mob, hp, level, initiative=1):
     mob.initiative_speed = initiative
 
 
-class MeleeGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
-    """Town guard with shortsword, shield, and leather armor."""
+# ── Sergeant defined first — guards reference it as squad_leader_typeclass ──
+
+class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
+    """Guard sergeant with greatsword and studded leather armor.
+
+    Squad leader — guards follow this mob via MobFollowableMixin.
+    Does not need MobFollowableMixin itself (it's the leader, not
+    a follower). Gets FollowableMixin from CombatMob.
+    """
+
+    default_weapon_masteries = {"greatsword": MasteryLevel.EXPERT.value}
+    # Override BashAbility default mastery to EXPERT
+    ability_mastery = MasteryLevel.EXPERT
+
+    # ── Combat fallbacks ──
+    damage_dice = AttributeProperty("2d6")
+    attack_message = AttributeProperty("swings at")
+    attack_delay_min = AttributeProperty(3)
+    attack_delay_max = AttributeProperty(6)
+
+    # ── Gold loot ──
+    loot_gold_max = AttributeProperty(20)
+
+    # ── Behavior ──
+    aggro_hp_threshold = AttributeProperty(0.15)
+    max_per_room = AttributeProperty(1)
+
+    # ── AI timing ──
+    ai_tick_interval = AttributeProperty(8)
+    respawn_delay = AttributeProperty(3600)
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        _set_guard_stats(self, hp=98, level=8, initiative=0)
+        self._equip_gear()
+
+    def _equip_gear(self):
+        """Spawn and equip gear from prototypes."""
+        armor = MobItem.spawn_mob_item("studded_leather_armor", location=self)
+        if armor:
+            self.wear(armor)
+        weapon = MobItem.spawn_mob_item("bronze_greatsword", location=self)
+        if weapon:
+            self.wear(weapon)
+
+
+# ── Guards — follow the sergeant via MobFollowableMixin ──
+
+class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWearslotsMixin, CombatMob):
+    """Town guard with shortsword, shield, and leather armor.
+
+    Follows the GuardSergeant via MobFollowableMixin. Auto-reacquires
+    the sergeant on each AI idle tick if not currently following.
+    """
 
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
+    squad_leader_typeclass = GuardSergeant
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")
@@ -101,10 +160,14 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Combat
             self.wear(shield)
 
 
-class RangedGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
-    """Town guard with shortbow and leather armor."""
+class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWearslotsMixin, CombatMob):
+    """Town guard with shortbow and leather armor.
+
+    Follows the GuardSergeant via MobFollowableMixin.
+    """
 
     default_weapon_masteries = {"bow": MasteryLevel.SKILLED.value}
+    squad_leader_typeclass = GuardSergeant
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")
@@ -134,46 +197,5 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Comba
         if armor:
             self.wear(armor)
         weapon = MobItem.spawn_mob_item("shortbow", location=self)
-        if weapon:
-            self.wear(weapon)
-
-
-class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
-    """Guard sergeant with greatsword and studded leather armor. Unique boss."""
-
-    default_weapon_masteries = {"greatsword": MasteryLevel.EXPERT.value}
-    # Override BashAbility default mastery to EXPERT
-    ability_mastery = MasteryLevel.EXPERT
-
-    is_unique = AttributeProperty(True)
-
-    # ── Combat fallbacks ──
-    damage_dice = AttributeProperty("2d6")
-    attack_message = AttributeProperty("swings at")
-    attack_delay_min = AttributeProperty(3)
-    attack_delay_max = AttributeProperty(6)
-
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(20)
-
-    # ── Behavior ──
-    aggro_hp_threshold = AttributeProperty(0.15)
-    max_per_room = AttributeProperty(1)
-
-    # ── AI timing ──
-    ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(3600)
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        _set_guard_stats(self, hp=98, level=8, initiative=0)
-        self._equip_gear()
-
-    def _equip_gear(self):
-        """Spawn and equip gear from prototypes."""
-        armor = MobItem.spawn_mob_item("studded_leather_armor", location=self)
-        if armor:
-            self.wear(armor)
-        weapon = MobItem.spawn_mob_item("bronze_greatsword", location=self)
         if weapon:
             self.wear(weapon)

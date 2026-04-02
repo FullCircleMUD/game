@@ -27,10 +27,11 @@ from evennia.utils.utils import delay
 from typeclasses.actors.ai_handler import StateMachineAIMixin
 from typeclasses.actors.npc import BaseNPC
 from typeclasses.mixins.combat_mixin import CombatMixin
+from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 
 
-class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, BaseNPC):
+class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, BaseNPC):
     """
     Base class for killable mobs with AI behavior.
 
