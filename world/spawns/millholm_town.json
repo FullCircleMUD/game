@@ -34,5 +34,14 @@
         "max_per_room": 1,
         "respawn_seconds": 3600,
         "desc": "A town watchman in leather armor patrols the streets, bronze shortsword at the hip and a round wooden shield on one arm. The sigil of Millholm is stitched onto a tabard over the armor."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.townfolk.Townfolk",
+        "key": "a townsperson",
+        "area_tag": "city_watch_patrol",
+        "target": 3,
+        "max_per_room": 1,
+        "respawn_seconds": 600,
+        "desc": "An ordinary townsperson hurrying along on some errand, paying little attention to their surroundings."
     }
 ]
