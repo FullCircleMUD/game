@@ -19,6 +19,8 @@ from typeclasses.actors.mobs.town_guard import MeleeGuard
 class CityWatch(MeleeGuard):
     """Roaming city watch guard. Same as MeleeGuard but wanders town streets."""
 
+    room_description = AttributeProperty("patrols the streets, eyes scanning the crowd.")
+
     def ai_wander(self):
         """Override MeleeGuard's stationary no-op — city watch patrols."""
         CombatMob.ai_wander(self)

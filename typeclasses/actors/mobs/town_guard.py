@@ -77,6 +77,8 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
     a follower). Gets FollowableMixin from CombatMob.
     """
 
+    room_description = AttributeProperty("stands watch here, a bronze greatsword resting across broad shoulders.")
+
     default_weapon_masteries = {"greatsword": MasteryLevel.EXPERT.value}
     # Override BashAbility default mastery to EXPERT
     ability_mastery = MasteryLevel.EXPERT
@@ -127,12 +129,13 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWe
     Stationary — does not wander from post.
     """
 
+    room_description = AttributeProperty("stands guard here, hand on sword hilt.")
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
+    squad_leader_typeclass = GuardSergeant
 
     def ai_wander(self):
         """Stationary — gate guards stay at their post."""
         pass
-    squad_leader_typeclass = GuardSergeant
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")
@@ -176,6 +179,7 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidW
     Stationary — does not wander from post.
     """
 
+    room_description = AttributeProperty("stands guard here, bow at the ready.")
     default_weapon_masteries = {"bow": MasteryLevel.SKILLED.value}
     squad_leader_typeclass = GuardSergeant
 

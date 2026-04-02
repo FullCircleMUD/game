@@ -16,6 +16,8 @@ from typeclasses.actors.mob import CombatMob
 class Townfolk(CombatMob):
     """A nondescript townsperson going about their business."""
 
+    room_description = AttributeProperty("hurries past on some errand.")
+
     # ── Combat ──
     damage_dice = AttributeProperty("1d2")
     attack_message = AttributeProperty("flails at")

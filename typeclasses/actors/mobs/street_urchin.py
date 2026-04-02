@@ -31,6 +31,8 @@ _SUBTERFUGE_BONUS = MasteryLevel.SKILLED.bonus
 class StreetUrchin(CombatMob):
     """A street urchin with quick fingers."""
 
+    room_description = AttributeProperty("loiters here, eyes darting to every coin pouch.")
+
     # ── Combat ──
     damage_dice = AttributeProperty("1d3")
     attack_message = AttributeProperty("kicks at")
