@@ -98,6 +98,10 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(3600)
 
+    def ai_wander(self):
+        """Stationary — sergeant stays at the gate."""
+        pass
+
     def at_object_creation(self):
         super().at_object_creation()
         _set_guard_stats(self, hp=98, level=8, initiative=0)
@@ -120,9 +124,14 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWe
 
     Follows the GuardSergeant via MobFollowableMixin. Auto-reacquires
     the sergeant on each AI idle tick if not currently following.
+    Stationary — does not wander from post.
     """
 
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
+
+    def ai_wander(self):
+        """Stationary — gate guards stay at their post."""
+        pass
     squad_leader_typeclass = GuardSergeant
 
     # ── Combat fallbacks ──
@@ -164,10 +173,15 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidW
     """Town guard with shortbow and leather armor.
 
     Follows the GuardSergeant via MobFollowableMixin.
+    Stationary — does not wander from post.
     """
 
     default_weapon_masteries = {"bow": MasteryLevel.SKILLED.value}
     squad_leader_typeclass = GuardSergeant
+
+    def ai_wander(self):
+        """Stationary — gate guards stay at their post."""
+        pass
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")

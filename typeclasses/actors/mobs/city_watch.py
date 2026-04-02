@@ -12,9 +12,13 @@ per tick, area-contained by mob_area tag).
 Passive — fight back when attacked, don't aggro on sight.
 """
 
+from typeclasses.actors.mob import CombatMob
 from typeclasses.actors.mobs.town_guard import MeleeGuard
 
 
 class CityWatch(MeleeGuard):
     """Roaming city watch guard. Same as MeleeGuard but wanders town streets."""
-    pass
+
+    def ai_wander(self):
+        """Override MeleeGuard's stationary no-op — city watch patrols."""
+        CombatMob.ai_wander(self)
