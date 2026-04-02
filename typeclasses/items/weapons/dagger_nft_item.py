@@ -12,6 +12,9 @@ Mastery progression:
     EXPERT:    +4 hit, +1 extra attack, crit on 19+ (-1), 0 off-hand
     MASTER:    +6 hit, +1 extra attack, crit on 19+ (-1), 1 off-hand
     GM:        +8 hit, +1 extra attack, crit on 18+ (-2), 1 off-hand
+
+DaggerMixin defines all mastery tables and overrides — shared by
+both DaggerNFTItem (player weapons) and MobDagger (mob weapons).
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -48,23 +51,16 @@ _DAGGER_CRIT_MODIFIER = {
 }
 
 
-class DaggerNFTItem(WeaponNFTItem):
-    """
-    Dagger weapons — melee, finesse, speed + crit focused mastery path.
+class DaggerMixin:
+    """Dagger weapon identity — mastery tables and overrides.
+
+    Shared by DaggerNFTItem and MobDagger. Single source of truth
+    for dagger combat mechanics.
     """
 
     weapon_type_key = "dagger"
     is_finesse = AttributeProperty(True)
     can_dual_wield = AttributeProperty(True)
-    excluded_classes = AttributeProperty([CharacterClass.CLERIC])
-
-    def at_object_creation(self):
-        super().at_object_creation()
-        self.tags.add("dagger", category="weapon_type")
-
-    # ================================================================== #
-    #  Mastery Overrides
-    # ================================================================== #
 
     def get_parries_per_round(self, wielder):
         return 0
@@ -80,3 +76,15 @@ class DaggerNFTItem(WeaponNFTItem):
     def get_offhand_attacks(self, wielder):
         mastery = self.get_wielder_mastery(wielder)
         return _DAGGER_OFFHAND_ATTACKS.get(mastery, 0)
+
+
+class DaggerNFTItem(DaggerMixin, WeaponNFTItem):
+    """
+    Dagger weapons — melee, finesse, speed + crit focused mastery path.
+    """
+
+    excluded_classes = AttributeProperty([CharacterClass.CLERIC])
+
+    def at_object_creation(self):
+        super().at_object_creation()
+        self.tags.add("dagger", category="weapon_type")

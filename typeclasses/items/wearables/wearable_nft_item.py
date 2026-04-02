@@ -28,20 +28,22 @@ Subclass hierarchy:
     └── (future subclasses for complex behaviour)
 """
 
-from evennia.typeclasses.attributes import AttributeProperty
-
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.mixins.durability import DurabilityMixin
+from typeclasses.mixins.wearable_mixin import WearableMixin
 
 
-class WearableNFTItem(DurabilityMixin, BaseNFTItem):
+class WearableNFTItem(DurabilityMixin, WearableMixin, BaseNFTItem):
     """
     Base class for all equippable NFTs (armor, weapons, holdables, etc.).
 
+    Inherits from WearableMixin:
+        wearslot, wear_effects, at_wear/at_remove (equip/unequip hooks)
+
+    Inherits from DurabilityMixin:
+        max_durability, durability, reduce_durability(), at_break()
+
     Attributes (from prototype):
-        wearslot       — str or list of str, which slot(s) this item fits
-                         Uses enum values from enums.wearslot
-        wear_effects   — list of effect dicts applied on equip/removed on unequip
         max_durability — int, maximum durability (0 = unbreakable)
         weight         — float, item weight (inherited from BaseNFTItem)
 
@@ -49,56 +51,10 @@ class WearableNFTItem(DurabilityMixin, BaseNFTItem):
         durability     — int, current durability
     """
 
-    # Which wearslot(s) this item can be equipped in.
-    # Set by prototype. String for single-slot items ("HEAD"),
-    # list for multi-slot items (["LEFT_EAR", "RIGHT_EAR"]).
-    wearslot = AttributeProperty(None)
-
-    # Data-driven effects applied on equip, reversed on unequip.
-    # Each entry is a dict, e.g. {"type": "stat_bonus", "stat": "armor_class", "value": 2}
-    wear_effects = AttributeProperty(default=list)
-
     def at_object_creation(self):
         super().at_object_creation()
         self.tags.add("wearable", category="item_type")
         self.at_durability_init()
-
-    # ================================================================== #
-    #  Equip / Unequip Hooks
-    # ================================================================== #
-
-    def at_wear(self, wearer):
-        """
-        Called by BaseWearslotsMixin.wear() after this item is equipped.
-
-        Condition effects are applied incrementally (ref-counted).
-        Numeric stat effects are handled by nuclear recalculate — the
-        item is already in wearslots when this hook fires, so
-        _recalculate_stats() will see it.
-
-        Args:
-            wearer: the Evennia object wearing this item
-        """
-        for effect in self.wear_effects or []:
-            if effect.get("type") == "condition":
-                wearer.apply_effect(effect)
-        wearer._recalculate_stats()
-
-    def at_remove(self, wearer):
-        """
-        Called by BaseWearslotsMixin.remove() after this item is unequipped.
-
-        Condition effects are removed incrementally (ref-counted).
-        Numeric stat effects are handled by nuclear recalculate — the
-        item is already out of wearslots when this hook fires.
-
-        Args:
-            wearer: the Evennia object removing this item
-        """
-        for effect in self.wear_effects or []:
-            if effect.get("type") == "condition":
-                wearer.remove_effect(effect)
-        wearer._recalculate_stats()
 
     # ================================================================== #
     #  Durability — at_break implementation

@@ -10,7 +10,7 @@ For weapons use 'wield'. For shields/torches use 'hold'.
 
 from evennia import Command
 
-from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
+from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
@@ -57,7 +57,7 @@ class CmdWear(Command):
             return
 
         # Type checks — guide player to correct command
-        if isinstance(item, WeaponNFTItem):
+        if isinstance(item, WeaponMechanicsMixin):
             caller.msg("Use 'wield' for weapons.")
             return
         if isinstance(item, HoldableNFTItem):

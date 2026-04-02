@@ -11,7 +11,7 @@ from evennia import Command
 
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
-from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
+from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 
@@ -61,7 +61,7 @@ class CmdHold(Command):
         # Type check — holdable OR dual-wield weapon
         is_holdable = isinstance(item, HoldableNFTItem)
         is_dual_wield = (
-            isinstance(item, WeaponNFTItem) and getattr(item, "can_dual_wield", False)
+            isinstance(item, WeaponMechanicsMixin) and getattr(item, "can_dual_wield", False)
         )
         if not is_holdable and not is_dual_wield:
             caller.msg("That's not something you can hold.")

@@ -368,14 +368,14 @@ class CombatMob(CombatMixin, StateMachineAIMixin, BaseNPC):
                 if item is not None:
                     self.remove(item)
 
-        # Transfer loot to corpse; delete non-loot equipment.
-        # NFT items placed by the spawn system are tagged "loot" (category
-        # "item"). Mob equipment (weapons, armour) is untagged and deleted
-        # on death so it doesn't enter the player economy.
-        from typeclasses.items.base_nft_item import BaseNFTItem
+        # Transfer loot to corpse; delete mob equipment.
+        # MobItem instances (weapons, armour, consumables) are mob-only
+        # and never enter the player economy — deleted on death.
+        # Everything else (NFT loot from spawn system, fungibles) transfers.
+        from typeclasses.items.mob_items.mob_item import MobItem
 
         for obj in list(self.contents):
-            if isinstance(obj, BaseNFTItem) and not obj.tags.has("loot", category="item"):
+            if isinstance(obj, MobItem):
                 obj.delete()
             else:
                 obj.move_to(corpse, quiet=True, move_type="teleport")

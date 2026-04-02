@@ -9,7 +9,7 @@ Usage:
 from evennia import Command
 
 from enums.wearslot import HumanoidWearSlot
-from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
+from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 
@@ -55,7 +55,7 @@ class CmdWield(Command):
             return
 
         # Type check
-        if not isinstance(item, WeaponNFTItem):
+        if not isinstance(item, WeaponMechanicsMixin):
             from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
             if isinstance(item, HoldableNFTItem):
                 caller.msg(f"That's not a weapon. Try |whold {item.key}|n instead.")

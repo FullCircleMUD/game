@@ -77,17 +77,17 @@ def get_offhand_weapon(actor):
     """
     Get actor's off-hand weapon from the HOLD slot, if any.
 
-    Only returns a weapon if the HOLD slot contains a WeaponNFTItem.
-    Holdables (shields, torches) are NOT off-hand weapons.
+    Only returns a weapon if the HOLD slot contains a weapon object
+    (NFT or mob). Holdables (shields, torches) are NOT off-hand weapons.
 
     Returns:
-        WeaponNFTItem or None
+        Weapon object or None
     """
     if not hasattr(actor, "get_slot"):
         return None
-    from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
+    from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
     held = actor.get_slot("HOLD")
-    if held and isinstance(held, WeaponNFTItem):
+    if held and isinstance(held, WeaponMechanicsMixin):
         return held
     return None
 
