@@ -20,13 +20,22 @@ players cannot tell them apart:
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from typeclasses.items.mob_items.mob_item import MobItem
+from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.mob_behaviours.rampage_mixin import RampageMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
-class Gnoll(RampageMixin, HumanoidWearslotsMixin, AggressiveMob):
-    """A savage gnoll raider. Rampages through enemies on a kill."""
+class Gnoll(RampageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
+    """A savage gnoll raider. Rampages through enemies on a kill.
+
+    Equipped with crude hide armor (leather) and bronze spear.
+    BASIC spear mastery — no special abilities yet, just base damage.
+    """
+
+    default_weapon_masteries = {"spear": MasteryLevel.BASIC.value}
 
     # ── Stats ──
     hp = AttributeProperty(40)
@@ -59,6 +68,18 @@ class Gnoll(RampageMixin, HumanoidWearslotsMixin, AggressiveMob):
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(180)
 
+    def at_object_creation(self):
+        super().at_object_creation()
+        armor = MobItem.spawn_mob_item("leather_armor", location=self)
+        if armor:
+            # Rebrand as crude hide for gnoll flavour
+            armor.key = "Crude Hide Armor"
+            armor.desc = "Rough-cured animal hides lashed together with sinew. Crude but functional."
+            self.wear(armor)
+        weapon = MobItem.spawn_mob_item("bronze_spear", location=self)
+        if weapon:
+            self.wear(weapon)
+
     # ── Retreat ──
 
     def ai_retreating(self):
@@ -78,6 +99,24 @@ class Gnoll(RampageMixin, HumanoidWearslotsMixin, AggressiveMob):
                     exclude=[self],
                 )
             self.move_to(exi.destination, quiet=False)
+
+
+class GnollArcher(Gnoll):
+    """Gnoll variant with shortbow instead of spear. Covers flying targets."""
+
+    default_weapon_masteries = {"bow": MasteryLevel.BASIC.value}
+
+    def at_object_creation(self):
+        # Skip Gnoll's spear equip — archer gets bow
+        super(Gnoll, self).at_object_creation()
+        armor = MobItem.spawn_mob_item("leather_armor", location=self)
+        if armor:
+            armor.key = "Crude Hide Armor"
+            armor.desc = "Rough-cured animal hides lashed together with sinew. Crude but functional."
+            self.wear(armor)
+        weapon = MobItem.spawn_mob_item("shortbow", location=self)
+        if weapon:
+            self.wear(weapon)
 
 
 class GnollRecipeLoad(Gnoll):

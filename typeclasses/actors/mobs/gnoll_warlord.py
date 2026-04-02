@@ -13,13 +13,20 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.gnoll import Gnoll
+from typeclasses.items.mob_items.mob_item import MobItem
 
 
 class GnollWarlord(Gnoll):
-    """A massive gnoll warlord. Rampages, never retreats, dodges."""
+    """A massive gnoll warlord. Rampages, never retreats, dodges.
+
+    Battleaxe + crude hide armor. SKILLED battleaxe mastery gives
+    20% sunder (-1 AC) and 20% cleave on kills.
+    """
 
     is_unique = AttributeProperty(True)
+    default_weapon_masteries = {"battleaxe": MasteryLevel.SKILLED.value}
 
     # ── Stats ──
     hp = AttributeProperty(75)
@@ -51,6 +58,19 @@ class GnollWarlord(Gnoll):
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
     respawn_delay = AttributeProperty(600)  # 10 minutes
+
+    def at_object_creation(self):
+        # Skip Gnoll's at_object_creation (spear) — warlord gets battleaxe
+        # Call grandparent chain directly
+        super(Gnoll, self).at_object_creation()
+        armor = MobItem.spawn_mob_item("leather_armor", location=self)
+        if armor:
+            armor.key = "Crude Hide Armor"
+            armor.desc = "Heavy beast hides layered and riveted with bone pins. Better than most gnoll gear."
+            self.wear(armor)
+        weapon = MobItem.spawn_mob_item("bronze_battleaxe", location=self)
+        if weapon:
+            self.wear(weapon)
 
     # ── Combat Tick — dodge 20% ──
 
