@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 N95_MASK = {
     "prototype_key": "n95_mask",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "N95 Mask",
     "aliases": ["mask", "n95"],
     "desc": "A tightly woven cloth mask that fits snugly over the nose and mouth. The weave is remarkably fine, filtering all but the smallest particles.",

@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 WARDENS_LEATHER = {
     "prototype_key": "wardens_leather",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Warden's Leather",
     "aliases": ["armor", "leather", "warden's leather", "wardens leather"],
     "desc": "Leather armor enchanted to turn aside piercing blows. The surface shimmers faintly with protective magic.",

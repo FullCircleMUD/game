@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 COARSE_ROBE = {
     "prototype_key": "coarse_robe",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Coarse Robe",
     "aliases": ["robe"],
     "desc": "A rough-spun robe of undyed cloth. Simple and functional.",

@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 AQUATIC_N95 = {
     "prototype_key": "aquatic_n95",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Aquatic N95",
     "aliases": ["mask", "n95", "aquatic n95"],
     "desc": "A tightly woven cloth mask shimmering with enchantment. Tiny runes along the seams glow faintly blue. When worn, it filters breathable air from water itself.",

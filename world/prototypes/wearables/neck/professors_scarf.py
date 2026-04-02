@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 PROFESSORS_SCARF = {
     "prototype_key": "professors_scarf",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Professor's Scarf",
     "aliases": ["scarf", "professors scarf"],
     "desc": "A finely woven scarf embroidered with arcane sigils. It hums faintly with intellectual energy.",

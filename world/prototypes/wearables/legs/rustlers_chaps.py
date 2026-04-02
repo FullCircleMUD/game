@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 RUSTLERS_CHAPS = {
     "prototype_key": "rustlers_chaps",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Rustler's Chaps",
     "aliases": ["chaps", "rustlers chaps"],
     "desc": "Rugged leather chaps enchanted to grant the wearer tireless stamina on long rides.",

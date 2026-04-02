@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 LEATHER_BELT = {
     "prototype_key": "leather_belt",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Leather Belt",
     "aliases": ["belt"],
     "desc": "A wide leather belt with an iron buckle.",

@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 SCOUTS_CAP = {
     "prototype_key": "scouts_cap",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Scout's Cap",
     "aliases": ["cap", "scouts cap"],
     "desc": "A close-fitting leather cap enchanted to sharpen the wearer's reflexes.",

@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 TRUEWATCH_STUDS = {
     "prototype_key": "truewatch_studs",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Truewatch Studs",
     "aliases": ["studs", "earrings", "truewatch studs"],
     "desc": "Copper studs enchanted to sharpen the wearer's awareness. Nothing escapes their notice.",

@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 COPPER_CHAIN = {
     "prototype_key": "copper_chain",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Copper Chain",
     "aliases": ["chain", "necklace"],
     "desc": "A delicate chain of copper links with a warm lustre.",

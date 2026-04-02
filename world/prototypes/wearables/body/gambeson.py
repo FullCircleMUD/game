@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 GAMBESON = {
     "prototype_key": "gambeson",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Gambeson",
     "aliases": ["gambeson"],
     "desc": "Layers of quilted cloth stitched over a linen lining. Light but protective.",

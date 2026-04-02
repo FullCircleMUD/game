@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 COWBOY_BOOTS = {
     "prototype_key": "cowboy_boots",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Cowboy Boots",
     "aliases": ["boots", "cowboy boots"],
     "desc": "Tooled leather boots with pointed toes, enchanted to reveal the unseen.",

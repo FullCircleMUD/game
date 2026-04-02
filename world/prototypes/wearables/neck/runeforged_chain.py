@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 RUNEFORGED_CHAIN = {
     "prototype_key": "runeforged_chain",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Runeforged Chain",
     "aliases": ["chain", "necklace", "runeforged chain"],
     "desc": "A copper chain inscribed with dwarven runes of war. It hums with quiet fury in dwarven hands.",

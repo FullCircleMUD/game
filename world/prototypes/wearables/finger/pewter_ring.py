@@ -3,6 +3,7 @@ from enums.wearslot import HumanoidWearSlot
 PEWTER_RING = {
     "prototype_key": "pewter_ring",
     "typeclass": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_wearable.MobWearable",
     "key": "Pewter Ring",
     "aliases": ["ring"],
     "desc": "A simple band of pewter, polished to a dull sheen.",
