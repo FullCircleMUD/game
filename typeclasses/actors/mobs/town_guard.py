@@ -28,6 +28,39 @@ from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
 
+def _set_guard_stats(mob, hp, level, initiative=1):
+    """Set base and current stats for a guard mob.
+
+    Sets base_* values first (Tier 1) so that _recalculate_stats()
+    (triggered by wear/buff changes) rebuilds Tier 2 correctly.
+    Then sets current values and HP.
+    """
+    # Tier 1 — base values (never changed by recalculate)
+    mob.base_strength = 14
+    mob.base_dexterity = 12
+    mob.base_constitution = 12
+    mob.base_intelligence = 10
+    mob.base_wisdom = 10
+    mob.base_charisma = 10
+    mob.base_armor_class = 10
+    mob.base_hp_max = hp
+
+    # Tier 2 — current values (rebuilt by _recalculate_stats)
+    mob.strength = 14
+    mob.dexterity = 12
+    mob.constitution = 12
+    mob.intelligence = 10
+    mob.wisdom = 10
+    mob.charisma = 10
+    mob.armor_class = 10
+    mob.hp_max = hp
+    mob.hp = hp
+
+    # Other
+    mob.level = level
+    mob.initiative_speed = initiative
+
+
 class MeleeGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
     """Town guard with shortsword, shield, and leather armor."""
 
@@ -52,27 +85,8 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Combat
 
     def at_object_creation(self):
         super().at_object_creation()
-        self._set_stats()
+        _set_guard_stats(self, hp=65, level=5, initiative=1)
         self._equip_gear()
-
-    def _set_stats(self):
-        """Set stats explicitly — AttributeProperty overrides are unreliable
-        across deep MRO chains."""
-        self.hp = 65
-        self.hp_max = 65
-        self.strength = 14
-        self.base_strength = 14
-        self.dexterity = 12
-        self.base_dexterity = 12
-        self.constitution = 12
-        self.base_constitution = 12
-        self.intelligence = 10
-        self.wisdom = 10
-        self.charisma = 10
-        self.base_armor_class = 10
-        self.armor_class = 10
-        self.level = 5
-        self.initiative_speed = 1
 
     def _equip_gear(self):
         """Spawn and equip gear from prototypes."""
@@ -111,25 +125,8 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Comba
 
     def at_object_creation(self):
         super().at_object_creation()
-        self._set_stats()
+        _set_guard_stats(self, hp=65, level=5, initiative=1)
         self._equip_gear()
-
-    def _set_stats(self):
-        self.hp = 65
-        self.hp_max = 65
-        self.strength = 14
-        self.base_strength = 14
-        self.dexterity = 12
-        self.base_dexterity = 12
-        self.constitution = 12
-        self.base_constitution = 12
-        self.intelligence = 10
-        self.wisdom = 10
-        self.charisma = 10
-        self.base_armor_class = 10
-        self.armor_class = 10
-        self.level = 5
-        self.initiative_speed = 1
 
     def _equip_gear(self):
         """Spawn and equip gear from prototypes."""
@@ -169,25 +166,8 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
 
     def at_object_creation(self):
         super().at_object_creation()
-        self._set_stats()
+        _set_guard_stats(self, hp=98, level=8, initiative=0)
         self._equip_gear()
-
-    def _set_stats(self):
-        self.hp = 98
-        self.hp_max = 98
-        self.strength = 14
-        self.base_strength = 14
-        self.dexterity = 12
-        self.base_dexterity = 12
-        self.constitution = 12
-        self.base_constitution = 12
-        self.intelligence = 10
-        self.wisdom = 10
-        self.charisma = 10
-        self.base_armor_class = 10
-        self.armor_class = 10
-        self.level = 8
-        self.initiative_speed = 0
 
     def _equip_gear(self):
         """Spawn and equip gear from prototypes."""
