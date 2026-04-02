@@ -3,6 +3,8 @@ Tests for mob corpse creation on death.
 
 Verifies that CombatMob.die() creates a lootable Corpse object,
 transfers contents, and that the corpse is immediately unlocked.
+MobItem instances (mob equipment) are deleted on death; everything
+else (NFT loot, plain objects) transfers to the corpse.
 
 evennia test --settings settings tests.typeclass_tests.test_mob_corpse
 """
@@ -143,32 +145,16 @@ class TestMobCorpse(EvenniaTest):
         self.assertTrue(corpse.can_loot(self.char1))
 
     @patch("evennia.utils.utils.delay")
-    def test_loot_tagged_nft_transfers_to_corpse(self, mock_delay):
-        """NFT items tagged 'loot' should transfer to the corpse."""
+    def test_nft_items_transfer_to_corpse(self, mock_delay):
+        """NFT items on a mob should transfer to the corpse (loot)."""
         item = create.create_object(
             "typeclasses.items.base_nft_item.BaseNFTItem",
             key="a spell scroll",
             location=self.mob,
         )
-        item.tags.add("loot", category="item")
         self.mob.die("combat")
         corpse = self._find_corpse(self.room1)
         self.assertIn(item, corpse.contents)
-
-    @patch("evennia.utils.utils.delay")
-    def test_untagged_nft_deleted_on_death(self, mock_delay):
-        """NFT items without 'loot' tag (mob equipment) should be deleted."""
-        item = create.create_object(
-            "typeclasses.items.base_nft_item.BaseNFTItem",
-            key="a bronze longsword",
-            location=self.mob,
-        )
-        item_pk = item.pk
-        self.mob.die("combat")
-        corpse = self._find_corpse(self.room1)
-        self.assertNotIn(item, corpse.contents)
-        from typeclasses.items.base_nft_item import BaseNFTItem
-        self.assertFalse(BaseNFTItem.objects.filter(pk=item_pk).exists())
 
     @patch("evennia.utils.utils.delay")
     def test_non_nft_items_always_transfer(self, mock_delay):
@@ -182,21 +168,54 @@ class TestMobCorpse(EvenniaTest):
         corpse = self._find_corpse(self.room1)
         self.assertIn(item, corpse.contents)
 
+    # ================================================================== #
+    #  MobItem filtering — mob equipment deleted on death
+    # ================================================================== #
+
     @patch("evennia.utils.utils.delay")
-    def test_mixed_loot_and_equipment(self, mock_delay):
-        """Only loot-tagged NFTs and non-NFTs transfer; equipment deleted."""
+    def test_mob_weapon_deleted_on_death(self, mock_delay):
+        """MobWeapon instances should be deleted, not transferred to corpse."""
+        weapon = create.create_object(
+            "typeclasses.items.mob_items.mob_weapons.MobDagger",
+            key="a crude shiv",
+            location=self.mob,
+        )
+        weapon_pk = weapon.pk
+        self.mob.die("combat")
+        corpse = self._find_corpse(self.room1)
+        self.assertNotIn(weapon, corpse.contents)
+        from typeclasses.items.mob_items.mob_weapons import MobDagger
+        self.assertFalse(MobDagger.objects.filter(pk=weapon_pk).exists())
+
+    @patch("evennia.utils.utils.delay")
+    def test_mob_wearable_deleted_on_death(self, mock_delay):
+        """MobWearable instances should be deleted on death."""
+        armor = create.create_object(
+            "typeclasses.items.mob_items.mob_wearable.MobWearable",
+            key="crude leather armor",
+            location=self.mob,
+        )
+        armor_pk = armor.pk
+        self.mob.die("combat")
+        corpse = self._find_corpse(self.room1)
+        self.assertNotIn(armor, corpse.contents)
+        from typeclasses.items.mob_items.mob_wearable import MobWearable
+        self.assertFalse(MobWearable.objects.filter(pk=armor_pk).exists())
+
+    @patch("evennia.utils.utils.delay")
+    def test_mixed_mob_equipment_and_nft_loot(self, mock_delay):
+        """MobItem equipment deleted, NFT loot + plain items transferred."""
+        weapon = create.create_object(
+            "typeclasses.items.mob_items.mob_weapons.MobDagger",
+            key="a crude shiv",
+            location=self.mob,
+        )
+        weapon_pk = weapon.pk
         scroll = create.create_object(
             "typeclasses.items.base_nft_item.BaseNFTItem",
             key="a recipe scroll",
             location=self.mob,
         )
-        scroll.tags.add("loot", category="item")
-        weapon = create.create_object(
-            "typeclasses.items.base_nft_item.BaseNFTItem",
-            key="a bronze sword",
-            location=self.mob,
-        )
-        weapon_pk = weapon.pk
         trinket = create.create_object(
             "evennia.objects.objects.DefaultObject",
             key="a trinket",
@@ -204,8 +223,10 @@ class TestMobCorpse(EvenniaTest):
         )
         self.mob.die("combat")
         corpse = self._find_corpse(self.room1)
+        # NFT loot and trinkets transfer
         self.assertIn(scroll, corpse.contents)
         self.assertIn(trinket, corpse.contents)
+        # Mob equipment deleted
         self.assertNotIn(weapon, corpse.contents)
-        from typeclasses.items.base_nft_item import BaseNFTItem
-        self.assertFalse(BaseNFTItem.objects.filter(pk=weapon_pk).exists())
+        from typeclasses.items.mob_items.mob_weapons import MobDagger
+        self.assertFalse(MobDagger.objects.filter(pk=weapon_pk).exists())

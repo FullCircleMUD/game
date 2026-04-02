@@ -45,18 +45,28 @@ class TestMobScrollRecipeTags(EvenniaTest):
         tags = mob.tags.get(category="spawn_scrolls", return_list=True)
         self.assertNotIn("spawn_scrolls", tags)
 
-    def test_kobold_has_recipe_tag(self):
-        """Kobold gets spawn_recipes tag."""
+    def test_kobold_base_has_no_recipe_tag(self):
+        """Base Kobold has no knowledge loot (moved to KoboldRecipeLoad variant)."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
             location=self.room,
         )
         tags = mob.tags.get(category="spawn_recipes", return_list=True)
+        self.assertNotIn("spawn_recipes", tags)
+
+    def test_kobold_recipe_load_has_recipe_tag(self):
+        """KoboldRecipeLoad variant gets spawn_recipes tag."""
+        mob = create.create_object(
+            "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
+            key="a kobold",
+            location=self.room,
+        )
+        tags = mob.tags.get(category="spawn_recipes", return_list=True)
         self.assertIn("spawn_recipes", tags)
 
-    def test_kobold_has_no_scrolls_max(self):
-        """Kobold has no spawn_scrolls_max (empty dict)."""
+    def test_kobold_base_has_no_scrolls_max(self):
+        """Base Kobold has no spawn_scrolls_max (empty dict)."""
         mob = create.create_object(
             "typeclasses.actors.mobs.kobold.Kobold",
             key="a kobold",
@@ -64,26 +74,45 @@ class TestMobScrollRecipeTags(EvenniaTest):
         )
         self.assertFalse(mob.spawn_scrolls_max)
 
-    def test_kobold_recipes_max_is_basic(self):
-        """Kobold gets builder-set basic tier dict."""
+    def test_kobold_recipe_load_recipes_max_is_basic(self):
+        """KoboldRecipeLoad variant gets basic tier dict."""
         mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.Kobold",
+            "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
             key="a kobold",
             location=self.room,
         )
         expected = {"basic": 1}
         self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
-    def test_gnoll_has_basic_tier(self):
-        """Gnoll gets builder-set basic tier dict."""
+    def test_gnoll_base_has_no_knowledge(self):
+        """Base Gnoll has no knowledge loot (moved to GnollRecipeLoad/GnollScrollLoad variants)."""
         mob = create.create_object(
             "typeclasses.actors.mobs.gnoll.Gnoll",
             key="a gnoll",
             location=self.room,
         )
+        self.assertFalse(mob.spawn_scrolls_max)
+        self.assertFalse(mob.spawn_recipes_max)
+
+    def test_gnoll_recipe_load_has_basic_tier(self):
+        """GnollRecipeLoad variant gets basic tier recipe dict."""
+        mob = create.create_object(
+            "typeclasses.actors.mobs.gnoll.GnollRecipeLoad",
+            key="a gnoll raider",
+            location=self.room,
+        )
+        expected = {"basic": 1}
+        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+
+    def test_gnoll_scroll_load_has_basic_tier(self):
+        """GnollScrollLoad variant gets basic tier scroll dict."""
+        mob = create.create_object(
+            "typeclasses.actors.mobs.gnoll.GnollScrollLoad",
+            key="a gnoll raider",
+            location=self.room,
+        )
         expected = {"basic": 1}
         self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
     def test_gnoll_warlord_has_skilled_tier(self):
         """GnollWarlord gets builder-set skilled tier dict."""

@@ -3,6 +3,7 @@ from enums.unused_for_reference.damage_type import DamageType
 SHEPHERDS_SLING = {
     "prototype_key": "shepherds_sling",
     "typeclass": "typeclasses.items.weapons.sling_nft_item.SlingNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_weapons.MobSling",
     "key": "Shepherd's Sling",
     "aliases": ["sling", "shepherd's sling", "shepherds sling"],
     "desc": "A leather sling imbued with arcane precision. Stones thrown from it fly straighter and hit harder.",

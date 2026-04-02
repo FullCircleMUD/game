@@ -3,6 +3,7 @@ from enums.unused_for_reference.damage_type import DamageType
 IRON_LONGSWORD = {
     "prototype_key": "iron_longsword",
     "typeclass": "typeclasses.items.weapons.longsword_nft_item.LongswordNFTItem",
+    "mob_typeclass": "typeclasses.items.mob_items.mob_weapons.MobLongsword",
     "key": "Iron Longsword",
     "aliases": ["sword", "longsword", "iron"],
     "desc": "A sturdy iron blade, forged by a competent smith.",

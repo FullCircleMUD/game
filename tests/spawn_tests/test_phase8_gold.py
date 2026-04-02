@@ -63,13 +63,13 @@ class TestMobGoldTags(EvenniaTest):
         self.assertEqual(mob.db.spawn_gold_max, 6)
 
     def test_gnoll_gold_max(self):
-        """Gnoll spawn_gold_max should be 8."""
+        """Base Gnoll spawn_gold_max should be 3 (reduced from 8 in loot variant split)."""
         mob = create.create_object(
             "typeclasses.actors.mobs.gnoll.Gnoll",
             key="a gnoll",
             location=self.room,
         )
-        self.assertEqual(mob.db.spawn_gold_max, 8)
+        self.assertEqual(mob.db.spawn_gold_max, 3)
 
     def test_gnoll_warlord_gold_max(self):
         """GnollWarlord spawn_gold_max should be 15."""
