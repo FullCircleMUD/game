@@ -323,3 +323,210 @@ def get_last_interaction_time(npc_id, speaker_id, npc_name=None, speaker_name=No
     if last:
         return last.created_at, _time_ago_str(last.created_at)
     return None, None
+
+
+# ── Lore Memory ──────────────────────────────────────────────────────
+
+
+def _build_lore_scope_filter(npc_scope_tags):
+    """
+    Build a Q filter for lore entries accessible to an NPC.
+
+    Continental entries are always included. For each tag in
+    ``npc_scope_tags``, entries whose ``scope_tags`` JSON list contains
+    that tag are included. Uses ``__contains`` which works on both
+    SQLite and PostgreSQL.
+    """
+    from django.db.models import Q
+
+    q = Q(scope_level="continental")
+    for tag in npc_scope_tags:
+        q |= Q(scope_tags__contains=[tag])
+    return q
+
+
+def store_lore(title, content, scope_level, scope_tags, source=""):
+    """
+    Store or update a lore entry with embedding.
+
+    Idempotent — matched on ``(source, title)``. If content has changed,
+    the embedding is regenerated. If unchanged, the entry is skipped.
+
+    Args:
+        title: Human-readable label for the lore entry
+        content: The lore text (also used as embedding source)
+        scope_level: ``"continental"``, ``"regional"``, ``"local"``, ``"faction"``
+        scope_tags: List of scope tags, e.g. ``["millholm"]`` or ``["mages_guild"]``
+        source: Provenance string, e.g. ``"millholm/regional.yaml"``
+
+    Returns:
+        Tuple of (LoreMemory instance, status) where status is
+        ``"created"``, ``"updated"``, or ``"unchanged"``.
+    """
+    from ai_memory.models import LoreMemory
+
+    # Check for existing entry
+    try:
+        existing = LoreMemory.objects.using("ai_memory").get(
+            source=source, title=title
+        )
+    except LoreMemory.DoesNotExist:
+        existing = None
+
+    # Skip if content unchanged
+    if existing and existing.content == content:
+        return existing, "unchanged"
+
+    # Generate embedding
+    embedding_raw = None
+    try:
+        from llm.service import LLMService
+
+        embedding_raw = LLMService.create_embedding(content)
+    except Exception:
+        logger.exception("Failed to generate embedding for lore: %s", title)
+
+    embedding_bytes = None
+    embedding_vector = None
+    if embedding_raw is not None:
+        if _is_postgres():
+            embedding_vector = embedding_raw
+        else:
+            embedding_bytes = np.asarray(embedding_raw, dtype=np.float32).tobytes()
+
+    if existing:
+        existing.content = content
+        existing.scope_level = scope_level
+        existing.scope_tags = scope_tags
+        existing.embedding = embedding_bytes
+        existing.embedding_vector = embedding_vector
+        existing.save(using="ai_memory")
+        return existing, "updated"
+
+    try:
+        entry = LoreMemory.objects.using("ai_memory").create(
+            title=title,
+            content=content,
+            scope_level=scope_level,
+            scope_tags=scope_tags,
+            embedding=embedding_bytes,
+            embedding_vector=embedding_vector,
+            source=source,
+        )
+        return entry, "created"
+    except Exception:
+        logger.exception("Failed to store lore: %s", title)
+        return None, "failed"
+
+
+def search_lore(query_text, npc_scope_tags, top_k=3):
+    """
+    Semantic search for lore entries accessible to an NPC.
+
+    Filters by scope (continental + matching tags), then ranks by
+    cosine similarity to the query. Uses pgvector on PostgreSQL,
+    numpy on SQLite.
+
+    Args:
+        query_text: The player's message to search against
+        npc_scope_tags: List of tags from the NPC's scope resolution
+        top_k: Number of results to return
+
+    Returns:
+        List of dicts with keys: title, content, scope_level, similarity
+    """
+    from ai_memory.models import LoreMemory
+
+    # Generate query embedding
+    try:
+        from llm.service import LLMService
+
+        query_embedding = LLMService.create_embedding(query_text)
+    except Exception:
+        logger.exception("Failed to embed query for lore search")
+        query_embedding = None
+
+    if query_embedding is None:
+        return get_recent_lore(npc_scope_tags, limit=top_k)
+
+    scope_filter = _build_lore_scope_filter(npc_scope_tags)
+    qs = LoreMemory.objects.using("ai_memory").filter(scope_filter)
+
+    if _is_postgres():
+        return _search_lore_pgvector(qs, query_embedding, top_k)
+    return _search_lore_numpy(qs, query_embedding, top_k)
+
+
+def _search_lore_pgvector(qs, query_embedding, top_k):
+    """Lore search using pgvector CosineDistance."""
+    from pgvector.django import CosineDistance
+
+    qs = (
+        qs.filter(embedding_vector__isnull=False)
+        .annotate(distance=CosineDistance("embedding_vector", query_embedding))
+        .order_by("distance")[:top_k]
+    )
+
+    results = []
+    for entry in qs:
+        results.append({
+            "title": entry.title,
+            "content": entry.content,
+            "scope_level": entry.scope_level,
+            "similarity": 1.0 - entry.distance,
+        })
+    return results
+
+
+def _search_lore_numpy(qs, query_embedding, top_k):
+    """Lore search using numpy cosine similarity (SQLite path)."""
+    query_vec = np.asarray(query_embedding, dtype=np.float32)
+
+    scored = []
+    for entry in qs.iterator():
+        if not entry.embedding:
+            continue
+        entry_vec = np.frombuffer(bytes(entry.embedding), dtype=np.float32)
+        if entry_vec.shape != query_vec.shape:
+            continue
+        sim = _cosine_similarity(query_vec, entry_vec)
+        scored.append((sim, entry))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    results = []
+    for sim, entry in scored[:top_k]:
+        results.append({
+            "title": entry.title,
+            "content": entry.content,
+            "scope_level": entry.scope_level,
+            "similarity": sim,
+        })
+    return results
+
+
+def get_recent_lore(npc_scope_tags, limit=3):
+    """
+    Return the most recent lore entries for an NPC's scope.
+
+    Fallback when semantic search is unavailable (no embedding).
+
+    Returns:
+        List of dicts with keys: title, content, scope_level
+    """
+    from ai_memory.models import LoreMemory
+
+    scope_filter = _build_lore_scope_filter(npc_scope_tags)
+    entries = (
+        LoreMemory.objects.using("ai_memory")
+        .filter(scope_filter)
+        .order_by("-updated_at")[:limit]
+    )
+
+    return [
+        {
+            "title": entry.title,
+            "content": entry.content,
+            "scope_level": entry.scope_level,
+        }
+        for entry in entries
+    ]

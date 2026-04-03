@@ -113,6 +113,17 @@ class LLMMixin:
     rolling list only. Set True for NPCs that need long-term semantic
     recall across server restarts and game DB wipes."""
 
+    # ── Lore ──────────────────────────────────────────────────────────
+
+    llm_use_lore = AttributeProperty(False)
+    """Query LoreMemory for world knowledge relevant to the conversation.
+    Scope is determined by the NPC's room tags and faction tags."""
+
+    llm_lore_tags = AttributeProperty(None, autocreate=False)
+    """Explicit lore scope tag override. ``None`` = derive from room +
+    faction tags automatically. Set to a list to override, e.g.
+    ``["millholm", "mages_guild"]``."""
+
     # ── Conversation Engagement ────────────────────────────────────────
 
     llm_engagement_timeout = AttributeProperty(60)
@@ -182,13 +193,44 @@ class LLMMixin:
         except Exception:
             return template
 
+    def _get_lore_scope_tags(self):
+        """
+        Collect this NPC's lore access tags from room and own tags.
+
+        Returns a list of scope tags used to filter ``LoreMemory`` queries.
+        Geographic scope (zone, district) is inherited from the room.
+        Faction scope comes from the NPC's own tags.
+        ``llm_lore_tags`` overrides everything if set.
+        """
+        # Explicit override takes priority
+        if self.llm_lore_tags:
+            return list(self.llm_lore_tags)
+
+        tags = []
+        room = self.location
+        if room:
+            zone = room.tags.get(category="zone")
+            if zone:
+                tags.append(zone)
+            district = room.tags.get(category="district")
+            if district:
+                tags.append(district)
+
+        # Faction tags on the NPC itself
+        faction_tags = self.tags.get(category="faction", return_list=True)
+        if faction_tags:
+            tags.extend(faction_tags)
+
+        return tags
+
     def _get_context_variables(self):
         """
         Return a dict of template variables gathered from NPC state.
 
         Available: ``{name}``, ``{personality}``, ``{knowledge}``,
         ``{location}``, ``{room_desc}``, ``{nearby_characters}``,
-        ``{memories}``, ``{hp_current}``, ``{hp_max}``, ``{hp_status}``
+        ``{memories}``, ``{lore_context}``, ``{hp_current}``, ``{hp_max}``,
+        ``{hp_status}``
         """
         location = self.location
         room_name = location.key if location else "unknown"
@@ -237,10 +279,31 @@ class LLMMixin:
             except Exception:
                 pass
 
+        # Build lore context (if enabled)
+        lore_context = ""
+        if getattr(self, "llm_use_lore", False):
+            current_message = getattr(self.ndb, "_llm_current_message", None)
+            if current_message:
+                try:
+                    from ai_memory.services import search_lore
+
+                    lore_results = search_lore(
+                        current_message, self._get_lore_scope_tags(), top_k=3
+                    )
+                    if lore_results:
+                        lore_context = "\n".join(
+                            f"- {r['content']}" for r in lore_results
+                        )
+                except Exception:
+                    logger.exception(
+                        "Lore search failed for %s", self.key
+                    )
+
         return {
             "name": self.key,
             "personality": self.llm_personality or "",
             "knowledge": self.llm_knowledge or "",
+            "lore_context": lore_context,
             "location": room_name,
             "room_desc": room_desc,
             "nearby_characters": nearby_str,
@@ -302,8 +365,10 @@ class LLMMixin:
 
         self.db.llm_last_call_time = now
 
-        # Stash speaker reference so _get_context_variables can build {last_seen}
+        # Stash speaker and message so _get_context_variables can build
+        # {last_seen} and {lore_context}
         self.ndb._llm_current_speaker = speaker
+        self.ndb._llm_current_message = message
 
         # Build LLM messages
         system_prompt = self.get_llm_system_prompt()

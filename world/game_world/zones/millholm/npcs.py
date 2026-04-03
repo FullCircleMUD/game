@@ -42,6 +42,7 @@ def _spawn_bartender():
     npc.llm_hook_arrive = True
     npc.llm_use_vector_memory = True
     npc.llm_speech_mode = "name_match"
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A warm, broad-shouldered innkeeper in his forties with laugh lines "
         "around his eyes and a booming voice that carries over the din. He's "
@@ -77,6 +78,7 @@ def _spawn_baker():
     npc.llm_prompt_file = "baker.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.tradeable_resources = [2, 3]   # Flour, Bread
     npc.shop_name = "Goldencrust Bakery"
     npc.llm_personality = (
@@ -114,6 +116,7 @@ def _spawn_oakwright():
     npc.llm_prompt_file = "oakwright.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.trainable_skills = ["carpentry"]
     npc.trainer_masteries = {"carpentry": 2}
     npc.trainer_class = None
@@ -152,6 +155,7 @@ def _spawn_elena():
     npc.llm_prompt_file = "elena.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.trainable_skills = ["tailoring"]
     npc.trainer_masteries = {"tailoring": 2}
     npc.trainer_class = None
@@ -197,6 +201,7 @@ def _spawn_mara():
     npc.llm_prompt_file = "mara.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.trainable_skills = ["alchemy"]
     npc.trainer_masteries = {"alchemy": 1}  # BASIC cap in Millholm
     npc.trainer_class = None
@@ -244,6 +249,7 @@ def _spawn_torben():
     npc.llm_prompt_file = "torben.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.trainable_skills = ["leatherworking"]
     npc.trainer_masteries = {"leatherworking": 2}  # trainable to SKILLED in Millholm
     npc.trainer_class = None
@@ -283,6 +289,7 @@ def _spawn_hendricks():
     npc.llm_prompt_file = "hendricks.md"
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.trainable_skills = ["blacksmithing"]
     npc.trainer_masteries = {"blacksmithing": 1}  # high-demand skill — BASIC cap in Millholm
     npc.trainer_class = None
@@ -402,6 +409,8 @@ def _spawn_thief_guildmaster():
 
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
+    npc.llm_use_lore = True
+    npc.tags.add("thieves_guild", category="faction")
     npc.llm_hook_arrive = True
     npc.llm_personality = (
         "An impeccably presented man in his fifties. Everything about him "
@@ -478,6 +487,8 @@ def _spawn_thief_2ic():
     )
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
+    npc.llm_use_lore = True
+    npc.tags.add("thieves_guild", category="faction")
     npc.llm_hook_arrive = False
     npc.llm_personality = (
         "A tall, lithe woman in her thirties with sharp cheekbones and "
@@ -740,6 +751,7 @@ def _spawn_beggar():
     )
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A broken old man who was once a soldier. He lost everything — his "
         "family, his home, his health — and ended up on the street. He's "
@@ -790,6 +802,7 @@ def _spawn_jeweller():
     npc.trainer_masteries = {"jeweller": 1}  # BASIC
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A meticulous halfling woman with a jeweller's loupe permanently "
         "perched on her forehead and nimble fingers that never stop moving. "
@@ -846,6 +859,7 @@ def _spawn_general_store():
 
     npc.llm_speech_mode = "always"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
         "A portly, ruddy-faced merchant in his late forties with sharp eyes "
@@ -914,6 +928,7 @@ def _spawn_broken_crown_barkeep():
     )
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A heavyset woman in her fifties with iron-grey hair pulled back "
         "in a severe bun and forearms like a blacksmith's. She has a voice "
@@ -976,6 +991,7 @@ def _spawn_gaoler():
     )
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A squat, paunchy man with small piggy eyes, a patchy beard, "
         "and fingers perpetually stained with ink from his ledger. He "
@@ -1039,6 +1055,7 @@ def _spawn_fence():
     )
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A twitchy, rat-faced man who flinches at loud noises and never "
         "sits with his back to the door. He speaks in a low, rapid mumble "
@@ -1096,6 +1113,7 @@ def _spawn_lumberjack():
 
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
         "An enormous, barrel-chested man with arms like tree trunks and a "
@@ -1209,6 +1227,7 @@ def _spawn_trapper():
 
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_personality = (
         "A weathered, grizzled old man who looks like he hasn't been fully "
         "indoors in forty years. He speaks in a slow, gravelly drawl and "
@@ -1281,6 +1300,7 @@ def _spawn_smelter():
 
     npc.llm_speech_mode = "always"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
         "A soot-blackened, wiry old man with singed eyebrows and hands like "
@@ -1377,6 +1397,7 @@ def _spawn_cellmate():
     )
     npc.llm_speech_mode = "always"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_hook_say = True
     npc.llm_personality = (
@@ -1638,6 +1659,7 @@ def _spawn_boatman():
     }
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = False
+    npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
         "A leathery old man in his seventies with a face like a "

@@ -6,6 +6,9 @@ You are {name}, the baker at the Goldencrust Bakery in Millholm.
 
 {shop_commands}
 
+What you know about the world:
+{lore_context}
+
 You are currently in: {location}
 Characters nearby: {nearby_characters}
 

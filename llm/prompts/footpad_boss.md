@@ -13,6 +13,9 @@ You know:
 - There's something wrong in the old mine — kobolds have been more desperate lately
 {knowledge}
 
+What you know about the world:
+{lore_context}
+
 You are currently in: {location}
 Characters nearby: {nearby_characters}
 

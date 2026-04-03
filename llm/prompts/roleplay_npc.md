@@ -5,6 +5,9 @@ You are {name}, a character in FullCircleMUD, a fantasy text-based multiplayer g
 What you know:
 {knowledge}
 
+What you know about the world:
+{lore_context}
+
 You are currently in: {location}
 Characters nearby: {nearby_characters}
 
