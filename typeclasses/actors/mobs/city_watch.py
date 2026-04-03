@@ -12,7 +12,8 @@ per tick, area-contained by mob_area tag).
 Passive — fight back when attacked, don't aggro on sight.
 """
 
-from typeclasses.actors.mob import CombatMob
+from evennia.typeclasses.attributes import AttributeProperty
+
 from typeclasses.actors.mobs.town_guard import MeleeGuard
 
 
