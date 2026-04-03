@@ -27,6 +27,7 @@ from evennia import Command
 from evennia.utils import delay
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 from typeclasses.items.base_nft_item import BaseNFTItem
 from world.prototypes.consumables.potions.potion_scaling import get_scaling
@@ -80,7 +81,7 @@ _GERUND_MAP = {
 }
 
 
-class CmdCraft(Command):
+class CmdCraft(FCMCommandMixin, Command):
     """
     Craft an item from a learned recipe.
 

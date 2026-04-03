@@ -22,6 +22,7 @@ from django.conf import settings
 from evennia.commands.default.general import NumberedTargetCommand
 from evennia.utils import utils
 
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.actors.character import FCMCharacter
 from typeclasses.items.base_nft_item import BaseNFTItem
@@ -33,7 +34,7 @@ from utils.weight_check import (
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdGive(NumberedTargetCommand):
+class CmdGive(FCMCommandMixin, NumberedTargetCommand):
     """
     Give something to someone.
 

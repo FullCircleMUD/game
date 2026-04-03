@@ -12,11 +12,12 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from utils.dice_roller import dice
 
 
-class CmdSearch(Command):
+class CmdSearch(FCMCommandMixin, Command):
     """
     Search the room for hidden objects and characters.
 

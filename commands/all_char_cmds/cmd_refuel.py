@@ -14,6 +14,8 @@ When oil is added as a resource, swap FUEL_RESOURCE_ID to the oil ID.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
+
 
 # Resource ID for fuel. Currently wheat (ID 1) as an oil placeholder.
 # Swap to oil resource ID when it exists.
@@ -22,7 +24,7 @@ FUEL_RESOURCE_NAME = "wheat"
 FUEL_COST = 1  # units consumed per refuel
 
 
-class CmdRefuel(Command):
+class CmdRefuel(FCMCommandMixin, Command):
     """
     Refuel a lantern or light source.
 

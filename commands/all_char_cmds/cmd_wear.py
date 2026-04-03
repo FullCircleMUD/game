@@ -10,13 +10,14 @@ For weapons use 'wield'. For shields/torches use 'hold'.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 
 
-class CmdWear(Command):
+class CmdWear(FCMCommandMixin, Command):
     """
     Equip a wearable item.
 

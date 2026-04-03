@@ -7,8 +7,10 @@ Standing is required to move between rooms.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class _PostureCommand(Command):
+
+class _PostureCommand(FCMCommandMixin, Command):
     """Base class for posture commands with shared logic."""
 
     locks = "cmd:all()"
@@ -106,7 +108,7 @@ class CmdStand(_PostureCommand):
     room_msg = "{name} stands up."
 
 
-class CmdWake(Command):
+class CmdWake(FCMCommandMixin, Command):
     """
     Wake up from sleeping.
 

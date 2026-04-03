@@ -19,10 +19,11 @@ See design/VERTICAL_MOVEMENT.md for full design and examples.
 from evennia import AttributeProperty
 from evennia.objects.objects import ExitCommand
 
+from commands.command import FCMCommandMixin
 from .exit_base import ExitBase
 
 
-class _HeightAwareExitCommand(ExitCommand):
+class _HeightAwareExitCommand(FCMCommandMixin, ExitCommand):
     """
     Exit command that denies 'cmd' access when the exit's height
     requirements aren't met by the caller. This prevents height-gated

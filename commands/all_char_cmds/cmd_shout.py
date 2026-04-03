@@ -11,6 +11,7 @@ direction the shout came from.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from enums.languages import Languages
 from utils.exit_helpers import OPPOSITES
@@ -34,7 +35,7 @@ def _muffle(text: str) -> str:
     return " ".join(words[:_MUFFLE_WORDS]) + "..."
 
 
-class CmdShout(Command):
+class CmdShout(FCMCommandMixin, Command):
     """
     Shout to the room and adjacent rooms.
 

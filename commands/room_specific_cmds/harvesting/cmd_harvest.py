@@ -22,6 +22,7 @@ from evennia import Command
 from evennia.utils import delay
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 
 
 # ── Easy-to-change delay for harvesting ──
@@ -50,7 +51,7 @@ _GERUNDS = {
 }
 
 
-class CmdHarvest(Command):
+class CmdHarvest(FCMCommandMixin, Command):
     """
     Gather resources from this location.
 

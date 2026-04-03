@@ -1,9 +1,10 @@
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 
 
-class CmdSwim(Command):
+class CmdSwim(FCMCommandMixin, Command):
     """
     Swim up or down in water.
 

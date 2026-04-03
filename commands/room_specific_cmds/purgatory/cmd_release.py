@@ -10,12 +10,13 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 
 RELEASE_COST = 50
 
 
-class CmdRelease(Command):
+class CmdRelease(FCMCommandMixin, Command):
     """
     Pay for early release from purgatory.
 

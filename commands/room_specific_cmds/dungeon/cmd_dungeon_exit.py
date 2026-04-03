@@ -8,8 +8,10 @@ leave, the instance collapses on the next tick.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdExitDungeon(Command):
+
+class CmdExitDungeon(FCMCommandMixin, Command):
     """
     Leave the dungeon and return to the entrance.
 

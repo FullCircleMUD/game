@@ -12,11 +12,12 @@ inventory maps update simultaneously.
 from evennia import Command
 from evennia.utils.utils import delay
 
+from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 
 
-class CmdSurvey(Command):
+class CmdSurvey(FCMCommandMixin, Command):
     """
     Survey the current room and add it to your district map.
 

@@ -10,11 +10,12 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_resource_type
 from enums.mastery_level import MasteryLevel
 
 
-class CmdRecipes(Command):
+class CmdRecipes(FCMCommandMixin, Command):
     """
     Show all recipes you have learned.
 

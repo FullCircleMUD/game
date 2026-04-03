@@ -19,6 +19,7 @@ the full room description, even when the player has brief mode enabled.
 
 from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
 
+from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 
 # Build set of all direction strings (abbreviations + full names)
@@ -28,7 +29,7 @@ for _dir, _aliases in ExitVerticalAware.DIRECTION_ALIASES.items():
         _DIRECTION_STRINGS.add(_alias)
 
 
-class CmdLook(_EvenniaCmdLook):
+class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
     """
     Look at location or object.
 

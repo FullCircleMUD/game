@@ -1,9 +1,10 @@
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 
 
-class CmdFly(Command):
+class CmdFly(FCMCommandMixin, Command):
     """
     Fly up or down in a room.
 

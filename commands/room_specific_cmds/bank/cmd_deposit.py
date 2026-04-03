@@ -24,6 +24,7 @@ Examples:
 from evennia import Command
 from django.conf import settings
 
+from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
@@ -31,7 +32,7 @@ from utils.item_parse import parse_item_args
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdDeposit(Command):
+class CmdDeposit(FCMCommandMixin, Command):
     """
     Deposit items into your bank.
 

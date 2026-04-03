@@ -1,5 +1,7 @@
 from evennia import Command
 
+from commands.command import FCMCommandMixin
+
 
 def _health_description(current, maximum):
     """Return a descriptive string for HP percentage."""
@@ -24,7 +26,7 @@ def _health_description(current, maximum):
         return "|ris in awful condition|n"
 
 
-class CmdDiagnose(Command):
+class CmdDiagnose(FCMCommandMixin, Command):
     """
     Assess the health of a character or creature.
 

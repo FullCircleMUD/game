@@ -16,6 +16,7 @@ from django.conf import settings
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.world_objects.corpse import Corpse
@@ -27,7 +28,7 @@ from utils.weight_check import (
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdLoot(Command):
+class CmdLoot(FCMCommandMixin, Command):
     """
     Loot all corpses in the room.
 

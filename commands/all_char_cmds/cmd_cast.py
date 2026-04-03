@@ -11,11 +11,12 @@ The spell stays memorised after casting.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from world.spells.registry import get_spell, SPELL_REGISTRY
 
 
-class CmdCast(Command):
+class CmdCast(FCMCommandMixin, Command):
     """
     Cast a memorised spell.
 

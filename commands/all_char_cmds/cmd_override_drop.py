@@ -18,6 +18,7 @@ from django.conf import settings
 from evennia.commands.default.general import NumberedTargetCommand
 from evennia.utils import utils
 
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
@@ -25,7 +26,7 @@ from utils.item_parse import parse_item_args
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdDrop(NumberedTargetCommand):
+class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
     """
     Drop something.
 

@@ -9,12 +9,13 @@ then launches the chargen EvMenu for a full character rebuild.
 from evennia.commands.command import Command
 from evennia.utils.evmenu import EvMenu
 
+from commands.command import FCMCommandMixin
 from server.main_menu.remort.remort_perks import get_available_perks, apply_perk
 
 MAX_LEVEL = 40
 
 
-class CmdRemort(Command):
+class CmdRemort(FCMCommandMixin, Command):
     """
     Remort your character back to level 1.
 

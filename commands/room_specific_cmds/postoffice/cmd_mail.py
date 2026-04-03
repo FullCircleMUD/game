@@ -14,13 +14,15 @@ Usage:
 
 from evennia.commands.command import Command
 from evennia.comms.models import Msg
+
+from commands.command import FCMCommandMixin
 from evennia.utils import create, evtable
 from evennia.objects.models import ObjectDB
 
 _WIDTH = 78
 
 
-class CmdMail(Command):
+class CmdMail(FCMCommandMixin, Command):
     """
     Send and receive mail at the Post Office.
 

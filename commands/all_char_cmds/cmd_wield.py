@@ -8,13 +8,14 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 
 
-class CmdWield(Command):
+class CmdWield(FCMCommandMixin, Command):
     """
     Wield a weapon.
 

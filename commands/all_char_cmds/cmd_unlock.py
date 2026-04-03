@@ -11,11 +11,12 @@ For lockpicking without a key, use the 'picklock' skill command.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.world_objects.key_item import KeyItem
 from utils.find_exit_target import find_exit_target
 
 
-class CmdUnlock(Command):
+class CmdUnlock(FCMCommandMixin, Command):
     """
     Unlock a chest, door, or other locked object using a key.
 

@@ -12,6 +12,8 @@ Usage:
 from evennia import Command
 from django.conf import settings
 
+from commands.command import FCMCommandMixin
+
 from blockchain.xrpl.currency_cache import get_resource_type
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
@@ -47,7 +49,7 @@ def ensure_bank(account):
     return bank
 
 
-class CmdBalance(Command):
+class CmdBalance(FCMCommandMixin, Command):
     """
     Check your bank balance.
 

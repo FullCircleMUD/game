@@ -23,6 +23,7 @@ from evennia import Command
 from evennia.utils import delay
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 
 # ── Easy-to-change delay between each processing tick ──
 PROCESS_DELAY_SECONDS = 2
@@ -84,7 +85,7 @@ def _list_recipes(recipes, room):
     return "\n".join(lines)
 
 
-class CmdProcess(Command):
+class CmdProcess(FCMCommandMixin, Command):
     """
     Process raw resources into refined materials.
 

@@ -10,6 +10,8 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
+
 
 def _get_consider_message(diff):
     """Return a difficulty message based on level difference (target - caller)."""
@@ -37,7 +39,7 @@ def _get_consider_message(diff):
         return "|rYou ARE mad!|n"
 
 
-class CmdConsider(Command):
+class CmdConsider(FCMCommandMixin, Command):
     """
     Gauge how tough a target is.
 

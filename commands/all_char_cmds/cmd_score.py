@@ -2,6 +2,7 @@ import re
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from utils.experience_table import get_xp_for_next_level
 
 
@@ -73,7 +74,7 @@ def _header_line(left, right):
     return f"{_PIPE} {left}{' ' * gap}{right} {_PIPE}"
 
 
-class CmdScore(Command):
+class CmdScore(FCMCommandMixin, Command):
     """
     View your character sheet — a compact overview of your character.
 

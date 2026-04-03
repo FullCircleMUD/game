@@ -1,8 +1,10 @@
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
 
-class CmdBind(Command):
+
+class CmdBind(FCMCommandMixin, Command):
     """
     Bind your soul to this cemetery.
 

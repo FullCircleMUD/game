@@ -1,7 +1,9 @@
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdWhere(Command):
+
+class CmdWhere(FCMCommandMixin, Command):
     """
     Show your current location, district, and zone.
 

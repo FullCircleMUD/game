@@ -7,11 +7,12 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.inn.cmd_ale import ALE_PRICE
 from commands.room_specific_cmds.inn.cmd_stew import BREAD_RESOURCE_ID, FALLBACK_PRICE
 
 
-class CmdMenu(Command):
+class CmdMenu(FCMCommandMixin, Command):
     """
     View the inn's menu.
 

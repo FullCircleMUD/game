@@ -8,8 +8,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdQuests(Command):
+
+class CmdQuests(FCMCommandMixin, Command):
     """
     View your quest log.
 

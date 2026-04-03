@@ -15,6 +15,7 @@ import random
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from utils.dice_roller import dice
 
 
@@ -32,7 +33,7 @@ def _get_open_exits(caller):
     ]
 
 
-class CmdFlee(Command):
+class CmdFlee(FCMCommandMixin, Command):
     """
     Flee from combat through a random exit.
 

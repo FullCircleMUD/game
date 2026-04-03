@@ -5,10 +5,12 @@ Available in every tutorial room. Reads the room's db.tutorial_text
 attribute and displays it with formatting.
 """
 
-from commands.command import Command
+from evennia import Command
+
+from commands.command import FCMCommandMixin
 
 
-class CmdTutorial(Command):
+class CmdTutorial(FCMCommandMixin, Command):
     """
     View the tutorial instructions for this room.
 

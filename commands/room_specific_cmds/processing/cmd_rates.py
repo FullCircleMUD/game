@@ -8,6 +8,7 @@ Usage:
 from evennia import Command
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 
 
 def _get_resource_name(res_id):
@@ -16,7 +17,7 @@ def _get_resource_name(res_id):
     return rt["name"] if rt else f"Resource #{res_id}"
 
 
-class CmdRates(Command):
+class CmdRates(FCMCommandMixin, Command):
     """
     Show this room's conversion rates and costs.
 

@@ -18,6 +18,7 @@ from evennia import CmdSet, Command
 from twisted.internet import threads
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.xrpl_tx import XRPLTransactionError
 
 
@@ -96,7 +97,7 @@ def _session_check(caller):
 
 # ── CmdShopList ──────────────────────────────────────────────────────
 
-class CmdShopList(Command):
+class CmdShopList(FCMCommandMixin, Command):
     """
     List items available at this shop.
 
@@ -141,7 +142,7 @@ class CmdShopList(Command):
 
 # ── CmdShopQuote ─────────────────────────────────────────────────────
 
-class CmdShopQuote(Command):
+class CmdShopQuote(FCMCommandMixin, Command):
     """
     Get a price quote for buying or selling.
 
@@ -267,7 +268,7 @@ def _on_quote_price(caller, shopkeeper, direction, rid, rt, amount, gold_price):
 
 # ── CmdShopAccept ────────────────────────────────────────────────────
 
-class CmdShopAccept(Command):
+class CmdShopAccept(FCMCommandMixin, Command):
     """
     Accept a pending price quote.
 
@@ -351,7 +352,7 @@ class CmdShopAccept(Command):
 
 # ── CmdShopBuy ───────────────────────────────────────────────────────
 
-class CmdShopBuy(Command):
+class CmdShopBuy(FCMCommandMixin, Command):
     """
     Buy a resource from the shopkeeper at the current market price.
 
@@ -427,7 +428,7 @@ def _threaded_buy(rid, amount, current_gold, wallet, char_key, vault):
 
 # ── CmdShopSell ──────────────────────────────────────────────────────
 
-class CmdShopSell(Command):
+class CmdShopSell(FCMCommandMixin, Command):
     """
     Sell a resource to the shopkeeper at the current market price.
 

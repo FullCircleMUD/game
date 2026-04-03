@@ -4,8 +4,10 @@
 from evennia import Command
 from enums.mastery_level import MasteryLevel
 
+from commands.command import FCMCommandMixin
 
-class CmdSkillBase(Command):
+
+class CmdSkillBase(FCMCommandMixin, Command):
     # The name of / key for the command
     key = "KEY - BASE VALUE NOT OVERRIDDEN"
     aliases = []

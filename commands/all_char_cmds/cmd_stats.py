@@ -2,6 +2,8 @@ import re
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
+
 
 def _visible_len(s):
     """Return length of string excluding Evennia color codes."""
@@ -38,7 +40,7 @@ def _stat_row(label, base, effective, note=""):
     return f"{_PIPE}{_pad(cell, _W)}{_PIPE}"
 
 
-class CmdStats(Command):
+class CmdStats(FCMCommandMixin, Command):
     """
     View the base and effective values of your character's stats.
 

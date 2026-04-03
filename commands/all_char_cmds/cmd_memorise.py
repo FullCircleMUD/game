@@ -12,6 +12,7 @@ Memorise has a timed delay with progress bar. Forget is instant.
 from evennia import Command
 from evennia.utils import delay
 
+from commands.command import FCMCommandMixin
 from world.spells.registry import get_spell, SPELL_REGISTRY
 
 
@@ -21,7 +22,7 @@ MEMORISE_NUM_TICKS = 3
 _BAR_WIDTH = 10
 
 
-class CmdMemorise(Command):
+class CmdMemorise(FCMCommandMixin, Command):
     """
     Memorise a known spell so it can be cast.
 
@@ -138,7 +139,7 @@ class CmdMemorise(Command):
         return None
 
 
-class CmdForget(Command):
+class CmdForget(FCMCommandMixin, Command):
     """
     Forget a memorised spell to free up a memory slot.
 

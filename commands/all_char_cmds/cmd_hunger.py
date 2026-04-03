@@ -7,8 +7,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdHunger(Command):
+
+class CmdHunger(FCMCommandMixin, Command):
     """
     Check your current hunger level.
 

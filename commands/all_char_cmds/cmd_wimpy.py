@@ -12,8 +12,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdWimpy(Command):
+
+class CmdWimpy(FCMCommandMixin, Command):
     """
     Set an auto-flee HP threshold.
 

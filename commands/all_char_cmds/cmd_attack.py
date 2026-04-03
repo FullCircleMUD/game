@@ -7,12 +7,13 @@ participants, and starts staggered repeating attack tickers.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
 from combat.height_utils import can_reach_target
 from enums.condition import Condition
 
 
-class CmdAttack(Command):
+class CmdAttack(FCMCommandMixin, Command):
     """
     Attack a target.
 

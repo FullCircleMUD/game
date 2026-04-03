@@ -11,11 +11,12 @@ first (if the HOLD slot is free).
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 
 
-class CmdLight(Command):
+class CmdLight(FCMCommandMixin, Command):
     """
     Light a torch, lantern, or other light source.
 
@@ -81,7 +82,7 @@ class CmdLight(Command):
         return caller.get_slot(HumanoidWearSlot.HOLD) == item
 
 
-class CmdExtinguish(Command):
+class CmdExtinguish(FCMCommandMixin, Command):
     """
     Extinguish a lit light source.
 

@@ -8,8 +8,10 @@ controls the compact ``[ Exits: n s e w ]`` line in the room display).
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdExits(Command):
+
+class CmdExits(FCMCommandMixin, Command):
     """
     Show detailed exit information for your current room.
 
@@ -96,29 +98,33 @@ class CmdExits(Command):
             else:
                 dest_name = "Unknown"
 
-            # Door state
-            state = ""
-            if hasattr(ex, "is_locked") and ex.is_locked:
-                state = " |r(locked)|n"
-            elif hasattr(ex, "is_open") and not ex.is_open:
-                state = " |y(closed)|n"
+            # Check if this exit is a door
+            is_door = hasattr(ex, "is_open")
 
-            # Description (use closed_desc/open_desc for doors, else db.desc)
-            desc = None
-            if hasattr(ex, "is_open"):
+            if is_door:
+                # Door state
+                if hasattr(ex, "is_locked") and ex.is_locked:
+                    state = "|r(locked)|n"
+                elif not ex.is_open:
+                    state = "|y(closed)|n"
+                else:
+                    state = "|g(open)|n"
+
+                # Description (use closed_desc/open_desc for doors, else db.desc)
+                desc = None
                 if not ex.is_open and getattr(ex, "closed_desc", None):
                     desc = ex.closed_desc
                 elif ex.is_open and getattr(ex, "open_desc", None):
                     desc = ex.open_desc
-            if not desc:
-                desc = ex.db.desc if ex.db.desc else ""
-            # Don't show Evennia's default "This is an exit."
-            if desc == "This is an exit.":
-                desc = ""
+                if not desc:
+                    desc = ex.db.desc if ex.db.desc else ""
+                if desc == "This is an exit.":
+                    desc = ""
 
-            line = f"  |c{dir_label:<12}|n - {dest_name}{state}"
-            if desc:
-                line += f"\n               {desc}"
+                line = f"  |c{dir_label:<12}|n - {state} {desc}" if desc else f"  |c{dir_label:<12}|n - {state}"
+            else:
+                line = f"  |c{dir_label:<12}|n - {dest_name}"
+
             lines.append(line)
 
         caller.msg("\n".join(lines))

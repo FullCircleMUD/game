@@ -36,6 +36,7 @@ from evennia.commands.default.general import NumberedTargetCommand
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils import utils
 
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
@@ -46,7 +47,7 @@ from utils.weight_check import (
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdGet(NumberedTargetCommand):
+class CmdGet(FCMCommandMixin, NumberedTargetCommand):
     """
     Pick up something.
 

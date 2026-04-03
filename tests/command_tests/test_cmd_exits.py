@@ -90,8 +90,8 @@ class TestCmdExits(EvenniaCommandTest):
         result = self.call(CmdExits(), "")
         self.assertIn("locked", result)
 
-    def test_open_door_no_state_tag(self):
-        """Open doors don't show (closed) or (locked)."""
+    def test_open_door_shows_open_tag(self):
+        """Open doors show (open) state tag."""
         door = create.create_object(
             "typeclasses.terrain.exits.exit_door.ExitDoor",
             key="a heavy oak door",
@@ -102,13 +102,29 @@ class TestCmdExits(EvenniaCommandTest):
         door.set_direction("south")
         door.is_open = True
         result = self.call(CmdExits(), "")
+        self.assertIn("open", result)
         self.assertNotIn("closed", result)
         self.assertNotIn("locked", result)
 
     # ── Description display ───────────────────────────────────────────
 
-    def test_exit_description_shown(self):
-        """Exit with custom db.desc shows it."""
+    def test_door_description_shown(self):
+        """Door exit shows its description alongside the state tag."""
+        door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="a wooden door",
+            location=self.room1,
+            destination=self.room2,
+            nohome=True,
+        )
+        door.set_direction("north")
+        door.db.desc = "A well-worn door leads north."
+        door.is_open = True
+        result = self.call(CmdExits(), "")
+        self.assertIn("well-worn door", result)
+
+    def test_non_door_exit_shows_destination_not_desc(self):
+        """Non-door exits show destination name, not description."""
         ex = create.create_object(
             "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
             key="north",
@@ -119,7 +135,8 @@ class TestCmdExits(EvenniaCommandTest):
         ex.set_direction("north")
         ex.db.desc = "A well-worn path leads north."
         result = self.call(CmdExits(), "")
-        self.assertIn("well-worn path", result)
+        self.assertIn("Town Square", result)
+        self.assertNotIn("well-worn path", result)
 
     def test_default_exit_desc_hidden(self):
         """The default 'This is an exit.' should not appear."""

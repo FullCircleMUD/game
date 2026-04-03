@@ -23,6 +23,7 @@ from random import randint
 from evennia import CmdSet, Command
 from evennia.utils import delay
 
+from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills, _CLASS_MAPPINGS_LOOKUP
 from enums.weapon_type import WeaponType
@@ -212,7 +213,7 @@ def _format_time(seconds):
 #  CmdTrain
 # ═══════════════════════════════════════════════════════════════════════
 
-class CmdTrain(Command):
+class CmdTrain(FCMCommandMixin, Command):
     """
     Train skills at a trainer NPC.
 
@@ -844,7 +845,7 @@ def _resolve_weapon_training(
 #  CmdBuyRecipe
 # ═══════════════════════════════════════════════════════════════════════
 
-class CmdBuyRecipe(Command):
+class CmdBuyRecipe(FCMCommandMixin, Command):
     """
     Buy a recipe from a trainer NPC.
 

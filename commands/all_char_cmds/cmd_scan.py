@@ -1,5 +1,6 @@
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 
 
@@ -62,7 +63,7 @@ def _get_visible_characters(room, looker):
     return names
 
 
-class CmdScan(Command):
+class CmdScan(FCMCommandMixin, Command):
     """
     Scan your surroundings for characters in nearby rooms.
 

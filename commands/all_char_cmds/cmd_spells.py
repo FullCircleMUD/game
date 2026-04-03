@@ -7,10 +7,11 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from world.spells.registry import SPELL_REGISTRY
 
 
-class CmdSpells(Command):
+class CmdSpells(FCMCommandMixin, Command):
     """
     Display your known and memorised spells.
 

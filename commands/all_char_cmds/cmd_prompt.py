@@ -9,6 +9,8 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
+
 
 DEFAULT_PROMPT = "%hH %mM %vV > "
 
@@ -22,7 +24,7 @@ TOKEN_HELP = (
 )
 
 
-class CmdPrompt(Command):
+class CmdPrompt(FCMCommandMixin, Command):
     """
     View or customise your status prompt.
 

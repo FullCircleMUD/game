@@ -10,11 +10,12 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
 from enums.condition import Condition
 
 
-class CmdJoin(Command):
+class CmdJoin(FCMCommandMixin, Command):
     """
     Join an ally's fight.
 

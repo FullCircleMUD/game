@@ -20,6 +20,7 @@ from twisted.internet import threads
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from enums.hunger_level import HungerLevel
 
@@ -28,7 +29,7 @@ BREAD_RESOURCE_ID = 3
 FALLBACK_PRICE = 5  # static gold price when no AMM pool exists
 
 
-class CmdStew(Command):
+class CmdStew(FCMCommandMixin, Command):
     """
     Buy and eat a bowl of stew.
 

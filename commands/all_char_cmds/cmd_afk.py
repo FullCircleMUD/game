@@ -7,8 +7,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdAfk(Command):
+
+class CmdAfk(FCMCommandMixin, Command):
     """
     Toggle your AFK status.
 

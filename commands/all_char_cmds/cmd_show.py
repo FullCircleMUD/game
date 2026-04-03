@@ -11,10 +11,11 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
 
 
-class CmdShow(Command):
+class CmdShow(FCMCommandMixin, Command):
     """
     Point out a hidden object to another player.
 

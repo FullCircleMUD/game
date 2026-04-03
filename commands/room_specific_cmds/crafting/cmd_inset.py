@@ -18,6 +18,7 @@ from evennia import Command
 from evennia.utils import delay
 
 from blockchain.xrpl.models import NFTGameState
+from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.room_crafting_type import RoomCraftingType
 from enums.skills_enum import skills
@@ -41,7 +42,7 @@ _GEM_MASTERY_REQUIREMENT = {
 }
 
 
-class CmdInset(Command):
+class CmdInset(FCMCommandMixin, Command):
     """
     Inset an enchanted gem into a weapon.
 

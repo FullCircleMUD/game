@@ -12,10 +12,11 @@ interaction (sail, mount, etc.).
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
 
 
-class CmdOwned(Command):
+class CmdOwned(FCMCommandMixin, Command):
     """
     List your owned objects (ships, mounts, pets, property).
 

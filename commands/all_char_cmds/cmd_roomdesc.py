@@ -11,8 +11,10 @@ Use ``{name}`` in the text to insert your character name automatically.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdRoomDesc(Command):
+
+class CmdRoomDesc(FCMCommandMixin, Command):
     """
     Set the short description shown when others see you in a room.
 

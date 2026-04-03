@@ -11,8 +11,10 @@ room auto-move via FCMCharacter.at_post_move().
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdFollow(Command):
+
+class CmdFollow(FCMCommandMixin, Command):
     """
     Follow another character, forming or joining a group.
 
@@ -106,7 +108,7 @@ class CmdFollow(Command):
         )
 
 
-class CmdUnfollow(Command):
+class CmdUnfollow(FCMCommandMixin, Command):
     """
     Stop following your current leader.
 
@@ -138,7 +140,7 @@ class CmdUnfollow(Command):
             )
 
 
-class CmdNofollow(Command):
+class CmdNofollow(FCMCommandMixin, Command):
     """
     Toggle whether other characters can follow you.
 
@@ -163,7 +165,7 @@ class CmdNofollow(Command):
         _handle_nofollow_toggle(self.caller, self.args.strip())
 
 
-class CmdGroup(Command):
+class CmdGroup(FCMCommandMixin, Command):
     """
     See who is in your group.
 

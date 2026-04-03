@@ -11,6 +11,7 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.hunger_level import HungerLevel
 
 # Map of edible food names to their resource IDs
@@ -19,7 +20,7 @@ EDIBLE_FOODS = {
 }
 
 
-class CmdEat(Command):
+class CmdEat(FCMCommandMixin, Command):
     """
     Eat food to restore hunger.
 

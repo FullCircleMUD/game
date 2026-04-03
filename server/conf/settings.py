@@ -102,6 +102,7 @@ BASE_ACCOUNT_TYPECLASS = "typeclasses.accounts.accounts.Account"
 # Typeclass for character objects linked to an account (fallback)
 BASE_CHARACTER_TYPECLASS = "typeclasses.actors.character.FCMCharacter"
 
+
 # this means a new account doesn;t auto generate a new character
 AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
 AUTO_PUPPET_ON_LOGIN = False

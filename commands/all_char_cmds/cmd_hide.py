@@ -18,6 +18,7 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 
 
@@ -50,7 +51,7 @@ def best_passive_perception(room, exclude=None):
     return best
 
 
-class CmdHide(Command):
+class CmdHide(FCMCommandMixin, Command):
     """
     Attempt to hide in the current room.
 

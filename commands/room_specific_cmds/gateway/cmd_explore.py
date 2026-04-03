@@ -10,6 +10,7 @@ import random
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.gateway.cmd_travel import (
     BREAD_RESOURCE_ID,
     validate_conditions,
@@ -20,7 +21,7 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
 )
 
 
-class CmdExplore(Command):
+class CmdExplore(FCMCommandMixin, Command):
     """
     Explore to discover unknown destinations from this gateway.
 

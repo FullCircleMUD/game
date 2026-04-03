@@ -15,10 +15,11 @@ Optional DEX check if the fixture has climb_dc > 0.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from utils.dice_roller import dice
 
 
-class CmdClimb(Command):
+class CmdClimb(FCMCommandMixin, Command):
     """
     Climb up or down a climbable object in the room.
 

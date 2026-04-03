@@ -6,8 +6,10 @@ Typing ``shield`` toggles reactive Shield on/off, same as ``toggle shield``.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdShield(Command):
+
+class CmdShield(FCMCommandMixin, Command):
     """
     Toggle reactive Shield on/off.
 

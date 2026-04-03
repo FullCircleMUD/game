@@ -11,10 +11,11 @@ by RecipeBookMixin.learn_recipe().
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.crafting_recipe_nft_item import CraftingRecipeNFTItem
 
 
-class CmdLearn(Command):
+class CmdLearn(FCMCommandMixin, Command):
     """
     Learn a crafting recipe from a recipe scroll in your inventory.
 

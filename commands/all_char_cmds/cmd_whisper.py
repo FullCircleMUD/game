@@ -10,6 +10,7 @@ Listeners who don't know the language hear deterministic gibberish.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from enums.languages import Languages
 from utils.garble import garble
@@ -21,7 +22,7 @@ for _lang in Languages:
     _SWITCH_MAP[_lang.value[:2]] = _lang.value
 
 
-class CmdWhisper(Command):
+class CmdWhisper(FCMCommandMixin, Command):
     """
     Whisper privately to another character.
 

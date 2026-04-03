@@ -14,6 +14,7 @@ Usage:
 from evennia import Command
 
 from blockchain.xrpl.currency_cache import get_resource_type, get_all_resource_types
+from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 from world.recipes import get_recipes_for_crafting_type
 
@@ -39,7 +40,7 @@ def _get_whitelist(room):
     return resource_ids
 
 
-class CmdStockpile(Command):
+class CmdStockpile(FCMCommandMixin, Command):
     """
     Deposit shipbuilding materials or check your stockpile.
 

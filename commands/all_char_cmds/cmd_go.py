@@ -13,12 +13,14 @@ Usage:
 
 from evennia.utils import utils
 
+from commands.command import FCMCommandMixin
+
 COMMAND_DEFAULT_CLASS = utils.class_from_module(
     "evennia.commands.default.muxcommand.MuxCommand"
 )
 
 
-class CmdGo(COMMAND_DEFAULT_CLASS):
+class CmdGo(FCMCommandMixin, COMMAND_DEFAULT_CLASS):
     """
     Move in a direction.
 

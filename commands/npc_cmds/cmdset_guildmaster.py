@@ -11,12 +11,13 @@ guildmaster NPC.
 
 from evennia import CmdSet, Command
 
+from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 
 
 # ── CmdGuild ──
 
-class CmdGuild(Command):
+class CmdGuild(FCMCommandMixin, Command):
     """
     View guild information and your progress.
 
@@ -138,7 +139,7 @@ class CmdGuild(Command):
 
 # ── CmdJoin ──
 
-class CmdJoin(Command):
+class CmdJoin(FCMCommandMixin, Command):
     """
     Join this guild's class.
 
@@ -245,7 +246,7 @@ class CmdJoin(Command):
 
 # ── CmdAdvance ──
 
-class CmdAdvance(Command):
+class CmdAdvance(FCMCommandMixin, Command):
     """
     Spend a pending level on this guild's class.
 

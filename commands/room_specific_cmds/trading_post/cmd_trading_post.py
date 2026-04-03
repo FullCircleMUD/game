@@ -18,6 +18,8 @@ from django.utils import timezone
 from evennia.commands.command import Command
 from evennia.utils import evtable
 
+from commands.command import FCMCommandMixin
+
 from blockchain.xrpl.models import BulletinListing
 
 GOLD = settings.GOLD_DISPLAY
@@ -26,7 +28,7 @@ LISTING_DURATION_DAYS = 7
 LISTINGS_PER_PAGE = 20
 
 
-class CmdBrowse(Command):
+class CmdBrowse(FCMCommandMixin, Command):
     """
     Browse trade listings on the Trading Post.
 
@@ -89,7 +91,7 @@ class CmdBrowse(Command):
         )
 
 
-class CmdPost(Command):
+class CmdPost(FCMCommandMixin, Command):
     """
     Post a listing on the Trading Post.
 
@@ -152,7 +154,7 @@ class CmdPost(Command):
         )
 
 
-class CmdRemoveListing(Command):
+class CmdRemoveListing(FCMCommandMixin, Command):
     """
     Remove one of your own listings from the Trading Post.
 

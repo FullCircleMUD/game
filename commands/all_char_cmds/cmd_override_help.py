@@ -12,6 +12,8 @@ rather than through EvMore.
 
 from evennia.commands.default.help import CmdHelp as _CmdHelp
 
+from commands.command import FCMCommandMixin
 
-class CmdHelp(_CmdHelp):
+
+class CmdHelp(FCMCommandMixin, _CmdHelp):
     help_more = False

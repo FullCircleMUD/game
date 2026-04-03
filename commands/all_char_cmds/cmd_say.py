@@ -12,6 +12,7 @@ lets a listener understand everything.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from enums.languages import Languages
 from utils.garble import garble
@@ -27,7 +28,7 @@ for lang in Languages:
 _VALID_LANGUAGES = {lang.value for lang in Languages}
 
 
-class CmdSay(Command):
+class CmdSay(FCMCommandMixin, Command):
     """
     Speak to the room, optionally in a specific language.
 

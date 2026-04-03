@@ -9,13 +9,14 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 
 # Price in gold — static for now, will draw from market makers later.
 ALE_PRICE = 1
 
 
-class CmdAle(Command):
+class CmdAle(FCMCommandMixin, Command):
     """
     Buy and drink a mug of ale.
 

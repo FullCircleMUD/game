@@ -11,10 +11,11 @@ Usage:
 from evennia import Command
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 
 
-class CmdAvailable(Command):
+class CmdAvailable(FCMCommandMixin, Command):
     """
     Show recipes you can craft in this workshop.
 

@@ -8,8 +8,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdEquipment(Command):
+
+class CmdEquipment(FCMCommandMixin, Command):
     """
     Display your equipped items.
 

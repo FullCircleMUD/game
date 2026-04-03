@@ -18,6 +18,7 @@ from django.conf import settings
 from evennia import Command
 from evennia.utils import utils
 
+from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
@@ -26,7 +27,7 @@ from utils.weight_check import get_gold_weight, get_resource_weight
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdPut(Command):
+class CmdPut(FCMCommandMixin, Command):
     """
     Place something into a container.
 

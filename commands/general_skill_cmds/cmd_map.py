@@ -13,8 +13,10 @@ markers is never transmitted, preventing cheating via text selection.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdMap(Command):
+
+class CmdMap(FCMCommandMixin, Command):
     """
     View your district maps.
 

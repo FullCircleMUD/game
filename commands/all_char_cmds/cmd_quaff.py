@@ -10,10 +10,11 @@ The potion NFT is consumed (returned to game reserve) on success.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.potion_nft_item import PotionNFTItem
 
 
-class CmdQuaff(Command):
+class CmdQuaff(FCMCommandMixin, Command):
     """
     Drink a potion from your inventory.
 

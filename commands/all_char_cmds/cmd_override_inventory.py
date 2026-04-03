@@ -13,8 +13,10 @@ from collections import OrderedDict
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdInventory(Command):
+
+class CmdInventory(FCMCommandMixin, Command):
     """
     View your inventory.
 

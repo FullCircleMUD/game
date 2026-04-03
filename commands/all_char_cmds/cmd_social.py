@@ -12,11 +12,12 @@ natively.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from commands.all_char_cmds.socials_data import SOCIALS
 
 
-class CmdSocialBase(Command):
+class CmdSocialBase(FCMCommandMixin, Command):
     """
     Base class for all social commands.
 
@@ -132,7 +133,7 @@ def create_social_commands():
     return [_make_social_cmd(name, data) for name, data in SOCIALS.items()]
 
 
-class CmdSocials(Command):
+class CmdSocials(FCMCommandMixin, Command):
     """
     List all available social commands.
 

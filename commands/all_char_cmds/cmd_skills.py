@@ -2,6 +2,8 @@
 
 from evennia import Command
 from evennia.utils import evtable
+
+from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 
 
@@ -104,7 +106,7 @@ def display_weapon_skills(caller, skills, pts_available):
 
         caller.msg(str(table))
 
-class CmdSkills(Command):
+class CmdSkills(FCMCommandMixin, Command):
     key = "skills"
     aliases = ["sk"]
     locks = "cmd:all()" # anyone can execute the command"

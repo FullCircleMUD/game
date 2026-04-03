@@ -24,6 +24,7 @@ Examples:
 from evennia import Command
 from django.conf import settings
 
+from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
@@ -35,7 +36,7 @@ from utils.weight_check import (
 GOLD = settings.GOLD_DISPLAY
 
 
-class CmdWithdraw(Command):
+class CmdWithdraw(FCMCommandMixin, Command):
     """
     Withdraw items from your bank.
 

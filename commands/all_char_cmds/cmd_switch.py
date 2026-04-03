@@ -14,8 +14,10 @@ it (unless can_deactivate is False).
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdSwitch(Command):
+
+class CmdSwitch(FCMCommandMixin, Command):
     """
     Interact with a lever, button, or switch.
 

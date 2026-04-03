@@ -13,10 +13,11 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank._bank_parse import parse_bank_args
 
 
-class CmdJunk(Command):
+class CmdJunk(FCMCommandMixin, Command):
     """
     Permanently destroy items, gold, or resources from your inventory.
 

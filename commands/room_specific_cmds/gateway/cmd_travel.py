@@ -9,6 +9,8 @@ Usage:
 from evennia import Command
 from evennia.utils import delay
 
+from commands.command import FCMCommandMixin
+
 
 BREAD_RESOURCE_ID = 3
 
@@ -208,7 +210,7 @@ def _get_party_members(caller):
     return members
 
 
-class CmdTravel(Command):
+class CmdTravel(FCMCommandMixin, Command):
     """
     Travel to another zone via this gateway.
 

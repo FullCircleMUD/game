@@ -10,11 +10,12 @@ Works for wearables, weapons, and holdables.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 
 
-class CmdRemove(Command):
+class CmdRemove(FCMCommandMixin, Command):
     """
     Remove an equipped item.
 

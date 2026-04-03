@@ -5,11 +5,13 @@ CmdEnterTutorial — start or re-enter the tutorial from anywhere (``tutorial``)
 CmdLeaveTutorial — leave the tutorial mid-way (no reward).
 """
 
-from commands.command import Command
+from evennia import Command
+
+from commands.command import FCMCommandMixin
 from evennia import ScriptDB
 
 
-class CmdEnterTutorial(Command):
+class CmdEnterTutorial(FCMCommandMixin, Command):
     """
     Enter or re-enter the tutorial.
 
@@ -64,7 +66,7 @@ class CmdEnterTutorial(Command):
         caller.msg("|cYou are transported to the Tutorial Hub.|n")
 
 
-class CmdLeaveTutorial(Command):
+class CmdLeaveTutorial(FCMCommandMixin, Command):
     """
     Leave the tutorial and return to the Tutorial Hub.
 

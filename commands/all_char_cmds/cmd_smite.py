@@ -6,8 +6,10 @@ Typing ``smite`` toggles reactive Smite on/off, same as ``toggle smite``.
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdSmite(Command):
+
+class CmdSmite(FCMCommandMixin, Command):
     """
     Toggle reactive Smite on/off.
 

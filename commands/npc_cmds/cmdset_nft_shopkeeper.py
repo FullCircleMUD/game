@@ -16,6 +16,7 @@ from evennia import CmdSet, Command
 from twisted.internet import threads
 
 from blockchain.xrpl.xrpl_tx import XRPLTransactionError
+from commands.command import FCMCommandMixin
 
 
 def _session_check(caller):
@@ -159,7 +160,7 @@ def _find_inventory_item(caller, item_name, tradeable_types):
 
 # ── CmdNFTShopList ──────────────────────────────────────────────────
 
-class CmdNFTShopList(Command):
+class CmdNFTShopList(FCMCommandMixin, Command):
     """
     List equipment available at this shop.
 
@@ -202,7 +203,7 @@ class CmdNFTShopList(Command):
 
 # ── CmdNFTShopQuote ─────────────────────────────────────────────────
 
-class CmdNFTShopQuote(Command):
+class CmdNFTShopQuote(FCMCommandMixin, Command):
     """
     Get a price quote for buying or selling an item.
 
@@ -350,7 +351,7 @@ def _on_nft_quote_price(caller, shopkeeper, direction, item_type, item,
 
 # ── CmdNFTShopAccept ────────────────────────────────────────────────
 
-class CmdNFTShopAccept(Command):
+class CmdNFTShopAccept(FCMCommandMixin, Command):
     """
     Accept a pending price quote.
 
@@ -463,7 +464,7 @@ class CmdNFTShopAccept(Command):
 
 # ── CmdNFTShopBuy ───────────────────────────────────────────────────
 
-class CmdNFTShopBuy(Command):
+class CmdNFTShopBuy(FCMCommandMixin, Command):
     """
     Buy an item from the shopkeeper at the current market price.
 
@@ -528,7 +529,7 @@ class CmdNFTShopBuy(Command):
 
 # ── CmdNFTShopSell ──────────────────────────────────────────────────
 
-class CmdNFTShopSell(Command):
+class CmdNFTShopSell(FCMCommandMixin, Command):
     """
     Sell an item to the shopkeeper at the current market price.
 

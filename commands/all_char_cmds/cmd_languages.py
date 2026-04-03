@@ -8,8 +8,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdLanguages(Command):
+
+class CmdLanguages(FCMCommandMixin, Command):
     """
     Check what languages you speak.
 

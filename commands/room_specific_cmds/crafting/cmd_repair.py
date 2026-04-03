@@ -25,6 +25,7 @@ from evennia import Command
 from evennia.utils import delay
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 from world.recipes import get_recipe_by_output_prototype, compute_repair_cost
 
@@ -51,7 +52,7 @@ _CRAFT_XP_BY_MASTERY = {
 }
 
 
-class CmdRepair(Command):
+class CmdRepair(FCMCommandMixin, Command):
     """
     Repair a damaged item using a crafting station.
 

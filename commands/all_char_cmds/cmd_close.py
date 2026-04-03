@@ -7,10 +7,11 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from utils.find_exit_target import find_exit_target
 
 
-class CmdClose(Command):
+class CmdClose(FCMCommandMixin, Command):
     """
     Close a chest, door, or other closeable object.
 

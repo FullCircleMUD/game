@@ -7,8 +7,10 @@ Usage:
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 
-class CmdWeight(Command):
+
+class CmdWeight(FCMCommandMixin, Command):
     """
     Check your carrying weight.
 

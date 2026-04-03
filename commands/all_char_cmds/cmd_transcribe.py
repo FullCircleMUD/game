@@ -11,10 +11,11 @@ handled by SpellbookMixin.learn_spell().
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.spell_scroll_nft_item import SpellScrollNFTItem
 
 
-class CmdTranscribe(Command):
+class CmdTranscribe(FCMCommandMixin, Command):
     """
     Transcribe a spell scroll to learn its spell permanently.
 

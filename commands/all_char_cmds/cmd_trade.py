@@ -25,6 +25,7 @@ from django.conf import settings
 from evennia import CmdSet, DefaultScript
 from evennia.commands.command import Command
 
+from commands.command import FCMCommandMixin
 from typeclasses.actors.character import FCMCharacter
 from utils.weight_check import check_can_carry, get_item_weight, get_gold_weight
 
@@ -194,7 +195,7 @@ class TradeTimeout(DefaultScript):
 #  CmdTrade — initiation command (globally available)
 # ================================================================== #
 
-class CmdTrade(Command):
+class CmdTrade(FCMCommandMixin, Command):
     """
     Initiate, accept, or decline a trade with another player.
 
@@ -321,7 +322,7 @@ class CmdTrade(Command):
 #  Trade-mode commands (added via CmdSetTrade)
 # ================================================================== #
 
-class CmdTradeBase(Command):
+class CmdTradeBase(FCMCommandMixin, Command):
     """Base for trade-session commands."""
 
     locks = "cmd:all()"

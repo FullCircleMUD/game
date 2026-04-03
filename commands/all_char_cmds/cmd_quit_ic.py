@@ -1,6 +1,8 @@
 from evennia import Command
 
-class CmdQuitIC(Command):
+from commands.command import FCMCommandMixin
+
+class CmdQuitIC(FCMCommandMixin, Command):
     """
     Quit command for characters.
     Exits IC mode and returns to OOC/account mode.

@@ -2,10 +2,12 @@ from evennia import Command
 from evennia.objects.models import ObjectDB
 from evennia.utils.idmapper.models import SharedMemoryModel
 
+from commands.command import FCMCommandMixin
+
 # Check the idmapper module directly
 import evennia.utils.idmapper.models as idmapper_module
 
-class CmdTest(Command):
+class CmdTest(FCMCommandMixin, Command):
     """
     Fly up or down in a rooms
 

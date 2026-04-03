@@ -11,6 +11,8 @@ they must specify ``keep`` (keep followers) or ``disband`` (kick them).
 
 from evennia import Command
 
+from commands.command import FCMCommandMixin
+
 
 def _handle_nofollow_toggle(caller, modifier):
     """Shared logic for toggling nofollow, used by CmdToggle and CmdNofollow.
@@ -62,7 +64,7 @@ def _handle_nofollow_toggle(caller, modifier):
     return True
 
 
-class CmdToggle(Command):
+class CmdToggle(FCMCommandMixin, Command):
     """
     View or change your preferences.
 
