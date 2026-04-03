@@ -5,7 +5,7 @@ NunchakuMixin defines all mastery tables and overrides — shared by
 both NunchakuNFTItem (player weapons) and MobNunchaku (mob weapons).
 
 Linked sticks swung at high speed. Two-handed stun specialist.
-Usable by warriors, ninjas, and barbarians.
+Ninja only.
 
 Mastery progression:
     UNSKILLED: -2 hit, 1 attack, no stun
@@ -29,6 +29,7 @@ Stun/Knockdown (SKILLED+):
 from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.actor_size import ActorSize
+from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from combat.combat_utils import get_actor_size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
@@ -179,8 +180,10 @@ class NunchakuNFTItem(NunchakuMixin, WeaponNFTItem):
     Nunchaku weapons — two-handed melee, stun specialist.
 
     Contested DEX vs CON stun on hit. PRONE at MASTER+ on big wins.
-    GARGANTUAN only immune to stun.
+    GARGANTUAN only immune to stun. Ninja only.
     """
+
+    required_classes = AttributeProperty([CharacterClass.NINJA])
 
     def at_object_creation(self):
         super().at_object_creation()
