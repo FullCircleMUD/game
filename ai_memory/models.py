@@ -3,21 +3,29 @@ AI Memory models — persistent NPC memory with vector embeddings.
 
 Stores conversation exchanges between NPCs and players, with optional
 embedding vectors for semantic similarity search. Lives in a separate
-``ai_memory`` SQLite database so memories survive game DB wipes.
+``ai_memory`` database so memories survive game DB wipes.
+
+Two embedding fields coexist for dual-backend support:
+- ``embedding`` (BinaryField) — numpy binary blob, used on SQLite (local dev).
+- ``embedding_vector`` (VectorField) — pgvector native column, used on
+  PostgreSQL (Railway staging/production). Indexed via HNSW for
+  sub-linear cosine similarity search.
 """
 
 from django.db import models
+
+from pgvector.django import VectorField
 
 
 class NpcMemory(models.Model):
     """
     A single conversation exchange between an NPC and a speaker.
 
-    Stores both the raw text and an optional embedding vector (as binary
-    blob) for semantic search. The ``npc_name`` and ``speaker_name``
-    fields enable matching across game DB wipes where Evennia object IDs
-    change — search falls back to name-based matching when ID-based
-    returns nothing.
+    Stores both the raw text and an optional embedding vector for
+    semantic search. The ``npc_name`` and ``speaker_name`` fields enable
+    matching across game DB wipes where Evennia object IDs change —
+    search falls back to name-based matching when ID-based returns
+    nothing.
     """
 
     npc_id = models.IntegerField(db_index=True)
@@ -28,6 +36,7 @@ class NpcMemory(models.Model):
     assistant_message = models.TextField()
     summary = models.TextField(blank=True, default="")
     embedding = models.BinaryField(null=True, blank=True)
+    embedding_vector = VectorField(dimensions=1536, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     interaction_type = models.CharField(max_length=20, default="say")
 

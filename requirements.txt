@@ -15,6 +15,9 @@ xrpl-py
 # Vector memory cosine similarity (ai_memory app)
 numpy
 
+# pgvector Django integration (vector search on PostgreSQL)
+pgvector
+
 # needed for xaman API
 requests
 

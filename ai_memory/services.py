@@ -4,8 +4,14 @@ AI Memory services — store, search, and retrieve NPC memories.
 All functions are synchronous. The caller (LLMMixin) wraps them in
 ``deferToThread`` so they don't block the Twisted reactor.
 
-Phase 1: SQLite + numpy for cosine similarity.
-Future:  Swap search to pgvector ``<=>`` operator.
+Dual backend:
+  - **PostgreSQL** (Railway): uses pgvector ``<=>`` operator with HNSW
+    index for sub-linear cosine similarity search.
+  - **SQLite** (local dev): uses numpy cosine similarity in a Python
+    loop (unchanged from Phase 1).
+
+Backend is detected automatically from
+``settings.DATABASES["ai_memory"]["ENGINE"]``.
 """
 
 import logging
@@ -17,7 +23,18 @@ from django.utils import timezone
 logger = logging.getLogger("ai_memory.services")
 
 
-# ── Cosine Similarity ─────────────────────────────────────────────────
+# ── Backend Detection ────────────────────────────────────────────────
+
+
+def _is_postgres():
+    """Return True if the ai_memory database is PostgreSQL."""
+    from django.conf import settings
+
+    engine = settings.DATABASES.get("ai_memory", {}).get("ENGINE", "")
+    return "postgresql" in engine
+
+
+# ── Cosine Similarity (SQLite path only) ─────────────────────────────
 
 
 def _cosine_similarity(a, b):
@@ -29,7 +46,7 @@ def _cosine_similarity(a, b):
     return float(dot / norm)
 
 
-# ── Time Formatting ───────────────────────────────────────────────────
+# ── Time Formatting ──────────────────────────────────────────────────
 
 
 def _time_ago_str(dt):
@@ -58,7 +75,7 @@ def _time_ago_str(dt):
     return "over a year ago"
 
 
-# ── Store ─────────────────────────────────────────────────────────────
+# ── Store ────────────────────────────────────────────────────────────
 
 
 def store_memory(npc, speaker, user_msg, assistant_msg, interaction_type="say"):
@@ -77,15 +94,23 @@ def store_memory(npc, speaker, user_msg, assistant_msg, interaction_type="say"):
     summary = f'{speaker.key} said: "{user_msg}" | {npc.key} replied: "{assistant_msg}"'
 
     # Generate embedding
-    embedding_bytes = None
+    embedding_raw = None
     try:
         from llm.service import LLMService
 
-        embedding = LLMService.create_embedding(summary)
-        if embedding is not None:
-            embedding_bytes = np.asarray(embedding, dtype=np.float32).tobytes()
+        embedding_raw = LLMService.create_embedding(summary)
     except Exception:
         logger.exception("Failed to generate embedding for NPC %s", npc.key)
+
+    # Prepare backend-specific fields
+    embedding_bytes = None
+    embedding_vector = None
+
+    if embedding_raw is not None:
+        if _is_postgres():
+            embedding_vector = embedding_raw  # list[float] → pgvector
+        else:
+            embedding_bytes = np.asarray(embedding_raw, dtype=np.float32).tobytes()
 
     try:
         NpcMemory.objects.using("ai_memory").create(
@@ -97,13 +122,14 @@ def store_memory(npc, speaker, user_msg, assistant_msg, interaction_type="say"):
             assistant_message=assistant_msg,
             summary=summary,
             embedding=embedding_bytes,
+            embedding_vector=embedding_vector,
             interaction_type=interaction_type,
         )
     except Exception:
         logger.exception("Failed to store memory for NPC %s", npc.key)
 
 
-# ── Search (Semantic) ─────────────────────────────────────────────────
+# ── Search (Semantic) ────────────────────────────────────────────────
 
 
 def search_memories(npc_id, query_text, top_k=5, speaker_id=None, npc_name=None):
@@ -112,6 +138,9 @@ def search_memories(npc_id, query_text, top_k=5, speaker_id=None, npc_name=None)
 
     Falls back to name-based matching if npc_id returns no results
     (handles game DB wipes where Evennia object IDs change).
+
+    On PostgreSQL, uses pgvector's ``CosineDistance`` with HNSW index.
+    On SQLite, uses the numpy cosine similarity loop.
 
     Args:
         npc_id: The NPC's Evennia object ID
@@ -139,9 +168,19 @@ def search_memories(npc_id, query_text, top_k=5, speaker_id=None, npc_name=None)
         # Can't do semantic search without embedding — fall back to recent
         return get_recent_memories(npc_id, limit=top_k, npc_name=npc_name)
 
-    query_vec = np.asarray(query_embedding, dtype=np.float32)
+    if _is_postgres():
+        return _search_memories_pgvector(
+            npc_id, query_embedding, top_k, speaker_id, npc_name
+        )
+    return _search_memories_numpy(
+        npc_id, query_embedding, top_k, speaker_id, npc_name
+    )
 
-    # Query memories — try by ID first, fall back to name
+
+def _build_search_queryset(npc_id, speaker_id, npc_name):
+    """Build the base queryset for memory search with ID/name fallback."""
+    from ai_memory.models import NpcMemory
+
     qs = NpcMemory.objects.using("ai_memory").filter(npc_id=npc_id)
     if speaker_id:
         qs = qs.filter(speaker_id=speaker_id)
@@ -150,6 +189,46 @@ def search_memories(npc_id, query_text, top_k=5, speaker_id=None, npc_name=None)
         qs = NpcMemory.objects.using("ai_memory").filter(npc_name=npc_name)
         if speaker_id:
             qs = qs.filter(speaker_id=speaker_id)
+
+    return qs
+
+
+def _search_memories_pgvector(npc_id, query_embedding, top_k, speaker_id, npc_name):
+    """
+    Semantic search using pgvector CosineDistance — single SQL query,
+    HNSW index-backed.
+    """
+    from pgvector.django import CosineDistance
+
+    qs = _build_search_queryset(npc_id, speaker_id, npc_name)
+    qs = (
+        qs.filter(embedding_vector__isnull=False)
+        .annotate(distance=CosineDistance("embedding_vector", query_embedding))
+        .order_by("distance")[:top_k]
+    )
+
+    results = []
+    for mem in qs:
+        results.append({
+            "summary": mem.summary,
+            "user_message": mem.user_message,
+            "assistant_message": mem.assistant_message,
+            "similarity": 1.0 - mem.distance,
+            "created_at": mem.created_at,
+            "time_ago": _time_ago_str(mem.created_at),
+            "speaker_name": mem.speaker_name,
+        })
+
+    return results
+
+
+def _search_memories_numpy(npc_id, query_embedding, top_k, speaker_id, npc_name):
+    """
+    Semantic search using numpy cosine similarity — O(n) Python loop.
+    Used on SQLite (local dev).
+    """
+    query_vec = np.asarray(query_embedding, dtype=np.float32)
+    qs = _build_search_queryset(npc_id, speaker_id, npc_name)
 
     # Score each memory by cosine similarity
     scored = []
@@ -179,7 +258,7 @@ def search_memories(npc_id, query_text, top_k=5, speaker_id=None, npc_name=None)
     return results
 
 
-# ── Recent Memories (Fallback) ────────────────────────────────────────
+# ── Recent Memories (Fallback) ───────────────────────────────────────
 
 
 def get_recent_memories(npc_id, limit=10, npc_name=None):
@@ -217,7 +296,7 @@ def get_recent_memories(npc_id, limit=10, npc_name=None):
     return results
 
 
-# ── Last Interaction Time ─────────────────────────────────────────────
+# ── Last Interaction Time ────────────────────────────────────────────
 
 
 def get_last_interaction_time(npc_id, speaker_id, npc_name=None, speaker_name=None):
