@@ -89,32 +89,140 @@ _WEAPON_CLASSES = {
 }
 
 _WEAPON_DESCRIPTIONS = {
-    # Slashing
-    WeaponType.GREAT_SWORD: "A heavy two-handed blade. High damage, slow speed.",
-    WeaponType.LONG_SWORD: "A versatile one-handed blade. Balanced damage and speed.",
-    WeaponType.SHORT_SWORD: "A light one-handed blade. Fast strikes, moderate damage.",
-    WeaponType.BATTLEAXE: "A large two-handed axe. Heavy hits, slow recovery.",
-    WeaponType.HANDAXE: "A light one-handed axe. Can be thrown.",
-    WeaponType.NINJATO: "A straight-bladed ninja sword. Combines speed, precision, and dual-wield capability.",
-    # Piercing
-    WeaponType.SPEAR: "A long-hafted thrusting weapon. Good reach, moderate speed.",
-    WeaponType.BOW: "A ranged weapon firing arrows. Requires ammunition.",
-    WeaponType.CROSSBOW: "A mechanical ranged weapon. High damage, slow reload.",
-    WeaponType.RAPIER: "A thin thrusting blade. Fast, precise attacks. Favours dexterity.",
-    WeaponType.DAGGER: "A small blade for quick stabs. Very fast, low damage.",
-    WeaponType.LANCE: "A mounted combat weapon. Devastating on a charge.",
-    # Bludgeoning
-    WeaponType.STAFF: "A two-handed wooden pole. Decent reach, can be used for defence.",
-    WeaponType.MACE: "A heavy blunt weapon. Effective against armored foes.",
-    WeaponType.CLUB: "A simple one-handed bludgeon. Fast, crude, effective.",
-    WeaponType.GREATCLUB: "A massive two-handed club. Slow but staggering.",
-    WeaponType.HAMMER: "A crushing blunt weapon. High damage, slow speed.",
-    WeaponType.UNARMED: "Fighting with fists and feet. Always available, improved by training.",
-    WeaponType.NANCHAKU: "Linked sticks swung at high speed. Fast, requires skill.",
-    WeaponType.SLING: "A simple ranged weapon hurling stones. Light, accurate, easy to learn.",
-    # Special
-    WeaponType.BLOWGUN: "A tube firing poisoned darts. Silent ranged weapon.",
-    WeaponType.BOLA: "Weighted cords thrown to entangle. Can immobilise targets.",
-    WeaponType.SHURIKEN: "Small thrown stars. Quick, low damage, can hit multiple times.",
-    WeaponType.SAI: "A pronged defensive weapon. Good for disarming and parrying.",
+    # ── Slashing ──
+    WeaponType.GREAT_SWORD: (
+        "A heavy two-handed blade (2d6). Highest melee damage dice. Cleave "
+        "at SKILLED+ — successful hits cascade to nearby enemies (up to 3 "
+        "targets at MASTER). Executioner at GM grants a free attack on kills."
+    ),
+    WeaponType.LONG_SWORD: (
+        "A versatile one-handed blade (d8). Balanced offense and defense — "
+        "parries at SKILLED+ (up to 3 at GM with parry advantage), plus "
+        "extra attacks at MASTER+. A solid all-rounder."
+    ),
+    WeaponType.SHORT_SWORD: (
+        "A light one-handed blade (d6). Finesse (uses DEX for hit). "
+        "Dual-wieldable with off-hand attacks at EXPERT+. Parries at "
+        "SKILLED+ (up to 2 at GM). Best in a pair for fast dual-wield builds."
+    ),
+    WeaponType.BATTLEAXE: (
+        "A large two-handed axe (d10). Cleave at SKILLED+ (weaker than "
+        "greatsword) plus Sunder — chance to reduce the target's AC on hit "
+        "(stacking, up to -2 per hit at MASTER+). Anti-armor specialist."
+    ),
+    WeaponType.HANDAXE: (
+        "A light one-handed axe (d6). Sunder at SKILLED+ — chance to reduce "
+        "target AC by 1 on hit. Extra attacks at MASTER+. Lighter sunder "
+        "than battleaxe but faster."
+    ),
+    WeaponType.NINJATO: (
+        "A straight-bladed ninja sword (d8). Two-handed, finesse. Combines "
+        "speed with defense — extra attacks at EXPERT+, parries at SKILLED+ "
+        "(up to 2 at GM). Riposte and parry advantage at GM. Ninja only."
+    ),
+    # ── Piercing ──
+    WeaponType.SPEAR: (
+        "A long-hafted thrusting weapon (d8). Two-handed. Reach Counter at "
+        "EXPERT+ — free counter-attacks when nearby allies are hit (up to 2 "
+        "at GM). Also gains crit threshold reduction with mastery. Best for "
+        "party support."
+    ),
+    WeaponType.BOW: (
+        "A ranged weapon (d8). Two-handed. Slowing Shot at SKILLED+ — "
+        "contested DEX vs STR roll to slow the target (caps their attacks "
+        "at 1/round). Extra attacks at MASTER+. Primary ranged DPS weapon."
+    ),
+    WeaponType.CROSSBOW: (
+        "A mechanical ranged weapon (d12). Two-handed. Highest ranged damage "
+        "per shot but no extra attacks. Knockback at SKILLED+ — chance to "
+        "knock the target prone (HUGE+ immune). Slow but devastating."
+    ),
+    WeaponType.RAPIER: (
+        "A thin thrusting blade (d8). One-handed, finesse (uses DEX for "
+        "hit). Riposte at EXPERT+ — counter-attack after a successful "
+        "parry. Parry advantage at GM. The duelist's weapon."
+    ),
+    WeaponType.DAGGER: (
+        "A small blade for quick stabs (d4). One-handed, finesse, "
+        "dual-wieldable. Fastest weapon — extra attacks from SKILLED+, "
+        "off-hand attacks at MASTER+. Crit threshold reduction at EXPERT+. "
+        "Low damage per hit, high volume. Required for backstab."
+    ),
+    WeaponType.LANCE: (
+        "A mounted combat weapon (2d7). Two-handed. Devastating on "
+        "horseback — prone chance, crit bonus, and extra attacks at "
+        "MASTER+. Severe penalties when unmounted (disadvantage, 1 "
+        "attack/round, no specials). A cavalry weapon only."
+    ),
+    # ── Bludgeoning ──
+    WeaponType.STAFF: (
+        "A two-handed wooden pole (d8). The best defensive weapon — highest "
+        "parry count (up to 4 at GM) and the only weapon that parries ALL "
+        "attack types (melee, unarmed, animal, missile). Parry advantage at "
+        "EXPERT+, riposte at MASTER+."
+    ),
+    WeaponType.MACE: (
+        "A heavy blunt weapon (d6). One-handed. Anti-armor Crush — bonus "
+        "damage vs armored targets that scales with mastery (up to +8 vs "
+        "heavy armor at GM). Extra attacks at MASTER+. Rewards targeting "
+        "plate-wearers."
+    ),
+    WeaponType.CLUB: (
+        "A simple one-handed bludgeon (d6). Stagger at SKILLED+ — chance "
+        "to impose a -2 hit penalty on the target for 1 round. Extra "
+        "attacks at MASTER+. Widely available to most classes."
+    ),
+    WeaponType.GREATCLUB: (
+        "A massive two-handed club (d10). Heavy Stagger at SKILLED+ — "
+        "stronger than club (up to -4 hit penalty for 2 rounds at MASTER+), "
+        "higher proc chance (up to 30% at GM). Pure stagger specialist."
+    ),
+    WeaponType.HAMMER: (
+        "A crushing one-handed weapon (d8). Devastating Blow — massively "
+        "increased crit damage multiplier (up to 4x total at GM vs the "
+        "normal 2x). Stack with crit threshold gear for spike damage builds."
+    ),
+    WeaponType.UNARMED: (
+        "Fighting with fists and feet. Always available. Damage scales with "
+        "mastery (d1 to d8). Stun at SKILLED+ via contested STR vs CON — "
+        "PRONE on big wins at MASTER+. Extra attacks at EXPERT+. Trains "
+        "well as a backup for any class."
+    ),
+    WeaponType.NANCHAKU: (
+        "Linked sticks swung at high speed (d6). Two-handed. Stun on hit "
+        "at SKILLED+ via contested DEX vs CON — PRONE on big wins at "
+        "MASTER+ (GARGANTUAN only immune). Extra attacks from SKILLED+ "
+        "(up to 2 at GM). Ninja only."
+    ),
+    WeaponType.SLING: (
+        "A simple ranged weapon hurling stones (d6). One-handed. Available "
+        "to all classes. Concussive Daze at SKILLED+ — chance to stun the "
+        "target (HUGE+ immune). Extra attacks from EXPERT+. The most "
+        "accessible ranged option."
+    ),
+    # ── Special ──
+    WeaponType.BLOWGUN: (
+        "A tube firing poisoned darts (d1). One-handed, finesse, ranged. "
+        "Nearly no direct damage — instead applies stacking poison DoT "
+        "(up to d6/round at GM) and paralysis via CON save (up to 3 rounds "
+        "at GM, HUGE+ immune). A control weapon, not a damage weapon."
+    ),
+    WeaponType.BOLA: (
+        "Weighted cords thrown to entangle (d1). One-handed, finesse, "
+        "ranged. Minimal damage — the purpose is Entangle via contested "
+        "DEX roll (up to 6 rounds at GM, HUGE+ immune). Target must break "
+        "free with STR saves each round. Pure crowd control."
+    ),
+    WeaponType.SHURIKEN: (
+        "Small thrown stars (d4). One-handed, finesse, ranged. Multi-throw "
+        "scales dramatically — up to 4 throws per round at GM. Crit "
+        "threshold reduction at SKILLED+. Consumable: each throw transfers "
+        "the shuriken to the target or floor. Ninja only."
+    ),
+    WeaponType.SAI: (
+        "A pronged defensive weapon (d6). One-handed, dual-wieldable. "
+        "Highest one-handed parry count (up to 5 at GM). Disarm-on-parry "
+        "at SKILLED+ — contested DEX vs STR to knock the attacker's weapon "
+        "from their grip. No extra attacks. Ninja only."
+    ),
 }
