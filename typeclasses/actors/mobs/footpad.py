@@ -34,7 +34,7 @@ class Footpad(StabAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressiv
     attack_delay_max = AttributeProperty(4)
 
     # ── Gold loot ──
-    loot_gold_max = AttributeProperty(2)
+    loot_gold_max = AttributeProperty(5)
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)  # flees at half health
