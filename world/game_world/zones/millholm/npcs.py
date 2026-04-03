@@ -1621,6 +1621,7 @@ def _spawn_grik():
         "Club", "Quarterstaff", "Sling", "Shortbow",
         "Bronze Spear",
         "Haft", "Shaft",
+        "Wooden Torch",
     ]
     npc.shop_name = "Grik's Blades & Blunts"
     npc.db.desc = (
@@ -1728,6 +1729,36 @@ def _spawn_boatman():
     return npc
 
 
+def _spawn_librarian():
+    """Spawn the librarian in the Millholm Public Library."""
+    room = _find_room("Millholm Public Library")
+    if not room:
+        print("  [!] Room 'Millholm Public Library' not found — skipping librarian")
+        return None
+
+    npc = create.create_object(
+        "typeclasses.actors.mobs.librarian.Librarian",
+        key="Mistress Pevensey",
+        location=room,
+    )
+    npc.db.desc = (
+        "A thin, precise woman of indeterminate age with steel-grey "
+        "hair pulled into a tight bun so severe it seems to stretch "
+        "her eyebrows upward in permanent mild outrage. Half-moon "
+        "spectacles perch on a sharp nose above lips pressed into a "
+        "line that suggests smiling is something other people do. Her "
+        "dark dress is immaculate, her posture impeccable, and the "
+        "look she gives anyone who speaks above a whisper could curdle "
+        "milk at twenty paces."
+    )
+    npc.room_description = (
+        "{name} stands behind the front desk, watching for noise "
+        "violations with the vigilance of a hawk."
+    )
+    print(f"  Spawned librarian 'Mistress Pevensey' in {room.key} ({room.dbref})")
+    return npc
+
+
 def spawn_millholm_npcs():
     """Spawn all Millholm NPCs."""
     print("--- Spawning Millholm NPCs ---")
@@ -1764,6 +1795,8 @@ def spawn_millholm_npcs():
     _spawn_colette()
     _spawn_fizwick()
     _spawn_pim()
+    # ── Library ──
+    _spawn_librarian()
     # ── Lake District ──
     _spawn_boatman()
     # ── Southern District ──

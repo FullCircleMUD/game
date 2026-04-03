@@ -1779,16 +1779,89 @@ def build_millholm_town(one_way_limbo=False):
         ],
     )
 
-    rooms["vacant_shop"] = create_object(
+    rooms["library_desk"] = create_object(
         RoomBase,
-        key="Vacant Shopfront",
+        key="Millholm Public Library",
         attributes=[
             ("desc",
-             "An empty shop with bare shelves and a cold hearth. The "
-             "windows are clean but the display cases are empty. A "
-             "faded 'To Let — Inquire at Town Hall' notice is pinned "
-             "inside the glass door. Whatever business occupied this "
-             "prime Trade Way frontage has moved on."),
+             "A hushed, high-ceilinged room smelling of old paper and "
+             "furniture polish. A heavy oak front desk dominates the "
+             "entrance, its surface neatly stacked with returned books "
+             "awaiting reshelving. Behind the desk, pigeonholes overflow "
+             "with reservation slips and overdue notices. A strange "
+             "brass contraption bolted to a pedestal beside the door "
+             "hums faintly — the book detection machine, ready to shriek "
+             "if anyone tries to walk out with library property. "
+             "Archways lead east to the fiction section, west to the "
+             "children's section, and north to non-fiction."),
+            ("details", {
+                "detection machine": (
+                    "A peculiar brass device covered in runes and tiny "
+                    "crystal lenses. It hums with a low, persistent "
+                    "vibration. A small plaque reads: 'Property of the "
+                    "Millholm Public Library — Tampering is a Civic Offence.' "
+                    "You suspect it would make an absolutely ear-splitting "
+                    "noise if provoked."
+                ),
+                "front desk": (
+                    "A sturdy oak desk polished to a warm sheen by "
+                    "decades of elbows. Neat stacks of books sit in "
+                    "labelled piles: 'Returns', 'Reshelving', 'Damaged'. "
+                    "A brass bell sits beside a sign reading 'Ring for "
+                    "Assistance (QUIETLY)'."
+                ),
+            }),
+        ],
+    )
+
+    rooms["library_children"] = create_object(
+        RoomBase,
+        key="Children's Section",
+        attributes=[
+            ("desc",
+             "A warm, colourful corner of the library with low "
+             "shelves sized for small hands. Faded cushions are "
+             "scattered across a thick rug and the walls are painted "
+             "with cheerful murals of dragons, knights, and talking "
+             "animals. A rocking chair sits in the corner beside a "
+             "shelf labelled 'Story Time Favourites'. The books here "
+             "have well-worn spines and the occasional sticky "
+             "fingerprint. A hand-lettered sign reads 'Please Return "
+             "Books to the Trolley, Not the Floor'."),
+        ],
+    )
+
+    rooms["library_fiction"] = create_object(
+        RoomBase,
+        key="Fiction Section",
+        attributes=[
+            ("desc",
+             "Tall shelves stretch from floor to ceiling, packed with "
+             "novels, romances, adventures, and tales of daring. A "
+             "rolling ladder on a brass rail provides access to the "
+             "upper shelves. Comfortable reading chairs are tucked "
+             "into alcoves between the stacks, each with a small "
+             "side table and a candle in a glass shade. The spines "
+             "are organised alphabetically and a handwritten card "
+             "index sits on a podium near the entrance. A faded sign "
+             "above the shelves reads 'Lose Yourself in a Good Book'."),
+        ],
+    )
+
+    rooms["library_nonfiction"] = create_object(
+        RoomBase,
+        key="Non-Fiction Section",
+        attributes=[
+            ("desc",
+             "Heavy reference volumes and scholarly works line sturdy "
+             "oak shelves, organised by subject. History, geography, "
+             "natural philosophy, agriculture, and civic records each "
+             "have their own section marked by brass plaques. A large "
+             "reading table dominates the centre of the room, scarred "
+             "by decades of note-taking. Inkwells and quills are "
+             "provided in a rack beside a sign that reads 'Reference "
+             "Materials — Do Not Remove From This Section'. The air "
+             "smells of leather bindings and quiet scholarship."),
         ],
     )
 
@@ -2223,16 +2296,25 @@ def build_millholm_town(one_way_limbo=False):
     )
     exit_count += 2
 
-    # road_far_east — Vacant Shopfront (south door, replaces old leathershop)
+    # road_far_east — Millholm Public Library (south door)
     connect_bidirectional_door_exit(
-        rooms["road_far_east"], rooms["vacant_shop"], "south",
-        key="a glass door",
-        closed_ab="A glass-panelled door with a 'To Let' notice leads south.",
-        open_ab="An empty shop with bare shelves is visible through the open door.",
-        closed_ba="A glass-panelled door leads north to the trade road.",
+        rooms["road_far_east"], rooms["library_desk"], "south",
+        key="a heavy oak door",
+        closed_ab="A heavy oak door with a brass plaque reading 'Millholm Public Library' leads south.",
+        open_ab="The hushed interior of the Millholm Public Library is visible through the open door.",
+        closed_ba="A heavy oak door leads north to the trade road.",
         open_ba="The trade road is visible through the open door.",
     )
     exit_count += 2
+
+    # Library internal connections
+    connect_bidirectional_exit(rooms["library_desk"], rooms["library_children"], "west",
+            desc_ab="the children's section", desc_ba="the front desk")
+    connect_bidirectional_exit(rooms["library_desk"], rooms["library_fiction"], "east",
+            desc_ab="the fiction section", desc_ba="the front desk")
+    connect_bidirectional_exit(rooms["library_desk"], rooms["library_nonfiction"], "north",
+            desc_ab="the non-fiction section", desc_ba="the front desk")
+    exit_count += 6
 
     # ── Buildings off South Road (doors) ───────────────────────────
 
@@ -2479,7 +2561,9 @@ def build_millholm_town(one_way_limbo=False):
         rooms["gaol_cell"],
         rooms["weapons_shop"], rooms["armorer"], rooms["clothing_shop"],
         rooms["magical_supplies"], rooms["jewellers_showroom"],
-        rooms["vacant_shop"], rooms["vacant_w1"],
+        rooms["library_desk"], rooms["library_children"],
+        rooms["library_fiction"], rooms["library_nonfiction"],
+        rooms["vacant_w1"],
         rooms["vacant_w2"], rooms["vacant_e2"],
     ]
     for room in no_fly_interiors:
@@ -2515,7 +2599,10 @@ def build_millholm_town(one_way_limbo=False):
         rooms["clothing_shop"],     # retail shop
         rooms["magical_supplies"],  # retail shop
         rooms["jewellers_showroom"],# retail shop
-        rooms["vacant_shop"],       # empty shopfront
+        rooms["library_desk"],      # library front desk
+        rooms["library_children"],  # library children's section
+        rooms["library_fiction"],   # library fiction section
+        rooms["library_nonfiction"],# library non-fiction section
     ]
     for room in no_combat_rooms:
         room.allow_combat = False
@@ -2568,7 +2655,9 @@ def build_millholm_town(one_way_limbo=False):
         rooms["vacant_w1"], rooms["vacant_w2"], rooms["vacant_e2"],
         rooms["weapons_shop"], rooms["armorer"],
         rooms["clothing_shop"], rooms["magical_supplies"],
-        rooms["jewellers_showroom"], rooms["vacant_shop"],
+        rooms["jewellers_showroom"], rooms["library_desk"],
+        rooms["library_children"], rooms["library_fiction"],
+        rooms["library_nonfiction"],
         rooms["gareth_bedroom"],
         rooms["elena_house"],
         rooms["hendricks_house"],
@@ -2647,7 +2736,10 @@ def build_millholm_town(one_way_limbo=False):
         "general_store":       "millholm_town:general_store",
         "bank":                "millholm_town:bank",
         "post_office":         "millholm_town:post_office",
-        "vacant_shop":         "millholm_town:vacant_shop",
+        "library_desk":        "millholm_town:library_desk",
+        "library_children":    "millholm_town:library_children",
+        "library_fiction":     "millholm_town:library_fiction",
+        "library_nonfiction":  "millholm_town:library_nonfiction",
         # ── Rows 7-8: south road (upper) ──
         "shrine":              "millholm_town:shrine",
         "south_road":          "millholm_town:south_road",
@@ -2705,7 +2797,8 @@ def build_millholm_town(one_way_limbo=False):
                 "south_road", "shrine"]:
         rooms[key].tags.add(f"{_rt}:town_center", category="map_cell")
     for key in ["sq_e", "road_east", "road_mid_east", "road_far_east",
-                "bank", "post_office", "vacant_shop"]:
+                "bank", "post_office", "library_desk",
+                "library_children", "library_fiction", "library_nonfiction"]:
         rooms[key].tags.add(f"{_rt}:town_e", category="map_cell")
     # Bottom row: town_sw, town_s (includes Artisan's Way), town_se
     for key in ["beggars_alley", "broken_crown",
