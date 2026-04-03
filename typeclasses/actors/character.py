@@ -993,6 +993,7 @@ class FCMCharacter(
                     "\n|c║|n  |wspells|n     — see your available spells       |c║|n"
                     "\n|c║|n  |wmemorise <spell>|n — prepare a spell for use   |c║|n"
                     "\n|c║|n  |wcast <spell>|n     — cast a memorised spell    |c║|n"
+                    "\n|c║|n  |wcast <spell> <target>|n — cast on a target     |c║|n"
                     "\n|c║|n  |wforget <spell>|n   — free a memory slot        |c║|n"
                     "\n|c║|n                                               |c║|n"
                     "\n|c║|n  You must memorise a spell before casting it. |c║|n"
