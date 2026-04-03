@@ -123,15 +123,10 @@ def force_drop_weapon(target, weapon=None):
 
     weapon_name = weapon.key
 
-    # Unequip via the character's remove method
+    # Unequip via the character's remove method — weapon stays in inventory.
     success, _ = target.remove(weapon)
     if not success:
         return (False, "")
-
-    # Mobs/NPCs: drop weapon to room floor. Players: stays in inventory.
-    from typeclasses.actors.character import FCMCharacter
-    if not isinstance(target, FCMCharacter) and target.location:
-        weapon.move_to(target.location, quiet=True)
 
     return (True, weapon_name)
 
@@ -386,7 +381,11 @@ def execute_attack(attacker, target, _is_riposte=False,
                         exclude=[attacker, target],
                     )
 
-                # --- 3b. Riposte ---
+                # --- 3b. Disarm-on-parry (sai) ---
+                if hasattr(defender_weapon, "_try_disarm"):
+                    defender_weapon._try_disarm(target, attacker)
+
+                # --- 3c. Riposte ---
                 # After a successful parry, if the defender's weapon grants riposte,
                 # fire a free counter-attack (which itself cannot be parried).
                 if (defender_weapon.has_riposte(target)
