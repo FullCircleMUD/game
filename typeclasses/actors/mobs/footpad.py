@@ -13,6 +13,8 @@ quest giver. Fights back when attacked with EXPERT stab + dodge.
 from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.mastery_level import MasteryLevel
+from evennia.utils import create
+
 from typeclasses.actors.mob import CombatMob
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.items.mob_items.mob_item import MobItem
@@ -93,7 +95,7 @@ class FootpadBoss(
     attack_delay_max = AttributeProperty(4)
 
     # ── Gold loot ──
-    loot_gold_max = AttributeProperty(10)
+    loot_gold_max = AttributeProperty(5)
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.25)
@@ -133,6 +135,15 @@ class FootpadBoss(
         weapon = MobItem.spawn_mob_item("iron_dagger", location=self)
         if weapon:
             self.wear(weapon)
+        # Key to the rooftop stash — transfers to corpse on death
+        from typeclasses.world_objects.key_item import KeyItem
+        key = create.create_object(
+            KeyItem,
+            key="a tarnished brass key",
+            location=self,
+        )
+        key.key_tag = "magpie_stash"
+        key.db.desc = "A small brass key, worn smooth from use. It has a magpie etched into the bow."
         # LLM init
         if hasattr(self, "at_llm_init"):
             self.at_llm_init()

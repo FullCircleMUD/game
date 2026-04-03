@@ -20,6 +20,7 @@ from evennia import create_object
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from typeclasses.world_objects.trap_chest import TrapChest
 from utils.exit_helpers import connect_bidirectional_exit
 
 
@@ -514,6 +515,46 @@ def build_millholm_rooftops():
     # Boss (The Magpie) on the elevated merchant's rooftop
     rooms["rooftops_gareth"].tags.add("rooftops_boss", category="mob_area")
     print("  Tagged rooftops_gareth with mob_area=rooftops_boss.")
+
+    # ── The Magpie's Stash ──
+    # Hidden trapped chest on the merchant's rooftop. Key drops from
+    # The Magpie's corpse. Player must search to find it, disarm the
+    # trap (or eat the damage), then unlock with the key.
+    stash = create_object(
+        TrapChest,
+        key="a weathered strongbox",
+        location=rooms["rooftops_gareth"],
+    )
+    stash.db.desc = (
+        "A small iron strongbox wedged under a loose roofing tile, "
+        "secured with a brass lock. Scratches around the keyhole suggest "
+        "frequent use."
+    )
+    stash.is_locked = True
+    stash.is_open = False
+    stash.key_tag = "magpie_stash"
+    stash.lock_dc = 20  # hard to pick — encourage finding the key
+    # Hidden — must search to find
+    stash.is_hidden = True
+    stash.find_dc = 16
+    # Trapped — poison needle
+    stash.is_trapped = True
+    stash.trap_armed = True
+    stash.trap_damage_dice = "2d4"
+    stash.trap_damage_type = "piercing"
+    stash.trap_effect_key = "poisoned"
+    stash.trap_effect_duration = 3
+    stash.trap_effect_duration_type = "combat_rounds"
+    stash.trap_find_dc = 18
+    stash.trap_disarm_dc = 16
+    stash.trap_one_shot = True
+    stash.trap_description = "a poison needle trap"
+    # Loot — gold and scrolls loaded by spawn system
+    stash.tags.add("spawn_gold", category="spawn_gold")
+    stash.db.spawn_gold_max = 15
+    stash.tags.add("spawn_scrolls", category="spawn_scrolls")
+    stash.db.spawn_scrolls_max = {"basic": 1, "skilled": 1}
+    print("  Created The Magpie's hidden trapped stash on rooftops_gareth.")
 
     print("  Millholm Rooftops complete.\n")
 
