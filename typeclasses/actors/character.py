@@ -877,6 +877,21 @@ class FCMCharacter(
             text = f"{text}\n" + "\n".join(lines)
         return text
 
+    def at_pre_puppet(self, account, session=None, **kwargs):
+        """Validate location before puppeting — catch deleted rooms.
+
+        If the game world was rebuilt while this character was offline,
+        their location reference may point to a deleted DB row. Detect
+        this and fall back to home or Limbo before Evennia tries to
+        look at the dead room in at_post_puppet().
+        """
+        if self.location is not None and not self.location.pk:
+            fallback = self.home if (self.home and self.home.pk) else self._get_limbo()
+            if fallback:
+                self.location = fallback
+                self.location.at_object_receive(self, None)
+        super().at_pre_puppet(account, session=session, **kwargs)
+
     def at_post_puppet(self, **kwargs):
         """Called after player connects to this character."""
         super().at_post_puppet(**kwargs)
