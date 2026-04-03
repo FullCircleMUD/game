@@ -13,6 +13,7 @@ from enums.actor_size import ActorSize
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
+from rules.damage_descriptors import get_descriptor, get_miss_verb
 from utils.dice_roller import dice
 
 
@@ -405,6 +406,11 @@ def execute_attack(attacker, target, _is_riposte=False,
                     weapon.at_post_attack(attacker, target, False, 0)
                 return
 
+    # Resolve damage type early — needed by both hit and miss message paths.
+    dmg_type = DamageType.BLUDGEONING
+    if weapon:
+        dmg_type = weapon.damage_type
+
     hit = (total_hit >= total_ac) or is_crit
     damage_dealt = 0
 
@@ -422,12 +428,10 @@ def execute_attack(attacker, target, _is_riposte=False,
         mastery = MasteryLevel.UNSKILLED
         # Unarmed fallback — mobs may have damage_dice (e.g. "2d6"), PCs get "1d2"
         damage_dice_str = getattr(attacker, "damage_dice", "1d2")
-        dmg_type = DamageType.BLUDGEONING
 
         if weapon:
             mastery = weapon.get_wielder_mastery(attacker)
             damage_dice_str = weapon.get_damage_roll(mastery)
-            dmg_type = weapon.damage_type
 
         damage = dice.roll(damage_dice_str) + attacker.effective_damage_bonus
         damage = max(1, damage)
@@ -526,15 +530,43 @@ def execute_attack(attacker, target, _is_riposte=False,
             if body_armor and hasattr(body_armor, "reduce_durability"):
                 body_armor.reduce_durability(1)
 
-        # Broadcast hit message BEFORE applying damage (so it appears
-        # before death/kill messages triggered by apply_damage)
-        crit_str = " |y*CRITICAL*|n" if is_crit else ""
+        # Three-perspective hit message BEFORE applying damage (so it
+        # appears before death/kill messages triggered by apply_damage)
+        crit_prefix = "|y*CRITICAL*|n " if is_crit else ""
         if attacker.location:
-            attacker.location.msg_contents(
-                f"|r{attacker.key} hits {target_key}{crit_str} "
-                f"for {damage_dealt} damage!|n",
-                from_obj=attacker,
-            )
+            if weapon:
+                second_verb, third_verb = get_descriptor(
+                    dmg_type, damage_dealt,
+                    getattr(target, "effective_hp_max", 1),
+                )
+                weapon_name = weapon.key
+                punct = "!" if second_verb[0].isupper() else "."
+                attacker.msg(
+                    f"|r{crit_prefix}You {second_verb} {target_key} "
+                    f"with your {weapon_name}{punct}|n"
+                )
+                target.msg(
+                    f"|r{crit_prefix}{attacker.key} {third_verb} you "
+                    f"with their {weapon_name}{punct}|n"
+                )
+                attacker.location.msg_contents(
+                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key} "
+                    f"with their {weapon_name}{punct}|n",
+                    exclude=[attacker, target],
+                )
+            else:
+                # Animal mob natural attack — use attack_message as-is
+                atk_msg = getattr(attacker, "attack_message", "attacks")
+                attacker.msg(
+                    f"|r{crit_prefix}You {atk_msg} {target_key}!|n"
+                )
+                target.msg(
+                    f"|r{crit_prefix}{attacker.key} {atk_msg} you!|n"
+                )
+                attacker.location.msg_contents(
+                    f"|r{crit_prefix}{attacker.key} {atk_msg} {target_key}!|n",
+                    exclude=[attacker, target],
+                )
 
         # --- 9c. Apply damage (subtracts HP, triggers die/death) ---
         target.apply_damage(damage_dealt, cause="combat", killer=attacker)
@@ -561,12 +593,32 @@ def execute_attack(attacker, target, _is_riposte=False,
         if defender_weapon:
             defender_weapon.at_wielder_missed(target, attacker)
 
-        # Broadcast miss message
+        # Three-perspective miss message
         if attacker.location:
-            attacker.location.msg_contents(
-                f"|y{attacker.key} attacks {target.key} but misses!|n",
-                from_obj=attacker,
-            )
+            if weapon:
+                second_miss, third_miss = get_miss_verb(dmg_type)
+                attacker.msg(
+                    f"|yYou {second_miss} at {target.key} but miss.|n"
+                )
+                target.msg(
+                    f"|y{attacker.key} {third_miss} at you but misses.|n"
+                )
+                attacker.location.msg_contents(
+                    f"|y{attacker.key} {third_miss} at {target.key} but misses.|n",
+                    exclude=[attacker, target],
+                )
+            else:
+                atk_msg = getattr(attacker, "attack_message", "attacks")
+                attacker.msg(
+                    f"|yYou {atk_msg} {target.key} but miss.|n"
+                )
+                target.msg(
+                    f"|y{attacker.key} {atk_msg} you but misses.|n"
+                )
+                attacker.location.msg_contents(
+                    f"|y{attacker.key} {atk_msg} {target.key} but misses.|n",
+                    exclude=[attacker, target],
+                )
 
     # --- 13. Post-attack hook (always fires) ---
     if weapon:
@@ -637,8 +689,8 @@ def enter_combat(combatant, target, instigator=None, instigator_advantage=False)
     Shared entry point for all combat-initiating actions.
 
     Creates combat handlers on combatant, target, and their group members.
-    Optionally fires a free instigator attack and rolls initiative for all
-    new combatants to stagger ticker starts.
+    Assigns combat sides dynamically: combatant and target are placed on
+    opposite sides, group members inherit their leader's side.
 
     Args:
         combatant: the character initiating the action
@@ -660,40 +712,72 @@ def enter_combat(combatant, target, instigator=None, instigator_advantage=False)
         combatant.msg("Combat is not allowed here.")
         return False
 
-    # Track which combatants are new to this fight
+    # ── Determine sides ──────────────────────────────────────────────
+    # Check existing sides first (from active handlers)
+    combatant_side = _get_combat_side(combatant)
+    target_side = _get_combat_side(target)
+
+    # Fill in from group membership
+    if not combatant_side:
+        combatant_side = _determine_side_from_group(combatant, room)
+    if not target_side:
+        target_side = _determine_side_from_group(target, room)
+
+    # Assign defaults based on what's known
+    if combatant_side and not target_side:
+        target_side = _opposite_side(combatant_side)
+    elif target_side and not combatant_side:
+        combatant_side = _opposite_side(target_side)
+    elif not combatant_side and not target_side:
+        combatant_side = 1
+        target_side = 2
+
+    # If both ended up on the same side, flip the newcomer
+    if target_side == combatant_side:
+        # Prefer flipping whoever doesn't already have a handler
+        if not _get_combat_side(combatant):
+            combatant_side = _opposite_side(target_side)
+        else:
+            target_side = _opposite_side(combatant_side)
+
+    # ── Create handlers with sides ───────────────────────────────────
     new_combatants = []
 
-    # Create handler on combatant and target
-    for actor in (combatant, target):
-        _, is_new = _get_or_create_handler(actor)
-        if is_new:
-            new_combatants.append(actor)
+    handler, is_new = _get_or_create_handler(combatant, combat_side=combatant_side)
+    if is_new:
+        new_combatants.append(combatant)
+
+    handler, is_new = _get_or_create_handler(target, combat_side=target_side)
+    if is_new:
+        new_combatants.append(target)
 
     # If target has combat capability (CombatMixin), trigger counter-attack.
-    # initiate_attack() → execute_cmd("attack ...") → queues repeating attack
-    # on the target's handler. Safe to call even if handler already has an action.
     if hasattr(target, "initiate_attack") and getattr(target, "is_alive", False):
         target.initiate_attack(combatant)
 
-    # Pull in combatant's group
+    # Pull in combatant's group — inherit combatant's side
     if hasattr(combatant, "get_group_leader"):
         leader = combatant.get_group_leader()
         if leader:
             members = [leader] + leader.get_followers(same_room=True)
             for member in members:
                 if member.location == room and getattr(member, "hp", 0) > 0:
-                    _, is_new = _get_or_create_handler(member)
+                    _, is_new = _get_or_create_handler(
+                        member, combat_side=combatant_side,
+                    )
                     if is_new:
                         new_combatants.append(member)
 
-    # Pull in target's group
+    # Pull in target's group — inherit target's side
     if hasattr(target, "get_group_leader"):
         t_leader = target.get_group_leader()
         if t_leader:
             members = [t_leader] + t_leader.get_followers(same_room=True)
             for member in members:
                 if member.location == room and getattr(member, "hp", 0) > 0:
-                    _, is_new = _get_or_create_handler(member)
+                    _, is_new = _get_or_create_handler(
+                        member, combat_side=target_side,
+                    )
                     if is_new:
                         new_combatants.append(member)
 
@@ -766,8 +850,13 @@ def enter_combat(combatant, target, instigator=None, instigator_advantage=False)
     return True
 
 
-def _get_or_create_handler(combatant):
+def _get_or_create_handler(combatant, combat_side=0):
     """Create combat handler on combatant if they don't have one.
+
+    Args:
+        combatant: the actor entering combat.
+        combat_side: int (1 or 2) — which side this combatant is on.
+            If 0 and a handler already exists, the existing side is kept.
 
     Returns:
         (handler, is_new) tuple.  is_new=True if a handler was just created.
@@ -777,7 +866,11 @@ def _get_or_create_handler(combatant):
 
     existing = combatant.scripts.get("combat_handler")
     if existing:
-        return existing[0], False
+        handler = existing[0]
+        # Update side if explicitly provided and handler had no side yet
+        if combat_side and handler.combat_side == 0:
+            handler.combat_side = combat_side
+        return handler, False
 
     handler = create_script(
         CombatHandler,
@@ -785,6 +878,7 @@ def _get_or_create_handler(combatant):
         key="combat_handler",
         autostart=False,
     )
+    handler.combat_side = combat_side
     handler.start()
     handler.start_combat()
     return handler, True
@@ -794,11 +888,52 @@ def _get_or_create_handler(combatant):
 #  Side Detection
 # ================================================================== #
 
+def _opposite_side(side):
+    """Return the opposing side number. Side 1 ↔ Side 2."""
+    return 2 if side == 1 else 1
+
+
+def _get_combat_side(obj):
+    """Read combat_side from an object's combat handler. Returns 0 if none."""
+    handlers = obj.scripts.get("combat_handler")
+    if handlers:
+        return handlers[0].combat_side
+    return 0
+
+
+def _determine_side_from_group(actor, room):
+    """Check if any of actor's group members are already in combat in this room.
+
+    Returns their combat_side if found, 0 otherwise.
+    """
+    if not hasattr(actor, "get_group_leader"):
+        return 0
+    leader = actor.get_group_leader()
+    if not leader:
+        return 0
+    # Check leader first
+    if leader != actor and leader.location == room:
+        side = _get_combat_side(leader)
+        if side:
+            return side
+    # Check all followers
+    followers = leader.get_followers(same_room=True)
+    for member in followers:
+        if member != actor and member.location == room:
+            side = _get_combat_side(member)
+            if side:
+                return side
+    return 0
+
+
 def get_sides(combatant):
     """
     Returns (allies, enemies) from combatant's perspective.
 
-    In non-PvP rooms: PCs ally with PCs, NPCs ally with NPCs.
+    Sides are assigned dynamically at combat entry time based on
+    who attacked who and group membership. Each combatant's handler
+    stores a combat_side (1 or 2).
+
     In PvP rooms: everyone is an enemy except the combatant themselves.
     """
     room = combatant.location
@@ -814,15 +949,13 @@ def get_sides(combatant):
     ]
 
     if getattr(room, "allow_pvp", False):
-        allies = [combatant]
-        enemies = [c for c in in_combat if c != combatant]
-    else:
-        from typeclasses.actors.character import FCMCharacter
-        pcs = [c for c in in_combat if isinstance(c, FCMCharacter)]
-        npcs = [c for c in in_combat if c not in pcs]
-        if combatant in pcs:
-            allies, enemies = pcs, npcs
-        else:
-            allies, enemies = npcs, pcs
+        return [combatant], [c for c in in_combat if c != combatant]
 
+    # Read combatant's side from their handler
+    my_side = _get_combat_side(combatant)
+    if not my_side:
+        return [], []
+
+    allies = [c for c in in_combat if _get_combat_side(c) == my_side]
+    enemies = [c for c in in_combat if _get_combat_side(c) != my_side and _get_combat_side(c) != 0]
     return allies, enemies

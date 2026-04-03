@@ -158,6 +158,12 @@ class NunchakuMixin:
             f"|r*STUN* {wielder.key}'s nunchaku strikes stun you "
             f"for {rounds} round{'s' if rounds > 1 else ''}!|n"
         )
+        if wielder.location:
+            wielder.location.msg_contents(
+                f"|y*STUN* {wielder.key}'s nunchaku strikes stun {target.key} "
+                f"for {rounds} round{'s' if rounds > 1 else ''}!|n",
+                exclude=[wielder, target],
+            )
 
     def _apply_prone(self, wielder, target, rounds):
         """Apply PRONE — target loses actions + all enemies get advantage."""
@@ -173,6 +179,12 @@ class NunchakuMixin:
             f"|r*KNOCKDOWN* {wielder.key}'s nunchaku sends you sprawling "
             f"for {rounds} round{'s' if rounds > 1 else ''}!|n"
         )
+        if wielder.location:
+            wielder.location.msg_contents(
+                f"|y*KNOCKDOWN* {wielder.key}'s nunchaku sends {target.key} sprawling "
+                f"for {rounds} round{'s' if rounds > 1 else ''}!|n",
+                exclude=[wielder, target],
+            )
 
 
 class NunchakuNFTItem(NunchakuMixin, WeaponNFTItem):
