@@ -60,6 +60,11 @@ class CmdRemove(FCMCommandMixin, Command):
             caller.msg("You are not wearing that.")
             return
 
+        # Block removal of lit light sources
+        if getattr(item, "is_lit", False):
+            caller.msg("Extinguish it first or you'll burn yourself!")
+            return
+
         # Attempt to remove via the mixin
         success, msg = caller.remove(item)
         caller.msg(msg)
