@@ -1,0 +1,20 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.footpad.Footpad",
+        "key": "a footpad",
+        "area_tag": "rooftops_footpads",
+        "target": 4,
+        "max_per_room": 2,
+        "respawn_seconds": 300,
+        "desc": "A wiry figure in dark, close-fitting clothes crouches in the shadows between chimneys. A crude dagger glints in one hand, and quick, calculating eyes sweep the roofline."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.footpad.FootpadBoss",
+        "key": "The Magpie",
+        "area_tag": "rooftops_boss",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 600,
+        "desc": "A lean, scarred man in dark leathers sits with his back to a chimney, one leg dangling over the roof edge. A well-kept iron dagger rests across his knee. He watches the town below with the proprietary air of someone who considers all of it his territory."
+    }
+]

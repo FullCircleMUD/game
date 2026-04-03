@@ -500,6 +500,21 @@ def build_millholm_rooftops():
         # Dark at night — no always_lit, no lampposts
 
     print("  Tagged all rooftop rooms (zone, district, terrain, weather).")
+
+    # ── Mob area tags ──
+    # Regular footpads roam the lower rooftops (ground-height rooms)
+    footpad_rooms = [
+        "rooftops_w3", "rooftops_w2", "rooftops_w1",
+        "rooftops_ridge", "rooftops_chimney", "rooftops_gutter",
+    ]
+    for key in footpad_rooms:
+        rooms[key].tags.add("rooftops_footpads", category="mob_area")
+    print(f"  Tagged {len(footpad_rooms)} rooms with mob_area=rooftops_footpads.")
+
+    # Boss (The Magpie) on the elevated merchant's rooftop
+    rooms["rooftops_gareth"].tags.add("rooftops_boss", category="mob_area")
+    print("  Tagged rooftops_gareth with mob_area=rooftops_boss.")
+
     print("  Millholm Rooftops complete.\n")
 
     return rooms
