@@ -46,6 +46,7 @@ class CombatHandler(DefaultScript):
     """
 
     # Persisted state
+    combat_side = AttributeProperty(0)                    # 1 or 2 — assigned at combat entry
     action_dict = AttributeProperty({"key": "hold", "dt": 0})
     advantage_against = AttributeProperty(dict)       # {target_id: int} rounds remaining
     disadvantage_against = AttributeProperty(dict)     # {target_id: int} rounds remaining
