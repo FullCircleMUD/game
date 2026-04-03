@@ -156,59 +156,262 @@ _CLASS_MAPPINGS_LOOKUP = {
 }
 
 _SKILL_DESCRIPTIONS = {
-    # Production
-    skills.BLACKSMITH: "Craft weapons and armor from metal ingots at a smithy.",
-    skills.JEWELLER: "Craft jewelry from silver ingots and gems.",
-    skills.CARPENTER: "Craft weapons, furniture and shields from timber at a woodshop.",
-    skills.ALCHEMIST: "Brew potions from herbs and reagents.",
-    skills.TAILOR: "Craft clothing and cloth items from cloth.",
-    skills.LEATHERWORKER: "Craft leather armor and equipment from leather.",
-    # General combat
-    skills.BATTLESKILLS: "Dodge: give incoming attacks disadvantage, costs your next attack. Assist: give an ally advantage, costs your next attack.",
-    skills.ALERTNESS: "Bonus to perception checks — spot hidden doors, traps, and stealthed foes. Bonus to initiative rolls, determining turn order in combat.",
-    # General — exploration / world
-    skills.CARTOGRAPHY: "Create maps of explored areas. Maps are NFT items that can be traded or displayed.",
-    skills.SHIPWRIGHT: "Build and repair ships — from small dinghies to ocean-going vessels.",
-    skills.SEAMANSHIP: "Sail ships, read the weather, handle rigging, and navigate open waters.",
-    skills.ANIMAL_HANDLING: "Tame wild animals, train them, and command them in and out of combat.",
-    # Warrior
-    skills.BASH: "Knock an enemy prone with a powerful strike. Contested STR roll — target loses a turn and enemies gain advantage.",
-    skills.PUMMEL: "Stun an enemy with rapid strikes. Contested STR vs target DEX — target loses a turn on success.",
-    skills.PROTECT: "Tanking — protect intercepts attacks on an ally; taunt provokes enemies to attack you instead.",
-    skills.FRENZY: "Enter a berserk rage — increased damage but reduced defence.",
-    skills.STRATEGY: "Group leadership — offence and defence set group combat stances; retreat withdraws the group from a fight.",
-    # Thief
-    skills.STEALTH: "Hide in shadows and stash objects or allies out of sight. Foundation for rogue abilities.",
-    skills.SUBTERFUGE: "Pick locks, case marks, pickpocket valuables, and disarm traps — the core rogue toolkit.",
-    skills.STAB: "Sneak attack — deal bonus damage dice when you have advantage. Scales from +2d6 to +10d6 with mastery.",
-    skills.ASSASSINATE: "Lethal strike from stealth — chance to instantly kill the target.",
-    skills.MAGICAL_SECRETS: "Cast spells from scrolls even without formal magical training.",
-    # Bard
-    skills.PERFORMANCE: "Music, poetry and storytelling — entertain crowds and influence NPCs.",
-    skills.INSPIRATION: "Bolster allies with temporary HP, advantage, and morale boosts.",
-    skills.DEBILITATION: "Taunt and shame enemies — psychic damage, lost turns, disadvantage.",
-    skills.MANIPULATION: "Charm, suggest, and redirect enemy attention through force of personality.",
-    skills.MISDIRECTION: "Glamours and sensory tricks — disguise, conceal, create distractions.",
-    skills.LORE: "Identify items and creatures through knowledge. Higher mastery reveals more powerful targets.",
-    # Druid/Ranger
-    skills.SURVIVALIST: "Forage to restore hunger in the wilderness. Higher mastery restores more and unlocks party sharing.",
-    skills.ANIMAL_COMPANION: "Bond with a wild animal that fights alongside you.",
-    skills.SHAPE_SHIFTING: "Transform into animal forms — wolf, bear, falcon, and more.",
-    skills.NATURE_MAGIC: "Command natural forces — entangling vines, barkskin, call lightning.",
-    # Mage
-    skills.EVOCATION: "Offensive magic — fireball, lightning bolt, and other destructive spells.",
-    skills.CONJURATION: "Summoning magic — call elementals, familiars, and planar beings.",
-    skills.DIVINATION: "Utility magic — detect magic, identify items, scry distant locations.",
-    skills.ENCHANTING: "Imbue weapons and armor with magical properties at a workbench.",
-    skills.ABJURATION: "Defensive magic — shields, counterspells, wards, and dispelling.",
-    skills.NECROMANCY: "Dark magic — raise undead, drain life force, curse the living.",
-    skills.ILLUSION: "Illusion magic — invisibility, mirror images, and phantasmal tricks.",
-    # Cleric
-    skills.DIVINE_HEALING: "Restore HP, cure ailments, revive the fallen, and dispel undead.",
-    skills.DIVINE_PROTECTION: "Wards, blessings, and sanctified areas that shield allies.",
-    skills.DIVINE_JUDGEMENT: "Holy wrath — smite foes with radiant damage and divine strikes.",
-    skills.DIVINE_REVELATION: "Divine sight — detect evil, prophecy, true sight, commune with the divine.",
-    skills.DIVINE_DOMINION: "Command and compel — holy authority, oath magic, and binding vows.",
-    skills.TURN_UNDEAD: "Stun undead mobs based on their hit dice. At higher mastery, destroy them outright.",
+    # ── Production (all classes) ──
+    skills.BLACKSMITH: (
+        "Forge weapons and armor from metal ingots at a smithy. Higher mastery "
+        "unlocks more powerful recipes and improves item quality."
+    ),
+    skills.JEWELLER: (
+        "Cut gems and craft rings, amulets, and other jewelry from silver "
+        "ingots and precious stones. Higher mastery unlocks rarer settings."
+    ),
+    skills.CARPENTER: (
+        "Shape timber into weapons, shields, furniture, and other wooden items "
+        "at a woodshop. Higher mastery unlocks stronger wood types and designs."
+    ),
+    skills.ALCHEMIST: (
+        "Brew potions, salves, and elixirs from herbs and reagents. Higher "
+        "mastery unlocks more potent recipes with stronger or longer effects."
+    ),
+    skills.TAILOR: (
+        "Sew cloth into clothing, robes, cloaks, and enchantable fabric items. "
+        "Higher mastery unlocks finer materials and magical weaves."
+    ),
+    skills.LEATHERWORKER: (
+        "Tan hides into leather armor, boots, gloves, and other equipment. "
+        "Higher mastery unlocks hardened and reinforced designs."
+    ),
+    # ── General combat (all classes) ──
+    skills.BATTLESKILLS: (
+        "Two combat commands available to all classes. Dodge: sacrifice your "
+        "next attack to impose disadvantage on all incoming attacks for one "
+        "round. Assist: sacrifice your next attack to grant an ally advantage "
+        "on their attacks. Outside combat, assist gives advantage on a "
+        "companion's next skill check."
+    ),
+    skills.ALERTNESS: (
+        "Passive bonuses that scale with mastery — no active command. "
+        "Increases perception (spot hidden doors, detect traps, see through "
+        "stealth) and improves initiative rolls in combat. Essential for "
+        "avoiding ambushes and acting first."
+    ),
+    # ── General exploration / world (all classes) ──
+    skills.CARTOGRAPHY: (
+        "Create maps of explored areas as you travel. Maps are tradeable NFT "
+        "items — sell your discoveries to other players or collect a complete "
+        "atlas. Higher mastery reveals more detail and covers larger regions."
+    ),
+    skills.SHIPWRIGHT: (
+        "Build and repair ships at a dockyard — from small fishing dinghies "
+        "to ocean-going warships. Higher mastery unlocks larger hull designs "
+        "and better materials."
+    ),
+    skills.SEAMANSHIP: (
+        "Sail ships between ports, navigate open waters, and explore uncharted "
+        "seas. Required to captain any vessel. Higher mastery unlocks faster "
+        "routes, longer voyages, and the ability to discover hidden ports."
+    ),
+    skills.ANIMAL_HANDLING: (
+        "Tame wild animals encountered in the world and train them to follow "
+        "basic commands. Distinct from the druid/ranger Animal Companion class "
+        "skill — this is a general skill available to any class."
+    ),
+    # ── Warrior ──
+    skills.BASH: (
+        "Slam into an enemy with brute force. Contested STR roll — on "
+        "success, the target is knocked prone (loses their next turn and all "
+        "attackers gain advantage). On failure, you may fall prone yourself. "
+        "Cooldown shortens with mastery (7 rounds at BASIC, 3 at GM)."
+    ),
+    skills.PUMMEL: (
+        "Batter an enemy with rapid strikes. Contested STR vs target DEX — "
+        "on success, the target is stunned (loses their next turn). Lower "
+        "risk than bash (no self-prone on failure) but no advantage bonus for "
+        "allies. Cooldown shortens with mastery (8 rounds at BASIC, 4 at GM)."
+    ),
+    skills.PROTECT: (
+        "Tank for your group. Protect: designate an ally to guard — you have "
+        "a chance to intercept attacks aimed at them (40% at BASIC, 80% at "
+        "GM), taking the damage yourself. Taunt: provoke an enemy into "
+        "attacking you instead of your allies. Contested CHA vs target WIS."
+    ),
+    skills.FRENZY: (
+        "Enter a berserk rage that boosts damage output at the cost of "
+        "reduced defence. Duration and intensity scale with mastery. While "
+        "frenzied, you hit harder but are easier to hit."
+    ),
+    skills.STRATEGY: (
+        "Lead your group in combat with three commands. Offence: set an "
+        "aggressive stance for your party (bonus to hit and damage, penalty "
+        "to AC). Defence: set a defensive stance (bonus AC, penalty to hit). "
+        "Retreat: attempt to withdraw your entire group from combat — "
+        "contested INT + CHA roll, failure gives enemies a free round."
+    ),
+    # ── Thief ──
+    skills.STEALTH: (
+        "Slip into the shadows unseen. Hide: contested stealth vs the best "
+        "perceiver in the room. While hidden, you can move between rooms "
+        "(re-checked on entry) and set up sneak attacks. Stash: conceal an "
+        "object or ally, setting a discovery DC based on your stealth roll."
+    ),
+    skills.SUBTERFUGE: (
+        "The rogue's core toolkit — four commands. Picklock: defeat locks on "
+        "doors and chests (DEX + mastery vs lock DC). Case: study a target "
+        "to reveal what they're carrying. Pickpocket: steal gold, resources, "
+        "or items (contested DEX vs perception, advantage if hidden). Disarm: "
+        "safely disable traps on chests, doors, and rooms."
+    ),
+    skills.STAB: (
+        "Backstab — a devastating sneak attack. Strike from stealth or when "
+        "you have advantage for massive bonus damage. Requires a finesse "
+        "weapon (dagger, shortsword, ninjato). Bonus dice scale from +2d6 at "
+        "BASIC to +10d6 at GM. Crits double the bonus. Cooldown shortens "
+        "with mastery."
+    ),
+    skills.ASSASSINATE: (
+        "A lethal strike from concealment — chance to instantly kill the "
+        "target outright. Must be hidden. Success chance depends on mastery "
+        "vs target level. The ultimate high-risk, high-reward ability."
+    ),
+    skills.MAGICAL_SECRETS: (
+        "Recite spell scrolls without being a spellcaster. Mastery "
+        "determines the maximum spell level you can use — higher mastery "
+        "unlocks more powerful scrolls. Distinct from the mage cast command."
+    ),
+    # ── Bard ──
+    skills.PERFORMANCE: (
+        "Music, poetry, and storytelling — entertain crowds to earn coin and "
+        "influence NPC opinion. Can also create distractions that aid allies "
+        "attempting pickpocket or stealth."
+    ),
+    skills.INSPIRATION: (
+        "Rally your allies in combat with rousing words and song. Grants "
+        "temporary HP, AC bonuses, hit bonuses, and damage bonuses to your "
+        "group. Effects scale with mastery — GM grants +20 temp HP, +2 AC, "
+        "+2 hit, and +2 damage to every ally."
+    ),
+    skills.DEBILITATION: (
+        "Weaponise wit and mockery. Mock: deal psychic damage and attempt to "
+        "stun the target through sheer humiliation. Contested CHA + mastery "
+        "vs target WIS. Stun duration scales with mastery."
+    ),
+    skills.MANIPULATION: (
+        "Bend others to your will through force of personality. Charm: "
+        "contested CHA vs WIS, a charmed mob becomes a temporary follower. "
+        "Divert: redirect an enemy's aggression to a different target. "
+        "Both scale with mastery for duration and success chance."
+    ),
+    skills.MISDIRECTION: (
+        "Glamours and sensory tricks. Disguise: change your appearance so "
+        "NPCs and mobs don't recognise you. Conceal: a magical glamour that "
+        "grants invisibility at higher mastery — distinct from physical "
+        "stealth (hide)."
+    ),
+    skills.LORE: (
+        "Identify items and creatures by examining them. Reveals stats, "
+        "resistances, and weaknesses. Higher mastery identifies more powerful "
+        "targets — each tier unlocks identification of creatures up to 10 "
+        "levels higher. No mana cost, purely knowledge-based."
+    ),
+    # ── Druid / Ranger ──
+    skills.SURVIVALIST: (
+        "Live off the land. Forage: restore hunger in wilderness terrain "
+        "(forests, mountains, swamps, etc.) without needing food items. "
+        "Higher mastery restores more hunger and lets you share foraged food "
+        "with your party. Track: follow creature trails through the "
+        "wilderness."
+    ),
+    skills.ANIMAL_COMPANION: (
+        "Bond with a loyal animal companion that fights alongside you and "
+        "persists between sessions. If your companion falls, it retreats to "
+        "recover and can be re-summoned later. Companion power scales with "
+        "mastery — from a small animal at BASIC to formidable beasts at GM."
+    ),
+    skills.SHAPE_SHIFTING: (
+        "Transform into animal forms, each with unique combat abilities and "
+        "movement modes. Available forms grow more powerful with mastery — "
+        "wolf, bear, falcon, and more. While shifted, your equipment is "
+        "absorbed and you use the form's natural attacks."
+    ),
+    skills.NATURE_MAGIC: (
+        "Druid spellcasting — command natural forces through a dedicated "
+        "spell school. Includes entangling vines, barkskin, call lightning, "
+        "and other nature-themed spells. Mastery unlocks higher-level nature "
+        "spells."
+    ),
+    # ── Mage ──
+    skills.EVOCATION: (
+        "Offensive spellcasting — hurl raw destructive energy at your foes. "
+        "Includes fireball, lightning bolt, cone of cold, and other damage "
+        "spells. The primary damage school for mages. Higher mastery unlocks "
+        "more devastating spells."
+    ),
+    skills.CONJURATION: (
+        "Summon creatures and objects from other planes. Call elementals, "
+        "familiars, and planar beings to fight for you or perform tasks. "
+        "Higher mastery summons more powerful and longer-lasting allies."
+    ),
+    skills.DIVINATION: (
+        "Utility and information magic — detect magic, identify items, scry "
+        "distant locations, and peer through illusions. The knowledge school "
+        "for mages. Higher mastery reveals deeper secrets."
+    ),
+    skills.ENCHANTING: (
+        "Imbue weapons and armor with magical properties at an enchanting "
+        "workbench. Add stat bonuses, elemental damage, or special effects "
+        "to equipment. Higher mastery unlocks more powerful enchantments. "
+        "Recipes are auto-granted as you advance in mastery."
+    ),
+    skills.ABJURATION: (
+        "Defensive and protective magic — shields, counterspells, wards, and "
+        "dispelling. Protect yourself and allies from harm, negate enemy "
+        "spells, and banish summoned creatures. Higher mastery unlocks "
+        "stronger barriers."
+    ),
+    skills.NECROMANCY: (
+        "Dark magic over life and death — drain life force, raise undead "
+        "servants, curse the living, and manipulate the boundary between "
+        "life and death. Higher mastery unlocks more powerful undead and "
+        "darker curses."
+    ),
+    skills.ILLUSION: (
+        "Deceive the senses — invisibility, mirror images, phantasmal "
+        "terrors, and sensory manipulation. Trick enemies into attacking "
+        "illusions while you act unseen. Higher mastery creates more "
+        "convincing and longer-lasting illusions."
+    ),
+    # ── Cleric ──
+    skills.DIVINE_HEALING: (
+        "Channel divine power to restore HP, cure diseases and poisons, "
+        "remove curses, and revive fallen allies. The primary healing school. "
+        "Higher mastery unlocks more powerful restoration and group heals."
+    ),
+    skills.DIVINE_PROTECTION: (
+        "Holy wards and blessings that shield allies from harm. Includes "
+        "sanctuary (prevent attacks), bless (bonus to hit and saves), and "
+        "protective auras. Higher mastery extends duration and strength."
+    ),
+    skills.DIVINE_JUDGEMENT: (
+        "Channel holy wrath against your enemies. Smite foes with radiant "
+        "damage, call down divine strikes, and punish the wicked. The "
+        "offensive school for clerics. Higher mastery unlocks more powerful "
+        "judgements."
+    ),
+    skills.DIVINE_REVELATION: (
+        "Divine sight and prophecy — detect evil, see through lies, reveal "
+        "hidden truths, and commune with the divine for guidance. Higher "
+        "mastery grants true sight and deeper communion."
+    ),
+    skills.DIVINE_DOMINION: (
+        "Command through holy authority — compel obedience, bind with sacred "
+        "oaths, and exert divine will over the weak-minded. Includes the "
+        "Command spell which forces a target to drop their weapon, flee, or "
+        "halt. Higher mastery affects more powerful targets."
+    ),
+    skills.TURN_UNDEAD: (
+        "Channel divine energy to repel the undead. Lower-level undead are "
+        "stunned and flee; at higher mastery, weaker undead are destroyed "
+        "outright. Affects more and tougher undead as mastery increases."
+    ),
 }
 
