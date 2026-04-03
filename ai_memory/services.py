@@ -336,6 +336,10 @@ def _build_lore_scope_filter(npc_scope_tags):
     ``npc_scope_tags``, entries whose ``scope_tags`` JSON list contains
     that tag are included. Uses ``__contains`` which works on both
     SQLite and PostgreSQL.
+
+    This is a **permissive pre-filter** — it may include entries the
+    NPC shouldn't see (multi-tag entries where the NPC only has one of
+    the tags). Use ``_npc_can_access_lore()`` to post-filter results.
     """
     from django.db.models import Q
 
@@ -343,6 +347,23 @@ def _build_lore_scope_filter(npc_scope_tags):
     for tag in npc_scope_tags:
         q |= Q(scope_tags__contains=[tag])
     return q
+
+
+def _npc_can_access_lore(entry_scope_tags, npc_scope_tags):
+    """
+    Check if an NPC can access a lore entry.
+
+    An entry with multiple scope tags (e.g. ``["thieves_guild", "millholm"]``)
+    requires the NPC to have **all** of those tags. This prevents a thief
+    in another city from knowing Millholm-specific guild secrets, and
+    prevents a Millholm townsperson from knowing guild secrets.
+
+    Continental entries (empty scope_tags) are always accessible.
+    """
+    if not entry_scope_tags:
+        return True  # continental — no tags to check
+    npc_set = set(npc_scope_tags)
+    return all(tag in npc_set for tag in entry_scope_tags)
 
 
 def store_lore(title, content, scope_level, scope_tags, source=""):
@@ -373,8 +394,13 @@ def store_lore(title, content, scope_level, scope_tags, source=""):
     except LoreMemory.DoesNotExist:
         existing = None
 
-    # Skip if content unchanged
-    if existing and existing.content == content:
+    # Skip if content and scope unchanged
+    if (
+        existing
+        and existing.content == content
+        and existing.scope_level == scope_level
+        and existing.scope_tags == scope_tags
+    ):
         return existing, "unchanged"
 
     # Generate embedding
@@ -453,37 +479,44 @@ def search_lore(query_text, npc_scope_tags, top_k=3):
     qs = LoreMemory.objects.using("ai_memory").filter(scope_filter)
 
     if _is_postgres():
-        return _search_lore_pgvector(qs, query_embedding, top_k)
-    return _search_lore_numpy(qs, query_embedding, top_k)
+        return _search_lore_pgvector(qs, query_embedding, top_k, npc_scope_tags)
+    return _search_lore_numpy(qs, query_embedding, top_k, npc_scope_tags)
 
 
-def _search_lore_pgvector(qs, query_embedding, top_k):
+def _search_lore_pgvector(qs, query_embedding, top_k, npc_scope_tags):
     """Lore search using pgvector CosineDistance."""
     from pgvector.django import CosineDistance
 
+    # Fetch more than top_k to allow for post-filter dropping some
     qs = (
         qs.filter(embedding_vector__isnull=False)
         .annotate(distance=CosineDistance("embedding_vector", query_embedding))
-        .order_by("distance")[:top_k]
+        .order_by("distance")[:top_k * 3]
     )
 
     results = []
     for entry in qs:
+        if not _npc_can_access_lore(entry.scope_tags, npc_scope_tags):
+            continue
         results.append({
             "title": entry.title,
             "content": entry.content,
             "scope_level": entry.scope_level,
             "similarity": 1.0 - entry.distance,
         })
+        if len(results) >= top_k:
+            break
     return results
 
 
-def _search_lore_numpy(qs, query_embedding, top_k):
+def _search_lore_numpy(qs, query_embedding, top_k, npc_scope_tags):
     """Lore search using numpy cosine similarity (SQLite path)."""
     query_vec = np.asarray(query_embedding, dtype=np.float32)
 
     scored = []
     for entry in qs.iterator():
+        if not _npc_can_access_lore(entry.scope_tags, npc_scope_tags):
+            continue
         if not entry.embedding:
             continue
         entry_vec = np.frombuffer(bytes(entry.embedding), dtype=np.float32)
@@ -519,14 +552,18 @@ def get_recent_lore(npc_scope_tags, limit=3):
     entries = (
         LoreMemory.objects.using("ai_memory")
         .filter(scope_filter)
-        .order_by("-updated_at")[:limit]
+        .order_by("-updated_at")[:limit * 3]
     )
 
-    return [
-        {
+    results = []
+    for entry in entries:
+        if not _npc_can_access_lore(entry.scope_tags, npc_scope_tags):
+            continue
+        results.append({
             "title": entry.title,
             "content": entry.content,
             "scope_level": entry.scope_level,
-        }
-        for entry in entries
-    ]
+        })
+        if len(results) >= limit:
+            break
+    return results
