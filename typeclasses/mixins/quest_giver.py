@@ -54,6 +54,21 @@ class CmdNPCQuest(Command):
             caller.msg(f"{npc.key} has no quest for you.")
             return
 
+        # Guildmasters: if the player already has levels in this guild's
+        # class, the join quest is no longer relevant.
+        guild_class = getattr(npc, "guild_class", None)
+        if guild_class:
+            classes = caller.db.classes or {}
+            if guild_class in classes:
+                from typeclasses.actors.char_classes import get_char_class
+                char_class = get_char_class(guild_class)
+                class_name = char_class.display_name if char_class else guild_class
+                caller.msg(
+                    f"You are already a member of the {class_name} guild. "
+                    f"Type |wadvance|n to train further."
+                )
+                return
+
         from world.quests import get_quest
         quest_class = get_quest(quest_key)
         if not quest_class:

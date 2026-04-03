@@ -84,32 +84,45 @@ class CmdGuild(FCMCommandMixin, Command):
 
         lines.append("")
 
-        # Quest requirement for multiclassing
-        quest_key = guildmaster.multi_class_quest_key
-        if quest_key:
-            from world.quests import get_quest
-            quest_class = get_quest(quest_key)
-            quest_name = quest_class.name if quest_class else quest_key
-            if caller.quests.is_completed(quest_key):
-                lines.append(f"|wGuild Quest:|n {quest_name} |g(Completed)|n")
-            elif caller.quests.has(quest_key):
-                lines.append(f"|wGuild Quest:|n {quest_name} |y(In Progress)|n")
-            else:
-                lines.append(
-                    f"|wGuild Quest:|n {quest_name} — "
-                    f"Type |wquest|n to learn more."
-                )
-            lines.append("")
-
         # Character's progress in this class
         classes = caller.db.classes or {}
         if class_key in classes:
+            # Already a member — show progress, skip the join quest
             class_data = classes[class_key]
             class_level = class_data.get("level", 0)
             skill_pts = class_data.get("skill_pts_available", 0)
-            lines.append(f"|wYour {char_class.display_name} Level:|n {class_level}")
+            lines.append(
+                f"|wYou are a level {class_level} "
+                f"{char_class.display_name}.|n"
+            )
             lines.append(f"|wClass Skill Points:|n {skill_pts}")
+            if caller.levels_to_spend > 0:
+                lines.append(
+                    f"Type |wadvance|n to spend a level in "
+                    f"{char_class.display_name}."
+                )
         else:
+            # Not a member — show the join quest if one exists
+            quest_key = guildmaster.multi_class_quest_key
+            if quest_key:
+                from world.quests import get_quest
+                quest_class = get_quest(quest_key)
+                quest_name = quest_class.name if quest_class else quest_key
+                if caller.quests.is_completed(quest_key):
+                    lines.append(
+                        f"|wGuild Quest:|n {quest_name} |g(Completed)|n"
+                    )
+                elif caller.quests.has(quest_key):
+                    lines.append(
+                        f"|wGuild Quest:|n {quest_name} |y(In Progress)|n"
+                    )
+                else:
+                    lines.append(
+                        f"|wGuild Quest:|n {quest_name} — "
+                        f"Type |wquest|n to learn more."
+                    )
+                lines.append("")
+
             lines.append(f"You are not yet a {char_class.display_name}.")
             can_take = char_class.char_can_take_class(caller)
             if can_take:
