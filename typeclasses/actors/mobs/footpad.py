@@ -105,6 +105,7 @@ class FootpadBoss(
 
     # ── LLM ──
     llm_prompt_file = AttributeProperty("footpad_boss.md")
+    llm_use_vector_memory = AttributeProperty(True)
 
     def at_object_creation(self):
         super().at_object_creation()
