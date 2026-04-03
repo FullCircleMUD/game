@@ -397,7 +397,9 @@ def build_tutorial_1(instance):
         },
     )
     _connect_bidirectional_exit(rooms["armoury"], rooms["courtyard"], "east")
-    _spawn_pip(rooms["courtyard"])
+    courtyard_pip = _spawn_pip(rooms["courtyard"])
+    courtyard_pip.visible_min_height = 0
+    courtyard_pip.visible_max_height = 0
 
     # ================================================================== #
     #  ROOM 6: The Dim Passage — Light & Darkness
