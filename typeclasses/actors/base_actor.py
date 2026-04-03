@@ -26,6 +26,7 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
             "at_carrying_capacity_init",
             "at_recipe_book_init",
             "at_spellbook_init",
+            "at_llm_init",
         ):
             if hasattr(self, init_method):
                 getattr(self, init_method)()

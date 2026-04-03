@@ -1,6 +1,10 @@
 """
 Townfolk — nondescript citizens wandering Millholm streets.
 
+Tier 2 NPC intelligence: lore-aware with short-term rolling memory.
+Can answer questions about the town, give directions, share common
+knowledge. No long-term memory (they're generic/interchangeable).
+
 Weak, unarmed, no special gear. Passive — fight back if attacked
 but won't last long. Exist to populate the town with life, and
 as future bait for the town watch arrest system.
@@ -10,13 +14,24 @@ Same patrol area as the city watch (city_watch_patrol mob_area).
 
 from evennia.typeclasses.attributes import AttributeProperty
 
-from typeclasses.actors.mob import CombatMob
+from typeclasses.actors.mob import LLMCombatMob
 
 
-class Townfolk(CombatMob):
+class Townfolk(LLMCombatMob):
     """A nondescript townsperson going about their business."""
 
     room_description = AttributeProperty("hurries past on some errand.")
+
+    # ── LLM (Tier 2: lore + short-term memory) ──
+    llm_prompt_file = AttributeProperty("townfolk.md")
+    llm_use_lore = AttributeProperty(True)
+    llm_use_vector_memory = AttributeProperty(False)
+    llm_speech_mode = AttributeProperty("name_match")
+    llm_personality = AttributeProperty(
+        "An ordinary townsperson — busy, friendly enough if approached "
+        "but not looking for a long conversation. You know the town well "
+        "and can give directions or share local gossip."
+    )
 
     # ── Combat ──
     damage_dice = AttributeProperty("1d2")

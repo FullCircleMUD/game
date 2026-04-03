@@ -1,7 +1,12 @@
 """
 CombatMob — killable enemy mobs with AI, combat handler, and respawn.
+LLMCombatMob — CombatMob + LLM-powered dialogue.
 
-Base class for all hostile/neutral mobs in FCM. Extends BaseNPC with:
+CombatMob is the base class for all hostile/neutral mobs in FCM.
+LLMCombatMob extends it with LLMMixin for mobs that can talk
+(townspeople, named bosses, fightable guards, etc.).
+
+Both classes extend BaseNPC with:
   - AI state machine (via StateMachineAIMixin)
   - TICKER_HANDLER-driven AI loop
   - Combat via shared execute_attack() — same path as players
@@ -29,6 +34,7 @@ from typeclasses.actors.npc import BaseNPC
 from typeclasses.mixins.combat_mixin import CombatMixin
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
+from typeclasses.mixins.llm_mixin import LLMMixin
 
 
 class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, BaseNPC):
@@ -458,3 +464,22 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     def ai_dead(self):
         """Dead state — do nothing (respawn handled by delay)."""
         pass
+
+
+class LLMCombatMob(LLMMixin, CombatMob):
+    """
+    CombatMob with LLM-powered dialogue.
+
+    For mobs that can both fight and talk — townspeople, fightable
+    guards, named bosses, or any entity that needs combat + AI wandering
+    + LLM conversation.
+
+    LLMMixin is first in MRO so its ``_get_context_variables()`` and
+    prompt-building methods take priority. CombatMob provides combat,
+    state machine AI, and respawn.
+
+    LLM init is handled by BaseActor's auto-init pattern
+    (``at_llm_init`` in the init method list).
+    """
+
+    llm_prompt_file = AttributeProperty("roleplay_npc.md")
