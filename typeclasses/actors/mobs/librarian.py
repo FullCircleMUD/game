@@ -52,6 +52,10 @@ class Librarian(LLMCombatMob):
     ai_tick_interval = AttributeProperty(15)
     respawn_delay = AttributeProperty(300)  # 5 minutes
 
+    def ai_wander(self):
+        """Stationary — the librarian stays at the front desk."""
+        pass
+
     def at_object_creation(self):
         super().at_object_creation()
         self.base_strength = 7
