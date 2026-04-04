@@ -671,7 +671,7 @@ def build_millholm_farms(town_rooms):
              "sunny patch by the stone wall, their leaves aromatic and "
              "plentiful. A low stone wall and a sturdy wooden gate "
              "separate the garden from the wheat fields to the south."),
-            ("resource_id", 18),           # Sage Leaf
+            ("resource_id", 21),           # Sage Leaf
             ("resource_count", 0),         # spawn script sets amount
             ("abundance_threshold", 3),
             ("harvest_height", 0),
