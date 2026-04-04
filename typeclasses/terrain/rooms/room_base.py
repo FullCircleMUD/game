@@ -253,6 +253,22 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                     ):
                         exclude.append(obj)
 
+        # Sleeping characters get a muffled message instead of the real content.
+        # Collect sleepers, exclude them from the normal broadcast, then send
+        # the muffled version directly.
+        sleepers = []
+        for obj in self.contents:
+            if (getattr(obj, "position", None) == "sleeping"
+                    and obj != from_obj
+                    and (not exclude or obj not in exclude)):
+                sleepers.append(obj)
+
+        if sleepers:
+            exclude = list(make_iter(exclude)) if exclude else []
+            exclude.extend(sleepers)
+            for sleeper in sleepers:
+                sleeper.msg("|xYou hear muffled sounds nearby...|n")
+
         super().msg_contents(
             text, exclude=exclude, from_obj=from_obj, mapping=mapping,
             raise_funcparse_errors=raise_funcparse_errors, **kwargs
