@@ -51,7 +51,7 @@ class CmdShout(FCMCommandMixin, Command):
     key = "shout"
     locks = "cmd:all()"
     help_category = "Communication"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def parse(self):
         """Extract language switch from cmdname or leading /switch in args."""
@@ -123,6 +123,8 @@ class CmdShout(FCMCommandMixin, Command):
 
             if hasattr(obj, "has_condition") and obj.has_condition(Condition.DEAF):
                 continue
+            if getattr(obj, "position", None) == "sleeping":
+                continue
 
             # Speaker name — can't identify if invisible or in the dark.
             listener_in_dark = (
@@ -185,6 +187,8 @@ class CmdShout(FCMCommandMixin, Command):
                     continue
 
                 if hasattr(obj, "has_condition") and obj.has_condition(Condition.DEAF):
+                    continue
+                if getattr(obj, "position", None) == "sleeping":
                     continue
 
                 # Language comprehension for adjacent listeners

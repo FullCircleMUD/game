@@ -52,7 +52,7 @@ class CmdSay(FCMCommandMixin, Command):
     aliases = ['"', 'talk']
     locks = "cmd:all()"
     help_category = "Communication"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def parse(self):
         """Extract language switch from cmdname or leading /switch in args."""
@@ -150,6 +150,9 @@ class CmdSay(FCMCommandMixin, Command):
 
             # DEAF listeners hear nothing.
             if hasattr(obj, "has_condition") and obj.has_condition(Condition.DEAF):
+                continue
+            # Sleeping listeners hear nothing.
+            if getattr(obj, "position", None) == "sleeping":
                 continue
 
             # Determine the speaker name this listener sees.

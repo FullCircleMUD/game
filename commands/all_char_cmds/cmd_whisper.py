@@ -38,7 +38,7 @@ class CmdWhisper(FCMCommandMixin, Command):
     key = "whisper"
     locks = "cmd:all()"
     help_category = "Communication"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def parse(self):
         """Extract language switch and split target = message."""
@@ -141,6 +141,10 @@ class CmdWhisper(FCMCommandMixin, Command):
         for recv in receivers:
             # DEAF receivers hear nothing
             if hasattr(recv, "has_condition") and recv.has_condition(Condition.DEAF):
+                continue
+            # Sleeping receivers hear nothing
+            if getattr(recv, "position", None) == "sleeping":
+                caller.msg(f"{recv.key} is asleep.")
                 continue
 
             # Determine speaker name — can't identify if invisible or in the dark.

@@ -47,7 +47,7 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
 
     aliases = ["l", "ls", "examine", "exam"]
     help_category = "General"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def func(self):
         caller = self.caller
