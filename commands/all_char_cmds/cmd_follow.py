@@ -168,6 +168,53 @@ class CmdNofollow(FCMCommandMixin, Command):
         _handle_nofollow_toggle(self.caller, self.args.strip())
 
 
+class CmdDisband(FCMCommandMixin, Command):
+    """
+    Disband your group, forcing all followers to unfollow.
+
+    Usage:
+        disband
+
+    Only the group leader can disband. If you are a follower,
+    use |wunfollow|n to leave the group instead.
+    """
+
+    key = "disband"
+    aliases = ["dis"]
+    locks = "cmd:all()"
+    help_category = "Group"
+
+    def func(self):
+        caller = self.caller
+
+        leader = caller.get_group_leader()
+        if leader != caller:
+            caller.msg(
+                "You are not the group leader. "
+                "Use |wunfollow|n to leave the group."
+            )
+            return
+
+        followers = caller.get_followers(same_room=False)
+        if not followers:
+            caller.msg("You don't have a group to disband.")
+            return
+
+        for f in followers:
+            f.following = None
+            f.msg(f"{caller.key} has disbanded the group.")
+
+        caller.msg(
+            f"You disband the group. "
+            f"{len(followers)} follower{'s' if len(followers) != 1 else ''} removed."
+        )
+        if caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} disbands their group.",
+                exclude=[caller] + followers,
+            )
+
+
 class CmdGroup(FCMCommandMixin, Command):
     """
     See who is in your group.

@@ -76,7 +76,7 @@ from commands.all_char_cmds.cmd_remove import CmdRemove
 from commands.all_char_cmds.cmd_equipment import CmdEquipment
 from commands.all_char_cmds.cmd_owned import CmdOwned
 from commands.all_char_cmds.cmd_loot import CmdLoot
-from commands.all_char_cmds.cmd_follow import CmdFollow, CmdUnfollow, CmdNofollow, CmdGroup
+from commands.all_char_cmds.cmd_follow import CmdFollow, CmdUnfollow, CmdNofollow, CmdDisband, CmdGroup
 from commands.all_char_cmds.cmd_gtell import CmdGtell
 from commands.all_char_cmds.cmd_attack import CmdAttack
 from commands.all_char_cmds.cmd_flee import CmdFlee
@@ -164,6 +164,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdFollow())
         self.add(CmdUnfollow())
         self.add(CmdNofollow())
+        self.add(CmdDisband())
         self.add(CmdGroup())
         self.add(CmdGtell())
 
