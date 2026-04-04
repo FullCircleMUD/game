@@ -230,8 +230,14 @@ class CmdScore(FCMCommandMixin, Command):
             f" Init: {init_sign}{init}",
             right[2],
         ))
+        pos = getattr(caller, "position", "standing").capitalize()
+        pos_colors = {
+            "Standing": "|g", "Sitting": "|y",
+            "Resting": "|y", "Sleeping": "|B", "Fighting": "|r",
+        }
+        pos_c = pos_colors.get(pos, "|w")
         lines.append(_row(
-            "",
+            f" {pos_c}{pos}|n",
             _ab(3),
             f" Att:  {att:3d}",
             right[3],

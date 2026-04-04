@@ -139,9 +139,15 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                     obj.at_give(caller, target)
                     obj_name = obj.get_numbered_name(1, caller, return_string=True)
                     caller.msg(f"You give {obj_name} to {target_name}.")
-                    target.msg(
-                        f"{caller.get_display_name(target)} gives you {obj_name}."
-                    )
+                    if getattr(target, "position", "standing") != "sleeping":
+                        target.msg(
+                            f"{caller.get_display_name(target)} gives you {obj_name}."
+                        )
+                    if caller.location:
+                        caller.location.msg_contents(
+                            f"{caller.key} gives {obj_name} to {target.key}.",
+                            exclude=[caller, target], from_obj=caller,
+                        )
                 else:
                     caller.msg(f"You could not give that to {target_name}.")
                 return
@@ -178,10 +184,16 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
             f"You give {amount} {GOLD['unit']} of {GOLD['name']}"
             f" to {target_name}."
         )
-        target.msg(
-            f"{caller.get_display_name(target)} gives you"
-            f" {amount} {GOLD['unit']} of {GOLD['name']}."
-        )
+        if getattr(target, "position", "standing") != "sleeping":
+            target.msg(
+                f"{caller.get_display_name(target)} gives you"
+                f" {amount} {GOLD['unit']} of {GOLD['name']}."
+            )
+        if caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} gives some {GOLD['name']} to {target.key}.",
+                exclude=[caller, target], from_obj=caller,
+            )
 
     def _give_fungible_resource(self, caller, target, resource_id, resource_info, amount):
         """Give a resource to another character."""
@@ -213,11 +225,17 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
             f"You give {amount} {resource_info['unit']}"
             f" of {resource_info['name']} to {target_name}."
         )
-        target.msg(
-            f"{caller.get_display_name(target)} gives you"
-            f" {amount} {resource_info['unit']}"
-            f" of {resource_info['name']}."
-        )
+        if getattr(target, "position", "standing") != "sleeping":
+            target.msg(
+                f"{caller.get_display_name(target)} gives you"
+                f" {amount} {resource_info['unit']}"
+                f" of {resource_info['name']}."
+            )
+        if caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} gives some {resource_info['name']} to {target.key}.",
+                exclude=[caller, target], from_obj=caller,
+            )
 
     # ============================================================== #
     #  "give all to <target>" — give everything (with confirmation)
@@ -264,6 +282,7 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
         gave_anything = False
         skipped_weight = False
         skipped_worn = []
+        target_sleeping = getattr(target, "position", "standing") == "sleeping"
 
         # --- objects ---
         for obj in list(caller.contents):
@@ -282,9 +301,10 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                 obj.at_give(caller, target)
                 obj_name = obj.get_numbered_name(1, caller, return_string=True)
                 caller.msg(f"You give {obj_name} to {target_name}.")
-                target.msg(
-                    f"{caller.get_display_name(target)} gives you {obj_name}."
-                )
+                if not target_sleeping:
+                    target.msg(
+                        f"{caller.get_display_name(target)} gives you {obj_name}."
+                    )
                 gave_anything = True
 
         # --- fungibles ---
@@ -298,10 +318,11 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                         f"You give {gold} {GOLD['unit']} of {GOLD['name']}"
                         f" to {target_name}."
                     )
-                    target.msg(
-                        f"{caller.get_display_name(target)} gives you"
-                        f" {gold} {GOLD['unit']} of {GOLD['name']}."
-                    )
+                    if not target_sleeping:
+                        target.msg(
+                            f"{caller.get_display_name(target)} gives you"
+                            f" {gold} {GOLD['unit']} of {GOLD['name']}."
+                        )
                     gave_anything = True
                 else:
                     skipped_weight = True
@@ -320,12 +341,18 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                         f"You give {amt} {info['unit']}"
                         f" of {info['name']} to {target_name}."
                     )
-                    target.msg(
-                        f"{caller.get_display_name(target)} gives you"
-                        f" {amt} {info['unit']} of {info['name']}."
-                    )
+                    if not target_sleeping:
+                        target.msg(
+                            f"{caller.get_display_name(target)} gives you"
+                            f" {amt} {info['unit']} of {info['name']}."
+                        )
                     gave_anything = True
 
+        if gave_anything and caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} gives some belongings to {target.key}.",
+                exclude=[caller, target], from_obj=caller,
+            )
         if skipped_worn:
             self.msg(
                 "Worn items skipped (remove first): "
@@ -375,6 +402,12 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
         else:
             obj_name = to_give[0].get_numbered_name(len(moved), caller, return_string=True)
             caller.msg(f"You give {obj_name} to {target_name}.")
-            target.msg(
-                f"{caller.get_display_name(target)} gives you {obj_name}."
-            )
+            if getattr(target, "position", "standing") != "sleeping":
+                target.msg(
+                    f"{caller.get_display_name(target)} gives you {obj_name}."
+                )
+            if caller.location:
+                caller.location.msg_contents(
+                    f"{caller.key} gives {obj_name} to {target.key}.",
+                    exclude=[caller, target], from_obj=caller,
+                )
