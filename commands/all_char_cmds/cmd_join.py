@@ -29,6 +29,7 @@ class CmdJoin(FCMCommandMixin, Command):
     key = "join"
     help_category = "Combat"
     locks = "cmd:all()"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

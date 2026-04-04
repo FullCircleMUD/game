@@ -37,10 +37,6 @@ class CmdSocialBase(FCMCommandMixin, Command):
             return
 
         # ── Guards ──
-        if caller.position == "sleeping":
-            caller.msg("You can't do that while asleep.")
-            return
-
         if hasattr(caller, "has_condition") and caller.has_condition(
             Condition.HIDDEN
         ):
@@ -146,6 +142,7 @@ class CmdSocials(FCMCommandMixin, Command):
     key = "socials"
     locks = "cmd:all()"
     help_category = "Socials"
+    allow_while_sleeping = True
 
     def func(self):
         names = sorted(SOCIALS.keys())

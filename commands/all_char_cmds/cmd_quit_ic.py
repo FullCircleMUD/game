@@ -11,6 +11,7 @@ class CmdQuitIC(FCMCommandMixin, Command):
     key = "quit"
     locks = "cmd:all()"
     help_category = "System"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

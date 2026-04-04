@@ -18,6 +18,7 @@ class CmdMock(CmdSkillBase):
     key = "mock"
     skill = skills.DEBILITATION.value
     help_category = "Combat"
+    allow_while_sleeping = True
 
     def unskilled_func(self):
         self.caller.msg(f"'{self.key}' Command using Skill '{self.skill}' - Unskilled")

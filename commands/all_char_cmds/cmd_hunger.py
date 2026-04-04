@@ -22,6 +22,7 @@ class CmdHunger(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Character"
     arg_regex = r"\s|$"
+    allow_while_sleeping = True
 
     def func(self):
         self.msg(self.caller.hunger_level.get_hunger_message())

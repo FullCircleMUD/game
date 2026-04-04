@@ -37,6 +37,7 @@ class CmdInventory(FCMCommandMixin, Command):
     aliases = ["inv", "i"]
     locks = "cmd:all()"
     help_category = "Items"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

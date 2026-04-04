@@ -35,7 +35,24 @@ class FCMCommandMixin:
 
     Only fires for puppeted characters (has get_prompt). Accounts
     at the main menu, session-level commands, and NPCs are skipped.
+
+    Subclasses that should work while sleeping set:
+        allow_while_sleeping = True
     """
+
+    allow_while_sleeping = False
+
+    def at_pre_cmd(self):
+        """Block commands while sleeping unless explicitly allowed."""
+        if (
+            not self.allow_while_sleeping
+            and getattr(self.caller, "position", None) == "sleeping"
+        ):
+            self.caller.msg(
+                "You can't do that while asleep. Try |wstand|n or |wwake|n."
+            )
+            return True  # abort command
+        return super().at_pre_cmd()
 
     def at_post_cmd(self):
         """Chain to parent at_post_cmd, then refresh prompt."""

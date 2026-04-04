@@ -73,6 +73,7 @@ class CmdCase(CmdSkillBase):
     key = "case"
     skill = skills.SUBTERFUGE.value
     help_category = "Stealth"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

@@ -30,6 +30,7 @@ class CmdFollow(FCMCommandMixin, Command):
     aliases = ("fol", "foll")
     locks = "cmd:all()"
     help_category = "Group"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller
@@ -120,6 +121,7 @@ class CmdUnfollow(FCMCommandMixin, Command):
     aliases = ("unf", "unfo", "unfol")
     locks = "cmd:all()"
     help_category = "Group"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller
@@ -159,6 +161,7 @@ class CmdNofollow(FCMCommandMixin, Command):
     aliases = ["nof", "nofol"]
     locks = "cmd:all()"
     help_category = "Group"
+    allow_while_sleeping = True
 
     def func(self):
         from commands.all_char_cmds.cmd_toggle import _handle_nofollow_toggle
@@ -176,6 +179,7 @@ class CmdGroup(FCMCommandMixin, Command):
     key = "group"
     locks = "cmd:all()"
     help_category = "Group"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

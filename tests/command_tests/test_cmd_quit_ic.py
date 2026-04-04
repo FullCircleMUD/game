@@ -30,5 +30,5 @@ class TestCmdQuitIC(EvenniaCommandTest):
             self.char1.scripts, "get", return_value=[]
         ):
             # Should not show the combat blocked message
-            result = self.call(CmdQuitIC(), "", "")
+            result = self.call(CmdQuitIC(), "")
             self.assertNotIn("combat", result.lower() if result else "")

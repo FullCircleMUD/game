@@ -35,6 +35,7 @@ class CmdRoomDesc(FCMCommandMixin, Command):
     key = "roomdesc"
     locks = "cmd:all()"
     help_category = "Character"
+    allow_while_sleeping = True
 
     MAX_LENGTH = 200
 

@@ -85,6 +85,7 @@ class CmdToggle(FCMCommandMixin, Command):
     key = "toggle"
     locks = "cmd:all()"
     help_category = "System"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

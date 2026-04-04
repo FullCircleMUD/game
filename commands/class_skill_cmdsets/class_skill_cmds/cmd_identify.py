@@ -37,6 +37,7 @@ class CmdIdentify(CmdSkillBase):
     aliases = ["id"]
     skill = skills.LORE.value
     help_category = "Performance"
+    allow_while_sleeping = True
 
     def func(self):
         """Override base dispatch — identify works the same at all mastery levels."""

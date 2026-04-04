@@ -27,6 +27,7 @@ class CmdExits(FCMCommandMixin, Command):
     aliases = ["ex"]
     locks = "cmd:all()"
     help_category = "General"
+    allow_while_sleeping = True
 
     # Canonical display order
     _DIR_ORDER = [

@@ -54,6 +54,7 @@ class CmdConsider(FCMCommandMixin, Command):
     aliases = ["con"]
     help_category = "Combat"
     locks = "cmd:all()"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

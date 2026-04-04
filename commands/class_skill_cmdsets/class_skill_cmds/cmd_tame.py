@@ -15,6 +15,7 @@ class CmdTame(CmdSkillBase):
     key = "tame"
     skill = skills.ANIMAL_HANDLING.value
     help_category = "Nature"
+    allow_while_sleeping = True
 
     def unskilled_func(self):
         self.caller.msg(f"'{self.key}' Command using Skill '{self.skill}' - Unskilled")

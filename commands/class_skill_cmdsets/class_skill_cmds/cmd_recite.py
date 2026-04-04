@@ -17,6 +17,7 @@ class CmdRecite(CmdSkillBase):
     key = "recite"
     skill = skills.MAGICAL_SECRETS.value
     help_category = "Magic"
+    allow_while_sleeping = True
 
     def unskilled_func(self):
         self.caller.msg(f"'{self.key}' Command using Skill '{self.skill}' - Unskilled")

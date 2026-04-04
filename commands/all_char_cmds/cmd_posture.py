@@ -15,6 +15,7 @@ class _PostureCommand(FCMCommandMixin, Command):
 
     locks = "cmd:all()"
     help_category = "General"
+    allow_while_sleeping = True
     target_position = "standing"  # subclasses override
 
     def _is_in_combat(self):
@@ -121,6 +122,7 @@ class CmdWake(FCMCommandMixin, Command):
     aliases = ["wa"]
     locks = "cmd:all()"
     help_category = "General"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

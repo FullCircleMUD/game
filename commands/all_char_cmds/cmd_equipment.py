@@ -26,6 +26,7 @@ class CmdEquipment(FCMCommandMixin, Command):
     aliases = ["eq"]
     locks = "cmd:all()"
     help_category = "Items"
+    allow_while_sleeping = True
 
     def func(self):
         self.caller.msg(self.caller.equipment_cmd_output())

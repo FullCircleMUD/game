@@ -33,6 +33,7 @@ class CmdLearn(FCMCommandMixin, Command):
     aliases =["le", "lea", "lear"]
     locks = "cmd:all()"
     help_category = "Crafting"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

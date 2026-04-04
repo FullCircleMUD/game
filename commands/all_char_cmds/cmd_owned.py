@@ -30,6 +30,7 @@ class CmdOwned(FCMCommandMixin, Command):
     key = "owned"
     locks = "cmd:all()"
     help_category = "Items"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

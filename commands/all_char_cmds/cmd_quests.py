@@ -27,6 +27,7 @@ class CmdQuests(FCMCommandMixin, Command):
     aliases = ["quest log", "questlog"]
     locks = "cmd:all()"
     help_category = "Character"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

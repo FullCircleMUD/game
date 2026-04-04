@@ -12,6 +12,7 @@ enter the player economy.
 
 from evennia.objects.objects import DefaultObject
 from evennia.typeclasses.attributes import AttributeProperty
+from evennia.utils.search import search_object
 
 
 class MobItem(DefaultObject):
@@ -64,10 +65,16 @@ class MobItem(DefaultObject):
         if not mob_tc:
             return None
 
+        # Recycle bin as home — orphaned items get cleaned up
+        recycle_results = search_object("nft_recycle_bin", exact=True)
+        recycle_bin = recycle_results[0] if recycle_results else None
+
         # Build spawn dict — use mob typeclass instead of NFT typeclass
         spawn_dict = dict(proto)
         spawn_dict["typeclass"] = mob_tc
         spawn_dict["location"] = location
+        if recycle_bin:
+            spawn_dict["home"] = recycle_bin
         # Remove fields that are NFT-only or cause Evennia conflicts
         spawn_dict.pop("mob_typeclass", None)
         spawn_dict.pop("max_durability", None)

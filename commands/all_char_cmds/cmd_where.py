@@ -15,6 +15,7 @@ class CmdWhere(FCMCommandMixin, Command):
     aliases = ["whe"]
     locks = "cmd:all()"
     help_category = "Character"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

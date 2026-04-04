@@ -16,6 +16,7 @@ class CmdPerform(CmdSkillBase):
     key = "perform"
     skill = skills.PERFORMANCE.value
     help_category = "Performance"
+    allow_while_sleeping = True
 
     def unskilled_func(self):
         self.caller.msg(f"'{self.key}' Command using Skill '{self.skill}' - Unskilled")

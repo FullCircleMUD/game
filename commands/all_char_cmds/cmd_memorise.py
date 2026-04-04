@@ -42,6 +42,7 @@ class CmdMemorise(FCMCommandMixin, Command):
     aliases = ["memorize", "mem"]
     locks = "cmd:all()"
     help_category = "Magic"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller
@@ -157,6 +158,7 @@ class CmdForget(FCMCommandMixin, Command):
     aliases = ["for"]
     locks = "cmd:all()"
     help_category = "Magic"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

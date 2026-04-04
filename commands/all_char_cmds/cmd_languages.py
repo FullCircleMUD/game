@@ -25,6 +25,7 @@ class CmdLanguages(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Character"
     arg_regex = r"\s|$"
+    allow_while_sleeping = True
 
     def func(self):
         langs = self.caller.db.languages

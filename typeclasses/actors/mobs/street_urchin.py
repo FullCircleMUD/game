@@ -112,8 +112,8 @@ class StreetUrchin(CombatMob):
 
         # Check target has gold
         gold = target.get_gold() if hasattr(target, "get_gold") else 0
-        if gold < 1:
-            return  # nothing to steal
+        if gold <= 20:
+            return  # not worth the risk
 
         # Contested roll: d20 + DEX mod + subterfuge vs 10 + perception
         dex_mod = self.get_attribute_bonus(self.dexterity)

@@ -34,6 +34,7 @@ class CmdWimpy(FCMCommandMixin, Command):
     key = "wimpy"
     help_category = "Combat"
     locks = "cmd:all()"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

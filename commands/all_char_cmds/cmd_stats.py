@@ -54,6 +54,7 @@ class CmdStats(FCMCommandMixin, Command):
     key = "stats"
     locks = "cmd:all()"
     help_category = "Character"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

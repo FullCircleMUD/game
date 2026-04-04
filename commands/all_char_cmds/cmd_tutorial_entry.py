@@ -28,6 +28,7 @@ class CmdEnterTutorial(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Tutorial"
     arg_regex = r"\s|$"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller
@@ -83,6 +84,7 @@ class CmdLeaveTutorial(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Tutorial"
     arg_regex = r"\s|$"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

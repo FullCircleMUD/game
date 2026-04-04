@@ -33,6 +33,7 @@ class CmdTranscribe(FCMCommandMixin, Command):
     aliases = ["tr", "tra", "tran", "trans"]
     locks = "cmd:all()"
     help_category = "Magic"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

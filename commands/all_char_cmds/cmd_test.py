@@ -18,6 +18,7 @@ class CmdTest(FCMCommandMixin, Command):
     key = "test"
     locks = "cmd:all()"
     help_category = "Character"
+    allow_while_sleeping = True
 
     def parse(self):
         """

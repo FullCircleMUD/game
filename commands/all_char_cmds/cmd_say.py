@@ -52,6 +52,7 @@ class CmdSay(FCMCommandMixin, Command):
     aliases = ['"', 'talk']
     locks = "cmd:all()"
     help_category = "Communication"
+    allow_while_sleeping = True
 
     def parse(self):
         """Extract language switch from cmdname or leading /switch in args."""

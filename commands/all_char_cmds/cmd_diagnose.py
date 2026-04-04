@@ -41,6 +41,7 @@ class CmdDiagnose(FCMCommandMixin, Command):
     aliases = ["diag"]
     help_category = "General"
     locks = "cmd:all()"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller

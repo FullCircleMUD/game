@@ -23,6 +23,7 @@ class CmdSpells(FCMCommandMixin, Command):
     aliases = ["sp", "spe"]
     locks = "cmd:all()"
     help_category = "Magic"
+    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller
