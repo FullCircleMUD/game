@@ -77,7 +77,7 @@ def _spawn_baker():
     npc.quest_key = "bakers_flour"
     npc.llm_prompt_file = "baker.md"
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.tradeable_resources = [2, 3]   # Flour, Bread
     npc.shop_name = "Goldencrust Bakery"
@@ -115,7 +115,7 @@ def _spawn_oakwright():
     npc.quest_key = "oakwright_timber"
     npc.llm_prompt_file = "oakwright.md"
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.trainable_skills = ["carpentry"]
     npc.trainer_masteries = {"carpentry": 2}
@@ -154,7 +154,7 @@ def _spawn_elena():
     npc.quest_key = "elena_cloth"
     npc.llm_prompt_file = "elena.md"
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.trainable_skills = ["tailoring"]
     npc.trainer_masteries = {"tailoring": 2}
@@ -200,7 +200,7 @@ def _spawn_mara():
     npc.quest_key = "mara_moonpetal"
     npc.llm_prompt_file = "mara.md"
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.trainable_skills = ["alchemy"]
     npc.trainer_masteries = {"alchemy": 1}  # BASIC cap in Millholm
@@ -248,7 +248,7 @@ def _spawn_torben():
     )
     npc.llm_prompt_file = "torben.md"
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.trainable_skills = ["leatherworking"]
     npc.trainer_masteries = {"leatherworking": 2}  # trainable to SKILLED in Millholm
@@ -288,7 +288,7 @@ def _spawn_hendricks():
     npc.quest_key = "hendricks_ore"
     npc.llm_prompt_file = "hendricks.md"
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.trainable_skills = ["blacksmithing"]
     npc.trainer_masteries = {"blacksmithing": 1}  # high-demand skill — BASIC cap in Millholm
@@ -858,7 +858,7 @@ def _spawn_general_store():
     npc.room_description = "{name} stands behind the counter, watching customers with a shrewd eye."
 
     npc.llm_speech_mode = "always"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
@@ -927,7 +927,7 @@ def _spawn_broken_crown_barkeep():
         location=room,
     )
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_personality = (
         "A heavyset woman in her fifties with iron-grey hair pulled back "
@@ -990,7 +990,7 @@ def _spawn_gaoler():
         location=room,
     )
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_personality = (
         "A squat, paunchy man with small piggy eyes, a patchy beard, "
@@ -1054,7 +1054,7 @@ def _spawn_fence():
         location=room,
     )
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_personality = (
         "A twitchy, rat-faced man who flinches at loud noises and never "
@@ -1112,7 +1112,7 @@ def _spawn_lumberjack():
     npc.shop_name = "Bjorn's Lumber Yard"
 
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
@@ -1226,7 +1226,7 @@ def _spawn_trapper():
     npc.shop_name = "Buckshaw's Pelts"
 
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_personality = (
         "A weathered, grizzled old man who looks like he hasn't been fully "
@@ -1299,7 +1299,7 @@ def _spawn_smelter():
     npc.shop_name = "Thackery's Ore & Fuel"
 
     npc.llm_speech_mode = "always"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
@@ -1396,7 +1396,7 @@ def _spawn_cellmate():
         location=room,
     )
     npc.llm_speech_mode = "always"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_hook_say = True
@@ -1659,7 +1659,7 @@ def _spawn_boatman():
         "shipwright": 1,   # BASIC
     }
     npc.llm_speech_mode = "name_match"
-    npc.llm_use_vector_memory = False
+    npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
     npc.llm_hook_arrive = True
     npc.llm_personality = (
