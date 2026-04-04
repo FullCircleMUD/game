@@ -1619,7 +1619,7 @@ def _spawn_grik():
         "Training Dagger", "Training Shortsword", "Training Longsword",
         "Training Bow", "Training Greatsword", "Training Lance",
         "Club", "Quarterstaff", "Sling", "Shortbow",
-        "Bronze Spear",
+        "Bronze Spear", "Bronze Mace",
         "Haft", "Shaft",
         "Wooden Torch",
     ]
