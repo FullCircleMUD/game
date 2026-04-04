@@ -332,21 +332,25 @@ def _build_lore_scope_filter(npc_scope_tags):
     """
     Build a Q filter for lore entries accessible to an NPC.
 
-    Continental entries are always included. For each tag in
-    ``npc_scope_tags``, entries whose ``scope_tags`` JSON list contains
-    that tag are included. Uses ``__contains`` which works on both
-    SQLite and PostgreSQL.
+    On PostgreSQL, uses ``scope_tags__contains`` for efficient JSON
+    filtering. On SQLite (which doesn't support JSON contains lookups),
+    fetches all entries and relies on ``_npc_can_access_lore()`` for
+    Python-level filtering.
 
-    This is a **permissive pre-filter** — it may include entries the
-    NPC shouldn't see (multi-tag entries where the NPC only has one of
-    the tags). Use ``_npc_can_access_lore()`` to post-filter results.
+    Continental entries are always included. This is a **permissive
+    pre-filter** — use ``_npc_can_access_lore()`` to post-filter.
     """
     from django.db.models import Q
 
-    q = Q(scope_level="continental")
-    for tag in npc_scope_tags:
-        q |= Q(scope_tags__contains=[tag])
-    return q
+    if _is_postgres():
+        q = Q(scope_level="continental")
+        for tag in npc_scope_tags:
+            q |= Q(scope_tags__contains=[tag])
+        return q
+
+    # SQLite: no JSON contains support — return all entries.
+    # _npc_can_access_lore() handles the real filtering in Python.
+    return Q()
 
 
 def _npc_can_access_lore(entry_scope_tags, npc_scope_tags):
