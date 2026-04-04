@@ -17,6 +17,7 @@ from world.spells.registry import register_spell
 @register_spell
 class CureWounds(Spell):
     key = "cure_wounds"
+    aliases = []
     name = "Cure Wounds"
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.BASIC
@@ -33,14 +34,25 @@ class CureWounds(Spell):
     )
 
     def _execute(self, caster, target):
+        effective_hp_max = target.effective_hp_max
+
+        # Refuse if target is already at full health — refund mana
+        # (mana was deducted by cast() before _execute is called)
+        if target.hp >= effective_hp_max:
+            tier = self.get_caster_tier(caster)
+            caster.mana += self.mana_cost.get(tier, 0)
+            name = "You" if target == caster else target.key
+            verb = "don't" if target == caster else "doesn't"
+            return (False, f"{name} {verb} need healing.")
+
         tier = self.get_caster_tier(caster)
         heal_roll = dice.roll(f"{tier}d6")
         wis_bonus = caster.get_attribute_bonus(caster.wisdom)
         total_heal = max(0, heal_roll + wis_bonus)
 
-        # Clamp to not exceed max HP
-        actual = min(total_heal, target.hp_max - target.hp)
-        target.hp = min(target.hp_max, target.hp + total_heal)
+        # Clamp to not exceed effective max HP
+        actual = max(0, min(total_heal, effective_hp_max - target.hp))
+        target.hp = min(effective_hp_max, target.hp + actual)
 
         if target == caster:
             return (True, {
