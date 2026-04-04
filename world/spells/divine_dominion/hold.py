@@ -39,7 +39,7 @@ _SIZE_CAP_NAMES = {3: "medium", 4: "large", 5: "huge"}
 @register_spell
 class Hold(Spell):
     key = "hold"
-    aliases = ["hold_person", "hp"]
+    aliases = ["hp"]
     name = "Hold"
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.EXPERT

@@ -37,7 +37,7 @@ from world.spells.spell_utils import apply_spell_damage
 @register_spell
 class Frostbolt(Spell):
     key = "frostbolt"
-    aliases = ["fb", "frost"]
+    aliases = ["frb"]
     name = "Frostbolt"
     school = skills.EVOCATION
     min_mastery = MasteryLevel.BASIC

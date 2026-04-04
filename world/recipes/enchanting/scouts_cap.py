@@ -8,7 +8,7 @@ RECIPE_SCOUTS_CAP = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2},              # 2 Arcane Dust (resource_id 15)
+    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
     "nft_ingredients": {"leather_cap": 1},
     "output_prototype": "scouts_cap",
 }

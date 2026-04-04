@@ -31,7 +31,7 @@ from world.spells.registry import register_spell
 @register_spell
 class AcidArrow(Spell):
     key = "acid_arrow"
-    aliases = ["aa", "acid"]
+    aliases = ["aa"]
     name = "Acid Arrow"
     school = skills.CONJURATION
     min_mastery = MasteryLevel.BASIC

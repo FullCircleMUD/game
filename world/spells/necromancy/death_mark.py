@@ -42,7 +42,7 @@ from world.spells.registry import register_spell
 @register_spell
 class DeathMark(Spell):
     key = "death_mark"
-    aliases = ["dm", "mark"]
+    aliases = ["dm"]
     name = "Death Mark"
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.GRANDMASTER

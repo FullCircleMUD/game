@@ -19,7 +19,7 @@ from world.spells.registry import register_spell
 @register_spell
 class WordOfGod(Spell):
     key = "word_of_god"
-    aliases = ["word"]
+    aliases = ["wog"]
     name = "Word of God"
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.GRANDMASTER

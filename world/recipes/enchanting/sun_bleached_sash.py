@@ -8,7 +8,7 @@ RECIPE_SUN_BLEACHED_SASH = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2},              # 2 Arcane Dust (resource_id 15)
+    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
     "nft_ingredients": {"sash": 1},
     "output_prototype": "sun_bleached_sash",
 }

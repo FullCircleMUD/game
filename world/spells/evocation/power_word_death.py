@@ -32,7 +32,7 @@ HP_THRESHOLD = 20
 @register_spell
 class PowerWordDeath(Spell):
     key = "power_word_death"
-    aliases = ["pwd", "wod"]
+    aliases = ["pwd"]
     name = "Power Word: Death"
     school = skills.EVOCATION
     min_mastery = MasteryLevel.GRANDMASTER

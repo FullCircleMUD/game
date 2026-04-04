@@ -21,7 +21,7 @@ from world.spells.registry import register_spell
 @register_spell
 class WrathOfGod(Spell):
     key = "wrath_of_god"
-    aliases = ["wrath", "wog"]
+    aliases = ["wog"]
     name = "Wrath of God"
     school = skills.DIVINE_JUDGEMENT
     min_mastery = MasteryLevel.GRANDMASTER

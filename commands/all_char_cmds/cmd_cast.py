@@ -53,28 +53,37 @@ class CmdCast(FCMCommandMixin, Command):
 
         for spell_key, spell_obj in SPELL_REGISTRY.items():
             # Check if args starts with the spell name (case insensitive)
+            # Require word boundary after match to prevent partial matches
             name_lower = spell_obj.name.lower()
             if args.lower().startswith(name_lower):
-                remainder = args[len(name_lower):].strip()
-                if len(name_lower) > best_match_len:
+                after = args[len(name_lower):]
+                if after and not after[0].isspace():
+                    pass  # partial word match — skip
+                elif len(name_lower) > best_match_len:
                     spell_match = spell_obj
-                    target_str = remainder
+                    target_str = after.strip()
                     best_match_len = len(name_lower)
 
             # Also check by key with underscores replaced
             key_display = spell_key.replace("_", " ")
             if args.lower().startswith(key_display):
-                remainder = args[len(key_display):].strip()
-                if len(key_display) > best_match_len:
+                after = args[len(key_display):]
+                if after and not after[0].isspace():
+                    pass  # partial word match — skip
+                elif len(key_display) > best_match_len:
                     spell_match = spell_obj
-                    target_str = remainder
+                    target_str = after.strip()
                     best_match_len = len(key_display)
 
-            # Check aliases
+            # Check aliases — require word boundary (space or end of string)
+            # to prevent short aliases like "ma" matching inside "magic"
             for alias in getattr(spell_obj, "aliases", []):
                 alias_lower = alias.lower()
                 if args.lower().startswith(alias_lower):
-                    remainder = args[len(alias_lower):].strip()
+                    after = args[len(alias_lower):]
+                    if after and not after[0].isspace():
+                        continue  # partial word match — skip
+                    remainder = after.strip()
                     if len(alias_lower) > best_match_len:
                         spell_match = spell_obj
                         target_str = remainder

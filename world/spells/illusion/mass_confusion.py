@@ -32,7 +32,7 @@ from world.spells.registry import register_spell
 @register_spell
 class MassConfusion(Spell):
     key = "mass_confusion"
-    aliases = ["mc", "confuse"]
+    aliases = ["mc"]
     name = "Mass Confusion"
     school = skills.ILLUSION
     min_mastery = MasteryLevel.EXPERT

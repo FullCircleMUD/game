@@ -42,7 +42,7 @@ from world.spells.registry import register_spell
 @register_spell
 class AntimagicField(Spell):
     key = "antimagic_field"
-    aliases = ["amf", "antimagic"]
+    aliases = ["amf"]
     name = "Antimagic Field"
     school = skills.ABJURATION
     min_mastery = MasteryLevel.EXPERT

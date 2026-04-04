@@ -32,7 +32,7 @@ _VALID_ELEMENTS = {"fire", "cold", "lightning", "acid", "poison"}
 @register_spell
 class GroupResist(Spell):
     key = "group_resist"
-    aliases = ["gr", "gresist"]
+    aliases = ["gr"]
     name = "Group Resist"
     school = skills.ABJURATION
     min_mastery = MasteryLevel.MASTER

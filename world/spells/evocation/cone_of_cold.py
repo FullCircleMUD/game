@@ -45,7 +45,7 @@ def _get_hit_chance(index):
 @register_spell
 class ConeOfCold(Spell):
     key = "cone_of_cold"
-    aliases = ["coc", "cone"]
+    aliases = ["coc"]
     name = "Cone of Cold"
     school = skills.EVOCATION
     min_mastery = MasteryLevel.MASTER

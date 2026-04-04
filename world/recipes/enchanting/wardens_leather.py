@@ -8,7 +8,7 @@ RECIPE_WARDENS_LEATHER = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2},              # 2 Arcane Dust (resource_id 15)
+    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
     "nft_ingredients": {"leather_armor": 1},  # 1 Leather Armor (leatherworker item)
     "output_prototype": "wardens_leather",
 }

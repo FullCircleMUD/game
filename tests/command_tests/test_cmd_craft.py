@@ -470,6 +470,7 @@ class TestCmdCraftXP(EvenniaCommandTest):
 class TestCmdRecipes(EvenniaCommandTest):
     """Test character-level recipes command."""
 
+    databases = "__all__"
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
 
     def create_script(self):
@@ -482,21 +483,106 @@ class TestCmdRecipes(EvenniaCommandTest):
         """Recipes with no learned recipes should show empty message."""
         self.call(CmdRecipes(), "", "Your recipe book is empty.")
 
-    def test_shows_known_recipe(self):
-        """Recipes should list known recipes with skill info."""
+    def test_summary_shows_skill_and_count(self):
+        """Bare recipes shows summary with skill name and tier count."""
         _give_carpenter_skill(self.char1)
         _learn_training_longsword(self.char1)
         result = self.call(CmdRecipes(), "")
+        self.assertIn("Carpenter", result)
+        self.assertIn("BASIC", result)
+        self.assertIn("1", result)  # 1 BASIC recipe
+        self.assertNotIn("Training Longsword", result)  # detail hidden
+
+    def test_drill_down_shows_recipe_detail(self):
+        """recipes <skill> shows full recipe details."""
+        _give_carpenter_skill(self.char1)
+        _learn_training_longsword(self.char1)
+        result = self.call(CmdRecipes(), "carpenter")
         self.assertIn("Training Longsword", result)
         self.assertIn("Carpenter", result)
         self.assertIn("BASIC", result)
 
     def test_shows_mastery_level(self):
-        """Recipes should show the character's mastery level for each skill."""
+        """Summary should show the character's mastery level for each skill."""
         _give_carpenter_skill(self.char1, MasteryLevel.SKILLED)
         _learn_training_longsword(self.char1)
         result = self.call(CmdRecipes(), "")
         self.assertIn("SKILLED", result)
+
+    def test_summary_multiple_skills(self):
+        """Summary groups recipes by skill when multiple skills known."""
+        _give_carpenter_skill(self.char1)
+        _learn_training_longsword(self.char1)
+        # Also learn a blacksmith recipe
+        if not self.char1.db.general_skill_mastery_levels:
+            self.char1.db.general_skill_mastery_levels = {}
+        self.char1.db.general_skill_mastery_levels[skills.BLACKSMITH.value] = MasteryLevel.BASIC.value
+        self.char1.db.recipe_book["bronze_dagger"] = True
+        result = self.call(CmdRecipes(), "")
+        self.assertIn("Carpenter", result)
+        self.assertIn("Blacksmith", result)
+
+    def test_summary_multiple_tiers(self):
+        """Summary shows separate counts for different mastery tiers."""
+        _give_carpenter_skill(self.char1, MasteryLevel.SKILLED)
+        _learn_training_longsword(self.char1)  # BASIC recipe
+        # Also learn a SKILLED blacksmith recipe
+        if not self.char1.db.general_skill_mastery_levels:
+            self.char1.db.general_skill_mastery_levels = {}
+        self.char1.db.general_skill_mastery_levels[skills.BLACKSMITH.value] = MasteryLevel.SKILLED.value
+        self.char1.db.recipe_book["bronze_dagger"] = True       # BASIC
+        self.char1.db.recipe_book["bronze_greatsword"] = True   # SKILLED
+        result = self.call(CmdRecipes(), "blacksmith")
+        self.assertIn("BASIC", result)
+        self.assertIn("SKILLED", result)
+        self.assertIn("Bronze Dagger", result)
+        self.assertIn("Bronze Greatsword", result)
+
+    def test_drill_down_partial_match(self):
+        """Partial skill name should match (e.g. 'carp' → carpenter)."""
+        _give_carpenter_skill(self.char1)
+        _learn_training_longsword(self.char1)
+        result = self.call(CmdRecipes(), "carp")
+        self.assertIn("Training Longsword", result)
+        self.assertIn("Carpenter", result)
+
+    def test_drill_down_unknown_skill(self):
+        """Unknown skill argument shows error with hint."""
+        _give_carpenter_skill(self.char1)
+        _learn_training_longsword(self.char1)
+        result = self.call(CmdRecipes(), "zzz_nonexistent")
+        self.assertIn("don't have any recipes", result)
+        self.assertIn("recipes", result)  # hint to use bare command
+
+    def test_drill_down_shows_nft_ingredients(self):
+        """Detail view should show NFT ingredients alongside resources."""
+        if not self.char1.db.general_skill_mastery_levels:
+            self.char1.db.general_skill_mastery_levels = {}
+        self.char1.db.general_skill_mastery_levels[skills.ENCHANTING.value] = MasteryLevel.BASIC.value
+        if not self.char1.db.recipe_book:
+            self.char1.db.recipe_book = {}
+        self.char1.db.recipe_book["defenders_helm"] = True
+        result = self.call(CmdRecipes(), "enchanting")
+        self.assertIn("Defender's Helm", result)
+        self.assertIn("Bronze Helm", result)  # NFT ingredient displayed
+
+    def test_enchanting_recipes_in_summary(self):
+        """Enchanting recipes should appear in the summary view."""
+        if not self.char1.db.general_skill_mastery_levels:
+            self.char1.db.general_skill_mastery_levels = {}
+        self.char1.db.general_skill_mastery_levels[skills.ENCHANTING.value] = MasteryLevel.BASIC.value
+        if not self.char1.db.recipe_book:
+            self.char1.db.recipe_book = {}
+        self.char1.db.recipe_book["defenders_helm"] = True
+        result = self.call(CmdRecipes(), "")
+        self.assertIn("Enchanting", result)
+
+    def test_summary_shows_hint_text(self):
+        """Summary should include hint for drill-down command."""
+        _give_carpenter_skill(self.char1)
+        _learn_training_longsword(self.char1)
+        result = self.call(CmdRecipes(), "")
+        self.assertIn("recipes carpenter", result)
 
 
 # ── Available Command (Room) ─────────────────────────────────────────

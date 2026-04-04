@@ -48,7 +48,7 @@ def _format_alignment(alignment):
 @register_spell
 class HolyInsight(Identify):
     key = "holy_insight"
-    aliases = ["hinsight", "hi"]
+    aliases = []
     name = "Holy Insight"
     school = skills.DIVINE_REVELATION
     min_mastery = MasteryLevel.BASIC

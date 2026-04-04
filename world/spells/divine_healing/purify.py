@@ -22,7 +22,7 @@ from world.spells.registry import register_spell
 @register_spell
 class Purify(Spell):
     key = "purify"
-    aliases = ["pur"]
+    aliases = []
     name = "Purify"
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.SKILLED

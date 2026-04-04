@@ -1,4 +1,5 @@
 from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from enums.hunger_level import HungerLevel
 import math
 
@@ -23,29 +24,37 @@ class RegenerationService(DefaultScript):
         This is called every `interval` seconds
         """
         for session in SESSION_HANDLER.get_sessions():
-            char = session.get_puppet()
-            if not char:
-                continue
+            try:
+                self._process_character(session)
+            except Exception:
+                char = session.get_puppet()
+                logger.log_trace(f"Regen error for {char.key if char else 'unknown'}")
 
-            # Skip characters without hunger_level
-            if not hasattr(char, "hunger_level"):
-                continue
+    def _process_character(self, session):
+        """Process regen/degen for a single character."""
+        char = session.get_puppet()
+        if not char:
+            return
 
-            hunger_level = char.hunger_level # This should be HungerLevel enum
-            if not isinstance(hunger_level, HungerLevel):
-                continue
+        # Skip characters without hunger_level
+        if not hasattr(char, "hunger_level"):
+            return
 
-            if hunger_level.value >= HungerLevel.PECKISH.value:
-                # FULL, SATISFIED, PECKISH regenerate
-                self.regenerate(char)
-                continue
-            elif hunger_level.value <= HungerLevel.FAMISHED.value:
-                # FAMISHED or STARVING - degen
-                self.degenerate(char)
-                
-            # HungerLevel.HUNGRY not covered because no action take on this, no regen OR degen
+        hunger_level = char.hunger_level # This should be HungerLevel enum
+        if not isinstance(hunger_level, HungerLevel):
+            return
 
-            self.send_hunger_messages(char, hunger_level)
+        if hunger_level.value >= HungerLevel.PECKISH.value:
+            # FULL, SATISFIED, PECKISH regenerate
+            self.regenerate(char)
+            return
+        elif hunger_level.value <= HungerLevel.FAMISHED.value:
+            # FAMISHED or STARVING - degen
+            self.degenerate(char)
+
+        # HungerLevel.HUNGRY not covered because no action take on this, no regen OR degen
+
+        self.send_hunger_messages(char, hunger_level)
 
 
     def send_hunger_messages(self, character, hunger_level):

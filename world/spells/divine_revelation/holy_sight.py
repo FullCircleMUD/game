@@ -29,7 +29,7 @@ from world.spells.registry import register_spell
 @register_spell
 class HolySight(Spell):
     key = "holy_sight"
-    aliases = ["hs", "hsight"]
+    aliases = ["hs"]
     name = "Holy Sight"
     school = skills.DIVINE_REVELATION
     min_mastery = MasteryLevel.SKILLED

@@ -20,7 +20,7 @@ from world.spells.registry import register_spell
 @register_spell
 class Earthquake(Spell):
     key = "earthquake"
-    aliases = ["quake", "eq"]
+    aliases = ["eq"]
     name = "Earthquake"
     school = skills.NATURE_MAGIC
     min_mastery = MasteryLevel.GRANDMASTER

@@ -62,8 +62,13 @@ class CmdLoot(FCMCommandMixin, Command):
             if self._loot_all(caller, corpse):
                 looted_anything = True
 
-        if not looted_anything:
+        locked_corpses = [c for c in corpses if not c.can_loot(caller)]
+        if not looted_anything and locked_corpses:
+            caller.msg("The corpses here are still protected.")
+        elif not looted_anything:
             caller.msg("There is nothing to loot on the corpses in the room.")
+        elif locked_corpses:
+            caller.msg("Some corpses are still protected and were not looted.")
 
     # ------------------------------------------------------------------ #
     #  List corpses

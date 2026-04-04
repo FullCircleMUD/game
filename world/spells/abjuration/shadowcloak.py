@@ -68,7 +68,7 @@ def _get_group_targets(caster):
 @register_spell
 class Shadowcloak(Spell):
     key = "shadowcloak"
-    aliases = ["sc", "scloak"]
+    aliases = ["sc"]
     name = "Shadowcloak"
     school = skills.ABJURATION
     min_mastery = MasteryLevel.SKILLED

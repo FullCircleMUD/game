@@ -40,7 +40,7 @@ from world.spells.registry import register_spell
 @register_spell
 class RaiseDead(Spell):
     key = "raise_dead"
-    aliases = ["rd", "raise"]
+    aliases = ["rd"]
     name = "Raise Dead"
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.SKILLED

@@ -38,7 +38,7 @@ from world.spells.spell_utils import apply_spell_damage
 @register_spell
 class DrainLife(Spell):
     key = "drain_life"
-    aliases = ["dl", "drain"]
+    aliases = ["dl"]
     name = "Drain Life"
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.BASIC

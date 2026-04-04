@@ -32,7 +32,7 @@ from world.spells.registry import register_spell
 @register_spell
 class Blur(Spell):
     key = "blur"
-    aliases = []
+    aliases = ["bl"]
     name = "Blur"
     school = skills.ILLUSION
     min_mastery = MasteryLevel.BASIC

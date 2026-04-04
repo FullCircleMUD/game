@@ -42,7 +42,7 @@ from world.spells.registry import register_spell
 @register_spell
 class RaiseLich(Spell):
     key = "raise_lich"
-    aliases = ["rl", "lich"]
+    aliases = ["rl"]
     name = "Raise Lich"
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.MASTER

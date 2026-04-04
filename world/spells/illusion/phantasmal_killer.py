@@ -29,7 +29,7 @@ from world.spells.registry import register_spell
 @register_spell
 class PhantasmalKiller(Spell):
     key = "phantasmal_killer"
-    aliases = ["pk", "phantasm"]
+    aliases = ["pk"]
     name = "Phantasmal Killer"
     school = skills.ILLUSION
     min_mastery = MasteryLevel.GRANDMASTER

@@ -29,7 +29,7 @@ from world.spells.registry import register_spell
 @register_spell
 class TrueSight(Spell):
     key = "true_sight"
-    aliases = ["ts", "truesight"]
+    aliases = ["ts"]
     name = "True Sight"
     school = skills.DIVINATION
     min_mastery = MasteryLevel.SKILLED

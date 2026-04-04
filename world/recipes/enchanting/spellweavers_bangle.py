@@ -8,7 +8,7 @@ RECIPE_SPELLWEAVERS_BANGLE = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2},              # 2 Arcane Dust (resource_id 15)
+    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
     "nft_ingredients": {"copper_bangle": 1},
     "output_prototype": "spellweavers_bangle",
 }

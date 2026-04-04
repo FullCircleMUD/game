@@ -21,7 +21,7 @@ from world.spells.registry import register_spell
 @register_spell
 class HolyAura(Spell):
     key = "holy_aura"
-    aliases = ["haura"]
+    aliases = ["ha"]
     name = "Holy Aura"
     school = skills.DIVINE_PROTECTION
     min_mastery = MasteryLevel.EXPERT

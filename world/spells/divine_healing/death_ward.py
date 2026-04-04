@@ -23,7 +23,7 @@ from world.spells.registry import register_spell
 @register_spell
 class DeathWard(Spell):
     key = "death_ward"
-    aliases = ["dward", "dw"]
+    aliases = ["dw"]
     name = "Death Ward"
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.GRANDMASTER

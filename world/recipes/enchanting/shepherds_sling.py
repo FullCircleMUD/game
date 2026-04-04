@@ -8,7 +8,7 @@ RECIPE_SHEPHERDS_SLING = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2},              # 2 Arcane Dust (resource_id 15)
+    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
     "nft_ingredients": {"sling": 1},     # 1 Sling (leatherworker item)
     "output_prototype": "shepherds_sling",
 }

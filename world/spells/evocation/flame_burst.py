@@ -43,7 +43,7 @@ def _get_hit_chance(index):
 @register_spell
 class FlameBurst(Spell):
     key = "flame_burst"
-    aliases = ["burst"]
+    aliases = ["flb"]
     name = "Flame Burst"
     school = skills.EVOCATION
     min_mastery = MasteryLevel.SKILLED

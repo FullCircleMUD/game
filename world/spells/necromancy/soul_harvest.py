@@ -38,7 +38,7 @@ from world.spells.spell_utils import apply_spell_damage, get_room_all
 @register_spell
 class SoulHarvest(Spell):
     key = "soul_harvest"
-    aliases = ["soul", "harvest"]
+    aliases = ["soh"]
     name = "Soul Harvest"
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.EXPERT

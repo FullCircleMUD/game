@@ -25,7 +25,7 @@ from world.spells.registry import register_spell
 @register_spell
 class ConjureElemental(Spell):
     key = "conjure_elemental"
-    aliases = ["ce", "conjure"]
+    aliases = ["ce"]
     name = "Conjure Elemental"
     school = skills.CONJURATION
     min_mastery = MasteryLevel.MASTER

@@ -29,7 +29,7 @@ from world.spells.registry import register_spell
 @register_spell
 class HolyFire(Spell):
     key = "holy_fire"
-    aliases = ["hfire"]
+    aliases = ["hf"]
     name = "Holy Fire"
     school = skills.DIVINE_JUDGEMENT
     min_mastery = MasteryLevel.EXPERT

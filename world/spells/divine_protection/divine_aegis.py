@@ -19,7 +19,7 @@ from world.spells.registry import register_spell
 @register_spell
 class DivineAegis(Spell):
     key = "divine_aegis"
-    aliases = ["aegis"]
+    aliases = ["da"]
     name = "Divine Aegis"
     school = skills.DIVINE_PROTECTION
     min_mastery = MasteryLevel.GRANDMASTER

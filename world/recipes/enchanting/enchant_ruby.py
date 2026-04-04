@@ -8,7 +8,7 @@ RECIPE_ENCHANT_RUBY = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2, 33: 1},       # 2 Arcane Dust + 1 Ruby
+    "ingredients": {16: 2, 33: 1},       # 2 Arcane Dust + 1 Ruby
     "output_table": "enchanted_ruby",     # signals roll table in gem_tables.py
     "output_prototype": "enchanted_ruby",
 }

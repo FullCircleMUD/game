@@ -30,7 +30,7 @@ from world.spells.registry import register_spell
 @register_spell
 class MageArmor(Spell):
     key = "mage_armor"
-    aliases = ["ma", "armor"]
+    aliases = ["mar"]
     name = "Mage Armor"
     school = skills.ABJURATION
     min_mastery = MasteryLevel.BASIC

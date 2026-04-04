@@ -21,7 +21,7 @@ from world.spells.registry import register_spell
 @register_spell
 class MassHeal(Spell):
     key = "mass_heal"
-    aliases = ["mheal", "massheal"]
+    aliases = ["mh"]
     name = "Mass Heal"
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.EXPERT

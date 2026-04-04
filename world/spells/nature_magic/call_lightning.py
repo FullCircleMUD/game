@@ -29,7 +29,7 @@ from world.spells.spell_utils import apply_spell_damage, get_room_all
 @register_spell
 class CallLightning(Spell):
     key = "call_lightning"
-    aliases = ["clight", "lightning"]
+    aliases = ["cl"]
     name = "Call Lightning"
     school = skills.NATURE_MAGIC
     min_mastery = MasteryLevel.EXPERT

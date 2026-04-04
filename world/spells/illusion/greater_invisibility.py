@@ -24,7 +24,7 @@ from world.spells.registry import register_spell
 @register_spell
 class GreaterInvisibility(Spell):
     key = "greater_invisibility"
-    aliases = ["gi", "ginvis"]
+    aliases = ["gi"]
     name = "Greater Invisibility"
     school = skills.ILLUSION
     min_mastery = MasteryLevel.MASTER

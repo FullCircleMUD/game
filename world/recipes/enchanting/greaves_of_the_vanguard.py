@@ -8,7 +8,7 @@ RECIPE_GREAVES_OF_THE_VANGUARD = {
     "skill": skills.ENCHANTING,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {15: 2},              # 2 Arcane Dust (resource_id 15)
+    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
     "nft_ingredients": {"bronze_greaves": 1},
     "output_prototype": "greaves_of_the_vanguard",
 }

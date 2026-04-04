@@ -29,7 +29,7 @@ from world.spells.registry import register_spell
 @register_spell
 class Teleport(Spell):
     key = "teleport"
-    aliases = ["tp"]
+    aliases = []
     name = "Teleport"
     school = skills.CONJURATION
     min_mastery = MasteryLevel.SKILLED

@@ -60,7 +60,7 @@ def _required_tier(target_level):
 @register_spell
 class Identify(Spell):
     key = "identify"
-    aliases = ["id"]
+    aliases = []
     name = "Identify"
     school = skills.DIVINATION
     min_mastery = MasteryLevel.BASIC

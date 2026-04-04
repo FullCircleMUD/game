@@ -342,11 +342,23 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
             )
         self._death_cry()
 
-        # Award XP to killer (10 per mob level)
-        if killer and hasattr(killer, "at_gain_experience_points"):
-            xp = self.level * 10
-            killer.at_gain_experience_points(xp)
-            killer.msg(f"|gYou gain {xp} experience.|n")
+        # Award XP split among allies on the killer's side
+        if killer:
+            from combat.combat_utils import get_sides
+            allies, _ = get_sides(killer)
+            recipients = [
+                a for a in allies
+                if hasattr(a, "at_gain_experience_points")
+            ]
+            if not recipients:
+                # Fallback if handler already cleaned up
+                recipients = [killer] if hasattr(killer, "at_gain_experience_points") else []
+            if recipients:
+                total_xp = self.level * 10
+                xp_each = max(1, total_xp // len(recipients))
+                for ally in recipients:
+                    ally.at_gain_experience_points(xp_each)
+                    ally.msg(f"|gYou gain {xp_each} experience.|n")
 
         # Create corpse with any carried items
         if room:

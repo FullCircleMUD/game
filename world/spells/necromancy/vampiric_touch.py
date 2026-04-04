@@ -98,7 +98,7 @@ class VampiricTimerScript(DefaultScript):
 @register_spell
 class VampiricTouch(Spell):
     key = "vampiric_touch"
-    aliases = ["vt", "vamp"]
+    aliases = ["vt"]
     name = "Vampiric Touch"
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.SKILLED

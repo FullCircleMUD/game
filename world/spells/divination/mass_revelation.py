@@ -29,7 +29,7 @@ from world.spells.registry import register_spell
 @register_spell
 class MassRevelation(Spell):
     key = "mass_revelation"
-    aliases = ["mr", "reveal"]
+    aliases = ["mr"]
     name = "Mass Revelation"
     school = skills.DIVINATION
     min_mastery = MasteryLevel.EXPERT
