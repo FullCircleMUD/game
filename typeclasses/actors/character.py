@@ -887,12 +887,17 @@ class FCMCharacter(
         """
         # Fix home first — parent's at_pre_puppet accesses self.home
         # and Django raises DoesNotExist if the FK target is gone.
+        # Try Harvest Moon Inn before falling back to Limbo.
         try:
             home = self.home
-            if home is not None and not home.pk:
-                self.home = self._get_limbo()
+            home_gone = home is not None and not home.pk
         except Exception:
-            self.home = self._get_limbo()
+            home_gone = True
+
+        if home_gone or self.home is None:
+            from evennia.utils.search import search_tag
+            inn_rooms = search_tag("harvest_moon_inn", category="special_room")
+            self.home = inn_rooms[0] if inn_rooms else self._get_limbo()
 
         # Fix location — dangling FK to a deleted room
         try:
