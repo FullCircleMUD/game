@@ -149,7 +149,7 @@ _CLASS_MAPPINGS_LOOKUP = {
 
     skills.DIVINE_HEALING: {"cleric", "paladin"}, # cast, memorise, forget
     skills.DIVINE_PROTECTION: {"cleric", "paladin"}, # cast, memorise, forget
-    skills.DIVINE_JUDGEMENT: {"cleric", "paladin"}, # cast, memorise, forget
+    skills.DIVINE_JUDGEMENT: {"paladin"}, # cast, memorise, forget
     skills.DIVINE_REVELATION: {"cleric", "paladin"}, # cast, memorise, forget
     skills.DIVINE_DOMINION: {"cleric", "paladin"}, # cast, memorise, forget
     skills.TURN_UNDEAD: {"cleric", "paladin"}, # cast, memorise, forget
