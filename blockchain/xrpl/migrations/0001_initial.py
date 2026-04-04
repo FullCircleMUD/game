@@ -233,7 +233,7 @@ NFT_ITEM_TYPES = [
     {"name": "Haft Recipe", "typeclass": _RECIPE_TC, "prototype_key": "haft_recipe", "description": "A scroll showing how to shape timber into a sturdy handle for axes and maces."},
     {"name": "Iron Dagger Recipe", "typeclass": _RECIPE_TC, "prototype_key": "iron_dagger_recipe", "description": "A scroll describing how to forge a small iron dagger."},
     {"name": "Iron Shortsword Recipe", "typeclass": _RECIPE_TC, "prototype_key": "iron_shortsword_recipe", "description": "A scroll with instructions for forging an iron shortsword."},
-    {"name": "Spear Recipe", "typeclass": _RECIPE_TC, "prototype_key": "spear_recipe", "description": "A scroll explaining how to fit an iron head to a wooden shaft to make a spear."},
+    {"name": "Iron Spear Recipe", "typeclass": _RECIPE_TC, "prototype_key": "iron_spear_recipe", "description": "A scroll explaining how to fit an iron head to a wooden shaft to make a spear."},
     {"name": "Ironbound Shield Recipe", "typeclass": _RECIPE_TC, "prototype_key": "ironbound_shield_recipe", "description": "A scroll detailing how to bind a wooden shield with iron bands."},
     {"name": "Crossbow Recipe", "typeclass": _RECIPE_TC, "prototype_key": "crossbow_recipe", "description": "A scroll detailing how to fit iron fittings and a prod to a timber stock to make a crossbow."},
     {"name": "Bronze Spiked Club Recipe", "typeclass": _RECIPE_TC, "prototype_key": "bronze_spiked_club_recipe", "description": "A scroll detailing how to stud a wooden club with bronze spikes."},

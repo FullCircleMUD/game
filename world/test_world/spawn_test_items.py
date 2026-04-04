@@ -68,7 +68,7 @@ def spawn_test_items():
         "Training Shortsword Recipe",
         "Training Dagger Recipe",
         "Training Bow Recipe",
-        "Club Recipe",
+        "Wooden Club Recipe",
         "Wooden Shield Recipe",
         "Shaft Recipe",
         "Haft Recipe",
@@ -83,7 +83,7 @@ def spawn_test_items():
         "Iron Shortsword Recipe",
         "Iron Dagger Recipe",
         "Iron Hand Axe Recipe",
-        "Spear Recipe",
+        "Iron Spear Recipe",
         "Ironbound Shield Recipe",
         "Bronze Lantern Recipe",
     ])
