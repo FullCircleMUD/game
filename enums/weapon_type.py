@@ -78,7 +78,7 @@ _WEAPON_CLASSES = {
     WeaponType.HAMMER:       {"warrior", "cleric", "paladin", "barbarian"},
     WeaponType.UNARMED:      {"warrior", "thief", "cleric", "mage", "paladin", "barbarian",
                               "ranger", "druid", "ninja", "bard"},  # all classes
-    WeaponType.NANCHAKU:     {"warrior", "ninja", "barbarian"},
+    WeaponType.NANCHAKU:     {"ninja"},
     WeaponType.SLING:        {"warrior", "thief", "cleric", "mage","ranger", "druid", "bard", "paladin", "ninja"},
 
     # SPECIAL
