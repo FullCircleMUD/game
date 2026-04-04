@@ -5,11 +5,12 @@ First humanoid mobs with full equipment and combat skills. Three
 variants, all passive (fight back when attacked, don't aggro):
 
 - **MeleeGuard** — leather armor, wooden shield, bronze shortsword.
-  Skilled shortsword, skilled bash. Level 5, 65 HP.
+  Skilled shortsword, skilled bash. Level 5, 65 HP. Tier 2 (lore).
 - **RangedGuard** — leather armor, shortbow. Skilled bow, skilled
-  bash. Level 5, 65 HP.
+  bash. Level 5, 65 HP. Tier 2 (lore).
 - **GuardSergeant** — studded leather armor, bronze greatsword.
-  Expert greatsword, expert bash. Level 8, 98 HP.
+  Expert greatsword, expert bash. Level 8, 98 HP. Tier 3 (lore +
+  long-term memory).
 
 Guards follow the sergeant via MobFollowableMixin. When any guard
 is attacked, enter_combat() pulls in the entire group — all guards
@@ -26,7 +27,7 @@ Abilities composed via BashAbility + WeaponMasteryMixin.
 from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.mastery_level import MasteryLevel
-from typeclasses.actors.mob import CombatMob
+from typeclasses.actors.mob import LLMCombatMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.combat_abilities import BashAbility
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
@@ -69,8 +70,11 @@ def _set_guard_stats(mob, hp, level, initiative=1):
 
 # ── Sergeant defined first — guards reference it as squad_leader_typeclass ──
 
-class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
+class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, LLMCombatMob):
     """Guard sergeant with greatsword and studded leather armor.
+
+    Tier 3: lore-aware with long-term character memory. Remembers
+    who caused trouble, who's been helpful, and past conversations.
 
     Squad leader — guards follow this mob via MobFollowableMixin.
     Does not need MobFollowableMixin itself (it's the leader, not
@@ -78,6 +82,19 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
     """
 
     room_description = AttributeProperty("stands watch here, a bronze greatsword resting across broad shoulders.")
+
+    # ── LLM (Tier 3: lore + long-term memory) ──
+    llm_prompt_file = AttributeProperty("guard_sergeant.md")
+    llm_use_lore = AttributeProperty(True)
+    llm_use_vector_memory = AttributeProperty(True)
+    llm_speech_mode = AttributeProperty("name_match")
+    llm_personality = AttributeProperty(
+        "A grizzled veteran who has seen it all. Blunt, no-nonsense, "
+        "and deeply protective of the town. Speaks with clipped military "
+        "efficiency. Respects strength and directness, has no patience "
+        "for fools or troublemakers. Knows every face that comes through "
+        "the south gate and remembers who caused problems."
+    )
 
     default_weapon_masteries = {"greatsword": MasteryLevel.EXPERT.value}
     # Override BashAbility default mastery to EXPERT
@@ -121,8 +138,11 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Com
 
 # ── Guards — follow the sergeant via MobFollowableMixin ──
 
-class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWearslotsMixin, CombatMob):
+class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWearslotsMixin, LLMCombatMob):
     """Town guard with shortsword, shield, and leather armor.
+
+    Tier 2: lore-aware with short-term memory. Can give basic
+    directions and answer questions about the town.
 
     Follows the GuardSergeant via MobFollowableMixin. Auto-reacquires
     the sergeant on each AI idle tick if not currently following.
@@ -130,6 +150,17 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWe
     """
 
     room_description = AttributeProperty("stands guard here, hand on sword hilt.")
+
+    # ── LLM (Tier 2: lore + short-term memory) ──
+    llm_prompt_file = AttributeProperty("town_guard.md")
+    llm_use_lore = AttributeProperty(True)
+    llm_use_vector_memory = AttributeProperty(False)
+    llm_speech_mode = AttributeProperty("name_match")
+    llm_personality = AttributeProperty(
+        "A professional town guard. Dutiful, alert, and not very "
+        "talkative on duty. Can give directions and basic information "
+        "about the town but keeps it brief — there's a gate to watch."
+    )
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
     squad_leader_typeclass = GuardSergeant
 
@@ -172,14 +203,27 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWe
             self.wear(shield)
 
 
-class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWearslotsMixin, CombatMob):
+class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWearslotsMixin, LLMCombatMob):
     """Town guard with shortbow and leather armor.
+
+    Tier 2: lore-aware with short-term memory.
 
     Follows the GuardSergeant via MobFollowableMixin.
     Stationary — does not wander from post.
     """
 
     room_description = AttributeProperty("stands guard here, bow at the ready.")
+
+    # ── LLM (Tier 2: lore + short-term memory) ──
+    llm_prompt_file = AttributeProperty("town_guard.md")
+    llm_use_lore = AttributeProperty(True)
+    llm_use_vector_memory = AttributeProperty(False)
+    llm_speech_mode = AttributeProperty("name_match")
+    llm_personality = AttributeProperty(
+        "A professional town guard. Dutiful, alert, and not very "
+        "talkative on duty. Can give directions and basic information "
+        "about the town but keeps it brief — there's a gate to watch."
+    )
     default_weapon_masteries = {"bow": MasteryLevel.SKILLED.value}
     squad_leader_typeclass = GuardSergeant
 
