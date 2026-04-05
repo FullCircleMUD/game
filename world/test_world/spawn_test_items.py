@@ -152,8 +152,8 @@ def spawn_test_items():
     #woodshop = _find_room("Woodshop")
     cabin = _find_room("cabin")
     if cabin:
-        cabin.receive_gold_from_reserve(200)
-        print(f"  Added 200 gold to {cabin.key}")
+        cabin.receive_gold_from_reserve(500)
+        print(f"  Added 500 gold to {cabin.key}")
 
 
     # --- Locked chest with hides + key in the Wolves Den ---
