@@ -167,6 +167,9 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         for obj in self.contents:
             if getattr(obj, "is_light_source", False) and getattr(obj, "is_lit", False):
                 return True
+            # Light spell on a character illuminates the room for everyone
+            if hasattr(obj, "has_effect") and obj.has_effect("light_spell"):
+                return True
         return False
 
     def _looker_has_light(self, looker):

@@ -145,6 +145,13 @@ class NamedEffect(Enum):
     # No condition flag — purely a named effect checked at fall time.
     FEATHER_FALL = "feather_fall"
 
+    # APPLIED: light spell (conjuration), divine_light spell (divine revelation)
+    # CHECKED: room_base._has_light_source_in_room() — lights room for everyone
+    # DURATION: seconds-based (30 min to 4 hours, mastery-scaled).
+    # No condition flag — checked directly via has_effect in room darkness system.
+    # Shared by Light (conjuration) and Divine Light (divine revelation).
+    LIGHT_SPELL = "light_spell"
+
     # APPLIED: darkvision spell (divination), divine_sight spell (divine revelation)
     # CHECKED: has_effect("darkvision_buff") for anti-stacking
     # DURATION: seconds-based (30 min to 4 hours, mastery-scaled).
@@ -359,6 +366,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.LIGHT_SPELL: "A glowing orb of light appears, illuminating your surroundings.",
     NamedEffect.BLESSED: "You feel divinely favoured. Your strikes are truer and your resolve stronger.",
     NamedEffect.BLINDED: "Your vision dissolves into darkness!",
     NamedEffect.FEATHER_FALL: "You feel light as a feather. Falls can no longer harm you.",
@@ -393,6 +401,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.LIGHT_SPELL: "The magical light flickers and fades into darkness.",
     NamedEffect.BLESSED: "The divine favour fades.",
     NamedEffect.BLINDED: "Your vision gradually returns.",
     NamedEffect.FEATHER_FALL: "The lightness fades and gravity reasserts itself.",
@@ -427,6 +436,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.LIGHT_SPELL: "A glowing orb of light appears around {name}, illuminating the area.",
     NamedEffect.BLESSED: "{name} glows briefly with divine favour.",
     NamedEffect.BLINDED: "{name}'s eyes cloud over as darkness takes their sight!",
     NamedEffect.FEATHER_FALL: "{name} seems to become lighter on their feet.",
@@ -461,6 +471,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.LIGHT_SPELL: "The magical light around {name} flickers and fades.",
     NamedEffect.BLESSED: "The divine favour fades from {name}.",
     NamedEffect.BLINDED: "{name}'s vision clears and they can see again.",
     NamedEffect.FEATHER_FALL: "The lightness fades from {name} as gravity reasserts itself.",
@@ -508,6 +519,7 @@ _EFFECT_DURATION_TYPES = {
     # Seconds-based effects — managed by EffectTimerScript (wall-clock)
     NamedEffect.INVISIBLE: "seconds",
     NamedEffect.BLINDED: "combat_rounds",
+    NamedEffect.LIGHT_SPELL: "seconds",
     NamedEffect.BLESSED: "seconds",
     NamedEffect.FEATHER_FALL: "seconds",
     NamedEffect.DARKVISION_BUFF: "seconds",
