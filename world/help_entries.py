@@ -26,6 +26,15 @@ Each dict is on the form
 
 HELP_ENTRY_DICTS = [
     {
+        "key": "areas",
+        "aliases": ["area levels", "zones"],
+        "category": "Exploration",
+        "text": """
+            Use the |wareas|n command to see all game areas with their
+            suggested level ranges, locations, and notes.
+        """,
+    },
+    {
         "key": "evennia",
         "aliases": ["ev"],
         "category": "General",

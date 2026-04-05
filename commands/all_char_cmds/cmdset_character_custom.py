@@ -89,6 +89,7 @@ from commands.all_char_cmds.cmd_join import CmdJoin
 from commands.all_char_cmds.cmd_consider import CmdConsider
 from commands.all_char_cmds.cmd_scan import CmdScan
 from commands.all_char_cmds.cmd_diagnose import CmdDiagnose
+from commands.all_char_cmds.cmd_areas import CmdAreas
 
 # tutorial commands
 from commands.all_char_cmds.cmd_tutorial_entry import (
@@ -159,6 +160,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdConsider())
         self.add(CmdScan())
         self.add(CmdDiagnose())
+        self.add(CmdAreas())
         self.add(CmdSmite())
         self.add(CmdShield())
 
