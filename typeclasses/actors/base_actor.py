@@ -604,6 +604,18 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
                     )
                     return
 
+        # Feather Fall — float gently to the ground, no damage
+        if hasattr(self, "has_effect") and self.has_effect("feather_fall"):
+            self.room_vertical_position = 0
+            self.msg("|yYou float gently to the ground, light as a feather.|n")
+            if room:
+                room.msg_contents(
+                    f"{self.key} floats gently to the ground.",
+                    exclude=[self],
+                    from_obj=self,
+                )
+            return
+
         self.room_vertical_position = 0
         raw_damage = height * self.FALL_DAMAGE_PER_LEVEL
 

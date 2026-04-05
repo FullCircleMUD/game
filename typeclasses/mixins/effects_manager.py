@@ -765,6 +765,15 @@ class EffectsManagerMixin:
             duration=duration_seconds,
         )
 
+    def apply_blinded(self, duration_rounds, source=None, save_dc=None,
+                      save_stat="constitution", save_messages=None, messages=None):
+        """Apply BLINDED with optional save-each-round escape."""
+        return self.apply_named_effect(
+            NamedEffect.BLINDED, duration=duration_rounds, source=source,
+            save_dc=save_dc, save_stat=save_stat, save_messages=save_messages,
+            messages=messages,
+        )
+
     def apply_water_breathing_buff(self, duration_seconds):
         """Apply Water Breathing buff for N seconds."""
         return self.apply_named_effect(
