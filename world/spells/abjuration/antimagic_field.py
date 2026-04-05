@@ -70,7 +70,7 @@ class AntimagicField(Spell):
         #      a. Iterate active scripts — find spell buff scripts and potion
         #         buff scripts (PotionBuffScript, any SpellTimerScript)
         #      b. For each script: call remove_effect/cleanup, then stop script
-        #      c. Remove spell-granted conditions (SHIELDED, MAGE_ARMORED,
+        #      c. Remove spell-granted conditions (SHIELDED, ARMORED,
         #         HASTED, BLESSED, VAMPIRIC, etc.)
         #      d. Do NOT remove innate conditions (DARKVISION, racial abilities)
         #      e. Do NOT remove permanent item enchantment effects

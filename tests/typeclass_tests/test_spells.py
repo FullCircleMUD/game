@@ -1532,29 +1532,26 @@ class TestHolyInsight(EvenniaTest):
 
     def test_divine_sight_shows_alignment(self):
         """Divine Sight should show target's alignment."""
-        from enums.alignment import Alignment
         self.room1.allow_pvp = True
         self.char2.db.level = 1
-        self.char2.alignment = Alignment.CHAOTIC_EVIL
+        self.char2.alignment_score = -500  # Evil
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertIn("Alignment", result["first"])
-        self.assertIn("Chaotic Evil", result["first"])
+        self.assertIn("Evil", result["first"])
 
     def test_divine_sight_evil_detection(self):
         """Evil-aligned targets should trigger evil detection message."""
-        from enums.alignment import Alignment
         self.room1.allow_pvp = True
         self.char2.db.level = 1
-        self.char2.alignment = Alignment.NEUTRAL_EVIL
+        self.char2.alignment_score = -500  # Evil
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertIn("evil intent", result["first"].lower())
 
     def test_divine_sight_no_evil_for_good(self):
         """Good-aligned targets should NOT trigger evil detection."""
-        from enums.alignment import Alignment
         self.room1.allow_pvp = True
         self.char2.db.level = 1
-        self.char2.alignment = Alignment.LAWFUL_GOOD
+        self.char2.alignment_score = 500  # Good
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertNotIn("evil intent", result["first"].lower())
 
@@ -1939,7 +1936,7 @@ class TestEffectRegistry(EvenniaTest):
         """Seconds-based effects should have duration_type='seconds'."""
         seconds_effects = [
             NamedEffect.INVISIBLE, NamedEffect.SANCTUARY,
-            NamedEffect.MAGE_ARMORED, NamedEffect.SHADOWCLOAKED,
+            NamedEffect.ARMORED, NamedEffect.SHADOWCLOAKED,
             NamedEffect.TRUE_SIGHT,
         ]
         for ne in seconds_effects:
@@ -2057,7 +2054,7 @@ class TestConvenienceMethods(EvenniaTest):
         """apply_mage_armor should apply AC bonus."""
         original_ac = self.char1.armor_class
         self.char1.apply_mage_armor(3, 3600)
-        self.assertTrue(self.char1.has_effect("mage_armored"))
+        self.assertTrue(self.char1.has_effect("armored"))
         self.assertEqual(self.char1.armor_class, original_ac + 3)
 
     def test_apply_true_sight_without_detect_invis(self):

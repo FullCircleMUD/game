@@ -112,10 +112,10 @@ class TestMageArmor(EvenniaTest):
         self.char1.mana = 100
 
     def test_mage_armor_applies_named_effect(self):
-        """Casting should create a mage_armored named effect."""
+        """Casting should create a armored named effect."""
         success, result = self.spell.cast(self.char1)
         self.assertTrue(success)
-        self.assertTrue(self.char1.has_effect("mage_armored"))
+        self.assertTrue(self.char1.has_effect("armored"))
 
     def test_mage_armor_ac_bonus_scaling(self):
         """AC bonus should scale: +3/+3/+4/+4/+5 across tiers."""
@@ -184,9 +184,9 @@ class TestMageArmor(EvenniaTest):
     def test_mage_armor_removable(self):
         """Should be removable via remove_named_effect (dispel pattern)."""
         self.spell.cast(self.char1)
-        self.assertTrue(self.char1.has_effect("mage_armored"))
-        self.char1.remove_named_effect("mage_armored")
-        self.assertFalse(self.char1.has_effect("mage_armored"))
+        self.assertTrue(self.char1.has_effect("armored"))
+        self.char1.remove_named_effect("armored")
+        self.assertFalse(self.char1.has_effect("armored"))
 
     def test_mage_armor_scaling_table(self):
         """Verify full scaling table: (AC, hours) per tier."""

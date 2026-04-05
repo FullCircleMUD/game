@@ -58,7 +58,7 @@ class MageArmor(Spell):
 
     def _execute(self, caster, target):
         # Anti-stacking — can't recast while active
-        if caster.has_effect("mage_armored"):
+        if caster.has_effect("armored"):
             # Refund mana (base class deducts before calling _execute)
             tier = self.get_caster_tier(caster)
             caster.mana += self.mana_cost.get(tier, 0)

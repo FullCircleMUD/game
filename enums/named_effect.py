@@ -86,14 +86,13 @@ class NamedEffect(Enum):
     # No mana cost. No condition flag — AC bonus via stat_bonus effect.
     SHIELD = "shield"
 
-    # APPLIED: mage_armor.py (_execute) — manually cast self-buff
-    # CHECKED: mage_armor.py (has_effect for anti-stacking)
-    # DURATION: 1-3 hours (mastery-scaled: BASIC 1h, SKILLED 2h, EXPERT 2h,
-    #   MASTER 3h, GM 3h). Uses seconds-based timer (wall-clock).
-    # AC bonus scales: BASIC +3, SKILLED +3, EXPERT +4, MASTER +4, GM +5.
-    # Stacks with Shield for combined AC bonus (up to +11 at GM).
+    # APPLIED: mage_armor.py, divine_armor.py — manually cast self-buff
+    # CHECKED: has_effect("armored") for anti-stacking (shared by both spells)
+    # DURATION: seconds-based timer (wall-clock). Scaling varies by spell.
+    # AC bonus via stat_bonus effect. Stacks with Shield.
+    # Shared by Mage Armor (abjuration) and Divine Armor (divine protection).
     # No condition flag — AC bonus via stat_bonus effect.
-    MAGE_ARMORED = "mage_armored"
+    ARMORED = "armored"
 
     # APPLIED: shadowcloak.py (_execute) — group stealth buff
     # CHECKED: has_effect("shadowcloaked") for anti-stacking
@@ -299,7 +298,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.PRONE: "You fall to the ground, unable to move properly.",
     NamedEffect.SLOWED: "Your movements become sluggish and slow.",
     NamedEffect.SHIELD: "A shimmering barrier of magical force springs into existence around you!",
-    NamedEffect.MAGE_ARMORED: "An invisible layer of magical protection wraps around you.",
+    NamedEffect.ARMORED: "A protective aura wraps around you.",
     NamedEffect.SHADOWCLOAKED: "Shadows coil around you, muffling your presence.",
     NamedEffect.PARALYSED: "Your muscles seize up and you cannot move!",
     NamedEffect.POISONED: "You feel poison burning through your veins!",
@@ -328,7 +327,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.PRONE: "You regain your footing and stand back up.",
     NamedEffect.SLOWED: "You shake off the sluggishness and move normally again.",
     NamedEffect.SHIELD: "The shimmering barrier of force around you fades away.",
-    NamedEffect.MAGE_ARMORED: "The invisible layer of magical protection fades away.",
+    NamedEffect.ARMORED: "The protective aura around you fades away.",
     NamedEffect.SHADOWCLOAKED: "The cloak of shadows dissipates and you feel exposed once more.",
     NamedEffect.PARALYSED: "Your muscles relax and you can move again.",
     NamedEffect.POISONED: "The poison finally runs its course.",
@@ -357,7 +356,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.PRONE: "{name} falls to the ground, unable to move properly.",
     NamedEffect.SLOWED: "{name}'s movements become sluggish and slow.",
     NamedEffect.SHIELD: "A shimmering barrier of force springs up around {name}!",
-    NamedEffect.MAGE_ARMORED: "An invisible layer of magical protection wraps around {name}.",
+    NamedEffect.ARMORED: "A protective aura wraps around {name}.",
     NamedEffect.SHADOWCLOAKED: "Shadows coil around {name}, muffling their presence.",
     NamedEffect.PARALYSED: "{name}'s muscles seize up and they freeze in place!",
     NamedEffect.POISONED: "{name} looks sickly as poison burns through their veins.",
@@ -386,7 +385,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.PRONE: "{name} regains their footing and stands back up.",
     NamedEffect.SLOWED: "{name} shakes off the sluggishness and moves normally again.",
     NamedEffect.SHIELD: "The shimmering barrier around {name} fades away.",
-    NamedEffect.MAGE_ARMORED: "The invisible layer of magical protection around {name} fades away.",
+    NamedEffect.ARMORED: "The protective aura around {name} fades away.",
     NamedEffect.SHADOWCLOAKED: "The cloak of shadows around {name} dissipates.",
     NamedEffect.PARALYSED: "{name}'s muscles relax and they can move again.",
     NamedEffect.POISONED: "{name} looks relieved as the poison fades.",
@@ -446,7 +445,7 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.INVISIBLE: "seconds",
     NamedEffect.BRAVERY: "seconds",
     NamedEffect.SANCTUARY: "seconds",
-    NamedEffect.MAGE_ARMORED: "seconds",
+    NamedEffect.ARMORED: "seconds",
     NamedEffect.SHADOWCLOAKED: "seconds",
     NamedEffect.TRUE_SIGHT: "seconds",
     NamedEffect.HOLY_SIGHT: "seconds",
@@ -517,7 +516,7 @@ _ON_APPLY_CALLBACKS = {
     # Effects with no mechanical side effects beyond their core behaviour:
     # STUNNED — action denial only (no advantage for enemies)
     # SHIELD — AC bonus via effects= param
-    # MAGE_ARMORED — AC bonus via effects= param
+    # ARMORED — AC bonus via effects= param
     # INVISIBLE — condition flag set via condition= param
     # TRUE_SIGHT — condition flag set via condition= param
     # BLURRED — script-based, managed by caller

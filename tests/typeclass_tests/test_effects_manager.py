@@ -978,14 +978,14 @@ class TestRecalculateStats(EvenniaTest):
         """break_effect should trigger recalculate for stat effects."""
         base_ac = self.char1.base_armor_class
         self.char1.apply_named_effect(
-            key="mage_armored",
+            key="armored",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
             duration=300,
             duration_type="seconds",
         )
         self.assertEqual(self.char1.armor_class, base_ac + 4)
 
-        self.char1.break_effect(NamedEffect.MAGE_ARMORED)
+        self.char1.break_effect(NamedEffect.ARMORED)
         self.assertEqual(self.char1.armor_class, base_ac)
 
     # ── Idempotency ────────────────────────────────────────────
@@ -1075,7 +1075,7 @@ class TestRecalculateInteractions(EvenniaTest):
 
         self.char1.wear(helm_a)
         self.char1.apply_named_effect(
-            key="mage_armored",
+            key="armored",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
             duration=300,
             duration_type="seconds",
@@ -1100,7 +1100,7 @@ class TestRecalculateInteractions(EvenniaTest):
             duration_type="combat_rounds",
         )
         self.char1.apply_named_effect(
-            key="mage_armored",
+            key="armored",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 3}],
             duration=300,
             duration_type="seconds",
@@ -1110,10 +1110,10 @@ class TestRecalculateInteractions(EvenniaTest):
         # Remove shield — mage armor survives
         self.char1.remove_named_effect("shield")
         self.assertEqual(self.char1.armor_class, base_ac + 3)
-        self.assertTrue(self.char1.has_effect("mage_armored"))
+        self.assertTrue(self.char1.has_effect("armored"))
 
         # Remove mage armor — back to base
-        self.char1.remove_named_effect("mage_armored")
+        self.char1.remove_named_effect("armored")
         self.assertEqual(self.char1.armor_class, base_ac)
 
     # ── tick_combat_round expiry recalculates stats ───────────
@@ -1190,7 +1190,7 @@ class TestRecalculateInteractions(EvenniaTest):
         """Seconds-based effects should survive clear_combat_effects."""
         base_ac = self.char1.base_armor_class
         self.char1.apply_named_effect(
-            key="mage_armored",
+            key="armored",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
             duration=300,
             duration_type="seconds",
@@ -1207,7 +1207,7 @@ class TestRecalculateInteractions(EvenniaTest):
 
         # Combat effect gone, seconds effect survives
         self.assertFalse(self.char1.has_effect("shield"))
-        self.assertTrue(self.char1.has_effect("mage_armored"))
+        self.assertTrue(self.char1.has_effect("armored"))
         self.assertEqual(self.char1.armor_class, base_ac + 4)
 
     # ── break_effect with equipment providing same condition ──
@@ -1228,7 +1228,7 @@ class TestRecalculateInteractions(EvenniaTest):
 
         # Apply mage armor buff (+4 AC)
         self.char1.apply_named_effect(
-            key="mage_armored",
+            key="armored",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
             duration=300,
             duration_type="seconds",
@@ -1236,8 +1236,8 @@ class TestRecalculateInteractions(EvenniaTest):
         self.assertEqual(self.char1.armor_class, base_ac + 7)
 
         # Break the spell — equipment AC remains
-        self.char1.break_effect(NamedEffect.MAGE_ARMORED)
-        self.assertFalse(self.char1.has_effect("mage_armored"))
+        self.char1.break_effect(NamedEffect.ARMORED)
+        self.assertFalse(self.char1.has_effect("armored"))
         self.assertEqual(self.char1.armor_class, base_ac + 3)
 
     def test_break_invisibility_with_invis_item_equipped(self):
@@ -1533,12 +1533,12 @@ class TestClearAllEffects(EvenniaTest):
     def test_clear_all_removes_seconds_effects(self):
         """clear_all_effects should remove seconds-based effects."""
         self.char1.apply_named_effect(
-            key="mage_armored", duration=3600, duration_type="seconds",
+            key="armored", duration=3600, duration_type="seconds",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
         )
-        self.assertTrue(self.char1.has_effect("mage_armored"))
+        self.assertTrue(self.char1.has_effect("armored"))
         self.char1.clear_all_effects()
-        self.assertFalse(self.char1.has_effect("mage_armored"))
+        self.assertFalse(self.char1.has_effect("armored"))
 
     def test_clear_all_removes_permanent_effects(self):
         """clear_all_effects should remove permanent (no duration) effects."""
@@ -1559,7 +1559,7 @@ class TestClearAllEffects(EvenniaTest):
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 5}],
         )
         self.char1.apply_named_effect(
-            key="mage_armored", duration=3600, duration_type="seconds",
+            key="armored", duration=3600, duration_type="seconds",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
         )
         self.char1.apply_named_effect(
@@ -1634,7 +1634,7 @@ class TestClearAllEffects(EvenniaTest):
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
         )
         self.char1.apply_named_effect(
-            key="mage_armored", duration=3600, duration_type="seconds",
+            key="armored", duration=3600, duration_type="seconds",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 2}],
         )
         self.char1.clear_all_effects()
@@ -1651,7 +1651,7 @@ class TestClearAllEffects(EvenniaTest):
         )
         # seconds effect
         self.char1.apply_named_effect(
-            key="mage_armored", duration=3600, duration_type="seconds",
+            key="armored", duration=3600, duration_type="seconds",
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": 4}],
         )
         # permanent effect (stance)

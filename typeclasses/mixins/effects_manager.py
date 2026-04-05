@@ -746,13 +746,16 @@ class EffectsManagerMixin:
             NamedEffect.SANCTUARY, duration=duration_seconds,
         )
 
-    def apply_mage_armor(self, ac_bonus, duration_seconds):
-        """Apply Mage Armor AC buff for N seconds."""
+    def apply_armor_buff(self, ac_bonus, duration_seconds):
+        """Apply armor AC buff for N seconds (shared by Mage Armor + Divine Armor)."""
         return self.apply_named_effect(
-            NamedEffect.MAGE_ARMORED,
+            NamedEffect.ARMORED,
             effects=[{"type": "stat_bonus", "stat": "armor_class", "value": ac_bonus}],
             duration=duration_seconds,
         )
+
+    # Backward-compat alias
+    apply_mage_armor = apply_armor_buff
 
     def apply_shadowcloaked(self, stealth_bonus, duration_seconds, source=None):
         """Apply Shadowcloak stealth buff for N seconds."""
