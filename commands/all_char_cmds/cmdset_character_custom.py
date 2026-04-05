@@ -59,6 +59,8 @@ from commands.all_char_cmds.cmd_unlock import CmdUnlock
 from commands.all_char_cmds.cmd_lock import CmdLock
 from commands.all_char_cmds.cmd_search import CmdSearch
 from commands.all_char_cmds.cmd_show import CmdShow
+from commands.all_char_cmds.cmd_read import CmdRead
+from commands.all_char_cmds.cmd_recall import CmdRecall
 from commands.all_char_cmds.cmd_light import CmdLight, CmdExtinguish
 from commands.all_char_cmds.cmd_refuel import CmdRefuel
 
@@ -198,6 +200,10 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdLock())
         self.add(CmdSearch())
         self.add(CmdShow())
+
+        # library book commands
+        self.add(CmdRead())
+        self.add(CmdRecall())
 
         # light source commands
         self.add(CmdLight())
