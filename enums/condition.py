@@ -21,6 +21,8 @@ class Condition(Enum):
     #########################################################
     # Sense Restrictions
     #########################################################
+    # USED: combat_utils.py (disadvantage on attacks — future), cure_blindness.py
+    BLINDED = "blinded"  # unable to see; disadvantage on attacks
     # USED: cmd_say.py (has_condition check prevents speech)
     SILENCED = "silenced"  # unable to speak
     # USED: cmd_say.py, cmd_whisper.py, cmd_shout.py (deaf listeners hear nothing)
@@ -109,6 +111,7 @@ class Condition(Enum):
 
 _CONDITION_START_MESSAGES = {
     # Sense Restrictions
+    Condition.BLINDED: "Your vision dissolves into darkness. You cannot see!",
     Condition.SILENCED: "Your throat constricts and you find yourself unable to speak.",
     Condition.DEAF: "Your ears fill with a deadening silence.",
 
@@ -133,6 +136,7 @@ _CONDITION_START_MESSAGES = {
 
 _CONDITION_END_MESSAGES = {
     # Sense Restrictions
+    Condition.BLINDED: "Your vision gradually returns.",
     Condition.SILENCED: "Your throat relaxes and you can speak again.",
     Condition.DEAF: "Your hearing gradually returns.",
 
@@ -157,6 +161,7 @@ _CONDITION_END_MESSAGES = {
 
 _CONDITION_START_MESSAGES_THIRD_PERSON = {
     # Sense Restrictions
+    Condition.BLINDED: "{name}'s eyes cloud over as darkness takes their sight!",
     Condition.SILENCED: "{name} opens their mouth but no sound comes out.",
     Condition.DEAF: "{name} claps their hands over their ears as sound fades away.",
 
@@ -181,6 +186,7 @@ _CONDITION_START_MESSAGES_THIRD_PERSON = {
 
 _CONDITION_END_MESSAGES_THIRD_PERSON = {
     # Sense Restrictions
+    Condition.BLINDED: "{name}'s vision clears and they can see again.",
     Condition.SILENCED: "{name} clears their throat and can speak again.",
     Condition.DEAF: "{name}'s expression eases as their hearing returns.",
 

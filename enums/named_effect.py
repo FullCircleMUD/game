@@ -222,6 +222,15 @@ class NamedEffect(Enum):
     VAMPIRIC = "vampiric"
 
     #########################################################
+    # Divine Judgement
+    #########################################################
+    # APPLIED: bravery.py (_execute) — paladin self-buff
+    # CHECKED: has_effect("bravery") for anti-stacking
+    # DURATION: 5-15 minutes (mastery-scaled). Uses seconds-based timer.
+    # AC bonus + hp_max bonus via stat_bonus effects. HP clamped on expiry.
+    BRAVERY = "bravery"
+
+    #########################################################
     # Divine Protection
     #########################################################
     # APPLIED: sanctuary.py (_execute) — divine protection self-buff
@@ -310,6 +319,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.BRAVERY: "Divine courage fills you! You feel tougher and harder to hit.",
     NamedEffect.SANCTUARY: "A shimmering divine ward surrounds you, shielding you from harm.",
 }
 
@@ -338,6 +348,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.BRAVERY: "The divine courage fades and you feel your normal self again.",
     NamedEffect.SANCTUARY: "The divine sanctuary around you fades.",
 }
 
@@ -366,6 +377,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.BRAVERY: "{name} straightens with divine courage, looking tougher and more resolute.",
     NamedEffect.SANCTUARY: "A shimmering divine ward surrounds {name}.",
 }
 
@@ -394,6 +406,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.BRAVERY: "The divine courage fades from {name} and they return to normal.",
     NamedEffect.SANCTUARY: "The divine sanctuary around {name} fades.",
 }
 
@@ -431,6 +444,7 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.DEFENSIVE_STANCE: "combat_rounds",
     # Seconds-based effects — managed by EffectTimerScript (wall-clock)
     NamedEffect.INVISIBLE: "seconds",
+    NamedEffect.BRAVERY: "seconds",
     NamedEffect.SANCTUARY: "seconds",
     NamedEffect.MAGE_ARMORED: "seconds",
     NamedEffect.SHADOWCLOAKED: "seconds",
@@ -536,8 +550,8 @@ def get_on_apply_callback(key):
 # Do NOT implement an effect that is still in this unsorted list.
 #
 # ---- Sense Restrictions ----
-# BLIND          — unable to see; miss attacks, fail sight-based checks
-# DEAF           — unable to hear; miss auditory cues, fail listen checks
+# BLIND          — CLASSIFIED → Condition.BLINDED (condition.py)
+# DEAF           — CLASSIFIED → Condition.DEAF (condition.py)
 #
 # ---- Movement / Action Restrictions ----
 # PETRIFIED      — turned to stone, total incapacitation
