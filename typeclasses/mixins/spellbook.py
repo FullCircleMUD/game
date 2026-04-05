@@ -240,8 +240,8 @@ class SpellbookMixin:
         Compute total memory slots.
 
         Sums across all caster classes:
-            Mage:   floor(mage_level / 4) + get_attribute_bonus(intelligence)
-            Cleric: floor(cleric_level / 4) + get_attribute_bonus(wisdom)
+            Mage:   ceil(mage_level / 4) + get_attribute_bonus(intelligence)
+            Cleric: ceil(cleric_level / 4) + get_attribute_bonus(wisdom)
 
         Plus equipment bonus (extra_memory_slots).
         Always returns at least 1.
@@ -253,7 +253,7 @@ class SpellbookMixin:
         mage_level = classes.get("mage", {}).get("level", 0)
         if mage_level > 0:
             total += (
-                math.floor(mage_level / 4)
+                math.ceil(mage_level / 4)
                 + self.get_attribute_bonus(self.intelligence)
             )
 
@@ -261,7 +261,7 @@ class SpellbookMixin:
         cleric_level = classes.get("cleric", {}).get("level", 0)
         if cleric_level > 0:
             total += (
-                math.floor(cleric_level / 4)
+                math.ceil(cleric_level / 4)
                 + self.get_attribute_bonus(self.wisdom)
             )
 
