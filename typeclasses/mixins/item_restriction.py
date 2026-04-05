@@ -139,17 +139,19 @@ class ItemRestrictionMixin:
                 )
 
         # ── Alignment checks ──
-        required_alignments = [str(a) for a in (self.required_alignments or [])]
+        # Normalize to .value strings for comparison (enum or string input)
+        char_align = character.alignment.value if hasattr(character.alignment, "value") else str(character.alignment)
+        required_alignments = [a.value if hasattr(a, "value") else str(a) for a in (self.required_alignments or [])]
         if required_alignments:
-            if character.alignment not in required_alignments:
+            if char_align not in required_alignments:
                 return (
                     False,
                     f"Your alignment prevents you from using {item_name}.",
                 )
 
-        excluded_alignments = [str(a) for a in (self.excluded_alignments or [])]
+        excluded_alignments = [a.value if hasattr(a, "value") else str(a) for a in (self.excluded_alignments or [])]
         if excluded_alignments:
-            if character.alignment in excluded_alignments:
+            if char_align in excluded_alignments:
                 return (
                     False,
                     f"Your alignment prevents you from using {item_name}.",

@@ -89,6 +89,11 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     # Scale: 0 (sluggish) to 4 (lightning fast).
     initiative_speed = AttributeProperty(0)
 
+    # ── Alignment influence on kill ──
+    # Positive = good shift for killer, negative = evil shift.
+    # Override in subclasses: undead +20, demons +30, guards -30, etc.
+    alignment_influence = AttributeProperty(0)
+
     # ── Aggro ──
     is_aggressive_to_players = AttributeProperty(False)
     aggro_hp_threshold = AttributeProperty(0.5)
@@ -359,6 +364,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
                 for ally in recipients:
                     ally.at_gain_experience_points(xp_each)
                     ally.msg(f"|gYou gain {xp_each} experience.|n")
+
+            # Apply alignment influence to all allies
+            influence = self.alignment_influence
+            if influence:
+                for ally in recipients:
+                    if hasattr(ally, "shift_alignment"):
+                        ally.shift_alignment(influence)
 
         # Create corpse with any carried items
         if room:

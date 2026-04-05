@@ -105,7 +105,7 @@ class CmdFlee(FCMCommandMixin, Command):
 
             # Stop combat before moving so weapon hooks fire in the right room
             handler.stop_combat()
-            caller.move_to(chosen.destination)
+            caller.move_to(chosen.destination, move_type="flee")
 
             # Check if remaining combatants should end combat
             for enemy in enemies:
@@ -152,4 +152,4 @@ class CmdFlee(FCMCommandMixin, Command):
                 from_obj=caller,
                 exclude=[caller],
             )
-        caller.move_to(chosen.destination)
+        caller.move_to(chosen.destination, move_type="flee")

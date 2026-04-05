@@ -36,9 +36,9 @@ class TestCmdScoreIdentity(EvenniaCommandTest):
         self.assertIn("Human", result)
 
     def test_score_shows_alignment(self):
-        """Score header should show alignment."""
+        """Score header should show alignment label."""
         result = self.call(CmdScore(), "")
-        self.assertIn("True Neutral", result)
+        self.assertIn("Neutral", result)
 
     def test_score_shows_xp(self):
         """Score header should show XP fraction."""

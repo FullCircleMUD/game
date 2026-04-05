@@ -50,7 +50,35 @@ class FCMCharacter(
     # Player-specific attributes
     #########################################################
 
-    alignment = AttributeProperty(Alignment.TRUE_NEUTRAL)  # Character's moral alignment (e.g., "Good", "Evil", "Neutral")
+    alignment_score = AttributeProperty(0)  # Dynamic alignment: -1000 (Pure Evil) to +1000 (Pure Good)
+
+    @property
+    def alignment_label(self):
+        """Display label for the current alignment score."""
+        s = self.alignment_score
+        if s >= 700:
+            return "Pure Good"
+        elif s >= 300:
+            return "Good"
+        elif s > -300:
+            return "Neutral"
+        elif s > -700:
+            return "Evil"
+        return "Pure Evil"
+
+    @property
+    def alignment(self):
+        """Backward-compatible Alignment enum derived from score."""
+        s = self.alignment_score
+        if s >= 300:
+            return Alignment.NEUTRAL_GOOD
+        elif s > -300:
+            return Alignment.TRUE_NEUTRAL
+        return Alignment.NEUTRAL_EVIL
+
+    def shift_alignment(self, amount):
+        """Shift alignment score. Positive = toward good, negative = toward evil."""
+        self.alignment_score = max(-1000, min(1000, self.alignment_score + amount))
 
     race = AttributeProperty(Race.HUMAN)
 
@@ -128,6 +156,9 @@ class FCMCharacter(
         pos = getattr(self, "position", "standing")
         if pos not in ("standing", "fighting"):
             self.msg("You need to stand up first!")
+            return False
+        if self.scripts.get("combat_handler") and move_type != "flee":
+            self.msg("You can't leave while in combat! Use |wflee|n to escape.")
             return False
         if self.location and hasattr(self.location, "check_pre_leave"):
             allowed, msg = self.location.check_pre_leave(self, destination)

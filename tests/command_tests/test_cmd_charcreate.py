@@ -269,7 +269,7 @@ class TestClassNode(BaseEvenniaTest):
         caller = _MockCaller({"race_key": "human"})
         result = _set_class(caller, "", class_key="warrior")
         self.assertEqual(caller.ndb._chargen["class_key"], "warrior")
-        self.assertEqual(result, "node_alignment_select")
+        self.assertEqual(result, "node_point_buy")
 
 
 # =======================================================================
@@ -482,7 +482,7 @@ class TestPointBuyNode(BaseEvenniaTest):
         caller = _MockCaller(_default_state())
         result = _reset_scores_and_back(caller, "")
         self.assertNotIn("scores", caller.ndb._chargen)
-        self.assertEqual(result, "node_alignment_select")
+        self.assertEqual(result, "node_class_select")
 
     def test_error_displays_in_node(self):
         caller = _MockCaller(_default_state())
@@ -627,7 +627,7 @@ class TestConfirmNode(BaseEvenniaTest):
         self.assertIn("Thorin", text)
         self.assertIn("Human", text)
         self.assertIn("Warrior", text)
-        self.assertIn("True Neutral", text)
+        self.assertIn("Neutral", text)
         self.assertIn("STR", text)
 
     def test_confirm_has_confirm_back_restart(self):
@@ -709,8 +709,8 @@ class TestCreateNode(BaseEvenniaTest):
         # Verify class was applied
         mock_class.at_char_first_gaining_class.assert_called_once_with(mock_char)
 
-        # Verify alignment was set
-        self.assertEqual(mock_char.alignment, Alignment.CHAOTIC_GOOD)
+        # Verify alignment starts at 0 (Neutral)
+        self.assertEqual(mock_char.alignment_score, 0)
 
         # Verify point buy scores were applied
         self.assertEqual(mock_char.base_strength, 15)

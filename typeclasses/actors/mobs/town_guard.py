@@ -81,6 +81,8 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, LLM
     a follower). Gets FollowableMixin from CombatMob.
     """
 
+    alignment_influence = AttributeProperty(-30)  # killing a guard is evil
+
     room_description = AttributeProperty("stands watch here, a bronze greatsword resting across broad shoulders.")
 
     # ── LLM (Tier 3: lore + long-term memory) ──

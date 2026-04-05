@@ -49,8 +49,17 @@ def _setup_char(char, classes=None, race=None, alignment=None,
         # Store as .value string to match can_use() str() comparison
         char.race = race.value if hasattr(race, "value") else race
     if alignment is not None:
-        # Store as .value string to match can_use() str() comparison
-        char.alignment = alignment.value if hasattr(alignment, "value") else alignment
+        # Map alignment enum to alignment_score so the derived property
+        # returns the correct good/neutral/evil bucket
+        from enums.alignment import Alignment
+        _GOOD = {Alignment.LAWFUL_GOOD, Alignment.NEUTRAL_GOOD, Alignment.CHAOTIC_GOOD}
+        _EVIL = {Alignment.LAWFUL_EVIL, Alignment.NEUTRAL_EVIL, Alignment.CHAOTIC_EVIL}
+        if alignment in _GOOD:
+            char.alignment_score = 500
+        elif alignment in _EVIL:
+            char.alignment_score = -500
+        else:
+            char.alignment_score = 0
     if total_level:
         char.total_level = total_level
     if num_remorts:
@@ -285,42 +294,42 @@ class TestAlignmentRestrictions(EvenniaTest):
         pass
 
     def test_required_alignment_match(self):
-        """Lawful good with required=[LAWFUL_GOOD] should pass."""
-        _setup_char(self.char1, alignment=Alignment.LAWFUL_GOOD)
+        """Good character with required=[NEUTRAL_GOOD] should pass."""
+        _setup_char(self.char1, alignment=Alignment.NEUTRAL_GOOD)
         item = _make_item(
             "Holy Avenger",
-            required_alignments=[Alignment.LAWFUL_GOOD.value],
+            required_alignments=[Alignment.NEUTRAL_GOOD.value],
         )
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
 
     def test_required_alignment_no_match(self):
-        """Chaotic evil with required=[LAWFUL_GOOD] should fail."""
-        _setup_char(self.char1, alignment=Alignment.CHAOTIC_EVIL)
+        """Evil character with required=[NEUTRAL_GOOD] should fail."""
+        _setup_char(self.char1, alignment=Alignment.NEUTRAL_EVIL)
         item = _make_item(
             "Holy Avenger",
-            required_alignments=[Alignment.LAWFUL_GOOD.value],
+            required_alignments=[Alignment.NEUTRAL_GOOD.value],
         )
         allowed, reason = item.can_use(self.char1)
         self.assertFalse(allowed)
         self.assertIn("alignment", reason)
 
     def test_excluded_alignment_match(self):
-        """Evil character with excluded=[CHAOTIC_EVIL] should fail."""
-        _setup_char(self.char1, alignment=Alignment.CHAOTIC_EVIL)
+        """Evil character with excluded=[NEUTRAL_EVIL] should fail."""
+        _setup_char(self.char1, alignment=Alignment.NEUTRAL_EVIL)
         item = _make_item(
             "Blessed Robe",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL.value],
+            excluded_alignments=[Alignment.NEUTRAL_EVIL.value],
         )
         allowed, _ = item.can_use(self.char1)
         self.assertFalse(allowed)
 
     def test_excluded_alignment_no_match(self):
-        """Good character with excluded=[CHAOTIC_EVIL] should pass."""
-        _setup_char(self.char1, alignment=Alignment.LAWFUL_GOOD)
+        """Good character with excluded=[NEUTRAL_EVIL] should pass."""
+        _setup_char(self.char1, alignment=Alignment.NEUTRAL_GOOD)
         item = _make_item(
             "Blessed Robe",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL.value],
+            excluded_alignments=[Alignment.NEUTRAL_EVIL.value],
         )
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)

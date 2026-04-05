@@ -96,7 +96,7 @@ class TestCharCanTakeClass(EvenniaTest):
         """Warrior has no race/alignment restrictions — should pass."""
         warrior = get_char_class("warrior")
         self.char1.race = "human"
-        self.char1.alignment = Alignment.TRUE_NEUTRAL
+        self.char1.alignment_score = 0  # Neutral
         self.char1.num_remorts = 0
         self.assertTrue(warrior.char_can_take_class(self.char1))
 
@@ -129,12 +129,12 @@ class TestCharCanTakeClass(EvenniaTest):
         restricted = CharClassBase(
             key="test_restricted",
             display_name="Test",
-            required_alignments=[Alignment.LAWFUL_GOOD],
+            required_alignments=[Alignment.NEUTRAL_GOOD],
         )
         self.char1.race = "human"
-        self.char1.alignment = Alignment.LAWFUL_GOOD
+        self.char1.alignment_score = 500  # Good → NEUTRAL_GOOD
         self.assertTrue(restricted.char_can_take_class(self.char1))
-        self.char1.alignment = Alignment.CHAOTIC_EVIL
+        self.char1.alignment_score = -500  # Evil → NEUTRAL_EVIL
         self.assertFalse(restricted.char_can_take_class(self.char1))
 
     def test_excluded_alignments_blacklist(self):
@@ -142,12 +142,12 @@ class TestCharCanTakeClass(EvenniaTest):
         restricted = CharClassBase(
             key="test_restricted",
             display_name="Test",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL],
+            excluded_alignments=[Alignment.NEUTRAL_EVIL],
         )
         self.char1.race = "human"
-        self.char1.alignment = Alignment.TRUE_NEUTRAL
+        self.char1.alignment_score = 0  # Neutral → TRUE_NEUTRAL
         self.assertTrue(restricted.char_can_take_class(self.char1))
-        self.char1.alignment = Alignment.CHAOTIC_EVIL
+        self.char1.alignment_score = -500  # Evil → NEUTRAL_EVIL
         self.assertFalse(restricted.char_can_take_class(self.char1))
 
     def test_insufficient_remorts(self):

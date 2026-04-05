@@ -4,7 +4,6 @@ Character creation EvMenu wizard.
 Nodes:
     node_race_select     → pick a race
     node_class_select    → pick a class (filtered by race)
-    node_alignment_select → pick alignment (filtered by race + class)
     node_point_buy       → allocate ability scores via point buy
     node_weapon_skills   → choose starting weapon proficiencies
     node_class_skills    → choose starting class skills
@@ -338,7 +337,10 @@ def _handle_class_info(caller, raw_input, **kwargs):
 def _set_class(caller, raw_input, **kwargs):
     state = _get_chargen(caller)
     state["class_key"] = kwargs["class_key"]
-    return "node_alignment_select"
+    if "scores" not in state:
+        state["scores"] = {ab: 8 for ab in ABILITIES}
+        state["points_remaining"] = state.get("point_buy", 27)
+    return "node_point_buy"
 
 
 # =======================================================================
@@ -497,7 +499,7 @@ def node_point_buy(caller, raw_input, **kwargs):
     # Back option
     options.append({
         "key": ("b", "back"),
-        "desc": "Back to alignment selection",
+        "desc": "Back to class selection",
         "goto": (_reset_scores_and_back, {}),
     })
 
@@ -540,7 +542,7 @@ def _reset_scores_and_back(caller, raw_input, **kwargs):
         del state["scores"]
     if "points_remaining" in state:
         del state["points_remaining"]
-    return "node_alignment_select"
+    return "node_class_select"
 
 
 def _handle_point_buy_input(caller, raw_input, **kwargs):
@@ -1464,7 +1466,6 @@ def node_confirm(caller, raw_input, **kwargs):
     state = _get_chargen(caller)
     race = get_race(state["race_key"])
     charclass = get_char_class(state["class_key"])
-    alignment = state["alignment"]
     scores = state["scores"]
     name = state["char_name"]
     racial_bonuses = race.ability_score_bonuses
@@ -1482,7 +1483,7 @@ def node_confirm(caller, raw_input, **kwargs):
     text += f"  Name:      |w{name}|n\n"
     text += f"  Race:      |w{race.display_name}|n\n"
     text += f"  Class:     |w{charclass.display_name}|n\n"
-    text += f"  Alignment: |w{ALIGNMENT_NAMES[alignment]}|n\n\n"
+    text += f"  Alignment: |wNeutral|n (shifts with your actions)\n\n"
 
     text += "  Ability Scores:\n"
     for ab in ABILITIES:
@@ -1652,7 +1653,6 @@ def _apply_chargen_to_character(char, state):
     """Apply all chargen selections to a character (shared by create and remort)."""
     race_key = state["race_key"]
     class_key = state["class_key"]
-    alignment = state["alignment"]
     scores = state["scores"]
 
     # 1. Apply point buy ability scores (BEFORE race, which adds bonuses on top)
@@ -1665,8 +1665,8 @@ def _apply_chargen_to_character(char, state):
     race = get_race(race_key)
     race.at_taking_race(char)
 
-    # 3. Set alignment
-    char.alignment = alignment
+    # 3. Alignment — starts at 0 (Neutral), shifts dynamically via gameplay
+    char.alignment_score = 0
 
     # 4. Apply class (adds HP/mana/move on top of racial base, grants skill
     #    points, adds class cmdset, initializes db.classes entry)
