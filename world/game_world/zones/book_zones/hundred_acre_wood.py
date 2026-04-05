@@ -16,6 +16,7 @@ from evennia import create_object
 
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
+from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 
@@ -235,14 +236,30 @@ def build_hundred_acre_wood():
     )
 
     rooms["r3c3"] = create_object(
-        RoomBase,
+        RoomHarvesting,
         key="100 Acre Wood",
         attributes=[
             ("desc",
              "You are standing inside the Hundred Acre Wood. You can hear "
              "birds chirping and little animals scurrying. This is about "
              "the center of the woods. The hollow log is south and you "
-             "can see six pine trees to the north."),
+             "can see six pine trees to the north. Among the oaks and "
+             "beeches, several rare ironbark trees grow here — their "
+             "dark, metallic-sheened bark is unmistakable."),
+            ("resource_id", 19),           # Ironbark
+            ("resource_count", 0),         # spawn script sets amount
+            ("abundance_threshold", 3),
+            ("harvest_height", 0),
+            ("harvest_command", "strip"),
+            ("desc_abundant",
+             "The ironbark trees here have thick, dark bark ready to "
+             "be stripped. There is plenty to harvest."),
+            ("desc_scarce",
+             "Most of the ironbark has been stripped recently. A few "
+             "patches of bark are starting to regrow."),
+            ("desc_depleted",
+             "The ironbark trees have been stripped bare. The pale wood "
+             "beneath needs time to regrow its tough outer bark."),
         ],
     )
 
