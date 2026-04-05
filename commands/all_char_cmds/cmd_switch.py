@@ -34,6 +34,7 @@ class CmdSwitch(FCMCommandMixin, Command):
     key = "pull"
     aliases = ("push", "turn", "flip")
     locks = "cmd:all()"
+    arg_regex = r"\s|$"
     help_category = "General"
 
     def parse(self):
