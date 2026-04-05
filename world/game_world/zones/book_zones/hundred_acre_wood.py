@@ -731,7 +731,31 @@ def build_hundred_acre_wood():
             mob = spawn_mob(typeclass, key="a Woozle", location=rooms["r1c2"])
             mob.db.desc = _woozle_desc
 
-    print("  Spawned 6 Jagulars and 6 Woozles.")
+    # Bee Swarms — 3 at height 1 in the Bee Tree (r5c4)
+    for _ in range(3):
+        mob = spawn_mob(
+            "typeclasses.actors.mobs.bee_swarm.BeeSwarm",
+            key="a swarm of bees",
+            location=rooms["r5c4"],
+        )
+        mob.db.desc = (
+            "A furious cloud of bees swirling around the branches. "
+            "They do not appreciate visitors."
+        )
+
+    # Owls — 2 at height 1 outside Owl's House (r2c5)
+    for _ in range(2):
+        mob = spawn_mob(
+            "typeclasses.actors.mobs.owl_bird.OwlBird",
+            key="an owl",
+            location=rooms["r2c5"],
+        )
+        mob.db.desc = (
+            "A plump brown owl perched on a branch, watching you with "
+            "large, solemn eyes. It looks mildly disapproving."
+        )
+
+    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls.")
 
     # ==================================================================
     #  LIBRARY BOOK
