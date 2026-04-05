@@ -50,6 +50,8 @@ ACTIVE_ZONES = [
     "guildmere_island",  # MASTER sea — scaffold
     "atlantis",          # MASTER dive (from Guildmere Island) — scaffold
     "vaathari",          # GRANDMASTER sea — scaffold
+    # ── Book zones (accessed via library, not overland) ──
+    "book_hundred_acre_wood",
 ]
 
 
@@ -160,6 +162,10 @@ def deploy_world(one_way_limbo=False):
     vaathari = build_vaathari()
     # from world.game_world.zones.vaathari.soft_deploy import build_zone as build_vaathari
     # vaathari = build_vaathari()
+
+    # ── Book zones (accessed via library books, no gateway wiring) ─────
+    from world.game_world.zones.book_zones.hundred_acre_wood import build_hundred_acre_wood
+    build_hundred_acre_wood()
 
     # ── Cross-zone gateway destinations ────────────────────────────────
     # Each RoomGateway gets a destinations list with travel conditions.
