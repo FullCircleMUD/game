@@ -22,9 +22,9 @@ class OwlBird(FlyingMixin, CombatMob):
     preferred_height = AttributeProperty(1)
 
     # ── Stats ──
-    hp = AttributeProperty(6)
-    base_hp_max = AttributeProperty(6)
-    hp_max = AttributeProperty(6)
+    hp = AttributeProperty(15)
+    base_hp_max = AttributeProperty(15)
+    hp_max = AttributeProperty(15)
     base_strength = AttributeProperty(4)
     strength = AttributeProperty(4)
     base_dexterity = AttributeProperty(14)
