@@ -1,3 +1,4 @@
+from world.spells.abjuration.feather_fall import *  # noqa: F401,F403
 from world.spells.abjuration.shield import *  # noqa: F401,F403
 from world.spells.abjuration.mage_armor import *  # noqa: F401,F403
 from world.spells.abjuration.resist_elements import *  # noqa: F401,F403

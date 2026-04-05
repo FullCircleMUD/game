@@ -1,5 +1,5 @@
 """
-Restore Vigour — divine_healing spell, available from BASIC mastery.
+Vigorise — divine_healing spell, available from BASIC mastery.
 
 Restores movement points to a target (self or ally). Generous scaling:
     (tier + 4)d6 + wisdom modifier
@@ -15,10 +15,10 @@ from world.spells.registry import register_spell
 
 
 @register_spell
-class RestoreVigour(Spell):
-    key = "restore_vigour"
-    aliases = ["rv"]
-    name = "Restore Vigour"
+class Vigorise(Spell):
+    key = "vigorise"
+    aliases = ["vigorize", "vig"]
+    name = "Vigorise"
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 12, 4: 16, 5: 20}
@@ -63,5 +63,5 @@ class RestoreVigour(Spell):
         return (True, {
             "first": f"You restore |g{actual}|n movement to {target.key}.",
             "second": f"{caster.key} restores |g{actual}|n movement to you.",
-            "third": f"{caster.key} restores {target.key}'s vigour with divine energy.",
+            "third": f"{caster.key} vigorises {target.key} with divine energy.",
         })
