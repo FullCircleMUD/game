@@ -57,6 +57,12 @@ class RaceBase:
     # e.g. [WeaponType.BATTLEAXE, WeaponType.HAMMER]
     racial_weapon_proficiencies: List[WeaponType] = field(default_factory=list)
 
+    # Racial skill advantages — permanent advantage on specific skill checks.
+    # Each entry is a string key matching a skill check category.
+    # e.g. frozenset({"stealth"}) gives advantage on hide, stash, and
+    # movement stealth rechecks. Does not consume one-shot advantage flags.
+    racial_skill_advantages: frozenset = field(default_factory=frozenset)
+
     # Minimum remorts required to select this race
     min_remort: int = 0
 

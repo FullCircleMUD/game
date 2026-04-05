@@ -102,10 +102,16 @@ class CmdHide(FCMCommandMixin, Command):
             caller.add_condition(Condition.HIDDEN)
             return
 
-        # Stealth roll
+        # Stealth roll — racial advantage (e.g. halfling) is permanent
         from utils.dice_roller import dice
         stealth_bonus = caller.effective_stealth_bonus
         has_adv = getattr(caller.db, "non_combat_advantage", False)
+        race = getattr(caller, "race", None)
+        if race:
+            from typeclasses.actors.races import get_race
+            race_data = get_race(race)
+            if race_data and "stealth" in getattr(race_data, "racial_skill_advantages", frozenset()):
+                has_adv = True
         has_dis = getattr(caller.db, "non_combat_disadvantage", False)
         roll = dice.roll_with_advantage_or_disadvantage(advantage=has_adv, disadvantage=has_dis)
         caller.db.non_combat_advantage = False

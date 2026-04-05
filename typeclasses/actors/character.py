@@ -250,6 +250,12 @@ class FCMCharacter(
 
         from utils.dice_roller import dice
         has_adv = getattr(self.db, "non_combat_advantage", False)
+        race = getattr(self, "race", None)
+        if race:
+            from typeclasses.actors.races import get_race
+            race_data = get_race(race)
+            if race_data and "stealth" in getattr(race_data, "racial_skill_advantages", frozenset()):
+                has_adv = True
         has_dis = getattr(self.db, "non_combat_disadvantage", False)
         roll = dice.roll_with_advantage_or_disadvantage(advantage=has_adv, disadvantage=has_dis)
         self.db.non_combat_advantage = False

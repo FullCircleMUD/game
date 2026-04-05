@@ -10,7 +10,8 @@ HALFLING = RaceBase(
         "Halflings are small, nimble folk with a natural talent for stealth "
         "and an uncanny knack for avoiding danger. What they lack in stature "
         "they make up for with quick reflexes and an irrepressible cheerfulness "
-        "that makes them welcome companions on any adventure."
+        "that makes them welcome companions on any adventure. Their small size "
+        "and quiet nature grants them permanent advantage on stealth checks."
     ),
     size=ActorSize.SMALL,
     base_hp=8,
@@ -19,5 +20,5 @@ HALFLING = RaceBase(
     ability_score_bonuses={Ability.DEX: 2, Ability.STR: -1},
     racial_languages=["halfling"],
     racial_weapon_proficiencies=[WeaponType.SLING],
-    min_remort=1,
+    racial_skill_advantages=frozenset({"stealth"}),
 )
