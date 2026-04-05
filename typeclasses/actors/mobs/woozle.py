@@ -29,7 +29,7 @@ class Woozle(CombatMob):
     constitution = AttributeProperty(12)
     base_armor_class = AttributeProperty(14)
     armor_class = AttributeProperty(14)
-    level = AttributeProperty(5)
+    level = AttributeProperty(4)
 
     # ── Combat ──
     initiative_speed = AttributeProperty(3)

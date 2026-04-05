@@ -28,7 +28,7 @@ class Jagular(CombatMob):
     constitution = AttributeProperty(14)
     base_armor_class = AttributeProperty(13)
     armor_class = AttributeProperty(13)
-    level = AttributeProperty(5)
+    level = AttributeProperty(4)
 
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
