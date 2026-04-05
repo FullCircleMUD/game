@@ -8,7 +8,9 @@ standardised syntax across all item commands.
 Usage:
     drop <obj>                    — drop an object (NFT)
     drop <amount> <fungible>      — drop gold or a resource
+    drop <amount>.<fungible>      — dot syntax (e.g. drop 5.wheat)
     drop all <fungible>           — drop all of a fungible
+    drop all.<fungible>           — dot syntax (e.g. drop all.gold)
     drop all                      — drop everything (with confirmation)
     drop #<id>                    — drop an NFT by token ID
 """
@@ -32,10 +34,10 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
 
     Usage:
         drop <obj>
-        drop <amount> gold
-        drop <amount> <resource>
-        drop all gold
-        drop all <resource>
+        drop <amount> gold             drop 5.gold
+        drop <amount> <resource>       drop 5.wheat
+        drop all gold                  drop all.gold
+        drop all <resource>            drop all.wheat
         drop all
         drop #<id>
 
@@ -65,6 +67,9 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
 
         if self.number > 0 and parsed.type in ("gold", "resource"):
             parsed = parsed._replace(amount=self.number)
+
+        if parsed.type == "item" and parsed.amount is not None:
+            self.number = parsed.amount
 
         # ---------------------------------------------------------- #
         #  Dispatch

@@ -8,12 +8,13 @@ standardised syntax across all item commands.
 Usage:
     get <obj>                       — pick up an object (NFT)
     get <amount> <fungible>         — pick up gold or a resource
+    get <amount>.<fungible>         — dot syntax (e.g. get 5.wheat)
     get all <fungible>              — pick up all of a fungible
+    get all.<fungible>              — dot syntax (e.g. get all.gold)
     get all                         — pick up everything in the room
     get #<id>                       — pick up an NFT by token ID
     get <obj> from <container>      — take from container (shorthand: f)
-    get <amount> gold from <container>
-    get <amount> <resource> from <container>
+    get <amount>.<fungible> from <container>
     get all from <container>        — take everything from container
 
 Container syntax requires 'from' (or shorthand 'f'):
@@ -53,15 +54,13 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     Usage:
         get <obj>
-        get <amount> gold
-        get <amount> <resource>
-        get all gold
-        get all <resource>
+        get <amount> gold              get 5.gold
+        get <amount> <resource>        get 5.wheat
+        get all gold                   get all.gold
+        get all <resource>             get all.wheat
         get all
         get #<id>
         get <obj> from <container>
-        get <amount> gold from <container>
-        get <amount> <resource> from <container>
         get all from <container>
 
     Pick up an object, gold, or resources from your location
@@ -122,6 +121,10 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
         # override the default amount with the parsed number.
         if self.number > 0 and parsed.type in ("gold", "resource"):
             parsed = parsed._replace(amount=self.number)
+
+        # Dot syntax on items (e.g. "5.sword") — pass amount to stacked search
+        if parsed.type == "item" and parsed.amount is not None:
+            self.number = parsed.amount
 
         # ---------------------------------------------------------- #
         #  Dispatch based on parsed type

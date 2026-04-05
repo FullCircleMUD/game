@@ -1,15 +1,20 @@
 """
 Shared item argument parser for all item-related commands.
 
-Standardises on amount-first syntax everywhere:
+Supports both space-delimited and dot syntax:
     #7              → NFT by token ID
     50 gold         → 50 gold
+    50.gold         → 50 gold (dot syntax)
     all gold        → all gold
+    all.gold        → all gold (dot syntax)
     all wheat       → all wheat (resource)
+    all.wheat       → all wheat (dot syntax)
     gold            → 1 gold (default amount)
     wheat           → 1 wheat (default amount)
     all             → everything
     sword           → item by name (for caller.search())
+    5.sword         → 5th sword (dot syntax for items)
+    all.sword       → all swords (dot syntax for items)
     iron longsword  → item by name
 
 Used by: get, drop, give, deposit, withdraw, wear, wield, hold, remove.
@@ -81,7 +86,48 @@ def parse_item_args(args):
             search_term=None,
         )
 
+    # --- Dot syntax: "5.bread", "all.wheat", "all.sword" ---
+    # Check first word only — rest may be container ("5.bread bag")
     words = args.split()
+    first = words[0]
+    if "." in first and not first.startswith(".") and not first.endswith("."):
+        prefix, dot_target = first.split(".", 1)
+        remainder_words = words[1:]  # anything after (container, target, etc.)
+
+        if prefix.lower() == "all":
+            dot_amount = None  # None = all
+        elif prefix.isdigit():
+            dot_amount = int(prefix)
+        else:
+            dot_amount = None  # not a valid dot prefix, skip to normal parsing
+            prefix = None
+
+        if prefix is not None:
+            # Rebuild remaining args without the dot-syntax token
+            remaining = " ".join(remainder_words) if remainder_words else ""
+
+            match = _match_fungible(dot_target)
+            if match:
+                ftype, rid, info = match
+                return ParsedItem(
+                    type=ftype,
+                    amount=dot_amount,
+                    resource_id=rid,
+                    resource_info=info,
+                    token_id=None,
+                    search_term=remaining or None,
+                )
+            # Dot syntax for items: "5.sword" or "all.corpse"
+            # Rejoin target + remaining for search
+            search = dot_target + (" " + remaining if remaining else "")
+            return ParsedItem(
+                type="item",
+                amount=dot_amount,
+                resource_id=None,
+                resource_info=None,
+                token_id=None,
+                search_term=search,
+            )
 
     # --- "all" prefix ---
     if words[0].lower() == "all":

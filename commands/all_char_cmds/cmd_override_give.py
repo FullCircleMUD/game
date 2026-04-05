@@ -8,13 +8,15 @@ standardised syntax across all item commands.
 Usage:
     give <obj> to <target>              — give an object (NFT)
     give <amount> <fungible> to <target> — give gold or a resource
+    give <amount>.<fungible> to <target> — dot syntax (e.g. give 5.gold to bob)
     give all <fungible> to <target>     — give all of a fungible
+    give all.<fungible> to <target>     — dot syntax (e.g. give all.wheat to bob)
     give all to <target>                — give everything (with confirmation)
     give #<id> to <target>              — give an NFT by token ID
 
 Also supports = instead of "to":
     give <obj> = <target>
-    give 50 gold = dude
+    give 50.gold = dude
 """
 
 from django.conf import settings
@@ -99,6 +101,9 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
 
         if self.number > 0 and parsed.type in ("gold", "resource"):
             parsed = parsed._replace(amount=self.number)
+
+        if parsed.type == "item" and parsed.amount is not None:
+            self.number = parsed.amount
 
         # ---------------------------------------------------------- #
         #  Dispatch
