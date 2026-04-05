@@ -839,7 +839,7 @@ def build_millholm_farms(town_rooms):
              "sheen. It has grown completely out of control here, "
              "strangling the fence posts and pulling down what remains "
              "of the boundary wall."),
-            ("resource_id", 20),           # Vipervine
+            ("resource_id", 18),           # Vipervine
             ("resource_count", 0),         # spawn script sets amount
             ("abundance_threshold", 3),
             ("harvest_height", 0),
