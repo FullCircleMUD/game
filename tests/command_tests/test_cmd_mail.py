@@ -26,6 +26,7 @@ class TestMailSend(EvenniaCommandTest):
 
     def test_send_mail(self):
         """Can send mail to another character."""
+        self.char1.db.gold = 10
         self.call(CmdMail(), f"{self.char2.key}=Hello/This is a test", "Mail sent")
         mail = list(
             Msg.objects.get_by_tag(category="mail")
@@ -45,6 +46,7 @@ class TestMailSend(EvenniaCommandTest):
 
     def test_sent_mail_tagged_new(self):
         """Newly sent mail is tagged as 'new'."""
+        self.char1.db.gold = 10
         self.call(CmdMail(), f"{self.char2.key}=Test/Body", caller=self.char1)
         mail = Msg.objects.get_by_tag(category="mail").filter(
             db_receivers_objects=self.char2
@@ -118,6 +120,7 @@ class TestMailReplyDelete(EvenniaCommandTest):
 
     def test_reply(self):
         """Can reply to a received message."""
+        self.char1.db.gold = 10
         self._send(self.char2, self.char1, "Original", "Original body")
         self.call(CmdMail(), "reply 1=Thanks for the message", "Reply sent", caller=self.char1)
         # Check char2 received the reply

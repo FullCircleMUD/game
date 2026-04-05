@@ -20,6 +20,7 @@ from evennia.utils import create, evtable
 from evennia.objects.models import ObjectDB
 
 _WIDTH = 78
+STAMP_COST = 1  # gold per message sent
 
 
 class CmdMail(FCMCommandMixin, Command):
@@ -192,6 +193,12 @@ class CmdMail(FCMCommandMixin, Command):
             caller.msg("You must provide a message body. Usage: mail <char>=<subject>/<body>")
             return
 
+        # Stamp fee
+        if caller.get_gold() < STAMP_COST:
+            caller.msg("You can't afford the stamp. Postage costs 1 gold.")
+            return
+        caller._remove_gold(STAMP_COST)
+
         # Create message
         new_msg = create.create_message(
             caller, body, receivers=target, header=subject,
@@ -239,6 +246,12 @@ class CmdMail(FCMCommandMixin, Command):
         if not body:
             caller.msg("You must provide a reply message.")
             return
+
+        # Stamp fee
+        if caller.get_gold() < STAMP_COST:
+            caller.msg("You can't afford the stamp. Postage costs 1 gold.")
+            return
+        caller._remove_gold(STAMP_COST)
 
         new_msg = create.create_message(
             caller, body, receivers=target, header=subject,
