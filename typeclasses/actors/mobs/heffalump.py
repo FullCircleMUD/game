@@ -27,7 +27,7 @@ class Heffalump(AggressiveMob):
     constitution = AttributeProperty(18)
     base_armor_class = AttributeProperty(14)
     armor_class = AttributeProperty(14)
-    level = AttributeProperty(7)
+    level = AttributeProperty(6)
 
     # ── Combat ──
     initiative_speed = AttributeProperty(1)

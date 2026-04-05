@@ -772,7 +772,7 @@ def build_hundred_acre_wood():
         mob.db.desc = desc
         mob.room_description = room_desc
         mob.damage_dice = damage
-        mob.level = 6
+        mob.level = 5
         mob.base_hp_max = hp
         mob.hp_max = hp
         mob.hp = hp
