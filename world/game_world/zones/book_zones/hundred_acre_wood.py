@@ -677,7 +677,54 @@ def build_hundred_acre_wood():
         room.max_height = 0
         room.always_lit = True
 
-    print("  Tagged all rooms (zone, district, terrain).")
+    # Mob wander area — main wood rooms only (not houses, not underground)
+    main_wood_keys = [
+        "entrance",
+        "r1c1", "r1c2", "r1c3", "r1c4", "r1c5",
+        "r2c1", "r2c2", "r2c3", "r2c4", "r2c5",
+        "r3c1", "r3c2", "r3c3", "r3c4", "r3c5",
+        "r4c1", "r4c2", "r4c3", "r4c4", "r4c5",
+        "r5c1", "r5c2", "r5c3", "r5c4", "r5c5",
+        "r6c1", "r6c2", "r6c3", "r6c4", "r6c5",
+    ]
+    for key in main_wood_keys:
+        rooms[key].tags.add("hundred_acre_wood_main", category="mob_area")
+
+    print("  Tagged all rooms (zone, district, terrain, mob_area).")
+
+    # ==================================================================
+    #  MOBS
+    # ==================================================================
+
+    from evennia.utils.create import create_object as spawn_mob
+
+    # Jagulars — 2 roaming the wood
+    for i in range(2):
+        mob = spawn_mob(
+            "typeclasses.actors.mobs.jagular.Jagular",
+            key="a Jagular",
+            location=rooms["r6c5"],  # starts at Big Stones
+        )
+        mob.db.desc = (
+            "A large cat-like creature with wild eyes and sharp claws. "
+            "It moves with a predatory grace, stalking through the wood "
+            "as if everything in it belongs on its menu."
+        )
+
+    # Woozles — 3 roaming the wood
+    for i in range(3):
+        mob = spawn_mob(
+            "typeclasses.actors.mobs.woozle.Woozle",
+            key="a Woozle",
+            location=rooms["r1c2"],  # starts at Where the Woozle Wasn't
+        )
+        mob.db.desc = (
+            "A strange, shadowy creature with beady eyes and a long "
+            "snout. It tries very hard to look fierce and scary, with "
+            "mixed results."
+        )
+
+    print("  Spawned Jagulars and Woozles.")
 
     # ==================================================================
     #  LIBRARY BOOK
