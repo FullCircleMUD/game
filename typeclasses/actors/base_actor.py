@@ -111,6 +111,7 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     initiative_bonus = AttributeProperty(0) # total of ALL bonuses to add to initiative rolls
 
     total_hit_bonus = AttributeProperty(0)  # total of ALL bonuses to add to hit rolls e.g. sword +1
+    save_bonus = AttributeProperty(0)  # bonus to save-each-round rolls (Bless, etc.)
 
     total_damage_bonus = AttributeProperty(0)  # total of ALL bonuses to add to add to dam rolls e.g. sword +1
 
@@ -273,6 +274,7 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         # 3. Reset bonus stats to zero/defaults
         self.armor_class = self.base_armor_class
         self.total_hit_bonus = 0
+        self.save_bonus = 0
         self.total_damage_bonus = 0
         self.initiative_bonus = 0
         self.stealth_bonus = 0

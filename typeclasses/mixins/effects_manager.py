@@ -508,7 +508,7 @@ class EffectsManagerMixin:
                     save_stat = record.get("save_stat", "strength")
                     stat_value = getattr(self, save_stat, 10)
                     stat_bonus = self.get_attribute_bonus(stat_value)
-                    save_roll = dice.roll("1d20") + stat_bonus
+                    save_roll = dice.roll("1d20") + stat_bonus + getattr(self, "save_bonus", 0)
                     save_msgs = record.get("save_messages", {})
                     if save_roll >= save_dc:
                         # Save succeeded — break free
@@ -762,6 +762,17 @@ class EffectsManagerMixin:
         return self.apply_named_effect(
             NamedEffect.SHADOWCLOAKED, source=source,
             effects=[{"type": "stat_bonus", "stat": "stealth_bonus", "value": stealth_bonus}],
+            duration=duration_seconds,
+        )
+
+    def apply_blessed(self, hit_bonus, save_bonus, duration_seconds):
+        """Apply Bless buff for N seconds (hit + save bonus)."""
+        return self.apply_named_effect(
+            NamedEffect.BLESSED,
+            effects=[
+                {"type": "stat_bonus", "stat": "total_hit_bonus", "value": hit_bonus},
+                {"type": "stat_bonus", "stat": "save_bonus", "value": save_bonus},
+            ],
             duration=duration_seconds,
         )
 

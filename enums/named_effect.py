@@ -130,6 +130,15 @@ class NamedEffect(Enum):
     # Size-gated: HUGE+ immune.
     BLINDED = "blinded"
 
+    #########################################################
+    # Divine Protection Buffs
+    #########################################################
+    # APPLIED: bless.py (_execute) — divine protection friendly buff
+    # CHECKED: has_effect("blessed") for anti-stacking
+    # DURATION: seconds-based (1-3 min, mastery-scaled).
+    # No condition flag — hit bonus + save bonus via stat_bonus effects.
+    BLESSED = "blessed"
+
     # APPLIED: feather_fall.py (_execute) — abjuration self-buff
     # CHECKED: has_effect("feather_fall") in base_actor._check_fall()
     # DURATION: seconds-based (10 min to 4 hours, mastery-scaled).
@@ -350,6 +359,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.BLESSED: "You feel divinely favoured. Your strikes are truer and your resolve stronger.",
     NamedEffect.BLINDED: "Your vision dissolves into darkness!",
     NamedEffect.FEATHER_FALL: "You feel light as a feather. Falls can no longer harm you.",
     NamedEffect.DARKVISION_BUFF: "Your eyes adjust to the darkness. You can see without light.",
@@ -383,6 +393,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.BLESSED: "The divine favour fades.",
     NamedEffect.BLINDED: "Your vision gradually returns.",
     NamedEffect.FEATHER_FALL: "The lightness fades and gravity reasserts itself.",
     NamedEffect.DARKVISION_BUFF: "Your enhanced vision fades and the darkness closes in.",
@@ -416,6 +427,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.BLESSED: "{name} glows briefly with divine favour.",
     NamedEffect.BLINDED: "{name}'s eyes cloud over as darkness takes their sight!",
     NamedEffect.FEATHER_FALL: "{name} seems to become lighter on their feet.",
     NamedEffect.DARKVISION_BUFF: "{name}'s eyes gleam faintly as they gain the ability to see in darkness.",
@@ -449,6 +461,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.BLESSED: "The divine favour fades from {name}.",
     NamedEffect.BLINDED: "{name}'s vision clears and they can see again.",
     NamedEffect.FEATHER_FALL: "The lightness fades from {name} as gravity reasserts itself.",
     NamedEffect.DARKVISION_BUFF: "The gleam fades from {name}'s eyes as their darkvision ends.",
@@ -495,6 +508,7 @@ _EFFECT_DURATION_TYPES = {
     # Seconds-based effects — managed by EffectTimerScript (wall-clock)
     NamedEffect.INVISIBLE: "seconds",
     NamedEffect.BLINDED: "combat_rounds",
+    NamedEffect.BLESSED: "seconds",
     NamedEffect.FEATHER_FALL: "seconds",
     NamedEffect.DARKVISION_BUFF: "seconds",
     NamedEffect.WATER_BREATHING_BUFF: "seconds",
@@ -614,7 +628,7 @@ def get_on_apply_callback(key):
 # ---- Ability / Spell Effects ----
 # CHARMED        — can't attack the mob that charmed them
 # SLEEP          — put to sleep by spell, wake on damage
-# BLESSED        — extra d4 on attack rolls
+# BLESSED        — CLASSIFIED → NamedEffect.BLESSED (named_effect.py)
 # FRENZIED       — increasing damage resistances + extra damage per attack (mastery-scaled)
 # CURSED         — negative penalty on all rolls
 # ALERT          — bonus to initiative rolls
