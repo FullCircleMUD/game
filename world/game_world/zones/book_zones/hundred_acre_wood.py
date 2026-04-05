@@ -755,7 +755,60 @@ def build_hundred_acre_wood():
             "large, solemn eyes. It looks mildly disapproving."
         )
 
-    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls.")
+    # Heffalump — 1 in Pooh's Trap (aggressive, stationary)
+    mob = spawn_mob(
+        "typeclasses.actors.mobs.heffalump.Heffalump",
+        key="the Heffalump",
+        location=rooms["pooh_trap"],
+    )
+    mob.db.desc = "How can you describe something that does not exist."
+
+    # ── House NPCs (stationary, non-aggressive, atmospheric) ──
+
+    def _spawn_house_npc(key, location, desc, room_desc, hp=10, damage="1d2"):
+        """Spawn a stationary house NPC."""
+        mob = spawn_mob("typeclasses.actors.mob.CombatMob", key=key, location=location)
+        mob.db.desc = desc
+        mob.room_description = room_desc
+        mob.damage_dice = damage
+        mob.level = 1
+        mob.base_hp_max = hp
+        mob.hp_max = hp
+        mob.hp = hp
+        mob.ai.set_state("idle")  # stationary — don't wander
+        return mob
+
+    _spawn_house_npc(
+        "Rabbit", rooms["rabbit_house"],
+        "A fussy-looking rabbit with a permanent expression of mild irritation.",
+        "gives you a dirty look, you must have stepped in his garden.",
+    )
+    _spawn_house_npc(
+        "Piglet", rooms["piglet_house"],
+        "A very small animal with a nervous disposition.",
+        "is here, he sees you and says oh, D D D De De Dear.",
+        hp=4, damage="1d1",
+    )
+    _spawn_house_npc(
+        "Kanga", rooms["kanga_house"],
+        "A motherly kangaroo looking slightly worried.",
+        "stands here looking for Roo.",
+        hp=15, damage="1d3",
+    )
+    _spawn_house_npc(
+        "Christopher Robin", rooms["christopher_house"],
+        "A small boy in wellington boots and a raincoat.",
+        "is standing here.",
+    )
+
+    _spawn_house_npc(
+        "Roo", rooms["r6c2"],  # Sandy Pit
+        "A very small, very bouncy baby kangaroo.",
+        "is hiding from Kanga here.",
+        hp=4, damage="1d1",
+    )
+
+    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")
 
     # ==================================================================
     #  LIBRARY BOOK
