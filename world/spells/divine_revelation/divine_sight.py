@@ -2,7 +2,8 @@
 Divine Sight — divine revelation spell, available from BASIC mastery.
 
 Grants DARKVISION condition through divine blessing. The cleric
-equivalent of the mage's Infravision spell.
+equivalent of the mage's Darkvision spell. Shares the same effect
+slot so they cannot stack.
 
 Scaling (duration only):
     BASIC(1):   30 min,  mana 3
@@ -11,13 +12,17 @@ Scaling (duration only):
     MASTER(4):  3 hours, mana 9
     GM(5):      4 hours, mana 12
 
-Recasting refreshes duration.
+Recasting while active refunds mana.
 """
 
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
+
+
+# Duration in minutes per tier
+_DURATION_MINUTES = {1: 30, 2: 60, 3: 120, 4: 180, 5: 240}
 
 
 @register_spell
@@ -34,12 +39,39 @@ class DivineSight(Spell):
     mechanics = (
         "Grants DARKVISION — see normally in dark rooms.\n"
         "Duration: 30 min (Basic) to 4 hours (GM).\n"
-        "Recasting refreshes the duration.\n"
+        "Cannot stack with Darkvision (shared effect).\n"
         "No cooldown."
     )
 
     def _execute(self, caster, target):
-        raise NotImplementedError(
-            "Divine Sight implementation pending — needs DARKVISION condition "
-            "applied as a named effect with seconds-based timer."
-        )
+        if caster.has_effect("darkvision_buff"):
+            tier = self.get_caster_tier(caster)
+            caster.mana += self.mana_cost.get(tier, 0)
+            return (False, {
+                "first": "Your darkvision is already active.",
+                "second": None,
+                "third": None,
+            })
+
+        tier = self.get_caster_tier(caster)
+        duration_minutes = _DURATION_MINUTES.get(tier, 30)
+        duration_seconds = duration_minutes * 60
+
+        caster.apply_darkvision_buff(duration_seconds)
+
+        if duration_minutes >= 60:
+            hours = duration_minutes // 60
+            time_str = f"{hours} {'hour' if hours == 1 else 'hours'}"
+        else:
+            time_str = f"{duration_minutes} minutes"
+
+        return (True, {
+            "first": (
+                f"|WDivine light fills your eyes. You can now see "
+                f"in total darkness! ({time_str})|n"
+            ),
+            "second": None,
+            "third": (
+                f"|W{caster.key}'s eyes glow with a warm divine light.|n"
+            ),
+        })

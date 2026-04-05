@@ -118,6 +118,22 @@ class NamedEffect(Enum):
     RESIST_POISON = "resist_poison"
 
     #########################################################
+    # Sensory Buffs
+    #########################################################
+    # APPLIED: darkvision spell (divination), divine_sight spell (divine revelation)
+    # CHECKED: has_effect("darkvision_buff") for anti-stacking
+    # DURATION: seconds-based (30 min to 4 hours, mastery-scaled).
+    # Dual-system: named effect for lifecycle + Condition.DARKVISION for darkness checks.
+    # Shared by mage Darkvision and cleric Divine Sight.
+    DARKVISION_BUFF = "darkvision_buff"
+
+    # APPLIED: water_breathing spell (nature magic)
+    # CHECKED: has_effect("water_breathing_buff") for anti-stacking
+    # DURATION: seconds-based (10 min to 4 hours, mastery-scaled).
+    # Dual-system: named effect for lifecycle + Condition.WATER_BREATHING for drowning checks.
+    WATER_BREATHING_BUFF = "water_breathing_buff"
+
+    #########################################################
     # Divination / Perception
     #########################################################
     # APPLIED: true_sight.py (_execute) — divination self-buff
@@ -318,6 +334,8 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.DARKVISION_BUFF: "Your eyes adjust to the darkness. You can see without light.",
+    NamedEffect.WATER_BREATHING_BUFF: "Your lungs tingle as you gain the ability to breathe underwater.",
     NamedEffect.BRAVERY: "Divine courage fills you! You feel tougher and harder to hit.",
     NamedEffect.SANCTUARY: "A shimmering divine ward surrounds you, shielding you from harm.",
 }
@@ -347,6 +365,8 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.DARKVISION_BUFF: "Your enhanced vision fades and the darkness closes in.",
+    NamedEffect.WATER_BREATHING_BUFF: "Your lungs return to normal. You can no longer breathe underwater.",
     NamedEffect.BRAVERY: "The divine courage fades and you feel your normal self again.",
     NamedEffect.SANCTUARY: "The divine sanctuary around you fades.",
 }
@@ -376,6 +396,8 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.DARKVISION_BUFF: "{name}'s eyes gleam faintly as they gain the ability to see in darkness.",
+    NamedEffect.WATER_BREATHING_BUFF: "{name}'s breathing changes as they gain the ability to breathe underwater.",
     NamedEffect.BRAVERY: "{name} straightens with divine courage, looking tougher and more resolute.",
     NamedEffect.SANCTUARY: "A shimmering divine ward surrounds {name}.",
 }
@@ -405,6 +427,8 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.DARKVISION_BUFF: "The gleam fades from {name}'s eyes as their darkvision ends.",
+    NamedEffect.WATER_BREATHING_BUFF: "{name}'s breathing returns to normal.",
     NamedEffect.BRAVERY: "The divine courage fades from {name} and they return to normal.",
     NamedEffect.SANCTUARY: "The divine sanctuary around {name} fades.",
 }
@@ -422,6 +446,8 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
 # ================================================================== #
 
 _EFFECT_CONDITIONS = {
+    NamedEffect.DARKVISION_BUFF: Condition.DARKVISION,
+    NamedEffect.WATER_BREATHING_BUFF: Condition.WATER_BREATHING,
     NamedEffect.SLOWED: Condition.SLOWED,
     NamedEffect.PARALYSED: Condition.PARALYSED,
     NamedEffect.INVISIBLE: Condition.INVISIBLE,
@@ -443,6 +469,8 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.DEFENSIVE_STANCE: "combat_rounds",
     # Seconds-based effects — managed by EffectTimerScript (wall-clock)
     NamedEffect.INVISIBLE: "seconds",
+    NamedEffect.DARKVISION_BUFF: "seconds",
+    NamedEffect.WATER_BREATHING_BUFF: "seconds",
     NamedEffect.BRAVERY: "seconds",
     NamedEffect.SANCTUARY: "seconds",
     NamedEffect.ARMORED: "seconds",

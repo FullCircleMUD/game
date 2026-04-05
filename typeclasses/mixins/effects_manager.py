@@ -765,6 +765,22 @@ class EffectsManagerMixin:
             duration=duration_seconds,
         )
 
+    def apply_water_breathing_buff(self, duration_seconds):
+        """Apply Water Breathing buff for N seconds."""
+        return self.apply_named_effect(
+            NamedEffect.WATER_BREATHING_BUFF,
+            condition=Condition.WATER_BREATHING,
+            duration=duration_seconds,
+        )
+
+    def apply_darkvision_buff(self, duration_seconds):
+        """Apply Darkvision buff for N seconds (shared by Darkvision + Divine Sight)."""
+        return self.apply_named_effect(
+            NamedEffect.DARKVISION_BUFF,
+            condition=Condition.DARKVISION,
+            duration=duration_seconds,
+        )
+
     def apply_true_sight(self, duration_seconds, detect_invis=False):
         """Apply True Sight for N seconds. detect_invis adds DETECT_INVIS condition."""
         condition = Condition.DETECT_INVIS if detect_invis else None
