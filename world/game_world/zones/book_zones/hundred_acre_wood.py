@@ -765,16 +765,25 @@ def build_hundred_acre_wood():
 
     # ── House NPCs (stationary, non-aggressive, atmospheric) ──
 
-    def _spawn_house_npc(key, location, desc, room_desc, hp=10, damage="1d2"):
-        """Spawn a stationary house NPC."""
+    def _spawn_house_npc(key, location, desc, room_desc, hp=55, damage="2d4+1",
+                         strength=17, dexterity=15, constitution=16, ac=15):
+        """Spawn a stationary named house NPC (~25% tougher than Woozle/Jagular)."""
         mob = spawn_mob("typeclasses.actors.mob.CombatMob", key=key, location=location)
         mob.db.desc = desc
         mob.room_description = room_desc
         mob.damage_dice = damage
-        mob.level = 1
+        mob.level = 6
         mob.base_hp_max = hp
         mob.hp_max = hp
         mob.hp = hp
+        mob.base_strength = strength
+        mob.strength = strength
+        mob.base_dexterity = dexterity
+        mob.dexterity = dexterity
+        mob.base_constitution = constitution
+        mob.constitution = constitution
+        mob.base_armor_class = ac
+        mob.armor_class = ac
         mob.ai.set_state("idle")  # stationary — don't wander
         return mob
 
@@ -787,13 +796,11 @@ def build_hundred_acre_wood():
         "Piglet", rooms["piglet_house"],
         "A very small animal with a nervous disposition.",
         "is here, he sees you and says oh, D D D De De Dear.",
-        hp=4, damage="1d1",
     )
     _spawn_house_npc(
         "Kanga", rooms["kanga_house"],
         "A motherly kangaroo looking slightly worried.",
         "stands here looking for Roo.",
-        hp=15, damage="1d3",
     )
     _spawn_house_npc(
         "Christopher Robin", rooms["christopher_house"],
@@ -805,7 +812,6 @@ def build_hundred_acre_wood():
         "Roo", rooms["r6c2"],  # Sandy Pit
         "A very small, very bouncy baby kangaroo.",
         "is hiding from Kanga here.",
-        hp=4, damage="1d1",
     )
 
     print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")

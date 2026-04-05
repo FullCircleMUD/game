@@ -15,19 +15,19 @@ class Heffalump(AggressiveMob):
 
     room_description = AttributeProperty("is here doing his thing.")
 
-    # ── Stats (L5, tough — it might not exist but it hits hard) ──
-    hp = AttributeProperty(60)
-    base_hp_max = AttributeProperty(60)
-    hp_max = AttributeProperty(60)
-    base_strength = AttributeProperty(16)
-    strength = AttributeProperty(16)
+    # ── Stats (L7, 50% tougher than Woozle/Jagular) ──
+    hp = AttributeProperty(75)
+    base_hp_max = AttributeProperty(75)
+    hp_max = AttributeProperty(75)
+    base_strength = AttributeProperty(20)
+    strength = AttributeProperty(20)
     base_dexterity = AttributeProperty(10)
     dexterity = AttributeProperty(10)
-    base_constitution = AttributeProperty(16)
-    constitution = AttributeProperty(16)
-    base_armor_class = AttributeProperty(12)
-    armor_class = AttributeProperty(12)
-    level = AttributeProperty(5)
+    base_constitution = AttributeProperty(18)
+    constitution = AttributeProperty(18)
+    base_armor_class = AttributeProperty(14)
+    armor_class = AttributeProperty(14)
+    level = AttributeProperty(7)
 
     # ── Combat ──
     initiative_speed = AttributeProperty(1)
