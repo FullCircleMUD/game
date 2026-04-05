@@ -189,6 +189,10 @@ class CombatHandler(DefaultScript):
         if (self.obj.has_effect("stunned") or self.obj.has_effect("prone")
                 or self.obj.has_effect("paralysed") or self.obj.has_effect("entangled")):
             self.bonus_attack_dice = ""  # clear pending stab bonus
+        # Frightened — forced flee attempt instead of attacking
+        elif self.obj.has_effect("frightened"):
+            self.bonus_attack_dice = ""
+            self._frightened_flee()
         # Single-round skip (dodge)
         elif self.skip_next_action:
             self.skip_next_action = False
@@ -439,6 +443,60 @@ class CombatHandler(DefaultScript):
 
         self._advantage_used = {}
         self._disadvantage_used = {}
+
+    # ================================================================== #
+    #  Frightened Forced Flee
+    # ================================================================== #
+
+    def _frightened_flee(self):
+        """Attempt to flee through a random exit while frightened."""
+        import random
+        from evennia.objects.objects import DefaultExit
+
+        actor = self.obj
+        room = actor.location
+        if not room:
+            return
+
+        # Find open exits
+        exits = [
+            ex for ex in room.exits
+            if isinstance(ex, DefaultExit)
+            and not (hasattr(ex, "is_open") and not ex.is_open)
+        ]
+
+        if not exits:
+            actor.msg("|rYou cower in terror, unable to flee!|n")
+            if room:
+                room.msg_contents(
+                    f"{actor.key} cowers in terror, unable to flee!",
+                    exclude=[actor],
+                    from_obj=actor,
+                )
+            return
+
+        chosen = random.choice(exits)
+        direction = chosen.key
+
+        actor.msg(f"|rBlind with terror, you flee {direction}!|n")
+        if room:
+            room.msg_contents(
+                f"{actor.key} flees {direction} in terror!",
+                exclude=[actor],
+                from_obj=actor,
+            )
+
+        # Stop combat before moving
+        from combat.combat_utils import get_sides
+        _, enemies = get_sides(actor)
+        self.stop_combat()
+        actor.move_to(chosen.destination, move_type="flee")
+
+        # Check if remaining combatants should end combat
+        for enemy in enemies:
+            enemy_handlers = enemy.scripts.get("combat_handler")
+            if enemy_handlers:
+                enemy_handlers[0]._check_stop_combat()
 
     # ================================================================== #
     #  Combat End Detection

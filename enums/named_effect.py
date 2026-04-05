@@ -131,6 +131,16 @@ class NamedEffect(Enum):
     BLINDED = "blinded"
 
     #########################################################
+    # Necromancy Debuffs
+    #########################################################
+    # APPLIED: fear.py (_execute) — necromancy CC spell
+    # CHECKED: combat_handler.execute_next_action() — forced flee each round
+    # DURATION: 1-5 combat rounds (mastery-scaled). Save-each-round WIS to break.
+    # No condition flag — purely named effect. Forces flee or cower.
+    # Size-gated: HUGE+ immune.
+    FRIGHTENED = "frightened"
+
+    #########################################################
     # Divine Protection Buffs
     #########################################################
     # APPLIED: bless.py (_execute) — divine protection friendly buff
@@ -366,6 +376,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.FRIGHTENED: "Supernatural terror grips you! You must flee!",
     NamedEffect.LIGHT_SPELL: "A glowing orb of light appears, illuminating your surroundings.",
     NamedEffect.BLESSED: "You feel divinely favoured. Your strikes are truer and your resolve stronger.",
     NamedEffect.BLINDED: "Your vision dissolves into darkness!",
@@ -401,6 +412,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.FRIGHTENED: "The supernatural terror fades and you regain your courage.",
     NamedEffect.LIGHT_SPELL: "The magical light flickers and fades into darkness.",
     NamedEffect.BLESSED: "The divine favour fades.",
     NamedEffect.BLINDED: "Your vision gradually returns.",
@@ -436,6 +448,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.FRIGHTENED: "{name} is gripped by supernatural terror and tries to flee!",
     NamedEffect.LIGHT_SPELL: "A glowing orb of light appears around {name}, illuminating the area.",
     NamedEffect.BLESSED: "{name} glows briefly with divine favour.",
     NamedEffect.BLINDED: "{name}'s eyes cloud over as darkness takes their sight!",
@@ -471,6 +484,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.FRIGHTENED: "{name} shakes off the supernatural terror and stands firm.",
     NamedEffect.LIGHT_SPELL: "The magical light around {name} flickers and fades.",
     NamedEffect.BLESSED: "The divine favour fades from {name}.",
     NamedEffect.BLINDED: "{name}'s vision clears and they can see again.",
@@ -519,6 +533,7 @@ _EFFECT_DURATION_TYPES = {
     # Seconds-based effects — managed by EffectTimerScript (wall-clock)
     NamedEffect.INVISIBLE: "seconds",
     NamedEffect.BLINDED: "combat_rounds",
+    NamedEffect.FRIGHTENED: "combat_rounds",
     NamedEffect.LIGHT_SPELL: "seconds",
     NamedEffect.BLESSED: "seconds",
     NamedEffect.FEATHER_FALL: "seconds",

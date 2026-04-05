@@ -765,6 +765,15 @@ class EffectsManagerMixin:
             duration=duration_seconds,
         )
 
+    def apply_frightened(self, duration_rounds, source=None, save_dc=None,
+                         save_stat="wisdom", save_messages=None, messages=None):
+        """Apply FRIGHTENED with optional save-each-round escape."""
+        return self.apply_named_effect(
+            NamedEffect.FRIGHTENED, duration=duration_rounds, source=source,
+            save_dc=save_dc, save_stat=save_stat, save_messages=save_messages,
+            messages=messages,
+        )
+
     def apply_blessed(self, hit_bonus, save_bonus, duration_seconds):
         """Apply Bless buff for N seconds (hit + save bonus)."""
         return self.apply_named_effect(
