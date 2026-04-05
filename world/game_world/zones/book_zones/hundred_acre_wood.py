@@ -403,6 +403,17 @@ def build_hundred_acre_wood():
              "birds chirping and little animals scurrying. There is a "
              "large tree here, it looks like you could climb it. The "
              "sound of bees buzzing is very loud here."),
+            ("vert_descriptions", {
+                0: (
+                    "You are standing inside the Hundred Acre Wood. You "
+                    "can hear birds chirping and little animals scurrying. "
+                    "There is a large tree here, it looks like you could "
+                    "climb it. The sound of bees buzzing is very loud here."
+                ),
+                1: (
+                    "You are up in the bee tree. You hold on for dear life."
+                ),
+            }),
         ],
     )
 
