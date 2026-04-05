@@ -290,6 +290,10 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
                 continue
             if isinstance(obj, (DefaultExit, DefaultCharacter)):
                 continue
+            # Skip hidden objects the caller hasn't discovered
+            if hasattr(obj, "is_hidden_visible_to"):
+                if not obj.is_hidden_visible_to(caller):
+                    continue
             if not obj.access(caller, "get"):
                 continue
             if not obj.at_pre_get(caller):
@@ -357,6 +361,13 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
         if len(objs) == 1 and caller == objs[0]:
             self.msg("You can't get yourself.")
             return
+
+        # Block picking up hidden objects the caller hasn't discovered
+        for obj in objs:
+            if hasattr(obj, "is_hidden_visible_to"):
+                if not obj.is_hidden_visible_to(caller):
+                    self.msg(f"You don't see '{search_term}' here.")
+                    return
 
         for obj in objs:
             if not obj.access(caller, "get"):

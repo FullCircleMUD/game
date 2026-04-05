@@ -148,6 +148,9 @@ class ThiefInitiation(FCMQuest):
                             obj.is_hidden = True
                             if hasattr(obj, "discovered_by"):
                                 obj.discovered_by = set()
+                    # Reset switch fixtures (levers)
+                    if hasattr(obj, "is_activated"):
+                        obj.is_activated = False
                     # Close and re-lock doors
                     if hasattr(obj, "is_open") and hasattr(obj, "set_direction"):
                         obj.is_open = False

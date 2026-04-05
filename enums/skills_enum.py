@@ -81,7 +81,7 @@ class skills(Enum):
 
     DIVINE_HEALING      = "divine_healing"      # party healer - restore HP, cure, revive,dispel, exorcise, remove curse/undead
     DIVINE_PROTECTION   = "divine_protection"   # party buffer - wards, buffs, sanctify areas
-    DIVINE_JUDGEMENT    = "divine_judgement"    # war cleric damage dealer - smite, radiant damage, divine wrath
+    DIVINE_JUDGEMENT    = "divine_judgement"    # paladin damage dealer - smite, radiant damage, divine wrath
     DIVINE_REVELATION   = "divine_revelation"   # knows stuff (like divination) - detect, prophecy, true sight, commune
     DIVINE_DOMINION     = "divine_dominion"     # party controller - command, compel, oath/bond magic
     TURN_UNDEAD         = "turn_undead"
