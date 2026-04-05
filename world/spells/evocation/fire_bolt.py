@@ -2,7 +2,7 @@
 Fire Bolt — evocation spell, available from BASIC mastery.
 
 Hurls a single bolt of fire at a target. Unlike Magic Missile, this
-requires a hit roll (d20 + INT mod + mastery hit bonus vs target AC)
+requires a hit roll (d20 + INT mod + mastery bonus vs target AC)
 but deals higher damage per tier.
 
 Scaling (single bolt, must hit):
@@ -12,17 +12,19 @@ Scaling (single bolt, must hit):
     MASTER(4):  4d8 fire,  mana 9
     GM(5):      5d8 fire,  mana 12
 
-Hit roll: d20 + INT modifier + mastery hit bonus (same table as
-weapon mastery). Can miss, can crit. Fire damage type — subject
-to fire resistance/vulnerability.
-
+Hit roll: d20 + INT modifier + mastery bonus vs target AC.
+Can miss, can crit (nat 20 doubles damage dice).
+Fire damage type — subject to fire resistance/vulnerability.
 No cooldown.
 """
 
+from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.dice_roller import dice
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
+from world.spells.spell_utils import apply_spell_damage
 
 
 @register_spell
@@ -39,15 +41,63 @@ class FireBolt(Spell):
     mechanics = (
         "Single bolt — requires hit roll (d20 + INT mod + mastery bonus vs AC).\n"
         "Damage: 1d8 (Basic) to 5d8 (GM) fire.\n"
-        "Can miss. Can crit (double damage dice).\n"
+        "Can miss. Nat 20 crits (double damage dice).\n"
         "Fire damage — subject to resistance/vulnerability.\n"
         "No cooldown."
     )
 
     def _execute(self, caster, target):
-        raise NotImplementedError(
-            "Fire Bolt implementation pending — needs hit roll using INT "
-            "modifier + evocation mastery hit bonus vs target AC, "
-            "(tier)d8 fire damage on hit, crit on nat 20, fire damage "
-            "type through take_damage() pipeline."
+        tier = self.get_caster_tier(caster)
+        mastery_bonus = MasteryLevel(tier).bonus
+        int_mod = caster.get_attribute_bonus(caster.intelligence)
+
+        # Hit roll
+        d20 = dice.roll("1d20")
+        is_crit = d20 == 20
+        total_hit = d20 + int_mod + mastery_bonus
+        target_ac = target.effective_ac
+
+        hit_bonus_display = int_mod + mastery_bonus
+        roll_detail = (
+            f"(Roll: {d20} + {hit_bonus_display} = {total_hit} vs AC {target_ac})"
         )
+
+        if total_hit < target_ac and not is_crit:
+            # Miss
+            return (True, {
+                "first": (
+                    f"You hurl a bolt of fire at {target.key}, "
+                    f"but it streaks past harmlessly!\n"
+                    f"{roll_detail}"
+                ),
+                "second": (
+                    f"{caster.key} hurls a bolt of fire at you, "
+                    f"but it streaks past harmlessly!"
+                ),
+                "third": (
+                    f"{caster.key} hurls a bolt of fire at {target.key}, "
+                    f"but it streaks past harmlessly!"
+                ),
+            })
+
+        # Hit — roll damage
+        num_dice = tier * 2 if is_crit else tier
+        raw_damage = dice.roll(f"{num_dice}d8")
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.FIRE)
+
+        crit_str = " |r*CRITICAL*|n" if is_crit else ""
+        return (True, {
+            "first": (
+                f"You hurl a bolt of fire at {target.key}!{crit_str} "
+                f"|r{actual_damage}|n fire damage!\n"
+                f"{roll_detail}"
+            ),
+            "second": (
+                f"{caster.key} hurls a bolt of fire at you!{crit_str} "
+                f"|r{actual_damage}|n fire damage!"
+            ),
+            "third": (
+                f"{caster.key} hurls a bolt of fire at {target.key}!{crit_str} "
+                f"|r{actual_damage}|n fire damage!"
+            ),
+        })
