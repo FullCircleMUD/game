@@ -17,7 +17,6 @@ from evennia import CmdSet
 
 from enums.abilities_enum import Ability
 from enums.actor_size import ActorSize
-from enums.alignment import Alignment
 from enums.mastery_level import MasteryLevel
 from enums.weapon_type import WeaponType
 
@@ -49,9 +48,9 @@ class RaceBase:
     # Languages granted free at creation (in addition to Common)
     racial_languages: List[str] = field(default_factory=list)
 
-    # Alignment restrictions — used by chargen to filter available alignments
-    required_alignments: List[Alignment] = field(default_factory=list)
-    excluded_alignments: List[Alignment] = field(default_factory=list)
+    # Alignment restrictions — score-based range [-1000, +1000]
+    min_alignment_score: Optional[int] = None
+    max_alignment_score: Optional[int] = None
 
     # Racial weapon proficiencies — WeaponType enums granted at BASIC mastery
     # e.g. [WeaponType.BATTLEAXE, WeaponType.HAMMER]
@@ -125,14 +124,6 @@ class RaceBase:
         if self.racial_cmdset:
             character.cmdset.add(self.racial_cmdset, persistent=True)
 
-    def get_valid_alignments(self):
-        """
-        Return list of valid Alignment enum members for this race.
-
-        If required_alignments is non-empty, only those are valid.
-        Otherwise all alignments minus excluded_alignments are valid.
-        """
-        all_alignments = list(Alignment)
-        if self.required_alignments:
-            return [a for a in all_alignments if a in self.required_alignments]
-        return [a for a in all_alignments if a not in self.excluded_alignments]
+    def get_valid_alignment_range(self):
+        """Return (min_score, max_score) tuple for this race. None = no limit."""
+        return (self.min_alignment_score, self.max_alignment_score)

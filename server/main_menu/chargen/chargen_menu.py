@@ -22,7 +22,6 @@ import math
 from evennia.objects.models import ObjectDB
 
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 from enums.languages import Languages
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
@@ -54,19 +53,6 @@ ABILITIES = [Ability.STR, Ability.DEX, Ability.CON,
 ABILITY_SHORT = {
     Ability.STR: "STR", Ability.DEX: "DEX", Ability.CON: "CON",
     Ability.INT: "INT", Ability.WIS: "WIS", Ability.CHA: "CHA",
-}
-
-# Alignment display names
-ALIGNMENT_NAMES = {
-    Alignment.LAWFUL_GOOD: "Lawful Good",
-    Alignment.NEUTRAL_GOOD: "Neutral Good",
-    Alignment.CHAOTIC_GOOD: "Chaotic Good",
-    Alignment.LAWFUL_NEUTRAL: "Lawful Neutral",
-    Alignment.TRUE_NEUTRAL: "True Neutral",
-    Alignment.CHAOTIC_NEUTRAL: "Chaotic Neutral",
-    Alignment.LAWFUL_EVIL: "Lawful Evil",
-    Alignment.NEUTRAL_EVIL: "Neutral Evil",
-    Alignment.CHAOTIC_EVIL: "Chaotic Evil",
 }
 
 
@@ -343,87 +329,6 @@ def _set_class(caller, raw_input, **kwargs):
     return "node_point_buy"
 
 
-# =======================================================================
-#  NODE: Alignment Selection
-# =======================================================================
-
-def node_alignment_select(caller, raw_input, **kwargs):
-    state = _get_chargen(caller)
-    race_key = state.get("race_key", "human")
-    class_key = state.get("class_key", "warrior")
-
-    race = get_race(race_key)
-    charclass = get_char_class(class_key)
-
-    # Valid alignments = intersection of race and class restrictions
-    race_valid = set(race.get_valid_alignments())
-    class_valid = set(charclass.get_valid_alignments())
-    valid = [a for a in Alignment if a in race_valid and a in class_valid]
-
-    # Cache valid list for _default handler lookup
-    state["_valid_alignments"] = valid
-
-    error = kwargs.get("error", "")
-
-    text = "|gCharacter Creation - Step 3: Choose Your Alignment|n\n"
-    text += f"Race: |w{race.display_name}|n  Class: |w{charclass.display_name}|n\n"
-    text += "-" * 50 + "\n\n"
-
-    # Display as numbered 3x3 grid — available in white, unavailable greyed out
-    grid = [
-        [Alignment.LAWFUL_GOOD, Alignment.NEUTRAL_GOOD, Alignment.CHAOTIC_GOOD],
-        [Alignment.LAWFUL_NEUTRAL, Alignment.TRUE_NEUTRAL, Alignment.CHAOTIC_NEUTRAL],
-        [Alignment.LAWFUL_EVIL, Alignment.NEUTRAL_EVIL, Alignment.CHAOTIC_EVIL],
-    ]
-    num = 1
-    for row in grid:
-        row_text = "  "
-        for align in row:
-            name = ALIGNMENT_NAMES[align]
-            if align in valid:
-                row_text += f"|w{num}. {name:<16}|n"
-                num += 1
-            else:
-                row_text += f"|x   {name:<16}|n"
-        text += row_text + "\n"
-
-    text += "\nType a number to choose. |wb|n to go back.\n"
-
-    if error:
-        text += f"\n|r{error}|n\n"
-
-    # Use _default handler so EvMenu doesn't render a second option list
-    options = (
-        {
-            "key": ("b", "back"),
-            "desc": "Back to class selection",
-            "goto": "node_class_select",
-        },
-        {
-            "key": "_default",
-            "goto": (_handle_alignment_input, {}),
-        },
-    )
-
-    return text, options
-
-
-def _handle_alignment_input(caller, raw_input, **kwargs):
-    """Handle numeric input on the alignment node."""
-    state = _get_chargen(caller)
-    text = raw_input.strip()
-    valid = state.get("_valid_alignments", [])
-
-    try:
-        idx = int(text) - 1
-        if 0 <= idx < len(valid):
-            state["alignment"] = valid[idx]
-            if "scores" not in state:
-                state["scores"] = {ab: 8 for ab in ABILITIES}
-                state["points_remaining"] = state.get("point_buy", 27)
-            return "node_point_buy"
-    except (ValueError, IndexError):
-        pass
 
     return "node_alignment_select", {"error": f"Unknown command: {text}. Type a number to choose."}
 

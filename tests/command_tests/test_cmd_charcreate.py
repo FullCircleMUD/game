@@ -16,7 +16,6 @@ from unittest.mock import MagicMock, patch
 from evennia.utils.test_resources import BaseEvenniaTest
 
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 from enums.mastery_level import MasteryLevel
 from enums.weapon_type import WeaponType
 from typeclasses.actors.races import get_race
@@ -31,7 +30,6 @@ from server.main_menu.chargen.chargen_menu import (
     _handle_name_input,
     _handle_race_info,
     _handle_class_info,
-    _handle_alignment_input,
     _handle_weapon_toggle,
     _handle_class_skill_toggle,
     _handle_general_skill_toggle,
@@ -49,7 +47,6 @@ from server.main_menu.chargen.chargen_menu import (
     _get_choosable_languages,
     node_race_select,
     node_class_select,
-    node_alignment_select,
     node_point_buy,
     node_point_buy_confirm,
     node_weapon_skills,
@@ -82,7 +79,6 @@ def _default_state():
         "session": MagicMock(address="127.0.0.1"),
         "race_key": "human",
         "class_key": "warrior",
-        "alignment": Alignment.TRUE_NEUTRAL,
         "scores": {ab: 8 for ab in ABILITIES},
         "points_remaining": 27,
         "point_buy": 27,
@@ -271,57 +267,6 @@ class TestClassNode(BaseEvenniaTest):
         self.assertEqual(caller.ndb._chargen["class_key"], "warrior")
         self.assertEqual(result, "node_point_buy")
 
-
-# =======================================================================
-#  Alignment Node
-# =======================================================================
-
-class TestAlignmentNode(BaseEvenniaTest):
-
-    def create_script(self):
-        pass
-
-    def test_alignment_node_shows_race_and_class(self):
-        caller = _MockCaller({"race_key": "human", "class_key": "warrior"})
-        text, options = node_alignment_select(caller, "")
-        self.assertIn("Human", text)
-        self.assertIn("Warrior", text)
-
-    def test_alignment_node_all_nine_for_unrestricted(self):
-        """Human warrior has no alignment restrictions — all 9 available via _default."""
-        caller = _MockCaller({"race_key": "human", "class_key": "warrior"})
-        text, options = node_alignment_select(caller, "")
-        # Only 2 options: back + _default (numbered grid rendered in text body)
-        self.assertEqual(len(options), 2)
-        # All 9 alignments should be numbered in the text
-        self.assertIn("1.", text)
-        self.assertIn("9.", text)
-
-    def test_alignment_input_stores_value(self):
-        caller = _MockCaller({"race_key": "human", "class_key": "warrior"})
-        # First call node to populate _valid_alignments cache
-        node_alignment_select(caller, "")
-        result = _handle_alignment_input(caller, "3")
-        # Human warrior valid alignments: all 9 in grid order, 3rd = Chaotic Good
-        self.assertEqual(caller.ndb._chargen["alignment"], Alignment.CHAOTIC_GOOD)
-        self.assertEqual(result, "node_point_buy")
-
-    def test_alignment_input_initializes_scores(self):
-        caller = _MockCaller({"race_key": "human", "class_key": "warrior"})
-        node_alignment_select(caller, "")
-        _handle_alignment_input(caller, "5")
-        state = caller.ndb._chargen
-        self.assertIn("scores", state)
-        for ab in ABILITIES:
-            self.assertEqual(state["scores"][ab], 8)
-        self.assertEqual(state["points_remaining"], 27)
-
-    def test_alignment_input_invalid_number(self):
-        caller = _MockCaller({"race_key": "human", "class_key": "warrior"})
-        node_alignment_select(caller, "")
-        result = _handle_alignment_input(caller, "99")
-        self.assertIsInstance(result, tuple)
-        self.assertIn("Unknown command", result[1]["error"])
 
 
 # =======================================================================
@@ -664,7 +609,6 @@ class TestCreateNode(BaseEvenniaTest):
             Ability.INT: 10, Ability.WIS: 10, Ability.CHA: 8,
         }
         state["char_name"] = "Testchar"
-        state["alignment"] = Alignment.CHAOTIC_GOOD
 
         caller = _MockCaller(state)
 
@@ -1468,7 +1412,7 @@ class TestConfirmSkillsDisplay(BaseEvenniaTest):
     def _full_skill_state(self):
         state = _skill_state()
         state["char_name"] = "Thorin"
-        state["alignment"] = Alignment.TRUE_NEUTRAL
+        # alignment is dynamic (score-based), no need to set in state
         state["selected_weapon_skills"] = {"dagger", "bow"}
         state["selected_class_skills"] = {"bash", "protect"}
         state["selected_general_skills"] = {"battleskills"}
@@ -1540,7 +1484,7 @@ class TestCreateSkillApplication(BaseEvenniaTest):
     def _create_state(self):
         state = _skill_state()
         state["char_name"] = "Testchar"
-        state["alignment"] = Alignment.TRUE_NEUTRAL
+        # alignment is dynamic (score-based), no need to set in state
         state["selected_weapon_skills"] = {"dagger", "bow"}
         state["selected_class_skills"] = {"bash", "protect"}
         state["selected_general_skills"] = {"battleskills"}

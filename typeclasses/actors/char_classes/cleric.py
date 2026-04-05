@@ -1,5 +1,4 @@
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 from typeclasses.actors.char_classes.char_class_base import CharClassBase
 from commands.class_skill_cmdsets.cmdset_cleric import CmdSetCleric
 
@@ -79,11 +78,6 @@ CLERIC = CharClassBase(
     level_progression=PROGRESSION,
     prime_attribute=Ability.WIS,
     multi_class_requirements={Ability.WIS: 14},
-    excluded_alignments=[
-        Alignment.LAWFUL_EVIL,
-        Alignment.NEUTRAL_EVIL,
-        Alignment.CHAOTIC_EVIL,
-    ],
     class_cmdset=CmdSetCleric,
     grants_spells=True,
 )

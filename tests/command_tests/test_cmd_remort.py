@@ -14,7 +14,6 @@ from unittest.mock import MagicMock, patch, PropertyMock
 from evennia.utils.test_resources import BaseEvenniaTest, EvenniaCommandTest
 
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 from server.main_menu.chargen.chargen_menu import (
     ABILITIES,
     _get_skill_budget,
@@ -51,7 +50,6 @@ def _default_state():
         "session": MagicMock(address="127.0.0.1"),
         "race_key": "human",
         "class_key": "warrior",
-        "alignment": Alignment.TRUE_NEUTRAL,
         "scores": {ab: 8 for ab in ABILITIES},
         "points_remaining": 27,
         "point_buy": 27,
@@ -75,7 +73,6 @@ def _remort_state(character=None):
         "point_buy": 32,
         "race_key": "human",
         "class_key": "warrior",
-        "alignment": Alignment.TRUE_NEUTRAL,
         "scores": {ab: 8 for ab in ABILITIES},
         "points_remaining": 32,
     }

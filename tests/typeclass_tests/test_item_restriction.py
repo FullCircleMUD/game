@@ -13,7 +13,6 @@ from unittest.mock import MagicMock
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
-from enums.alignment import Alignment
 from typeclasses.actors.races import Race
 from enums.wearslot import HumanoidWearSlot
 
@@ -49,17 +48,7 @@ def _setup_char(char, classes=None, race=None, alignment=None,
         # Store as .value string to match can_use() str() comparison
         char.race = race.value if hasattr(race, "value") else race
     if alignment is not None:
-        # Map alignment enum to alignment_score so the derived property
-        # returns the correct good/neutral/evil bucket
-        from enums.alignment import Alignment
-        _GOOD = {Alignment.LAWFUL_GOOD, Alignment.NEUTRAL_GOOD, Alignment.CHAOTIC_GOOD}
-        _EVIL = {Alignment.LAWFUL_EVIL, Alignment.NEUTRAL_EVIL, Alignment.CHAOTIC_EVIL}
-        if alignment in _GOOD:
-            char.alignment_score = 500
-        elif alignment in _EVIL:
-            char.alignment_score = -500
-        else:
-            char.alignment_score = 0
+        char.alignment_score = alignment
     if total_level:
         char.total_level = total_level
     if num_remorts:
@@ -293,46 +282,35 @@ class TestAlignmentRestrictions(EvenniaTest):
     def create_script(self):
         pass
 
-    def test_required_alignment_match(self):
-        """Good character with required=[NEUTRAL_GOOD] should pass."""
-        _setup_char(self.char1, alignment=Alignment.NEUTRAL_GOOD)
-        item = _make_item(
-            "Holy Avenger",
-            required_alignments=[Alignment.NEUTRAL_GOOD.value],
-        )
+    def test_min_alignment_match(self):
+        """Good character meets min_alignment_score."""
+        self.char1.alignment_score = 500
+        item = _make_item("Holy Avenger", min_alignment_score=300)
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
 
-    def test_required_alignment_no_match(self):
-        """Evil character with required=[NEUTRAL_GOOD] should fail."""
-        _setup_char(self.char1, alignment=Alignment.NEUTRAL_EVIL)
-        item = _make_item(
-            "Holy Avenger",
-            required_alignments=[Alignment.NEUTRAL_GOOD.value],
-        )
+    def test_min_alignment_fail(self):
+        """Evil character fails min_alignment_score."""
+        self.char1.alignment_score = -500
+        item = _make_item("Holy Avenger", min_alignment_score=300)
         allowed, reason = item.can_use(self.char1)
         self.assertFalse(allowed)
         self.assertIn("alignment", reason)
 
-    def test_excluded_alignment_match(self):
-        """Evil character with excluded=[NEUTRAL_EVIL] should fail."""
-        _setup_char(self.char1, alignment=Alignment.NEUTRAL_EVIL)
-        item = _make_item(
-            "Blessed Robe",
-            excluded_alignments=[Alignment.NEUTRAL_EVIL.value],
-        )
-        allowed, _ = item.can_use(self.char1)
-        self.assertFalse(allowed)
-
-    def test_excluded_alignment_no_match(self):
-        """Good character with excluded=[NEUTRAL_EVIL] should pass."""
-        _setup_char(self.char1, alignment=Alignment.NEUTRAL_GOOD)
-        item = _make_item(
-            "Blessed Robe",
-            excluded_alignments=[Alignment.NEUTRAL_EVIL.value],
-        )
+    def test_max_alignment_match(self):
+        """Evil character meets max_alignment_score."""
+        self.char1.alignment_score = -500
+        item = _make_item("Cursed Blade", max_alignment_score=-300)
         allowed, _ = item.can_use(self.char1)
         self.assertTrue(allowed)
+
+    def test_max_alignment_fail(self):
+        """Good character fails max_alignment_score."""
+        self.char1.alignment_score = 500
+        item = _make_item("Cursed Blade", max_alignment_score=-300)
+        allowed, reason = item.can_use(self.char1)
+        self.assertFalse(allowed)
+        self.assertIn("alignment", reason)
 
 
 # ── Level and Remort ──────────────────────────────────────────────────────
@@ -463,15 +441,15 @@ class TestCombinedRestrictions(EvenniaTest):
             self.char1,
             classes={"warrior": {"level": 5}},
             race=Race.HUMAN,
-            alignment=Alignment.LAWFUL_GOOD,
             total_level=5,
             abilities={"strength": 14},
         )
+        self.char1.alignment_score = 500
         item = _make_item(
             "Holy Greatsword",
             required_classes=["warrior"],
             required_races=[Race.HUMAN.value, Race.DWARF.value],
-            required_alignments=[Alignment.LAWFUL_GOOD.value, Alignment.NEUTRAL_GOOD.value],
+            min_alignment_score=300,
             min_total_level=5,
             min_attributes={"strength": 14},
         )

@@ -29,6 +29,7 @@ from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMix
 class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
     """A small, cowardly kobold. Fights in packs, flees when alone."""
 
+    alignment_influence = AttributeProperty(3)
     size = AttributeProperty("small")
     default_weapon_masteries = {"dagger": MasteryLevel.BASIC.value}
 

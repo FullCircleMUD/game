@@ -27,22 +27,16 @@ from world.spells.divination.identify import Identify
 from world.spells.registry import register_spell
 
 
-# Alignment display names — evil alignments get a red highlight
-_EVIL_ALIGNMENTS = {
-    Alignment.LAWFUL_EVIL,
-    Alignment.NEUTRAL_EVIL,
-    Alignment.CHAOTIC_EVIL,
-}
+_EVIL_ALIGNMENTS = {Alignment.EVIL, Alignment.PURE_EVIL}
 
 
 def _format_alignment(alignment):
     """Format an Alignment enum value for display."""
     if alignment is None:
         return "|wUnknown|n"
-    name = alignment.value.replace("_", " ").title()
     if alignment in _EVIL_ALIGNMENTS:
-        return f"|r{name}|n"
-    return f"|w{name}|n"
+        return f"|r{alignment.value}|n"
+    return f"|w{alignment.value}|n"
 
 
 @register_spell

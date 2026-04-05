@@ -6,7 +6,6 @@ evennia test --settings settings tests.typeclass_tests.test_races
 
 from evennia.utils.test_resources import EvenniaTest
 
-from enums.alignment import Alignment
 from typeclasses.actors.races import (
     RACE_REGISTRY,
     get_race,
@@ -329,48 +328,26 @@ class TestAlignmentGating(EvenniaTest):
     def create_script(self):
         pass
 
-    def test_no_restrictions_returns_all(self):
-        """No alignment restrictions should return all 9 alignments."""
+    def test_no_restrictions(self):
+        """No alignment restrictions should return (None, None) range."""
         race = RaceBase(key="test", display_name="Test")
-        valid = race.get_valid_alignments()
-        self.assertEqual(len(valid), 9)
+        min_s, max_s = race.get_valid_alignment_range()
+        self.assertIsNone(min_s)
+        self.assertIsNone(max_s)
 
-    def test_required_alignments(self):
-        """Only required alignments should be returned."""
-        race = RaceBase(
-            key="test",
-            display_name="Test",
-            required_alignments=[Alignment.LAWFUL_GOOD, Alignment.NEUTRAL_GOOD],
-        )
-        valid = race.get_valid_alignments()
-        self.assertEqual(len(valid), 2)
-        self.assertIn(Alignment.LAWFUL_GOOD, valid)
-        self.assertIn(Alignment.NEUTRAL_GOOD, valid)
+    def test_min_alignment_range(self):
+        """min_alignment_score should be returned in range."""
+        race = RaceBase(key="test", display_name="Test", min_alignment_score=300)
+        min_s, max_s = race.get_valid_alignment_range()
+        self.assertEqual(min_s, 300)
+        self.assertIsNone(max_s)
 
-    def test_excluded_alignments(self):
-        """Excluded alignments should be filtered out."""
-        race = RaceBase(
-            key="test",
-            display_name="Test",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL, Alignment.NEUTRAL_EVIL, Alignment.LAWFUL_EVIL],
-        )
-        valid = race.get_valid_alignments()
-        self.assertEqual(len(valid), 6)
-        self.assertNotIn(Alignment.CHAOTIC_EVIL, valid)
-        self.assertNotIn(Alignment.NEUTRAL_EVIL, valid)
-        self.assertNotIn(Alignment.LAWFUL_EVIL, valid)
-
-    def test_required_takes_precedence(self):
-        """When both required and excluded are set, required takes precedence."""
-        race = RaceBase(
-            key="test",
-            display_name="Test",
-            required_alignments=[Alignment.LAWFUL_GOOD],
-            excluded_alignments=[Alignment.LAWFUL_GOOD],  # should be ignored
-        )
-        valid = race.get_valid_alignments()
-        self.assertEqual(len(valid), 1)
-        self.assertIn(Alignment.LAWFUL_GOOD, valid)
+    def test_max_alignment_range(self):
+        """max_alignment_score should be returned in range."""
+        race = RaceBase(key="test", display_name="Test", max_alignment_score=-300)
+        min_s, max_s = race.get_valid_alignment_range()
+        self.assertIsNone(min_s)
+        self.assertEqual(max_s, -300)
 
 
 # ================================================================== #

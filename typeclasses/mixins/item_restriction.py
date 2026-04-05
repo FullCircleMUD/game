@@ -14,8 +14,8 @@ Restriction logic:
     min_class_levels   — ALL: each class must be at >= level
     required_races     — OR:  character's race is in list → pass
     excluded_races     — NOT: character's race is in list → fail
-    required_alignments — OR
-    excluded_alignments — NOT
+    min_alignment_score — character.alignment_score >= value
+    max_alignment_score — character.alignment_score <= value
     min_total_level    — character.total_level >= value
     min_remorts        — character.num_remorts >= value
     min_attributes     — ALL: each ability score must be >= value
@@ -37,9 +37,9 @@ class ItemRestrictionMixin:
     required_races = AttributeProperty(default=list)
     excluded_races = AttributeProperty(default=list)
 
-    # ── Alignment restrictions ──
-    required_alignments = AttributeProperty(default=list)
-    excluded_alignments = AttributeProperty(default=list)
+    # ── Alignment restrictions (score-based) ──
+    min_alignment_score = AttributeProperty(None)  # e.g. 300 = Good+ only
+    max_alignment_score = AttributeProperty(None)  # e.g. -300 = Evil+ only
 
     # ── Level / remort gates ──
     min_total_level = AttributeProperty(0)
@@ -58,7 +58,8 @@ class ItemRestrictionMixin:
             self.required_classes or self.excluded_classes
             or self.min_class_levels
             or self.required_races or self.excluded_races
-            or self.required_alignments or self.excluded_alignments
+            or self.min_alignment_score is not None
+            or self.max_alignment_score is not None
             or self.min_total_level or self.min_remorts
             or self.min_attributes or self.min_mastery
         )
@@ -138,24 +139,18 @@ class ItemRestrictionMixin:
                     f"Your race cannot use {item_name}.",
                 )
 
-        # ── Alignment checks ──
-        # Normalize to .value strings for comparison (enum or string input)
-        char_align = character.alignment.value if hasattr(character.alignment, "value") else str(character.alignment)
-        required_alignments = [a.value if hasattr(a, "value") else str(a) for a in (self.required_alignments or [])]
-        if required_alignments:
-            if char_align not in required_alignments:
-                return (
-                    False,
-                    f"Your alignment prevents you from using {item_name}.",
-                )
-
-        excluded_alignments = [a.value if hasattr(a, "value") else str(a) for a in (self.excluded_alignments or [])]
-        if excluded_alignments:
-            if char_align in excluded_alignments:
-                return (
-                    False,
-                    f"Your alignment prevents you from using {item_name}.",
-                )
+        # ── Alignment checks (score-based) ──
+        score = getattr(character, "alignment_score", 0)
+        if self.min_alignment_score is not None and score < self.min_alignment_score:
+            return (
+                False,
+                f"Your alignment prevents you from using {item_name}.",
+            )
+        if self.max_alignment_score is not None and score > self.max_alignment_score:
+            return (
+                False,
+                f"Your alignment prevents you from using {item_name}.",
+            )
 
         # ── Level check ──
         if self.min_total_level:

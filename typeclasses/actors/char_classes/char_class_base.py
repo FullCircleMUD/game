@@ -24,7 +24,6 @@ from typing import List, Dict, Optional, Type
 from evennia import CmdSet
 
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 
 
 @dataclass(frozen=True)
@@ -48,9 +47,10 @@ class CharClassBase:
     # Minimum remorts required to select this class
     min_remort: int = 0
 
-    # Alignment restrictions — used by chargen to filter available alignments
-    required_alignments: List[Alignment] = field(default_factory=list)
-    excluded_alignments: List[Alignment] = field(default_factory=list)
+    # Alignment restrictions — score-based range [-1000, +1000]
+    # None = no restriction on that end
+    min_alignment_score: Optional[int] = None  # e.g. -299 = not evil
+    max_alignment_score: Optional[int] = None  # e.g. 299 = not good
 
     # Race restrictions — race key strings (e.g. ["dwarf", "elf"])
     # Compared against character.race (a string key from the race registry)
@@ -79,13 +79,13 @@ class CharClassBase:
         else:
             race_ok = True
 
-        # Alignment check — same logic
-        if self.required_alignments:
-            alignment_ok = character.alignment in self.required_alignments
-        elif self.excluded_alignments:
-            alignment_ok = character.alignment not in self.excluded_alignments
-        else:
-            alignment_ok = True
+        # Alignment check — score-based range
+        score = getattr(character, "alignment_score", 0)
+        alignment_ok = True
+        if self.min_alignment_score is not None and score < self.min_alignment_score:
+            alignment_ok = False
+        if self.max_alignment_score is not None and score > self.max_alignment_score:
+            alignment_ok = False
 
         # Remort check
         remort_ok = character.num_remorts >= self.min_remort
@@ -200,14 +200,6 @@ class CharClassBase:
             f"as a {self.display_name}!"
         )
 
-    def get_valid_alignments(self):
-        """
-        Return list of valid Alignment enum members for this class.
-
-        If required_alignments is non-empty, only those are valid.
-        Otherwise all alignments minus excluded_alignments are valid.
-        """
-        all_alignments = list(Alignment)
-        if self.required_alignments:
-            return [a for a in all_alignments if a in self.required_alignments]
-        return [a for a in all_alignments if a not in self.excluded_alignments]
+    def get_valid_alignment_range(self):
+        """Return (min_score, max_score) tuple for this class. None = no limit."""
+        return (self.min_alignment_score, self.max_alignment_score)

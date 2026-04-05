@@ -53,32 +53,48 @@ class FCMCharacter(
     alignment_score = AttributeProperty(0)  # Dynamic alignment: -1000 (Pure Evil) to +1000 (Pure Good)
 
     @property
-    def alignment_label(self):
-        """Display label for the current alignment score."""
+    def alignment(self):
+        """Alignment tier derived from score."""
         s = self.alignment_score
         if s >= 700:
-            return "Pure Good"
+            return Alignment.PURE_GOOD
         elif s >= 300:
-            return "Good"
+            return Alignment.GOOD
         elif s > -300:
-            return "Neutral"
+            return Alignment.NEUTRAL
         elif s > -700:
-            return "Evil"
-        return "Pure Evil"
-
-    @property
-    def alignment(self):
-        """Backward-compatible Alignment enum derived from score."""
-        s = self.alignment_score
-        if s >= 300:
-            return Alignment.NEUTRAL_GOOD
-        elif s > -300:
-            return Alignment.TRUE_NEUTRAL
-        return Alignment.NEUTRAL_EVIL
+            return Alignment.EVIL
+        return Alignment.PURE_EVIL
 
     def shift_alignment(self, amount):
-        """Shift alignment score. Positive = toward good, negative = toward evil."""
+        """Shift alignment score. Positive = toward good, negative = toward evil.
+
+        After adjusting, checks all equipped items for alignment restrictions.
+        Items the character no longer qualifies for are forcibly removed.
+        """
         self.alignment_score = max(-1000, min(1000, self.alignment_score + amount))
+        self._check_alignment_equipment()
+
+    def _check_alignment_equipment(self):
+        """Remove any equipped items the character no longer qualifies for."""
+        if not hasattr(self, "get_all_worn"):
+            return
+        for slot, item in list(self.get_all_worn().items()):
+            if item is None:
+                continue
+            if not hasattr(item, "can_use"):
+                continue
+            allowed, _ = item.can_use(self)
+            if not allowed:
+                self.remove(item)
+                self.msg(
+                    f"|rYou are zapped by {item.key} and instantly let go of it!|n"
+                )
+                if self.location:
+                    self.location.msg_contents(
+                        f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
+                        exclude=[self],
+                    )
 
     race = AttributeProperty(Race.HUMAN)
 

@@ -1,12 +1,10 @@
 from enum import Enum
 
+
 class Alignment(Enum):
-    LAWFUL_GOOD = "lawful_good"
-    NEUTRAL_GOOD = "neutral_good" 
-    CHAOTIC_GOOD = "chaotic_good"
-    LAWFUL_NEUTRAL = "lawful_neutral"
-    TRUE_NEUTRAL = "true_neutral"
-    CHAOTIC_NEUTRAL = "chaotic_neutral"
-    LAWFUL_EVIL = "lawful_evil"
-    NEUTRAL_EVIL = "neutral_evil"
-    CHAOTIC_EVIL = "chaotic_evil"
+    """5-tier alignment derived from alignment_score [-1000, +1000]."""
+    PURE_GOOD = "Pure Good"      # 700 to 1000
+    GOOD = "Good"                # 300 to 699
+    NEUTRAL = "Neutral"          # -299 to 299
+    EVIL = "Evil"                # -699 to -300
+    PURE_EVIL = "Pure Evil"      # -1000 to -700

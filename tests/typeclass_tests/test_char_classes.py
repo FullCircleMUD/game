@@ -8,7 +8,6 @@ evennia test --settings settings tests.typeclass_tests.test_char_classes
 from evennia.utils.test_resources import EvenniaTest
 
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 from typeclasses.actors.char_classes import (
     CLASS_REGISTRY,
     get_char_class,
@@ -124,30 +123,30 @@ class TestCharCanTakeClass(EvenniaTest):
         self.char1.race = "elf"
         self.assertFalse(restricted.char_can_take_class(self.char1))
 
-    def test_required_alignments_whitelist(self):
-        """Only listed alignments should be allowed."""
+    def test_min_alignment_score(self):
+        """Characters below min_alignment_score should be blocked."""
         restricted = CharClassBase(
             key="test_restricted",
             display_name="Test",
-            required_alignments=[Alignment.NEUTRAL_GOOD],
+            min_alignment_score=-299,  # not evil
         )
         self.char1.race = "human"
-        self.char1.alignment_score = 500  # Good → NEUTRAL_GOOD
+        self.char1.alignment_score = 0  # Neutral — passes
         self.assertTrue(restricted.char_can_take_class(self.char1))
-        self.char1.alignment_score = -500  # Evil → NEUTRAL_EVIL
+        self.char1.alignment_score = -500  # Evil — blocked
         self.assertFalse(restricted.char_can_take_class(self.char1))
 
-    def test_excluded_alignments_blacklist(self):
-        """Excluded alignments should be blocked."""
+    def test_max_alignment_score(self):
+        """Characters above max_alignment_score should be blocked."""
         restricted = CharClassBase(
             key="test_restricted",
             display_name="Test",
-            excluded_alignments=[Alignment.NEUTRAL_EVIL],
+            max_alignment_score=299,  # not good
         )
         self.char1.race = "human"
-        self.char1.alignment_score = 0  # Neutral → TRUE_NEUTRAL
+        self.char1.alignment_score = 0  # Neutral — passes
         self.assertTrue(restricted.char_can_take_class(self.char1))
-        self.char1.alignment_score = -500  # Evil → NEUTRAL_EVIL
+        self.char1.alignment_score = 500  # Good — blocked
         self.assertFalse(restricted.char_can_take_class(self.char1))
 
     def test_insufficient_remorts(self):
@@ -372,35 +371,32 @@ class TestClassAlignmentGating(EvenniaTest):
     def create_script(self):
         pass
 
-    def test_no_restrictions_returns_all(self):
-        """No alignment restrictions should return all 9 alignments."""
+    def test_no_restrictions_returns_none(self):
+        """No alignment restrictions should return (None, None) range."""
         cls = CharClassBase(key="test", display_name="Test")
-        valid = cls.get_valid_alignments()
-        self.assertEqual(len(valid), 9)
+        min_s, max_s = cls.get_valid_alignment_range()
+        self.assertIsNone(min_s)
+        self.assertIsNone(max_s)
 
-    def test_required_alignments(self):
-        """Only required alignments should be returned."""
+    def test_min_alignment_range(self):
+        """min_alignment_score should be returned in range."""
         cls = CharClassBase(
-            key="test",
-            display_name="Test",
-            required_alignments=[Alignment.LAWFUL_GOOD, Alignment.NEUTRAL_GOOD],
+            key="test", display_name="Test",
+            min_alignment_score=500,
         )
-        valid = cls.get_valid_alignments()
-        self.assertEqual(len(valid), 2)
-        self.assertIn(Alignment.LAWFUL_GOOD, valid)
-        self.assertIn(Alignment.NEUTRAL_GOOD, valid)
+        min_s, max_s = cls.get_valid_alignment_range()
+        self.assertEqual(min_s, 500)
+        self.assertIsNone(max_s)
 
-    def test_excluded_alignments(self):
-        """Excluded alignments should be filtered out."""
+    def test_max_alignment_range(self):
+        """max_alignment_score should be returned in range."""
         cls = CharClassBase(
-            key="test",
-            display_name="Test",
-            excluded_alignments=[Alignment.CHAOTIC_EVIL, Alignment.NEUTRAL_EVIL],
+            key="test", display_name="Test",
+            max_alignment_score=-300,
         )
-        valid = cls.get_valid_alignments()
-        self.assertEqual(len(valid), 7)
-        self.assertNotIn(Alignment.CHAOTIC_EVIL, valid)
-        self.assertNotIn(Alignment.NEUTRAL_EVIL, valid)
+        min_s, max_s = cls.get_valid_alignment_range()
+        self.assertIsNone(min_s)
+        self.assertEqual(max_s, -300)
 
 
 # ================================================================== #
@@ -609,8 +605,8 @@ class TestMageData(EvenniaTest):
     def test_no_alignment_restrictions(self):
         """Mage should have no alignment restrictions."""
         mage = get_char_class("mage")
-        self.assertEqual(len(mage.required_alignments), 0)
-        self.assertEqual(len(mage.excluded_alignments), 0)
+        self.assertIsNone(mage.min_alignment_score)
+        self.assertIsNone(mage.max_alignment_score)
 
     def test_available_at_zero_remorts(self):
         """Mage should be available without any remorts."""
@@ -720,22 +716,11 @@ class TestClericData(EvenniaTest):
         self.assertEqual(len(cleric.required_races), 0)
         self.assertEqual(len(cleric.excluded_races), 0)
 
-    def test_evil_alignments_excluded(self):
-        """Cleric should exclude all three evil alignments."""
+    def test_no_alignment_restriction(self):
+        """Cleric should have no alignment restriction."""
         cleric = get_char_class("cleric")
-        self.assertEqual(len(cleric.excluded_alignments), 3)
-        self.assertIn(Alignment.LAWFUL_EVIL, cleric.excluded_alignments)
-        self.assertIn(Alignment.NEUTRAL_EVIL, cleric.excluded_alignments)
-        self.assertIn(Alignment.CHAOTIC_EVIL, cleric.excluded_alignments)
-
-    def test_valid_alignments_excludes_evil(self):
-        """get_valid_alignments should return 6 non-evil alignments."""
-        cleric = get_char_class("cleric")
-        valid = cleric.get_valid_alignments()
-        self.assertEqual(len(valid), 6)
-        self.assertNotIn(Alignment.LAWFUL_EVIL, valid)
-        self.assertNotIn(Alignment.NEUTRAL_EVIL, valid)
-        self.assertNotIn(Alignment.CHAOTIC_EVIL, valid)
+        self.assertIsNone(cleric.min_alignment_score)
+        self.assertIsNone(cleric.max_alignment_score)
 
     def test_available_at_zero_remorts(self):
         """Cleric should be available without any remorts."""
@@ -778,19 +763,10 @@ class TestPaladinData(EvenniaTest):
         self.assertEqual(len(paladin.required_races), 0)
         self.assertEqual(len(paladin.excluded_races), 0)
 
-    def test_evil_alignments_excluded(self):
-        """Paladin should exclude all three evil alignments."""
+    def test_requires_good_alignment(self):
+        """Paladin should require min_alignment_score=500 (Good)."""
         paladin = get_char_class("paladin")
-        self.assertEqual(len(paladin.excluded_alignments), 3)
-        self.assertIn(Alignment.LAWFUL_EVIL, paladin.excluded_alignments)
-        self.assertIn(Alignment.NEUTRAL_EVIL, paladin.excluded_alignments)
-        self.assertIn(Alignment.CHAOTIC_EVIL, paladin.excluded_alignments)
-
-    def test_valid_alignments_excludes_evil(self):
-        """get_valid_alignments should return 6 non-evil alignments."""
-        paladin = get_char_class("paladin")
-        valid = paladin.get_valid_alignments()
-        self.assertEqual(len(valid), 6)
+        self.assertEqual(paladin.min_alignment_score, 500)
 
     def test_requires_one_remort(self):
         """Paladin should require 1 remort."""
@@ -908,8 +884,8 @@ class TestBardData(EvenniaTest):
     def test_no_alignment_restrictions(self):
         """Bard should have no alignment restrictions."""
         bard = get_char_class("bard")
-        self.assertEqual(len(bard.required_alignments), 0)
-        self.assertEqual(len(bard.excluded_alignments), 0)
+        self.assertIsNone(bard.min_alignment_score)
+        self.assertIsNone(bard.max_alignment_score)
 
     def test_requires_two_remorts(self):
         """Bard should require 2 remorts."""

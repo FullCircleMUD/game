@@ -99,7 +99,7 @@ class CmdScore(FCMCommandMixin, Command):
         name = caller.key[:40]
         race = caller.race
         race_str = (race.value if hasattr(race, "value") else str(race)).capitalize()
-        align_str = getattr(caller, "alignment_label", "Neutral")
+        align_str = caller.alignment.value
 
         classes = caller.db.classes or {}
         if classes:

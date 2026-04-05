@@ -1,5 +1,4 @@
 from enums.abilities_enum import Ability
-from enums.alignment import Alignment
 from typeclasses.actors.char_classes.char_class_base import CharClassBase
 
 
@@ -77,11 +76,7 @@ PALADIN = CharClassBase(
     level_progression=PROGRESSION,
     prime_attribute=Ability.CHA,
     multi_class_requirements={Ability.STR: 14, Ability.CHA: 14},
-    excluded_alignments=[
-        Alignment.LAWFUL_EVIL,
-        Alignment.NEUTRAL_EVIL,
-        Alignment.CHAOTIC_EVIL,
-    ],
+    min_alignment_score=500,  # Good required (remort carry-forward)
     grants_spells=True,
     min_remort=1,
 )
