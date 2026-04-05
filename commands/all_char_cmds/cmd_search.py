@@ -45,8 +45,13 @@ class CmdSearch(FCMCommandMixin, Command):
         perception_bonus = caller.effective_perception_bonus
 
         # Find all hidden objects in the room (objects + exits)
+        # Exits are in both room.contents and room.exits — use a set to dedupe
         hidden_objects = []
-        for obj in room.contents:
+        seen_ids = set()
+        for obj in list(room.contents) + list(room.exits):
+            if obj.id in seen_ids:
+                continue
+            seen_ids.add(obj.id)
             if (
                 hasattr(obj, "is_hidden")
                 and obj.is_hidden
@@ -54,15 +59,6 @@ class CmdSearch(FCMCommandMixin, Command):
                 and not obj.is_hidden_visible_to(caller)
             ):
                 hidden_objects.append(obj)
-
-        for ex in room.exits:
-            if (
-                hasattr(ex, "is_hidden")
-                and ex.is_hidden
-                and hasattr(ex, "is_hidden_visible_to")
-                and not ex.is_hidden_visible_to(caller)
-            ):
-                hidden_objects.append(ex)
 
         # Find all hidden characters in the room
         hidden_chars = [
@@ -118,10 +114,6 @@ class CmdSearch(FCMCommandMixin, Command):
 
             if total >= dc:
                 obj.discover(caller)
-                caller.msg(
-                    f"|gYou found something!|n "
-                    f"(Roll: {roll} + {perception_bonus} = {total} vs DC {dc})"
-                )
                 found_any = True
 
         # Roll against each hidden character
@@ -135,8 +127,7 @@ class CmdSearch(FCMCommandMixin, Command):
             if total >= dc:
                 target.remove_condition(Condition.HIDDEN)
                 caller.msg(
-                    f"|gYou spot {target.key} lurking in the shadows!|n "
-                    f"(Roll: {roll} + {perception_bonus} = {total} vs DC {dc})"
+                    f"|gYou spot {target.key} lurking in the shadows!|n"
                 )
                 found_any = True
 
@@ -153,8 +144,7 @@ class CmdSearch(FCMCommandMixin, Command):
                 trap_desc = getattr(obj, "trap_description", "a trap")
                 target_name = obj.key if obj != room else "the floor"
                 caller.msg(
-                    f"|rYou notice {trap_desc} on {target_name}!|n "
-                    f"(Roll: {roll} + {perception_bonus} = {total} vs DC {dc})"
+                    f"|rYou notice {trap_desc} on {target_name}!|n"
                 )
                 found_any = True
 
