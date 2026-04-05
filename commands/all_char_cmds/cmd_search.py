@@ -48,14 +48,10 @@ class CmdSearch(FCMCommandMixin, Command):
             caller.msg("You have nowhere to search.")
             return
 
-        # Cooldown after failed searches
+        # Cooldown after failed searches — same message to avoid leaking info
         cooldown_until = getattr(caller.ndb, "search_cooldown_until", 0) or 0
         if time.time() < cooldown_until:
-            remaining = int(cooldown_until - time.time())
-            caller.msg(
-                f"You searched recently and found nothing. "
-                f"Wait {remaining} seconds before searching again."
-            )
+            caller.msg("You search but find nothing unusual.")
             return
 
         perception_bonus = caller.effective_perception_bonus
@@ -110,6 +106,7 @@ class CmdSearch(FCMCommandMixin, Command):
 
         if not hidden_objects and not hidden_chars and not trapped_objects:
             caller.msg("You search but find nothing unusual.")
+            caller.ndb.search_cooldown_until = time.time() + _SEARCH_COOLDOWN
             return
 
         found_any = False
