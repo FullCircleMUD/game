@@ -160,10 +160,10 @@ def spawn_npcs():
         skills=["bash", "riposte"],
         weapons=["long_sword", "battleaxe"],
         masteries={
-            "long_sword": 1,   # BASIC
-            "battleaxe": 2,    # SKILLED
-            "bash": 3,         # EXPERT
-            "riposte": 4,      # MASTER
+            "long_sword": 5,   # GRANDMASTER
+            "battleaxe": 5,    # GRANDMASTER
+            "bash": 5,         # GRANDMASTER
+            "riposte": 5,      # GRANDMASTER
         },
     )
 
@@ -173,7 +173,7 @@ def spawn_npcs():
         name="Warlord Thane",
         guild_class="warrior",
         quest_key="warrior_initiation",
-        max_advance_level=5,
+        max_advance_level=40,
         next_guildmaster_hint="the War Marshal in the Capital",
     )
 
@@ -185,14 +185,14 @@ def spawn_npcs():
         skills=["stealth", "subterfuge", "stab", "magical secrets"],
         weapons=["dagger", "short_sword", "rapier", "crossbow"],
         masteries={
-            "dagger": 2,            # SKILLED
-            "short_sword": 2,       # SKILLED
-            "rapier": 2,            # SKILLED
-            "crossbow": 2,          # SKILLED
-            "stealth": 2,           # SKILLED
-            "subterfuge": 2,        # SKILLED
-            "stab": 2,              # SKILLED
-            "magical secrets": 2,   # SKILLED
+            "dagger": 5,            # GRANDMASTER
+            "short_sword": 5,       # GRANDMASTER
+            "rapier": 5,            # GRANDMASTER
+            "crossbow": 5,          # GRANDMASTER
+            "stealth": 5,           # GRANDMASTER
+            "subterfuge": 5,        # GRANDMASTER
+            "stab": 5,              # GRANDMASTER
+            "magical secrets": 5,   # GRANDMASTER
         },
     )
 
@@ -202,7 +202,7 @@ def spawn_npcs():
         name="Shadow Mistress Vex",
         guild_class="thief",
         quest_key="thief_initiation",
-        max_advance_level=5,
+        max_advance_level=40,
         next_guildmaster_hint="the Night Baron in the Capital",
     )
 
@@ -217,15 +217,15 @@ def spawn_npcs():
         ],
         weapons=["dagger", "staff"],
         masteries={
-            "dagger": 2,        # SKILLED
-            "staff": 2,         # SKILLED
-            "evocation": 2,     # SKILLED
-            "conjuration": 2,   # SKILLED
-            "divination": 2,    # SKILLED
-            "abjuration": 2,    # SKILLED
-            "necromancy": 2,    # SKILLED
-            "illusion": 2,      # SKILLED
-            "enchanting": 2,    # SKILLED
+            "dagger": 5,        # GRANDMASTER
+            "staff": 5,         # GRANDMASTER
+            "evocation": 5,     # GRANDMASTER
+            "conjuration": 5,   # GRANDMASTER
+            "divination": 5,    # GRANDMASTER
+            "abjuration": 5,    # GRANDMASTER
+            "necromancy": 5,    # GRANDMASTER
+            "illusion": 5,      # GRANDMASTER
+            "enchanting": 5,    # GRANDMASTER
         },
     )
 
@@ -235,7 +235,7 @@ def spawn_npcs():
         name="High Magus Elara",
         guild_class="mage",
         quest_key="mage_initiation",
-        max_advance_level=5,
+        max_advance_level=40,
         next_guildmaster_hint="the Arcane Council in the Capital",
     )
 
@@ -250,15 +250,15 @@ def spawn_npcs():
         ],
         weapons=["mace", "hammer", "staff"],
         masteries={
-            "mace": 2,                # SKILLED
-            "hammer": 2,              # SKILLED
-            "staff": 2,               # SKILLED
-            "divine_healing": 2,      # SKILLED
-            "divine_protection": 2,   # SKILLED
-            "divine_judgement": 2,    # SKILLED
-            "divine_revelation": 2,   # SKILLED
-            "divine_dominion": 2,     # SKILLED
-            "turn_undead": 2,         # SKILLED
+            "mace": 5,                # GRANDMASTER
+            "hammer": 5,              # GRANDMASTER
+            "staff": 5,               # GRANDMASTER
+            "divine_healing": 5,      # GRANDMASTER
+            "divine_protection": 5,   # GRANDMASTER
+            "divine_judgement": 5,    # GRANDMASTER
+            "divine_revelation": 5,   # GRANDMASTER
+            "divine_dominion": 5,     # GRANDMASTER
+            "turn_undead": 5,         # GRANDMASTER
         },
     )
 
@@ -268,7 +268,7 @@ def spawn_npcs():
         name="High Priestess Maren",
         guild_class="cleric",
         quest_key="cleric_initiation",
-        max_advance_level=5,
+        max_advance_level=40,
         next_guildmaster_hint="the Grand Cathedral in the Capital",
     )
 
@@ -283,7 +283,7 @@ def spawn_npcs():
         trainer_class=None,
         skills=["blacksmith"],
         weapons=[],
-        masteries={"blacksmith": 2},  # SKILLED
+        masteries={"blacksmith": 5},  # GRANDMASTER
     )
     if trainer:
         trainer.db.desc = (
@@ -299,7 +299,7 @@ def spawn_npcs():
         trainer_class=None,
         skills=["jeweller"],
         weapons=[],
-        masteries={"jeweller": 2},  # SKILLED
+        masteries={"jeweller": 5},  # GRANDMASTER
     )
     if trainer:
         trainer.db.desc = (
@@ -316,7 +316,7 @@ def spawn_npcs():
         trainer_class=None,
         skills=["carpenter"],
         weapons=[],
-        masteries={"carpenter": 2},  # SKILLED
+        masteries={"carpenter": 5},  # GRANDMASTER
     )
     if trainer:
         trainer.db.desc = (
@@ -333,7 +333,7 @@ def spawn_npcs():
         trainer_class=None,
         skills=["leatherworker"],
         weapons=[],
-        masteries={"leatherworker": 2},  # SKILLED
+        masteries={"leatherworker": 5},  # GRANDMASTER
     )
     if trainer:
         trainer.db.desc = (
@@ -350,7 +350,7 @@ def spawn_npcs():
         trainer_class=None,
         skills=["alchemist"],
         weapons=[],
-        masteries={"alchemist": 2},  # SKILLED
+        masteries={"alchemist": 5},  # GRANDMASTER
     )
     if trainer:
         trainer.db.desc = (
@@ -367,7 +367,7 @@ def spawn_npcs():
         trainer_class=None,
         skills=["tailor"],
         weapons=[],
-        masteries={"tailor": 2},  # SKILLED
+        masteries={"tailor": 5},  # GRANDMASTER
     )
     if trainer:
         trainer.db.desc = (
