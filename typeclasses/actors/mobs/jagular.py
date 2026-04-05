@@ -51,3 +51,17 @@ class Jagular(CombatMob):
     def at_object_creation(self):
         super().at_object_creation()
         self.tags.add("hundred_acre_wood_main", category="mob_area")
+
+
+class JagularRecipeLoad(Jagular):
+    """Jagular variant that carries a recipe instead of gold."""
+
+    loot_gold_max = AttributeProperty(0)
+    spawn_recipes_max = AttributeProperty({"skilled": 1})
+
+
+class JagularScrollLoad(Jagular):
+    """Jagular variant that carries a scroll instead of gold."""
+
+    loot_gold_max = AttributeProperty(0)
+    spawn_scrolls_max = AttributeProperty({"skilled": 1})
