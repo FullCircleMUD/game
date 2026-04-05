@@ -6,15 +6,21 @@ Uses ALERTNESS skill (perception). Rolls d20 + effective perception bonus
 against each hidden object's find_dc, hidden characters' passive stealth,
 and trap find_dc on trapped objects/exits/rooms.
 
+Failed searches trigger a 120-second cooldown to prevent spam.
+
 Usage:
     search
 """
+
+import time
 
 from evennia import Command
 
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from utils.dice_roller import dice
+
+_SEARCH_COOLDOWN = 120  # seconds after a failed search
 
 
 class CmdSearch(FCMCommandMixin, Command):
@@ -40,6 +46,16 @@ class CmdSearch(FCMCommandMixin, Command):
 
         if not room:
             caller.msg("You have nowhere to search.")
+            return
+
+        # Cooldown after failed searches
+        cooldown_until = getattr(caller.ndb, "search_cooldown_until", 0) or 0
+        if time.time() < cooldown_until:
+            remaining = int(cooldown_until - time.time())
+            caller.msg(
+                f"You searched recently and found nothing. "
+                f"Wait {remaining} seconds before searching again."
+            )
             return
 
         perception_bonus = caller.effective_perception_bonus
@@ -150,3 +166,4 @@ class CmdSearch(FCMCommandMixin, Command):
 
         if not found_any:
             caller.msg("You search but find nothing unusual.")
+            caller.ndb.search_cooldown_until = time.time() + _SEARCH_COOLDOWN
