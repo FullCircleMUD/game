@@ -59,8 +59,8 @@ def build_millholm_sewers():
             "brickwork. Water trickles along a shallow channel cut into the "
             "floor, carrying the unmistakable stench of the town above. "
             "Patches of luminescent moss cling to the walls, casting a faint "
-            "sickly glow over the damp stonework. The tunnel stretches south "
-            "into darkness.",
+            "sickly glow over the damp stonework. The tunnel descends steeply "
+            "into darkness below.",
         )],
     )
     _tag_room(rooms["sewer_entrance"], T)
@@ -480,7 +480,9 @@ def build_millholm_sewers():
              "are still sticky. Ahead, an iron door is set into the wall. "
              "Something about the door frame doesn't look right — the "
              "mortar around the hinges is a slightly different colour "
-             "from the rest, as if it's been modified."),
+             "from the rest, as if it's been modified. On the opposite "
+             "wall, one brick sits slightly askew, its edges worn smoother "
+             "than its neighbours."),
             ("details", {
                 "frame": (
                     "The door frame has been altered. The mortar around "
@@ -491,6 +493,11 @@ def build_millholm_sewers():
                 "cobwebs": (
                     "Thick cobwebs, mostly cleared. The path through them "
                     "is recent — someone comes this way regularly."
+                ),
+                "brick": (
+                    "One brick on the opposite wall sits slightly askew. "
+                    "The edges are worn smoother than its neighbours, as "
+                    "if many hands have pressed it over the years."
                 ),
             }),
         ],
@@ -580,7 +587,7 @@ def build_millholm_sewers():
     # ====================================================================
 
     # Main sewer spine (north to south)
-    connect_bidirectional_exit(rooms["sewer_entrance"], rooms["main_drain"], "south")
+    connect_bidirectional_exit(rooms["sewer_entrance"], rooms["main_drain"], "down")
     connect_bidirectional_exit(rooms["main_drain"], rooms["drain_junction"], "south")
     connect_bidirectional_exit(rooms["drain_junction"], rooms["flooded_tunnel"], "south")
     connect_bidirectional_exit(rooms["flooded_tunnel"], rooms["deep_sewer"], "south")
@@ -694,31 +701,43 @@ def build_millholm_sewers():
         trap_one_shot=True,
     )
 
-    # Hidden lever in lever room — disarms the tripwire
-    from typeclasses.world_objects.switch_fixture import SwitchFixture
+    # Hidden lever in corridor — disarms the dart trap on the iron door
+    from typeclasses.world_objects.gauntlet_fixtures import (
+        GauntletTrapLever, DeadSwitch,
+    )
 
-    class _GauntletLever(SwitchFixture):
-        """Lever that disarms the tripwire when pulled."""
-        def at_activate(self, caller):
-            # Find the tripwire in the room's west exit
-            for obj in self.location.contents:
-                if hasattr(obj, "trap_armed") and obj.trap_armed:
-                    obj.trap_armed = False
-                    caller.msg(
-                        "|gYou hear a click as a mechanism disengages "
-                        "somewhere ahead.|n"
-                    )
-                    if self.location:
-                        self.location.msg_contents(
-                            "A faint click echoes through the chamber.",
-                            exclude=[caller],
-                            from_obj=caller,
-                        )
-                    return
-            caller.msg("Nothing seems to happen.")
+    corridor_lever = create_object(
+        GauntletTrapLever,
+        key="a worn brick",
+        location=rooms["gauntlet_corridor"],
+        nohome=True,
+    )
+    corridor_lever.switch_verb = "push"
+    corridor_lever.switch_name = "brick"
+    corridor_lever.activate_msg = "You press the worn brick. It sinks into the wall with a soft click."
+    corridor_lever.can_deactivate = False
+    corridor_lever.is_hidden = True
+    corridor_lever.find_dc = 5
+    corridor_lever.db.desc = (
+        "A brick that sits slightly askew in the wall. The edges are "
+        "worn smoother than its neighbours, as if many hands have "
+        "pressed it over the years."
+    )
+    corridor_lever.db.lever_activate_self_msg = (
+        "You press the brick and hear a soft grinding from inside the "
+        "door frame, followed by the muffled clatter of darts dropping "
+        "into their housing."
+    )
+    corridor_lever.db.lever_activate_room_msg = (
+        "presses a brick in the wall. There is a soft grinding from "
+        "inside the door frame, followed by the muffled clatter of "
+        "something mechanical resetting."
+    )
+
+    # Hidden lever in lever room — disarms the tripwire
 
     lever = create_object(
-        _GauntletLever,
+        GauntletTrapLever,
         key="a protruding stone",
         location=rooms["gauntlet_lever_room"],
         nohome=True,
@@ -734,12 +753,46 @@ def build_millholm_sewers():
         "edges are worn smooth from repeated use. It looks like it "
         "can be pushed."
     )
+    lever.db.lever_activate_self_msg = (
+        "You push the stone and hear a loud click from the passage "
+        "ahead, followed by the faint twang of a wire going slack."
+    )
+    lever.db.lever_activate_room_msg = (
+        "pushes a stone in the wall. There is a loud click from the "
+        "passage ahead, followed by the faint twang of a wire going "
+        "slack."
+    )
+
+    # Red herring stone in the vault — players will try to push it
+    # after the previous room's stone mechanism
+
+    dead_stone = create_object(
+        DeadSwitch,
+        key="a loose stone",
+        location=rooms["gauntlet_vault"],
+        nohome=True,
+    )
+    dead_stone.switch_verb = "push"
+    dead_stone.switch_name = "stone"
+    dead_stone.activate_msg = "You push the loose stone..."
+    dead_stone.can_deactivate = False
+    dead_stone.db.desc = (
+        "A loose stone near the base of the east wall, just above "
+        "floor level. The mortar around it has crumbled away. It "
+        "looks like it could be pulled free — but pushing it does "
+        "nothing useful."
+    )
+    dead_stone.db.dead_switch_msg = (
+        "The stone shifts slightly under your hand but nothing "
+        "happens. No click, no mechanism — it's just a loose "
+        "stone. Perhaps the answer here lies elsewhere."
+    )
 
     # Hidden key in the vault
-    from typeclasses.world_objects.base_world_item import WorldItem
+    from typeclasses.world_objects.key_item import KeyItem
 
     vault_key = create_object(
-        WorldItem,
+        KeyItem,
         key="a tarnished brass key",
         location=rooms["gauntlet_vault"],
         nohome=True,
@@ -750,6 +803,7 @@ def build_millholm_sewers():
     )
     vault_key.is_hidden = True
     vault_key.find_dc = 6
+    vault_key.key_tag = "gauntlet_key"
 
     # Locked chest with guild token
     from typeclasses.world_objects.chest import WorldChest
@@ -768,9 +822,10 @@ def build_millholm_sewers():
     vault_chest.is_locked = True
     vault_chest.lock_dc = 20  # too hard to pick without skills — use the key
     vault_chest.key_tag = "gauntlet_key"
-    vault_key.tags.add("gauntlet_key", category="key_tag")
 
     # Guild token inside the chest
+    from typeclasses.world_objects.base_world_item import WorldItem
+
     guild_token = create_object(
         WorldItem,
         key="a shadow guild token",
