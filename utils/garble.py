@@ -20,10 +20,6 @@ _SYLLABLES = {
         "ael", "ith", "lora", "ven", "thil", "ara", "iel", "ena",
         "ori", "sha", "lae", "mir", "val", "nia", "elu", "tha",
     ],
-    "kobold": [
-        "yik", "nak", "sik", "tok", "rik", "tik", "yak", "nip",
-        "kik", "sek", "pik", "yip", "tak", "nik", "zik", "kek",
-    ],
     "goblin": [
         "gak", "snit", "mog", "bur", "zik", "gob", "nar", "skag",
         "gur", "muk", "nag", "skrit", "blag", "grik", "zug", "mak",

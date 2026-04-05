@@ -10,6 +10,5 @@ class Languages(Enum):
     CELESTIAL = "celestial"
 
     # OTHER LANGUAGES
-    KOBOLD = "kobold"
     GOBLIN = "goblin"
     DRAGON = "dragon"
