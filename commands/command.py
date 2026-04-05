@@ -49,7 +49,7 @@ class FCMCommandMixin:
             and getattr(self.caller, "position", None) == "sleeping"
         ):
             self.caller.msg(
-                "You can't do that while asleep. Try |wstand|n or |wwake|n."
+                "In your dreams or what? Try |wstand|n or |wwake|n."
             )
             return True  # abort command
         return super().at_pre_cmd()
