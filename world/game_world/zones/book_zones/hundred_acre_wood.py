@@ -783,7 +783,8 @@ def build_hundred_acre_wood():
     # ── House NPCs (stationary, non-aggressive, atmospheric) ──
 
     def _spawn_house_npc(key, location, desc, room_desc, hp=55, damage="2d4+1",
-                         strength=17, dexterity=15, constitution=16, ac=15):
+                         strength=17, dexterity=15, constitution=16, ac=15,
+                         gold=10, recipes=None):
         """Spawn a stationary named house NPC (~25% tougher than Woozle/Jagular)."""
         mob = spawn_mob("typeclasses.actors.mob.CombatMob", key=key, location=location)
         mob.db.desc = desc
@@ -801,6 +802,9 @@ def build_hundred_acre_wood():
         mob.constitution = constitution
         mob.base_armor_class = ac
         mob.armor_class = ac
+        mob.loot_gold_max = gold
+        if recipes:
+            mob.spawn_recipes_max = recipes
         mob.ai.set_state("idle")  # stationary — don't wander
         return mob
 
@@ -808,27 +812,32 @@ def build_hundred_acre_wood():
         "Rabbit", rooms["rabbit_house"],
         "A fussy-looking rabbit with a permanent expression of mild irritation.",
         "gives you a dirty look, you must have stepped in his garden.",
+        gold=10, recipes={"skilled": 1},
     )
     _spawn_house_npc(
         "Piglet", rooms["piglet_house"],
         "A very small animal with a nervous disposition.",
         "is here, he sees you and says oh, D D D De De Dear.",
+        gold=15,
     )
     _spawn_house_npc(
         "Kanga", rooms["kanga_house"],
         "A motherly kangaroo looking slightly worried.",
         "stands here looking for Roo.",
+        gold=10, recipes={"skilled": 1},
     )
     _spawn_house_npc(
         "Christopher Robin", rooms["christopher_house"],
         "A small boy in wellington boots and a raincoat.",
         "is standing here.",
+        gold=10, recipes={"skilled": 1},
     )
 
     _spawn_house_npc(
         "Roo", rooms["r6c2"],  # Sandy Pit
         "A very small, very bouncy baby kangaroo.",
         "is hiding from Kanga here.",
+        gold=15,
     )
 
     print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")

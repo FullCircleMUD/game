@@ -42,6 +42,9 @@ class OwlBird(FlyingMixin, CombatMob):
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)
 
+    # ── Loot ──
+    loot_gold_max = AttributeProperty(3)
+
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)
     max_per_room = AttributeProperty(0)

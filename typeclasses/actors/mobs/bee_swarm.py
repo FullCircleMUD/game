@@ -45,6 +45,9 @@ class BeeSwarm(FlyingMixin, AggressiveMob):
     attack_delay_min = AttributeProperty(1)
     attack_delay_max = AttributeProperty(3)
 
+    # ── Loot ──
+    loot_gold_max = AttributeProperty(1)
+
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.3)
     max_per_room = AttributeProperty(0)  # multiple swarms allowed
