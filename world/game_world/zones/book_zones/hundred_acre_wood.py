@@ -189,6 +189,20 @@ def build_hundred_acre_wood():
              "birds chirping and little animals scurrying. There is a "
              "small house up in a tree here and there are lots of bird "
              "droppings on the ground."),
+            ("vert_descriptions", {
+                0: (
+                    "You are standing inside the Hundred Acre Wood. You "
+                    "can hear birds chirping and little animals scurrying. "
+                    "There is a small house up in a tree here and there "
+                    "are lots of bird droppings on the ground."
+                ),
+                1: (
+                    "You are standing inside a tree house belonging to "
+                    "Owl. Pictures of Owls relations cover the walls, but "
+                    "don't ask him about any of them unless you want to "
+                    "listen to a very long story."
+                ),
+            }),
         ],
     )
 
