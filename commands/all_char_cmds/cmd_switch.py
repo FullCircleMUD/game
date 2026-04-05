@@ -32,7 +32,7 @@ class CmdSwitch(FCMCommandMixin, Command):
     """
 
     key = "pull"
-    aliases = ("push", "turn", "flip")
+    aliases = ("push", "flip", "press")
     locks = "cmd:all()"
     arg_regex = r"\s|$"
     help_category = "General"
