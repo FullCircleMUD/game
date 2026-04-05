@@ -515,6 +515,29 @@ def build_hundred_acre_wood():
         ],
     )
 
+    # ==================================================================
+    #  UNDERGROUND ROOMS (down from grid rooms)
+    # ==================================================================
+
+    rooms["gopher_hole"] = create_object(
+        RoomBase,
+        key="Gopher's Hole",
+        attributes=[
+            ("desc",
+             "You are standing inside a hole in the ground, but it's "
+             "Gophers hole so you had better not say anything."),
+        ],
+    )
+
+    rooms["pooh_trap"] = create_object(
+        RoomBase,
+        key="Pooh's Trap",
+        attributes=[
+            ("desc",
+             "You are standing in the bottom of Poohs Trap."),
+        ],
+    )
+
     print(f"  Created {len(rooms)} rooms.")
 
     # ==================================================================
@@ -617,8 +640,10 @@ def build_hundred_acre_wood():
     connect_bidirectional_exit(rooms["r6c3"], rooms["rabbit_house"], "north")
     exit_count += 2
 
-    # ── Vertical exits (Owl's House up from r2c5) ──
-    # Owl's house, Pooh's Trap pit, Gopher's Hole — to be added later
+    # ── Down exits ──
+    connect_bidirectional_exit(rooms["r3c4"], rooms["gopher_hole"], "down")
+    connect_bidirectional_exit(rooms["r3c2"], rooms["pooh_trap"], "down")
+    exit_count += 4
 
     print(f"  Created {exit_count} exits.")
 
@@ -635,15 +660,17 @@ def build_hundred_acre_wood():
     outdoor = [r for k, r in rooms.items() if k not in (
         "piglet_house", "pooh_house", "kanga_house",
         "rabbit_house", "christopher_house",
+        "gopher_hole", "pooh_trap",
     )]
     for room in outdoor:
         room.set_terrain(TerrainType.FOREST.value)
         room.max_height = 1
 
-    # Indoor rooms (houses)
+    # Indoor rooms (houses + underground)
     indoor = [
         rooms["piglet_house"], rooms["pooh_house"], rooms["kanga_house"],
         rooms["rabbit_house"], rooms["christopher_house"],
+        rooms["gopher_hole"], rooms["pooh_trap"],
     ]
     for room in indoor:
         room.set_terrain(TerrainType.UNDERGROUND.value)
