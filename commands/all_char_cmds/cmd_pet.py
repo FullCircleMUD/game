@@ -12,6 +12,8 @@ Usage:
     pet feed                — feed the pet (resets hunger timer)
     pet status              — show pet name, state, hunger
     pet attack <target>     — pet attacks a target (combat pets only)
+    pet mount               — mount the pet (mounts only)
+    pet dismount            — dismount
 """
 
 from evennia import Command
@@ -30,6 +32,8 @@ class CmdPet(FCMCommandMixin, Command):
         pet feed            — feed your pet
         pet status          — detailed pet status
         pet attack <target> — pet attacks (combat pets only)
+        pet mount           — mount (mounts only)
+        pet dismount        — dismount
 
     Your pet must be in the same room as you.
     """
@@ -61,12 +65,16 @@ class CmdPet(FCMCommandMixin, Command):
         elif args == "feed":
             self._cmd_feed(caller, pet)
         elif args.startswith("attack"):
-            target_str = args[6:].strip()  # strip "attack"
+            target_str = args[6:].strip()
             self._cmd_attack(caller, pet, target_str)
+        elif args == "mount":
+            self._cmd_mount(caller, pet)
+        elif args == "dismount":
+            self._cmd_dismount(caller, pet)
         else:
             caller.msg(
                 "Unknown pet command. Try: pet follow, pet stay, "
-                "pet feed, pet status, pet attack <target>"
+                "pet feed, pet status, pet attack, pet mount, pet dismount"
             )
 
     def _find_my_pets(self, caller):
@@ -153,3 +161,37 @@ class CmdPet(FCMCommandMixin, Command):
 
         pet.initiate_attack(target)
         caller.msg(f"You command {pet.key} to attack {target.key}!")
+
+    def _cmd_mount(self, caller, pet):
+        """Mount the pet."""
+        if not hasattr(pet, "mount"):
+            caller.msg(f"{pet.key} can't be ridden.")
+            return
+
+        # Already mounted on something?
+        current_mount = caller.db.mounted_on
+        if current_mount:
+            caller.msg(f"You are already riding {current_mount.key}. Dismount first.")
+            return
+
+        success, msg = pet.mount(caller)
+        caller.msg(msg)
+        if success and caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} mounts {pet.key}.",
+                exclude=[caller], from_obj=caller,
+            )
+
+    def _cmd_dismount(self, caller, pet):
+        """Dismount the pet."""
+        if not hasattr(pet, "dismount"):
+            caller.msg(f"You aren't riding {pet.key}.")
+            return
+
+        success, msg = pet.dismount(caller)
+        caller.msg(msg)
+        if success and caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} dismounts {pet.key}.",
+                exclude=[caller], from_obj=caller,
+            )

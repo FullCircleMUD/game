@@ -186,6 +186,14 @@ class FCMCharacter(
         from world.quests.quest_handler import FCMQuestHandler
         return FCMQuestHandler(self)
 
+    def get_room_description(self):
+        """Override to show mounted state."""
+        mount = self.db.mounted_on
+        if mount and getattr(mount, "is_mounted", False):
+            afk_tag = " |w(AFK)|n" if getattr(self, "afk", False) else ""
+            return f"{self.key} rides {mount.key}.{afk_tag}"
+        return super().get_room_description()
+
     def at_pre_move(self, destination, move_type="move", **kwargs):
         """Check movement blockers before moving."""
         if getattr(self, "afk", False) and move_type in ("move", "follow"):
@@ -210,6 +218,19 @@ class FCMCharacter(
         if move_type in ("move", "follow", "traverse") and self.move < 1:
             self.msg("You are too exhausted to move.")
             return False
+        # Mounted restriction — can't enter indoor rooms while mounted on large+ pet
+        mount = self.db.mounted_on
+        if mount and move_type not in ("teleport", "flee") and destination:
+            max_height = getattr(destination, "max_height", None)
+            if max_height is not None and max_height <= 0:
+                pet_size = getattr(mount, "size", "medium")
+                size_val = self._SIZE_ORDER.get(pet_size, 2)
+                if size_val > self._INDOOR_MAX_SIZE:
+                    self.msg(
+                        f"You cannot enter here while mounted on {mount.key}. "
+                        f"Dismount first (|wpet dismount|n)."
+                    )
+                    return False
         # Pet size restriction — block if a following pet can't fit
         if move_type not in ("teleport", "flee") and destination:
             blocked_pet = self._check_pet_room_access(destination)
@@ -225,9 +246,19 @@ class FCMCharacter(
         """Deduct movement and auto-move followers when this character moves."""
         super().at_post_move(source_location, move_type=move_type, **kwargs)
 
-        # Deduct 1 movement point for normal moves, follows, and exit traversals
+        # Deduct movement points — reduced when mounted
         if move_type in ("move", "follow", "traverse"):
-            self.move = max(0, self.move - 1)
+            mount = self.db.mounted_on
+            if mount and hasattr(mount, "mount_movement_bonus"):
+                bonus = mount.mount_movement_bonus or 1
+                # Only deduct every Nth move (e.g. bonus=3 means 1 in 3 moves costs a point)
+                mount_steps = getattr(self.ndb, "_mount_steps", 0) + 1
+                if mount_steps >= bonus:
+                    self.move = max(0, self.move - 1)
+                    mount_steps = 0
+                self.ndb._mount_steps = mount_steps
+            else:
+                self.move = max(0, self.move - 1)
 
         # Breath timer — start if we moved into underwater without one
         if self.room_vertical_position < 0:

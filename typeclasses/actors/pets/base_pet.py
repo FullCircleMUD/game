@@ -75,7 +75,13 @@ class BasePet(NFTMirrorMixin, OwnedWorldObjectMixin, FollowableMixin, BaseNPC):
     # ================================================================== #
 
     def get_room_description(self):
-        """Return the pet's room description based on state."""
+        """Return the pet's room description based on state.
+
+        Returns empty string if mounted (rider's description includes mount).
+        """
+        if getattr(self, "is_mounted", False):
+            return ""
+
         name = self.key
         state = self.pet_state
         if state == "following":
@@ -153,6 +159,10 @@ class BasePet(NFTMirrorMixin, OwnedWorldObjectMixin, FollowableMixin, BaseNPC):
 
         self.is_alive = False
         self.following = None
+
+        # Force dismount if being ridden
+        if hasattr(self, "force_dismount"):
+            self.force_dismount()
 
         # Clean up combat handler if in combat
         if hasattr(self, "exit_combat"):
