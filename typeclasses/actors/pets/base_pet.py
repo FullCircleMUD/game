@@ -147,12 +147,16 @@ class BasePet(NFTMirrorMixin, OwnedWorldObjectMixin, FollowableMixin, BaseNPC):
     # ================================================================== #
 
     def die(self, cause="unknown", killer=None):
-        """Handle pet death — notify owner, clean up, destroy NFT."""
+        """Handle pet death — clean up combat, notify owner, destroy NFT."""
         if not getattr(self, "is_alive", True):
             return
 
         self.is_alive = False
         self.following = None
+
+        # Clean up combat handler if in combat
+        if hasattr(self, "exit_combat"):
+            self.exit_combat()
 
         # Notify the room
         room = self.location

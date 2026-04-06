@@ -11,6 +11,7 @@ Usage:
     pet stay                — pet stops following, waits here
     pet feed                — feed the pet (resets hunger timer)
     pet status              — show pet name, state, hunger
+    pet attack <target>     — pet attacks a target (combat pets only)
 """
 
 from evennia import Command
@@ -28,6 +29,7 @@ class CmdPet(FCMCommandMixin, Command):
         pet stay            — pet waits here
         pet feed            — feed your pet
         pet status          — detailed pet status
+        pet attack <target> — pet attacks (combat pets only)
 
     Your pet must be in the same room as you.
     """
@@ -58,10 +60,13 @@ class CmdPet(FCMCommandMixin, Command):
             self._cmd_stay(caller, pet)
         elif args == "feed":
             self._cmd_feed(caller, pet)
+        elif args.startswith("attack"):
+            target_str = args[6:].strip()  # strip "attack"
+            self._cmd_attack(caller, pet, target_str)
         else:
             caller.msg(
                 "Unknown pet command. Try: pet follow, pet stay, "
-                "pet feed, pet status"
+                "pet feed, pet status, pet attack <target>"
             )
 
     def _find_my_pets(self, caller):
@@ -119,3 +124,32 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{caller.key} feeds {pet.key}.",
                 exclude=[caller], from_obj=caller,
             )
+
+    def _cmd_attack(self, caller, pet, target_str):
+        """Command the pet to attack a target."""
+        if not hasattr(pet, "initiate_attack"):
+            caller.msg(f"{pet.key} doesn't know how to fight.")
+            return
+
+        if not target_str:
+            caller.msg("Attack what? Usage: pet attack <target>")
+            return
+
+        target = caller.search(target_str, location=caller.location)
+        if not target:
+            return
+
+        if target == pet:
+            caller.msg(f"{pet.key} looks at you, confused.")
+            return
+
+        if target == caller:
+            caller.msg(f"{pet.key} refuses to attack you.")
+            return
+
+        if getattr(target, "hp", None) is None or target.hp <= 0:
+            caller.msg("That's not a valid target.")
+            return
+
+        pet.initiate_attack(target)
+        caller.msg(f"You command {pet.key} to attack {target.key}!")

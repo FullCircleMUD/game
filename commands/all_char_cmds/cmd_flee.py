@@ -105,6 +105,15 @@ class CmdFlee(FCMCommandMixin, Command):
 
             # Stop combat before moving so weapon hooks fire in the right room
             handler.stop_combat()
+
+            # Pull following pets out of combat and flee with owner
+            source_room = caller.location
+            for f in caller.get_followers(same_room=True):
+                if getattr(f, "is_pet", False) and f.location == source_room:
+                    if hasattr(f, "exit_combat"):
+                        f.exit_combat()
+                    f.move_to(chosen.destination, move_type="flee")
+
             caller.move_to(chosen.destination, move_type="flee")
 
             # Check if remaining combatants should end combat
