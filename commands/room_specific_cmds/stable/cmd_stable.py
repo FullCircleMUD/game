@@ -1,15 +1,20 @@
 """
 Stable commands — stable, retrieve, and list stabled pets.
 
+Stabling moves the pet to the character's AccountBank (same as banking
+an item). Retrieving moves it back to the room. The NFTPetMirrorMixin
+handles all mirror DB transitions via at_post_move hooks.
+
 Usage:
-    stable <pet>     — stable a pet here (costs 1 gold)
+    stable <pet>     — stable a pet here (dynamic cost)
     retrieve <pet>   — retrieve a stabled pet
-    stabled          — list your stabled pets at this stable
+    stabled          — list your stabled pets
 """
 
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 
 
 class CmdStable(FCMCommandMixin, Command):
@@ -19,8 +24,8 @@ class CmdStable(FCMCommandMixin, Command):
     Usage:
         stable <pet>
 
-    Costs 1 gold. Stabled pets don't consume food and can't be
-    attacked. Retrieve them when you're ready to adventure again.
+    Cost: 1 gold base + feeding/healing if needed.
+    Stabled pets are safe, fed, and healed.
     """
 
     key = "stable"
@@ -50,10 +55,6 @@ class CmdStable(FCMCommandMixin, Command):
 
         if not pet:
             caller.msg(f"You don't have a pet called '{self.args.strip()}' here.")
-            return
-
-        if pet.pet_state == "stabled":
-            caller.msg(f"{pet.key} is already stabled.")
             return
 
         # Calculate dynamic cost
@@ -100,13 +101,18 @@ class CmdStable(FCMCommandMixin, Command):
         if total_fee > 0 and hasattr(caller, "_remove_gold"):
             caller._remove_gold(total_fee)
 
-        # Stable the pet — fed, healed, safe
+        # Heal and feed before stabling
         pet.stop_following()
-        pet.pet_state = "stabled"
-        pet.set_world_location(room)
-        pet.feed()  # reset hunger
-        pet.hp = hp_max  # full heal
-        pet.db.stabled_at = room
+        pet.feed()
+        pet.hp = hp_max
+
+        # Move pet to account bank — at_post_move fires ROOM→ACCOUNT → bank()
+        account = caller.account
+        if not account:
+            caller.msg("Something went wrong — no account found.")
+            return
+        bank = ensure_bank(account)
+        pet.move_to(bank, quiet=True)
 
         caller.msg(
             f"You stable {pet.key} for {total_fee} gold:\n"
@@ -127,7 +133,7 @@ class CmdRetrieve(FCMCommandMixin, Command):
     Usage:
         retrieve <pet>
 
-    Free to retrieve. The pet will be waiting for you here.
+    Free to retrieve. The pet will appear here and follow you.
     """
 
     key = "retrieve"
@@ -143,31 +149,44 @@ class CmdRetrieve(FCMCommandMixin, Command):
             return
 
         pet_name = self.args.strip().lower()
+        account = caller.account
+        if not account:
+            caller.msg("Something went wrong — no account found.")
+            return
+        bank = ensure_bank(account)
 
-        # Find stabled pet belonging to caller at this stable
+        # Find stabled pet in bank contents — match by name or pet_type
         pet = None
-        for obj in room.contents:
+        for obj in bank.contents:
             if (
                 getattr(obj, "is_pet", False)
-                and getattr(obj, "owner_key", None) == caller.key
-                and getattr(obj, "pet_state", None) == "stabled"
                 and obj.key.lower().startswith(pet_name)
             ):
                 pet = obj
                 break
 
         if not pet:
+            for obj in bank.contents:
+                if (
+                    getattr(obj, "is_pet", False)
+                    and getattr(obj, "pet_type", "").lower().startswith(pet_name)
+                ):
+                    pet = obj
+                    break
+
+        if not pet:
             caller.msg(
-                f"You don't have a pet called '{self.args.strip()}' stabled here. "
+                f"You don't have a pet called '{self.args.strip()}' stabled. "
                 f"Use |wstabled|n to see your stabled pets."
             )
             return
 
-        # Retrieve
-        pet.pet_state = "following"
+        # Move pet from bank to room — at_post_move fires ACCOUNT→ROOM → unbank()
+        pet.move_to(room, quiet=True)
+
+        # Start following owner and reset hunger
         pet.start_following(caller)
-        pet.db.stabled_at = None
-        pet.feed()  # reset hunger timer on retrieval
+        pet.feed()
 
         caller.msg(f"You retrieve {pet.key}. It begins following you.")
         if room:
@@ -179,7 +198,7 @@ class CmdRetrieve(FCMCommandMixin, Command):
 
 class CmdStabled(FCMCommandMixin, Command):
     """
-    List your stabled pets at this stable.
+    List your stabled pets.
 
     Usage:
         stabled
@@ -191,20 +210,24 @@ class CmdStabled(FCMCommandMixin, Command):
 
     def func(self):
         caller = self.caller
-        room = caller.location
+        account = caller.account
+        if not account:
+            caller.msg("You don't have a bank account.")
+            return
+        bank = ensure_bank(account)
 
         stabled = [
-            obj for obj in room.contents
+            obj for obj in bank.contents
             if getattr(obj, "is_pet", False)
-            and getattr(obj, "owner_key", None) == caller.key
-            and getattr(obj, "pet_state", None) == "stabled"
         ]
 
         if not stabled:
-            caller.msg("You have no pets stabled here.")
+            caller.msg("You have no pets stabled.")
             return
 
         lines = ["|w--- Stabled Pets ---|n"]
         for pet in stabled:
-            lines.append(f"  |c{pet.key}|n — {pet.hp}/{pet.hp_max} HP")
+            pet_type = getattr(pet, "pet_type", "")
+            type_str = f" ({pet_type})" if pet_type else ""
+            lines.append(f"  |c{pet.key}|n{type_str} — {pet.hp}/{pet.hp_max} HP")
         caller.msg("\n".join(lines))
