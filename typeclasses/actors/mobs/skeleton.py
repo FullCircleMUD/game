@@ -14,7 +14,7 @@ from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMix
 class Skeleton(HumanoidWearslotsMixin, AggressiveMob):
     """An undead skeleton. Tagged for Turn Undead."""
 
-    alignment_influence = AttributeProperty(20)  # destroying undead is good
+    alignment_score = AttributeProperty(-1000)  # pure evil undead
 
     def at_object_creation(self):
         super().at_object_creation()

@@ -27,7 +27,7 @@ from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMix
 class Footpad(StabAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
     """Rooftop footpad — aggressive thief with a dagger."""
 
-    alignment_influence = AttributeProperty(5)  # removing a threat to society
+    alignment_score = AttributeProperty(-100)  # slightly evil (petty criminal)
     default_weapon_masteries = {"dagger": MasteryLevel.SKILLED.value}
 
     # ── Combat fallbacks ──

@@ -35,7 +35,7 @@ class Gnoll(RampageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressive
     BASIC spear mastery — no special abilities yet, just base damage.
     """
 
-    alignment_influence = AttributeProperty(3)
+    alignment_score = AttributeProperty(-60)  # evil (savage raider)
     default_weapon_masteries = {"spear": MasteryLevel.BASIC.value}
 
     # ── Stats ──

@@ -27,7 +27,7 @@ from typeclasses.mixins.mob_behaviours.pack_courage_mixin import PackCourageMixi
 class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     """A black crow. Attacks in packs, flees when alone."""
 
-    alignment_influence = AttributeProperty(1)
+    alignment_score = AttributeProperty(-30)  # slightly evil (aggressive pest)
     size = AttributeProperty("tiny")
 
     # ── Flight ──

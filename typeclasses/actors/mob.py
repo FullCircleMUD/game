@@ -89,10 +89,30 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     # Scale: 0 (sluggish) to 4 (lightning fast).
     initiative_speed = AttributeProperty(0)
 
-    # ── Alignment influence on kill ──
-    # Positive = good shift for killer, negative = evil shift.
-    # Override in subclasses: undead +20, demons +30, guards -30, etc.
-    alignment_influence = AttributeProperty(0)
+    # ── Alignment ──
+    # Mob's moral alignment: -1000 (Pure Evil) to +1000 (Pure Good).
+    # Defaults to 0 (Neutral). Override in subclasses.
+    alignment_score = AttributeProperty(0)
+
+    @property
+    def alignment(self):
+        """Alignment tier derived from score — same as FCMCharacter."""
+        from enums.alignment import Alignment
+        s = self.alignment_score
+        if s >= 700:
+            return Alignment.PURE_GOOD
+        elif s >= 300:
+            return Alignment.GOOD
+        elif s > -300:
+            return Alignment.NEUTRAL
+        elif s > -700:
+            return Alignment.EVIL
+        return Alignment.PURE_EVIL
+
+    @property
+    def alignment_influence(self):
+        """Kill impact on the killer's alignment. Derived from mob's alignment."""
+        return -(self.alignment_score // 50)
 
     # ── Aggro ──
     is_aggressive_to_players = AttributeProperty(False)
