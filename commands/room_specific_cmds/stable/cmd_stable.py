@@ -56,10 +56,40 @@ class CmdStable(FCMCommandMixin, Command):
             caller.msg(f"{pet.key} is already stabled.")
             return
 
+        # Calculate dynamic cost
+        base_fee = 1
+        feed_cost = 0
+        heal_cost = 0
+
+        # Feed cost: 1 gold per hunger tier past fed
+        if hasattr(pet, "check_hunger"):
+            hunger = pet.check_hunger()
+            if hunger == "hungry":
+                feed_cost = 1
+            elif hunger == "starving":
+                feed_cost = 2
+
+        # Heal cost: 1 gold per 20% HP missing
+        hp_max = getattr(pet, "hp_max", 1) or 1
+        hp_missing_pct = max(0, (hp_max - pet.hp) / hp_max)
+        heal_cost = int(hp_missing_pct / 0.2)  # 0-5 gold
+
+        total_fee = base_fee + feed_cost + heal_cost
+
+        # Show cost breakdown
+        breakdown = [f"  Stabling: {base_fee} gold"]
+        if feed_cost > 0:
+            breakdown.append(f"  Feeding:  {feed_cost} gold")
+        if heal_cost > 0:
+            breakdown.append(f"  Healing:  {heal_cost} gold")
+
         # Check gold
-        fee = getattr(room, "stable_fee", 1)
-        if hasattr(caller, "get_gold") and caller.get_gold() < fee:
-            caller.msg(f"You need {fee} gold to stable {pet.key}.")
+        if hasattr(caller, "get_gold") and caller.get_gold() < total_fee:
+            caller.msg(
+                f"Stabling {pet.key} costs {total_fee} gold:\n"
+                + "\n".join(breakdown)
+                + f"\nYou only have {caller.get_gold()} gold."
+            )
             return
 
         # Dismount if mounted
@@ -67,21 +97,21 @@ class CmdStable(FCMCommandMixin, Command):
             pet.force_dismount()
 
         # Pay fee
-        if fee > 0 and hasattr(caller, "_remove_gold"):
-            caller._remove_gold(fee)
+        if total_fee > 0 and hasattr(caller, "_remove_gold"):
+            caller._remove_gold(total_fee)
 
-        # Stable the pet
+        # Stable the pet — fed, healed, safe
         pet.stop_following()
         pet.pet_state = "stabled"
         pet.set_world_location(room)
-
-        # Move pet out of the visible room (to a hidden holding spot)
-        # Pet stays in the room but is hidden from display
+        pet.feed()  # reset hunger
+        pet.hp = hp_max  # full heal
         pet.db.stabled_at = room
 
         caller.msg(
-            f"You stable {pet.key} for {fee} gold. "
-            f"It will be safe here until you retrieve it."
+            f"You stable {pet.key} for {total_fee} gold:\n"
+            + "\n".join(breakdown)
+            + f"\n{pet.key} is fed, healed, and safe."
         )
         if room:
             room.msg_contents(
