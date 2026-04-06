@@ -22,6 +22,7 @@ Examples:
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from typeclasses.mixins.familiar_mixin import FamiliarMixin
 
 
 class CmdPet(FCMCommandMixin, Command):
@@ -33,12 +34,17 @@ class CmdPet(FCMCommandMixin, Command):
         pet <command>          — command first/only pet
         pet.<name> <command>   — command a specific pet
 
-    Commands: follow, stay, feed, status, attack <target>, mount, dismount
+    Commands: follow, stay, feed, status, attack <target>, mount, dismount,
+             look, <direction>, return, dismiss, name <newname>
 
     Examples:
         pet follow
         pet.horse mount
         pet.dog attack goblin
+        pet look                — see through familiar's eyes
+        pet north               — move familiar north (remote scout)
+        pet return              — recall familiar to your side
+        pet dismiss             — dismiss a summoned familiar
     """
 
     key = "pet"
@@ -110,21 +116,46 @@ class CmdPet(FCMCommandMixin, Command):
         elif args.startswith("name"):
             new_name = args[4:].strip()
             self._cmd_name(caller, pet, new_name)
+        elif args == "look":
+            self._cmd_remote_look(caller, pet)
+        elif args == "return":
+            self._cmd_remote_return(caller, pet)
+        elif args == "dismiss":
+            self._cmd_dismiss(caller, pet)
+        elif FamiliarMixin.is_direction(args):
+            self._cmd_remote_move(caller, pet, args)
         else:
             caller.msg(
                 "Unknown pet command. Try: follow, stay, feed, status, "
-                "attack <target>, mount, dismount, name <newname>"
+                "attack <target>, mount, dismount, name <newname>, "
+                "look, return, dismiss, <direction>"
             )
 
     def _find_my_pets(self, caller):
-        """Find all pets owned by caller in the same room."""
-        if not caller.location:
-            return []
-        return [
-            obj for obj in caller.location.contents
-            if getattr(obj, "is_pet", False)
-            and getattr(obj, "owner_key", None) == caller.key
-        ]
+        """Find all pets owned by caller in the same room, plus scouting familiars."""
+        pets = []
+        if caller.location:
+            pets = [
+                obj for obj in caller.location.contents
+                if getattr(obj, "is_pet", False)
+                and getattr(obj, "owner_key", None) == caller.key
+            ]
+
+        # Also find scouting familiars (may be in another room)
+        if not pets or not any(getattr(p, "is_familiar", False) for p in pets):
+            from evennia import ObjectDB
+            scouting = ObjectDB.objects.filter(
+                db_tags__db_key="familiar",
+                db_tags__db_category="pet_type",
+            )
+            for obj in scouting:
+                if (getattr(obj, "is_familiar", False)
+                        and getattr(obj, "owner_key", None) == caller.key
+                        and getattr(obj, "is_scouting", False)
+                        and obj not in pets):
+                    pets.append(obj)
+
+        return pets
 
     def _show_status(self, caller, pet):
         """Display pet status."""
@@ -249,5 +280,49 @@ class CmdPet(FCMCommandMixin, Command):
         if success and caller.location:
             caller.location.msg_contents(
                 f"{caller.key} dismounts {pet.key}.",
+                exclude=[caller], from_obj=caller,
+            )
+
+    # ================================================================== #
+    #  Familiar Remote Control
+    # ================================================================== #
+
+    def _cmd_remote_look(self, caller, pet):
+        """See through the familiar's eyes."""
+        if not getattr(pet, "is_familiar", False):
+            caller.msg(f"{pet.key} isn't a familiar — you can't see through its eyes.")
+            return
+        pet.remote_look(caller)
+
+    def _cmd_remote_move(self, caller, pet, direction):
+        """Move the familiar in a direction remotely."""
+        if not getattr(pet, "is_familiar", False):
+            caller.msg(f"{pet.key} isn't a familiar — you can't control it remotely.")
+            return
+        pet.remote_move(caller, direction)
+
+    def _cmd_remote_return(self, caller, pet):
+        """Recall the familiar to the caster."""
+        if not getattr(pet, "is_familiar", False):
+            caller.msg(f"{pet.key} isn't a familiar — it can't be recalled.")
+            return
+        pet.remote_return(caller)
+
+    def _cmd_dismiss(self, caller, pet):
+        """Dismiss a summoned pet (magical pets only)."""
+        creator_key = getattr(pet, "creator_key", None)
+        if not creator_key:
+            caller.msg(
+                f"You can't dismiss {pet.key} — it isn't a magically "
+                f"summoned creature."
+            )
+            return
+
+        name = pet.key
+        pet.delete()
+        caller.msg(f"|C{name} vanishes in a shimmer of arcane energy.|n")
+        if caller.location:
+            caller.location.msg_contents(
+                f"|C{name} vanishes in a shimmer of arcane energy.|n",
                 exclude=[caller], from_obj=caller,
             )
