@@ -90,6 +90,7 @@ from commands.all_char_cmds.cmd_consider import CmdConsider
 from commands.all_char_cmds.cmd_scan import CmdScan
 from commands.all_char_cmds.cmd_diagnose import CmdDiagnose
 from commands.all_char_cmds.cmd_areas import CmdAreas
+from commands.all_char_cmds.cmd_pet import CmdPet
 
 # tutorial commands
 from commands.all_char_cmds.cmd_tutorial_entry import (
@@ -164,13 +165,14 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdSmite())
         self.add(CmdShield())
 
-        # group / follow
+        # group / follow / pets
         self.add(CmdFollow())
         self.add(CmdUnfollow())
         self.add(CmdNofollow())
         self.add(CmdDisband())
         self.add(CmdGroup())
         self.add(CmdGtell())
+        self.add(CmdPet())
 
         # stealth
         self.add(CmdHide())

@@ -96,6 +96,30 @@ class FCMCharacter(
                         exclude=[self],
                     )
 
+    # Size thresholds for room access — large+ can't enter indoor rooms
+    _SIZE_ORDER = {"tiny": 0, "small": 1, "medium": 2, "large": 3, "huge": 4, "gargantuan": 5}
+    _INDOOR_MAX_SIZE = 2  # medium — large and above are blocked
+
+    def _check_pet_room_access(self, destination):
+        """Check if any following pet is too large for the destination room.
+
+        Returns the first blocked pet, or None if all can enter.
+        """
+        # Only check indoor rooms (max_height == 0)
+        max_height = getattr(destination, "max_height", None)
+        if max_height is None or max_height > 0:
+            return None  # outdoor or has height — no size restriction
+
+        followers = self.get_followers(same_room=True)
+        for f in followers:
+            if not getattr(f, "is_pet", False):
+                continue
+            pet_size = getattr(f, "size", "medium")
+            size_val = self._SIZE_ORDER.get(pet_size, 2)
+            if size_val > self._INDOOR_MAX_SIZE:
+                return f
+        return None
+
     race = AttributeProperty(Race.HUMAN)
 
     experience_points = AttributeProperty(0)  # Total experience points accumulated by the character
@@ -186,6 +210,15 @@ class FCMCharacter(
         if move_type in ("move", "follow", "traverse") and self.move < 1:
             self.msg("You are too exhausted to move.")
             return False
+        # Pet size restriction — block if a following pet can't fit
+        if move_type not in ("teleport", "flee") and destination:
+            blocked_pet = self._check_pet_room_access(destination)
+            if blocked_pet:
+                self.msg(
+                    f"Your {blocked_pet.key} is too large to go there. "
+                    f"Tell it to stay first (|wpet stay|n)."
+                )
+                return False
         return super().at_pre_move(destination, move_type=move_type, **kwargs)
 
     def at_post_move(self, source_location, move_type="move", **kwargs):
