@@ -28,6 +28,7 @@ from typeclasses.terrain.rooms.room_bank import RoomBank
 from typeclasses.terrain.rooms.room_crafting import RoomCrafting
 from typeclasses.terrain.rooms.room_inn import RoomInn
 from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
+from typeclasses.terrain.rooms.room_stable import RoomStable
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
@@ -1369,7 +1370,7 @@ def build_millholm_town(one_way_limbo=False):
 
     # ── Stables ──────────────────────────────────────────────────────
     rooms["stables"] = create_object(
-        RoomBase,
+        RoomStable,
         key="Millholm Stables",
         attributes=[
             ("max_height", 0),

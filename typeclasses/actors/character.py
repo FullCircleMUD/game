@@ -104,11 +104,16 @@ class FCMCharacter(
         """Check if any following pet is too large for the destination room.
 
         Returns the first blocked pet, or None if all can enter.
+        Stable rooms accept large animals regardless of max_height.
         """
         # Only check indoor rooms (max_height == 0)
         max_height = getattr(destination, "max_height", None)
         if max_height is None or max_height > 0:
             return None  # outdoor or has height — no size restriction
+
+        # Stables accept large animals
+        if destination.tags.has("stable", category="room_type"):
+            return None
 
         followers = self.get_followers(same_room=True)
         for f in followers:

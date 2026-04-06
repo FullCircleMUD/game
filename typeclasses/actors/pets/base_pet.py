@@ -81,6 +81,8 @@ class BasePet(NFTMirrorMixin, OwnedWorldObjectMixin, FollowableMixin, BaseNPC):
         """
         if getattr(self, "is_mounted", False):
             return ""
+        if self.pet_state == "stabled":
+            return ""
 
         name = self.key
         state = self.pet_state
