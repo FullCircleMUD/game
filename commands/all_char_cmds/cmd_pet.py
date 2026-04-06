@@ -1,19 +1,22 @@
 """
 Pet command — routing layer for pet interactions.
 
-Finds the owner's active pet(s) in the room and delegates subcommands
-to them. Phase 1 supports a single pet; future phases will add dot
-syntax for multiple pets (pet.dog, pet.horse).
+Finds the owner's active pet(s) in the room and delegates subcommands.
+With multiple pets, use dot syntax to target a specific one.
 
 Usage:
-    pet                     — show status of your pet(s) in the room
-    pet follow              — pet starts following you
-    pet stay                — pet stops following, waits here
-    pet feed                — feed the pet (resets hunger timer)
-    pet status              — show pet name, state, hunger
-    pet attack <target>     — pet attacks a target (combat pets only)
-    pet mount               — mount the pet (mounts only)
-    pet dismount            — dismount
+    pet                        — show status of all your pets here
+    pet <command>              — command your pet (or first pet if multiple)
+    pet.<name> <command>       — command a specific pet by name
+
+    Commands:
+        follow, stay, feed, status, attack <target>, mount, dismount
+
+Examples:
+    pet follow                 — first pet follows you
+    pet.horse mount            — mount the horse specifically
+    pet.dog attack goblin      — dog attacks goblin
+    pet.mule stay              — mule stays here
 """
 
 from evennia import Command
@@ -26,25 +29,37 @@ class CmdPet(FCMCommandMixin, Command):
     Interact with your pet.
 
     Usage:
-        pet                 — show pet status
-        pet follow          — pet follows you
-        pet stay            — pet waits here
-        pet feed            — feed your pet
-        pet status          — detailed pet status
-        pet attack <target> — pet attacks (combat pets only)
-        pet mount           — mount (mounts only)
-        pet dismount        — dismount
+        pet                    — show all pet status
+        pet <command>          — command first/only pet
+        pet.<name> <command>   — command a specific pet
 
-    Your pet must be in the same room as you.
+    Commands: follow, stay, feed, status, attack <target>, mount, dismount
+
+    Examples:
+        pet follow
+        pet.horse mount
+        pet.dog attack goblin
     """
 
     key = "pet"
     locks = "cmd:all()"
     help_category = "Pets"
+    # Match "pet" and "pet.anything"
+    arg_regex = r"(?:\.\w+)?\s|(?:\.\w+)?$"
 
     def func(self):
         caller = self.caller
-        args = self.args.strip().lower() if self.args else ""
+        raw = self.args or ""
+
+        # ── Parse dot syntax: "pet.horse mount" → pet_name="horse", args="mount"
+        pet_name = None
+        if raw.startswith("."):
+            # ".horse mount" or ".horse"
+            parts = raw.split(None, 1)
+            pet_name = parts[0][1:].lower()  # strip leading dot
+            args = parts[1].strip().lower() if len(parts) > 1 else ""
+        else:
+            args = raw.strip().lower()
 
         # Find owner's pets in this room
         pets = self._find_my_pets(caller)
@@ -53,10 +68,26 @@ class CmdPet(FCMCommandMixin, Command):
             caller.msg("You don't have a pet here.")
             return
 
-        # Phase 1: single pet (first found)
-        pet = pets[0]
+        # Select pet — by name if dot syntax, else first
+        if pet_name:
+            pet = None
+            for p in pets:
+                if p.key.lower().startswith(pet_name):
+                    pet = p
+                    break
+            if not pet:
+                caller.msg(f"You don't have a pet called '{pet_name}' here.")
+                return
+        else:
+            pet = pets[0]
 
+        # ── Show all pets if no command
         if not args or args == "status":
+            if not pet_name and len(pets) > 1:
+                # Show all pets
+                for p in pets:
+                    self._show_status(caller, p)
+                return
             self._show_status(caller, pet)
         elif args == "follow":
             self._cmd_follow(caller, pet)
@@ -73,8 +104,8 @@ class CmdPet(FCMCommandMixin, Command):
             self._cmd_dismount(caller, pet)
         else:
             caller.msg(
-                "Unknown pet command. Try: pet follow, pet stay, "
-                "pet feed, pet status, pet attack, pet mount, pet dismount"
+                "Unknown pet command. Try: follow, stay, feed, status, "
+                "attack <target>, mount, dismount"
             )
 
     def _find_my_pets(self, caller):
