@@ -30,6 +30,12 @@ class RegenerationService(DefaultScript):
                 char = session.get_puppet()
                 logger.log_trace(f"Regen error for {char.key if char else 'unknown'}")
 
+            # Regen active pets belonging to this character
+            try:
+                self._process_pets(session)
+            except Exception:
+                logger.log_trace("Pet regen error")
+
     def _process_character(self, session):
         """Process regen/degen for a single character."""
         char = session.get_puppet()
@@ -56,6 +62,33 @@ class RegenerationService(DefaultScript):
 
         self.send_hunger_messages(char, hunger_level)
 
+
+    def _process_pets(self, session):
+        """Regen HP for active pets belonging to this session's character."""
+        char = session.get_puppet()
+        if not char or not char.location:
+            return
+
+        for obj in char.location.contents:
+            if not getattr(obj, "is_pet", False):
+                continue
+            if getattr(obj, "owner_key", None) != char.key:
+                continue
+            if getattr(obj, "pet_state", None) == "stabled":
+                continue
+
+            # Check pet hunger — starving pets don't regen, dead pets die
+            hunger = obj.check_hunger() if hasattr(obj, "check_hunger") else "fed"
+            if hunger == "dead":
+                obj.die(cause="starvation")
+                continue
+            if hunger == "starving":
+                continue  # no regen while starving
+
+            # Simple HP regen: 1 per tick (pets are simpler than characters)
+            hp_max = getattr(obj, "hp_max", 0)
+            if hp_max > 0 and obj.hp < hp_max:
+                obj.hp = min(hp_max, obj.hp + 1)
 
     def send_hunger_messages(self, character, hunger_level):
         
