@@ -1,0 +1,369 @@
+Creating test database for alias 'default'...
+Creating test database for alias 'xrpl'...
+Creating test database for alias 'ai_memory'...
+E.......Vector memory store failed for TestNPC — falling back to rolling list
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\typeclasses\mixins\llm_mixin.py", line 799, in _store_memory_vector
+    store_memory(
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+Exception: db error
+............................................................................................................................................................................................................................................................................................................................................................................................................................F..........................................................................................................F...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................F...................................................................................................................................................................................F................................................................................................................................................................................................................................................................................................................................................................F..FFFFFFFFF.F................................................................................................EEE..........................................................................................................................................................................................................F..................................................................................................................................................................................................F...............................F.............................................................F.....F.............................................F.............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................F.................F...................................................................................................................................................................................................................................................................................................................................................................................................F..........................................................................................................................................................................................................................F............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+======================================================================
+ERROR: game.tests.command_tests.test_cmd_consider (unittest.loader._FailedTest.game.tests.command_tests.test_cmd_consider)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: game.tests.command_tests.test_cmd_consider
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_cmd_consider.py", line 10, in <module>
+    from commands.all_char_cmds.cmd_consider import CmdConsider, _get_consider_message
+ImportError: cannot import name '_get_consider_message' from 'commands.all_char_cmds.cmd_consider' (C:\Users\micro\Documents\FCM\src\game\commands\all_char_cmds\cmd_consider.py)
+
+
+======================================================================
+ERROR: test_guild_shows_quest_completed (game.tests.command_tests.test_quests.TestCmdGuildQuestDisplay.test_guild_shows_quest_completed)
+guild command shows quest completed status.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_quests.py", line 950, in test_guild_shows_quest_completed
+    result = self.call(CmdGuild(), "", obj=self.guildmaster)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\venv\Lib\site-packages\evennia\utils\test_resources.py", line 463, in call
+    ret = cmdobj.func()
+          ^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\commands\npc_cmds\cmdset_guildmaster.py", line 67, in func
+    if char_class.required_alignments:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CharClassBase' object has no attribute 'required_alignments'
+
+======================================================================
+ERROR: test_guild_shows_quest_in_progress (game.tests.command_tests.test_quests.TestCmdGuildQuestDisplay.test_guild_shows_quest_in_progress)
+guild command shows quest in-progress status.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_quests.py", line 941, in test_guild_shows_quest_in_progress
+    result = self.call(CmdGuild(), "", obj=self.guildmaster)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\venv\Lib\site-packages\evennia\utils\test_resources.py", line 463, in call
+    ret = cmdobj.func()
+          ^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\commands\npc_cmds\cmdset_guildmaster.py", line 67, in func
+    if char_class.required_alignments:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CharClassBase' object has no attribute 'required_alignments'
+
+======================================================================
+ERROR: test_guild_shows_quest_requirement (game.tests.command_tests.test_quests.TestCmdGuildQuestDisplay.test_guild_shows_quest_requirement)
+guild command shows quest requirement.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_quests.py", line 932, in test_guild_shows_quest_requirement
+    result = self.call(CmdGuild(), "", obj=self.guildmaster)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\venv\Lib\site-packages\evennia\utils\test_resources.py", line 463, in call
+    ret = cmdobj.func()
+          ^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\commands\npc_cmds\cmdset_guildmaster.py", line 67, in func
+    if char_class.required_alignments:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CharClassBase' object has no attribute 'required_alignments'
+
+======================================================================
+FAIL: test_choosable_excludes_auto (game.tests.command_tests.test_cmd_charcreate.TestLanguagesNode.test_choosable_excludes_auto)
+Choosable languages should exclude auto-granted ones.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_cmd_charcreate.py", line 1130, in test_choosable_excludes_auto
+    self.assertIn("kobold", keys)
+AssertionError: 'kobold' not found in {'dragon', 'elfish', 'celestial', 'goblin', 'halfling'}
+
+======================================================================
+FAIL: test_climb_while_sleeping (game.tests.command_tests.test_cmd_climb.TestCmdClimbGuards.test_climb_while_sleeping)
+Sleeping characters can't climb.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_cmd_climb.py", line 118, in test_climb_while_sleeping
+    self.assertIn("asleep", result)
+AssertionError: 'asleep' not found in 'In your dreams or what? Try stand or wake.'
+
+======================================================================
+FAIL: test_race_select_shows_remort_tag (game.tests.command_tests.test_cmd_remort.TestRemortTags.test_race_select_shows_remort_tag)
+Remort races should show [Remort] tag in display.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_cmd_remort.py", line 277, in test_race_select_shows_remort_tag
+    self.assertTrue(found_remort_tag, "Halfling should show [Remort] tag")
+AssertionError: False is not true : Halfling should show [Remort] tag
+
+======================================================================
+FAIL: test_sleeping_blocked (game.tests.command_tests.test_cmd_social.TestSocialGuards.test_sleeping_blocked)
+Sleeping characters can't use socials.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_cmd_social.py", line 91, in test_sleeping_blocked
+    self.assertIn("asleep", result.lower())
+AssertionError: 'asleep' not found in 'in your dreams or what? try stand or wake.'
+
+======================================================================
+FAIL: test_enchant_alias_works (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantAlias.test_enchant_alias_works)
+'enchant ruby' should work via the enchant alias.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 561, in test_enchant_alias_works
+    mock_assign.assert_called_once_with("Enchanted Ruby")
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 960, in assert_called_once_with
+    raise AssertionError(msg)
+AssertionError: Expected 'assign_to_blank_token' to be called once. Called 0 times.
+
+======================================================================
+FAIL: test_enchant_awards_xp (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_awards_xp)
+Enchanting should award BASIC craft XP (5).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 463, in test_enchant_awards_xp
+    self.assertEqual(self.char1.experience_points, 5)
+AssertionError: 0 != 5
+
+======================================================================
+FAIL: test_enchant_consumes_gold (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_consumes_gold)
+Enchanting should consume workshop fee gold.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 395, in test_enchant_consumes_gold
+    self.assertEqual(self.char1.get_gold(), 45)
+AssertionError: 50 != 45
+
+======================================================================
+FAIL: test_enchant_consumes_resources (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_consumes_resources)
+Enchanting should consume 2 Arcane Dust + 1 Ruby.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 376, in test_enchant_consumes_resources
+    self.assertEqual(self.char1.get_resource(15), 3)
+AssertionError: 5 != 3
+
+======================================================================
+FAIL: test_enchant_no_restriction (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_no_restriction)
+Restriction type 'none' should set empty gem_restrictions.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 359, in test_enchant_no_restriction
+    self.assertEqual(mock_item.db.gem_restrictions, {})
+AssertionError: <MagicMock name='spawn_into().db.gem_restrictions' id='2407791561952'> != {}
+
+======================================================================
+FAIL: test_enchant_progress_uses_enchanting_gerund (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_progress_uses_enchanting_gerund)
+Progress bar should use 'Enchanting' gerund.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 429, in test_enchant_progress_uses_enchanting_gerund
+    self.assertIn("Enchanting Enchanted Ruby...", result)
+AssertionError: 'Enchanting Enchanted Ruby...' not found in "You don't have enough materials to craft Enchanted Ruby:\n  - 2 Arcane Dust (have 0)\n{'oob': ('vitals_update', {'hp': 1, 'hp_max': 1, 'mana': 0, 'mana_max': 1, 'move': 1, 'move_max': 3, 'level': 1})}\n{'prompt': '1H 0M 1V > '}"
+
+======================================================================
+FAIL: test_enchant_sets_gem_effects (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_sets_gem_effects)
+Successful enchant should set gem_effects on the spawned item.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 323, in test_enchant_sets_gem_effects
+    self.assertEqual(mock_item.db.gem_effects, fly_effects)
+AssertionError: <MagicMock name='spawn_into().db.gem_effects' id='2407792907312'> != [{'type': 'condition', 'condition': 'fly'}]
+
+======================================================================
+FAIL: test_enchant_sets_gem_restrictions (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_sets_gem_restrictions)
+Enchanting with a race restriction roll should set gem_restrictions.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 342, in test_enchant_sets_gem_restrictions
+    self.assertEqual(mock_item.db.gem_restrictions, {"required_races": ["dwarf"]})
+AssertionError: <MagicMock name='spawn_into().db.gem_restrictions' id='2407793736640'> != {'required_races': ['dwarf']}
+
+======================================================================
+FAIL: test_enchant_shows_success_message (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_shows_success_message)
+Success message should use 'enchant' verb.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 411, in test_enchant_shows_success_message
+    self.assertIn("You enchant a Enchanted Ruby!", result)
+AssertionError: 'You enchant a Enchanted Ruby!' not found in "You don't have enough materials to craft Enchanted Ruby:\n  - 2 Arcane Dust (have 0)\n{'oob': ('vitals_update', {'hp': 1, 'hp_max': 1, 'mana': 0, 'mana_max': 1, 'move': 1, 'move_max': 3, 'level': 1})}\n{'prompt': '1H 0M 1V > '}"
+
+======================================================================
+FAIL: test_enchant_spawns_correct_item_type (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantRuby.test_enchant_spawns_correct_item_type)
+Should call assign_to_blank_token with 'Enchanted Ruby'.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 445, in test_enchant_spawns_correct_item_type
+    mock_assign.assert_called_once_with("Enchanted Ruby")
+  File "C:\Users\micro\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 960, in assert_called_once_with
+    raise AssertionError(msg)
+AssertionError: Expected 'assign_to_blank_token' to be called once. Called 0 times.
+
+======================================================================
+FAIL: test_insufficient_gold (game.tests.command_tests.test_gem_enchanting.TestCmdCraftEnchantValidation.test_insufficient_gold)
+Should fail if not enough gold for workshop fee.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\command_tests\test_gem_enchanting.py", line 505, in test_insufficient_gold
+    self.assertIn("You need 5 gold", result)
+AssertionError: 'You need 5 gold' not found in "You don't have enough materials to craft Enchanted Ruby:\n  - 2 Arcane Dust (have 0)\n{'oob': ('vitals_update', {'hp': 1, 'hp_max': 1, 'mana': 0, 'mana_max': 1, 'move': 1, 'move_max': 3, 'level': 1})}\n{'prompt': '1H 0M 1V > '}"
+
+======================================================================
+FAIL: test_superuser_languages_are_dynamic (game.tests.server_tests.test_account_hooks.TestSuperuserLanguageGrant.test_superuser_languages_are_dynamic)
+The enum-based approach means new languages are automatically included.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\server_tests\test_account_hooks.py", line 57, in test_superuser_languages_are_dynamic
+    self.assertIn("kobold", all_lang_values)
+AssertionError: 'kobold' not found in {'dragon', 'elfish', 'dwarven', 'common', 'celestial', 'goblin', 'halfling'}
+
+======================================================================
+FAIL: test_abjuration_school_has_all_spells (game.tests.spell_tests.test_abjuration_necromancy.TestAbjurationRegistry.test_abjuration_school_has_all_spells)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\spell_tests\test_abjuration_necromancy.py", line 85, in test_abjuration_school_has_all_spells
+    self.assertEqual(set(abj.keys()), expected)
+AssertionError: Items in the first set but not the second:
+'feather_fall'
+
+======================================================================
+FAIL: test_necromancy_school_has_all_spells (game.tests.spell_tests.test_abjuration_necromancy.TestNecromancyRegistry.test_necromancy_school_has_all_spells)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\spell_tests\test_abjuration_necromancy.py", line 262, in test_necromancy_school_has_all_spells
+    self.assertEqual(set(necro.keys()), expected)
+AssertionError: Items in the first set but not the second:
+'fear'
+'raise_skeleton'
+
+======================================================================
+FAIL: test_conjuration_school_has_all_spells (game.tests.spell_tests.test_conjuration_divination_illusion.TestConjurationRegistry.test_conjuration_school_has_all_spells)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\spell_tests\test_conjuration_divination_illusion.py", line 83, in test_conjuration_school_has_all_spells
+    self.assertEqual(set(conj.keys()), expected)
+AssertionError: Items in the first set but not the second:
+'light_spell'
+'find_familiar'
+
+======================================================================
+FAIL: test_divination_school_has_all_spells (game.tests.spell_tests.test_conjuration_divination_illusion.TestDivinationRegistry.test_divination_school_has_all_spells)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\spell_tests\test_conjuration_divination_illusion.py", line 259, in test_divination_school_has_all_spells
+    self.assertEqual(set(div.keys()), expected)
+AssertionError: Items in the first set but not the second:
+'darkvision'
+'locate_object'
+'detect_traps'
+
+======================================================================
+FAIL: test_illusion_school_has_all_spells (game.tests.spell_tests.test_conjuration_divination_illusion.TestIllusionRegistry.test_illusion_school_has_all_spells)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\spell_tests\test_conjuration_divination_illusion.py", line 993, in test_illusion_school_has_all_spells
+    self.assertEqual(set(ill.keys()), expected)
+AssertionError: Items in the first set but not the second:
+'disguise_self'
+'mirror_image'
+'distract'
+
+======================================================================
+FAIL: test_min_remort (game.tests.typeclass_tests.test_races.TestHalflingRace.test_min_remort)
+Halfling should require 1 remort.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\typeclass_tests\test_races.py", line 450, in test_min_remort
+    self.assertEqual(self.race.min_remort, 1)
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_get_available_races_all_base (game.tests.typeclass_tests.test_races.TestRaceRegistry.test_get_available_races_all_base)
+All base races should be available at 0 remorts.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\typeclass_tests\test_races.py", line 63, in test_get_available_races_all_base
+    self.assertEqual(len(available), 3)
+AssertionError: 4 != 3
+
+======================================================================
+FAIL: test_hp_clamped_to_max (game.tests.typeclass_tests.test_spells.TestCureWounds.test_hp_clamped_to_max)
+Healing should not exceed hp_max.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\typeclass_tests\test_spells.py", line 356, in test_hp_clamped_to_max
+    self.assertTrue(success)
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_attributes (game.tests.typeclass_tests.test_spells.TestVampiricTouch.test_attributes)
+Vampiric Touch should have correct class attributes.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\micro\Documents\FCM\src\game\tests\typeclass_tests\test_spells.py", line 1120, in test_attributes
+    self.assertIn("vamp", self.spell.aliases)
+AssertionError: 'vamp' not found in ['vt']
+
+----------------------------------------------------------------------
+Ran 5152 tests in 9479.336s
+
+FAILED (failures=25, errors=4)
+Destroying test database for alias 'default'...
+Destroying test database for alias 'xrpl'...
+Destroying test database for alias 'ai_memory'...
+Using settings file 'settings' (server.conf.settings).
+
+    TESTING: Using specified settings file 'server.conf.settings'.
+
+    OBS: Evennia's full test suite may not pass if the settings are very
+    different from the default (use 'evennia test evennia' to run core tests)
+    
+Found 5152 test(s).
+System check identified no issues (0 silenced).
+  NFT mirror spawn failed for #10110: NFT 10110 is not in RESERVE state
+  NFT mirror spawn failed for #10111: NFT 10111 is not in RESERVE state
+  NFT mirror deposit_from_chain failed for #10102: NFT 10102 is not in ONCHAIN state (current: ACCOUNT)
+  NFT mirror spawn failed for #10100: NFT 10100 is not in RESERVE state
+  NFT mirror craft_output failed for #10101: NFT 10101 is not in RESERVE state (current: CHARACTER)
+  RecycleBin: deleting orphaned object 'random junk'
+  RecycleBin: deleting orphaned object 'an orphaned lamp'
+  RecycleBin: deleting orphaned object 'an orphaned token'
