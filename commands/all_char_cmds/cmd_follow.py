@@ -201,6 +201,19 @@ class CmdDisband(FCMCommandMixin, Command):
             return
 
         for f in followers:
+            # Pets stay with their owner — don't break pet follow
+            if getattr(f, "is_pet", False):
+                owner_key = getattr(f, "owner_key", None)
+                if owner_key:
+                    # Re-attach to owner instead of clearing
+                    from evennia import search_object
+                    owners = [
+                        o for o in search_object(owner_key, exact=True)
+                        if getattr(o, "is_pc", False)
+                    ]
+                    if owners:
+                        f.following = owners[0]
+                        continue
             f.following = None
             f.msg(f"{caller.key} has disbanded the group.")
 
