@@ -14,6 +14,7 @@ from typeclasses.mixins.combat_companion import CombatCompanionMixin
 class WarDog(CombatCompanionMixin, BasePet):
     """A trained war dog. Medium-sized combat companion."""
 
+    pet_type = AttributeProperty("dog")
     size = AttributeProperty("medium")
 
     # ── Combat ──

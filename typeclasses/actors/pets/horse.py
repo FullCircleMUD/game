@@ -15,6 +15,7 @@ from typeclasses.mixins.mount_mixin import MountMixin
 class Horse(CombatCompanionMixin, MountMixin, BasePet):
     """A riding horse. Large mount with combat kick."""
 
+    pet_type = AttributeProperty("horse")
     size = AttributeProperty("large")
     mount_movement_bonus = AttributeProperty(3)  # 3x move efficiency
 

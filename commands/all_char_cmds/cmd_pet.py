@@ -72,7 +72,12 @@ class CmdPet(FCMCommandMixin, Command):
         if pet_name:
             pet = None
             for p in pets:
+                # Match against custom name (key) or type name (pet_type)
                 if p.key.lower().startswith(pet_name):
+                    pet = p
+                    break
+                pet_type = getattr(p, "pet_type", "")
+                if pet_type and pet_type.lower().startswith(pet_name):
                     pet = p
                     break
             if not pet:
@@ -102,10 +107,13 @@ class CmdPet(FCMCommandMixin, Command):
             self._cmd_mount(caller, pet)
         elif args == "dismount":
             self._cmd_dismount(caller, pet)
+        elif args.startswith("name"):
+            new_name = args[4:].strip()
+            self._cmd_name(caller, pet, new_name)
         else:
             caller.msg(
                 "Unknown pet command. Try: follow, stay, feed, status, "
-                "attack <target>, mount, dismount"
+                "attack <target>, mount, dismount, name <newname>"
             )
 
     def _find_my_pets(self, caller):
@@ -210,6 +218,23 @@ class CmdPet(FCMCommandMixin, Command):
         if success and caller.location:
             caller.location.msg_contents(
                 f"{caller.key} mounts {pet.key}.",
+                exclude=[caller], from_obj=caller,
+            )
+
+    def _cmd_name(self, caller, pet, new_name):
+        """Rename the pet."""
+        if not new_name:
+            caller.msg(f"Name it what? Usage: pet name <newname>")
+            return
+
+        # Capitalize and limit length
+        new_name = new_name.strip()[:20].title()
+        old_name = pet.key
+        pet.key = new_name
+        caller.msg(f"You name your {pet.pet_type or 'pet'} '{new_name}'.")
+        if caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} names their {pet.pet_type or 'pet'} '{new_name}'.",
                 exclude=[caller], from_obj=caller,
             )
 

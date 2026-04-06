@@ -47,6 +47,7 @@ class BasePet(NFTMirrorMixin, OwnedWorldObjectMixin, FollowableMixin, BaseNPC):
     """
 
     is_pet = True  # marker for filtering
+    pet_type = AttributeProperty("")  # "dog", "horse", "mule" — for dot syntax matching
 
     # ── Pet state ──
     owner_key = AttributeProperty(None)       # character_key of owner

@@ -14,6 +14,7 @@ from typeclasses.actors.pets.base_pet import BasePet
 class Mule(BasePet):
     """A sturdy mule. Medium-sized pack animal."""
 
+    pet_type = AttributeProperty("mule")
     size = AttributeProperty("medium")
 
     # ── Stats — hardy but not a fighter ──
