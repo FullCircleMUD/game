@@ -26,7 +26,9 @@ class SwimmingMixin:
         self.room_vertical_position = self.preferred_depth
 
     def dive(self, levels=1):
-        """Move deeper by levels. Capped by room max_depth."""
+        """Move deeper by levels. Capped by room max_depth. Blocked by thorn_whip_held."""
+        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
+            return False
         room = self.location
         max_d = getattr(room, "max_depth", 0) if room else 0
         new_pos = max(self.room_vertical_position - levels, max_d)
@@ -36,7 +38,9 @@ class SwimmingMixin:
         return False
 
     def surface(self, levels=1):
-        """Move toward surface by levels. Won't go above 0 (surface)."""
+        """Move toward surface by levels. Won't go above 0 (surface). Blocked by thorn_whip_held."""
+        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
+            return False
         new_pos = min(0, self.room_vertical_position + levels)
         if new_pos != self.room_vertical_position:
             self.room_vertical_position = new_pos

@@ -456,6 +456,10 @@ class EffectsManagerMixin:
         if has_stat_effects:
             self._recalculate_stats()
 
+        # Post-removal hooks for specific effects
+        if key == "thorn_whip_held" and hasattr(self, "_check_fall"):
+            self._check_fall()
+
         return True
 
     def has_effect(self, key):

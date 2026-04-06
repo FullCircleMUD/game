@@ -155,6 +155,16 @@ class NamedEffect(Enum):
     # No condition flag — purely a named effect checked at fall time.
     FEATHER_FALL = "feather_fall"
 
+    #########################################################
+    # Nature Magic Debuffs
+    #########################################################
+    # APPLIED: thorn_whip.py (_execute) — nature magic pull + hold
+    # CHECKED: flying_mixin ascend/descend, swimming_mixin dive/surface — blocks height changes
+    # DURATION: 1-5 combat rounds (mastery-scaled). No save.
+    # No condition flag — purely named effect. Blocks height changes while active.
+    # On expiry: triggers _check_fall() for fall damage if airborne without FLY.
+    THORN_WHIP_HELD = "thorn_whip_held"
+
     # APPLIED: detect_alignment.py (_execute) — divine revelation utility
     # CHECKED: room_base.get_display_characters() — shows alignment tags
     # DURATION: seconds-based (30 min to 4 hours, mastery-scaled).
@@ -382,6 +392,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.THORN_WHIP_HELD: "Thorny vines wrap around you, holding you in place!",
     NamedEffect.DETECT_ALIGNMENT: "Your eyes tingle with divine insight. You can sense the alignment of others.",
     NamedEffect.FRIGHTENED: "Supernatural terror grips you! You must flee!",
     NamedEffect.LIGHT_SPELL: "A glowing orb of light appears, illuminating your surroundings.",
@@ -419,6 +430,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.THORN_WHIP_HELD: "The thorny vines wither and release you!",
     NamedEffect.DETECT_ALIGNMENT: "The divine insight fades and you can no longer sense alignment.",
     NamedEffect.FRIGHTENED: "The supernatural terror fades and you regain your courage.",
     NamedEffect.LIGHT_SPELL: "The magical light flickers and fades into darkness.",
@@ -456,6 +468,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.THORN_WHIP_HELD: "Thorny vines wrap around {name}, holding them in place!",
     NamedEffect.DETECT_ALIGNMENT: "{name}'s eyes glow briefly with divine insight.",
     NamedEffect.FRIGHTENED: "{name} is gripped by supernatural terror and tries to flee!",
     NamedEffect.LIGHT_SPELL: "A glowing orb of light appears around {name}, illuminating the area.",
@@ -493,6 +506,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.THORN_WHIP_HELD: "The thorny vines binding {name} wither and release them!",
     NamedEffect.DETECT_ALIGNMENT: "The divine insight fades from {name}'s eyes.",
     NamedEffect.FRIGHTENED: "{name} shakes off the supernatural terror and stands firm.",
     NamedEffect.LIGHT_SPELL: "The magical light around {name} flickers and fades.",
@@ -544,6 +558,7 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.INVISIBLE: "seconds",
     NamedEffect.BLINDED: "combat_rounds",
     NamedEffect.FRIGHTENED: "combat_rounds",
+    NamedEffect.THORN_WHIP_HELD: "combat_rounds",
     NamedEffect.DETECT_ALIGNMENT: "seconds",
     NamedEffect.LIGHT_SPELL: "seconds",
     NamedEffect.BLESSED: "seconds",

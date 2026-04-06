@@ -29,6 +29,11 @@ class CmdSwim(FCMCommandMixin, Command):
         room = caller.location
         max_depth = getattr(room, "max_depth", 0)
 
+        # Thorn whip hold blocks all height changes
+        if hasattr(caller, "has_effect") and caller.has_effect("thorn_whip_held"):
+            caller.msg("|rThorny vines hold you in place! You can't change depth!|n")
+            return
+
         # Encumbrance check — can't swim when overloaded
         if caller.is_encumbered and max_depth < 0:
             if current_level > max_depth:

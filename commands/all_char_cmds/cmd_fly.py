@@ -55,6 +55,11 @@ class CmdFly(FCMCommandMixin, Command):
         self.caller.msg(f"room max depth: {max_depth}")
         """
    
+        # Thorn whip hold blocks all height changes
+        if hasattr(self.caller, "has_effect") and self.caller.has_effect("thorn_whip_held"):
+            self.caller.msg("|rThorny vines hold you in place! You can't change height!|n")
+            return
+
         if self.direction == "up" or self.direction == "u":
 
             if current_level < 0:

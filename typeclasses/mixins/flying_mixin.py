@@ -26,7 +26,9 @@ class FlyingMixin:
         self.room_vertical_position = self.preferred_height
 
     def ascend(self, levels=1):
-        """Move up by levels. Capped by room max_height."""
+        """Move up by levels. Capped by room max_height. Blocked by thorn_whip_held."""
+        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
+            return False
         room = self.location
         max_h = getattr(room, "max_height", 1) if room else 1
         new_pos = min(self.room_vertical_position + levels, max_h)
@@ -36,7 +38,9 @@ class FlyingMixin:
         return False
 
     def descend(self, levels=1):
-        """Move down by levels. Won't go below 0 (ground)."""
+        """Move down by levels. Won't go below 0 (ground). Blocked by thorn_whip_held."""
+        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
+            return False
         new_pos = max(0, self.room_vertical_position - levels)
         if new_pos != self.room_vertical_position:
             self.room_vertical_position = new_pos
