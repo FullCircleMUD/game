@@ -847,7 +847,7 @@ class TestWeaponSkillsNode(BaseEvenniaTest):
         state["selected_weapon_skills"] = {"dagger"}
         state["selected_class_skills"] = {"bash"}
         state["selected_general_skills"] = {"battleskills"}
-        state["selected_extra_languages"] = {"kobold"}
+        state["selected_extra_languages"] = {"goblin"}
         caller = _MockCaller(state)
         result = _clear_skills_and_back_to_pointbuy(caller, "")
         self.assertEqual(result, "node_point_buy")
@@ -1127,7 +1127,6 @@ class TestLanguagesNode(BaseEvenniaTest):
         self.assertNotIn("common", keys)
         self.assertNotIn("dwarven", keys)
         self.assertIn("elfish", keys)
-        self.assertIn("kobold", keys)
         self.assertIn("goblin", keys)
         self.assertIn("dragon", keys)
 
@@ -1237,7 +1236,7 @@ class TestLanguagesNode(BaseEvenniaTest):
         """Done with all language picks used goes directly to name."""
         state = _skill_state(race_key="human")
         state["scores"][Ability.INT] = 12  # 1 pick
-        state["selected_extra_languages"] = {"kobold"}
+        state["selected_extra_languages"] = {"goblin"}
         caller = _MockCaller(state)
         text, options = node_languages(caller, "")
         done_opt = [o for o in options if isinstance(o.get("key"), tuple) and "done" in o["key"]]
@@ -1416,7 +1415,7 @@ class TestConfirmSkillsDisplay(BaseEvenniaTest):
         state["selected_weapon_skills"] = {"dagger", "bow"}
         state["selected_class_skills"] = {"bash", "protect"}
         state["selected_general_skills"] = {"battleskills"}
-        state["selected_extra_languages"] = {"kobold"}
+        state["selected_extra_languages"] = {"goblin"}
         return state
 
     def test_confirm_shows_weapon_skills(self):
@@ -1454,7 +1453,7 @@ class TestConfirmSkillsDisplay(BaseEvenniaTest):
         self.assertIn("Languages", text)
         self.assertIn("Common", text)
         self.assertIn("Dwarven", text)
-        self.assertIn("Kobold", text)
+        self.assertIn("Goblin", text)
 
     def test_confirm_shows_con_modifier_in_hp(self):
         """HP display should include CON modifier when non-zero."""
@@ -1488,7 +1487,7 @@ class TestCreateSkillApplication(BaseEvenniaTest):
         state["selected_weapon_skills"] = {"dagger", "bow"}
         state["selected_class_skills"] = {"bash", "protect"}
         state["selected_general_skills"] = {"battleskills"}
-        state["selected_extra_languages"] = {"kobold"}
+        state["selected_extra_languages"] = {"goblin"}
         return state
 
     def _run_create(self, state):
@@ -1587,7 +1586,7 @@ class TestCreateSkillApplication(BaseEvenniaTest):
         """Extra chosen languages should be added to character's languages."""
         mock_char, _ = self._run_create(self._create_state())
         langs = mock_char.db.languages
-        self.assertIn("kobold", langs)
+        self.assertIn("goblin", langs)
         # Auto languages should still be there
         self.assertIn("common", langs)
         self.assertIn("dwarven", langs)

@@ -88,7 +88,7 @@ class TestSocialGuards(EvenniaCommandTest):
         """Sleeping characters can't use socials."""
         self.char1.position = "sleeping"
         result = self.call(CmdTestBow(), "", caller=self.char1)
-        self.assertIn("asleep", result.lower())
+        self.assertIn("dreams", result.lower())
 
     def test_hidden_blocked(self):
         """Hidden characters can't use socials."""

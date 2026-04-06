@@ -443,25 +443,49 @@ class FungibleService:
         """
         Consume world-spawned currency into SINK.
         SPAWNED (world) -> SINK (vault).
+
+        DISABLED (2026-04-06): This method is currently unused in the
+        game. All callers of return_gold_to_sink / return_resource_to_sink
+        are characters or accounts — the WORLD branch in the dispatch
+        is never reached. The original implementation also had a latent
+        bug: it logged a FungibleTransferLog with from_wallet == to_wallet
+        (both vault), which violates the xrpl_fungible_transfer_not_self
+        DB constraint. Since this is a vault-internal reclassification
+        (no ownership change), it should not be logged — matching the
+        pattern used by spawn() and despawn().
+
+        Stubbed with NotImplementedError so that if any future code path
+        does reach this, it will fail loudly rather than silently
+        breaking the DB constraint.
         """
-        with transaction.atomic():
-            FungibleService._debit(
-                currency_code, amount,
-                wallet_address=vault_address,
-                location=FungibleGameState.LOCATION_SPAWNED,
-            )
-            FungibleService._credit(
-                currency_code, amount,
-                wallet_address=vault_address,
-                location=FungibleGameState.LOCATION_SINK,
-            )
-            FungibleTransferLog.objects.create(
-                currency_code=currency_code,
-                from_wallet=vault_address,
-                to_wallet=vault_address,
-                amount=amount,
-                transfer_type="sink",
-            )
+        raise NotImplementedError(
+            "FungibleService.sink_world() is not yet implemented. "
+            "This vault-internal SPAWNED -> SINK path has no callers. "
+            "If you need this, remove the transfer log (vault-internal "
+            "moves are not logged — see spawn/despawn) and re-enable."
+        )
+        # --- Original implementation (disabled) ---
+        # with transaction.atomic():
+        #     FungibleService._debit(
+        #         currency_code, amount,
+        #         wallet_address=vault_address,
+        #         location=FungibleGameState.LOCATION_SPAWNED,
+        #     )
+        #     FungibleService._credit(
+        #         currency_code, amount,
+        #         wallet_address=vault_address,
+        #         location=FungibleGameState.LOCATION_SINK,
+        #     )
+        #     # BUG: from_wallet == to_wallet violates
+        #     # xrpl_fungible_transfer_not_self constraint.
+        #     # Vault-internal moves should not be logged.
+        #     FungibleTransferLog.objects.create(
+        #         currency_code=currency_code,
+        #         from_wallet=vault_address,
+        #         to_wallet=vault_address,
+        #         amount=amount,
+        #         transfer_type="sink",
+        #     )
 
     @staticmethod
     def sink_account(currency_code, wallet_address, amount, vault_address):

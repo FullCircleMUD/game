@@ -181,9 +181,15 @@ class ResourceService:
     @staticmethod
     def sink_world(resource_id, amount, chain_id, contract_address,
                    vault_address):
-        FungibleService.sink_world(
-            _code(resource_id), amount, vault_address,
+        """DISABLED: See FungibleService.sink_world() for details."""
+        raise NotImplementedError(
+            "ResourceService.sink_world() is not yet implemented. "
+            "See FungibleService.sink_world() for details."
         )
+        # --- Original implementation (disabled) ---
+        # FungibleService.sink_world(
+        #     _code(resource_id), amount, vault_address,
+        # )
 
     @staticmethod
     def sink_account(wallet_address, resource_id, amount, chain_id,

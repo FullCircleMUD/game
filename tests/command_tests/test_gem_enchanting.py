@@ -300,8 +300,8 @@ class TestCmdCraftEnchantRuby(EvenniaCommandTest):
         # Give character enchanting skill and recipe
         _give_enchanting_skill(self.char1)
         _learn_enchant_ruby(self.char1)
-        # Give resources: 2 Arcane Dust (15) + 1 Ruby (33)
-        _give_resources(self.char1, {15: 5, 33: 3})
+        # Give resources: Arcane Dust (16) + Ruby (33)
+        _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
 
     @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
@@ -373,7 +373,7 @@ class TestCmdCraftEnchantRuby(EvenniaCommandTest):
         self.call(CmdCraft(), "enchanted ruby", inputs=["y"])
 
         # 2 Arcane Dust consumed (had 5)
-        self.assertEqual(self.char1.get_resource(15), 3)
+        self.assertEqual(self.char1.get_resource(16), 3)
         # 1 Ruby consumed (had 3)
         self.assertEqual(self.char1.get_resource(33), 2)
 
@@ -485,21 +485,21 @@ class TestCmdCraftEnchantValidation(EvenniaCommandTest):
 
     def test_insufficient_arcane_dust(self):
         """Should fail if not enough Arcane Dust."""
-        _give_resources(self.char1, {15: 1, 33: 1})  # only 1 dust, need 2
+        _give_resources(self.char1, {16: 1, 33: 1})  # only 1 dust, need 2
         _give_gold(self.char1, 50)
         result = self.call(CmdCraft(), "enchanted ruby")
         self.assertIn("You don't have enough materials", result)
 
     def test_insufficient_ruby(self):
         """Should fail if no Ruby resource."""
-        _give_resources(self.char1, {15: 5})  # dust but no ruby
+        _give_resources(self.char1, {16: 5})  # dust but no ruby
         _give_gold(self.char1, 50)
         result = self.call(CmdCraft(), "enchanted ruby")
         self.assertIn("You don't have enough materials", result)
 
     def test_insufficient_gold(self):
         """Should fail if not enough gold for workshop fee."""
-        _give_resources(self.char1, {15: 5, 33: 3})
+        _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 2)  # need 5
         result = self.call(CmdCraft(), "enchanted ruby")
         self.assertIn("You need 5 gold", result)
@@ -507,7 +507,7 @@ class TestCmdCraftEnchantValidation(EvenniaCommandTest):
     def test_wrong_room_type(self):
         """Should not find recipe if in a smithy instead of wizard's workshop."""
         self.room1.db.crafting_type = "smithy"
-        _give_resources(self.char1, {15: 5, 33: 3})
+        _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
         result = self.call(CmdCraft(), "enchanted ruby")
         self.assertIn("You don't know any recipes", result)
@@ -515,7 +515,7 @@ class TestCmdCraftEnchantValidation(EvenniaCommandTest):
     def test_no_enchanting_skill(self):
         """Should fail if character lacks enchanting skill mastery."""
         self.char1.db.general_skill_mastery_levels = {}  # clear skills
-        _give_resources(self.char1, {15: 5, 33: 3})
+        _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
         result = self.call(CmdCraft(), "enchanted ruby")
         self.assertIn("You need at least", result)
@@ -540,7 +540,7 @@ class TestCmdCraftEnchantAlias(EvenniaCommandTest):
         self.room1.db.craft_cost = 5
         _give_enchanting_skill(self.char1)
         _learn_enchant_ruby(self.char1)
-        _give_resources(self.char1, {15: 5, 33: 3})
+        _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
 
     @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
@@ -581,7 +581,7 @@ class TestCmdCraftEnchantRefund(EvenniaCommandTest):
         self.room1.db.craft_cost = 5
         _give_enchanting_skill(self.char1)
         _learn_enchant_ruby(self.char1)
-        _give_resources(self.char1, {15: 5, 33: 3})
+        _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
 
     @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
@@ -594,7 +594,7 @@ class TestCmdCraftEnchantRefund(EvenniaCommandTest):
         self.call(CmdCraft(), "enchanted ruby", inputs=["y"])
 
         # All resources refunded
-        self.assertEqual(self.char1.get_resource(15), 5)
+        self.assertEqual(self.char1.get_resource(16), 5)
         self.assertEqual(self.char1.get_resource(33), 3)
         self.assertEqual(self.char1.get_gold(), 50)
 

@@ -42,9 +42,9 @@ class TestCmdLanguages(EvenniaCommandTest):
         """Character with all languages should see them all sorted."""
         self.char1.db.languages = {
             "common", "dwarven", "elfish", "halfling",
-            "kobold", "goblin", "dragon", "celestial",
+            "goblin", "dragon", "celestial",
         }
         self.call(
             CmdLanguages(), "",
-            "You speak: Celestial, Common, Dragon, Dwarven, Elfish, Goblin, Halfling, Kobold.",
+            "You speak: Celestial, Common, Dragon, Dwarven, Elfish, Goblin, Halfling.",
         )

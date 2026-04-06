@@ -81,6 +81,7 @@ class TestAbjurationRegistry(EvenniaTest):
         expected = {
             "shield", "mage_armor", "resist", "shadowcloak",
             "antimagic_field", "group_resist", "invulnerability",
+            "feather_fall",
         }
         self.assertEqual(set(abj.keys()), expected)
 
@@ -258,6 +259,7 @@ class TestNecromancyRegistry(EvenniaTest):
         expected = {
             "drain_life", "raise_dead", "vampiric_touch",
             "soul_harvest", "raise_lich", "death_mark",
+            "raise_skeleton", "fear",
         }
         self.assertEqual(set(necro.keys()), expected)
 

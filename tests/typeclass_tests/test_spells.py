@@ -349,12 +349,14 @@ class TestCureWounds(EvenniaTest):
         self.assertIn(self.char2.key, result["third"])
 
     def test_hp_clamped_to_max(self):
-        """Healing should not exceed hp_max."""
-        self.char2.hp = 99
+        """Healing should not exceed effective_hp_max."""
         self.char2.hp_max = 100
+        effective_max = self.char2.effective_hp_max
+        # Set HP to 1 below effective max so the spell fires
+        self.char2.hp = max(1, effective_max - 1)
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
-        self.assertLessEqual(self.char2.hp, 100)
+        self.assertLessEqual(self.char2.hp, effective_max)
 
     def test_tier3_higher_healing(self):
         """At tier 3 with wis 14 (+2): 3d6+2 = 5–20 healing."""

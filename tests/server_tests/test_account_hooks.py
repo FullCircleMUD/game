@@ -54,7 +54,6 @@ class TestSuperuserLanguageGrant(BaseEvenniaTest):
         self.assertIn("common", all_lang_values)
         self.assertIn("dwarven", all_lang_values)
         self.assertIn("dragon", all_lang_values)
-        self.assertIn("kobold", all_lang_values)
         self.assertEqual(len(all_lang_values), len(Languages))
 
     def test_non_superuser_no_language_grant(self):

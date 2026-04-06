@@ -60,7 +60,7 @@ class TestRaceRegistry(EvenniaTest):
     def test_get_available_races_all_base(self):
         """All base races should be available at 0 remorts."""
         available = get_available_races(0)
-        self.assertEqual(len(available), 3)
+        self.assertEqual(len(available), 4)
 
     def test_get_available_races_respects_min_remort(self):
         """A race with min_remort=5 should not be available at 0 remorts."""
@@ -446,8 +446,8 @@ class TestHalflingRace(EvenniaTest):
         self.assertEqual(self.char1.db.weapon_skill_mastery_levels.get("sling"), 1)
 
     def test_min_remort(self):
-        """Halfling should require 1 remort."""
-        self.assertEqual(self.race.min_remort, 1)
+        """Halfling is a base race — no remort required."""
+        self.assertEqual(self.race.min_remort, 0)
 
     def test_base_armor_class(self):
         """Halfling base AC should be 10."""

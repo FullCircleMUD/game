@@ -309,6 +309,126 @@ class TestNFTAMMServiceSellItem(TestCase):
 #  PGold reserve balance tracking
 # ═══════════════════════════════════════════════════════════════════════
 
+class TestNFTAMMServiceBuyErrors(TestCase):
+    """Test buy_item error paths."""
+
+    databases = {"default", "xrpl"}
+
+    def setUp(self):
+        _seed(GOLD, PLAYER, "CHARACTER", Decimal("10"), CHAR_KEY)
+        _seed(GOLD, VAULT, "RESERVE", Decimal("10000"))
+        _seed(PGOLD, VAULT, "RESERVE", Decimal("5000"))
+
+    @patch("blockchain.xrpl.xrpl_amm.execute_swap")
+    def test_buy_insufficient_player_gold_raises(self, mock_swap):
+        """Player doesn't have enough FCMGold to cover the cost."""
+        from blockchain.xrpl.services.nft_amm import NFTAMMService
+
+        mock_swap.return_value = {
+            "tx_hash": "BUY_FAIL",
+            "actual_input": Decimal("20"),
+            "actual_output": Decimal("1"),
+        }
+
+        with self.assertRaises(ValueError):
+            NFTAMMService.buy_item(PLAYER, CHAR_KEY, PTOKEN, 20, VAULT)
+
+    @patch("blockchain.xrpl.xrpl_amm.execute_swap")
+    def test_buy_insufficient_vault_pgold_raises(self, mock_swap):
+        """Vault doesn't have enough PGold to fund the swap."""
+        from blockchain.xrpl.services.nft_amm import NFTAMMService
+
+        # Give player plenty of gold
+        _seed(GOLD, PLAYER, "CHARACTER", Decimal("100000"), "char#rich")
+        # Drain vault PGold
+        FungibleGameState.objects.filter(
+            currency_code=PGOLD, wallet_address=VAULT, location="RESERVE",
+        ).delete()
+        _seed(PGOLD, VAULT, "RESERVE", Decimal("1"))
+
+        mock_swap.return_value = {
+            "tx_hash": "BUY_NOPGOLD",
+            "actual_input": Decimal("50"),
+            "actual_output": Decimal("1"),
+        }
+
+        with self.assertRaises(ValueError):
+            NFTAMMService.buy_item(PLAYER, "char#rich", PTOKEN, 50, VAULT)
+
+    @patch("blockchain.xrpl.xrpl_amm.execute_swap")
+    def test_buy_swap_failure_no_state_change(self, mock_swap):
+        """If execute_swap raises, no game state should change."""
+        from blockchain.xrpl.services.nft_amm import NFTAMMService
+
+        mock_swap.side_effect = Exception("AMM pool unavailable")
+
+        with self.assertRaises(Exception):
+            NFTAMMService.buy_item(PLAYER, CHAR_KEY, PTOKEN, 5, VAULT)
+
+        # Player gold unchanged
+        self.assertEqual(
+            _balance(GOLD, PLAYER, "CHARACTER", CHAR_KEY),
+            Decimal("10"),
+        )
+        # Vault PGold unchanged
+        self.assertEqual(
+            _balance(PGOLD, VAULT, "RESERVE"),
+            Decimal("5000"),
+        )
+
+
+class TestNFTAMMServiceSellErrors(TestCase):
+    """Test sell_item error paths."""
+
+    databases = {"default", "xrpl"}
+
+    def setUp(self):
+        _seed(GOLD, PLAYER, "CHARACTER", Decimal("50"), CHAR_KEY)
+        _seed(GOLD, VAULT, "RESERVE", Decimal("10000"))
+        _seed(PGOLD, VAULT, "RESERVE", Decimal("5000"))
+
+    @patch("blockchain.xrpl.xrpl_amm.execute_swap")
+    def test_sell_insufficient_vault_gold_raises(self, mock_swap):
+        """Vault doesn't have enough FCMGold to pay the player."""
+        from blockchain.xrpl.services.nft_amm import NFTAMMService
+
+        # Drain vault gold
+        FungibleGameState.objects.filter(
+            currency_code=GOLD, wallet_address=VAULT, location="RESERVE",
+        ).delete()
+        _seed(GOLD, VAULT, "RESERVE", Decimal("5"))
+
+        mock_swap.return_value = {
+            "tx_hash": "SELL_FAIL",
+            "actual_input": Decimal("1"),
+            "actual_output": Decimal("12"),
+        }
+
+        with self.assertRaises(ValueError):
+            NFTAMMService.sell_item(PLAYER, CHAR_KEY, PTOKEN, 12, VAULT)
+
+    @patch("blockchain.xrpl.xrpl_amm.execute_swap")
+    def test_sell_swap_failure_no_state_change(self, mock_swap):
+        """If execute_swap raises, no game state should change."""
+        from blockchain.xrpl.services.nft_amm import NFTAMMService
+
+        mock_swap.side_effect = Exception("AMM pool unavailable")
+
+        with self.assertRaises(Exception):
+            NFTAMMService.sell_item(PLAYER, CHAR_KEY, PTOKEN, 12, VAULT)
+
+        # Player gold unchanged
+        self.assertEqual(
+            _balance(GOLD, PLAYER, "CHARACTER", CHAR_KEY),
+            Decimal("50"),
+        )
+        # Vault gold unchanged
+        self.assertEqual(
+            _balance(GOLD, VAULT, "RESERVE"),
+            Decimal("10000"),
+        )
+
+
 class TestPGoldReserveTracking(TestCase):
     """Verify PGold RESERVE goes up on sells, down on buys."""
 

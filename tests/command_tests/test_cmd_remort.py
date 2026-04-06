@@ -267,14 +267,14 @@ class TestRemortTags(BaseEvenniaTest):
         state = {"num_remorts": 2}
         caller = _MockCaller(state)
         text, options = node_race_select(caller, "")
-        # Find the halfling option (min_remort=1)
+        # Find the Aasimar option (min_remort=2)
         found_remort_tag = False
         for opt in options:
             desc = opt.get("desc", "")
-            if "Halfling" in desc and "[Remort]" in desc:
+            if "Aasimar" in desc and "[Remort]" in desc:
                 found_remort_tag = True
                 break
-        self.assertTrue(found_remort_tag, "Halfling should show [Remort] tag")
+        self.assertTrue(found_remort_tag, "Aasimar should show [Remort] tag")
 
     def test_race_select_no_tag_for_base_races(self):
         """Base races (min_remort=0) should NOT show [Remort] tag."""

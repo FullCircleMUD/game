@@ -79,6 +79,7 @@ class TestConjurationRegistry(EvenniaTest):
         expected = {
             "acid_arrow", "teleport", "dimensional_lock",
             "conjure_elemental", "gate",
+            "light_spell", "find_familiar",
         }
         self.assertEqual(set(conj.keys()), expected)
 
@@ -255,6 +256,7 @@ class TestDivinationRegistry(EvenniaTest):
         div = get_spells_for_school("divination")
         expected = {
             "identify", "true_sight", "scry", "mass_revelation",
+            "locate_object", "detect_traps", "darkvision",
         }
         self.assertEqual(set(div.keys()), expected)
 
@@ -989,6 +991,7 @@ class TestIllusionRegistry(EvenniaTest):
         expected = {
             "blur", "invisibility", "mass_confusion",
             "greater_invisibility", "phantasmal_killer",
+            "mirror_image", "disguise_self", "distract",
         }
         self.assertEqual(set(ill.keys()), expected)
 

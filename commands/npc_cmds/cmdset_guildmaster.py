@@ -64,12 +64,16 @@ class CmdGuild(FCMCommandMixin, Command):
                 req_strs.append(f"{ability.name}: {min_score}")
             lines.append(f"|wAbility Requirements:|n {', '.join(req_strs)}")
 
-        if char_class.required_alignments:
-            align_strs = [a.value for a in char_class.required_alignments]
-            lines.append(f"|wRequired Alignments:|n {', '.join(align_strs)}")
-        elif char_class.excluded_alignments:
-            align_strs = [a.value for a in char_class.excluded_alignments]
-            lines.append(f"|wExcluded Alignments:|n {', '.join(align_strs)}")
+        # Alignment restrictions (score-based range)
+        min_a = char_class.min_alignment_score
+        max_a = char_class.max_alignment_score
+        if min_a is not None or max_a is not None:
+            if min_a is not None and max_a is not None:
+                lines.append(f"|wAlignment Range:|n {min_a} to {max_a}")
+            elif min_a is not None:
+                lines.append(f"|wMinimum Alignment:|n {min_a}")
+            else:
+                lines.append(f"|wMaximum Alignment:|n {max_a}")
 
         if char_class.required_races:
             lines.append(f"|wRequired Races:|n {', '.join(char_class.required_races)}")

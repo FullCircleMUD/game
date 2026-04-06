@@ -314,6 +314,124 @@ class TestFungibleServiceOperations(TestCase):
         )
 
 
+class TestFungibleServiceSink(TestCase):
+    """Test FungibleService sink operations."""
+
+    databases = {"default", "xrpl"}
+
+    def setUp(self):
+        _seed(GOLD, ISSUER, "RESERVE", Decimal(10000))
+
+    def test_sink_character_to_sink(self):
+        """sink() moves currency from CHARACTER to SINK."""
+        FungibleService.spawn(GOLD, Decimal(100), ISSUER)
+        FungibleService.pickup(GOLD, PLAYER, Decimal(100), ISSUER, CHAR_KEY)
+
+        FungibleService.sink(GOLD, PLAYER, Decimal(40), ISSUER, CHAR_KEY)
+
+        self.assertEqual(
+            FungibleService.get_balance(GOLD, PLAYER, "CHARACTER", CHAR_KEY),
+            Decimal(60),
+        )
+        self.assertEqual(
+            FungibleService.get_balance(GOLD, ISSUER, "SINK"),
+            Decimal(40),
+        )
+        self.assertEqual(FungibleTransferLog.objects.filter(
+            transfer_type="sink",
+        ).count(), 1)
+
+    def test_sink_insufficient_raises(self):
+        FungibleService.spawn(GOLD, Decimal(100), ISSUER)
+        FungibleService.pickup(GOLD, PLAYER, Decimal(100), ISSUER, CHAR_KEY)
+
+        with self.assertRaises(ValueError):
+            FungibleService.sink(GOLD, PLAYER, Decimal(200), ISSUER, CHAR_KEY)
+
+    def test_sink_world_raises_not_implemented(self):
+        """sink_world() is disabled — should raise NotImplementedError.
+
+        This method was never called in practice and had a latent bug
+        (from_wallet == to_wallet violates DB constraint). It has been
+        stubbed out. See FungibleService.sink_world() for details.
+        """
+        with self.assertRaises(NotImplementedError):
+            FungibleService.sink_world(GOLD, Decimal(30), ISSUER)
+
+    def test_sink_account_to_sink(self):
+        """sink_account() moves currency from ACCOUNT to SINK."""
+        FungibleService.deposit_from_chain(
+            GOLD, PLAYER, Decimal(200), ISSUER, "TX_SA",
+        )
+
+        FungibleService.sink_account(GOLD, PLAYER, Decimal(50), ISSUER)
+
+        self.assertEqual(
+            FungibleService.get_balance(GOLD, PLAYER, "ACCOUNT"),
+            Decimal(150),
+        )
+        self.assertEqual(
+            FungibleService.get_balance(GOLD, ISSUER, "SINK"),
+            Decimal(50),
+        )
+
+    def test_sink_account_insufficient_raises(self):
+        FungibleService.deposit_from_chain(
+            GOLD, PLAYER, Decimal(100), ISSUER, "TX_SAI",
+        )
+
+        with self.assertRaises(ValueError):
+            FungibleService.sink_account(GOLD, PLAYER, Decimal(200), ISSUER)
+
+
+class TestFungibleServiceGetAllBalances(TestCase):
+    """Test get_all_balances query."""
+
+    databases = {"default", "xrpl"}
+
+    def test_returns_matching_rows(self):
+        _seed(GOLD, PLAYER, "CHARACTER", Decimal(100), CHAR_KEY)
+        _seed(WHEAT, PLAYER, "CHARACTER", Decimal(50), CHAR_KEY)
+        _seed(GOLD, PLAYER, "ACCOUNT", Decimal(200))
+
+        qs = FungibleService.get_all_balances(
+            None, PLAYER, "CHARACTER", CHAR_KEY,
+        )
+        self.assertEqual(qs.count(), 2)
+
+    def test_filters_by_currency_code(self):
+        _seed(GOLD, PLAYER, "CHARACTER", Decimal(100), CHAR_KEY)
+        _seed(WHEAT, PLAYER, "CHARACTER", Decimal(50), CHAR_KEY)
+
+        qs = FungibleService.get_all_balances(
+            GOLD, PLAYER, "CHARACTER", CHAR_KEY,
+        )
+        self.assertEqual(qs.count(), 1)
+        self.assertEqual(qs.first().currency_code, GOLD)
+
+    def test_empty_result_for_no_match(self):
+        qs = FungibleService.get_all_balances(
+            GOLD, PLAYER, "CHARACTER", CHAR_KEY,
+        )
+        self.assertEqual(qs.count(), 0)
+
+
+class TestFungibleServiceCraftOutput(TestCase):
+    """Test craft_output creates correct transfer log."""
+
+    databases = {"default", "xrpl"}
+
+    def test_craft_output_log_content(self):
+        _seed(GOLD, ISSUER, "RESERVE", Decimal(10000))
+        FungibleService.craft_output(GOLD, PLAYER, Decimal(50), ISSUER, CHAR_KEY)
+
+        log = FungibleTransferLog.objects.get(transfer_type="craft_output")
+        self.assertEqual(log.currency_code, GOLD)
+        self.assertEqual(log.from_wallet, ISSUER)
+        self.assertEqual(log.to_wallet, PLAYER)
+        self.assertEqual(log.amount, Decimal(50))
+
+
 class TestGoldServiceWrapper(TestCase):
     """Test GoldService delegates correctly to FungibleService."""
 

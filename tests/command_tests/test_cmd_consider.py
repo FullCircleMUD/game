@@ -1,5 +1,5 @@
 """
-Tests for CmdConsider — gauge target difficulty by level comparison.
+Tests for CmdConsider — gauge target difficulty by multi-stat comparison.
 
 evennia test --settings settings tests.command_tests.test_cmd_consider
 """
@@ -7,7 +7,7 @@ evennia test --settings settings tests.command_tests.test_cmd_consider
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
 
-from commands.all_char_cmds.cmd_consider import CmdConsider, _get_consider_message
+from commands.all_char_cmds.cmd_consider import CmdConsider, _compare, _compare_armor
 
 
 class TestCmdConsider(EvenniaCommandTest):
@@ -20,11 +20,6 @@ class TestCmdConsider(EvenniaCommandTest):
     def create_script(self):
         pass
 
-    def setUp(self):
-        super().setUp()
-        self.char1.total_level = 10
-        self.char2.total_level = 10
-
     def test_no_args(self):
         """No args shows error."""
         result = self.call(CmdConsider(), "", caller=self.char1)
@@ -35,37 +30,19 @@ class TestCmdConsider(EvenniaCommandTest):
         result = self.call(CmdConsider(), "nonexistent", caller=self.char1)
         self.assertIn("Could not find", result)
 
-    def test_equal_level(self):
-        """Same level shows 'perfect match'."""
+    def test_same_stats_shows_about_the_same(self):
+        """Equal stats should produce 'About the same' assessments."""
         result = self.call(CmdConsider(), "Char2", caller=self.char1)
-        self.assertIn("perfect match", result.lower())
+        self.assertIn("About the same", result)
 
-    def test_easy_target(self):
-        """Much lower level target shows easy message."""
-        self.char2.total_level = 1
+    def test_output_has_all_dimensions(self):
+        """Output should show level, health, armor, attacks, damage."""
         result = self.call(CmdConsider(), "Char2", caller=self.char1)
-        self.assertIn("needle", result.lower())
-
-    def test_chicken(self):
-        """Massively lower level target shows chicken message."""
-        self.char2.total_level = 1
-        self.char1.total_level = 20
-        result = self.call(CmdConsider(), "Char2", caller=self.char1)
-        self.assertIn("chicken", result.lower())
-
-    def test_hard_target(self):
-        """Higher level target shows difficulty message."""
-        self.char2.total_level = 15
-        self.char1.total_level = 10
-        result = self.call(CmdConsider(), "Char2", caller=self.char1)
-        self.assertIn("lucky, punk", result.lower())
-
-    def test_mad_target(self):
-        """Massively higher level shows 'mad' message."""
-        self.char2.total_level = 25
-        self.char1.total_level = 10
-        result = self.call(CmdConsider(), "Char2", caller=self.char1)
-        self.assertIn("mad", result.lower())
+        self.assertIn("level", result.lower())
+        self.assertIn("health", result.lower())
+        self.assertIn("armor", result.lower())
+        self.assertIn("attacks", result.lower())
+        self.assertIn("damage", result.lower())
 
     def test_non_actor(self):
         """Considering a non-actor object shows error."""
@@ -79,8 +56,8 @@ class TestCmdConsider(EvenniaCommandTest):
         obj.delete()
 
 
-class TestConsiderMessages(EvenniaCommandTest):
-    """Test the graduated message function directly."""
+class TestCompareFunction(EvenniaCommandTest):
+    """Test the _compare helper function directly."""
 
     character_typeclass = "typeclasses.actors.character.FCMCharacter"
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
@@ -88,24 +65,49 @@ class TestConsiderMessages(EvenniaCommandTest):
     def create_script(self):
         pass
 
-    def test_all_tiers(self):
-        """Each level diff tier returns a distinct message."""
-        cases = [
-            (-15, "chicken"),
-            (-7, "needle"),
-            (-3, "Easy"),
-            (-1, "Fairly easy"),
-            (0, "perfect match"),
-            (1, "some luck"),
-            (2, "lot of luck"),
-            (3, "great equipment"),
-            (5, "lucky, punk"),
-            (8, "mad!?"),
-            (15, "ARE mad"),
-        ]
-        for diff, expected_fragment in cases:
-            msg = _get_consider_message(diff)
-            self.assertIn(
-                expected_fragment, msg,
-                f"diff={diff}: expected '{expected_fragment}' in '{msg}'",
-            )
+    def test_equal_values(self):
+        msg = _compare(10, 10)
+        self.assertIn("About the same", msg)
+
+    def test_both_zero(self):
+        msg = _compare(0, 0)
+        self.assertIn("About the same", msg)
+
+    def test_theirs_much_higher(self):
+        msg = _compare(5, 20)
+        self.assertIn("Much higher", msg)
+
+    def test_theirs_much_lower(self):
+        msg = _compare(20, 5)
+        self.assertIn("Much lower", msg)
+
+    def test_theirs_slightly_higher(self):
+        msg = _compare(10, 12)
+        self.assertIn("Slightly higher", msg)
+
+    def test_theirs_slightly_lower(self):
+        msg = _compare(10, 8)
+        self.assertIn("Slightly lower", msg)
+
+
+class TestCompareArmorFunction(EvenniaCommandTest):
+    """Test the _compare_armor helper function."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def test_same_ac(self):
+        msg = _compare_armor(10, 10)
+        self.assertIn("About the same", msg)
+
+    def test_much_better_armored(self):
+        """Lower AC = better armor. their_ac much lower than yours."""
+        msg = _compare_armor(18, 10)
+        self.assertIn("Much better armored", msg)
+
+    def test_much_worse_armored(self):
+        msg = _compare_armor(10, 18)
+        self.assertIn("Much worse armored", msg)

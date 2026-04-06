@@ -115,7 +115,7 @@ class TestCmdClimbGuards(EvenniaCommandTest):
         """Sleeping characters can't climb."""
         self.char1.position = "sleeping"
         result = self.call(CmdClimb(), "up ladder")
-        self.assertIn("asleep", result)
+        self.assertIn("dreams", result)
 
     def test_climb_while_encumbered(self):
         """Encumbered characters can't climb."""

@@ -12,3 +12,5 @@ class Languages(Enum):
     # OTHER LANGUAGES
     GOBLIN = "goblin"
     DRAGON = "dragon"
+
+    # NO KOBOLD langauage, they speak dragon

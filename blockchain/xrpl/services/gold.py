@@ -163,9 +163,15 @@ class GoldService:
 
     @staticmethod
     def sink_world(amount, chain_id, contract_address, vault_address):
-        FungibleService.sink_world(
-            GOLD_CURRENCY_CODE, amount, vault_address,
+        """DISABLED: See FungibleService.sink_world() for details."""
+        raise NotImplementedError(
+            "GoldService.sink_world() is not yet implemented. "
+            "See FungibleService.sink_world() for details."
         )
+        # --- Original implementation (disabled) ---
+        # FungibleService.sink_world(
+        #     GOLD_CURRENCY_CODE, amount, vault_address,
+        # )
 
     @staticmethod
     def sink_account(wallet_address, amount, chain_id, contract_address,
