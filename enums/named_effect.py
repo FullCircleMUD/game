@@ -155,6 +155,12 @@ class NamedEffect(Enum):
     # No condition flag — purely a named effect checked at fall time.
     FEATHER_FALL = "feather_fall"
 
+    # APPLIED: detect_alignment.py (_execute) — divine revelation utility
+    # CHECKED: room_base.get_display_characters() — shows alignment tags
+    # DURATION: seconds-based (30 min to 4 hours, mastery-scaled).
+    # No condition flag — checked directly via has_effect in room display.
+    DETECT_ALIGNMENT = "detect_alignment"
+
     # APPLIED: light spell (conjuration), divine_light spell (divine revelation)
     # CHECKED: room_base._has_light_source_in_room() — lights room for everyone
     # DURATION: seconds-based (30 min to 4 hours, mastery-scaled).
@@ -376,6 +382,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds you.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds you.",
     NamedEffect.VAMPIRIC: "Dark energy surges through you as stolen life force bolsters your vitality!",
+    NamedEffect.DETECT_ALIGNMENT: "Your eyes tingle with divine insight. You can sense the alignment of others.",
     NamedEffect.FRIGHTENED: "Supernatural terror grips you! You must flee!",
     NamedEffect.LIGHT_SPELL: "A glowing orb of light appears, illuminating your surroundings.",
     NamedEffect.BLESSED: "You feel divinely favoured. Your strikes are truer and your resolve stronger.",
@@ -412,6 +419,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.RESIST_ACID: "Your ward of acid resistance fades.",
     NamedEffect.RESIST_POISON: "Your ward of poison resistance fades.",
     NamedEffect.VAMPIRIC: "The stolen life force drains from your body, leaving you weakened.",
+    NamedEffect.DETECT_ALIGNMENT: "The divine insight fades and you can no longer sense alignment.",
     NamedEffect.FRIGHTENED: "The supernatural terror fades and you regain your courage.",
     NamedEffect.LIGHT_SPELL: "The magical light flickers and fades into darkness.",
     NamedEffect.BLESSED: "The divine favour fades.",
@@ -448,6 +456,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "A shimmering ward of acid resistance surrounds {name}.",
     NamedEffect.RESIST_POISON: "A shimmering ward of poison resistance surrounds {name}.",
     NamedEffect.VAMPIRIC: "{name}'s eyes glow with dark energy as stolen life surges through them!",
+    NamedEffect.DETECT_ALIGNMENT: "{name}'s eyes glow briefly with divine insight.",
     NamedEffect.FRIGHTENED: "{name} is gripped by supernatural terror and tries to flee!",
     NamedEffect.LIGHT_SPELL: "A glowing orb of light appears around {name}, illuminating the area.",
     NamedEffect.BLESSED: "{name} glows briefly with divine favour.",
@@ -484,6 +493,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.RESIST_ACID: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_POISON: "The shimmering ward around {name} fades.",
     NamedEffect.VAMPIRIC: "The dark energy around {name} fades as the stolen life force drains away.",
+    NamedEffect.DETECT_ALIGNMENT: "The divine insight fades from {name}'s eyes.",
     NamedEffect.FRIGHTENED: "{name} shakes off the supernatural terror and stands firm.",
     NamedEffect.LIGHT_SPELL: "The magical light around {name} flickers and fades.",
     NamedEffect.BLESSED: "The divine favour fades from {name}.",
@@ -534,6 +544,7 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.INVISIBLE: "seconds",
     NamedEffect.BLINDED: "combat_rounds",
     NamedEffect.FRIGHTENED: "combat_rounds",
+    NamedEffect.DETECT_ALIGNMENT: "seconds",
     NamedEffect.LIGHT_SPELL: "seconds",
     NamedEffect.BLESSED: "seconds",
     NamedEffect.FEATHER_FALL: "seconds",

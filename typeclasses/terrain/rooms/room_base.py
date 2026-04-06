@@ -620,6 +620,12 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         if not visible:
             return ""
 
+        # Check if looker can see alignment auras
+        looker_detects_alignment = (
+            hasattr(looker, "has_effect")
+            and looker.has_effect("detect_alignment")
+        )
+
         lines = []
         for char in visible:
             # Use room_description if available, otherwise fall back to name
@@ -627,6 +633,15 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                 line = char.get_room_description()
             else:
                 line = char.get_display_name(looker, **kwargs)
+            # Prepend alignment tag if looker has Detect Alignment
+            if looker_detects_alignment and char != looker:
+                alignment = getattr(char, "alignment_score", 0)
+                if alignment <= -300:
+                    line = f"|r(Evil)|n {line}"
+                elif alignment >= 300:
+                    line = f"|Y(Good)|n {line}"
+                else:
+                    line = f"|w(Neutral)|n {line}"
             # Append visibility tags
             if hasattr(char, "has_condition"):
                 if char.has_condition(Condition.INVISIBLE):
