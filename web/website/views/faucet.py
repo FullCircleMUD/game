@@ -2,6 +2,11 @@
 Faucet page — dispense FakeRLUSD for testnet subscription payments.
 
 Only accessible when IS_TESTNET is True. Redirects to home on mainnet.
+
+Two actions:
+  - "trustline" — creates a Xaman TrustSet payload so the user can
+    set up a FakeRLUSD trust line (required before receiving tokens).
+  - "faucet" (default) — sends 20 FakeRLUSD to the user's wallet.
 """
 
 import re
@@ -23,14 +28,61 @@ class FaucetView(View):
     def get(self, request):
         if not getattr(settings, "IS_TESTNET", False):
             return redirect("/")
-        return render(request, self.template_name)
+        ctx = {
+            "issuer_address": getattr(
+                settings, "SUBSCRIPTION_CURRENCY_ISSUER", ""
+            ),
+        }
+        return render(request, self.template_name, ctx)
 
     def post(self, request):
         if not getattr(settings, "IS_TESTNET", False):
             return redirect("/")
 
+        action = request.POST.get("action", "faucet")
+        ctx = {
+            "issuer_address": getattr(
+                settings, "SUBSCRIPTION_CURRENCY_ISSUER", ""
+            ),
+        }
+
+        if action == "trustline":
+            return self._handle_trustline(request, ctx)
+        return self._handle_faucet(request, ctx)
+
+    def _handle_trustline(self, request, ctx):
+        """Create a Xaman TrustSet payload and return the signing link."""
+        issuer = getattr(settings, "SUBSCRIPTION_CURRENCY_ISSUER", "")
+        if not issuer:
+            ctx["error"] = "Currency issuer is not configured. Contact an admin."
+            return render(request, self.template_name, ctx)
+
+        try:
+            from blockchain.xrpl.xrpl_tx import encode_currency_hex
+            from blockchain.xrpl.xaman import create_trustline_payload
+
+            currency_code = getattr(
+                settings, "SUBSCRIPTION_CURRENCY_CODE", "FakeRLUSD"
+            )
+            hex_code = encode_currency_hex(currency_code)
+            payload = create_trustline_payload(hex_code, issuer)
+
+            ctx["trustline_deeplink"] = payload["deeplink"]
+            ctx["trustline_currency"] = currency_code
+            logger.info(
+                f"Faucet: created TrustSet payload for {currency_code} "
+                f"(uuid: {payload['uuid']})"
+            )
+        except Exception as e:
+            ctx["error"] = f"Failed to create trust line request: {e}"
+            logger.warning(f"Faucet trustline error: {e}")
+
+        return render(request, self.template_name, ctx)
+
+    def _handle_faucet(self, request, ctx):
+        """Validate address and send FakeRLUSD."""
         wallet = request.POST.get("wallet_address", "").strip()
-        ctx = {"wallet_address": wallet}
+        ctx["wallet_address"] = wallet
 
         if not wallet:
             ctx["error"] = "Please enter a wallet address."

@@ -13,6 +13,60 @@
   </div>
 </div>
 
+{# ── Error Message ── #}
+{% if error %}
+<div class="card mb-4" style="border: 2px solid #dc3545;">
+  <div class="card-body text-center py-3">
+    <p class="mb-0" style="color: #dc3545;">{{ error }}</p>
+  </div>
+</div>
+{% endif %}
+
+{# ── Step 1: Trust Line ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Step 1 &mdash; Set Up FakeRLUSD Trust Line</h2>
+    <hr/>
+    <p>
+      Before you can receive FakeRLUSD, your wallet needs a <strong>trust line</strong> for the token.
+      This is an XRPL requirement &mdash; it tells the ledger your wallet is willing to hold FakeRLUSD.
+    </p>
+    <p>
+      Click the button below to open a signing request in your <strong>Xaman wallet</strong>.
+      Once you approve the trust line, your wallet will be ready to receive FakeRLUSD.
+    </p>
+    {% if issuer_address %}
+    <p class="text-muted" style="word-break: break-all;">
+      <small>Issuer: {{ issuer_address }}</small>
+    </p>
+    {% endif %}
+
+    {% if trustline_deeplink %}
+    <div class="card mb-3" style="border: 2px solid var(--fcm-green);">
+      <div class="card-body text-center py-3">
+        <h5 style="color: var(--fcm-green);">Trust Line Request Created</h5>
+        <p>Open this link in Xaman to sign the trust line:</p>
+        <a href="{{ trustline_deeplink }}" class="btn btn-outline-success" target="_blank" rel="noopener">
+          Sign in Xaman
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="trustline">
+      <button type="submit" class="btn btn-outline-warning">
+        Set FakeRLUSD Trust Line
+      </button>
+    </form>
+
+    <p class="text-muted mt-3 mb-0">
+      <small>You only need to do this once per wallet. If you've already set up the trust line, skip to Step 2.</small>
+    </p>
+  </div>
+</div>
+
 {# ── Success Message ── #}
 {% if success %}
 <div class="card mb-4" style="border: 2px solid var(--fcm-green);">
@@ -28,19 +82,10 @@
 </div>
 {% endif %}
 
-{# ── Error Message ── #}
-{% if error %}
-<div class="card mb-4" style="border: 2px solid #dc3545;">
-  <div class="card-body text-center py-3">
-    <p class="mb-0" style="color: #dc3545;">{{ error }}</p>
-  </div>
-</div>
-{% endif %}
-
-{# ── Faucet Form ── #}
+{# ── Step 2: Faucet Form ── #}
 <div class="card mb-4">
   <div class="card-body">
-    <h2 class="card-title">Request FakeRLUSD</h2>
+    <h2 class="card-title">Step 2 &mdash; Request FakeRLUSD</h2>
     <hr/>
     <p>
       Enter your XRPL testnet wallet address below to receive <strong>20 FakeRLUSD</strong>.
@@ -49,6 +94,7 @@
 
     <form method="post" class="mt-4">
       {% csrf_token %}
+      <input type="hidden" name="action" value="faucet">
       <div class="form-group">
         <label for="wallet_address">Wallet Address</label>
         <input type="text" class="form-control" id="wallet_address" name="wallet_address"
@@ -72,7 +118,8 @@
     <h2 class="card-title">How It Works</h2>
     <hr/>
     <ol>
-      <li>Enter your XRPL testnet wallet address above and click <strong>Send</strong></li>
+      <li>Set up a <strong>FakeRLUSD trust line</strong> using Step 1 above (one-time only)</li>
+      <li>Enter your XRPL testnet wallet address in Step 2 and click <strong>Send</strong></li>
       <li>20 FakeRLUSD will be sent to your wallet from the testnet faucet</li>
       <li>Log into the game and type <code>subscribe</code> at the account menu</li>
       <li>Follow the prompts to sign the subscription payment in your Xaman wallet</li>
