@@ -645,6 +645,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - AMMService: on-chain XRPL AMM swap execution via OfferCreate, 6-operation atomic accounting (player integers + AMM decimals against RESERVE), transfer + tx logging
 - xrpl_amm.py: pool queries (AMMInfo), constant product formula pricing (ceil-rounded buys, floor-rounded sells), batch multi-pool queries, swap execution with balance change extraction from tx metadata
 - AMM superuser tools: `amm_check` (pool state viewer), `reconcile` (on-chain vs DB comparison), `test_amm_trades` management command (live integration test)
+- `testnet_reinit` management command: rebuilds all XRPL testnet state after a network wipe (fund wallets, configure issuer, trust lines, issue supply from game DB, create AMM pools at 0% fee, mint NFTs at 5% royalty). See **design/DEPLOYMENT.md**.
 - Hunger/eating system (Bread is resource ID 3). HungerService and RegenerationService only process puppeted characters (`has_account` check) — unpuppeted characters are skipped. Forage command (SURVIVALIST skill, Druid/Ranger): restores hunger directly (no bread production), mastery scales yield (BASIC=1..GM=5), 15-min cooldown matching hunger cycle, NO hunger_free_pass_tick (bread retains economic advantage). Solo auto-applies, party gets interactive allocation prompt. Requires forageable terrain (not urban/underground/dungeon/water).
 - Get/drop/give commands wired to service layer
 - Superuser wallet injection: at_post_login() backfills vault wallet + bank for superuser account
