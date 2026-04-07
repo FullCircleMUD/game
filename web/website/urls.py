@@ -20,6 +20,7 @@ from web.website.views.about import AboutView
 from web.website.views.markets import MarketsView
 from web.website.views.vision import VisionView
 from web.website.views.costs import CostsView
+from web.website.views.faucet import FaucetView
 from web.website.views.redemption import RedemptionView
 from web.website.views.legal import TermsView, PrivacyView, EligibleJurisdictionsView
 
@@ -33,6 +34,7 @@ urlpatterns = [
     path("docs/client-api/", DocsClientApiView.as_view(), name="docs_client_api"),
     path("markets/", MarketsView.as_view(), name="markets"),
     path("costs/", CostsView.as_view(), name="costs"),
+    path("faucet/", FaucetView.as_view(), name="faucet"),
     path("redemption/", RedemptionView.as_view(), name="redemption"),
     path("terms/", TermsView.as_view(), name="terms"),
     path("privacy/", PrivacyView.as_view(), name="privacy"),

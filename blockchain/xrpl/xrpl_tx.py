@@ -168,6 +168,34 @@ def send_payment(destination, currency_code, amount):
     )
 
 
+def send_faucet_payment(destination):
+    """
+    Send FakeRLUSD from the faucet wallet to a player (testnet only).
+
+    Uses FAUCET_WALLET_SEED, SUBSCRIPTION_CURRENCY_CODE, and
+    SUBSCRIPTION_CURRENCY_ISSUER from settings.
+
+    Args:
+        destination: Player's r-address.
+
+    Returns:
+        tx_hash (str): The XRPL transaction hash.
+
+    Raises:
+        XRPLTransactionError: If the transaction fails.
+    """
+    return asyncio.run(
+        _send_payment_async(
+            settings.XRPL_NETWORK_URL,
+            settings.FAUCET_WALLET_SEED,
+            destination,
+            settings.SUBSCRIPTION_CURRENCY_CODE,
+            settings.FAUCET_AMOUNT,
+            settings.SUBSCRIPTION_CURRENCY_ISSUER,
+        )
+    )
+
+
 # ================================================================== #
 #  NFT sell offer (vault creates offer for player to accept)
 # ================================================================== #

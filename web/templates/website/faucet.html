@@ -1,0 +1,87 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Testnet Faucet{% endblock %}
+
+{% block content %}
+
+{# ── Hero ── #}
+<div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
+  <div class="card-body text-center py-5">
+    <h1 class="card-title mb-3" style="color: #DAA520;">Testnet Faucet</h1>
+    <p class="lead mb-1">Get free FakeRLUSD to pay your game subscription during testing.</p>
+    <p class="text-muted">This faucet is only available on the testnet deployment.</p>
+  </div>
+</div>
+
+{# ── Success Message ── #}
+{% if success %}
+<div class="card mb-4" style="border: 2px solid var(--fcm-green);">
+  <div class="card-body text-center py-4">
+    <h4 style="color: var(--fcm-green);">Payment Sent!</h4>
+    <p>
+      <strong>{{ amount }} {{ currency }}</strong> has been sent to your wallet.
+    </p>
+    <p class="text-muted mb-0" style="word-break: break-all;">
+      Tx: {{ tx_hash }}
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{# ── Error Message ── #}
+{% if error %}
+<div class="card mb-4" style="border: 2px solid #dc3545;">
+  <div class="card-body text-center py-3">
+    <p class="mb-0" style="color: #dc3545;">{{ error }}</p>
+  </div>
+</div>
+{% endif %}
+
+{# ── Faucet Form ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Request FakeRLUSD</h2>
+    <hr/>
+    <p>
+      Enter your XRPL testnet wallet address below to receive <strong>20 FakeRLUSD</strong>.
+      You can then use this to pay your subscription in-game with the <code>subscribe</code> command.
+    </p>
+
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="wallet_address">Wallet Address</label>
+        <input type="text" class="form-control" id="wallet_address" name="wallet_address"
+               placeholder="rYourXRPLTestnetAddress..."
+               value="{{ wallet_address|default:'' }}"
+               style="background-color: var(--fcm-surface); color: var(--fcm-text); border-color: var(--fcm-border);">
+        <small class="form-text text-muted">
+          Your XRPL testnet r-address. This is the wallet you linked to your game account.
+        </small>
+      </div>
+      <button type="submit" class="btn btn-outline-light">
+        Send 20 FakeRLUSD
+      </button>
+    </form>
+  </div>
+</div>
+
+{# ── How It Works ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">How It Works</h2>
+    <hr/>
+    <ol>
+      <li>Enter your XRPL testnet wallet address above and click <strong>Send</strong></li>
+      <li>20 FakeRLUSD will be sent to your wallet from the testnet faucet</li>
+      <li>Log into the game and type <code>subscribe</code> at the account menu</li>
+      <li>Follow the prompts to sign the subscription payment in your Xaman wallet</li>
+    </ol>
+    <p class="text-muted mb-0">
+      FakeRLUSD is a testnet token with no real value. It simulates the RLUSD payments
+      that will be used on mainnet.
+    </p>
+  </div>
+</div>
+
+{% endblock %}

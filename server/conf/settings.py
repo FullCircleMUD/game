@@ -80,6 +80,10 @@ DATABASE_ROUTERS = [
     "subscriptions.db_router.SubscriptionsRouter",
 ]
 
+# Django secret key — used to sign cookies/sessions.
+# On Railway, set SECRET_KEY env var. Locally, override in secret_settings.py.
+SECRET_KEY = os.environ.get("SECRET_KEY", "changeme-set-in-secret-settings")
+
 ######################################################################
 # Evennia base server config
 ######################################################################
@@ -95,13 +99,12 @@ TELNET_ENABLED = False
 SSH_ENABLED = False
 WEBSOCKET_PROTOCOL_CLASS = "server.walletwebclient.WalletWebSocketClient"
 
-# Override in secret_settings.py
-SUPERUSER_ACCOUNT_NAME = ""
+# Override in secret_settings.py or set SUPERUSER_ACCOUNT_NAME env var.
+SUPERUSER_ACCOUNT_NAME = os.environ.get("SUPERUSER_ACCOUNT_NAME", "")
 
 # Default password for wallet-authenticated accounts.
 # Wallet signature is the real auth — this just satisfies Evennia's Account.create().
-# Override in secret_settings.py.
-DEFAULT_ACCOUNT_PASSWORD = "CHANGE_ME"
+DEFAULT_ACCOUNT_PASSWORD = os.environ.get("DEFAULT_ACCOUNT_PASSWORD", "CHANGE_ME")
 
 # Typeclass for account objects (linked to a character) (fallback)
 BASE_ACCOUNT_TYPECLASS = "typeclasses.accounts.accounts.Account"
@@ -122,8 +125,7 @@ PUPPET_LOOK_ON_IC = False
 ######################################################################
 # XRPL / BLOCKCHAIN SETTINGS
 ######################################################################
-# Override in secret_settings.py
-XRPL_ROOT_ADDRESS = ""    # dev wallet (superuser default)
+XRPL_ROOT_ADDRESS = os.environ.get("XRPL_ROOT_ADDRESS", "")  # dev wallet (superuser default)
 
 # ── Polygon Legacy (stubs — still referenced by old code paths) ──────
 # TODO: Remove once fungible_inventory.py and base_nft_item.py old methods are cleaned up
@@ -149,13 +151,18 @@ XRPL_VAULT_ADDRESS = "rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ"   # game/bridge wallet
 XRPL_GOLD_CURRENCY_CODE = "FCMGold"
 XRPL_PGOLD_CURRENCY_CODE = "PGold"
 
-XRPL_VAULT_WALLET_SEED = ""  # vault wallet seed for server-signed txns
+XRPL_VAULT_WALLET_SEED = os.environ.get("XRPL_VAULT_WALLET_SEED", "")  # vault wallet seed for server-signed txns
 
 # ── Xaman (XRPL Wallet) API ──────────────────────────────────────
 # Register at https://apps.xaman.dev/ to obtain credentials.
-# Actual values go in secret_settings.py.
-XAMAN_API_KEY = "PLACEHOLDER"
-XAMAN_API_SECRET = "PLACEHOLDER"
+XAMAN_API_KEY = os.environ.get("XAMAN_API_KEY", "PLACEHOLDER")
+XAMAN_API_SECRET = os.environ.get("XAMAN_API_SECRET", "PLACEHOLDER")
+
+# ── Testnet Detection ─────────────────────────────────────────────
+# Auto-detected from network URL. Controls faucet visibility and pre-alpha notices.
+# Can be overridden via IS_TESTNET env var.
+IS_TESTNET = os.environ.get("IS_TESTNET", "").lower() in ("true", "1", "yes") or \
+    "testnet" in XRPL_NETWORK_URL or "altnet" in XRPL_NETWORK_URL
 
 # ── Subscription Payment ──────────────────────────────────────────
 # Payment currency: RLUSD on mainnet, FakeRLUSD on testnet.
@@ -171,6 +178,11 @@ SUBSCRIPTION_PAYMENT_DESTINATION = XRPL_ISSUER_ADDRESS
 SUBSCRIPTION_TRIAL_HOURS = 48
 # Superuser and bot accounts bypass subscription checks entirely.
 SUBSCRIPTION_BYPASS_SUPERUSER = True
+
+# ── Faucet (testnet only) ────────────────────────────────────────
+# The 3rd wallet that issues FakeRLUSD — used to dispense test tokens.
+FAUCET_WALLET_SEED = os.environ.get("FAUCET_WALLET_SEED", "")
+FAUCET_AMOUNT = 20  # FakeRLUSD per faucet request
 
 
 ######################################################################
@@ -207,14 +219,14 @@ BOT_WALLET_ADDRESSES = {
 
 # Bot passwords — override per-bot in secret_settings.py
 # Default shared password used if a bot isn't in BOT_PASSWORDS.
-BOT_DEFAULT_PASSWORD = "changeme"  # override in secret_settings.py
+BOT_DEFAULT_PASSWORD = os.environ.get("BOT_DEFAULT_PASSWORD", "changeme")
 # BOT_PASSWORDS = {"llm_bot_1": "password1", ...}  # per-bot, in secret_settings.py
 
 
 # LLM NPC Configuration
 LLM_ENABLED = True                                 # master switch for all LLM NPCs
 LLM_API_BASE_URL = "https://openrouter.ai/api/v1"  # OpenRouter endpoint
-LLM_API_KEY = "" # set in secret_settings.py (OPENROUTER_API_KEY)
+LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_DEFAULT_MODEL = "openai/gpt-4o-mini"           # cheap + capable (proven in bot testing)
 LLM_GLOBAL_MAX_CALLS_PER_MINUTE = 60               # across ALL NPCs combined
 LLM_PER_NPC_MAX_CALLS_PER_MINUTE = 6               # per individual NPC
@@ -224,7 +236,7 @@ LLM_DAILY_COST_LIMIT_CENTS = 500                   # $5/day hard cap — disable
 # Embedding settings — for vector memory (ai_memory app)
 LLM_EMBEDDING_MODEL = "text-embedding-3-small"       # 1536 dims, ~$0.02/1M tokens
 LLM_EMBEDDING_API_BASE_URL = "https://api.openai.com/v1"  # OpenAI direct (not OpenRouter)
-LLM_EMBEDDING_API_KEY = "" #— set in secret_settings.py (defaults to LLM_API_KEY if not set)
+LLM_EMBEDDING_API_KEY = os.environ.get("LLM_EMBEDDING_API_KEY", "")
 
 ######################################################################
 # GAME PLAY SETTINGS
