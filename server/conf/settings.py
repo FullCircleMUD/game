@@ -146,8 +146,8 @@ XRPL_NETWORK_URL = os.environ.get(
     "XRPL_NETWORK_URL",
     "wss://s.altnet.rippletest.net:51233",
 )
-XRPL_ISSUER_ADDRESS = "rU3VtgY3LE63tmd7egjPUx37JqQXumokyJ"
-XRPL_VAULT_ADDRESS = "rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ"   # game/bridge wallet (holds RESERVE/SPAWNED)
+XRPL_ISSUER_ADDRESS = os.environ.get("XRPL_ISSUER_ADDRESS", "rU3VtgY3LE63tmd7egjPUx37JqQXumokyJ")
+XRPL_VAULT_ADDRESS = os.environ.get("XRPL_VAULT_ADDRESS", "rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ")
 XRPL_GOLD_CURRENCY_CODE = "FCMGold"
 XRPL_PGOLD_CURRENCY_CODE = "PGold"
 
