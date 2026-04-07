@@ -345,20 +345,31 @@ session.msg(oob=("event_name", {"key": "value"}))
 
 **CRITICAL DESIGN RULE: Game code never calls service classes directly.**
 
-All blockchain service calls must go through one of two encapsulation layers:
+All blockchain service calls must go through one of three encapsulation layers:
 
 | Asset type | Encapsulation layer | Service called |
 |---|---|---|
 | Gold | `FungibleInventoryMixin` | `GoldService` |
 | Resources | `FungibleInventoryMixin` | `ResourceService` |
-| NFTs | `BaseNFTItem` hooks | `NFTService` |
+| NFT items | `NFTMirrorMixin` (via `BaseNFTItem`) | `NFTService` |
+| NFT pets | `NFTPetMirrorMixin` (via `BasePet`) | `NFTService` |
 
 **Why:** The encapsulation layers pair every service call with a local Evennia state update. Calling a service directly would desync the mirror DB from in-game attribute state.
 
+**Why two NFT layers:** Items live in `character.contents` — `NFTMirrorMixin` resolves ownership by walking the container chain upward until it hits a Character or AccountBank. Pets live in rooms beside their owner — `NFTPetMirrorMixin` resolves ownership via `owner_key` attribute, because a room always classifies as WORLD regardless of who owns the pet.
+
 **The only code that imports service classes:**
 - `FungibleInventoryMixin` (`typeclasses/mixins/fungible_inventory.py`)
-- `BaseNFTItem` (`typeclasses/items/base_nft_item.py`)
+- `NFTMirrorMixin` (`typeclasses/mixins/nft_mirror.py`)
+- `NFTPetMirrorMixin` (`typeclasses/mixins/nft_pet_mirror.py`)
 - Test files (mocking/verifying service calls)
+
+**Legitimate boundary-crossing exceptions** (these intentionally call services/xrpl_tx directly):
+- **Import/export commands** (`cmd_import.py`, `cmd_export.py`) — mediate between wallet and game
+- **Shopkeeper commands** (`cmdset_shopkeeper.py`, `cmdset_nft_shopkeeper.py`) — execute AMM swaps via worker threads
+- **Inn commands** (`cmd_menu.py`, `cmd_stew.py`) — AMM price queries for food
+- **Scheduled scripts** (spawn, telemetry, saturation, reallocation) — system-level orchestrators
+- **Superuser diagnostic commands** (reconcile, sync_nfts, run_spawns, run_telemetry, run_saturation)
 
 Each service file has a prominent banner comment reinforcing this rule.
 
@@ -615,7 +626,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - XRPL transaction utilities: `xrpl_tx.py` (check_trust_line, send_payment, create_nft_sell_offer, get_wallet_balances, get_wallet_nfts)
 - Xaman API: SignIn, TrustSet, NFTokenAcceptOffer payloads with delay-based polling
 - XRPL service layer active: GoldService, ResourceService, NFTService, FungibleService, AMMService, TelemetryService, ResourceSpawnService, NFTSaturationService
-- Service encapsulation: all service access via FungibleInventoryMixin or BaseNFTItem hooks
+- Service encapsulation: three layers — FungibleInventoryMixin (gold/resources), NFTMirrorMixin via BaseNFTItem (items), NFTPetMirrorMixin via BasePet (pets). See Service Encapsulation Pattern section.
 - Full inventory & equipment system — see `design/INVENTORY_EQUIPMENT.md` for details (FungibleInventoryMixin, BaseNFTItem, wearslots, CarryingCapacityMixin, nuclear recalculate, NFT ownership)
 - NFTItemType registry with typeclass, prototype_key, default_metadata
 - Weapon system: WeaponNFTItem + subclasses (Longsword, Dagger, Shortsword, Bow, Club, Spear, Axe, Greatsword, Mace, Hammer, Sling)
