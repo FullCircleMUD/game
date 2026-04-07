@@ -18,6 +18,7 @@
 </div>
 
 {# ── Pre-Alpha Notice ── #}
+{% if is_testnet %}
 <div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
   <div class="card-body text-center py-4">
     <h4 class="card-title" style="color: #DAA520;">Pre-Alpha &mdash; Adventure at Your Own Risk!</h4>
@@ -35,6 +36,7 @@
     </p>
   </div>
 </div>
+{% endif %}
 
 {# ── Feature Cards ── #}
 <div class="row mb-4">

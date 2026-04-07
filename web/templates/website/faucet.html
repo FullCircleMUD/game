@@ -32,7 +32,7 @@
       This is an XRPL requirement &mdash; it tells the ledger your wallet is willing to hold FakeRLUSD.
     </p>
     <p>
-      Click the button below to open a signing request in your <strong>Xaman wallet</strong>.
+      Click the button below to open a signing request in your <strong><a href="{% url 'xaman' %}">Xaman wallet</a></strong>.
       Once you approve the trust line, your wallet will be ready to receive FakeRLUSD.
     </p>
     {% if issuer_address %}
@@ -122,7 +122,7 @@
       <li>Enter your XRPL testnet wallet address in Step 2 and click <strong>Send</strong></li>
       <li>20 FakeRLUSD will be sent to your wallet from the testnet faucet</li>
       <li>Log into the game and type <code>subscribe</code> at the account menu</li>
-      <li>Follow the prompts to sign the subscription payment in your Xaman wallet</li>
+      <li>Follow the prompts to sign the subscription payment in your <a href="{% url 'xaman' %}">Xaman wallet</a></li>
     </ol>
     <p class="text-muted mb-0">
       FakeRLUSD is a testnet token with no real value. It simulates the RLUSD payments

@@ -25,7 +25,7 @@ from evennia.utils.evmenu import get_input
 from twisted.internet import threads
 
 from commands.room_specific_cmds.bank._bank_parse import parse_bank_args
-from subscriptions.utils import is_subscribed
+from subscriptions.utils import is_subscribed, has_paid
 
 MAX_POLL_ATTEMPTS = 60  # 2 seconds × 60 = 2-minute timeout
 
@@ -59,6 +59,13 @@ class CmdImport(Command):
             account.msg(
                 "|rYour subscription has expired.|n\n"
                 "Use |wsubscribe|n to renew."
+            )
+            return
+
+        if not has_paid(account):
+            account.msg(
+                "|rImport is not available during the free trial.|n\n"
+                "Use |wsubscribe|n to activate your subscription."
             )
             return
 

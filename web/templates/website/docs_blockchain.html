@@ -18,11 +18,13 @@
       or import it back into the game. The economy is powered by XRPL's native AMM pools &mdash;
       prices are driven by real supply and demand, not scripts.
     </p>
+    {% if is_testnet %}
     <p>
       The game is currently running on <strong>XRPL Testnet</strong>. All addresses and assets
       listed on this page are testnet only. We'll move to mainnet when the game is ready for
       go-live.
     </p>
+    {% endif %}
   </div>
 </div>
 
@@ -32,9 +34,10 @@
     <h2 class="card-title">Xaman Wallet</h2>
     <hr/>
     <p>
-      You'll need <strong>Xaman</strong> (formerly Xumm) to interact with the blockchain.
+      You'll need <strong><a href="{% url 'xaman' %}">Xaman</a></strong> (formerly Xumm) to interact with the blockchain.
       Xaman is a self-custodial XRPL wallet available on
       <a href="https://xaman.app" target="_blank" rel="noopener">iOS and Android</a>.
+      See our <a href="{% url 'xaman' %}">Xaman setup guide</a> for installation and setup instructions.
     </p>
     <p>
       Xaman is used for:
@@ -52,9 +55,10 @@
 </div>
 
 {# ── Testnet Addresses ── #}
+{% if is_testnet %}
 <div class="card mb-4">
   <div class="card-body">
-    <h2 class="card-title">Wallet Addresses</h2>
+    <h2 class="card-title">Testnet Wallet Addresses</h2>
     <hr/>
     <p>
       The following addresses are on <strong>XRPL Testnet</strong>. They will change when
@@ -82,6 +86,7 @@
     </table>
   </div>
 </div>
+{% endif %}
 
 {# ── On-Chain Assets ── #}
 <div class="card mb-4">
@@ -94,8 +99,8 @@
 
     <h5 class="mt-3">FCMGold</h5>
     <p>
-      The primary game currency, issued on the XRP Ledger by the Issuer wallet. On testnet,
-      gold has no monetary value. Mainnet economy details will be published before go-live.
+      The primary game currency, issued on the XRP Ledger by the Issuer wallet.
+      {% if is_testnet %}On testnet, gold has no monetary value. Mainnet economy details will be published before go-live.{% endif %}
     </p>
 
     <h5 class="mt-3">Resource Tokens</h5>

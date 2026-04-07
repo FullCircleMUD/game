@@ -119,6 +119,23 @@ def grant_trial(account):
     return expiry
 
 
+def has_paid(account):
+    """
+    Return True if the account has ever made a subscription payment.
+
+    Free-trial-only accounts return False. Exempt accounts (superuser/bot)
+    return True.
+    """
+    if _is_exempt(account):
+        return True
+
+    from subscriptions.models import SubscriptionPayment
+
+    return SubscriptionPayment.objects.using("subscriptions").filter(
+        account_id=account.id
+    ).exists()
+
+
 def _is_exempt(account):
     """Check if account bypasses subscription (superuser or bot)."""
     if getattr(settings, "SUBSCRIPTION_BYPASS_SUPERUSER", True):

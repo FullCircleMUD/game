@@ -1,0 +1,143 @@
+{% extends "website/base.html" %}
+
+{% block titleblock %}Xaman Wallet Setup{% endblock %}
+
+{% block content %}
+
+{# ── Hero ── #}
+<div class="card mb-4">
+  <div class="card-body text-center py-5">
+    <h1 class="card-title mb-3">Xaman Wallet Setup</h1>
+    <p class="lead mb-1">Set up your Xaman wallet to play Full Circle MUD.</p>
+    <p class="text-muted">Xaman is the mobile wallet you'll use to sign transactions on the XRP Ledger.</p>
+  </div>
+</div>
+
+{# ── What is Xaman? ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">What is Xaman?</h2>
+    <hr/>
+    <p>
+      <strong>Xaman</strong> (formerly XUMM) is a mobile wallet for the XRP Ledger.
+      It lets you securely sign transactions without sharing your private keys with anyone
+      &mdash; including us.
+    </p>
+    <p>
+      Full Circle MUD uses Xaman for all on-chain interactions: paying your subscription,
+      receiving items exported from the game, and managing your on-chain assets. When the game
+      needs you to sign a transaction, it sends a request to your Xaman app &mdash; you review
+      the details and approve it on your phone.
+    </p>
+    <p class="mb-0">
+      You'll need Xaman installed and set up before you can subscribe or use any blockchain
+      features in-game.
+    </p>
+  </div>
+</div>
+
+{# ── Step 1: Install ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Step 1 &mdash; Install Xaman</h2>
+    <hr/>
+    <p>
+      Download Xaman from your device's app store:
+    </p>
+    <ul>
+      <li><strong>iOS:</strong> Search for <strong>Xaman</strong> in the App Store, or visit
+        <a href="https://apps.apple.com/app/xaman-xumm/id1492302343" target="_blank" rel="noopener" style="color: var(--fcm-green); text-decoration: underline;">Xaman on the App Store</a></li>
+      <li><strong>Android:</strong> Search for <strong>Xaman</strong> in the Google Play Store, or visit
+        <a href="https://play.google.com/store/apps/details?id=com.xrpllabs.xumm" target="_blank" rel="noopener" style="color: var(--fcm-green); text-decoration: underline;">Xaman on Google Play</a></li>
+    </ul>
+    <p class="text-muted mb-0">
+      <small>Xaman is free. Only download it from the official app stores &mdash; never from third-party links.</small>
+    </p>
+  </div>
+</div>
+
+{# ── Step 2: Create Wallet ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Step 2 &mdash; Create Your Wallet</h2>
+    <hr/>
+    <ol>
+      <li>Open Xaman and tap <strong>Create a new account</strong></li>
+      <li>Choose your security method (biometrics or passcode)</li>
+      <li>Xaman will generate your <strong>secret numbers</strong> &mdash; a set of 8 rows of 6 digits each</li>
+      <li><strong>Write these down on paper and store them safely.</strong> These are your only backup.
+        If you lose them, nobody can recover your wallet &mdash; not Xaman, not us, not anyone.</li>
+      <li>Confirm your secret numbers when prompted</li>
+    </ol>
+    <p>
+      Once complete, your wallet is ready. You'll see your <strong>r-address</strong> on the main screen
+      &mdash; this is your public wallet address that you'll use in-game.
+    </p>
+    <p class="text-muted mb-0">
+      <small>Your wallet needs a small XRP reserve (~1 XRP on mainnet) to activate on the ledger.
+      This happens automatically when you receive your first XRP deposit.</small>
+    </p>
+  </div>
+</div>
+
+{# ── Step 3: Link to Game ── #}
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="card-title">Step 3 &mdash; Link to Your Game Account</h2>
+    <hr/>
+    <ol>
+      <li>Open the Full Circle MUD client and type <code>connect</code></li>
+      <li>The game will send a <strong>signing request</strong> to your Xaman app</li>
+      <li>Open Xaman on your phone and <strong>approve the request</strong></li>
+      <li>Your wallet is now linked and you're connected to the game</li>
+    </ol>
+    <p>
+      Once linked, the game knows which wallet belongs to you. Subscription payments, item exports,
+      and all other on-chain interactions will be sent to your Xaman app for signing.
+    </p>
+  </div>
+</div>
+
+{# ── Testnet: Switching Networks ── #}
+{% if is_testnet %}
+<div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
+  <div class="card-body">
+    <h2 class="card-title" style="color: #DAA520;">Switching Xaman to Testnet</h2>
+    <hr style="border-color: #DAA520;"/>
+    <p>
+      During pre-alpha and alpha testing, Full Circle MUD runs on <strong>XRPL Testnet</strong>.
+      By default, Xaman connects to mainnet. You need to switch it to testnet to interact with the game.
+    </p>
+
+    <h5 class="mt-4" style="color: #DAA520;">How to Switch</h5>
+    <ol>
+      <li>Open Xaman and tap the <strong>Settings</strong> icon</li>
+      <li>Tap <strong>Advanced</strong></li>
+      <li>In the Debug section, toggle on <strong>Developer Mode</strong></li>
+      <li>Exit settings back to the Xaman home screen</li>
+      <li>In the top right corner, tap the words <strong>XRP Ledger</strong></li>
+      <li>In the menu that appears, select <strong>XRPL Testnet</strong> (testnet.xrpl-labs.com)</li>
+      <li>Check that the top right corner of the home screen now shows <strong>Testnet</strong></li>
+    </ol>
+
+    <h5 class="mt-4" style="color: #DAA520;">Important Notes</h5>
+    <ul>
+      <li><strong>Testnet and mainnet are completely separate.</strong> Your mainnet wallet address
+        exists on testnet too, but balances, trust lines, and transactions don't carry over.</li>
+      <li>Testnet XRP and tokens (like FakeRLUSD) have <strong>no real value</strong>.</li>
+      <li>The testnet is periodically <strong>reset</strong> by Ripple &mdash; when this happens,
+        all testnet wallets and balances are wiped. This is normal.</li>
+      <li>When the game moves to mainnet, you'll switch Xaman back to mainnet
+        and your real wallet will be ready to go.</li>
+    </ul>
+
+    <p class="mb-0">
+      Once you've switched to testnet, head to the
+      <a href="{% url 'faucet' %}" style="color: #DAA520; text-decoration: underline;">Testnet Faucet</a>
+      to get free FakeRLUSD for your subscription.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
