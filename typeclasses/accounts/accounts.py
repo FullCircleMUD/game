@@ -233,9 +233,9 @@ class Account(DefaultAccount):
 |b--------------------------------------------------------------|n
 |wFull Circle MUD - Main Menu|n
 |b--------------------------------------------------------------|n
-{header} 
+{header}
 {sessions}
-
+{subscription}
 |wYour Characters:|n  {footer}
 |b--------------------------------------------------------------|n
 {characters}
@@ -270,6 +270,35 @@ Leave Character / Game      |gquit|n
             if inn:
                 kwargs["location"] = inn
         return super().create_character(*args, **kwargs)
+
+    def _build_subscription_line(self):
+        """Build the subscription status line for the OOC menu."""
+        from subscriptions.utils import get_subscription_status
+
+        status = get_subscription_status(self)
+
+        if status["is_exempt"]:
+            return ""
+
+        if not status["subscribed"]:
+            return (
+                "|r*** Your subscription has expired ***|n\n"
+                "|rUse |wsubscribe|r to renew your subscription.|n"
+            )
+
+        expiry = status["expiry"]
+        if status["is_warning"]:
+            hours = status["hours_remaining"]
+            h = int(hours)
+            m = int((hours - h) * 60)
+            return (
+                f"|r*** Your subscription expires in "
+                f"{h} hours and {m} minutes ***|n\n"
+                f"|rUse |wsubscribe|r to extend your subscription.|n"
+            )
+
+        expiry_str = expiry.strftime("%H:%M UTC on %d %B %Y")
+        return f"Subscribed until {expiry_str}"
 
     def at_look(self, target=None, session=None, **kwargs):
         """
@@ -342,6 +371,9 @@ Leave Character / Game      |gquit|n
         
         txt_footer = f"( {ncars} of {max_chars} used )"
 
+        # Build subscription status line
+        txt_subscription = self._build_subscription_line()
+
         if not characters:
             txt_characters = "You don't have a character yet.\n"
         else:
@@ -366,8 +398,9 @@ Leave Character / Game      |gquit|n
         return self.ooc_appearance_template.format(
             header=txt_header,
             sessions=txt_sessions,
+            subscription=txt_subscription,
             characters=txt_characters,
-            footer=txt_footer
+            footer=txt_footer,
         )
 
     
@@ -548,6 +581,11 @@ Leave Character / Game      |gquit|n
             )
             bank.wallet_address = self.wallet_address
             self.db.bank = bank   # stores the dbref, auto-resolves on access
+
+            # Grant free trial subscription
+            from subscriptions.utils import grant_trial
+
+            grant_trial(self)
 
     def at_post_login(self, session=None, **kwargs):
         """Called after login. Backfills wallet + bank for the superuser."""

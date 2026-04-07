@@ -13,6 +13,7 @@ from evennia.utils.evmenu import get_input
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
+from subscriptions.utils import is_subscribed
 from typeclasses.items.base_nft_item import BaseNFTItem
 
 GOLD = settings.GOLD_DISPLAY
@@ -35,6 +36,13 @@ class CmdCharDelete(DefaultCmdCharDelete):
 
     def func(self):
         account = self.account
+
+        if not is_subscribed(account):
+            self.msg(
+                "|rYour subscription has expired.|n\n"
+                "Use |wsubscribe|n to renew."
+            )
+            return
 
         if not self.args:
             self.msg("Usage: chardelete <charactername>")

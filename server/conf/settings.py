@@ -32,7 +32,7 @@ import dj_database_url
 from evennia.settings_default import *  # noqa: F403, F401 — provides DATABASES, GAME_DIR, etc.
 
 # Register custom Django apps
-INSTALLED_APPS = INSTALLED_APPS + ["blockchain.xrpl", "ai_memory"]
+INSTALLED_APPS = INSTALLED_APPS + ["blockchain.xrpl", "ai_memory", "subscriptions"]
 
 WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
 SERVER_HOSTNAME = '0.0.0.0'
@@ -54,6 +54,7 @@ if _DATABASE_URL:
     DATABASES["default"] = _pg_config  # type: ignore[name-defined]
     DATABASES["xrpl"] = {**_pg_config}  # type: ignore[name-defined]
     DATABASES["ai_memory"] = {**_pg_config}  # type: ignore[name-defined]
+    DATABASES["subscriptions"] = {**_pg_config}  # type: ignore[name-defined]
 else:
     # SQLite mode — local development. Default DB inherited from
     # evennia.settings_default (evennia.db3). Custom DBs below.
@@ -67,10 +68,16 @@ else:
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": os.path.join(GAME_DIR, "server", "ai_memory.db3"),  # type: ignore[name-defined]
     }
+    # Migrate with: evennia migrate --database subscriptions
+    DATABASES["subscriptions"] = {  # type: ignore[name-defined]
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(GAME_DIR, "server", "subscriptions.db3"),  # type: ignore[name-defined]
+    }
 
 DATABASE_ROUTERS = [
     "blockchain.xrpl.db_router.XRPLRouter",
     "ai_memory.db_router.AiMemoryRouter",
+    "subscriptions.db_router.SubscriptionsRouter",
 ]
 
 ######################################################################
@@ -149,6 +156,21 @@ XRPL_VAULT_WALLET_SEED = ""  # vault wallet seed for server-signed txns
 # Actual values go in secret_settings.py.
 XAMAN_API_KEY = "PLACEHOLDER"
 XAMAN_API_SECRET = "PLACEHOLDER"
+
+# ── Subscription Payment ──────────────────────────────────────────
+# Payment currency: RLUSD on mainnet, FakeRLUSD on testnet.
+# FakeRLUSD is issued by a 3rd wallet to simulate an externally-issued token.
+SUBSCRIPTION_CURRENCY_CODE = os.environ.get("SUBSCRIPTION_CURRENCY_CODE", "FakeRLUSD")
+SUBSCRIPTION_CURRENCY_ISSUER = os.environ.get(
+    "SUBSCRIPTION_CURRENCY_ISSUER",
+    "",  # 3rd wallet issuer address — set in secret_settings.py or env
+)
+# Payment destination — subscription revenue goes to the issuer wallet.
+SUBSCRIPTION_PAYMENT_DESTINATION = XRPL_ISSUER_ADDRESS
+# Free trial for new accounts (hours). Set to 0 to disable.
+SUBSCRIPTION_TRIAL_HOURS = 48
+# Superuser and bot accounts bypass subscription checks entirely.
+SUBSCRIPTION_BYPASS_SUPERUSER = True
 
 
 ######################################################################

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **THIS FILE is for TECHNICAL details only** — architecture, code patterns, APIs, implementation guidelines, and development workflow. Detailed system designs live in `design/` docs: **COMBAT_SYSTEM.md** (combat, weapons, stealth), **EFFECTS_SYSTEM.md** (effects, conditions, damage), **SPELL_SKILL_DESIGN.md** (spells, crafting recipes), **CRAFTING_SYSTEM.md** (crafting/processing architecture), **NPC_QUEST_SYSTEM.md** (NPCs, quests), **INVENTORY_EQUIPMENT.md** (items, equipment, weight), **ECONOMY.md** (pricing, markets, spawning), **WORLD.md** (lore, zones, creative), **COMBAT_AI_MEMORY.md** (combat AI memory, strategy bot, adaptive mob behavior), **LORE_MEMORY.md** (embedded world knowledge for NPCs). Do not put world building or economic design content here.
+> **THIS FILE is for TECHNICAL details only** — architecture, code patterns, APIs, implementation guidelines, and development workflow. Detailed system designs live in `design/` docs: **COMBAT_SYSTEM.md** (combat, weapons, stealth), **EFFECTS_SYSTEM.md** (effects, conditions, damage), **SPELL_SKILL_DESIGN.md** (spells, crafting recipes), **CRAFTING_SYSTEM.md** (crafting/processing architecture), **NPC_QUEST_SYSTEM.md** (NPCs, quests), **INVENTORY_EQUIPMENT.md** (items, equipment, weight), **ECONOMY.md** (pricing, markets, spawning), **WORLD.md** (lore, zones, creative), **COMBAT_AI_MEMORY.md** (combat AI memory, strategy bot, adaptive mob behavior), **LORE_MEMORY.md** (embedded world knowledge for NPCs), **SUBSCRIPTIONS.md** (subscription payment system, command gating, trial periods). Do not put world building or economic design content here.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -27,8 +27,12 @@ FCM/src/                        ← run `evennia start` from here
 │   │       ├── currency_cache.py ← in-memory CurrencyType cache (resource_id ↔ currency_code)
 │   │       ├── db_router.py    ← routes app_label="xrpl" → "xrpl" DB
 │   │       └── migrations/     ← consolidated 0001_initial.py with seed data
+│   ├── subscriptions/            ← Subscription Django app (4th database)
+│   │   ├── models.py            ← SubscriptionPlan, SubscriptionPayment
+│   │   ├── utils.py             ← is_subscribed(), extend_subscription(), grant_trial()
+│   │   └── db_router.py         ← routes app_label="subscriptions" → "subscriptions" DB
 │   ├── commands/
-│   │   ├── account_cmds/       ← account-level commands (charcreate, chardelete, bank, wallet, import, export)
+│   │   ├── account_cmds/       ← account-level commands (charcreate, chardelete, bank, wallet, import, export, subscribe)
 │   │   ├── all_char_cmds/      ← character commands (junk, get, drop, give, movement, wear, learn, recipes, etc.)
 │   │   ├── class_skill_cmdsets/
 │   │   ├── general_skill_cmds/
@@ -627,6 +631,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - Xaman API: SignIn, TrustSet, NFTokenAcceptOffer payloads with delay-based polling
 - XRPL service layer active: GoldService, ResourceService, NFTService, FungibleService, AMMService, TelemetryService, ResourceSpawnService, NFTSaturationService
 - Service encapsulation: three layers — FungibleInventoryMixin (gold/resources), NFTMirrorMixin via BaseNFTItem (items), NFTPetMirrorMixin via BasePet (pets). See Service Encapsulation Pattern section.
+- Subscription system: monthly payment via XRPL (RLUSD/FakeRLUSD), 4th database for payment records, `subscribe` OOC command with Xaman payment flow, 48h configurable trial, gated commands (ic/charcreate/chardelete/import), OOC menu status display with warning coloring. All checks via `subscriptions/utils.py`. See `design/SUBSCRIPTIONS.md`.
 - Full inventory & equipment system — see `design/INVENTORY_EQUIPMENT.md` for details (FungibleInventoryMixin, BaseNFTItem, wearslots, CarryingCapacityMixin, nuclear recalculate, NFT ownership)
 - NFTItemType registry with typeclass, prototype_key, default_metadata
 - Weapon system: WeaponNFTItem + subclasses (Longsword, Dagger, Shortsword, Bow, Club, Spear, Axe, Greatsword, Mace, Hammer, Sling)

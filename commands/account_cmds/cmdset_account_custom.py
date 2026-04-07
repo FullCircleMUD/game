@@ -38,6 +38,7 @@ from commands.account_cmds.cmd_run_saturation import CmdRunSaturation
 from commands.account_cmds.cmd_run_spawns import CmdRunSpawns
 from commands.account_cmds.cmd_run_telemetry import CmdRunTelemetry
 from commands.account_cmds.cmd_broadcast import CmdBroadcast
+from commands.account_cmds.cmd_subscribe import CmdSubscribe
 
 
 class CmdSetAccountCustom(CmdSet):
@@ -61,6 +62,9 @@ class CmdSetAccountCustom(CmdSet):
         # Character management (OOC only)
         self.add(CmdCharCreate())
         self.add(CmdCharDelete())
+
+        # Subscription
+        self.add(CmdSubscribe())
 
         # Blockchain commands (OOC only)
         self.add(CmdBank())

@@ -9,6 +9,8 @@ score point buy, and name selection before creating the character.
 from evennia.commands.default.account import CmdCharCreate as DefaultCmdCharCreate
 from evennia.utils.evmenu import EvMenu
 
+from subscriptions.utils import is_subscribed
+
 
 class CmdCharCreate(DefaultCmdCharCreate):
     """
@@ -31,6 +33,13 @@ class CmdCharCreate(DefaultCmdCharCreate):
 
     def func(self):
         account = self.account
+
+        if not is_subscribed(account):
+            self.msg(
+                "|rYour subscription has expired.|n\n"
+                "Use |wsubscribe|n to renew."
+            )
+            return
 
         # Check character slot availability
         if slot_err := account.check_available_slots():
