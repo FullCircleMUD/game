@@ -5,26 +5,98 @@ Server-side XRPL operations using xrpl-py. The vault wallet signs
 transactions directly (using seed from settings). Player-signed
 transactions go through Xaman (see xaman.py).
 
+When XRPL_MULTISIG_ENABLED is True, vault transactions are multisigned:
+the game server signs with key A and forwards to the co-signing service
+for key B's signature, combination, and submission.
+
 Uses the same async websocket pattern as chain_sync.py.
 """
 
 import asyncio
 import logging
+from types import SimpleNamespace
+
+import httpx
 
 from django.conf import settings
 
 from decimal import Decimal
 
 from xrpl.asyncio.clients import AsyncWebsocketClient
-from xrpl.asyncio.transaction import submit_and_wait
+from xrpl.asyncio.transaction import autofill, submit_and_wait
+from xrpl.core.binarycodec import encode
 from xrpl.models.amounts import IssuedCurrencyAmount
 from xrpl.models.requests import AccountLines, AccountNFTs, Tx
 from xrpl.models.transactions import (
     NFTokenAcceptOffer, NFTokenCreateOffer, Payment,
 )
+from xrpl.transaction import sign
 from xrpl.wallet import Wallet
 
 logger = logging.getLogger("evennia")
+
+
+# ================================================================== #
+#  Multisig co-signing helper
+# ================================================================== #
+
+async def _cosign_and_submit(tx, client, wallet):
+    """
+    Autofill, sign with key A (multisign), and forward to the co-signing
+    service for key B's signature, combination, and XRPL submission.
+
+    Replaces ``submit_and_wait(tx, client, wallet)`` when multisig is enabled.
+
+    Args:
+        tx: An xrpl-py Transaction model (not yet autofilled).
+        client: An open AsyncWebsocketClient (used for autofill only).
+        wallet: Key A's Wallet (the game server's signer key).
+
+    Returns:
+        dict matching the shape of ``submit_and_wait().result``:
+        ``{"hash": ..., "meta": {"TransactionResult": ...}}``.
+
+    Raises:
+        XRPLTransactionError: If the co-signer rejects or the XRPL
+        submission fails.
+    """
+    # 1. Autofill (sequence, fee, last_ledger_sequence)
+    tx_filled = await autofill(tx, client)
+
+    # 2. Sign with key A for multisign
+    signed_a = sign(tx_filled, wallet, multisign=True)
+
+    # 3. Serialize to blob
+    tx_blob = encode(signed_a.to_xrpl())
+
+    # 4. POST to co-signing service
+    cosigner_url = settings.XRPL_COSIGNER_URL.rstrip("/")
+    async with httpx.AsyncClient(timeout=30.0) as http:
+        response = await http.post(
+            f"{cosigner_url}/cosign",
+            json={"tx_blob": tx_blob},
+            headers={"X-API-Key": settings.XRPL_COSIGNER_API_KEY},
+        )
+
+    if response.status_code != 200:
+        try:
+            detail = response.json().get("detail", response.text)
+        except Exception:
+            detail = response.text
+        raise XRPLTransactionError(
+            f"Co-signer rejected transaction: {response.status_code} — {detail}",
+        )
+
+    data = response.json()
+
+    # 5. Return a SimpleNamespace with .result so callers can use the same
+    #    access pattern as submit_and_wait(): result.result.get("hash"), etc.
+    meta = data.get("meta", {})
+    meta.setdefault("TransactionResult", data.get("engine_result", ""))
+    return SimpleNamespace(result={
+        "hash": data.get("tx_hash", ""),
+        "meta": meta,
+    })
 
 
 # ================================================================== #
@@ -111,9 +183,11 @@ async def _send_payment_async(network_url, vault_seed, destination,
                               currency_code, amount, issuer_address):
     """Build, sign, and submit a Payment from vault to player."""
     wallet = Wallet.from_seed(vault_seed)
+    # In multisig mode vault_seed is key A (signer) — tx account is the vault.
+    account = settings.XRPL_VAULT_ADDRESS if settings.XRPL_MULTISIG_ENABLED else wallet.address
 
     tx = Payment(
-        account=wallet.address,
+        account=account,
         destination=destination,
         amount=IssuedCurrencyAmount(
             currency=encode_currency_hex(currency_code),
@@ -123,7 +197,10 @@ async def _send_payment_async(network_url, vault_seed, destination,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
-        result = await submit_and_wait(tx, client, wallet)
+        if settings.XRPL_MULTISIG_ENABLED:
+            result = await _cosign_and_submit(tx, client, wallet)
+        else:
+            result = await submit_and_wait(tx, client, wallet)
 
     tx_result = result.result.get("meta", {}).get("TransactionResult")
     tx_hash = result.result.get("hash")
@@ -204,9 +281,10 @@ async def _create_nft_sell_offer_async(network_url, vault_seed,
                                        nftoken_id, destination):
     """Create a sell offer for 0 XRP, destined for a specific player."""
     wallet = Wallet.from_seed(vault_seed)
+    account = settings.XRPL_VAULT_ADDRESS if settings.XRPL_MULTISIG_ENABLED else wallet.address
 
     tx = NFTokenCreateOffer(
-        account=wallet.address,
+        account=account,
         nftoken_id=nftoken_id,
         amount="0",  # Free transfer
         destination=destination,
@@ -214,7 +292,10 @@ async def _create_nft_sell_offer_async(network_url, vault_seed,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
-        result = await submit_and_wait(tx, client, wallet)
+        if settings.XRPL_MULTISIG_ENABLED:
+            result = await _cosign_and_submit(tx, client, wallet)
+        else:
+            result = await submit_and_wait(tx, client, wallet)
 
     tx_result = result.result.get("meta", {}).get("TransactionResult")
     tx_hash = result.result.get("hash")
@@ -287,14 +368,18 @@ def create_nft_sell_offer(nftoken_id, destination):
 async def _accept_nft_sell_offer_async(network_url, vault_seed, offer_id):
     """Accept a player's NFT sell offer (vault-signed)."""
     wallet = Wallet.from_seed(vault_seed)
+    account = settings.XRPL_VAULT_ADDRESS if settings.XRPL_MULTISIG_ENABLED else wallet.address
 
     tx = NFTokenAcceptOffer(
-        account=wallet.address,
+        account=account,
         nftoken_sell_offer=offer_id,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
-        result = await submit_and_wait(tx, client, wallet)
+        if settings.XRPL_MULTISIG_ENABLED:
+            result = await _cosign_and_submit(tx, client, wallet)
+        else:
+            result = await submit_and_wait(tx, client, wallet)
 
     tx_result = result.result.get("meta", {}).get("TransactionResult")
     tx_hash = result.result.get("hash")

@@ -26,6 +26,7 @@ from xrpl.wallet import Wallet
 
 from blockchain.xrpl.xrpl_tx import (
     XRPLTransactionError,
+    _cosign_and_submit,
     encode_currency_hex,
     decode_currency_hex,
 )
@@ -364,9 +365,10 @@ async def _execute_swap_async(network_url, vault_seed, issuer_address,
     taker_pays = what we're buying  (to_currency, expected_output)
     """
     wallet = Wallet.from_seed(vault_seed)
+    account = settings.XRPL_VAULT_ADDRESS if settings.XRPL_MULTISIG_ENABLED else wallet.address
 
     tx = OfferCreate(
-        account=wallet.address,
+        account=account,
         taker_gets=IssuedCurrencyAmount(
             currency=encode_currency_hex(from_currency),
             value=str(max_input),
@@ -381,7 +383,10 @@ async def _execute_swap_async(network_url, vault_seed, issuer_address,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
-        result = await submit_and_wait(tx, client, wallet)
+        if settings.XRPL_MULTISIG_ENABLED:
+            result = await _cosign_and_submit(tx, client, wallet)
+        else:
+            result = await submit_and_wait(tx, client, wallet)
 
     tx_result = result.result.get("meta", {}).get("TransactionResult")
     tx_hash = result.result.get("hash")

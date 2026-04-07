@@ -137,7 +137,7 @@ CONTRACT_VAULT     = "0x0000000000000000000000000000000000000000"
 CONTRACT_TREASURY  = "0x0000000000000000000000000000000000000000"
 
 # ── XRPL Configuration ──────────────────────────────────────────────
-XRPL_IMPORT_EXPORT_ENABLED = False  # kill-switch for import/export — off for bot testing
+XRPL_IMPORT_EXPORT_ENABLED = os.environ.get("XRPL_IMPORT_EXPORT_ENABLED", "").lower() in ("true", "1")
 # XRPL network endpoint — environment-specific, not secret.
 # Defaults to testnet so local dev works without any env var.
 # Railway production overrides to mainnet: wss://s1.ripple.com:51233
@@ -152,6 +152,14 @@ XRPL_GOLD_CURRENCY_CODE = "FCMGold"
 XRPL_PGOLD_CURRENCY_CODE = "PGold"
 
 XRPL_VAULT_WALLET_SEED = os.environ.get("XRPL_VAULT_WALLET_SEED", "")  # vault wallet seed for server-signed txns
+
+# ── Multisig Co-Signing ──────────────────────────────────────────
+# When enabled, vault transactions are multisigned via the co-signing service
+# instead of single-signed by the vault seed directly.
+# See design/DEPLOYMENT.md § Vault Signing & Multisig.
+XRPL_MULTISIG_ENABLED = os.environ.get("XRPL_MULTISIG_ENABLED", "").lower() in ("true", "1")
+XRPL_COSIGNER_URL = os.environ.get("XRPL_COSIGNER_URL", "")  # e.g. "https://cosigner.fcmud.world"
+XRPL_COSIGNER_API_KEY = os.environ.get("XRPL_COSIGNER_API_KEY", "")
 
 # ── Xaman (XRPL Wallet) API ──────────────────────────────────────
 # Register at https://apps.xaman.dev/ to obtain credentials.
