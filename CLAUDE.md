@@ -432,6 +432,8 @@ RESERVE + SPAWNED + ACCOUNT + CHARACTER + SINK = vault on-chain balance
 
 NFTs use a per-row location field. XRPL NFT locations: RESERVE, SPAWNED, AUCTION, ACCOUNT, CHARACTER, ONCHAIN.
 
+> **NFT pool design:** All NFTs are minted with taxon 0. Tokens are interchangeable containers — recycled when items are destroyed. See `design/ECONOMY.md` § NFT Token Pool Design.
+
 ### Service Interface
 
 Game code imports from `blockchain.xrpl.services.*`: `GoldService`, `ResourceService`, `NFTService`, `FungibleService`, `AMMService`. Authentication uses Xaman wallet sign-in (`blockchain/xrpl/xaman.py`). All import/export/wallet commands are fully implemented for XRPL.
