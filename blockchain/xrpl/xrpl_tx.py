@@ -25,6 +25,7 @@ from decimal import Decimal
 from xrpl.asyncio.clients import AsyncWebsocketClient
 from xrpl.asyncio.transaction import autofill, submit_and_wait
 from xrpl.core.binarycodec import encode
+from xrpl.models import Transaction
 from xrpl.models.amounts import IssuedCurrencyAmount
 from xrpl.models.requests import AccountLines, AccountNFTs, Tx
 from xrpl.models.transactions import (
@@ -60,43 +61,64 @@ async def _cosign_and_submit(tx, client, wallet):
         XRPLTransactionError: If the co-signer rejects or the XRPL
         submission fails.
     """
-    # 1. Autofill (sequence, fee, last_ledger_sequence)
-    tx_filled = await autofill(tx, client)
+    try:
+        logger.info("Multisig: autofilling tx (Account=%s, Type=%s)",
+                    tx.account, tx.transaction_type)
 
-    # 2. Sign with key A for multisign
-    signed_a = sign(tx_filled, wallet, multisign=True)
+        # 1. Autofill (sequence, fee, last_ledger_sequence)
+        tx_filled = await autofill(tx, client)
 
-    # 3. Serialize to blob
-    tx_blob = encode(signed_a.to_xrpl())
+        # 2. Adjust fee for multisig: base_fee * (1 + num_signers)
+        # With 2 signers (A + B), multiply by 3
+        base_fee = int(tx_filled.fee)
+        multisig_fee = str(base_fee * 3)
+        tx_dict = tx_filled.to_xrpl()
+        tx_dict["Fee"] = multisig_fee
+        tx_filled = Transaction.from_xrpl(tx_dict)
 
-    # 4. POST to co-signing service
-    cosigner_url = settings.XRPL_COSIGNER_URL.rstrip("/")
-    async with httpx.AsyncClient(timeout=30.0) as http:
-        response = await http.post(
-            f"{cosigner_url}/cosign",
-            json={"tx_blob": tx_blob},
-            headers={"X-API-Key": settings.XRPL_COSIGNER_API_KEY},
-        )
+        # 3. Sign with key A for multisign
+        signed_a = sign(tx_filled, wallet, multisign=True)
+        logger.info("Multisig: signed with key A (signer=%s)", wallet.address)
 
-    if response.status_code != 200:
-        try:
-            detail = response.json().get("detail", response.text)
-        except Exception:
-            detail = response.text
-        raise XRPLTransactionError(
-            f"Co-signer rejected transaction: {response.status_code} — {detail}",
-        )
+        # 3. Serialize to blob
+        tx_blob = encode(signed_a.to_xrpl())
 
-    data = response.json()
+        # 4. POST to co-signing service
+        cosigner_url = settings.XRPL_COSIGNER_URL.rstrip("/")
+        logger.info("Multisig: posting to cosigner at %s", cosigner_url)
+        async with httpx.AsyncClient(timeout=120.0) as http:
+            response = await http.post(
+                f"{cosigner_url}/cosign",
+                json={"tx_blob": tx_blob},
+                headers={"X-API-Key": settings.XRPL_COSIGNER_API_KEY},
+            )
 
-    # 5. Return a SimpleNamespace with .result so callers can use the same
-    #    access pattern as submit_and_wait(): result.result.get("hash"), etc.
-    meta = data.get("meta", {})
-    meta.setdefault("TransactionResult", data.get("engine_result", ""))
-    return SimpleNamespace(result={
-        "hash": data.get("tx_hash", ""),
-        "meta": meta,
-    })
+        logger.info("Multisig: cosigner responded %s", response.status_code)
+        if response.status_code != 200:
+            try:
+                detail = response.json().get("detail", response.text)
+            except Exception:
+                detail = response.text
+            logger.error("Multisig: cosigner rejected — %s %s", response.status_code, detail)
+            raise XRPLTransactionError(
+                f"Co-signer rejected transaction: {response.status_code} — {detail}",
+            )
+
+        data = response.json()
+        logger.info("Multisig: success — tx_hash=%s engine_result=%s",
+                    data.get("tx_hash"), data.get("engine_result"))
+
+        # 5. Return a SimpleNamespace with .result so callers can use the same
+        #    access pattern as submit_and_wait(): result.result.get("hash"), etc.
+        meta = data.get("meta", {})
+        meta.setdefault("TransactionResult", data.get("engine_result", ""))
+        return SimpleNamespace(result={
+            "hash": data.get("tx_hash", ""),
+            "meta": meta,
+        })
+    except Exception:
+        logger.exception("Multisig: _cosign_and_submit failed")
+        raise
 
 
 # ================================================================== #
