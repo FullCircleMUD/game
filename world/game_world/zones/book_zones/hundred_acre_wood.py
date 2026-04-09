@@ -840,7 +840,14 @@ def build_hundred_acre_wood():
         gold=15,
     )
 
-    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")
+    # Wild Mule — tameable POC in Eeyore's Gloomy Place
+    mob = spawn_mob(
+        "typeclasses.actors.mobs.wild_mule.WildMule",
+        key="a wild mule",
+        location=rooms["r1c5"],
+    )
+
+    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo, 1 Wild Mule.")
 
     # ==================================================================
     #  LIBRARY BOOK
