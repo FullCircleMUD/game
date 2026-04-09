@@ -14,17 +14,14 @@
       the <strong>XRP Ledger</strong>.
     </p>
     <p>
-      You own your loot. Export anything to your own wallet whenever you want, trade it on-ledger,
-      or import it back into the game. The economy is powered by XRPL's native AMM pools &mdash;
-      prices are driven by real supply and demand, not scripts.
+      You own your loot. The economy is powered by XRPL's native AMM pools &mdash;
+      prices are driven by real supply and demand, not scripts. From beta, you'll be able
+      to export anything to your own wallet, trade it on-ledger, or import it back into the game.
     </p>
-    {% if is_testnet %}
     <p>
-      The game is currently running on <strong>XRPL Testnet</strong>. All addresses and assets
-      listed on this page are testnet only. We'll move to mainnet when the game is ready for
-      go-live.
+      The game is currently in <strong>pre-alpha</strong> on the XRPL mainnet, operating as a
+      <strong>closed-loop system</strong>. Asset export is disabled until beta.
     </p>
-    {% endif %}
   </div>
 </div>
 
@@ -54,15 +51,13 @@
   </div>
 </div>
 
-{# ── Testnet Addresses ── #}
-{% if is_testnet %}
+{# ── Wallet Addresses ── #}
 <div class="card mb-4">
   <div class="card-body">
-    <h2 class="card-title">Testnet Wallet Addresses</h2>
+    <h2 class="card-title">Wallet Addresses</h2>
     <hr/>
     <p>
-      The following addresses are on <strong>XRPL Testnet</strong>. They will change when
-      the game moves to mainnet at go-live.
+      The following addresses are on the <strong>XRPL mainnet</strong>.
     </p>
     <table class="table table-sm mt-3">
       <thead>
@@ -71,14 +66,14 @@
       <tbody>
         <tr>
           <td><strong>Issuer</strong></td>
-          <td><code>rU3VtgY3LE63tmd7egjPUx37JqQXumokyJ</code></td>
+          <td><code>{{ issuer_address }}</code></td>
           <td>Issues all game currencies (FCMGold and all 36 resource tokens). Manages the
             gold and resource supply, processes player fees, and handles currency issuance
             and operations on the XRP Ledger.</td>
         </tr>
         <tr>
           <td><strong>Vault</strong></td>
-          <td><code>rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ</code></td>
+          <td><code>{{ vault_address }}</code></td>
           <td>Holds all in-game assets. When a player imports, assets go into this wallet;
             when a player exports, assets are sent out from this wallet.</td>
         </tr>
@@ -86,7 +81,6 @@
     </table>
   </div>
 </div>
-{% endif %}
 
 {# ── On-Chain Assets ── #}
 <div class="card mb-4">
@@ -100,7 +94,7 @@
     <h5 class="mt-3">FCMGold</h5>
     <p>
       The primary game currency, issued on the XRP Ledger by the Issuer wallet.
-      {% if is_testnet %}On testnet, gold has no monetary value. Mainnet economy details will be published before go-live.{% endif %}
+      During pre-alpha and alpha, the game operates in closed-loop mode &mdash; gold cannot be exported.
     </p>
 
     <h5 class="mt-3">Resource Tokens</h5>
@@ -177,6 +171,10 @@
   <div class="card-body">
     <h2 class="card-title">Import &amp; Export</h2>
     <hr/>
+    <p class="text-muted">
+      <strong>Note:</strong> Import and export are disabled during pre-alpha and alpha while
+      the game operates in closed-loop mode. These features will be enabled at beta.
+    </p>
     <p>
       Moving assets between the game and your wallet is done with the <code>import</code>
       and <code>export</code> commands from the account view (out of character). All

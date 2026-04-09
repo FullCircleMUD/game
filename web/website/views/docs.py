@@ -22,6 +22,12 @@ class DocsGameplayView(TemplateView):
 class DocsBlockchainView(TemplateView):
     template_name = "website/docs_blockchain.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["issuer_address"] = settings.XRPL_ISSUER_ADDRESS
+        ctx["vault_address"] = settings.XRPL_VAULT_ADDRESS
+        return ctx
+
 
 class DocsClientApiView(TemplateView):
     template_name = "website/docs_client_api.html"

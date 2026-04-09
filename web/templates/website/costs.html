@@ -57,10 +57,29 @@
     <h2 class="card-title">Pricing</h2>
     <hr/>
 
-    <h4 class="mt-3" style="color: var(--fcm-green);">20 RLUSD / month</h4>
-    <p>
-      A flat <strong>20 RLUSD per month</strong>. No tiers, no upsells, no hidden costs.
-    </p>
+    <table class="table table-sm mt-3">
+      <thead>
+        <tr><th>Phase</th><th>Cost</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Pre-Alpha</strong> <span class="text-muted">(current)</span></td>
+          <td style="color: var(--fcm-green);"><strong>Free</strong></td>
+          <td>No subscription required. Play for free while the game is in early development.</td>
+        </tr>
+        <tr>
+          <td><strong>Alpha</strong></td>
+          <td><strong>2 RLUSD / month</strong></td>
+          <td>A small contribution to help cover hosting, LLM costs, and further development.</td>
+        </tr>
+        <tr>
+          <td><strong>Beta</strong> <span class="text-muted">(go-live)</span></td>
+          <td><strong>20 RLUSD / month</strong></td>
+          <td>Full subscription. Items become permanent and asset export is enabled.</td>
+        </tr>
+      </tbody>
+    </table>
+
     <p>
       Subscriptions are paid entirely in-game. Log in, type <code>subscribe</code> at the
       account menu, and sign the payment in your <strong><a href="{% url 'xaman' %}">Xaman wallet</a></strong>. The payment
@@ -68,29 +87,31 @@
       processor, no middleman.
     </p>
     <p>
-      New accounts receive a <strong>48-hour free trial</strong> so you can explore
-      the game before committing.
+      From alpha onwards, new accounts receive a <strong>48-hour free trial</strong> so you can
+      explore the game before committing.
     </p>
   </div>
 </div>
 
-{# ── Pre-Alpha / Testnet Notice ── #}
-{% if is_testnet %}
+{# ── Pre-Alpha Notice ── #}
 <div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
   <div class="card-body text-center py-4">
-    <h4 class="card-title" style="color: #DAA520;">Pre-Alpha &mdash; Testnet Payments</h4>
+    <h4 class="card-title" style="color: #DAA520;">Pre-Alpha &mdash; Free to Play</h4>
     <p class="mb-2">
-      During pre-alpha and alpha testing, the game runs on <strong>XRPL Testnet</strong>.
-      Subscriptions are paid with <strong>FakeRLUSD</strong> instead of real RLUSD &mdash;
-      a testnet token with no real-world value.
+      During pre-alpha, <strong>no subscription is required</strong>. The game is free to play
+      while we're in early development on the XRPL mainnet.
+    </p>
+    <p class="mb-2">
+      If you want to "pay" for pre-alpha, join the
+      {% if discord_url %}<a href="{{ discord_url }}" target="_blank" rel="noopener" style="color: #DAA520; text-decoration: underline;">Discord</a>{% else %}Discord{% endif %}
+      and report any bugs you find, and share your ideas to make the game better.
     </p>
     <p class="mb-0">
-      You can get free FakeRLUSD from the <a href="{% url 'faucet' %}" style="color: #DAA520; text-decoration: underline;">Testnet Faucet</a>
-      to pay your subscription during testing.
+      When we move to alpha, a small 2 RLUSD/month subscription will be introduced to help
+      cover hosting, LLM, and development costs.
     </p>
   </div>
 </div>
-{% endif %}
 
 {# ── The Game Economy ── #}
 <div class="card mb-4">

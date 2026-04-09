@@ -9,7 +9,7 @@
     <h1 class="card-title">Terms of Service</h1>
     <hr/>
     <p class="text-muted small">
-      <strong>Status: Draft — pending legal review before mainnet launch.</strong>
+      <strong>Status: Draft — pending legal review.</strong>
       These terms govern access to and use of Full Circle MUD. By creating an account
       you agree to be bound by them.
     </p>
@@ -95,22 +95,31 @@
   </div>
 </div>
 
-{# ── Alpha and Testing Phases ── #}
-{% if is_testnet %}
+{# ── Pre-Alpha and Alpha Phases ── #}
 <div class="card mb-4">
   <div class="card-body">
-    <h2 class="card-title">Alpha and Testing Phases</h2>
+    <h2 class="card-title">Pre-Alpha and Alpha Phases</h2>
     <hr/>
     <p>
-      During pre-alpha and alpha phases operating on XRPL testnet, all in-game gold and items
-      are test assets with no monetary value. Test phase assets are not transferable to the
-      mainnet economy and carry no entitlement to any monetary value. Players who participated
-      in testnet phases have no claim arising from that participation in respect of mainnet
-      assets or the mainnet economy.
+      During pre-alpha and alpha phases, the game operates on the XRPL mainnet as a
+      <strong>closed-loop system</strong>. Asset export is disabled &mdash; items and currencies
+      cannot be transferred out of the game until the beta phase.
+    </p>
+    <p>
+      Full Circle MUD reserves the right to remove, rewrite, or rebalance any in-game item
+      at any time during pre-alpha and alpha as needed for game balance. Items earned during
+      these phases are not guaranteed to persist in their current form.
+    </p>
+    <p>
+      We will endeavour to allow pre-alpha and alpha players to retain as much of what they
+      have earned as possible when the game reaches beta &mdash; however no guarantee is made.
+    </p>
+    <p>
+      From beta onwards, items become permanent and asset export to players' own wallets
+      will be enabled.
     </p>
   </div>
 </div>
-{% endif %}
 
 {# ── Contact ── #}
 <div class="card mb-4">

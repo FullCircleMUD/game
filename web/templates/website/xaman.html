@@ -98,46 +98,4 @@
   </div>
 </div>
 
-{# ── Testnet: Switching Networks ── #}
-{% if is_testnet %}
-<div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
-  <div class="card-body">
-    <h2 class="card-title" style="color: #DAA520;">Switching Xaman to Testnet</h2>
-    <hr style="border-color: #DAA520;"/>
-    <p>
-      During pre-alpha and alpha testing, Full Circle MUD runs on <strong>XRPL Testnet</strong>.
-      By default, Xaman connects to mainnet. You need to switch it to testnet to interact with the game.
-    </p>
-
-    <h5 class="mt-4" style="color: #DAA520;">How to Switch</h5>
-    <ol>
-      <li>Open Xaman and tap the <strong>Settings</strong> icon</li>
-      <li>Tap <strong>Advanced</strong></li>
-      <li>In the Debug section, toggle on <strong>Developer Mode</strong></li>
-      <li>Exit settings back to the Xaman home screen</li>
-      <li>In the top right corner, tap the words <strong>XRP Ledger</strong></li>
-      <li>In the menu that appears, select <strong>XRPL Testnet</strong> (testnet.xrpl-labs.com)</li>
-      <li>Check that the top right corner of the home screen now shows <strong>Testnet</strong></li>
-    </ol>
-
-    <h5 class="mt-4" style="color: #DAA520;">Important Notes</h5>
-    <ul>
-      <li><strong>Testnet and mainnet are completely separate.</strong> Your mainnet wallet address
-        exists on testnet too, but balances, trust lines, and transactions don't carry over.</li>
-      <li>Testnet XRP and tokens (like FakeRLUSD) have <strong>no real value</strong>.</li>
-      <li>The testnet is periodically <strong>reset</strong> by Ripple &mdash; when this happens,
-        all testnet wallets and balances are wiped. This is normal.</li>
-      <li>When the game moves to mainnet, you'll switch Xaman back to mainnet
-        and your real wallet will be ready to go.</li>
-    </ul>
-
-    <p class="mb-0">
-      Once you've switched to testnet, head to the
-      <a href="{% url 'faucet' %}" style="color: #DAA520; text-decoration: underline;">Testnet Faucet</a>
-      to get free FakeRLUSD for your subscription.
-    </p>
-  </div>
-</div>
-{% endif %}
-
 {% endblock %}

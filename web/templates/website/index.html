@@ -18,25 +18,26 @@
 </div>
 
 {# ── Pre-Alpha Notice ── #}
-{% if is_testnet %}
 <div class="card mb-4" style="background-color: #2A1A00; border: 2px solid #DAA520;">
   <div class="card-body text-center py-4">
     <h4 class="card-title" style="color: #DAA520;">Pre-Alpha &mdash; Adventure at Your Own Risk!</h4>
     <p class="mb-2">
-      Full Circle MUD is in <strong>pre-alpha development</strong>. The game is currently running on
-      <strong>XRPL Testnet</strong> with the economy in test mode &mdash; testnet gold and items
-      are <strong>temporary and for testing only</strong> and cannot be transferred to the mainnet
-      economy when the game goes live.
-      You're welcome to test the import and export of NFTs and game tokens to your testnet wallet
-      and let us know if you can see ways to improve the experience.
+      Full Circle MUD is in <strong>pre-alpha development</strong> on the <strong>XRPL mainnet</strong>.
+      The game currently operates as a <strong>closed-loop system</strong> &mdash; asset export is
+      disabled until beta. During pre-alpha and alpha, we reserve the right to remove or rewrite
+      items at any time as needed to balance the game.
+    </p>
+    <p class="mb-2">
+      We'll endeavour to let pre-alpha and alpha players keep as much of what they earn as possible
+      when the game goes live &mdash; however we offer no guarantee.
     </p>
     <p class="mb-0">
-      Think of playing the alpha as scouting ahead &mdash; the real treasure
+      From beta onwards, items become permanent and export to your own wallet will be enabled.
+      Think of playing now as scouting ahead &mdash; the real treasure
       is the stories you'll have when the world opens for good.
     </p>
   </div>
 </div>
-{% endif %}
 
 {# ── Feature Cards ── #}
 <div class="row mb-4">
@@ -58,7 +59,7 @@
         <h5 class="card-title">Own Your Loot</h5>
         <p class="card-text">
           Items are NFTs. Gold and resources are issued currencies on the XRPL.
-          Export anything to your own wallet whenever you want. They're yours.
+          From beta, export anything to your own wallet. They're yours.
         </p>
       </div>
     </div>
@@ -107,8 +108,8 @@
         <h5>On-Chain Economy</h5>
         <p>
           NPC shop prices are driven by on-ledger AMMs &mdash; supply and demand, not scripts.
-          Every asset you earn in-game is a real on-chain token you can export to your own
-          wallet on the XRP Ledger and trade freely.
+          Every asset you earn in-game is a real on-chain token. From beta, you'll be able
+          to export to your own wallet on the XRP Ledger and trade freely.
         </p>
         <a href="{% url 'about' %}">How it works &rarr;</a>
       </div>

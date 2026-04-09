@@ -26,9 +26,9 @@
       that simply weren't possible on a 56k modem in the late '90s.
     </p>
     <p>
-      It also describes the economy. Currency flows in, becomes gold, becomes resources,
-      becomes crafted items, gets traded, becomes gold again, and &mdash; if the player
-      chooses &mdash; flows back out to their wallet. The full circle.
+      It also describes the economy. Gold earned through questing becomes resources, resources
+      become crafted items, items get traded, and gold circulates back into the world for
+      others to earn. The full circle.
     </p>
   </div>
 </div>
@@ -42,25 +42,24 @@
     <h4 class="mt-4">1. You Own Your Assets</h4>
     <p>
       Gold and resources &mdash; wheat, iron ore, moonpetal essence &mdash; are all issued
-      currencies on the XRP Ledger. Every crafted item can be exported as an NFT. These aren't
-      database entries dressed up as tokens; they're on-chain assets that you control from your
-      own <a href="{% url 'xaman' %}">Xaman wallet</a>.
+      currencies on the XRP Ledger. Every crafted item is an NFT &mdash; real on-chain assets
+      managed through your <a href="{% url 'xaman' %}">Xaman wallet</a>.
     </p>
     <p>
-      Import assets into the game to use them. Export them to your wallet to trade freely.
-      The game never locks you in.
+      From beta, you'll be able to import assets into the game and export them to your wallet
+      to trade freely. During pre-alpha and alpha, the game operates in closed-loop mode
+      while we balance the economy.
     </p>
 
     <h4 class="mt-4">2. True Custody</h4>
     <p>
-      While you're playing, your assets sit in a game-controlled bridge wallet. But you can
-      export them to your own wallet at any time. Every ledger transaction is
+      While you're playing, your assets sit in a game-controlled bridge wallet. From beta,
+      you can export them to your own wallet at any time. Every ledger transaction is
       initiated and signed by you &mdash; the game server provides cryptographic authorisations,
       but never moves assets without your approval.
     </p>
     <p>
-      The result: your assets are genuinely yours. No admin can freeze your gold or confiscate
-      your gear. Even if the server went offline, your wallet still holds everything you earned.
+      The result: your assets are genuinely yours.
     </p>
 
     <h4 class="mt-4">3. A Real Economy, Not a Token Economy</h4>
@@ -105,7 +104,7 @@
     <hr/>
     <p>
       Full Circle MUD is a persistent multiplayer world connected via WebSocket. No downloads,
-      no installs &mdash; connect from any client that speaks the protocol, or build your own.
+      no installs &mdash; connect from any client that speaks the protocol, or <a href="{% url 'docs_client_api' %}">build your own</a>.
     </p>
 
     <div class="row mt-4">
@@ -139,8 +138,8 @@
         <h5>Magic</h5>
         <p>
           Six arcane schools and four divine domains. Spells scale qualitatively with mastery
-          &mdash; True Sight at Skilled reveals hidden things; at Expert it detects traps;
-          at Master it pierces invisibility. Every tier is a meaningful upgrade.
+          &mdash; Find Familiar at Basic summons a rat; at Skilled, a stealthy cat; at Expert,
+          a flying owl; at Master, a hawk that fights alongside you. Every tier is a meaningful upgrade.
         </p>
       </div>
     </div>
@@ -163,17 +162,16 @@
       <div class="col-md-4 mb-3">
         <h5>Play</h5>
         <p>
-          Explore, fight, craft, trade. While you're in the game, your assets live in the
-          vault contract &mdash; a secure smart contract that holds everything in play.
+          Explore, fight, craft, trade. While you're in the game, your assets live in a
+          secure multisig XRPL wallet that holds everything in play.
           The game tracks your inventory, your bank, your equipment.
         </p>
       </div>
       <div class="col-md-4 mb-3">
         <h5>Own</h5>
         <p>
-          Export any asset to your personal wallet at any time. Trade on secondary markets.
-          Your sword is an NFT. Your gold is an issued currency. Your stack of iron ingots is
-          a fungible token. They're yours.
+          Your sword is an NFT. Your gold and resources are issued currencies on the XRP Ledger.
+          From beta, export any asset to your personal wallet and trade freely. They're yours.
         </p>
       </div>
     </div>
