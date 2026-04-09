@@ -180,8 +180,12 @@ def _on_gold_confirmed(account, bank, wallet, amount, currency_code, answer):
         account.msg("Export cancelled.")
         return False
 
+    from blockchain.xrpl.memo import build_memo, MEMO_EXPORT
+    memos = [build_memo(MEMO_EXPORT, {
+        "type": "gold", "currency": currency_code, "amount": str(amount),
+    })]
     account.msg("|cSending gold to your wallet...|n")
-    d = threads.deferToThread(_send_payment, wallet, currency_code, amount)
+    d = threads.deferToThread(_send_payment, wallet, currency_code, amount, memos)
     d.addCallback(
         lambda tx_hash: _on_gold_sent(account, bank, amount, tx_hash)
     )
@@ -285,8 +289,12 @@ def _on_resource_confirmed(account, bank, wallet, amount, resource_id,
         return False
 
     name = resource_info["name"]
+    from blockchain.xrpl.memo import build_memo, MEMO_EXPORT
+    memos = [build_memo(MEMO_EXPORT, {
+        "type": "resource", "currency": currency_code, "amount": str(amount),
+    })]
     account.msg(f"|cSending {name} to your wallet...|n")
-    d = threads.deferToThread(_send_payment, wallet, currency_code, amount)
+    d = threads.deferToThread(_send_payment, wallet, currency_code, amount, memos)
     d.addCallback(
         lambda tx_hash: _on_resource_sent(
             account, bank, amount, resource_id, resource_info, tx_hash,
@@ -359,8 +367,10 @@ def _on_nft_confirmed(account, bank, wallet, nft_item, nftoken_id, answer):
         account.msg("Export cancelled.")
         return False
 
+    from blockchain.xrpl.memo import build_memo, MEMO_NFT_EXPORT
+    memos = [build_memo(MEMO_NFT_EXPORT, {"nftId": nftoken_id})]
     account.msg("|cCreating NFT sell offer...|n")
-    d = threads.deferToThread(_create_sell_offer, nftoken_id, wallet)
+    d = threads.deferToThread(_create_sell_offer, nftoken_id, wallet, memos)
     d.addCallback(
         lambda data: _on_sell_offer_created(
             account, bank, nft_item, nftoken_id, data,
@@ -372,10 +382,10 @@ def _on_nft_confirmed(account, bank, wallet, nft_item, nftoken_id, answer):
     return False
 
 
-def _create_sell_offer(nftoken_id, wallet):
+def _create_sell_offer(nftoken_id, wallet, memos=None):
     """Worker thread — vault creates sell offer."""
     from blockchain.xrpl.xrpl_tx import create_nft_sell_offer
-    return create_nft_sell_offer(nftoken_id, wallet)
+    return create_nft_sell_offer(nftoken_id, wallet, memos=memos)
 
 
 def _on_sell_offer_created(account, bank, nft_item, nftoken_id, data):
@@ -385,7 +395,9 @@ def _on_sell_offer_created(account, bank, nft_item, nftoken_id, data):
 
     sell_tx_hash, offer_id = data
 
-    d = threads.deferToThread(_create_accept_payload, offer_id)
+    from blockchain.xrpl.memo import build_memo, MEMO_NFT_EXPORT
+    memos = [build_memo(MEMO_NFT_EXPORT, {"nftId": nftoken_id})]
+    d = threads.deferToThread(_create_accept_payload, offer_id, memos)
     d.addCallback(
         lambda payload: _on_accept_payload(
             account, bank, nft_item, nftoken_id, offer_id, payload,
@@ -401,10 +413,10 @@ def _on_sell_offer_created(account, bank, nft_item, nftoken_id, data):
     )
 
 
-def _create_accept_payload(offer_id):
+def _create_accept_payload(offer_id, memos=None):
     """Worker thread — create Xaman accept payload."""
     from blockchain.xrpl.xaman import create_nft_accept_payload
-    return create_nft_accept_payload(offer_id)
+    return create_nft_accept_payload(offer_id, memos=memos)
 
 
 def _on_accept_payload(account, bank, nft_item, nftoken_id, offer_id,
@@ -439,10 +451,12 @@ def _on_nft_offer_error(account, failure):
 def _handle_missing_trust_line(account, wallet, currency_code):
     """Start trust line setup via Xaman (non-blocking)."""
     from blockchain.xrpl.xrpl_tx import encode_currency_hex
+    from blockchain.xrpl.memo import build_memo, MEMO_TRUST
 
     hex_code = encode_currency_hex(currency_code)
+    memos = [build_memo(MEMO_TRUST, {"currency": currency_code})]
 
-    d = threads.deferToThread(_create_trustline_payload, hex_code)
+    d = threads.deferToThread(_create_trustline_payload, hex_code, memos)
     d.addCallback(
         lambda payload: _on_trustline_payload(
             account, currency_code, payload,
@@ -453,10 +467,11 @@ def _handle_missing_trust_line(account, wallet, currency_code):
     )
 
 
-def _create_trustline_payload(hex_code):
+def _create_trustline_payload(hex_code, memos=None):
     """Worker thread — create Xaman trust line payload."""
     from blockchain.xrpl.xaman import create_trustline_payload
-    return create_trustline_payload(hex_code, settings.XRPL_ISSUER_ADDRESS)
+    return create_trustline_payload(hex_code, settings.XRPL_ISSUER_ADDRESS,
+                                    memos=memos)
 
 
 def _on_trustline_payload(account, currency_code, payload):
@@ -593,10 +608,10 @@ def _check_trust_line(wallet, currency_code):
     return check_trust_line(wallet, currency_code)
 
 
-def _send_payment(wallet, currency_code, amount):
+def _send_payment(wallet, currency_code, amount, memos=None):
     """Worker thread — vault sends payment to player wallet."""
     from blockchain.xrpl.xrpl_tx import send_payment
-    return send_payment(wallet, currency_code, amount)
+    return send_payment(wallet, currency_code, amount, memos=memos)
 
 
 def _get_payload_status(uuid):

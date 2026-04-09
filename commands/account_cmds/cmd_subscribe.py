@@ -162,8 +162,13 @@ def _on_subscribe_confirmed(
         return False
 
     from blockchain.xrpl.xrpl_tx import encode_currency_hex
+    from blockchain.xrpl.memo import build_memo, MEMO_SUBSCRIBE
 
     hex_code = encode_currency_hex(currency_code)
+    memos = [build_memo(MEMO_SUBSCRIBE, {
+        "plan": plan.display_name, "amount": str(plan.price),
+        "currency": currency_code,
+    })]
 
     account.msg("|cCreating payment request...|n")
     d = threads.deferToThread(
@@ -172,6 +177,7 @@ def _on_subscribe_confirmed(
         hex_code,
         plan.price,
         currency_issuer,
+        memos,
     )
     d.addCallback(
         lambda payload: _on_payment_payload(
@@ -366,11 +372,13 @@ def _on_verify_error(account, failure, tx_hash):
 # ================================================================== #
 
 
-def _create_subscription_payload(destination, hex_code, amount, issuer):
+def _create_subscription_payload(destination, hex_code, amount, issuer,
+                                 memos=None):
     """Worker thread — create Xaman payment payload."""
     from blockchain.xrpl.xaman import create_payment_payload
 
-    return create_payment_payload(destination, hex_code, amount, issuer)
+    return create_payment_payload(destination, hex_code, amount, issuer,
+                                  memos=memos)
 
 
 def _get_payload_status(uuid):

@@ -22,6 +22,7 @@ from blockchain.xrpl.models import (
     FungibleTransferLog,
     XRPLTransactionLog,
 )
+from blockchain.xrpl.memo import build_memo, MEMO_SWAP
 from blockchain.xrpl.services.fungible import FungibleService
 from blockchain.xrpl.currency_cache import get_currency_code
 
@@ -151,11 +152,18 @@ class AMMService:
             raise ValueError(f"Unknown resource_id: {resource_id}")
 
         # 1. Execute on-chain swap
+        memos = [build_memo(MEMO_SWAP, {
+            "sell": gold_currency,
+            "buy": resource_currency,
+            "sellAmt": str(gold_cost),
+            "buyAmt": str(amount),
+        })]
         swap_result = execute_swap(
             from_currency=gold_currency,
             to_currency=resource_currency,
             max_input=gold_cost,
             expected_output=amount,
+            memos=memos,
         )
         actual_gold_spent = swap_result["actual_input"]
         actual_resource_received = swap_result["actual_output"]
@@ -336,11 +344,18 @@ class AMMService:
             raise ValueError(f"Unknown resource_id: {resource_id}")
 
         # 1. Execute on-chain swap
+        memos = [build_memo(MEMO_SWAP, {
+            "sell": resource_currency,
+            "buy": gold_currency,
+            "sellAmt": str(amount),
+            "buyAmt": str(gold_received),
+        })]
         swap_result = execute_swap(
             from_currency=resource_currency,
             to_currency=gold_currency,
             max_input=amount,
             expected_output=gold_received,
+            memos=memos,
         )
         actual_resource_spent = swap_result["actual_input"]
         actual_gold_received = swap_result["actual_output"]

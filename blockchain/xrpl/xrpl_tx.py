@@ -202,7 +202,8 @@ def check_trust_line(wallet_address, currency_code):
 # ================================================================== #
 
 async def _send_payment_async(network_url, vault_seed, destination,
-                              currency_code, amount, issuer_address):
+                              currency_code, amount, issuer_address,
+                              memos=None):
     """Build, sign, and submit a Payment from vault to player."""
     wallet = Wallet.from_seed(vault_seed)
     # In multisig mode vault_seed is key A (signer) — tx account is the vault.
@@ -216,6 +217,7 @@ async def _send_payment_async(network_url, vault_seed, destination,
             value=str(amount),
             issuer=issuer_address,
         ),
+        memos=memos,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
@@ -240,7 +242,7 @@ async def _send_payment_async(network_url, vault_seed, destination,
     return tx_hash
 
 
-def send_payment(destination, currency_code, amount):
+def send_payment(destination, currency_code, amount, memos=None):
     """
     Send an issued currency payment from the vault to a player wallet.
 
@@ -248,6 +250,7 @@ def send_payment(destination, currency_code, amount):
         destination: Player's r-address.
         currency_code: Game currency code (e.g., "FCMGold").
         amount: Amount to send (int or Decimal — converted to string).
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         tx_hash (str): The XRPL transaction hash.
@@ -263,6 +266,7 @@ def send_payment(destination, currency_code, amount):
             currency_code,
             amount,
             settings.XRPL_ISSUER_ADDRESS,
+            memos=memos,
         )
     )
 
@@ -300,7 +304,8 @@ def send_faucet_payment(destination):
 # ================================================================== #
 
 async def _create_nft_sell_offer_async(network_url, vault_seed,
-                                       nftoken_id, destination):
+                                       nftoken_id, destination,
+                                       memos=None):
     """Create a sell offer for 0 XRP, destined for a specific player."""
     wallet = Wallet.from_seed(vault_seed)
     account = settings.XRPL_VAULT_ADDRESS if settings.XRPL_MULTISIG_ENABLED else wallet.address
@@ -311,6 +316,7 @@ async def _create_nft_sell_offer_async(network_url, vault_seed,
         amount="0",  # Free transfer
         destination=destination,
         flags=0x00000001,  # tfSellNFToken
+        memos=memos,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
@@ -356,7 +362,7 @@ def _extract_offer_id(meta):
     return None
 
 
-def create_nft_sell_offer(nftoken_id, destination):
+def create_nft_sell_offer(nftoken_id, destination, memos=None):
     """
     Create an NFT sell offer from the vault to a player.
 
@@ -366,6 +372,7 @@ def create_nft_sell_offer(nftoken_id, destination):
     Args:
         nftoken_id: The 64-char NFToken ID on-chain.
         destination: Player's r-address.
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         (tx_hash, offer_id) tuple.
@@ -379,6 +386,7 @@ def create_nft_sell_offer(nftoken_id, destination):
             settings.XRPL_VAULT_WALLET_SEED,
             nftoken_id,
             destination,
+            memos=memos,
         )
     )
 
@@ -387,7 +395,8 @@ def create_nft_sell_offer(nftoken_id, destination):
 #  NFT accept offer (vault accepts player's sell offer for import)
 # ================================================================== #
 
-async def _accept_nft_sell_offer_async(network_url, vault_seed, offer_id):
+async def _accept_nft_sell_offer_async(network_url, vault_seed, offer_id,
+                                       memos=None):
     """Accept a player's NFT sell offer (vault-signed)."""
     wallet = Wallet.from_seed(vault_seed)
     account = settings.XRPL_VAULT_ADDRESS if settings.XRPL_MULTISIG_ENABLED else wallet.address
@@ -395,6 +404,7 @@ async def _accept_nft_sell_offer_async(network_url, vault_seed, offer_id):
     tx = NFTokenAcceptOffer(
         account=account,
         nftoken_sell_offer=offer_id,
+        memos=memos,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
@@ -418,7 +428,7 @@ async def _accept_nft_sell_offer_async(network_url, vault_seed, offer_id):
     return tx_hash
 
 
-def accept_nft_sell_offer(offer_id):
+def accept_nft_sell_offer(offer_id, memos=None):
     """
     Accept a player's NFT sell offer from the vault.
 
@@ -426,6 +436,7 @@ def accept_nft_sell_offer(offer_id):
 
     Args:
         offer_id: The NFTokenOffer ledger index (64-char hex).
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         tx_hash (str): The XRPL transaction hash.
@@ -438,6 +449,7 @@ def accept_nft_sell_offer(offer_id):
             settings.XRPL_NETWORK_URL,
             settings.XRPL_VAULT_WALLET_SEED,
             offer_id,
+            memos=memos,
         )
     )
 

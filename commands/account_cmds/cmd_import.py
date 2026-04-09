@@ -187,11 +187,15 @@ def _on_gold_import_confirmed(account, bank, wallet, amount, answer):
 
     gold_code = settings.XRPL_GOLD_CURRENCY_CODE
     from blockchain.xrpl.xrpl_tx import encode_currency_hex
+    from blockchain.xrpl.memo import build_memo, MEMO_IMPORT
     hex_code = encode_currency_hex(gold_code)
+    memos = [build_memo(MEMO_IMPORT, {
+        "type": "gold", "currency": gold_code, "amount": str(amount),
+    })]
 
     account.msg("|cCreating payment request...|n")
     d = threads.deferToThread(
-        _create_payment_payload, hex_code, amount,
+        _create_payment_payload, hex_code, amount, memos,
     )
     d.addCallback(
         lambda payload: _on_fungible_payment_payload(
@@ -281,11 +285,15 @@ def _on_resource_import_confirmed(account, bank, wallet, amount, resource_id,
         return False
 
     from blockchain.xrpl.xrpl_tx import encode_currency_hex
+    from blockchain.xrpl.memo import build_memo, MEMO_IMPORT
     hex_code = encode_currency_hex(currency_code)
+    memos = [build_memo(MEMO_IMPORT, {
+        "type": "resource", "currency": currency_code, "amount": str(amount),
+    })]
 
     account.msg(f"|cCreating payment request...|n")
     d = threads.deferToThread(
-        _create_payment_payload, hex_code, amount,
+        _create_payment_payload, hex_code, amount, memos,
     )
     d.addCallback(
         lambda payload: _on_fungible_payment_payload(
@@ -512,9 +520,11 @@ def _on_nft_import_confirmed(account, bank, nftoken_id, nft_name, answer):
         account.msg("Import cancelled.")
         return False
 
+    from blockchain.xrpl.memo import build_memo, MEMO_NFT_IMPORT
+    memos = [build_memo(MEMO_NFT_IMPORT, {"nftId": nftoken_id})]
     account.msg("|cCreating sell offer request...|n")
     d = threads.deferToThread(
-        _create_nft_sell_offer_payload, nftoken_id,
+        _create_nft_sell_offer_payload, nftoken_id, memos,
     )
     d.addCallback(
         lambda payload: _on_nft_sell_payload(
@@ -582,8 +592,10 @@ def _on_nft_poll_result(account, bank, nftoken_id, nft_name, uuid, attempt,
     tx_hash = status.get("tx_hash")
 
     # Accept the offer in a worker thread (two XRPL calls: get_transaction + accept)
+    from blockchain.xrpl.memo import build_memo, MEMO_NFT_IMPORT
+    memos = [build_memo(MEMO_NFT_IMPORT, {"nftId": nftoken_id})]
     account.msg("|cAccepting NFT transfer...|n")
-    d = threads.deferToThread(_accept_nft_import, tx_hash)
+    d = threads.deferToThread(_accept_nft_import, tx_hash, memos)
     d.addCallback(
         lambda accept_tx_hash: _on_nft_accepted(
             account, bank, nftoken_id, nft_name, accept_tx_hash,
@@ -646,20 +658,20 @@ def _get_wallet_nfts(wallet):
     return get_wallet_nfts(wallet)
 
 
-def _create_payment_payload(hex_code, amount):
+def _create_payment_payload(hex_code, amount, memos=None):
     """Worker thread — create Xaman payment payload."""
     from blockchain.xrpl.xaman import create_payment_payload
     return create_payment_payload(
         settings.XRPL_VAULT_ADDRESS, hex_code, amount,
-        settings.XRPL_ISSUER_ADDRESS,
+        settings.XRPL_ISSUER_ADDRESS, memos=memos,
     )
 
 
-def _create_nft_sell_offer_payload(nftoken_id):
+def _create_nft_sell_offer_payload(nftoken_id, memos=None):
     """Worker thread — create Xaman NFT sell offer payload."""
     from blockchain.xrpl.xaman import create_nft_sell_offer_payload
     return create_nft_sell_offer_payload(
-        nftoken_id, settings.XRPL_VAULT_ADDRESS,
+        nftoken_id, settings.XRPL_VAULT_ADDRESS, memos=memos,
     )
 
 
@@ -681,7 +693,7 @@ def _verify_fungible_payment(tx_hash, hex_code, amount):
     )
 
 
-def _accept_nft_import(tx_hash):
+def _accept_nft_import(tx_hash, memos=None):
     """Worker thread — extract offer_id and vault accepts it."""
     from blockchain.xrpl.xrpl_tx import (
         get_transaction, accept_nft_sell_offer, _extract_offer_id,
@@ -695,7 +707,7 @@ def _accept_nft_import(tx_hash):
             f"Could not extract offer ID from transaction {tx_hash}"
         )
 
-    accept_tx_hash = accept_nft_sell_offer(offer_id)
+    accept_tx_hash = accept_nft_sell_offer(offer_id, memos=memos)
     return accept_tx_hash
 
 

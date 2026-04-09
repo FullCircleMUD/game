@@ -353,7 +353,7 @@ def get_multi_pool_prices(resource_currencies, gold_currency=None):
 
 async def _execute_swap_async(network_url, vault_seed, issuer_address,
                                from_currency, to_currency,
-                               max_input, expected_output):
+                               max_input, expected_output, memos=None):
     """
     Execute a cross-currency swap via OfferCreate on the XRPL DEX.
 
@@ -380,6 +380,7 @@ async def _execute_swap_async(network_url, vault_seed, issuer_address,
             issuer=issuer_address,
         ),
         flags=OfferCreateFlag.TF_IMMEDIATE_OR_CANCEL,
+        memos=memos,
     )
 
     async with AsyncWebsocketClient(network_url) as client:
@@ -453,7 +454,8 @@ def _extract_balance_change(meta, account, currency, issuer_address):
     return None
 
 
-def execute_swap(from_currency, to_currency, max_input, expected_output):
+def execute_swap(from_currency, to_currency, max_input, expected_output,
+                 memos=None):
     """
     Execute a cross-currency swap through the AMM pool.
 
@@ -466,6 +468,7 @@ def execute_swap(from_currency, to_currency, max_input, expected_output):
         to_currency: Currency code to receive (e.g., "FCMWheat").
         max_input: Maximum input amount (rounded integer).
         expected_output: Expected output amount.
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         dict with tx_hash, actual_output.
@@ -482,5 +485,6 @@ def execute_swap(from_currency, to_currency, max_input, expected_output):
             to_currency,
             max_input,
             expected_output,
+            memos=memos,
         )
     )

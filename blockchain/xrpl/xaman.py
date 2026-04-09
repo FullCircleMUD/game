@@ -15,6 +15,8 @@ secret_settings.py. Register at https://apps.xaman.dev/ to obtain them.
 import requests
 from django.conf import settings
 
+from blockchain.xrpl.memo import memo_to_xaman
+
 XAMAN_BASE_URL = "https://xumm.app/api/v1/platform"
 
 
@@ -125,7 +127,7 @@ def _create_payload(txjson):
 
 
 def create_trustline_payload(currency_code, issuer_address,
-                             limit="1000000000"):
+                             limit="1000000000", memos=None):
     """
     Create a Xaman TrustSet payload for the player to sign.
 
@@ -136,37 +138,43 @@ def create_trustline_payload(currency_code, issuer_address,
         currency_code: Hex-encoded XRPL currency code (40 chars for >3 char codes).
         issuer_address: The currency issuer's r-address.
         limit: Trust line limit (string). Defaults to 1 billion.
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         dict with keys: uuid, deeplink, qr_url
     """
-    return _create_payload({
+    txjson = {
         "TransactionType": "TrustSet",
         "LimitAmount": {
             "currency": currency_code,
             "issuer": issuer_address,
             "value": limit,
         },
-    })
+    }
+    if memos:
+        txjson["Memos"] = [memo_to_xaman(m) for m in memos]
+    return _create_payload(txjson)
 
 
-def create_payment_payload(destination, currency_code, amount, issuer_address):
+def create_payment_payload(destination, currency_code, amount, issuer_address,
+                           memos=None):
     """
     Create a Xaman Payment payload for the player to sign.
 
     The player signs this to send an issued currency payment from their
-    wallet to the vault (fungible import).
+    wallet to the vault (fungible import or subscription).
 
     Args:
         destination: The vault's r-address.
         currency_code: Hex-encoded XRPL currency code (40 chars for >3 char codes).
         amount: Amount to send (int/Decimal — converted to string).
         issuer_address: The currency issuer's r-address.
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         dict with keys: uuid, deeplink, qr_url
     """
-    return _create_payload({
+    txjson = {
         "TransactionType": "Payment",
         "Destination": destination,
         "Amount": {
@@ -174,10 +182,13 @@ def create_payment_payload(destination, currency_code, amount, issuer_address):
             "value": str(amount),
             "issuer": issuer_address,
         },
-    })
+    }
+    if memos:
+        txjson["Memos"] = [memo_to_xaman(m) for m in memos]
+    return _create_payload(txjson)
 
 
-def create_nft_sell_offer_payload(nftoken_id, destination):
+def create_nft_sell_offer_payload(nftoken_id, destination, memos=None):
     """
     Create a Xaman NFTokenCreateOffer payload for the player to sign.
 
@@ -187,20 +198,24 @@ def create_nft_sell_offer_payload(nftoken_id, destination):
     Args:
         nftoken_id: The 64-char NFToken ID on-chain.
         destination: The vault's r-address.
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         dict with keys: uuid, deeplink, qr_url
     """
-    return _create_payload({
+    txjson = {
         "TransactionType": "NFTokenCreateOffer",
         "NFTokenID": nftoken_id,
         "Amount": "0",
         "Destination": destination,
         "Flags": 1,  # tfSellNFToken
-    })
+    }
+    if memos:
+        txjson["Memos"] = [memo_to_xaman(m) for m in memos]
+    return _create_payload(txjson)
 
 
-def create_nft_accept_payload(sell_offer_id):
+def create_nft_accept_payload(sell_offer_id, memos=None):
     """
     Create a Xaman NFTokenAcceptOffer payload for the player to sign.
 
@@ -209,11 +224,15 @@ def create_nft_accept_payload(sell_offer_id):
 
     Args:
         sell_offer_id: The NFTokenOffer ledger index (64-char hex).
+        memos: Optional list of xrpl.models.Memo for audit trail.
 
     Returns:
         dict with keys: uuid, deeplink, qr_url
     """
-    return _create_payload({
+    txjson = {
         "TransactionType": "NFTokenAcceptOffer",
         "NFTokenSellOffer": sell_offer_id,
-    })
+    }
+    if memos:
+        txjson["Memos"] = [memo_to_xaman(m) for m in memos]
+    return _create_payload(txjson)
