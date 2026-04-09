@@ -53,10 +53,10 @@ CURRENCY_TYPES = [
     {"currency_code": "FCMDiamond", "resource_id": 35, "name": "Diamond", "unit": "gems", "description": "A flawless clear gemstone. The rarest and most valuable.", "weight_per_unit_kg": "0.050", "is_gold": False},
     {"currency_code": "FCMCoal", "resource_id": 36, "name": "Coal", "unit": "lumps", "description": "Black mineral fuel. Used in steel smelting.", "weight_per_unit_kg": "0.500", "is_gold": False},
     # Proxy tokens (NFT AMM pricing engine — closed-loop, vault-only)
-    {"currency_code": "PGold", "resource_id": None, "name": "P Gold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "250000"},
-    {"currency_code": "PTrainDagger", "resource_id": None, "name": "P Train Dagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
-    {"currency_code": "PTrainSSword", "resource_id": None, "name": "P Train SSword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
-    {"currency_code": "PTrainLSword", "resource_id": None, "name": "P Train LSword", "unit": "tokens", "description": "Proxy token for Training Longsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
+    {"currency_code": "PGold", "resource_id": None, "name": "PGold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "250000"},
+    {"currency_code": "PTrainDagger", "resource_id": None, "name": "PTrainDagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
+    {"currency_code": "PTrainSSword", "resource_id": None, "name": "PTrainSSword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
+    {"currency_code": "PTrainLSword", "resource_id": None, "name": "PTrainLSword", "unit": "tokens", "description": "Proxy token for Training Longsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
 ]
 
 
@@ -91,6 +91,9 @@ _TORCH_TC = "typeclasses.items.holdables.torch_nft_item.TorchNFTItem"
 _LANTERN_TC = "typeclasses.items.holdables.lantern_nft_item.LanternNFTItem"
 _DISTRICT_MAP_TC = "typeclasses.items.maps.district_map_nft_item.DistrictMapNFTItem"
 _ROUTE_MAP_TC = "typeclasses.items.maps.route_map_nft_item.RouteMapNFTItem"
+_MULE_TC = "typeclasses.actors.pets.mule.Mule"
+_WAR_DOG_TC = "typeclasses.actors.pets.war_dog.WarDog"
+_HORSE_PET_TC = "typeclasses.actors.pets.horse.Horse"
 
 NFT_ITEM_TYPES = [
     # ── Weapons ──
@@ -320,6 +323,10 @@ NFT_ITEM_TYPES = [
     {"name": "Scroll of Teleport", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "teleport_scroll", "description": "A scroll inscribed with swirling spatial runes. The parchment seems to shift position when you are not looking directly at it."},
     {"name": "Scroll of True Sight", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "true_sight_scroll", "description": "A scroll bearing the image of an open eye wreathed in golden light. It seems to watch you back."},
     {"name": "Scroll of Vampiric Touch", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "vampiric_touch_scroll", "description": "A dark crimson scroll that stains your fingers when you touch it. The ink seems to writhe."},
+    # ── Pets ──
+    {"name": "Mule", "typeclass": _MULE_TC, "description": "A sturdy brown mule with a thick neck and patient eyes."},
+    {"name": "War Dog", "typeclass": _WAR_DOG_TC, "description": "A muscular, battle-scarred dog with a thick leather collar."},
+    {"name": "Horse", "typeclass": _HORSE_PET_TC, "description": "A strong horse with a glossy coat and alert ears."},
 ]
 
 
