@@ -98,7 +98,7 @@ NFT_ITEM_TYPES = [
     {"name": "Training Shortsword", "typeclass": _SHORTSWORD_TC, "prototype_key": "training_shortsword", "description": "A wooden practice shortsword. Lighter than a longsword, good for one-handed drills.", "tracking_token": "PTrainSSword"},
     {"name": "Training Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "training_longsword", "description": "A wooden practice sword. Won't cut much, but it'll bruise.", "tracking_token": "PTrainLSword"},
     {"name": "Training Bow", "typeclass": _BOW_TC, "prototype_key": "training_bow", "description": "A crude practice bow carved from a single piece of timber.", "tracking_token": "PTrainBow"},
-    {"name": "Wooden Club", "typeclass": _CLUB_TC, "prototype_key": "wooden_club", "description": "A heavy wooden club. Simple, brutal, and effective.", "tracking_token": "PClub"},
+    {"name": "Wooden Club", "typeclass": _CLUB_TC, "prototype_key": "wooden_club", "description": "A heavy wooden club. Simple, brutal, and effective.", "tracking_token": "PWoodenClub"},
     {"name": "Iron Longsword", "typeclass": _LONGSWORD_TC, "prototype_key": "iron_longsword", "description": "A sturdy iron blade, forged by a competent smith."},
     {"name": "Iron Dagger", "typeclass": _DAGGER_TC, "prototype_key": "iron_dagger", "description": "A sharp iron dagger. Small but deadly in skilled hands."},
     {"name": "Iron Shortsword", "typeclass": _SHORTSWORD_TC, "prototype_key": "iron_shortsword", "description": "A well-forged iron shortsword. Quick and versatile."},

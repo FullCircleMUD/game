@@ -26,8 +26,8 @@ from blockchain.xrpl.models import NFTGameState, FungibleGameState, CurrencyType
 
 logger = logging.getLogger("evennia")
 
-# URI pattern: https://api.fcmud.world/nft/{game_id}
-_NFT_URI_PATTERN = re.compile(r"/nft/(\d+)$")
+# URI pattern: https://nft.fcmud.world/{game_id}
+_NFT_URI_PATTERN = re.compile(r"/(\d+)$")
 
 
 def _hex_to_string(hex_str):

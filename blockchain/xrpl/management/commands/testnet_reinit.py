@@ -59,7 +59,7 @@ FAUCET_URL = "https://faucet.altnet.rippletest.net/accounts"
 TRUST_LIMIT = "999999999999999"
 AMM_TRADING_FEE = 0             # 0% LP fee on reinit
 NFT_TRANSFER_FEE = 5000        # 5% royalty (XRPL scale: 50000 = 50%)
-NFT_BASE_URI = "https://api.fcmud.world/nft/"
+NFT_BASE_URI = "https://nft.fcmud.world/"
 NFT_FLAGS = (
     NFTokenMintFlag.TF_TRANSFERABLE | NFTokenMintFlag.TF_BURNABLE
 )
