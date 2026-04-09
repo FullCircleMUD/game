@@ -34,6 +34,10 @@ class CmdSubscribe(Command):
     help_category = "System"
 
     def func(self):
+        if not getattr(settings, "SUBSCRIPTION_ENABLED", False):
+            self.caller.msg("Subscriptions are not currently active. Enjoy free access!")
+            return
+
         account = self.caller
 
         wallet = account.wallet_address

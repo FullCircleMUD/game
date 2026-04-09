@@ -273,6 +273,10 @@ Leave Character / Game      |gquit|n
 
     def _build_subscription_line(self):
         """Build the subscription status line for the OOC menu."""
+        from django.conf import settings as _settings
+        if not getattr(_settings, "SUBSCRIPTION_ENABLED", False):
+            return ""
+
         from subscriptions.utils import get_subscription_status
 
         status = get_subscription_status(self)

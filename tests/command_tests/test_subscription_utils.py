@@ -8,9 +8,11 @@ evennia test --settings settings tests.command_tests.test_subscription_utils
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+from django.test import override_settings
 from evennia.utils.test_resources import EvenniaTest
 
 from subscriptions.utils import (
+    _is_exempt,
     extend_subscription,
     get_subscription_status,
     grant_trial,
@@ -21,6 +23,7 @@ from subscriptions.utils import (
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestIsSubscribed(EvenniaTest):
     """Test is_subscribed() under various conditions."""
 
@@ -65,6 +68,7 @@ class TestIsSubscribed(EvenniaTest):
         self.assertTrue(is_subscribed(self.account))
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestGetSubscriptionStatus(EvenniaTest):
     """Test get_subscription_status() returns correct dicts."""
 
@@ -170,6 +174,7 @@ class TestExtendSubscription(EvenniaTest):
         self.assertEqual(self.account.subscription_expires_date, new_expiry)
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestGrantTrial(EvenniaTest):
     """Test grant_trial() logic."""
 
@@ -209,3 +214,44 @@ class TestGrantTrial(EvenniaTest):
         result = grant_trial(self.account)
         self.assertIsNone(result)
         self.assertIsNone(self.account.subscription_expires_date)
+
+
+class TestSubscriptionDisabled(EvenniaTest):
+    """Test behaviour when SUBSCRIPTION_ENABLED is False (default)."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+
+    def test_is_exempt_returns_true_when_disabled(self):
+        """Everyone is exempt when subscriptions are disabled."""
+        self.account.subscription_expires_date = None
+        self.assertTrue(_is_exempt(self.account))
+
+    def test_is_subscribed_returns_true_when_disabled(self):
+        """Everyone appears subscribed when subscriptions are disabled."""
+        self.account.subscription_expires_date = None
+        self.assertTrue(is_subscribed(self.account))
+
+    def test_grant_trial_noop_when_disabled(self):
+        """Trial is not granted when subscriptions are disabled."""
+        self.account.subscription_expires_date = None
+        result = grant_trial(self.account)
+        self.assertIsNone(result)
+        self.assertIsNone(self.account.subscription_expires_date)
+
+    def test_get_status_shows_exempt_when_disabled(self):
+        """Status shows exempt for everyone when subscriptions are disabled."""
+        self.account.subscription_expires_date = None
+        status = get_subscription_status(self.account)
+        self.assertTrue(status["is_exempt"])
+        self.assertTrue(status["subscribed"])
+
+    @override_settings(SUBSCRIPTION_ENABLED=True)
+    def test_is_exempt_checks_normally_when_enabled(self):
+        """Normal accounts are NOT exempt when subscriptions are enabled."""
+        self.account.is_superuser = False
+        self.assertFalse(_is_exempt(self.account))

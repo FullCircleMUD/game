@@ -173,6 +173,9 @@ IS_TESTNET = os.environ.get("IS_TESTNET", "").lower() in ("true", "1", "yes") or
     "testnet" in XRPL_NETWORK_URL or "altnet" in XRPL_NETWORK_URL
 
 # ── Subscription Payment ──────────────────────────────────────────
+# Master toggle — set to False to disable all subscription gating.
+# Pre-alpha: False, Alpha: True, Beta: True
+SUBSCRIPTION_ENABLED = os.environ.get("SUBSCRIPTION_ENABLED", "false").lower() in ("true", "1", "yes")
 # Payment currency: RLUSD on mainnet, FakeRLUSD on testnet.
 # FakeRLUSD is issued by a 3rd wallet to simulate an externally-issued token.
 SUBSCRIPTION_CURRENCY_CODE = os.environ.get("SUBSCRIPTION_CURRENCY_CODE", "FakeRLUSD")

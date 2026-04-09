@@ -106,6 +106,9 @@ def grant_trial(account):
 
     Returns the trial expiry datetime, or None if not granted.
     """
+    if not getattr(settings, "SUBSCRIPTION_ENABLED", False):
+        return None
+
     trial_hours = getattr(settings, "SUBSCRIPTION_TRIAL_HOURS", 48)
     if trial_hours <= 0:
         return None
@@ -138,6 +141,9 @@ def has_paid(account):
 
 def _is_exempt(account):
     """Check if account bypasses subscription (superuser or bot)."""
+    if not getattr(settings, "SUBSCRIPTION_ENABLED", False):
+        return True
+
     if getattr(settings, "SUBSCRIPTION_BYPASS_SUPERUSER", True):
         if account.is_superuser:
             return True

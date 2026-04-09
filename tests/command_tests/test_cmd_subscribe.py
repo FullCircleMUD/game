@@ -11,6 +11,7 @@ evennia test --settings settings tests.command_tests.test_cmd_subscribe
 
 from datetime import datetime, timedelta, timezone
 
+from django.test import override_settings
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from commands.account_cmds.cmd_subscribe import CmdSubscribe
@@ -19,6 +20,7 @@ from commands.account_cmds.cmd_subscribe import CmdSubscribe
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestCmdSubscribeEarlyReturns(EvenniaCommandTest):
     """Test subscribe command early-return paths."""
 
@@ -69,3 +71,19 @@ class TestCmdSubscribeEarlyReturns(EvenniaCommandTest):
             caller=self.account,
         )
         self.assertIn("You are not currently subscribed", result)
+
+
+class TestCmdSubscribeWhenDisabled(EvenniaCommandTest):
+    """Test subscribe command when SUBSCRIPTION_ENABLED is False."""
+
+    def create_script(self):
+        pass
+
+    def test_subscribe_shows_not_active(self):
+        """subscribe should show not-active message when disabled."""
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.call(
+            CmdSubscribe(), "",
+            "Subscriptions are not currently active.",
+            caller=self.account,
+        )

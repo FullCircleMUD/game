@@ -10,6 +10,7 @@ evennia test --settings settings tests.command_tests.test_subscription_gating
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
+from django.test import override_settings
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from commands.account_cmds.cmd_override_charcreate import CmdCharCreate
@@ -22,6 +23,7 @@ WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 EXPIRED_MSG = "Your subscription has expired."
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestICGating(EvenniaCommandTest):
     """Test that ic is gated by subscription status."""
 
@@ -78,6 +80,7 @@ class TestICGating(EvenniaCommandTest):
         self.assertNotIn("subscription has expired", result.lower())
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestCharCreateGating(EvenniaCommandTest):
     """Test that charcreate is gated by subscription status."""
 
@@ -109,6 +112,7 @@ class TestCharCreateGating(EvenniaCommandTest):
         )
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestCharDeleteGating(EvenniaCommandTest):
     """Test that chardelete is gated by subscription status."""
 
@@ -140,6 +144,7 @@ class TestCharDeleteGating(EvenniaCommandTest):
         )
 
 
+@override_settings(SUBSCRIPTION_ENABLED=True)
 class TestImportGating(EvenniaCommandTest):
     """Test that import is gated by subscription status."""
 
@@ -173,3 +178,41 @@ class TestImportGating(EvenniaCommandTest):
             EXPIRED_MSG,
             caller=self.account,
         )
+
+
+class TestGatingBypassWhenDisabled(EvenniaCommandTest):
+    """With SUBSCRIPTION_ENABLED=False (default), gated commands bypass checks."""
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account.subscription_expires_date = None
+
+    def test_ic_bypasses_when_disabled(self):
+        """ic should not show expired message when subscriptions disabled."""
+        result = self.call(
+            CmdIC(), "",
+            caller=self.account,
+        )
+        self.assertNotIn("subscription has expired", result.lower())
+
+    def test_charcreate_bypasses_when_disabled(self):
+        """charcreate should not show expired message when subscriptions disabled."""
+        result = self.call(
+            CmdCharCreate(), "",
+            caller=self.account,
+        )
+        self.assertNotIn("subscription has expired", result.lower())
+
+    def test_chardelete_bypasses_when_disabled(self):
+        """chardelete should not show expired message when subscriptions disabled."""
+        result = self.call(
+            CmdCharDelete(), "TestChar",
+            caller=self.account,
+        )
+        self.assertNotIn("subscription has expired", result.lower())
