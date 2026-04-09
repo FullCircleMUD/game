@@ -1794,7 +1794,7 @@ def build_millholm_town(one_way_limbo=False):
              "hums faintly — the book detection machine, ready to shriek "
              "if anyone tries to walk out with library property. "
              "Archways lead east to the fiction section, west to the "
-             "children's section, and north to non-fiction."),
+             "children's section, and south to non-fiction."),
             ("details", {
                 "detection machine": (
                     "A peculiar brass device covered in runes and tiny "
@@ -2313,7 +2313,7 @@ def build_millholm_town(one_way_limbo=False):
             desc_ab="the children's section", desc_ba="the front desk")
     connect_bidirectional_exit(rooms["library_desk"], rooms["library_fiction"], "east",
             desc_ab="the fiction section", desc_ba="the front desk")
-    connect_bidirectional_exit(rooms["library_desk"], rooms["library_nonfiction"], "north",
+    connect_bidirectional_exit(rooms["library_desk"], rooms["library_nonfiction"], "south",
             desc_ab="the non-fiction section", desc_ba="the front desk")
     exit_count += 6
 
