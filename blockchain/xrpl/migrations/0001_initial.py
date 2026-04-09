@@ -53,10 +53,71 @@ CURRENCY_TYPES = [
     {"currency_code": "FCMDiamond", "resource_id": 35, "name": "Diamond", "unit": "gems", "description": "A flawless clear gemstone. The rarest and most valuable.", "weight_per_unit_kg": "0.050", "is_gold": False},
     {"currency_code": "FCMCoal", "resource_id": 36, "name": "Coal", "unit": "lumps", "description": "Black mineral fuel. Used in steel smelting.", "weight_per_unit_kg": "0.500", "is_gold": False},
     # Proxy tokens (NFT AMM pricing engine — closed-loop, vault-only)
-    {"currency_code": "PGold", "resource_id": None, "name": "PGold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "250000"},
-    {"currency_code": "PTrainDagger", "resource_id": None, "name": "PTrainDagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
-    {"currency_code": "PTrainSSword", "resource_id": None, "name": "PTrainSSword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
-    {"currency_code": "PTrainLSword", "resource_id": None, "name": "PTrainLSword", "unit": "tokens", "description": "Proxy token for Training Longsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "10000"},
+    {"currency_code": "PGold", "resource_id": None, "name": "PGold", "unit": "coins", "description": "Proxy gold for NFT AMM pools. Vault-only.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "500000"},
+    {"currency_code": "PTrainDagger", "resource_id": None, "name": "PTrainDagger", "unit": "tokens", "description": "Proxy token for Training Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PTrainSSword", "resource_id": None, "name": "PTrainSSword", "unit": "tokens", "description": "Proxy token for Training Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PTrainLSword", "resource_id": None, "name": "PTrainLSword", "unit": "tokens", "description": "Proxy token for Training Longsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PTrainBow", "resource_id": None, "name": "PTrainBow", "unit": "tokens", "description": "Proxy token for Training Bow AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PWoodenClub", "resource_id": None, "name": "PWoodenClub", "unit": "tokens", "description": "Proxy token for Wooden Club AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PTrainGSword", "resource_id": None, "name": "PTrainGSword", "unit": "tokens", "description": "Proxy token for Training Greatsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeDagger", "resource_id": None, "name": "PBronzeDagger", "unit": "tokens", "description": "Proxy token for Bronze Dagger AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeSSword", "resource_id": None, "name": "PBronzeSSword", "unit": "tokens", "description": "Proxy token for Bronze Shortsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeLSword", "resource_id": None, "name": "PBronzeLSword", "unit": "tokens", "description": "Proxy token for Bronze Longsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeHAxe", "resource_id": None, "name": "PBronzeHAxe", "unit": "tokens", "description": "Proxy token for Bronze Hand Axe AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeSpear", "resource_id": None, "name": "PBronzeSpear", "unit": "tokens", "description": "Proxy token for Bronze Spear AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeMace", "resource_id": None, "name": "PBronzeMace", "unit": "tokens", "description": "Proxy token for Bronze Mace AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeHammer", "resource_id": None, "name": "PBronzeHammer", "unit": "tokens", "description": "Proxy token for Bronze Hammer AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PShortbow", "resource_id": None, "name": "PShortbow", "unit": "tokens", "description": "Proxy token for Shortbow AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PQuarterstaff", "resource_id": None, "name": "PQuarterstaff", "unit": "tokens", "description": "Proxy token for Quarterstaff AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PTrainLance", "resource_id": None, "name": "PTrainLance", "unit": "tokens", "description": "Proxy token for Training Lance AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCrossbow", "resource_id": None, "name": "PCrossbow", "unit": "tokens", "description": "Proxy token for Crossbow AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeGSword", "resource_id": None, "name": "PBronzeGSword", "unit": "tokens", "description": "Proxy token for Bronze Greatsword AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeBAxe", "resource_id": None, "name": "PBronzeBAxe", "unit": "tokens", "description": "Proxy token for Bronze Battleaxe AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeRapier", "resource_id": None, "name": "PBronzeRapier", "unit": "tokens", "description": "Proxy token for Bronze Rapier AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Components ──
+    {"currency_code": "PShaft", "resource_id": None, "name": "PShaft", "unit": "tokens", "description": "Proxy token for Shaft AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PHaft", "resource_id": None, "name": "PHaft", "unit": "tokens", "description": "Proxy token for Haft AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Wearables ──
+    {"currency_code": "PLeatherGloves", "resource_id": None, "name": "PLeatherGloves", "unit": "tokens", "description": "Proxy token for Leather Gloves AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PLeatherBelt", "resource_id": None, "name": "PLeatherBelt", "unit": "tokens", "description": "Proxy token for Leather Belt AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PLeatherBoots", "resource_id": None, "name": "PLeatherBoots", "unit": "tokens", "description": "Proxy token for Leather Boots AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PLeatherCap", "resource_id": None, "name": "PLeatherCap", "unit": "tokens", "description": "Proxy token for Leather Cap AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PLeatherPants", "resource_id": None, "name": "PLeatherPants", "unit": "tokens", "description": "Proxy token for Leather Pants AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PSling", "resource_id": None, "name": "PSling", "unit": "tokens", "description": "Proxy token for Sling AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PLeatherArmor", "resource_id": None, "name": "PLeatherArmor", "unit": "tokens", "description": "Proxy token for Leather Armor AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Holdables ──
+    {"currency_code": "PWoodenShield", "resource_id": None, "name": "PWoodenShield", "unit": "tokens", "description": "Proxy token for Wooden Shield AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PWoodenTorch", "resource_id": None, "name": "PWoodenTorch", "unit": "tokens", "description": "Proxy token for Wooden Torch AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Tailored ──
+    {"currency_code": "PGambeson", "resource_id": None, "name": "PGambeson", "unit": "tokens", "description": "Proxy token for Gambeson AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCoarseRobe", "resource_id": None, "name": "PCoarseRobe", "unit": "tokens", "description": "Proxy token for Coarse Robe AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PKippah", "resource_id": None, "name": "PKippah", "unit": "tokens", "description": "Proxy token for Kippah AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBrownCorduroyPants", "resource_id": None, "name": "PBrownCorduroyPants", "unit": "tokens", "description": "Proxy token for Brown Corduroy Pants AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBandana", "resource_id": None, "name": "PBandana", "unit": "tokens", "description": "Proxy token for Bandana AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCloak", "resource_id": None, "name": "PCloak", "unit": "tokens", "description": "Proxy token for Cloak AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PVeil", "resource_id": None, "name": "PVeil", "unit": "tokens", "description": "Proxy token for Veil AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PScarf", "resource_id": None, "name": "PScarf", "unit": "tokens", "description": "Proxy token for Scarf AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PSash", "resource_id": None, "name": "PSash", "unit": "tokens", "description": "Proxy token for Sash AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PWarriorsWraps", "resource_id": None, "name": "PWarriorsWraps", "unit": "tokens", "description": "Proxy token for Warrior's Wraps AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Potions ──
+    {"currency_code": "PPotionLifesEssence", "resource_id": None, "name": "PPotionLifesEssence", "unit": "tokens", "description": "Proxy token for Potion of Life's Essence AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionZephyr", "resource_id": None, "name": "PPotionZephyr", "unit": "tokens", "description": "Proxy token for Potion of the Zephyr AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionWellspring", "resource_id": None, "name": "PPotionWellspring", "unit": "tokens", "description": "Proxy token for Potion of the Wellspring AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionBull", "resource_id": None, "name": "PPotionBull", "unit": "tokens", "description": "Proxy token for Potion of the Bull AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionCatsGrace", "resource_id": None, "name": "PPotionCatsGrace", "unit": "tokens", "description": "Proxy token for Potion of Cat's Grace AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionBear", "resource_id": None, "name": "PPotionBear", "unit": "tokens", "description": "Proxy token for Potion of the Bear AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionFoxesCunning", "resource_id": None, "name": "PPotionFoxesCunning", "unit": "tokens", "description": "Proxy token for Potion of Fox's Cunning AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionOwlsInsight", "resource_id": None, "name": "PPotionOwlsInsight", "unit": "tokens", "description": "Proxy token for Potion of Owl's Insight AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PPotionSilverTongue", "resource_id": None, "name": "PPotionSilverTongue", "unit": "tokens", "description": "Proxy token for Potion of the Silver Tongue AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Jewellery ──
+    {"currency_code": "PCopperRing", "resource_id": None, "name": "PCopperRing", "unit": "tokens", "description": "Proxy token for Copper Ring AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCopperStuds", "resource_id": None, "name": "PCopperStuds", "unit": "tokens", "description": "Proxy token for Copper Studs AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCopperBangle", "resource_id": None, "name": "PCopperBangle", "unit": "tokens", "description": "Proxy token for Copper Bangle AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCopperChain", "resource_id": None, "name": "PCopperChain", "unit": "tokens", "description": "Proxy token for Copper Chain AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Bronze Armor ──
+    {"currency_code": "PBronzeGreaves", "resource_id": None, "name": "PBronzeGreaves", "unit": "tokens", "description": "Proxy token for Bronze Greaves AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeBracers", "resource_id": None, "name": "PBronzeBracers", "unit": "tokens", "description": "Proxy token for Bronze Bracers AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PBronzeHelm", "resource_id": None, "name": "PBronzeHelm", "unit": "tokens", "description": "Proxy token for Bronze Helm AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
 ]
 
 
@@ -369,7 +430,7 @@ def remove_nft_item_types(apps, schema_editor):
 # ── Game state seed constants ────────────────────────────────────────
 
 BLANK_TOKEN_COUNT = 200
-INITIAL_GOLD_RESERVE = Decimal("1000000")
+INITIAL_GOLD_RESERVE = Decimal("500000")
 INITIAL_RESOURCE_RESERVE = Decimal("100000")
 
 
