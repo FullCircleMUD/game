@@ -1,5 +1,5 @@
 [build]
-builder = "nixpacks"
+builder = "railpack"
 
 [deploy]
 releaseCommand = "evennia migrate && evennia migrate --database xrpl && evennia migrate --database ai_memory && evennia migrate --database subscriptions"
