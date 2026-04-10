@@ -19,8 +19,10 @@ Usage:
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from typeclasses.mixins.character_key import CharacterKeyMixin
 
-class HiddenObjectMixin:
+
+class HiddenObjectMixin(CharacterKeyMixin):
     """
     Mixin that tracks hidden state and discovery for world objects.
 
@@ -89,9 +91,3 @@ class HiddenObjectMixin:
                 return True
 
         return False
-
-    def _get_character_key(self, character):
-        """Extract the persistent character key from a character object."""
-        if hasattr(character, "db") and hasattr(character.db, "character_key"):
-            return character.db.character_key
-        return None

@@ -129,7 +129,6 @@ class TestCharacterDeathHeight(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.character_key = "test-char-key-height"
         self.char1.experience_points = 1000
         self.char1.hp = 1
         self.char1.hp_max = 100

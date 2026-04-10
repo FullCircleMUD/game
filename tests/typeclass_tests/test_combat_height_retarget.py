@@ -128,7 +128,6 @@ class TestMidCombatHeightMatching(EvenniaTest):
         self.char2.hp = 50
         self.char2.hp_max = 50
         self.char2.room_vertical_position = 0
-        self.char2.db.character_key = "test-char2-key"
 
         handler = self._setup_combat(mob, self.char1)
         # Also put char2 in combat

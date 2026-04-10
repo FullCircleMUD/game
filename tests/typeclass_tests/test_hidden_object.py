@@ -21,7 +21,6 @@ class TestHiddenObject(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
-        self.char1.db.character_key = "char1_key"
 
     def _make_hidden_fixture(self, is_hidden=True, find_dc=15):
         obj = create.create_object(
@@ -51,7 +50,7 @@ class TestHiddenObject(EvenniaTest):
     def test_discover_adds_to_discovered_by(self):
         obj = self._make_hidden_fixture()
         obj.discover(self.char1)
-        self.assertIn("char1_key", obj.discovered_by)
+        self.assertIn(self.char1.key, obj.discovered_by)
 
     def test_discovered_by_persists_visibility_when_rehidden(self):
         """If object is re-hidden, a previous discoverer can still see it."""
@@ -66,7 +65,6 @@ class TestHiddenObject(EvenniaTest):
         obj.discover(self.char1)
         obj.is_hidden = True
         # char2 never discovered it
-        self.char2.db.character_key = "char2_key"
         self.assertFalse(obj.is_hidden_visible_to(self.char2))
 
     def test_combined_visibility_hidden_blocks(self):

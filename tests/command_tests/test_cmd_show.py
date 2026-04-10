@@ -24,8 +24,6 @@ class TestCmdShow(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
-        self.char1.db.character_key = "char1_key"
-        self.char2.db.character_key = "char2_key"
 
     def _make_hidden_fixture(self, key="hidden crevice", find_dc=10):
         obj = create.create_object(
@@ -45,7 +43,7 @@ class TestCmdShow(EvenniaCommandTest):
         obj = self._make_hidden_fixture()
         # Caller discovers it first
         discovered = set(obj.discovered_by)
-        discovered.add("char1_key")
+        discovered.add(self.char1.key)
         obj.discovered_by = discovered
 
         self.call(
@@ -53,7 +51,7 @@ class TestCmdShow(EvenniaCommandTest):
             "You point out hidden crevice to Char2.",
             caller=self.char1,
         )
-        self.assertIn("char2_key", set(obj.discovered_by))
+        self.assertIn(self.char2.key, set(obj.discovered_by))
 
     # ── Info-leak prevention ───────────────────────────────────
 
@@ -89,7 +87,7 @@ class TestCmdShow(EvenniaCommandTest):
         obj.is_hidden = False  # Discovered by someone, visible to all
         # Caller has it in discovered_by so passes visibility check
         discovered = set(obj.discovered_by)
-        discovered.add("char1_key")
+        discovered.add(self.char1.key)
         obj.discovered_by = discovered
 
         self.call(
@@ -103,7 +101,7 @@ class TestCmdShow(EvenniaCommandTest):
     def test_show_target_already_discovered(self):
         """If target has already found the object, say so."""
         obj = self._make_hidden_fixture()
-        discovered = {"char1_key", "char2_key"}
+        discovered = {self.char1.key, self.char2.key}
         obj.discovered_by = discovered
 
         self.call(
@@ -124,7 +122,7 @@ class TestCmdShow(EvenniaCommandTest):
         """Cannot show something to yourself."""
         obj = self._make_hidden_fixture()
         discovered = set(obj.discovered_by)
-        discovered.add("char1_key")
+        discovered.add(self.char1.key)
         obj.discovered_by = discovered
 
         self.call(

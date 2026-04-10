@@ -25,7 +25,6 @@ class TestCmdSearch(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
-        self.char1.db.character_key = "char1_key"
 
     def _make_hidden_fixture(self, find_dc=10):
         obj = create.create_object(
@@ -57,7 +56,7 @@ class TestCmdSearch(EvenniaCommandTest):
         obj = self._make_hidden_fixture(find_dc=5)
         self.call(CmdSearch(), "", "Char discovers hidden chest")
         self.assertFalse(obj.is_hidden)
-        self.assertIn("char1_key", obj.discovered_by)
+        self.assertIn(self.char1.key, obj.discovered_by)
 
     def test_search_already_discovered_not_shown(self):
         """Once discovered, object is no longer hidden — search finds nothing."""

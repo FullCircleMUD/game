@@ -122,8 +122,8 @@ class CmdLoot(FCMCommandMixin, Command):
         # First, try to find the caller's own corpse
         for corpse in corpses:
             if (
-                hasattr(caller, "db")
-                and caller.db.character_key == corpse.owner_character_key
+                corpse.owner_character_key is not None
+                and caller.key == corpse.owner_character_key
             ):
                 return corpse
 

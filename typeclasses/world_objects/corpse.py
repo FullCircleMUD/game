@@ -174,7 +174,7 @@ class Corpse(HeightAwareMixin, FungibleInventoryMixin, DefaultObject):
         if (
             self.owner_character_key is not None
             and hasattr(character, "db")
-            and character.db.character_key == self.owner_character_key
+            and character.key == self.owner_character_key
         ):
             return True
         return self.is_unlocked

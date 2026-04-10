@@ -729,7 +729,7 @@ class FCMCharacter(
             key="corpse",
             location=room,
         )
-        corpse.owner_character_key = self.db.character_key
+        corpse.owner_character_key = self.key
         corpse.owner_name = self.key
         corpse.cause_of_death = "defeat"
 
@@ -796,7 +796,7 @@ class FCMCharacter(
             key="corpse",
             location=room,
         )
-        corpse.owner_character_key = self.db.character_key
+        corpse.owner_character_key = self.key
         corpse.owner_name = self.key
         corpse.cause_of_death = cause
 

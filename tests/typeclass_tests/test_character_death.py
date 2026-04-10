@@ -24,7 +24,6 @@ class TestCharacterDeath(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.character_key = "test-char-key-001"
         self.char1.experience_points = 1000
         self.char1.hp = 0
         self.room1.allow_combat = True
@@ -52,7 +51,7 @@ class TestCharacterDeath(EvenniaTest):
         self.char1.die("combat")
         corpse = self._find_corpse(self.room1)
         self.assertFalse(corpse.is_unlocked)
-        self.assertEqual(corpse.owner_character_key, "test-char-key-001")
+        self.assertEqual(corpse.owner_character_key, self.char1.key)
 
     @patch("typeclasses.world_objects.corpse.delay")
     @patch("typeclasses.actors.character.delay")
@@ -112,7 +111,6 @@ class TestCharacterDefeat(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.character_key = "test-char-key-002"
         self.char1.experience_points = 1000
         self.char1.hp = 0
         self.room1.allow_combat = True

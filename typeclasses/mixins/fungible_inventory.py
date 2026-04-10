@@ -48,7 +48,10 @@ from blockchain.xrpl.currency_cache import get_resource_type, get_all_resource_t
 GOLD = settings.GOLD_DISPLAY
 
 
-class FungibleInventoryMixin:
+from typeclasses.mixins.character_key import CharacterKeyMixin
+
+
+class FungibleInventoryMixin(CharacterKeyMixin):
     """
     Mixin that stores gold and resource amounts as Evennia Attributes
     and keeps the blockchain mirror DB in sync via service calls.
@@ -115,19 +118,6 @@ class FungibleInventoryMixin:
             return self.wallet_address
         # Rooms, mobs, containers — vault owns whatever they hold
         return settings.XRPL_VAULT_ADDRESS
-
-    def _get_character_key(self):
-        """
-        Get the character_key for service calls.
-        Only characters have one — everything else returns None.
-        Change this method if you want to use something other than
-        the character name (e.g. dbref).
-        """
-        from typeclasses.actors.character import FCMCharacter
-
-        if isinstance(self, FCMCharacter):
-            return self.key
-        return None
 
     # ================================================================== #
     #  Private Local State Helpers (no service calls)

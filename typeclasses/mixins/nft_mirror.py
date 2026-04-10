@@ -24,7 +24,10 @@ from evennia.typeclasses.attributes import AttributeProperty
 from django.conf import settings
 
 
-class NFTMirrorMixin:
+from typeclasses.mixins.character_key import CharacterKeyMixin
+
+
+class NFTMirrorMixin(CharacterKeyMixin):
     """
     Mixin providing full NFT mirror lifecycle tracking.
 
@@ -508,13 +511,6 @@ class NFTMirrorMixin:
         if character is None or character.account is None:
             return None
         return character.account.attributes.get("wallet_address")
-
-    @staticmethod
-    def _get_character_key(character):
-        """Get the character_key used to identify this character in the mirror DB."""
-        if character is None:
-            return None
-        return character.key
 
     # ================================================================== #
     #  Mirror Data Helpers
