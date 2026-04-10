@@ -39,6 +39,11 @@ WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
 SERVER_HOSTNAME = '0.0.0.0'
 LOCKDOWN_MODE = False
 
+# ── Railway port binding ─────────────────────────────────────────────
+# Railway assigns a dynamic $PORT — Evennia must listen on it.
+if os.environ.get("PORT"):
+    WEBSERVER_PORTS = [(int(os.environ["PORT"]), "0.0.0.0")]
+
 # ── Database Configuration ────────────────────────────────────────────
 # DATABASE_URL controls the backend:
 #   - Set (Railway/production): PostgreSQL for all 3 databases
