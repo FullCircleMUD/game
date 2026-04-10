@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "feedbackSurveyState": {
+    "lastShownTime": 1754106172251
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(wc *)",
+      "Bash(file *)",
+      "Bash(stat *)",
+      "Bash(source ../venv/bin/activate)",
+      "Bash(evennia test --settings settings tests.*)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Read(server/conf/secret_settings.py)",
+      "Read(**/secret_settings.py)",
+      "Read(**/secret_settings.py.bak)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/wallets.json)",
+      "Read(**/xrpl-tools/manager/settings.js)",
+      "Read(**/xrpl-tools/manager/shared/settings-common.js)",
+      "Read(**/xrpl-tools/manager/single-sig/settings.js)",
+      "Read(**/xrpl-tools/manager/multisig/settings.js)"
+    ],
+    "ask": [
+      "Bash(evennia test --settings settings)",
+      "Bash(git reset *)",
+      "Bash(git checkout -- *)",
+      "Bash(git clean *)",
+      "Bash(git rebase *)",
+      "Bash(git push --force *)"
+    ]
+  }
+}
