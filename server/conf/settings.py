@@ -44,12 +44,6 @@ LOCKDOWN_MODE = False
 if os.environ.get("PORT"):
     WEBSERVER_PORTS = [(int(os.environ["PORT"]), 4005)]
 
-# Websocket URL for the webclient (Railway routes websocket via separate domain).
-WEBSOCKET_CLIENT_URL = os.environ.get(
-    "WEBSOCKET_CLIENT_URL",
-    "ws://localhost:4002",
-)
-
 # ── Database Configuration ────────────────────────────────────────────
 # DATABASE_URL controls the backend:
 #   - Set (Railway/production): PostgreSQL for all 3 databases
