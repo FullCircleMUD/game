@@ -42,7 +42,7 @@ LOCKDOWN_MODE = False
 # ── Railway port binding ─────────────────────────────────────────────
 # Railway assigns a dynamic $PORT — Evennia must listen on it.
 if os.environ.get("PORT"):
-    WEBSERVER_PORTS = [(int(os.environ["PORT"]), "0.0.0.0")]
+    WEBSERVER_PORTS = [(int(os.environ["PORT"]), 4005)]
 
 # ── Database Configuration ────────────────────────────────────────────
 # DATABASE_URL controls the backend:
