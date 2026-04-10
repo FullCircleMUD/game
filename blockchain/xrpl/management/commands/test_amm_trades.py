@@ -1,5 +1,5 @@
 """
-Live AMM integration test — runs real trades against XRPL testnet.
+Live AMM integration test — runs real trades against XRPL.
 
 Executes buy and sell trades at various amounts against each detected
 AMM pool, then verifies that the game's accounting is correct: the
@@ -10,7 +10,7 @@ Usage:
     evennia run test_amm_trades wheat     # test only wheat pool
     evennia run test_amm_trades --dry-run # query pools, no trades
 
-NOT part of the formal test suite. Run manually against testnet only.
+NOT part of the formal test suite. Run manually only.
 """
 
 import time
@@ -67,7 +67,7 @@ class PoolSummary:
 
 
 class Command(BaseCommand):
-    help = "Run live AMM integration tests against XRPL testnet"
+    help = "Run live AMM integration tests against XRPL"
     requires_system_checks = []
 
     def add_arguments(self, parser):

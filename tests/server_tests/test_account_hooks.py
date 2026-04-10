@@ -85,16 +85,16 @@ class TestSettingsUsedInConnect(BaseEvenniaTest):
         pass
 
     def test_setting_exists(self):
-        """SUPERUSER_ACCOUNT_NAME should be defined in settings."""
+        """EVENNIA_SUPERUSER_USERNAME should be defined in settings."""
         from django.conf import settings
-        self.assertTrue(hasattr(settings, "SUPERUSER_ACCOUNT_NAME"))
+        self.assertTrue(hasattr(settings, "EVENNIA_SUPERUSER_USERNAME"))
 
     def test_connect_uses_superuser_account_name(self):
-        """Connect command func should reference SUPERUSER_ACCOUNT_NAME."""
+        """Connect command func should reference EVENNIA_SUPERUSER_USERNAME."""
         import inspect
         from commands.unloggedin_cmds.cmd_override_unconnected_connect import CmdUnconnectedConnect
         source = inspect.getsource(CmdUnconnectedConnect.func)
-        self.assertIn("SUPERUSER_ACCOUNT_NAME", source)
+        self.assertIn("EVENNIA_SUPERUSER_USERNAME", source)
 
     def test_no_hardcoded_password_in_module(self):
         """The module should use DEFAULT_ACCOUNT_PASSWORD, not a hardcoded password."""

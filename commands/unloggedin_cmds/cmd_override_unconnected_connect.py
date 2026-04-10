@@ -51,7 +51,7 @@ class CmdUnconnectedConnect(COMMAND_DEFAULT_CLASS):
 
             bot_enabled = getattr(settings, "BOT_LOGIN_ENABLED", False)
             bot_usernames = getattr(settings, "BOT_ACCOUNT_USERNAMES", [])
-            superuser_name = getattr(settings, "SUPERUSER_ACCOUNT_NAME", "root")
+            superuser_name = getattr(settings, "EVENNIA_SUPERUSER_USERNAME", "root")
             is_root = len(parts) == 2 and parts[0].lower() == superuser_name.lower()
             is_bot = (
                 bot_enabled

@@ -72,5 +72,4 @@ def geo_context(request):
         'geo_variant': getattr(request, 'geo_variant', 'A'),
         'geo_country': getattr(request, 'geo_country', 'XX'),
         'discord_url': getattr(settings, 'DISCORD_URL', ''),
-        'is_testnet': getattr(settings, 'IS_TESTNET', False),
     }

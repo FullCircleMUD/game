@@ -596,8 +596,8 @@ Leave Character / Game      |gquit|n
         super().at_post_login(session=session, **kwargs)
 
         if self.is_superuser and not self.wallet_address:
-            self.wallet_address = settings.XRPL_ROOT_ADDRESS
-            self.msg(f"|y[Dev] Superuser wallet set to root: {settings.XRPL_ROOT_ADDRESS}|n")
+            self.wallet_address = settings.SUPERUSER_XRPL_WALLET_ADDRESS
+            self.msg(f"|y[Dev] Superuser wallet set to: {settings.SUPERUSER_XRPL_WALLET_ADDRESS}|n")
 
         if self.db.bank is None:
             bank = create_object(

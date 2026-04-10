@@ -16,7 +16,7 @@ def seed_plans(apps, schema_editor):
         key="monthly",
         display_name="Monthly",
         duration_days=30,
-        price=20.00,
+        price=2.00,
         is_active=True,
         sort_order=1,
     )

@@ -296,24 +296,16 @@ if caller.location and result.get("third"):
 
 ### Settings (server/conf/settings.py)
 
-```python
-# XRPL (active — game code imports from here)
-XRPL_NETWORK_URL        = "wss://s.altnet.rippletest.net:51233"
-XRPL_ISSUER_ADDRESS     = "rMq4xJGybcSCw1gWMzcRpBMsHJosBSa6Ex"
-XRPL_VAULT_ADDRESS      = "rhfi58eft1jpzHr2DYXirocq1tgUfAfgsA"
-XRPL_ROOT_ADDRESS       = "rsANvPX4Uq6FSYqXQ4i7UTAXatcS3qQz59"
-XRPL_GOLD_CURRENCY_CODE = "FCMGold"
-XAMAN_API_KEY / XAMAN_API_SECRET  # in secret_settings.py
+XRPL and wallet addresses are configured in `server/conf/settings.py` and `server/conf/secret_settings.py` — refer to those files for current values. Key settings:
 
-# Polygon (legacy — contracts still deployed, code untouched)
-CONTRACT_GOLD      = "0x1c3510bfcc6bf24865b4f24b971070389BB39bd1"
-CONTRACT_NFT       = "0xe8ae00eDC2683B2F9043053DE2d937779391C1Fd"
-CONTRACT_RESOURCES = "0x7Ea239245C600497955742C60de14f3f7B08F9f2"
-CONTRACT_VAULT     = "0x2ce942F34EcaeBFD24a7b25561aD9c164988B2d5"
-CONTRACT_TREASURY  = "0xCcA970Dca1c1912091473B3EEB9a79B84D02C6ef"
+- `XRPL_NETWORK_URL` — XRPL WebSocket endpoint
+- `XRPL_ISSUER_ADDRESS` — token issuer wallet
+- `XRPL_VAULT_ADDRESS` — game vault wallet
+- `SUPERUSER_XRPL_WALLET_ADDRESS` — dev/superuser wallet
+- `XRPL_GOLD_CURRENCY_CODE` — gold currency code (FCMGold)
+- `XAMAN_API_KEY` / `XAMAN_API_SECRET` — in secret_settings.py
 
-GOLD_DISPLAY = {"name": "Gold", "unit": "coins", "description": "Gold coins."}
-```
+Polygon contract addresses (legacy) are also in settings.py.
 
 ### Authentication — Xaman (XRPL Wallet)
 
@@ -633,7 +625,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - Xaman API: SignIn, TrustSet, NFTokenAcceptOffer payloads with delay-based polling
 - XRPL service layer active: GoldService, ResourceService, NFTService, FungibleService, AMMService, TelemetryService, ResourceSpawnService, NFTSaturationService
 - Service encapsulation: three layers — FungibleInventoryMixin (gold/resources), NFTMirrorMixin via BaseNFTItem (items), NFTPetMirrorMixin via BasePet (pets). See Service Encapsulation Pattern section.
-- Subscription system: monthly payment via XRPL (RLUSD/FakeRLUSD), 4th database for payment records, `subscribe` OOC command with Xaman payment flow, 48h configurable trial, gated commands (ic/charcreate/chardelete/import), OOC menu status display with warning coloring. All checks via `subscriptions/utils.py`. See `design/SUBSCRIPTIONS.md`.
+- Subscription system: monthly payment via XRPL (RLUSD), 4th database for payment records, `subscribe` OOC command with Xaman payment flow, 48h configurable trial, gated commands (ic/charcreate/chardelete/import), OOC menu status display with warning coloring, `SUBSCRIPTION_ENABLED` feature flag (default off). All checks via `subscriptions/utils.py`. See `design/SUBSCRIPTIONS.md`.
 - Full inventory & equipment system — see `design/INVENTORY_EQUIPMENT.md` for details (FungibleInventoryMixin, BaseNFTItem, wearslots, CarryingCapacityMixin, nuclear recalculate, NFT ownership)
 - NFTItemType registry with typeclass, prototype_key, default_metadata
 - Weapon system: WeaponNFTItem + subclasses (Longsword, Dagger, Shortsword, Bow, Club, Spear, Axe, Greatsword, Mace, Hammer, Sling)
@@ -647,7 +639,6 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 - AMMService: on-chain XRPL AMM swap execution via OfferCreate, 6-operation atomic accounting (player integers + AMM decimals against RESERVE), transfer + tx logging
 - xrpl_amm.py: pool queries (AMMInfo), constant product formula pricing (ceil-rounded buys, floor-rounded sells), batch multi-pool queries, swap execution with balance change extraction from tx metadata
 - AMM superuser tools: `amm_check` (pool state viewer), `reconcile` (on-chain vs DB comparison), `test_amm_trades` management command (live integration test)
-- `testnet_reinit` management command: rebuilds all XRPL testnet state after a network wipe (fund wallets, configure issuer, trust lines, issue supply from game DB, create AMM pools at 0% fee, mint NFTs at 5% royalty). See **design/DEPLOYMENT.md**.
 - **Multisig co-signing:** vault and issuer wallets use XRPL native 2-of-3 multisig. Standalone co-signing service (`FullCircleMUD/cosigner` repo, deployed on Render) provides second signature with per-wallet business rules. Game server changes gated by `XRPL_MULTISIG_ENABLED` flag. See **design/DEPLOYMENT.md § Vault Signing & Multisig**.
 - Hunger/eating system (Bread is resource ID 3). HungerService and RegenerationService only process puppeted characters (`has_account` check) — unpuppeted characters are skipped. Forage command (SURVIVALIST skill, Druid/Ranger): restores hunger directly (no bread production), mastery scales yield (BASIC=1..GM=5), 15-min cooldown matching hunger cycle, NO hunger_free_pass_tick (bread retains economic advantage). Solo auto-applies, party gets interactive allocation prompt. Requires forageable terrain (not urban/underground/dungeon/water).
 - Get/drop/give commands wired to service layer

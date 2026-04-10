@@ -24,6 +24,7 @@ put secret game- or server-specific settings in secret_settings.py.
 
 """
 
+import json
 import os
 
 import dj_database_url
@@ -100,7 +101,11 @@ SSH_ENABLED = False
 WEBSOCKET_PROTOCOL_CLASS = "server.walletwebclient.WalletWebSocketClient"
 
 # Override in secret_settings.py or set SUPERUSER_ACCOUNT_NAME env var.
-SUPERUSER_ACCOUNT_NAME = os.environ.get("SUPERUSER_ACCOUNT_NAME", "")
+#SUPERUSER_ACCOUNT_NAME = os.environ.get("SUPERUSER_ACCOUNT_NAME", "")
+
+EVENNIA_SUPERUSER_USERNAME = os.environ.get("EVENNIA_SUPERUSER_USERNAME", "")
+EVENNIA_SUPERUSER_PASSWORD = os.environ.get("EVENNIA_SUPERUSER_PASSWORD", "")
+
 
 # Default password for wallet-authenticated accounts.
 # Wallet signature is the real auth — this just satisfies Evennia's Account.create().
@@ -125,29 +130,28 @@ PUPPET_LOOK_ON_IC = False
 ######################################################################
 # XRPL / BLOCKCHAIN SETTINGS
 ######################################################################
-XRPL_ROOT_ADDRESS = os.environ.get("XRPL_ROOT_ADDRESS", "")  # dev wallet (superuser default)
+SUPERUSER_XRPL_WALLET_ADDRESS = os.environ.get("SUPERUSER_XRPL_WALLET_ADDRESS", "")  # dev wallet (superuser default)
 
 # ── Polygon Legacy (stubs — still referenced by old code paths) ──────
 # TODO: Remove once fungible_inventory.py and base_nft_item.py old methods are cleaned up
+"""
 BLOCKCHAIN_CHAIN_ID = 137
 CONTRACT_GOLD      = "0x0000000000000000000000000000000000000000"
 CONTRACT_NFT       = "0x0000000000000000000000000000000000000000"
 CONTRACT_RESOURCES = "0x0000000000000000000000000000000000000000"
 CONTRACT_VAULT     = "0x0000000000000000000000000000000000000000"
 CONTRACT_TREASURY  = "0x0000000000000000000000000000000000000000"
-
+"""
 # ── XRPL Configuration ──────────────────────────────────────────────
 XRPL_IMPORT_EXPORT_ENABLED = os.environ.get("XRPL_IMPORT_EXPORT_ENABLED", "").lower() in ("true", "1")
 # XRPL network endpoint — environment-specific, not secret.
-# Defaults to testnet so local dev works without any env var.
-# Railway production overrides to mainnet: wss://s1.ripple.com:51233
-# Railway staging keeps the testnet default (or sets it explicitly).
+# Must be set via env var for deployed environments.
 XRPL_NETWORK_URL = os.environ.get(
     "XRPL_NETWORK_URL",
-    "wss://s.altnet.rippletest.net:51233",
+    "wss://xrplcluster.com",
 )
-XRPL_ISSUER_ADDRESS = os.environ.get("XRPL_ISSUER_ADDRESS", "rU3VtgY3LE63tmd7egjPUx37JqQXumokyJ")
-XRPL_VAULT_ADDRESS = os.environ.get("XRPL_VAULT_ADDRESS", "rhYjpvpoU6FFjVSMvDRR1AUndgQx56TWaQ")
+XRPL_ISSUER_ADDRESS = os.environ.get("XRPL_ISSUER_ADDRESS", "")
+XRPL_VAULT_ADDRESS = os.environ.get("XRPL_VAULT_ADDRESS", "")
 XRPL_GOLD_CURRENCY_CODE = "FCMGold"
 XRPL_PGOLD_CURRENCY_CODE = "PGold"
 
@@ -166,22 +170,15 @@ XRPL_COSIGNER_API_KEY = os.environ.get("XRPL_COSIGNER_API_KEY", "")
 XAMAN_API_KEY = os.environ.get("XAMAN_API_KEY", "PLACEHOLDER")
 XAMAN_API_SECRET = os.environ.get("XAMAN_API_SECRET", "PLACEHOLDER")
 
-# ── Testnet Detection ─────────────────────────────────────────────
-# Auto-detected from network URL. Controls faucet visibility and pre-alpha notices.
-# Can be overridden via IS_TESTNET env var.
-IS_TESTNET = os.environ.get("IS_TESTNET", "").lower() in ("true", "1", "yes") or \
-    "testnet" in XRPL_NETWORK_URL or "altnet" in XRPL_NETWORK_URL
-
 # ── Subscription Payment ──────────────────────────────────────────
 # Master toggle — set to False to disable all subscription gating.
 # Pre-alpha: False, Alpha: True, Beta: True
 SUBSCRIPTION_ENABLED = os.environ.get("SUBSCRIPTION_ENABLED", "false").lower() in ("true", "1", "yes")
-# Payment currency: RLUSD on mainnet, FakeRLUSD on testnet.
-# FakeRLUSD is issued by a 3rd wallet to simulate an externally-issued token.
-SUBSCRIPTION_CURRENCY_CODE = os.environ.get("SUBSCRIPTION_CURRENCY_CODE", "FakeRLUSD")
+# Payment currency (RLUSD on XRPL mainnet).
+SUBSCRIPTION_CURRENCY_CODE = os.environ.get("SUBSCRIPTION_CURRENCY_CODE", "RLUSD")
 SUBSCRIPTION_CURRENCY_ISSUER = os.environ.get(
     "SUBSCRIPTION_CURRENCY_ISSUER",
-    "",  # 3rd wallet issuer address — set in secret_settings.py or env
+    "rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De",  # RLUSD issuer on XRPL mainnet
 )
 # Payment destination — subscription revenue goes to the issuer wallet.
 SUBSCRIPTION_PAYMENT_DESTINATION = XRPL_ISSUER_ADDRESS
@@ -189,11 +186,6 @@ SUBSCRIPTION_PAYMENT_DESTINATION = XRPL_ISSUER_ADDRESS
 SUBSCRIPTION_TRIAL_HOURS = 48
 # Superuser and bot accounts bypass subscription checks entirely.
 SUBSCRIPTION_BYPASS_SUPERUSER = True
-
-# ── Faucet (testnet only) ────────────────────────────────────────
-# The 3rd wallet that issues FakeRLUSD — used to dispense test tokens.
-FAUCET_WALLET_SEED = os.environ.get("FAUCET_WALLET_SEED", "")
-FAUCET_AMOUNT = 20  # FakeRLUSD per faucet request
 
 
 ######################################################################
@@ -217,21 +209,23 @@ TOS_VERSION = "draft-1"
 
 
 # Bot / Virtual Client login
-BOT_LOGIN_ENABLED = True  # master switch — set True to allow bot accounts to connect
-BOT_ACCOUNT_USERNAMES = ["llm_bot_1", "llm_bot_2", "llm_bot_3", "llm_bot_4"]
+BOT_LOGIN_ENABLED = os.environ.get("BOT_LOGIN_ENABLED", "").lower() in ("true", "1")  # master switch
+# Bot account names: set BOT_ACCOUNT_USERNAMES_JSON env var as a JSON array,
+# e.g. '["llm_bot_1", "llm_bot_2"]'
+_bot_names_json = os.environ.get("BOT_ACCOUNT_USERNAMES_JSON", "")
+BOT_ACCOUNT_USERNAMES = json.loads(_bot_names_json) if _bot_names_json else []
 
-# Bot wallet addresses — keyed by username
-BOT_WALLET_ADDRESSES = {
-    "llm_bot_1": "rKdRo1qj366zTNHbTUMPgVnXwVtb7mSxeb",
-    "llm_bot_2": "rN5dJqD6MKGDsfVkf3LEcyqd1WvYFmiWGq",
-    "llm_bot_3": "rMR8oSV9MyAJe3C9gUvpHUrWUv7UMNbrS6",
-    "llm_bot_4": "rJ5dg2oA8ak7J7JKqE9TABRACTN46ovLUF",
-}
+# Bot wallet addresses: set BOT_WALLET_ADDRESSES_JSON env var as a JSON object,
+# e.g. '{"llm_bot_1": "rABC...", "llm_bot_2": "rDEF..."}'
+_bot_wallets_json = os.environ.get("BOT_WALLET_ADDRESSES_JSON", "")
+BOT_WALLET_ADDRESSES = json.loads(_bot_wallets_json) if _bot_wallets_json else {}
 
-# Bot passwords — override per-bot in secret_settings.py
+# Bot passwords: set BOT_PASSWORDS_JSON env var as a JSON object,
+# e.g. '{"llm_bot_1": "pass1", "llm_bot_2": "pass2"}'
 # Default shared password used if a bot isn't in BOT_PASSWORDS.
 BOT_DEFAULT_PASSWORD = os.environ.get("BOT_DEFAULT_PASSWORD", "changeme")
-# BOT_PASSWORDS = {"llm_bot_1": "password1", ...}  # per-bot, in secret_settings.py
+_bot_pw_json = os.environ.get("BOT_PASSWORDS_JSON", "")
+BOT_PASSWORDS = json.loads(_bot_pw_json) if _bot_pw_json else {}
 
 
 # LLM NPC Configuration

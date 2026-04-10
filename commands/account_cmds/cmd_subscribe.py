@@ -2,7 +2,7 @@
 Subscribe command — pay for a game subscription via XRPL wallet.
 
 Account-level (OOC) command. Creates a Xaman Payment payload for
-RLUSD (mainnet) or FakeRLUSD (testnet) sent to the issuer wallet.
+RLUSD sent to the issuer wallet.
 
 All XRPL/Xaman calls run in worker threads (deferToThread) so the
 reactor stays responsive for other players.

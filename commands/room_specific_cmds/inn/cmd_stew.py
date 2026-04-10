@@ -8,8 +8,8 @@ never sees the bread — they just buy stew and get fed.
 This connects inn food consumption to the broader resource economy:
 every bowl of stew moves the bread AMM price.
 
-Fallback: if no AMM pool exists (testnet, no liquidity), uses a static
-price and sinks the gold directly.
+Fallback: if no AMM pool exists (no liquidity), uses a static price
+and sinks the gold directly.
 
 Usage:
     stew
