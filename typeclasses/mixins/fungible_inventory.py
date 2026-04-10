@@ -224,8 +224,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.gold import GoldService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_GOLD
         vault = settings.XRPL_VAULT_ADDRESS
 
         source_type = self._classify_fungible(self)
@@ -248,32 +246,32 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         if source_type == "WORLD" and target_type == "CHARACTER":
             # SPAWNED → CHARACTER (character picks up gold from ground)
             GoldService.pickup(
-                target_wallet, amount, chain_id, contract, vault, target_key,
+                target_wallet, amount, vault, target_key,
             )
 
         elif source_type == "CHARACTER" and target_type == "WORLD":
             # CHARACTER → SPAWNED (character drops gold on ground)
             GoldService.drop(
-                source_wallet, amount, chain_id, contract, vault, source_key,
+                source_wallet, amount, vault, source_key,
             )
 
         elif source_type == "CHARACTER" and target_type == "CHARACTER":
             # CHARACTER → CHARACTER (trade/give between players)
             GoldService.transfer(
                 source_wallet, source_key, target_wallet, target_key,
-                amount, chain_id, contract,
+                amount,
             )
 
         elif source_type == "CHARACTER" and target_type == "ACCOUNT":
             # CHARACTER → ACCOUNT (deposit into bank)
             GoldService.bank(
-                source_wallet, amount, chain_id, contract, source_key,
+                source_wallet, amount, source_key,
             )
 
         elif source_type == "ACCOUNT" and target_type == "CHARACTER":
             # ACCOUNT → CHARACTER (withdraw from bank)
             GoldService.unbank(
-                target_wallet, amount, chain_id, contract, target_key,
+                target_wallet, amount, target_key,
             )
 
         elif source_type == "WORLD" and target_type == "WORLD":
@@ -307,29 +305,27 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.gold import GoldService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_GOLD
         vault = settings.XRPL_VAULT_ADDRESS
 
         self_type = self._classify_fungible(self)
 
         if self_type == "WORLD":
             # RESERVE → SPAWNED (gold appears in room/on mob)
-            GoldService.spawn(amount, chain_id, contract, vault)
+            GoldService.spawn(amount, vault)
 
         elif self_type == "CHARACTER":
             # RESERVE → CHARACTER (crafting produces gold for player)
             wallet = self._get_wallet()
             char_key = self._get_character_key()
             GoldService.craft_output(
-                wallet, amount, chain_id, contract, vault, char_key,
+                wallet, amount, vault, char_key,
             )
 
         elif self_type == "ACCOUNT":
             # RESERVE → ACCOUNT
             wallet = self._get_wallet()
             GoldService.reserve_to_account(
-                wallet, amount, chain_id, contract, vault,
+                wallet, amount, vault,
             )
 
         # Update local state
@@ -361,8 +357,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.resource import ResourceService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_RESOURCES
         vault = settings.XRPL_VAULT_ADDRESS
 
         source_type = self._classify_fungible(self)
@@ -385,14 +379,14 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         if source_type == "WORLD" and target_type == "CHARACTER":
             # SPAWNED → CHARACTER (character picks up resources)
             ResourceService.pickup(
-                target_wallet, resource_id, amount, chain_id, contract,
+                target_wallet, resource_id, amount,
                 vault, target_key,
             )
 
         elif source_type == "CHARACTER" and target_type == "WORLD":
             # CHARACTER → SPAWNED (character drops resources)
             ResourceService.drop(
-                source_wallet, resource_id, amount, chain_id, contract,
+                source_wallet, resource_id, amount,
                 vault, source_key,
             )
 
@@ -400,20 +394,20 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # CHARACTER → CHARACTER (trade/give)
             ResourceService.transfer(
                 source_wallet, source_key, target_wallet, target_key,
-                resource_id, amount, chain_id, contract,
+                resource_id, amount,
             )
 
         elif source_type == "CHARACTER" and target_type == "ACCOUNT":
             # CHARACTER → ACCOUNT (deposit into bank)
             ResourceService.bank(
-                source_wallet, resource_id, amount, chain_id, contract,
+                source_wallet, resource_id, amount,
                 source_key,
             )
 
         elif source_type == "ACCOUNT" and target_type == "CHARACTER":
             # ACCOUNT → CHARACTER (withdraw from bank)
             ResourceService.unbank(
-                target_wallet, resource_id, amount, chain_id, contract,
+                target_wallet, resource_id, amount,
                 target_key,
             )
 
@@ -445,8 +439,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.resource import ResourceService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_RESOURCES
         vault = settings.XRPL_VAULT_ADDRESS
 
         self_type = self._classify_fungible(self)
@@ -454,7 +446,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         if self_type == "WORLD":
             # RESERVE → SPAWNED
             ResourceService.spawn(
-                resource_id, amount, chain_id, contract, vault,
+                resource_id, amount, vault,
             )
 
         elif self_type == "CHARACTER":
@@ -462,7 +454,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             wallet = self._get_wallet()
             char_key = self._get_character_key()
             ResourceService.craft_output(
-                wallet, resource_id, amount, chain_id, contract,
+                wallet, resource_id, amount,
                 vault, char_key,
             )
 
@@ -470,7 +462,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # RESERVE → ACCOUNT
             wallet = self._get_wallet()
             ResourceService.reserve_to_account(
-                wallet, resource_id, amount, chain_id, contract, vault,
+                wallet, resource_id, amount, vault,
             )
 
         self._add_resource(resource_id, amount)
@@ -506,8 +498,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.gold import GoldService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_GOLD
         vault = settings.XRPL_VAULT_ADDRESS
 
         self_type = self._classify_fungible(self)
@@ -517,17 +507,17 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             wallet = self._get_wallet()
             char_key = self._get_character_key()
             GoldService.craft_input(
-                wallet, amount, chain_id, contract, vault, char_key,
+                wallet, amount, vault, char_key,
             )
         elif self_type == "ACCOUNT":
             # ACCOUNT → RESERVE
             wallet = self._get_wallet()
             GoldService.account_to_reserve(
-                wallet, amount, chain_id, contract, vault,
+                wallet, amount, vault,
             )
         else:
             # WORLD → RESERVE (despawn — gold removed from room/ground)
-            GoldService.despawn(amount, chain_id, contract, vault)
+            GoldService.despawn(amount, vault)
 
         self._remove_gold(amount)
 
@@ -545,8 +535,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.resource import ResourceService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_RESOURCES
         vault = settings.XRPL_VAULT_ADDRESS
 
         self_type = self._classify_fungible(self)
@@ -556,19 +544,19 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             wallet = self._get_wallet()
             char_key = self._get_character_key()
             ResourceService.craft_input(
-                wallet, resource_id, amount, chain_id, contract,
+                wallet, resource_id, amount,
                 vault, char_key,
             )
         elif self_type == "ACCOUNT":
             # ACCOUNT → RESERVE
             wallet = self._get_wallet()
             ResourceService.account_to_reserve(
-                wallet, resource_id, amount, chain_id, contract, vault,
+                wallet, resource_id, amount, vault,
             )
         else:
             # WORLD → RESERVE (despawn — resource removed from room/ground)
             ResourceService.despawn(
-                resource_id, amount, chain_id, contract, vault,
+                resource_id, amount, vault,
             )
 
         self._remove_resource(resource_id, amount)
@@ -607,8 +595,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.gold import GoldService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_GOLD
         vault = settings.XRPL_VAULT_ADDRESS
 
         self_type = self._classify_fungible(self)
@@ -617,16 +603,16 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             wallet = self._get_wallet()
             char_key = self._get_character_key()
             GoldService.sink(
-                wallet, amount, chain_id, contract, vault, char_key,
+                wallet, amount, vault, char_key,
             )
         elif self_type == "ACCOUNT":
             wallet = self._get_wallet()
             GoldService.sink_account(
-                wallet, amount, chain_id, contract, vault,
+                wallet, amount, vault,
             )
         else:
             # WORLD → SINK (spawned gold consumed without being looted)
-            GoldService.sink_world(amount, chain_id, contract, vault)
+            GoldService.sink_world(amount, vault)
 
         self._remove_gold(amount)
 
@@ -647,8 +633,6 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         from blockchain.xrpl.services.resource import ResourceService
 
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        contract = settings.CONTRACT_RESOURCES
         vault = settings.XRPL_VAULT_ADDRESS
 
         self_type = self._classify_fungible(self)
@@ -657,18 +641,18 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             wallet = self._get_wallet()
             char_key = self._get_character_key()
             ResourceService.sink(
-                wallet, resource_id, amount, chain_id, contract,
+                wallet, resource_id, amount,
                 vault, char_key,
             )
         elif self_type == "ACCOUNT":
             wallet = self._get_wallet()
             ResourceService.sink_account(
-                wallet, resource_id, amount, chain_id, contract, vault,
+                wallet, resource_id, amount, vault,
             )
         else:
             # WORLD → SINK (spawned resource consumed without being looted)
             ResourceService.sink_world(
-                resource_id, amount, chain_id, contract, vault,
+                resource_id, amount, vault,
             )
 
         self._remove_resource(resource_id, amount)

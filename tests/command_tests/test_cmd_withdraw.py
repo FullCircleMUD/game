@@ -13,8 +13,6 @@ from evennia.utils import create
 from commands.room_specific_cmds.bank.cmd_withdraw import CmdWithdraw
 
 
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-CONTRACT_NFT = settings.CONTRACT_NFT
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
@@ -154,8 +152,6 @@ class TestCmdWithdrawNFT(EvenniaCommandTest):
             nohome=True,
         )
         self.sword.token_id = 42
-        self.sword.chain_id = CHAIN_ID
-        self.sword.contract_address = CONTRACT_NFT
         self.sword.db_location = self.bank
         self.sword.save(update_fields=["db_location"])
 
@@ -177,8 +173,6 @@ class TestCmdWithdrawNFT(EvenniaCommandTest):
             nohome=True,
         )
         horse.token_id = 99
-        horse.chain_id = CHAIN_ID
-        horse.contract_address = CONTRACT_NFT
         horse.db_location = self.bank
         horse.save(update_fields=["db_location"])
 

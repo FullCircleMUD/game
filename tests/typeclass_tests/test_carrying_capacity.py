@@ -12,8 +12,6 @@ from evennia.utils import create
 from evennia.utils.test_resources import EvenniaTest
 
 
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-CONTRACT_NFT = settings.CONTRACT_NFT
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
@@ -27,8 +25,6 @@ def _make_item(key, weight=0.0, token_id=None):
     obj.weight = weight
     if token_id is not None:
         obj.token_id = token_id
-        obj.chain_id = CHAIN_ID
-        obj.contract_address = CONTRACT_NFT
     return obj
 
 

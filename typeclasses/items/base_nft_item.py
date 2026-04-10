@@ -1,7 +1,7 @@
 """
 BaseNFTItem — Evennia object representing an NFT in the game world.
 
-Each instance maps 1:1 to an NFTMirror row via (token_id, chain_id, contract_address).
+Each instance maps 1:1 to an NFTGameState row via token_id.
 All NFT mirror/ownership updates are provided by NFTMirrorMixin.
 
 Subclass hierarchy:

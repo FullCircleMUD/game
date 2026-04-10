@@ -13,8 +13,6 @@ from evennia.utils import create
 from commands.room_specific_cmds.bank.cmd_deposit import CmdDeposit
 
 
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-CONTRACT_NFT = settings.CONTRACT_NFT
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
@@ -149,8 +147,6 @@ class TestCmdDepositNFT(EvenniaCommandTest):
             nohome=True,
         )
         self.sword.token_id = 42
-        self.sword.chain_id = CHAIN_ID
-        self.sword.contract_address = CONTRACT_NFT
         self.sword.db_location = self.char1
         self.sword.save(update_fields=["db_location"])
 

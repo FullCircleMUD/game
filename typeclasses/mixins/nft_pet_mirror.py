@@ -22,9 +22,9 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
     Pet-specific NFT mirror tracking. Inherits NFTMirrorMixin and overrides
     dispatch logic for pet ownership model.
 
-    Inherited unchanged: token_id, chain_id, contract_address, _get_wallet,
-    _get_character_key, assign_to_blank_token, _load_from_mirror,
-    get_nft_mirror, _log_error, _classify
+    Inherited unchanged: token_id, _get_wallet, _get_character_key,
+    assign_to_blank_token, _load_from_mirror, get_nft_mirror,
+    _log_error, _classify
     """
 
     # ── New attribute ──
@@ -83,8 +83,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
             if self.owner_key and location_type != "ACCOUNT":
                 # Owned pet in world — death, admin delete, etc
                 NFTService.craft_input(
-                    self.token_id, self.chain_id,
-                    self.contract_address, settings.XRPL_VAULT_ADDRESS,
+                    self.token_id, settings.XRPL_VAULT_ADDRESS,
                 )
             elif location_type == "ACCOUNT":
                 # Stabled pet being exported to external wallet
@@ -101,9 +100,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
                     f"owner_key={self.owner_key}, location_type={location_type}. "
                     f"Performing safety despawn."
                 )
-                NFTService.despawn(
-                    self.token_id, self.chain_id, self.contract_address,
-                )
+                NFTService.despawn(self.token_id)
         except ValueError as err:
             self._log_error("delete", err)
 
@@ -143,8 +140,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
             char_key = self.owner_key
             try:
                 NFTService.craft_output(
-                    self.token_id, wallet, self.chain_id,
-                    self.contract_address, char_key,
+                    self.token_id, wallet, char_key,
                 )
             except ValueError as err:
                 self._log_error("craft_output", err)
@@ -172,9 +168,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         if source_type == "ROOM" and dest_type == "ACCOUNT":
             # Stabling — CHARACTER → ACCOUNT
             try:
-                NFTService.bank(
-                    self.token_id, self.chain_id, self.contract_address,
-                )
+                NFTService.bank(self.token_id)
             except ValueError as err:
                 self._log_error("bank", err)
 
@@ -182,10 +176,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
             # Retrieving — ACCOUNT → CHARACTER
             char_key = self.owner_key
             try:
-                NFTService.unbank(
-                    self.token_id, self.chain_id,
-                    self.contract_address, char_key,
-                )
+                NFTService.unbank(self.token_id, char_key)
             except ValueError as err:
                 self._log_error("unbank", err)
 
@@ -259,8 +250,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         try:
             NFTService.transfer(
                 self.token_id, old_wallet, old_key,
-                new_wallet, new_key, self.chain_id,
-                self.contract_address,
+                new_wallet, new_key,
             )
         except ValueError as err:
             self._log_error("transfer", err)
@@ -354,8 +344,6 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
 
         # Set NFT identity + owner BEFORE move_to triggers at_post_move
         obj.token_id = token_id
-        obj.chain_id = None
-        obj.contract_address = None
         obj.owner_key = owner_key
 
         # Apply per-instance metadata (pet level, stats, etc)

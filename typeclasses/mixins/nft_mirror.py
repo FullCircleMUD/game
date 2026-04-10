@@ -32,14 +32,10 @@ class NFTMirrorMixin(CharacterKeyMixin):
     Mixin providing full NFT mirror lifecycle tracking.
 
     Attributes (persisted):
-        token_id         — on-chain NFT token ID
-        chain_id         — blockchain chain ID
-        contract_address — NFT contract proxy address
+        token_id — on-chain NFT token ID
     """
 
     token_id = AttributeProperty(None)
-    chain_id = AttributeProperty(None)
-    contract_address = AttributeProperty(None)
 
     # ================================================================== #
     #  Evennia Hooks — Mirror Transitions
@@ -100,8 +96,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
             char_key = self._get_character_key(dest_owner)
             try:
                 NFTService.craft_output(
-                    self.token_id, wallet, self.chain_id,
-                    self.contract_address, char_key,
+                    self.token_id, wallet, char_key,
                 )
             except ValueError as err:
                 self._log_error("craft_output", err)
@@ -119,9 +114,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
 
         else:
             try:
-                NFTService.spawn(
-                    self.token_id, self.chain_id, self.contract_address,
-                )
+                NFTService.spawn(self.token_id)
             except ValueError as err:
                 self._log_error("spawn", err)
 
@@ -142,8 +135,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
             char_key = self._get_character_key(dest_owner)
             try:
                 NFTService.pickup(
-                    self.token_id, wallet, self.chain_id,
-                    self.contract_address, char_key,
+                    self.token_id, wallet, char_key,
                 )
             except ValueError as err:
                 self._log_error("pickup", err)
@@ -151,8 +143,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         elif source_type == "CHARACTER" and dest_type == "WORLD":
             try:
                 NFTService.drop(
-                    self.token_id, self.chain_id,
-                    self.contract_address, settings.XRPL_VAULT_ADDRESS,
+                    self.token_id, settings.XRPL_VAULT_ADDRESS,
                 )
             except ValueError as err:
                 self._log_error("drop", err)
@@ -165,27 +156,21 @@ class NFTMirrorMixin(CharacterKeyMixin):
             try:
                 NFTService.transfer(
                     self.token_id, from_wallet, from_key,
-                    to_wallet, to_key, self.chain_id,
-                    self.contract_address,
+                    to_wallet, to_key,
                 )
             except ValueError as err:
                 self._log_error("transfer", err)
 
         elif source_type == "CHARACTER" and dest_type == "ACCOUNT":
             try:
-                NFTService.bank(
-                    self.token_id, self.chain_id, self.contract_address,
-                )
+                NFTService.bank(self.token_id)
             except ValueError as err:
                 self._log_error("bank", err)
 
         elif source_type == "ACCOUNT" and dest_type == "CHARACTER":
             char_key = self._get_character_key(dest_owner)
             try:
-                NFTService.unbank(
-                    self.token_id, self.chain_id,
-                    self.contract_address, char_key,
-                )
+                NFTService.unbank(self.token_id, char_key)
             except ValueError as err:
                 self._log_error("unbank", err)
 
@@ -227,12 +212,6 @@ class NFTMirrorMixin(CharacterKeyMixin):
         if gold <= 0 and not any(v > 0 for v in resources.values()):
             return
 
-        from blockchain.xrpl.services.gold import GoldService
-        from blockchain.xrpl.services.resource import ResourceService
-
-        chain_id = settings.BLOCKCHAIN_CHAIN_ID
-        gold_contract = settings.CONTRACT_GOLD
-        res_contract = settings.CONTRACT_RESOURCES
         vault = settings.XRPL_VAULT_ADDRESS
 
         source_wallet = (
@@ -258,7 +237,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
                     source_type, dest_type,
                     source_wallet, source_key,
                     dest_wallet, dest_key,
-                    gold, chain_id, gold_contract, vault,
+                    gold, vault,
                 )
 
             for rid, amt in resources.items():
@@ -267,7 +246,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
                         source_type, dest_type,
                         source_wallet, source_key,
                         dest_wallet, dest_key,
-                        rid, amt, chain_id, res_contract, vault,
+                        rid, amt, vault,
                     )
         except ValueError as err:
             self._log_error("cascade_fungibles", err)
@@ -276,51 +255,46 @@ class NFTMirrorMixin(CharacterKeyMixin):
     def _cascade_fungible_gold(source_type, dest_type,
                                source_wallet, source_key,
                                dest_wallet, dest_key,
-                               amount, chain_id, contract, vault):
+                               amount, vault):
         """Dispatch a single gold cascade service call."""
         from blockchain.xrpl.services.gold import GoldService
 
         if source_type == "CHARACTER" and dest_type == "WORLD":
-            GoldService.drop(source_wallet, amount, chain_id, contract,
-                             vault, source_key)
+            GoldService.drop(source_wallet, amount, vault, source_key)
         elif source_type == "WORLD" and dest_type == "CHARACTER":
-            GoldService.pickup(dest_wallet, amount, chain_id, contract,
-                               vault, dest_key)
+            GoldService.pickup(dest_wallet, amount, vault, dest_key)
         elif source_type == "CHARACTER" and dest_type == "CHARACTER":
             GoldService.transfer(source_wallet, source_key, dest_wallet,
-                                 dest_key, amount, chain_id, contract)
+                                 dest_key, amount)
         elif source_type == "CHARACTER" and dest_type == "ACCOUNT":
-            GoldService.bank(source_wallet, amount, chain_id, contract,
-                             source_key)
+            GoldService.bank(source_wallet, amount, source_key)
         elif source_type == "ACCOUNT" and dest_type == "CHARACTER":
-            GoldService.unbank(dest_wallet, amount, chain_id, contract,
-                               dest_key)
+            GoldService.unbank(dest_wallet, amount, dest_key)
 
     @staticmethod
     def _cascade_fungible_resource(source_type, dest_type,
                                    source_wallet, source_key,
                                    dest_wallet, dest_key,
-                                   resource_id, amount,
-                                   chain_id, contract, vault):
+                                   resource_id, amount, vault):
         """Dispatch a single resource cascade service call."""
         from blockchain.xrpl.services.resource import ResourceService
 
         if source_type == "CHARACTER" and dest_type == "WORLD":
             ResourceService.drop(source_wallet, resource_id, amount,
-                                 chain_id, contract, vault, source_key)
+                                 vault, source_key)
         elif source_type == "WORLD" and dest_type == "CHARACTER":
             ResourceService.pickup(dest_wallet, resource_id, amount,
-                                   chain_id, contract, vault, dest_key)
+                                   vault, dest_key)
         elif source_type == "CHARACTER" and dest_type == "CHARACTER":
             ResourceService.transfer(source_wallet, source_key,
                                      dest_wallet, dest_key, resource_id,
-                                     amount, chain_id, contract)
+                                     amount)
         elif source_type == "CHARACTER" and dest_type == "ACCOUNT":
             ResourceService.bank(source_wallet, resource_id, amount,
-                                 chain_id, contract, source_key)
+                                 source_key)
         elif source_type == "ACCOUNT" and dest_type == "CHARACTER":
             ResourceService.unbank(dest_wallet, resource_id, amount,
-                                   chain_id, contract, dest_key)
+                                   dest_key)
 
     # ================================================================== #
     #  Deletion — Mirror Cleanup
@@ -361,8 +335,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         try:
             if location_type == "CHARACTER":
                 NFTService.craft_input(
-                    self.token_id, self.chain_id,
-                    self.contract_address, settings.XRPL_VAULT_ADDRESS,
+                    self.token_id, settings.XRPL_VAULT_ADDRESS,
                 )
             elif location_type == "ACCOUNT":
                 tx_hash = getattr(self.ndb, "pending_tx_hash", None)
@@ -370,9 +343,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
                     self.token_id, tx_hash,
                 )
             else:
-                NFTService.despawn(
-                    self.token_id, self.chain_id, self.contract_address,
-                )
+                NFTService.despawn(self.token_id)
         except ValueError as err:
             self._log_error("delete", err)
 
@@ -389,11 +360,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         Returns the token_id ready for spawn_into().
         """
         from blockchain.xrpl.services.nft import NFTService
-        return NFTService.assign_item_type(
-            item_type_name,
-            None,
-            None,
-        )
+        return NFTService.assign_item_type(item_type_name)
 
     @staticmethod
     def spawn_into(token_id, location, **kwargs):
@@ -440,8 +407,6 @@ class NFTMirrorMixin(CharacterKeyMixin):
         obj = evennia_spawn(spawn_dict)[0]
 
         obj.token_id = token_id
-        obj.chain_id = None
-        obj.contract_address = None
 
         if nft.item_type and nft.item_type.prototype_key:
             obj.db.prototype_key = nft.item_type.prototype_key
@@ -536,10 +501,10 @@ class NFTMirrorMixin(CharacterKeyMixin):
             self.db.desc = meta["description"]
 
     @staticmethod
-    def get_nft_mirror(token_id, chain_id=None, contract_address=None):
+    def get_nft_mirror(token_id):
         """Look up an NFTGameState row by token_id."""
         from blockchain.xrpl.services.nft import NFTService
-        return NFTService.get_nft(token_id, chain_id, contract_address)
+        return NFTService.get_nft(token_id)
 
     def _log_error(self, operation, err):
         """Log a mirror update failure."""

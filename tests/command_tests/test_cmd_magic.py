@@ -20,8 +20,6 @@ from commands.all_char_cmds.cmd_memorise import CmdMemorise, CmdForget
 from commands.all_char_cmds.cmd_spells import CmdSpells
 
 
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-CONTRACT_NFT = settings.CONTRACT_NFT
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 TOKEN_ID = 201
 
@@ -34,8 +32,6 @@ def _create_scroll(char, token_id=TOKEN_ID, spell_key="magic_missile"):
         nohome=True,
     )
     obj.token_id = token_id
-    obj.chain_id = CHAIN_ID
-    obj.contract_address = CONTRACT_NFT
     obj.spell_key = spell_key
     # Place directly in inventory bypassing at_post_move
     obj.db_location = char

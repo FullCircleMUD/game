@@ -143,16 +143,6 @@ PUPPET_LOOK_ON_IC = False
 ######################################################################
 SUPERUSER_XRPL_WALLET_ADDRESS = os.environ.get("SUPERUSER_XRPL_WALLET_ADDRESS", "")  # dev wallet (superuser default)
 
-# ── Polygon Legacy (stubs — still referenced by old code paths) ──────
-# TODO: Remove once fungible_inventory.py and base_nft_item.py old methods are cleaned up
-"""
-BLOCKCHAIN_CHAIN_ID = 137
-CONTRACT_GOLD      = "0x0000000000000000000000000000000000000000"
-CONTRACT_NFT       = "0x0000000000000000000000000000000000000000"
-CONTRACT_RESOURCES = "0x0000000000000000000000000000000000000000"
-CONTRACT_VAULT     = "0x0000000000000000000000000000000000000000"
-CONTRACT_TREASURY  = "0x0000000000000000000000000000000000000000"
-"""
 # ── XRPL Configuration ──────────────────────────────────────────────
 XRPL_IMPORT_EXPORT_ENABLED = os.environ.get("XRPL_IMPORT_EXPORT_ENABLED", "").lower() in ("true", "1")
 # XRPL network endpoint — environment-specific, not secret.

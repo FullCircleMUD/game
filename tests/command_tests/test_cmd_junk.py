@@ -21,12 +21,8 @@ from commands.all_char_cmds.cmd_junk import CmdJunk
 
 
 VAULT = settings.XRPL_VAULT_ADDRESS
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-GOLD_CONTRACT = settings.CONTRACT_GOLD
-RESOURCE_CONTRACT = settings.CONTRACT_RESOURCES
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 TOKEN_ID = 42
-CONTRACT_NFT = settings.CONTRACT_NFT
 
 
 class TestCmdJunkGold(EvenniaCommandTest):
@@ -48,7 +44,7 @@ class TestCmdJunkGold(EvenniaCommandTest):
         """junk gold 50 should call return_gold_to_reserve → GoldService.sink."""
         self.call(CmdJunk(), "gold 50", inputs=["y"])
         mock_craft.assert_called_once_with(
-            WALLET_A, 50, CHAIN_ID, GOLD_CONTRACT, VAULT, self.char1.key,
+            WALLET_A, 50, VAULT, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
@@ -79,7 +75,7 @@ class TestCmdJunkGold(EvenniaCommandTest):
         """junk gold all should destroy all gold."""
         self.call(CmdJunk(), "gold all", inputs=["y"])
         mock_craft.assert_called_once_with(
-            WALLET_A, 100, CHAIN_ID, GOLD_CONTRACT, VAULT, self.char1.key,
+            WALLET_A, 100, VAULT, self.char1.key,
         )
         self.assertEqual(self.char1.get_gold(), 0)
 
@@ -104,8 +100,7 @@ class TestCmdJunkResource(EvenniaCommandTest):
         """junk wheat 5 should call return_resource_to_reserve → ResourceService.sink."""
         self.call(CmdJunk(), "wheat 5", inputs=["y"])
         mock_craft.assert_called_once_with(
-            WALLET_A, 1, 5, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
-            self.char1.key,
+            WALLET_A, 1, 5, VAULT, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.resource.ResourceService.sink")
@@ -131,8 +126,7 @@ class TestCmdJunkResource(EvenniaCommandTest):
         """junk wheat all should destroy all wheat."""
         self.call(CmdJunk(), "wheat all", inputs=["y"])
         mock_craft.assert_called_once_with(
-            WALLET_A, 1, 20, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
-            self.char1.key,
+            WALLET_A, 1, 20, VAULT, self.char1.key,
         )
         self.assertEqual(self.char1.get_resource(1), 0)
 
@@ -155,8 +149,6 @@ class TestCmdJunkNFT(EvenniaCommandTest):
             nohome=True,
         )
         self.sword.token_id = TOKEN_ID
-        self.sword.chain_id = CHAIN_ID
-        self.sword.contract_address = CONTRACT_NFT
         # Place directly in inventory bypassing at_post_move
         self.sword.db_location = self.char1
         self.sword.save(update_fields=["db_location"])

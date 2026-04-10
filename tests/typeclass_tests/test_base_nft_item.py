@@ -19,8 +19,6 @@ from evennia.utils import create
 
 VAULT = settings.XRPL_VAULT_ADDRESS
 TOKEN_ID = 42
-CHAIN_ID = 137
-CONTRACT = "0x2222222222222222222222222222222222222222"
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 WALLET_B = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
 
@@ -65,8 +63,6 @@ class TestBaseNFTItemPostMove(EvenniaTest):
             nohome=True,
         )
         nft.token_id = TOKEN_ID
-        nft.chain_id = CHAIN_ID
-        nft.contract_address = CONTRACT
         if location:
             nft.move_to(location)
         return nft
@@ -82,8 +78,6 @@ class TestBaseNFTItemPostMove(EvenniaTest):
             nohome=True,
         )
         nft.token_id = TOKEN_ID
-        nft.chain_id = CHAIN_ID
-        nft.contract_address = CONTRACT
         nft.db_location = location
         nft.save(update_fields=["db_location"])
         return nft
@@ -96,14 +90,14 @@ class TestBaseNFTItemPostMove(EvenniaTest):
     def test_create_into_room_calls_spawn(self, mock_spawn):
         """Creating an NFT into a room should call NFTService.spawn."""
         self._make_nft(location=self.room1)
-        mock_spawn.assert_called_once_with(TOKEN_ID, CHAIN_ID, CONTRACT)
+        mock_spawn.assert_called_once_with(TOKEN_ID)
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_output")
     def test_create_into_character_calls_craft_output(self, mock_craft):
         """Creating an NFT into a character should call NFTService.craft_output."""
         self._make_nft(location=self.char1)
         mock_craft.assert_called_once_with(
-            TOKEN_ID, WALLET_A, CHAIN_ID, CONTRACT, self.char1.key,
+            TOKEN_ID, WALLET_A, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_output")
@@ -111,7 +105,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
         """Creating into char2 should use wallet B and char2's key."""
         self._make_nft(location=self.char2)
         mock_craft.assert_called_once_with(
-            TOKEN_ID, WALLET_B, CHAIN_ID, CONTRACT, self.char2.key,
+            TOKEN_ID, WALLET_B, self.char2.key,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.deposit_from_chain")
@@ -132,8 +126,6 @@ class TestBaseNFTItemPostMove(EvenniaTest):
             nohome=True,
         )
         nft.token_id = TOKEN_ID
-        nft.chain_id = CHAIN_ID
-        nft.contract_address = CONTRACT
         nft.move_to(self.bank, tx_hash="0xdeadbeef")
         mock_deposit.assert_called_once_with(
             TOKEN_ID, WALLET_A,
@@ -148,7 +140,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
         nft = self._make_nft_raw(self.room1)
         nft.move_to(self.char1)
         mock_pickup.assert_called_once_with(
-            TOKEN_ID, WALLET_A, CHAIN_ID, CONTRACT, self.char1.key,
+            TOKEN_ID, WALLET_A, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.drop")
@@ -157,7 +149,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
         nft = self._make_nft_raw(self.char1)
         nft.move_to(self.room1)
         mock_drop.assert_called_once_with(
-            TOKEN_ID, CHAIN_ID, CONTRACT, VAULT,
+            TOKEN_ID, VAULT,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.transfer")
@@ -167,7 +159,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
         nft.move_to(self.char2)
         mock_transfer.assert_called_once_with(
             TOKEN_ID, WALLET_A, self.char1.key,
-            WALLET_B, self.char2.key, CHAIN_ID, CONTRACT,
+            WALLET_B, self.char2.key,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.bank")
@@ -176,7 +168,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
         nft = self._make_nft_raw(self.char1)
         nft.move_to(self.bank)
         mock_bank.assert_called_once_with(
-            TOKEN_ID, CHAIN_ID, CONTRACT,
+            TOKEN_ID,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.unbank")
@@ -185,7 +177,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
         nft = self._make_nft_raw(self.bank)
         nft.move_to(self.char1)
         mock_unbank.assert_called_once_with(
-            TOKEN_ID, CHAIN_ID, CONTRACT, self.char1.key,
+            TOKEN_ID, self.char1.key,
         )
 
     def test_room_to_room_no_service_call(self):
@@ -241,8 +233,6 @@ class TestBaseNFTItemDelete(EvenniaTest):
             nohome=True,
         )
         nft.token_id = TOKEN_ID
-        nft.chain_id = CHAIN_ID
-        nft.contract_address = CONTRACT
         nft.db_location = location
         nft.save(update_fields=["db_location"])
         return nft
@@ -252,7 +242,7 @@ class TestBaseNFTItemDelete(EvenniaTest):
         """Deleting an NFT from a room = despawn (SPAWNED → RESERVE)."""
         nft = self._place_nft(self.room1)
         nft.delete()
-        mock_despawn.assert_called_once_with(TOKEN_ID, CHAIN_ID, CONTRACT)
+        mock_despawn.assert_called_once_with(TOKEN_ID)
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
     def test_delete_from_character_calls_craft_input(self, mock_craft):
@@ -260,7 +250,7 @@ class TestBaseNFTItemDelete(EvenniaTest):
         nft = self._place_nft(self.char1)
         nft.delete()
         mock_craft.assert_called_once_with(
-            TOKEN_ID, CHAIN_ID, CONTRACT, VAULT,
+            TOKEN_ID, VAULT,
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.withdraw_to_chain")
@@ -338,8 +328,8 @@ class TestBaseNFTItemGetNFTMirror(EvenniaTest):
         """get_nft_mirror should forward args to NFTService.get_nft."""
         from typeclasses.items.base_nft_item import BaseNFTItem
         mock_get.return_value = MagicMock()
-        result = BaseNFTItem.get_nft_mirror(TOKEN_ID, CHAIN_ID, CONTRACT)
-        mock_get.assert_called_once_with(TOKEN_ID, CHAIN_ID, CONTRACT)
+        result = BaseNFTItem.get_nft_mirror(TOKEN_ID)
+        mock_get.assert_called_once_with(TOKEN_ID)
         self.assertEqual(result, mock_get.return_value)
 
 
@@ -355,11 +345,7 @@ class TestBaseNFTItemAssignToBlankToken(EvenniaTest):
         from typeclasses.items.base_nft_item import BaseNFTItem
         mock_assign.return_value = 7
         result = BaseNFTItem.assign_to_blank_token("Iron Longsword")
-        mock_assign.assert_called_once_with(
-            "Iron Longsword",
-            None,
-            None,
-        )
+        mock_assign.assert_called_once_with("Iron Longsword")
         self.assertEqual(result, 7)
 
     @patch("blockchain.xrpl.services.nft.NFTService.assign_item_type")
@@ -424,12 +410,10 @@ class TestBaseNFTItemSpawnInto(EvenniaTest):
 
     @patch("blockchain.xrpl.services.nft.NFTService.spawn")
     def test_spawn_into_sets_nft_attributes(self, mock_spawn):
-        """spawn_into should set token_id (chain_id and contract_address are None on XRPL)."""
+        """spawn_into should set token_id."""
         from typeclasses.items.base_nft_item import BaseNFTItem
         obj = BaseNFTItem.spawn_into(10100, self.room1)
         self.assertEqual(obj.token_id, 10100)
-        self.assertIsNone(obj.chain_id)
-        self.assertIsNone(obj.contract_address)
 
     @patch("blockchain.xrpl.services.nft.NFTService.spawn")
     def test_spawn_into_applies_metadata(self, mock_spawn):
@@ -450,9 +434,7 @@ class TestBaseNFTItemSpawnInto(EvenniaTest):
         """spawn_into move_to should trigger NFTService.spawn."""
         from typeclasses.items.base_nft_item import BaseNFTItem
         BaseNFTItem.spawn_into(10100, self.room1)
-        mock_spawn.assert_called_once_with(
-            10100, None, None,
-        )
+        mock_spawn.assert_called_once_with(10100)
 
     def test_spawn_into_returns_none_for_missing_token(self):
         """spawn_into should return None if NFTMirror row doesn't exist."""

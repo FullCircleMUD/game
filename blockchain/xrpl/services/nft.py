@@ -1,12 +1,8 @@
 """
 NFTService — game-side operations for XRPL NFTokens.
 
-Same interface as Polygon's NFTService. Accepts chain_id and
-contract_address params but ignores them. token_id param is accepted
-as the XRPL NFTokenID (string).
-
 Each NFT is a single row in NFTGameState. Moves update location,
-owner_in_game, and character_key. No on-chain mirror fields.
+owner_in_game, and character_key.
 
 All writes wrapped in transaction.atomic() for ACID guarantees.
 """
@@ -40,13 +36,12 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def get_nft(token_id, chain_id, contract_address):
+    def get_nft(token_id):
         """Returns a single NFTGameState row, or raises DoesNotExist."""
         return NFTGameState.objects.get(nftoken_id=str(token_id))
 
     @staticmethod
-    def get_character_nfts(wallet_address, chain_id, contract_address,
-                           character_key):
+    def get_character_nfts(wallet_address, character_key):
         return NFTGameState.objects.filter(
             owner_in_game=wallet_address,
             location=NFTGameState.LOCATION_CHARACTER,
@@ -54,15 +49,14 @@ class NFTService:
         )
 
     @staticmethod
-    def get_account_nfts(wallet_address, chain_id, contract_address):
+    def get_account_nfts(wallet_address):
         return NFTGameState.objects.filter(
             owner_in_game=wallet_address,
             location=NFTGameState.LOCATION_ACCOUNT,
         )
 
     @staticmethod
-    def get_available_for_spawn(chain_id, contract_address, vault_address,
-                                item_type=None):
+    def get_available_for_spawn(vault_address, item_type=None):
         qs = NFTGameState.objects.filter(
             owner_in_game=vault_address,
             location=NFTGameState.LOCATION_RESERVE,
@@ -76,7 +70,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def assign_item_type(item_type_name, chain_id, contract_address):
+    def assign_item_type(item_type_name):
         item_type = NFTItemType.objects.get(name=item_type_name)
 
         with transaction.atomic():
@@ -105,7 +99,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def spawn(token_id, chain_id, contract_address):
+    def spawn(token_id):
         updated = NFTGameState.objects.filter(
             nftoken_id=str(token_id),
             location=NFTGameState.LOCATION_RESERVE,
@@ -115,7 +109,7 @@ class NFTService:
             raise ValueError(f"NFT {token_id} is not in RESERVE state")
 
     @staticmethod
-    def despawn(token_id, chain_id, contract_address):
+    def despawn(token_id):
         updated = NFTGameState.objects.filter(
             nftoken_id=str(token_id),
             location=NFTGameState.LOCATION_SPAWNED,
@@ -133,8 +127,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def pickup(token_id, wallet_address, chain_id, contract_address,
-               character_key):
+    def pickup(token_id, wallet_address, character_key):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
@@ -161,7 +154,7 @@ class NFTService:
             )
 
     @staticmethod
-    def drop(token_id, chain_id, contract_address, vault_address):
+    def drop(token_id, vault_address):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
@@ -192,7 +185,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def bank(token_id, chain_id, contract_address):
+    def bank(token_id):
         with transaction.atomic():
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
@@ -206,7 +199,7 @@ class NFTService:
                 raise ValueError(f"NFT {token_id} is not in CHARACTER state")
 
     @staticmethod
-    def unbank(token_id, chain_id, contract_address, character_key):
+    def unbank(token_id, character_key):
         with transaction.atomic():
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
@@ -312,8 +305,7 @@ class NFTService:
 
     @staticmethod
     def transfer(token_id, from_wallet, from_character_key,
-                 to_wallet, to_character_key, chain_id,
-                 contract_address, transfer_type="trade"):
+                 to_wallet, to_character_key, transfer_type="trade"):
         with transaction.atomic():
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
@@ -343,7 +335,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def craft_input(token_id, chain_id, contract_address, vault_address):
+    def craft_input(token_id, vault_address):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
@@ -372,8 +364,7 @@ class NFTService:
             )
 
     @staticmethod
-    def craft_output(token_id, wallet_address, chain_id,
-                     contract_address, character_key):
+    def craft_output(token_id, wallet_address, character_key):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
@@ -404,7 +395,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def list_auction(token_id, chain_id, contract_address):
+    def list_auction(token_id):
         with transaction.atomic():
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
@@ -418,8 +409,7 @@ class NFTService:
                 raise ValueError(f"NFT {token_id} is not in CHARACTER state")
 
     @staticmethod
-    def cancel_auction(token_id, chain_id, contract_address,
-                       character_key):
+    def cancel_auction(token_id, character_key):
         with transaction.atomic():
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
@@ -433,8 +423,7 @@ class NFTService:
                 raise ValueError(f"NFT {token_id} is not in AUCTION state")
 
     @staticmethod
-    def complete_auction(token_id, winner_wallet, chain_id,
-                         contract_address, character_key):
+    def complete_auction(token_id, winner_wallet, character_key):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
@@ -465,8 +454,7 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
-    def reserve_to_account(token_id, wallet_address, chain_id,
-                           contract_address, vault_address):
+    def reserve_to_account(token_id, wallet_address, vault_address):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
@@ -491,8 +479,7 @@ class NFTService:
             )
 
     @staticmethod
-    def account_to_reserve(token_id, chain_id, contract_address,
-                           vault_address):
+    def account_to_reserve(token_id, vault_address):
         with transaction.atomic():
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),

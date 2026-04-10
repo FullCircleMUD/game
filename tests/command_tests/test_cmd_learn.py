@@ -19,8 +19,6 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 
 
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-CONTRACT_NFT = settings.CONTRACT_NFT
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 TOKEN_ID = 101
 
@@ -33,8 +31,6 @@ def _create_recipe_item(char, token_id=TOKEN_ID, recipe_key="training_longsword"
         nohome=True,
     )
     obj.token_id = token_id
-    obj.chain_id = CHAIN_ID
-    obj.contract_address = CONTRACT_NFT
     obj.db.recipe_key = recipe_key
     # Place directly in inventory bypassing at_post_move
     obj.db_location = char

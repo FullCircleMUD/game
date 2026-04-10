@@ -67,8 +67,6 @@ def _make_weapon(char, name="Iron Longsword"):
         location=char,
     )
     weapon.token_id = 100
-    weapon.chain_id = 137
-    weapon.contract_address = "0xCONTRACT"
     weapon.wear_effects = [
         {"type": "stat_bonus", "stat": "total_hit_bonus", "value": 1}
     ]

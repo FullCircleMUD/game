@@ -20,9 +20,6 @@ from evennia.utils import create
 # ── Constants ────────────────────────────────────────────────────────────
 
 VAULT = settings.XRPL_VAULT_ADDRESS
-CHAIN_ID = settings.BLOCKCHAIN_CHAIN_ID
-GOLD_CONTRACT = settings.CONTRACT_GOLD
-RESOURCE_CONTRACT = settings.CONTRACT_RESOURCES
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 WALLET_B = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
 WHEAT = 1  # resource_id for wheat
@@ -189,7 +186,7 @@ class TestGoldTransfers(EvenniaTest):
         self.room1.db.gold = 50
         self.room1.transfer_gold_to(self.char1, 25)
         mock_pickup.assert_called_once_with(
-            WALLET_A, 25, CHAIN_ID, GOLD_CONTRACT, VAULT, self.char1.key,
+            WALLET_A, 25, VAULT, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.pickup")
@@ -209,7 +206,7 @@ class TestGoldTransfers(EvenniaTest):
         self.char1.db.gold = 30
         self.char1.transfer_gold_to(self.room1, 10)
         mock_drop.assert_called_once_with(
-            WALLET_A, 10, CHAIN_ID, GOLD_CONTRACT, VAULT, self.char1.key,
+            WALLET_A, 10, VAULT, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.drop")
@@ -229,7 +226,7 @@ class TestGoldTransfers(EvenniaTest):
         self.char1.transfer_gold_to(self.char2, 40)
         mock_transfer.assert_called_once_with(
             WALLET_A, self.char1.key, WALLET_B, self.char2.key,
-            40, CHAIN_ID, GOLD_CONTRACT,
+            40,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.transfer")
@@ -250,7 +247,7 @@ class TestGoldTransfers(EvenniaTest):
         self.bank.db.gold = 0
         self.char1.transfer_gold_to(self.bank, 20)
         mock_bank.assert_called_once_with(
-            WALLET_A, 20, CHAIN_ID, GOLD_CONTRACT, self.char1.key,
+            WALLET_A, 20, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.bank")
@@ -271,7 +268,7 @@ class TestGoldTransfers(EvenniaTest):
         self.char1.db.gold = 0
         self.bank.transfer_gold_to(self.char1, 30)
         mock_unbank.assert_called_once_with(
-            WALLET_A, 30, CHAIN_ID, GOLD_CONTRACT, self.char1.key,
+            WALLET_A, 30, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.unbank")
@@ -344,7 +341,7 @@ class TestGoldReceiveFromReserve(EvenniaTest):
         self.room1.db.gold = 0
         self.room1.receive_gold_from_reserve(25)
         mock_spawn.assert_called_once_with(
-            25, CHAIN_ID, GOLD_CONTRACT, VAULT,
+            25, VAULT,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.spawn")
@@ -360,7 +357,7 @@ class TestGoldReceiveFromReserve(EvenniaTest):
         self.char1.db.gold = 0
         self.char1.receive_gold_from_reserve(50)
         mock_craft.assert_called_once_with(
-            WALLET_A, 50, CHAIN_ID, GOLD_CONTRACT, VAULT, self.char1.key,
+            WALLET_A, 50, VAULT, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
@@ -376,7 +373,7 @@ class TestGoldReceiveFromReserve(EvenniaTest):
         self.bank.db.gold = 0
         self.bank.receive_gold_from_reserve(75)
         mock_r2a.assert_called_once_with(
-            WALLET_A, 75, CHAIN_ID, GOLD_CONTRACT, VAULT,
+            WALLET_A, 75, VAULT,
         )
 
     def test_zero_amount_raises(self):
@@ -425,7 +422,7 @@ class TestResourceTransfers(EvenniaTest):
         self.room1.db.resources = {WHEAT: 20}
         self.room1.transfer_resource_to(self.char1, WHEAT, 10)
         mock_pickup.assert_called_once_with(
-            WALLET_A, WHEAT, 10, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WALLET_A, WHEAT, 10, VAULT,
             self.char1.key,
         )
 
@@ -446,7 +443,7 @@ class TestResourceTransfers(EvenniaTest):
         self.char1.db.resources = {WHEAT: 15}
         self.char1.transfer_resource_to(self.room1, WHEAT, 5)
         mock_drop.assert_called_once_with(
-            WALLET_A, WHEAT, 5, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WALLET_A, WHEAT, 5, VAULT,
             self.char1.key,
         )
 
@@ -459,7 +456,7 @@ class TestResourceTransfers(EvenniaTest):
         self.char1.transfer_resource_to(self.char2, WHEAT, 12)
         mock_transfer.assert_called_once_with(
             WALLET_A, self.char1.key, WALLET_B, self.char2.key,
-            WHEAT, 12, CHAIN_ID, RESOURCE_CONTRACT,
+            WHEAT, 12,
         )
 
     @patch("blockchain.xrpl.services.resource.ResourceService.transfer")
@@ -480,7 +477,7 @@ class TestResourceTransfers(EvenniaTest):
         self.bank.db.resources = {}
         self.char1.transfer_resource_to(self.bank, WHEAT, 8)
         mock_bank.assert_called_once_with(
-            WALLET_A, WHEAT, 8, CHAIN_ID, RESOURCE_CONTRACT,
+            WALLET_A, WHEAT, 8,
             self.char1.key,
         )
 
@@ -493,7 +490,7 @@ class TestResourceTransfers(EvenniaTest):
         self.char1.db.resources = {}
         self.bank.transfer_resource_to(self.char1, WHEAT, 15)
         mock_unbank.assert_called_once_with(
-            WALLET_A, WHEAT, 15, CHAIN_ID, RESOURCE_CONTRACT,
+            WALLET_A, WHEAT, 15,
             self.char1.key,
         )
 
@@ -550,7 +547,7 @@ class TestResourceReceiveFromReserve(EvenniaTest):
         self.room1.db.resources = {}
         self.room1.receive_resource_from_reserve(WHEAT, 15)
         mock_spawn.assert_called_once_with(
-            WHEAT, 15, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WHEAT, 15, VAULT,
         )
 
     @patch("blockchain.xrpl.services.resource.ResourceService.spawn")
@@ -566,7 +563,7 @@ class TestResourceReceiveFromReserve(EvenniaTest):
         self.char1.db.resources = {}
         self.char1.receive_resource_from_reserve(WHEAT, 10)
         mock_craft.assert_called_once_with(
-            WALLET_A, WHEAT, 10, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WALLET_A, WHEAT, 10, VAULT,
             self.char1.key,
         )
 
@@ -576,7 +573,7 @@ class TestResourceReceiveFromReserve(EvenniaTest):
         self.bank.db.resources = {}
         self.bank.receive_resource_from_reserve(WHEAT, 20)
         mock_r2a.assert_called_once_with(
-            WALLET_A, WHEAT, 20, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WALLET_A, WHEAT, 20, VAULT,
         )
 
     def test_zero_amount_raises(self):
@@ -614,7 +611,7 @@ class TestGoldReturnToReserve(EvenniaTest):
         self.char1.db.gold = 50
         self.char1.return_gold_to_reserve(15)
         mock_craft.assert_called_once_with(
-            WALLET_A, 15, CHAIN_ID, GOLD_CONTRACT, VAULT, self.char1.key,
+            WALLET_A, 15, VAULT, self.char1.key,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.craft_input")
@@ -632,7 +629,7 @@ class TestGoldReturnToReserve(EvenniaTest):
         self.room1.db.gold = 40
         self.room1.return_gold_to_reserve(10)
         mock_despawn.assert_called_once_with(
-            10, CHAIN_ID, GOLD_CONTRACT, VAULT,
+            10, VAULT,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.despawn")
@@ -650,7 +647,7 @@ class TestGoldReturnToReserve(EvenniaTest):
         self.bank.db.gold = 100
         self.bank.return_gold_to_reserve(25)
         mock_a2r.assert_called_once_with(
-            WALLET_A, 25, CHAIN_ID, GOLD_CONTRACT, VAULT,
+            WALLET_A, 25, VAULT,
         )
 
     @patch("blockchain.xrpl.services.gold.GoldService.account_to_reserve")
@@ -704,7 +701,7 @@ class TestResourceReturnToReserve(EvenniaTest):
         self.char1.db.resources = {WHEAT: 20}
         self.char1.return_resource_to_reserve(WHEAT, 5)
         mock_craft.assert_called_once_with(
-            WALLET_A, WHEAT, 5, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WALLET_A, WHEAT, 5, VAULT,
             self.char1.key,
         )
 
@@ -723,7 +720,7 @@ class TestResourceReturnToReserve(EvenniaTest):
         self.room1.db.resources = {WHEAT: 30}
         self.room1.return_resource_to_reserve(WHEAT, 10)
         mock_despawn.assert_called_once_with(
-            WHEAT, 10, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WHEAT, 10, VAULT,
         )
 
     @patch("blockchain.xrpl.services.resource.ResourceService.despawn")
@@ -741,7 +738,7 @@ class TestResourceReturnToReserve(EvenniaTest):
         self.bank.db.resources = {WHEAT: 40}
         self.bank.return_resource_to_reserve(WHEAT, 10)
         mock_a2r.assert_called_once_with(
-            WALLET_A, WHEAT, 10, CHAIN_ID, RESOURCE_CONTRACT, VAULT,
+            WALLET_A, WHEAT, 10, VAULT,
         )
 
     @patch("blockchain.xrpl.services.resource.ResourceService.account_to_reserve")

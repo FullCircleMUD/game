@@ -290,8 +290,6 @@ class TestExportNFT(ExportTestBase):
             nohome=True,
         )
         self.sword.token_id = TOKEN_ID
-        self.sword.chain_id = None
-        self.sword.contract_address = None
         self.sword.db_location = self.bank
         self.sword.save(update_fields=["db_location"])
 
