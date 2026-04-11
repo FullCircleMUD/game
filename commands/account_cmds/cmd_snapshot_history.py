@@ -49,7 +49,7 @@ class CmdSnapshotHistory(Command):
     key = "snapshot_history"
     aliases = ["snapshots"]
     locks = "cmd:id(1)"
-    help_category = "Admin"
+    help_category = "Economy"
 
     def func(self):
         args = self.args.strip().lower().split()
