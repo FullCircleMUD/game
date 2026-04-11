@@ -86,11 +86,15 @@ else:
         "NAME": os.path.join(GAME_DIR, "server", "subscriptions.db3"),  # type: ignore[name-defined]
     }
 
-DATABASE_ROUTERS = [
-    "blockchain.xrpl.db_router.XRPLRouter",
-    "ai_memory.db_router.AiMemoryRouter",
-    "subscriptions.db_router.SubscriptionsRouter",
-]
+# Database routers — only needed locally where each alias is a separate
+# SQLite file. On Railway all aliases share one Postgres instance, so
+# routers would block migrations from creating tables.
+if not _DATABASE_URL:
+    DATABASE_ROUTERS = [
+        "blockchain.xrpl.db_router.XRPLRouter",
+        "ai_memory.db_router.AiMemoryRouter",
+        "subscriptions.db_router.SubscriptionsRouter",
+    ]
 
 # Django secret key — used to sign cookies/sessions.
 # On Railway, set SECRET_KEY env var. Locally, override in secret_settings.py.
