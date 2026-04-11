@@ -3,4 +3,4 @@ builder = "nixpacks"
 
 [deploy]
 releaseCommand = "evennia migrate && evennia migrate --database xrpl && evennia migrate --database ai_memory && evennia migrate --database subscriptions"
-startCommand = "DJANGO_SETTINGS_MODULE=server.conf.settings django-admin migrate && DJANGO_SETTINGS_MODULE=server.conf.settings django-admin migrate --database xrpl && DJANGO_SETTINGS_MODULE=server.conf.settings django-admin migrate --database ai_memory && DJANGO_SETTINGS_MODULE=server.conf.settings django-admin migrate --database subscriptions && evennia start -l"
+startCommand = "python deploy_migrate.py && evennia start -l"
