@@ -14,7 +14,7 @@ evennia test --settings settings tests.command_tests.test_cmd_import
 """
 
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 
 from django.conf import settings
 from django.test import override_settings
@@ -291,7 +291,7 @@ class TestImportNFT(ImportTestBase):
         )
         self.assertIn("Create Sell Offer", result)
         mock_payload.assert_called_once_with(
-            "000800AA", VAULT,
+            "000800AA", VAULT, memos=ANY,
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)

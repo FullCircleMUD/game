@@ -102,7 +102,7 @@ def clear_spawned_items():
     orphan_nft_count = 0
     for nftoken_id in orphaned_nft_ids:
         try:
-            NFTService.despawn(nftoken_id, None, None)
+            NFTService.despawn(nftoken_id)
             orphan_nft_count += 1
         except ValueError:
             pass
@@ -123,7 +123,7 @@ def clear_spawned_items():
 
     for row in gold_rows:
         try:
-            GoldService.despawn(row["balance"], None, None, vault)
+            GoldService.despawn(row["balance"], vault)
         except ValueError:
             pass
 
@@ -146,7 +146,7 @@ def clear_spawned_items():
             resource_id = currency_cache.get_resource_id(row["currency_code"])
             if resource_id is not None:
                 ResourceService.despawn(
-                    resource_id, row["balance"], None, None, vault,
+                    resource_id, row["balance"], vault,
                 )
         except ValueError:
             pass

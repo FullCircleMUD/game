@@ -23,9 +23,6 @@ PLAYER2 = "rPLAYER2_ADDRESS_TEST"
 CHAR_KEY = "char#1234"
 CHAR_KEY2 = "char#5678"
 
-# Polygon compat params (ignored by XRPL services)
-CHAIN_ID = 137
-CONTRACT = "0xDEAD"
 VAULT = ISSUER
 
 # Use high nftoken_ids to avoid seed data collisions
@@ -53,26 +50,26 @@ class TestNFTServiceQueries(TestCase):
 
     def test_get_nft(self):
         _nft(TOKEN_A)
-        nft = NFTService.get_nft(TOKEN_A, CHAIN_ID, CONTRACT)
+        nft = NFTService.get_nft(TOKEN_A)
         self.assertEqual(nft.nftoken_id, TOKEN_A)
 
     def test_get_character_nfts(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         _nft(TOKEN_B, "CHARACTER", PLAYER, CHAR_KEY)
         _nft(TOKEN_C, "ACCOUNT", PLAYER)
-        qs = NFTService.get_character_nfts(PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+        qs = NFTService.get_character_nfts(PLAYER, CHAR_KEY)
         self.assertEqual(qs.count(), 2)
 
     def test_get_account_nfts(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
         _nft(TOKEN_B, "CHARACTER", PLAYER, CHAR_KEY)
-        qs = NFTService.get_account_nfts(PLAYER, CHAIN_ID, CONTRACT)
+        qs = NFTService.get_account_nfts(PLAYER)
         self.assertEqual(qs.count(), 1)
 
     def test_get_available_for_spawn(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
         _nft(TOKEN_B, "SPAWNED", VAULT)
-        qs = NFTService.get_available_for_spawn(CHAIN_ID, CONTRACT, VAULT)
+        qs = NFTService.get_available_for_spawn(VAULT)
         self.assertEqual(qs.count(), 1)
 
 
@@ -81,18 +78,18 @@ class TestNFTServiceSpawnDespawn(TestCase):
 
     def test_spawn(self):
         _nft(TOKEN_A)
-        NFTService.spawn(TOKEN_A, CHAIN_ID, CONTRACT)
+        NFTService.spawn(TOKEN_A)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "SPAWNED")
 
     def test_spawn_not_in_reserve_raises(self):
         _nft(TOKEN_A, "SPAWNED")
         with self.assertRaises(ValueError):
-            NFTService.spawn(TOKEN_A, CHAIN_ID, CONTRACT)
+            NFTService.spawn(TOKEN_A)
 
     def test_despawn(self):
         _nft(TOKEN_A, "SPAWNED")
-        NFTService.despawn(TOKEN_A, CHAIN_ID, CONTRACT)
+        NFTService.despawn(TOKEN_A)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "RESERVE")
         self.assertIsNone(nft.item_type)
@@ -100,7 +97,7 @@ class TestNFTServiceSpawnDespawn(TestCase):
     def test_despawn_not_in_spawned_raises(self):
         _nft(TOKEN_A, "RESERVE")
         with self.assertRaises(ValueError):
-            NFTService.despawn(TOKEN_A, CHAIN_ID, CONTRACT)
+            NFTService.despawn(TOKEN_A)
 
 
 class TestNFTServicePickupDrop(TestCase):
@@ -108,7 +105,7 @@ class TestNFTServicePickupDrop(TestCase):
 
     def test_pickup(self):
         _nft(TOKEN_A, "SPAWNED", VAULT)
-        NFTService.pickup(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+        NFTService.pickup(TOKEN_A, PLAYER, CHAR_KEY)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "CHARACTER")
         self.assertEqual(nft.owner_in_game, PLAYER)
@@ -118,11 +115,11 @@ class TestNFTServicePickupDrop(TestCase):
     def test_pickup_not_spawned_raises(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
         with self.assertRaises(ValueError):
-            NFTService.pickup(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+            NFTService.pickup(TOKEN_A, PLAYER, CHAR_KEY)
 
     def test_drop(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
-        NFTService.drop(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.drop(TOKEN_A, VAULT)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "SPAWNED")
         self.assertEqual(nft.owner_in_game, VAULT)
@@ -131,7 +128,7 @@ class TestNFTServicePickupDrop(TestCase):
     def test_drop_not_on_character_raises(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
         with self.assertRaises(ValueError):
-            NFTService.drop(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+            NFTService.drop(TOKEN_A, VAULT)
 
 
 class TestNFTServiceBankUnbank(TestCase):
@@ -139,14 +136,14 @@ class TestNFTServiceBankUnbank(TestCase):
 
     def test_bank(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
-        NFTService.bank(TOKEN_A, CHAIN_ID, CONTRACT)
+        NFTService.bank(TOKEN_A)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "ACCOUNT")
         self.assertIsNone(nft.character_key)
 
     def test_unbank(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
-        NFTService.unbank(TOKEN_A, CHAIN_ID, CONTRACT, CHAR_KEY)
+        NFTService.unbank(TOKEN_A, CHAR_KEY)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "CHARACTER")
         self.assertEqual(nft.character_key, CHAR_KEY)
@@ -198,7 +195,6 @@ class TestNFTServiceTransfer(TestCase):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         NFTService.transfer(
             TOKEN_A, PLAYER, CHAR_KEY, PLAYER2, CHAR_KEY2,
-            CHAIN_ID, CONTRACT,
         )
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.owner_in_game, PLAYER2)
@@ -210,7 +206,6 @@ class TestNFTServiceTransfer(TestCase):
         with self.assertRaises(ValueError):
             NFTService.transfer(
                 TOKEN_A, PLAYER2, CHAR_KEY2, PLAYER, CHAR_KEY,
-                CHAIN_ID, CONTRACT,
             )
 
 
@@ -219,7 +214,7 @@ class TestNFTServiceCrafting(TestCase):
 
     def test_craft_input(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
-        NFTService.craft_input(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.craft_input(TOKEN_A, VAULT)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "RESERVE")
         self.assertEqual(nft.owner_in_game, VAULT)
@@ -228,7 +223,7 @@ class TestNFTServiceCrafting(TestCase):
 
     def test_craft_output(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
-        NFTService.craft_output(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+        NFTService.craft_output(TOKEN_A, PLAYER, CHAR_KEY)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "CHARACTER")
         self.assertEqual(nft.owner_in_game, PLAYER)
@@ -240,19 +235,19 @@ class TestNFTServiceAuction(TestCase):
 
     def test_list_and_cancel_auction(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
-        NFTService.list_auction(TOKEN_A, CHAIN_ID, CONTRACT)
+        NFTService.list_auction(TOKEN_A)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "AUCTION")
         self.assertIsNone(nft.character_key)
 
-        NFTService.cancel_auction(TOKEN_A, CHAIN_ID, CONTRACT, CHAR_KEY)
+        NFTService.cancel_auction(TOKEN_A, CHAR_KEY)
         nft.refresh_from_db()
         self.assertEqual(nft.location, "CHARACTER")
 
     def test_complete_auction(self):
         _nft(TOKEN_A, "AUCTION", PLAYER)
         NFTService.complete_auction(
-            TOKEN_A, PLAYER2, CHAIN_ID, CONTRACT, CHAR_KEY2,
+            TOKEN_A, PLAYER2, CHAR_KEY2,
         )
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.owner_in_game, PLAYER2)
@@ -273,7 +268,7 @@ class TestNFTServiceAssignItemType(TestCase):
         _nft(TOKEN_A, "RESERVE", VAULT)
         _nft(TOKEN_B, "RESERVE", VAULT)
 
-        result_id = NFTService.assign_item_type("Test Sword", CHAIN_ID, CONTRACT)
+        result_id = NFTService.assign_item_type("Test Sword")
         self.assertEqual(result_id, TOKEN_A)  # lowest nftoken_id
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.item_type, it)
@@ -289,7 +284,7 @@ class TestNFTServiceAssignItemType(TestCase):
             location="RESERVE", item_type__isnull=True,
         ).delete()
         with self.assertRaises(ValueError):
-            NFTService.assign_item_type("Test Sword", CHAIN_ID, CONTRACT)
+            NFTService.assign_item_type("Test Sword")
 
 
 class TestNFTServiceReserveAccount(TestCase):
@@ -297,7 +292,7 @@ class TestNFTServiceReserveAccount(TestCase):
 
     def test_reserve_to_account(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
-        NFTService.reserve_to_account(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.reserve_to_account(TOKEN_A, PLAYER, VAULT)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "ACCOUNT")
         self.assertEqual(nft.owner_in_game, PLAYER)
@@ -305,11 +300,11 @@ class TestNFTServiceReserveAccount(TestCase):
     def test_reserve_to_account_not_in_reserve_raises(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         with self.assertRaises(ValueError):
-            NFTService.reserve_to_account(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, VAULT)
+            NFTService.reserve_to_account(TOKEN_A, PLAYER, VAULT)
 
     def test_account_to_reserve(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
-        NFTService.account_to_reserve(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.account_to_reserve(TOKEN_A, VAULT)
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.location, "RESERVE")
         self.assertEqual(nft.owner_in_game, VAULT)
@@ -318,7 +313,7 @@ class TestNFTServiceReserveAccount(TestCase):
     def test_account_to_reserve_not_in_account_raises(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
         with self.assertRaises(ValueError):
-            NFTService.account_to_reserve(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+            NFTService.account_to_reserve(TOKEN_A, VAULT)
 
 
 class TestNFTServiceWrongStateRejection(TestCase):
@@ -329,12 +324,12 @@ class TestNFTServiceWrongStateRejection(TestCase):
     def test_bank_not_in_character_raises(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
         with self.assertRaises(ValueError):
-            NFTService.bank(TOKEN_A, CHAIN_ID, CONTRACT)
+            NFTService.bank(TOKEN_A)
 
     def test_unbank_not_in_account_raises(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         with self.assertRaises(ValueError):
-            NFTService.unbank(TOKEN_A, CHAIN_ID, CONTRACT, CHAR_KEY)
+            NFTService.unbank(TOKEN_A, CHAR_KEY)
 
     def test_deposit_not_in_onchain_raises(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
@@ -349,27 +344,27 @@ class TestNFTServiceWrongStateRejection(TestCase):
     def test_craft_input_not_in_character_raises(self):
         _nft(TOKEN_A, "SPAWNED", VAULT)
         with self.assertRaises(ValueError):
-            NFTService.craft_input(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+            NFTService.craft_input(TOKEN_A, VAULT)
 
     def test_craft_output_not_in_reserve_raises(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         with self.assertRaises(ValueError):
-            NFTService.craft_output(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+            NFTService.craft_output(TOKEN_A, PLAYER, CHAR_KEY)
 
     def test_list_auction_not_in_character_raises(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
         with self.assertRaises(ValueError):
-            NFTService.list_auction(TOKEN_A, CHAIN_ID, CONTRACT)
+            NFTService.list_auction(TOKEN_A)
 
     def test_cancel_auction_not_in_auction_raises(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         with self.assertRaises(ValueError):
-            NFTService.cancel_auction(TOKEN_A, CHAIN_ID, CONTRACT, CHAR_KEY)
+            NFTService.cancel_auction(TOKEN_A, CHAR_KEY)
 
     def test_complete_auction_not_in_auction_raises(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         with self.assertRaises(ValueError):
-            NFTService.complete_auction(TOKEN_A, PLAYER2, CHAIN_ID, CONTRACT, CHAR_KEY2)
+            NFTService.complete_auction(TOKEN_A, PLAYER2, CHAR_KEY2)
 
 
 class TestNFTServiceTransferLogContent(TestCase):
@@ -379,7 +374,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_pickup_log_content(self):
         _nft(TOKEN_A, "SPAWNED", VAULT)
-        NFTService.pickup(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+        NFTService.pickup(TOKEN_A, PLAYER, CHAR_KEY)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.nftoken_id, TOKEN_A)
         self.assertEqual(log.from_wallet, VAULT)
@@ -388,7 +383,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_drop_log_content(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
-        NFTService.drop(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.drop(TOKEN_A, VAULT)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, PLAYER)
         self.assertEqual(log.to_wallet, VAULT)
@@ -412,7 +407,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_craft_input_log_content(self):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
-        NFTService.craft_input(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.craft_input(TOKEN_A, VAULT)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, PLAYER)
         self.assertEqual(log.to_wallet, VAULT)
@@ -420,7 +415,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_craft_output_log_content(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
-        NFTService.craft_output(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY)
+        NFTService.craft_output(TOKEN_A, PLAYER, CHAR_KEY)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, VAULT)
         self.assertEqual(log.to_wallet, PLAYER)
@@ -428,7 +423,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_auction_complete_log_content(self):
         _nft(TOKEN_A, "AUCTION", PLAYER)
-        NFTService.complete_auction(TOKEN_A, PLAYER2, CHAIN_ID, CONTRACT, CHAR_KEY2)
+        NFTService.complete_auction(TOKEN_A, PLAYER2, CHAR_KEY2)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, PLAYER)
         self.assertEqual(log.to_wallet, PLAYER2)
@@ -436,7 +431,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_reserve_to_account_log_content(self):
         _nft(TOKEN_A, "RESERVE", VAULT)
-        NFTService.reserve_to_account(TOKEN_A, PLAYER, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.reserve_to_account(TOKEN_A, PLAYER, VAULT)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, VAULT)
         self.assertEqual(log.to_wallet, PLAYER)
@@ -444,7 +439,7 @@ class TestNFTServiceTransferLogContent(TestCase):
 
     def test_account_to_reserve_log_content(self):
         _nft(TOKEN_A, "ACCOUNT", PLAYER)
-        NFTService.account_to_reserve(TOKEN_A, CHAIN_ID, CONTRACT, VAULT)
+        NFTService.account_to_reserve(TOKEN_A, VAULT)
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, PLAYER)
         self.assertEqual(log.to_wallet, VAULT)
@@ -454,7 +449,6 @@ class TestNFTServiceTransferLogContent(TestCase):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         NFTService.transfer(
             TOKEN_A, PLAYER, CHAR_KEY, PLAYER2, CHAR_KEY2,
-            CHAIN_ID, CONTRACT,
         )
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.from_wallet, PLAYER)
@@ -465,7 +459,7 @@ class TestNFTServiceTransferLogContent(TestCase):
         _nft(TOKEN_A, "CHARACTER", PLAYER, CHAR_KEY)
         NFTService.transfer(
             TOKEN_A, PLAYER, CHAR_KEY, PLAYER2, CHAR_KEY2,
-            CHAIN_ID, CONTRACT, transfer_type="give",
+            transfer_type="give",
         )
         log = NFTTransferLog.objects.get()
         self.assertEqual(log.transfer_type, "give")
@@ -479,7 +473,7 @@ class TestNFTServiceAssignItemTypeEdgeCases(TestCase):
     def test_assign_item_type_unknown_name_raises(self):
         """Nonexistent item type name should raise DoesNotExist."""
         with self.assertRaises(NFTItemType.DoesNotExist):
-            NFTService.assign_item_type("Nonexistent Sword", CHAIN_ID, CONTRACT)
+            NFTService.assign_item_type("Nonexistent Sword")
 
     def test_assign_picks_lowest_nftoken_id(self):
         """Should assign to the blank token with the lowest nftoken_id."""
@@ -491,7 +485,7 @@ class TestNFTServiceAssignItemTypeEdgeCases(TestCase):
         _nft(TOKEN_A)  # lower id
         _nft(TOKEN_B)  # middle id
 
-        result_id = NFTService.assign_item_type("Order Test", CHAIN_ID, CONTRACT)
+        result_id = NFTService.assign_item_type("Order Test")
         self.assertEqual(result_id, TOKEN_A)
 
     def test_assign_skips_tokens_with_existing_item_type(self):
@@ -503,7 +497,7 @@ class TestNFTServiceAssignItemTypeEdgeCases(TestCase):
         _nft(TOKEN_A, item_type=it)  # already assigned
         _nft(TOKEN_B)  # blank
 
-        result_id = NFTService.assign_item_type("Skip Test", CHAIN_ID, CONTRACT)
+        result_id = NFTService.assign_item_type("Skip Test")
         self.assertEqual(result_id, TOKEN_B)
 
     def test_assign_copies_default_metadata(self):
@@ -514,6 +508,6 @@ class TestNFTServiceAssignItemTypeEdgeCases(TestCase):
             default_metadata={"rarity": "rare", "bonus": 5},
         )
         _nft(TOKEN_A)
-        NFTService.assign_item_type("Meta Test", CHAIN_ID, CONTRACT)
+        NFTService.assign_item_type("Meta Test")
         nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
         self.assertEqual(nft.metadata, {"rarity": "rare", "bonus": 5})

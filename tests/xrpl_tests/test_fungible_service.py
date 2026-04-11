@@ -31,9 +31,6 @@ CHAR_KEY2 = "char#5678"
 GOLD = "FCMGold"
 WHEAT = "FCMWheat"
 
-# Polygon compat params (ignored by XRPL services)
-CHAIN_ID = 137
-CONTRACT = "0xDEAD"
 VAULT = ISSUER
 
 
@@ -441,44 +438,44 @@ class TestGoldServiceWrapper(TestCase):
         _seed(GOLD, VAULT, "RESERVE", Decimal(10000))
 
     def test_spawn(self):
-        GoldService.spawn(Decimal(500), CHAIN_ID, CONTRACT, VAULT)
+        GoldService.spawn(Decimal(500), VAULT)
         self.assertEqual(
             FungibleService.get_balance(GOLD, VAULT, "SPAWNED"),
             Decimal(500),
         )
 
     def test_pickup(self):
-        GoldService.spawn(Decimal(100), CHAIN_ID, CONTRACT, VAULT)
-        GoldService.pickup(PLAYER, Decimal(50), CHAIN_ID, CONTRACT, VAULT, CHAR_KEY)
+        GoldService.spawn(Decimal(100), VAULT)
+        GoldService.pickup(PLAYER, Decimal(50), VAULT, CHAR_KEY)
         self.assertEqual(
-            GoldService.get_character_gold(PLAYER, CHAIN_ID, CONTRACT, CHAR_KEY),
+            GoldService.get_character_gold(PLAYER, CHAR_KEY),
             Decimal(50),
         )
 
     def test_bank(self):
-        GoldService.spawn(Decimal(100), CHAIN_ID, CONTRACT, VAULT)
-        GoldService.pickup(PLAYER, Decimal(100), CHAIN_ID, CONTRACT, VAULT, CHAR_KEY)
-        GoldService.bank(PLAYER, Decimal(60), CHAIN_ID, CONTRACT, CHAR_KEY)
+        GoldService.spawn(Decimal(100), VAULT)
+        GoldService.pickup(PLAYER, Decimal(100), VAULT, CHAR_KEY)
+        GoldService.bank(PLAYER, Decimal(60), CHAR_KEY)
         self.assertEqual(
-            GoldService.get_account_gold(PLAYER, CHAIN_ID, CONTRACT),
+            GoldService.get_account_gold(PLAYER),
             Decimal(60),
         )
 
     def test_get_reserve_balance(self):
         self.assertEqual(
-            GoldService.get_reserve_balance(VAULT, CHAIN_ID, CONTRACT),
+            GoldService.get_reserve_balance(VAULT),
             Decimal(10000),
         )
 
     def test_transfer(self):
-        GoldService.spawn(Decimal(100), CHAIN_ID, CONTRACT, VAULT)
-        GoldService.pickup(PLAYER, Decimal(100), CHAIN_ID, CONTRACT, VAULT, CHAR_KEY)
+        GoldService.spawn(Decimal(100), VAULT)
+        GoldService.pickup(PLAYER, Decimal(100), VAULT, CHAR_KEY)
         GoldService.transfer(
             PLAYER, CHAR_KEY, PLAYER2, CHAR_KEY2,
-            Decimal(30), CHAIN_ID, CONTRACT,
+            Decimal(30),
         )
         self.assertEqual(
-            GoldService.get_character_gold(PLAYER2, CHAIN_ID, CONTRACT, CHAR_KEY2),
+            GoldService.get_character_gold(PLAYER2, CHAR_KEY2),
             Decimal(30),
         )
 
@@ -493,38 +490,38 @@ class TestResourceServiceWrapper(TestCase):
         _seed(WHEAT, VAULT, "RESERVE", Decimal(5000))
 
     def test_spawn(self):
-        ResourceService.spawn(1, Decimal(200), CHAIN_ID, CONTRACT, VAULT)
+        ResourceService.spawn(1, Decimal(200), VAULT)
         self.assertEqual(
             FungibleService.get_balance(WHEAT, VAULT, "SPAWNED"),
             Decimal(200),
         )
 
     def test_pickup(self):
-        ResourceService.spawn(1, Decimal(200), CHAIN_ID, CONTRACT, VAULT)
-        ResourceService.pickup(PLAYER, 1, Decimal(100), CHAIN_ID, CONTRACT, VAULT, CHAR_KEY)
+        ResourceService.spawn(1, Decimal(200), VAULT)
+        ResourceService.pickup(PLAYER, 1, Decimal(100), VAULT, CHAR_KEY)
         self.assertEqual(
-            ResourceService.get_character_resource(PLAYER, 1, CHAIN_ID, CONTRACT, CHAR_KEY),
+            ResourceService.get_character_resource(PLAYER, 1, CHAR_KEY),
             Decimal(100),
         )
 
     def test_bank(self):
-        ResourceService.spawn(1, Decimal(200), CHAIN_ID, CONTRACT, VAULT)
-        ResourceService.pickup(PLAYER, 1, Decimal(200), CHAIN_ID, CONTRACT, VAULT, CHAR_KEY)
-        ResourceService.bank(PLAYER, 1, Decimal(100), CHAIN_ID, CONTRACT, CHAR_KEY)
+        ResourceService.spawn(1, Decimal(200), VAULT)
+        ResourceService.pickup(PLAYER, 1, Decimal(200), VAULT, CHAR_KEY)
+        ResourceService.bank(PLAYER, 1, Decimal(100), CHAR_KEY)
         self.assertEqual(
-            ResourceService.get_account_resource(PLAYER, 1, CHAIN_ID, CONTRACT),
+            ResourceService.get_account_resource(PLAYER, 1),
             Decimal(100),
         )
 
     def test_transfer(self):
-        ResourceService.spawn(1, Decimal(200), CHAIN_ID, CONTRACT, VAULT)
-        ResourceService.pickup(PLAYER, 1, Decimal(200), CHAIN_ID, CONTRACT, VAULT, CHAR_KEY)
+        ResourceService.spawn(1, Decimal(200), VAULT)
+        ResourceService.pickup(PLAYER, 1, Decimal(200), VAULT, CHAR_KEY)
         ResourceService.transfer(
             PLAYER, CHAR_KEY, PLAYER2, CHAR_KEY2,
-            1, Decimal(50), CHAIN_ID, CONTRACT,
+            1, Decimal(50),
         )
         self.assertEqual(
-            ResourceService.get_character_resource(PLAYER2, 1, CHAIN_ID, CONTRACT, CHAR_KEY2),
+            ResourceService.get_character_resource(PLAYER2, 1, CHAR_KEY2),
             Decimal(50),
         )
 

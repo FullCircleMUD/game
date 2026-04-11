@@ -13,7 +13,7 @@ same call() invocation and self.call() can capture all output.
 evennia test --settings settings tests.command_tests.test_cmd_export
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 
 from django.conf import settings
 from django.test import override_settings
@@ -145,7 +145,7 @@ class TestExportGold(ExportTestBase):
         )
         self.assertIn("Sending gold", result)
         mock_send.assert_called_once_with(
-            WALLET_A, settings.XRPL_GOLD_CURRENCY_CODE, 50,
+            WALLET_A, settings.XRPL_GOLD_CURRENCY_CODE, 50, memos=ANY,
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
@@ -198,7 +198,7 @@ class TestExportGold(ExportTestBase):
         )
         self.assertIn("Sending gold", result)
         mock_send.assert_called_once_with(
-            WALLET_A, settings.XRPL_GOLD_CURRENCY_CODE, 200,
+            WALLET_A, settings.XRPL_GOLD_CURRENCY_CODE, 200, memos=ANY,
         )
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
@@ -315,8 +315,8 @@ class TestExportNFT(ExportTestBase):
             inputs=["y"],
         )
         self.assertIn("Creating NFT sell offer", result)
-        mock_sell.assert_called_once_with(str(TOKEN_ID), WALLET_A)
-        mock_accept.assert_called_once_with("OFFER_ID_1")
+        mock_sell.assert_called_once_with(str(TOKEN_ID), WALLET_A, memos=ANY)
+        mock_accept.assert_called_once_with("OFFER_ID_1", memos=ANY)
 
     @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
     @patch("blockchain.xrpl.xrpl_tx.create_nft_sell_offer",

@@ -48,6 +48,7 @@ class HarvestingTestBase(EvenniaCommandTest):
         self.room1.db.desc_abundant = "Rich veins of iron ore glint in the rock face."
         self.room1.db.desc_scarce = "A few traces of ore remain in the walls."
         self.room1.db.desc_depleted = "The mine is exhausted. Nothing remains."
+        self.room1.db.always_lit = True
 
 
 # ── Basic Harvesting ──────────────────────────────────────────────
