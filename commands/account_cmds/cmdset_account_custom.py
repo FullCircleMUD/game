@@ -43,6 +43,7 @@ from commands.account_cmds.cmd_rebuild_world import CmdRebuildWorld
 from commands.account_cmds.cmd_rebuild_test import CmdRebuildTest
 from commands.account_cmds.cmd_rebuild_zone import CmdRebuildZone
 from commands.account_cmds.cmd_service_report import CmdServiceRun
+from commands.account_cmds.cmd_snapshot_history import CmdSnapshotHistory
 
 
 class CmdSetAccountCustom(CmdSet):
@@ -96,3 +97,4 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdRebuildTest())
         self.add(CmdRebuildZone())
         self.add(CmdServiceRun())
+        self.add(CmdSnapshotHistory())
