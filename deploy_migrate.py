@@ -21,14 +21,21 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "server.conf.settings")
 import django
 django.setup()
 
-from django.db import connection
+from django.db import connections
 from django.core.management import call_command
 
-# Ensure pgvector extension exists before migrations try to use vector types
+# Ensure pgvector extension exists before migrations try to use vector types.
+# Use a raw psycopg2 connection with autocommit to avoid holding a transaction
+# lock that blocks subsequent migration DDL.
 print("--- Ensuring pgvector extension ---", flush=True)
 try:
-    with connection.cursor() as cursor:
+    conn = connections["default"]
+    conn.ensure_connection()
+    conn.connection.autocommit = True
+    with conn.cursor() as cursor:
         cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    conn.connection.autocommit = False
+    conn.close()
     print("  pgvector: OK", flush=True)
 except Exception as e:
     print(f"  pgvector: SKIPPED ({e})", flush=True)
