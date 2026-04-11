@@ -44,7 +44,6 @@ class CmdUnconnectedConnect(COMMAND_DEFAULT_CLASS):
         args = self.args.strip()
 
         # ── Password-based login (root / bot) ──────────────────────
-        session.msg(f"|y[DEBUG] args={repr(args)} superuser={repr(getattr(settings, 'EVENNIA_SUPERUSER_USERNAME', 'unknown'))}|n")
         if args:
             parts = [part.strip() for part in re.split(r"\"", args) if part.strip()]
             if len(parts) == 1:
