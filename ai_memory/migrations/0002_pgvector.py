@@ -65,6 +65,9 @@ def populate_vectors(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
+    # HNSW index creation can block if run inside a transaction.
+    atomic = False
+
     dependencies = [
         ("ai_memory", "0001_initial"),
     ]
