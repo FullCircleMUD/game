@@ -16,6 +16,7 @@ from subscriptions.utils import (
     extend_subscription,
     get_subscription_status,
     grant_trial,
+    has_paid,
     is_subscribed,
 )
 
@@ -255,3 +256,91 @@ class TestSubscriptionDisabled(EvenniaTest):
         """Normal accounts are NOT exempt when subscriptions are enabled."""
         self.account.is_superuser = False
         self.assertFalse(_is_exempt(self.account))
+
+
+@override_settings(SUBSCRIPTION_ENABLED=True)
+class TestHasPaid(EvenniaTest):
+    """Test has_paid() under various conditions."""
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account.is_superuser = False
+        # Clear any payment records left from prior tests
+        from subscriptions.models import SubscriptionPayment
+        SubscriptionPayment.objects.using("subscriptions").filter(
+            account_id=self.account.id
+        ).delete()
+
+    def test_no_payment_returns_false(self):
+        """Account that has never paid returns False."""
+        self.assertFalse(has_paid(self.account))
+
+    def test_with_payment_returns_true(self):
+        """Account with at least one payment returns True."""
+        from subscriptions.models import SubscriptionPayment
+        from datetime import datetime, timedelta, timezone
+
+        SubscriptionPayment.objects.using("subscriptions").create(
+            account_id=self.account.id,
+            account_name=self.account.key,
+            wallet_address=WALLET_A,
+            plan_key="monthly",
+            amount=20,
+            currency_code="RLUSD",
+            tx_hash="HASHHASPAIDTEST1",
+            old_expiry=None,
+            new_expiry=datetime.now(timezone.utc) + timedelta(days=30),
+        )
+        self.assertTrue(has_paid(self.account))
+
+    def test_superuser_returns_true_without_payment(self):
+        """Superuser is treated as paid even with no payment record."""
+        self.account.is_superuser = True
+        self.assertTrue(has_paid(self.account))
+
+    def test_payment_persists_after_expiry(self):
+        """has_paid stays True even after subscription has expired."""
+        from subscriptions.models import SubscriptionPayment
+        from datetime import datetime, timedelta, timezone
+
+        SubscriptionPayment.objects.using("subscriptions").create(
+            account_id=self.account.id,
+            account_name=self.account.key,
+            wallet_address=WALLET_A,
+            plan_key="monthly",
+            amount=20,
+            currency_code="RLUSD",
+            tx_hash="HASHHASPAIDTEST2",
+            old_expiry=None,
+            new_expiry=datetime.now(timezone.utc) - timedelta(days=30),
+        )
+        self.account.subscription_expires_date = (
+            datetime.now(timezone.utc) - timedelta(days=10)
+        )
+        # Subscription expired, but they have a payment on record
+        self.assertFalse(is_subscribed(self.account))
+        self.assertTrue(has_paid(self.account))
+
+
+class TestHasPaidWhenDisabled(EvenniaTest):
+    """has_paid() returns True for everyone when SUBSCRIPTION_ENABLED=False."""
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+
+    def test_has_paid_returns_true_when_disabled(self):
+        """With subscriptions disabled, every account is treated as paid."""
+        self.account.is_superuser = False
+        self.assertTrue(has_paid(self.account))
