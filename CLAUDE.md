@@ -114,9 +114,13 @@ FCM/src/                        ← run `evennia start` from here
 │   ├── utils/                    ← game utilities (item_parse, dice, experience, etc.)
 │   └── web/                    ← web client overrides
 ├── evennia/                    ← Evennia framework (never modified, not in git)
-├── secret_settings.py          ← private keys (not in git)
+├── secret_settings.py          ← private keys (encrypted with git-crypt)
 └── venv/                       ← Python venv (not in git, recreate with pip install evennia)
 ```
+
+## Security Rules
+
+- **NEVER** run `git diff`, `cat`, `read`, or any command that would display the contents of `server/conf/secret_settings.py`. This file is encrypted with git-crypt and contains private keys. When committing changes to it, stage and commit without viewing the diff.
 
 ## Commands
 
