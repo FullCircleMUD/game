@@ -7,7 +7,7 @@ BRONZE_SPEAR = {
     "key": "Bronze Spear",
     "aliases": ["spear", "bronze spear"],
     "desc": "A bronze-tipped spear mounted on a wooden shaft. Good reach.",
-    "base_damage": "d6",
+    "base_damage": "d8",
     "material": "bronze",
     "damage_type": DamageType.PIERCING,
     "weapon_type": "melee",
