@@ -4,21 +4,21 @@ Trainer NPC commands — train skills/weapons and buy recipes.
 These commands live on the TrainerNPC object's CmdSet. When a player is in the
 same room as a trainer, these commands become available. self.obj is the trainer.
 
-Training flow:
+Training flow (deterministic — no random outcomes):
     1. Validate access (enum-driven: class skills, weapon restrictions)
     2. Check trainer mastery > character mastery (can teach)
     3. Check skill points + gold
-    4. Check no cooldown from a prior failure with this trainer
-    5. Y/N confirmation with cost breakdown and success chance
-    6. Deduct gold (non-refundable)
-    7. Progress bar with delay
-    8. Roll success/failure
-    9. Success -> deduct skill points, advance mastery
-       Failure -> gold lost, points kept, 1-hour cooldown with this trainer
-"""
+    4. Y/N confirmation with cost breakdown
+    5. Deduct gold and skill points
+    6. Progress bar with delay
+    7. Advance mastery on completion (always succeeds)
 
-import time
-from random import randint
+Compliance note: training is fully deterministic. There is no random
+failure roll. The player knows exactly what they will receive before
+paying — the consideration element of the gambling test is decoupled
+from any chance element. See design/COMPLIANCE.md and
+ops/COMPLIANCE_LEGAL.md §9.5.
+"""
 
 from evennia import CmdSet, Command
 from evennia.utils import delay
@@ -50,17 +50,6 @@ _TRAINING_TIME = {
     4: 25,     # MASTER
     5: 30,     # GRANDMASTER
 }
-
-# Success chance (%) based on (trainer mastery - character current mastery)
-_SUCCESS_CHANCE = {
-    1: 50,     # 1 level higher -> 50%
-    2: 75,     # 2 levels higher -> 75%
-    3: 90,     # 3 levels higher -> 90%
-}
-# 4+ levels higher = 100%
-
-# Cooldown on failure (seconds) -- per trainer
-_FAILURE_COOLDOWN = 3600  # 1 hour
 
 # Progress bar display
 _BAR_WIDTH = 10
@@ -125,15 +114,6 @@ def _mastery_name(value):
         return "???"
 
 
-def _get_success_chance(mastery_gap):
-    """Return success chance (0-100) based on trainer-trainee mastery gap."""
-    if mastery_gap <= 0:
-        return 0
-    if mastery_gap >= 4:
-        return 100
-    return _SUCCESS_CHANCE.get(mastery_gap, 100)
-
-
 def _calculate_gold_cost(target_mastery, cha_score):
     """Calculate gold cost with CHA discount/surcharge."""
     import math
@@ -167,46 +147,6 @@ def _match_in_list(item_list, user_input):
     return None
 
 
-def _check_cooldown(caller, trainer):
-    """
-    Check if the caller has an active cooldown with this trainer.
-    Returns (is_blocked, seconds_remaining).
-    Lazily cleans up expired entries.
-    """
-    cooldowns = caller.db.training_cooldowns
-    if not cooldowns:
-        return False, 0
-
-    trainer_key = str(trainer.dbref)
-    last_failed = cooldowns.get(trainer_key)
-    if last_failed is None:
-        return False, 0
-
-    elapsed = time.time() - last_failed
-    if elapsed >= _FAILURE_COOLDOWN:
-        # Expired -- clean up
-        del cooldowns[trainer_key]
-        caller.db.training_cooldowns = cooldowns
-        return False, 0
-
-    remaining = _FAILURE_COOLDOWN - elapsed
-    return True, remaining
-
-
-def _set_cooldown(caller, trainer):
-    """Record a failed training attempt timestamp for cooldown."""
-    cooldowns = caller.db.training_cooldowns or {}
-    cooldowns[str(trainer.dbref)] = time.time()
-    caller.db.training_cooldowns = cooldowns
-
-
-def _format_time(seconds):
-    """Format seconds as 'Xm Ys' or 'Xs'."""
-    if seconds >= 60:
-        mins = int(seconds // 60)
-        secs = int(seconds % 60)
-        return f"{mins}m {secs}s" if secs else f"{mins}m"
-    return f"{int(seconds)}s"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -282,9 +222,9 @@ class CmdTrain(FCMCommandMixin, Command):
             lines.append("|w=== Trainable Skills ===|n")
             lines.append(
                 f"{'Skill':<20} {'Type':<9} {'Current':<13} "
-                f"{'Next':<13} {'Pts':<6} {'Gold':<7} {'Success':<9} {'Status'}"
+                f"{'Next':<13} {'Pts':<6} {'Gold':<7} {'Status'}"
             )
-            lines.append("-" * 95)
+            lines.append("-" * 86)
 
             for skill_key in trainer.trainable_skills:
                 line = self._format_skill_line(
@@ -299,9 +239,9 @@ class CmdTrain(FCMCommandMixin, Command):
             lines.append("|w=== Trainable Weapons ===|n")
             lines.append(
                 f"{'Weapon':<20} {'Current':<13} "
-                f"{'Next':<13} {'Pts':<6} {'Gold':<7} {'Success':<9} {'Status'}"
+                f"{'Next':<13} {'Pts':<6} {'Gold':<7} {'Status'}"
             )
-            lines.append("-" * 88)
+            lines.append("-" * 79)
 
             for weapon_key in trainer.trainable_weapons:
                 line = self._format_weapon_line(
@@ -352,7 +292,7 @@ class CmdTrain(FCMCommandMixin, Command):
         if current >= MasteryLevel.GRANDMASTER.value:
             return (
                 f"{skill_key:<20} {pool_name:<9} {current_name:<13} "
-                f"{'MAXED':<13} {'-':<6} {'-':<7} {'-':<9} |gMaxed|n"
+                f"{'MAXED':<13} {'-':<6} {'-':<7} |gMaxed|n"
             )
 
         target = current + 1
@@ -360,25 +300,19 @@ class CmdTrain(FCMCommandMixin, Command):
         pts_cost = MasteryLevel(target).training_points_required
         gold_cost = _calculate_gold_cost(target, cha_score)
         mastery_gap = trainer_mastery - current
-        success = _get_success_chance(mastery_gap)
 
         if not accessible:
             status = f"|r(no {pool_name.lower()} class)|n"
         elif mastery_gap <= 0:
             status = "|r(trainer can't teach)|n"
+        elif pool_available < pts_cost:
+            status = f"|y({pool_available} pts avail)|n"
         else:
-            is_blocked, remaining = _check_cooldown(caller, trainer)
-            if is_blocked:
-                status = f"|y(cooldown {_format_time(remaining)})|n"
-            elif pool_available < pts_cost:
-                status = f"|y({pool_available} pts avail)|n"
-            else:
-                status = f"|g({pool_available} pts avail)|n"
+            status = f"|g({pool_available} pts avail)|n"
 
         return (
             f"{skill_key:<20} {pool_name:<9} {current_name:<13} "
-            f"{next_name:<13} {pts_cost:<6} {gold_cost:<7} "
-            f"{success}%{'':<7} {status}"
+            f"{next_name:<13} {pts_cost:<6} {gold_cost:<7} {status}"
         )
 
     def _format_weapon_line(self, caller, trainer, weapon_key, cha_score):
@@ -401,7 +335,7 @@ class CmdTrain(FCMCommandMixin, Command):
         if current >= MasteryLevel.GRANDMASTER.value:
             return (
                 f"{display_name:<20} {current_name:<13} "
-                f"{'MAXED':<13} {'-':<6} {'-':<7} {'-':<9} |gMaxed|n"
+                f"{'MAXED':<13} {'-':<6} {'-':<7} |gMaxed|n"
             )
 
         target = current + 1
@@ -409,26 +343,20 @@ class CmdTrain(FCMCommandMixin, Command):
         pts_cost = MasteryLevel(target).training_points_required
         gold_cost = _calculate_gold_cost(target, cha_score)
         mastery_gap = trainer_mastery - current
-        success = _get_success_chance(mastery_gap)
         pool_available = caller.weapon_skill_pts_available
 
         if not accessible:
             status = "|r(no qualifying class)|n"
         elif mastery_gap <= 0:
             status = "|r(trainer can't teach)|n"
+        elif pool_available < pts_cost:
+            status = f"|y({pool_available} pts avail)|n"
         else:
-            is_blocked, remaining = _check_cooldown(caller, trainer)
-            if is_blocked:
-                status = f"|y(cooldown {_format_time(remaining)})|n"
-            elif pool_available < pts_cost:
-                status = f"|y({pool_available} pts avail)|n"
-            else:
-                status = f"|g({pool_available} pts avail)|n"
+            status = f"|g({pool_available} pts avail)|n"
 
         return (
             f"{display_name:<20} {current_name:<13} "
-            f"{next_name:<13} {pts_cost:<6} {gold_cost:<7} "
-            f"{success}%{'':<7} {status}"
+            f"{next_name:<13} {pts_cost:<6} {gold_cost:<7} {status}"
         )
 
     # ── Skill Training ──
@@ -521,17 +449,6 @@ class CmdTrain(FCMCommandMixin, Command):
             )
             return
 
-        # ── Cooldown check ──
-        is_blocked, remaining = _check_cooldown(caller, trainer)
-        if is_blocked:
-            caller.msg(
-                f"You cannot train with this trainer for another "
-                f"{_format_time(remaining)}."
-            )
-            return
-
-        # ── Success chance ──
-        success_chance = _get_success_chance(mastery_gap)
         training_time = _TRAINING_TIME.get(target, 10)
 
         # ── Y/N Confirmation ──
@@ -539,8 +456,7 @@ class CmdTrain(FCMCommandMixin, Command):
             f"\n|y--- Train {skill_key} ---|n"
             f"\nAdvance: {_mastery_name(current)} -> {_mastery_name(target)}"
             f"\nSkill points: {pts_cost} {pool_name} points"
-            f"\nGold cost: {gold_cost} gold (non-refundable)"
-            f"\nSuccess chance: {success_chance}%"
+            f"\nGold cost: {gold_cost} gold"
             f"\nTraining time: {training_time} seconds"
             f"\n\nProceed? Y/[N]"
         )
@@ -566,7 +482,7 @@ class CmdTrain(FCMCommandMixin, Command):
             caller.msg("You no longer have enough gold.")
             return
 
-        # ── Deduct gold (non-refundable) ──
+        # ── Deduct gold ──
         caller.return_gold_to_sink(gold_cost)
 
         # ── Start training with progress bar ──
@@ -593,7 +509,7 @@ class CmdTrain(FCMCommandMixin, Command):
                 caller.msg(f"Training {skill_display}... [{bar}] Done!")
                 _resolve_skill_training(
                     caller, trainer, skill_key, is_general,
-                    current, target, pts_cost, success_chance,
+                    current, target, pts_cost,
                 )
                 caller.ndb.is_processing = False
 
@@ -675,17 +591,6 @@ class CmdTrain(FCMCommandMixin, Command):
             )
             return
 
-        # ── Cooldown check ──
-        is_blocked, remaining = _check_cooldown(caller, trainer)
-        if is_blocked:
-            caller.msg(
-                f"You cannot train with this trainer for another "
-                f"{_format_time(remaining)}."
-            )
-            return
-
-        # ── Success chance ──
-        success_chance = _get_success_chance(mastery_gap)
         training_time = _TRAINING_TIME.get(target, 10)
         weapon_display = weapon_key.replace("_", " ")
 
@@ -694,8 +599,7 @@ class CmdTrain(FCMCommandMixin, Command):
             f"\n|y--- Train {weapon_display} ---|n"
             f"\nAdvance: {_mastery_name(current)} -> {_mastery_name(target)}"
             f"\nSkill points: {pts_cost} weapon skill points"
-            f"\nGold cost: {gold_cost} gold (non-refundable)"
-            f"\nSuccess chance: {success_chance}%"
+            f"\nGold cost: {gold_cost} gold"
             f"\nTraining time: {training_time} seconds"
             f"\n\nProceed? Y/[N]"
         )
@@ -713,7 +617,7 @@ class CmdTrain(FCMCommandMixin, Command):
             caller.msg("You no longer have enough gold.")
             return
 
-        # ── Deduct gold (non-refundable) ──
+        # ── Deduct gold ──
         caller.return_gold_to_sink(gold_cost)
 
         # ── Start training with progress bar ──
@@ -739,7 +643,7 @@ class CmdTrain(FCMCommandMixin, Command):
                 caller.msg(f"Training {weapon_display}... [{bar}] Done!")
                 _resolve_weapon_training(
                     caller, trainer, weapon_key,
-                    current, target, pts_cost, success_chance,
+                    current, target, pts_cost,
                 )
                 caller.ndb.is_processing = False
 
@@ -752,92 +656,70 @@ class CmdTrain(FCMCommandMixin, Command):
 
 def _resolve_skill_training(
     caller, trainer, skill_key, is_general,
-    current, target, pts_cost, success_chance,
+    current, target, pts_cost,
 ):
-    """Roll success/failure after progress bar completes."""
-    roll = randint(1, 100)
-
-    if roll <= success_chance:
-        # ── SUCCESS ──
-        if is_general:
-            caller.general_skill_pts_available -= pts_cost
-        else:
-            class_data = (caller.db.classes or {})[trainer.trainer_class]
-            class_data["skill_pts_available"] -= pts_cost
-            caller.db.classes[trainer.trainer_class] = class_data
-
-        # Advance mastery
-        if is_general:
-            levels = caller.db.general_skill_mastery_levels or {}
-            levels[skill_key] = target
-            caller.db.general_skill_mastery_levels = levels
-        else:
-            levels = caller.db.class_skill_mastery_levels or {}
-            entry = levels.get(skill_key)
-            if entry is None:
-                entry = {
-                    "mastery": target,
-                    "classes": [
-                        (trainer.trainer_class or "").capitalize()
-                    ],
-                }
-            else:
-                entry["mastery"] = target
-            levels[skill_key] = entry
-            caller.db.class_skill_mastery_levels = levels
-
-        caller.msg(
-            f"|g*** You have advanced to {_mastery_name(target)} "
-            f"mastery in {skill_key}! ***|n"
-        )
-        if caller.location:
-            caller.location.msg_contents(
-                f"{caller.key} completes training with {trainer.key}.",
-                exclude=[caller],
-                from_obj=caller,
-            )
+    """Apply training results — deterministic, always succeeds."""
+    # Deduct skill points
+    if is_general:
+        caller.general_skill_pts_available -= pts_cost
     else:
-        # ── FAILURE ──
-        _set_cooldown(caller, trainer)
-        caller.msg(
-            f"|rTraining failed!|n You were unable to grasp the technique."
-            f"\nYour gold has been spent, but your skill points are intact."
-            f"\nYou cannot train with {trainer.key} again for 1 hour."
+        class_data = (caller.db.classes or {})[trainer.trainer_class]
+        class_data["skill_pts_available"] -= pts_cost
+        caller.db.classes[trainer.trainer_class] = class_data
+
+    # Advance mastery
+    if is_general:
+        levels = caller.db.general_skill_mastery_levels or {}
+        levels[skill_key] = target
+        caller.db.general_skill_mastery_levels = levels
+    else:
+        levels = caller.db.class_skill_mastery_levels or {}
+        entry = levels.get(skill_key)
+        if entry is None:
+            entry = {
+                "mastery": target,
+                "classes": [
+                    (trainer.trainer_class or "").capitalize()
+                ],
+            }
+        else:
+            entry["mastery"] = target
+        levels[skill_key] = entry
+        caller.db.class_skill_mastery_levels = levels
+
+    caller.msg(
+        f"|g*** You have advanced to {_mastery_name(target)} "
+        f"mastery in {skill_key}! ***|n"
+    )
+    if caller.location:
+        caller.location.msg_contents(
+            f"{caller.key} completes training with {trainer.key}.",
+            exclude=[caller],
+            from_obj=caller,
         )
 
 
 def _resolve_weapon_training(
     caller, trainer, weapon_key,
-    current, target, pts_cost, success_chance,
+    current, target, pts_cost,
 ):
-    """Roll success/failure for weapon training."""
-    roll = randint(1, 100)
+    """Apply weapon training results — deterministic, always succeeds."""
     weapon_display = weapon_key.replace("_", " ")
 
-    if roll <= success_chance:
-        # ── SUCCESS ──
-        caller.weapon_skill_pts_available -= pts_cost
-        levels = caller.db.weapon_skill_mastery_levels or {}
-        levels[weapon_key] = target
-        caller.db.weapon_skill_mastery_levels = levels
+    caller.weapon_skill_pts_available -= pts_cost
+    levels = caller.db.weapon_skill_mastery_levels or {}
+    levels[weapon_key] = target
+    caller.db.weapon_skill_mastery_levels = levels
 
-        caller.msg(
-            f"|g*** You have advanced to {_mastery_name(target)} "
-            f"mastery with {weapon_display}! ***|n"
-        )
-        if caller.location:
-            caller.location.msg_contents(
-                f"{caller.key} completes training with {trainer.key}.",
-                exclude=[caller],
-                from_obj=caller,
-            )
-    else:
-        # ── FAILURE ──
-        _set_cooldown(caller, trainer)
-        caller.msg(
-            f"|rTraining failed!|n You were unable to master the technique."
-            f"\nYour gold has been spent, but your skill points are intact."
-            f"\nYou cannot train with {trainer.key} again for 1 hour."
+    caller.msg(
+        f"|g*** You have advanced to {_mastery_name(target)} "
+        f"mastery with {weapon_display}! ***|n"
+    )
+    if caller.location:
+        caller.location.msg_contents(
+            f"{caller.key} completes training with {trainer.key}.",
+            exclude=[caller],
+            from_obj=caller,
         )
 
 
