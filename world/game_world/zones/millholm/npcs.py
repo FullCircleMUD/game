@@ -117,8 +117,8 @@ def _spawn_oakwright():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
-    npc.trainable_skills = ["carpentry"]
-    npc.trainer_masteries = {"carpentry": 2}
+    npc.trainable_skills = ["carpenter"]
+    npc.trainer_masteries = {"carpenter": 2}
     npc.trainer_class = None
     npc.llm_personality = (
         "A lean, weathered man in his sixties with calloused hands and "
@@ -156,8 +156,8 @@ def _spawn_elena():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
-    npc.trainable_skills = ["tailoring"]
-    npc.trainer_masteries = {"tailoring": 2}
+    npc.trainable_skills = ["tailor"]
+    npc.trainer_masteries = {"tailor": 2}
     npc.trainer_class = None
     npc.llm_personality = (
         "A wiry woman in her thirties with pins stuck in her sleeves, "
@@ -201,8 +201,8 @@ def _spawn_mara():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
-    npc.trainable_skills = ["alchemy"]
-    npc.trainer_masteries = {"alchemy": 1}  # BASIC cap in Millholm
+    npc.trainable_skills = ["alchemist"]
+    npc.trainer_masteries = {"alchemist": 1}  # BASIC cap in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
         "A slender, distracted woman in her forties with ink-stained "
@@ -249,8 +249,8 @@ def _spawn_torben():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
-    npc.trainable_skills = ["leatherworking"]
-    npc.trainer_masteries = {"leatherworking": 2}  # trainable to SKILLED in Millholm
+    npc.trainable_skills = ["leatherworker"]
+    npc.trainer_masteries = {"leatherworker": 2}  # trainable to SKILLED in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
         "A broad, thick-fingered man in his fifties with a leather "
@@ -289,8 +289,8 @@ def _spawn_hendricks():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
-    npc.trainable_skills = ["blacksmithing"]
-    npc.trainer_masteries = {"blacksmithing": 1}  # high-demand skill — BASIC cap in Millholm
+    npc.trainable_skills = ["blacksmith"]
+    npc.trainer_masteries = {"blacksmith": 1}  # high-demand skill — BASIC cap in Millholm
     npc.trainer_class = None
     npc.llm_personality = (
         "A barrel-chested man in his sixties with arms like knotted "
