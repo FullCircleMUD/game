@@ -20,6 +20,9 @@ from .cmd_skill_base import CmdSkillBase
 
 TAME_FAIL_COOLDOWN_SECONDS = 120
 
+TAME_XP_PER_FAIL = 10
+TAME_XP_PER_SUCCESS = 50
+
 
 # Mastery level required string → MasteryLevel int value
 _MASTERY_REQUIRED = {
@@ -126,11 +129,11 @@ class CmdTame(CmdSkillBase):
         pet_type = getattr(target.db, "tame_pet_type", None)
 
         if total >= tame_dc:
-            self._tame_success(caller, target, pet_type)
+            self._tame_success(caller, target, pet_type, required)
         else:
-            self._tame_failure(caller, target, cooldowns, now)
+            self._tame_failure(caller, target, cooldowns, now, required)
 
-    def _tame_success(self, caller, target, pet_type):
+    def _tame_success(self, caller, target, pet_type, required):
         """Handle successful taming."""
         from blockchain.xrpl.services.nft import NFTService
         from typeclasses.mixins.nft_pet_mirror import NFTPetMirrorMixin
@@ -167,7 +170,12 @@ class CmdTame(CmdSkillBase):
         if pet:
             pet.start_following(caller)
 
-    def _tame_failure(self, caller, target, cooldowns, now):
+        # XP reward — scales with animal difficulty
+        xp = required * TAME_XP_PER_SUCCESS
+        caller.at_gain_experience_points(xp)
+        caller.msg(f"|gYou gain {xp} experience.|n")
+
+    def _tame_failure(self, caller, target, cooldowns, now, required):
         """Handle failed taming attempt."""
         cooldowns[caller.id] = now + TAME_FAIL_COOLDOWN_SECONDS
         target.db.tame_cooldowns = cooldowns
@@ -181,3 +189,8 @@ class CmdTame(CmdSkillBase):
                 f"backs away nervously.|n",
                 exclude=[caller],
             )
+
+        # XP reward — you learn even from failure
+        xp = required * TAME_XP_PER_FAIL
+        caller.at_gain_experience_points(xp)
+        caller.msg(f"|gYou gain {xp} experience.|n")
