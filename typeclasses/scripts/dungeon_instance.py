@@ -234,7 +234,7 @@ class DungeonInstanceScript(DefaultScript):
         if is_terminal:
             if template.dungeon_type == "passage":
                 # Passage: create exit to destination world room
-                self._create_terminal_passage_exit(new_room)
+                self._create_terminal_passage_exit(new_room, exit_obj.direction)
             else:
                 # Instance: spawn boss (dead-end, no forward exits)
                 new_room.is_boss_room = True
@@ -325,7 +325,7 @@ class DungeonInstanceScript(DefaultScript):
 
         passage_exit = create_object(
             DungeonPassageExit,
-            key=destination_room.key,
+            key=direction,
             location=source_room,
             destination=destination_room,
         )
