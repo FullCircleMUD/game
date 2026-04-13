@@ -11,8 +11,12 @@ from twisted.internet import threads
 
 # How often (real seconds) the spawn service runs.
 # Runs last in the hourly pipeline: telemetry → saturation → spawn.
-# 120s after telemetry so both telemetry and saturation data are fresh.
-TICK_INTERVAL_SECONDS = 3720  # 1 hour + 120s offset
+# All three pipeline scripts use the same 3600s interval. The 120-second
+# offset behind telemetry is established once at cold boot by staggering
+# the script creation moments — see at_server_startstop.py
+# _ensure_pipeline_scripts(). Once created the offset is preserved
+# indefinitely, with zero drift.
+TICK_INTERVAL_SECONDS = 3600  # 1 hour
 
 
 class UnifiedSpawnScript(DefaultScript):

@@ -42,18 +42,31 @@ def at_server_start():
 #  Global script management
 # ================================================================== #
 
-# Scripts that should always be running. Each entry is (key, typeclass_path).
+# The hourly telemetry pipeline. All three scripts run at the same
+# 3600s interval; the staggered offsets that establish their pipeline
+# order (telemetry → saturation → spawn) are set here, once, by
+# delaying the *creation* of saturation and spawn relative to
+# telemetry. Once created, each script's repeating timer fires
+# exactly 3600s from its own creation moment, so the offset is
+# preserved indefinitely with zero drift.
+_PIPELINE_SCRIPTS = [
+    # (key, typeclass_path, creation_offset_seconds)
+    ("telemetry_aggregator_service", "typeclasses.scripts.telemetry_service.TelemetryAggregatorScript", 0),
+    ("nft_saturation_service",       "typeclasses.scripts.nft_saturation_service.NFTSaturationScript",  60),
+    ("unified_spawn_service",        "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",   120),
+]
+
+# Other global service scripts. Each entry is (key, typeclass_path).
+# These are unscheduled relative to each other — they're created
+# immediately at boot and tick on their own intervals.
 _GLOBAL_SCRIPTS = [
-    ("regeneration_service", "typeclasses.scripts.regeneration_service.RegenerationService"),
-    ("hunger_service", "typeclasses.scripts.hunger_service.HungerService"),
-    ("day_night_service", "typeclasses.scripts.day_night_service.DayNightService"),
-    ("season_service", "typeclasses.scripts.season_service.SeasonService"),
-    ("weather_service", "typeclasses.scripts.weather_service.WeatherService"),
-    ("telemetry_aggregator_service", "typeclasses.scripts.telemetry_service.TelemetryAggregatorScript"),
-    ("reallocation_service", "typeclasses.scripts.reallocation_service.ReallocationServiceScript"),
+    ("regeneration_service",     "typeclasses.scripts.regeneration_service.RegenerationService"),
+    ("hunger_service",           "typeclasses.scripts.hunger_service.HungerService"),
+    ("day_night_service",        "typeclasses.scripts.day_night_service.DayNightService"),
+    ("season_service",           "typeclasses.scripts.season_service.SeasonService"),
+    ("weather_service",          "typeclasses.scripts.weather_service.WeatherService"),
+    ("reallocation_service",     "typeclasses.scripts.reallocation_service.ReallocationServiceScript"),
     ("durability_decay_service", "typeclasses.scripts.durability_decay_service.DurabilityDecayService"),
-    ("nft_saturation_service", "typeclasses.scripts.nft_saturation_service.NFTSaturationScript"),
-    ("unified_spawn_service", "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript"),
 ]
 
 
@@ -64,6 +77,9 @@ def _ensure_global_scripts():
     Called from at_server_start() so scripts launch on every boot,
     independent of which world (test/game) is built. GLOBAL_SCRIPTS
     lookup returns None for missing scripts, so duplicates are impossible.
+
+    Pipeline scripts (telemetry/saturation/spawn) are created via
+    _create_pipeline_scripts() which staggers their creation moments.
     """
     from evennia import GLOBAL_SCRIPTS, create_script, logger
 
@@ -72,6 +88,45 @@ def _ensure_global_scripts():
         if not existing:
             create_script(typeclass_path, key=key, obj=None)
             logger.log_info(f"Global scripts: started {key}")
+
+    _create_pipeline_scripts(skip_existing=True)
+
+
+def _create_pipeline_scripts(skip_existing=False):
+    """
+    Create the telemetry/saturation/spawn pipeline scripts with their
+    staggered creation offsets.
+
+    Each pipeline script in _PIPELINE_SCRIPTS has a creation_offset
+    expressed in seconds. The first (telemetry) is created immediately;
+    the others are scheduled via evennia.utils.delay() so their first
+    fire happens at offset+interval seconds from now, and every fire
+    thereafter is exactly interval seconds later — preserving the
+    stagger forever.
+
+    Args:
+        skip_existing: If True, only create pipeline scripts that
+            don't already exist. Used by the boot path
+            (_ensure_global_scripts) so reload doesn't recreate
+            running pipeline scripts. The reset_scripts moderator
+            command passes False because it has already deleted the
+            existing scripts.
+    """
+    from evennia import GLOBAL_SCRIPTS, create_script, logger
+    from evennia.utils import delay
+
+    def _make(key, typeclass_path):
+        existing = getattr(GLOBAL_SCRIPTS, key, None)
+        if existing and skip_existing:
+            return
+        create_script(typeclass_path, key=key, obj=None)
+        logger.log_info(f"Pipeline scripts: started {key}")
+
+    for key, typeclass_path, offset in _PIPELINE_SCRIPTS:
+        if offset == 0:
+            _make(key, typeclass_path)
+        else:
+            delay(offset, _make, key, typeclass_path)
 
 
 def at_server_stop():
