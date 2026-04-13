@@ -17,6 +17,8 @@ Trains alchemy to BASIC level (mastery 1) — capped in Millholm per world desig
 Short-term memory only (no vector embeddings).
 """
 
+from evennia.typeclasses.attributes import AttributeProperty
+
 from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrainer
 
 
@@ -108,7 +110,15 @@ GENERIC_CONTEXT = (
 
 
 class MaraNPC(QuestGivingLLMTrainer):
-    """Quest-aware trainer NPC for Mara Brightwater's apothecary."""
+    """Quest-aware trainer NPC for Mara Brightwater's apothecary.
+
+    Mara wears three hats — quest giver, alchemy trainer, and herb shopkeeper.
+    The shopkeeper attributes are declared here so the ShopkeeperCmdSet
+    commands attached at spawn time can find them after a cache flush.
+    """
+
+    shop_name = AttributeProperty("The Mortar and Pestle")
+    tradeable_resources = AttributeProperty([])
 
     def _build_quest_context(self, character):
         """Build state-specific LLM instructions based on player state."""
