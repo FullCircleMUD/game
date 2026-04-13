@@ -583,22 +583,35 @@ def verify_fungible_payment(tx_hash, expected_destination, expected_currency_hex
 
 async def _get_wallet_balances_async(network_url, wallet_address,
                                      issuer_address):
-    """Query all game currency balances held by a player wallet."""
+    """Query all game currency balances held by a player wallet.
+
+    XRPL's account_lines is paginated (default 200, max 400 lines per
+    page). Loop on the server's marker until we've walked every page,
+    otherwise trust lines past the first page are silently dropped.
+    """
+    balances = {}
+    marker = None
     async with AsyncWebsocketClient(network_url) as client:
-        response = await client.request(
-            AccountLines(
-                account=wallet_address,
-                peer=issuer_address,
-                ledger_index="validated",
-            )
-        )
-        balances = {}
-        for line in response.result.get("lines", []):
-            balance = Decimal(line["balance"])
-            if balance > 0:
-                currency_code = decode_currency_hex(line["currency"])
-                balances[currency_code] = balance
-        return balances
+        while True:
+            kwargs = {
+                "account": wallet_address,
+                "peer": issuer_address,
+                "ledger_index": "validated",
+                "limit": 400,
+            }
+            if marker is not None:
+                kwargs["marker"] = marker
+            response = await client.request(AccountLines(**kwargs))
+            result = response.result
+            for line in result.get("lines", []):
+                balance = Decimal(line["balance"])
+                if balance > 0:
+                    currency_code = decode_currency_hex(line["currency"])
+                    balances[currency_code] = balance
+            marker = result.get("marker")
+            if not marker:
+                break
+    return balances
 
 
 def get_wallet_balances(wallet_address):
