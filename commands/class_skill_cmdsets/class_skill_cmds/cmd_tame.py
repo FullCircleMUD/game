@@ -141,7 +141,7 @@ class CmdTame(CmdSkillBase):
 
         # Assign a blank NFT token as this pet type
         try:
-            token_id = NFTService.assign_item_type(pet_type, None, None)
+            token_id = NFTService.assign_item_type(pet_type)
         except Exception as err:
             caller.msg(f"Taming failed (system error): {err}")
             return
