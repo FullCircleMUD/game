@@ -12,9 +12,12 @@ from twisted.internet import threads
 
 # How often (real seconds) the aggregator runs.
 # Runs first in the hourly pipeline: telemetry → saturation → spawn.
-# Staggered by 60s offsets (3600 / 3660 / 3720) so each service
-# has fresh data from the previous one.
-TICK_INTERVAL_SECONDS = 3600  # 1 hour (fires first)
+# All three pipeline scripts use the same 3600s interval. The staggered
+# offsets (telemetry @+0s, saturation @+60s, spawn @+120s) are
+# established once at cold boot by staggering the script creation
+# moments — see at_server_startstop.py _ensure_pipeline_scripts().
+# Once created the offset is preserved indefinitely, with zero drift.
+TICK_INTERVAL_SECONDS = 3600  # 1 hour
 
 
 class TelemetryAggregatorScript(DefaultScript):

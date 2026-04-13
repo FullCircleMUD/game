@@ -27,6 +27,7 @@ Executioner mechanic (GM only):
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from combat.combat_utils import get_sides, get_weapon, execute_attack
 from enums.character_class import CharacterClass
@@ -53,6 +54,11 @@ class GreatswordMixin:
     """
 
     weapon_type_key = "greatsword"
+    base_damage = AttributeProperty("2d6")
+    damage_type = AttributeProperty(DamageType.SLASHING)
+    speed = AttributeProperty(0)
+    weight = AttributeProperty(4.5)
+    two_handed = AttributeProperty(True)
 
     def get_parries_per_round(self, wielder):
         return 0

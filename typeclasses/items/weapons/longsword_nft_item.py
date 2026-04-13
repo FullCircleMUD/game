@@ -16,6 +16,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from enums.unused_for_reference.damage_type import DamageType
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 
 # Custom hit bonuses — lower at MASTER/GM to offset extra attacks and parries
@@ -55,6 +56,9 @@ class LongswordMixin:
     """
 
     weapon_type_key = "long_sword"
+    base_damage = AttributeProperty("d8")
+    damage_type = AttributeProperty(DamageType.SLASHING)
+    weight = AttributeProperty(3.0)
 
     def get_mastery_hit_bonus(self, wielder):
         mastery = self.get_wielder_mastery(wielder)

@@ -1,5 +1,5 @@
 from commands.class_skill_cmdsets.cmdset_base_char_class import CmdSetBaseCharClass
-from commands.class_skill_cmdsets.class_skill_cmds.cmd_backstab import CmdBackstab
+from commands.class_skill_cmdsets.class_skill_cmds.cmd_stab import CmdStab
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_assassinate import CmdAssassinate
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_recite import CmdRecite
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_case import CmdCase
@@ -13,7 +13,7 @@ class CmdSetNinja(CmdSetBaseCharClass):
 
     class_name = "Ninja"
     cmds = [
-        CmdBackstab,
+        CmdStab,
         CmdAssassinate,
         CmdRecite,
         CmdCase,

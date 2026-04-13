@@ -9,6 +9,6 @@ RECIPE_IRON_SPIKED_CLUB = {
     "min_mastery": MasteryLevel.SKILLED,
     "crafting_type": RoomCraftingType.SMITHY,
     "ingredients": {5: 1},              # 1 Iron Ingot (resource_id 5)
-    "nft_ingredients": {"wooden club": 1},  # 1 Wooden Club (carpenter item)
+    "nft_ingredients": {"wooden_club": 1},  # 1 Wooden Club (carpenter item)
     "output_prototype": "iron_spiked_club",
 }

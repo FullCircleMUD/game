@@ -55,8 +55,8 @@ class CmdSetMobStab(CmdSet):
     mergetype = "Union"
 
     def at_cmdset_creation(self):
-        from commands.class_skill_cmdsets.class_skill_cmds.cmd_backstab import CmdBackstab
-        self.add(CmdBackstab())
+        from commands.class_skill_cmdsets.class_skill_cmds.cmd_stab import CmdStab
+        self.add(CmdStab())
 
 
 class CmdSetMobDodge(CmdSet):

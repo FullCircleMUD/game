@@ -1,19 +1,22 @@
 """
-Tests for CmdTrain — verifies the full training system including:
-- Listing available skills/weapons with costs and success chances
+Tests for CmdTrain — verifies the deterministic training system including:
+- Listing available skills/weapons with costs (no success chances)
 - Skill/weapon validation (enum-driven class/weapon restrictions)
 - Gold cost calculation with CHA discount/surcharge
 - Skill point validation
 - Trainer mastery cap (can't teach beyond their own level)
 - Y/N confirmation
-- Cooldown on failure (per-trainer, 1 hour)
-- Success/failure resolution (mastery advancement, point deduction)
+- Training resolution (mastery advancement, point deduction)
+  — always succeeds, no random rolls
 - Progress bar via delay()
+
+Compliance note: training is fully deterministic. There is no random
+failure roll. The player knows exactly what they will receive before
+paying. See design/COMPLIANCE.md and ops/COMPLIANCE_LEGAL.md §9.5.
 
 Uses EvenniaCommandTest which provides self.call() with obj= for NPC commands.
 """
 
-import time
 from unittest.mock import patch, MagicMock
 
 from django.conf import settings
@@ -25,13 +28,8 @@ from commands.npc_cmds.cmdset_trainer import (
     CmdTrain,
     CmdBuyRecipe,
     _calculate_gold_cost,
-    _get_success_chance,
     _match_in_list,
-    _format_time,
-    _check_cooldown,
-    _set_cooldown,
     _TRAINING_GOLD_COST,
-    _FAILURE_COOLDOWN,
 )
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
@@ -74,16 +72,6 @@ class TestHelperFunctions(EvenniaCommandTest):
         """Cost should never drop below 1."""
         self.assertGreaterEqual(_calculate_gold_cost(1, 50), 1)
 
-    def test_success_chance_by_gap(self):
-        """Success chance scales with trainer-trainee mastery gap."""
-        self.assertEqual(_get_success_chance(0), 0)
-        self.assertEqual(_get_success_chance(-1), 0)
-        self.assertEqual(_get_success_chance(1), 50)
-        self.assertEqual(_get_success_chance(2), 75)
-        self.assertEqual(_get_success_chance(3), 90)
-        self.assertEqual(_get_success_chance(4), 100)
-        self.assertEqual(_get_success_chance(5), 100)
-
     def test_match_in_list_exact(self):
         """Exact match returns the key."""
         result = _match_in_list(["battleskills", "bash", "parry"], "battleskills")
@@ -108,17 +96,6 @@ class TestHelperFunctions(EvenniaCommandTest):
         """User input with spaces matches underscore keys."""
         result = _match_in_list(["long_sword", "dagger"], "long sword")
         self.assertEqual(result, "long_sword")
-
-    def test_format_time_seconds(self):
-        """Short durations shown as seconds."""
-        self.assertEqual(_format_time(30), "30s")
-        self.assertEqual(_format_time(59), "59s")
-
-    def test_format_time_minutes(self):
-        """Longer durations shown as minutes and seconds."""
-        self.assertEqual(_format_time(60), "1m")
-        self.assertEqual(_format_time(90), "1m 30s")
-        self.assertEqual(_format_time(3600), "60m")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -174,11 +151,12 @@ class TestCmdTrainListing(EvenniaCommandTest):
         # Default CHA is 8 → mod -1 → 5% surcharge → 10 * 1.05 = 10.5 → 10
         self.assertIn("10", result)
 
-    def test_listing_shows_success_chance(self):
-        """Listing should show success percentage."""
+    def test_listing_does_not_show_success_chance(self):
+        """Listing should NOT show success percentages — training is deterministic."""
         result = self.call(CmdTrain(), "", obj=self.trainer)
-        # Trainer mastery 5, char mastery 0 → gap 5 → 100%
-        self.assertIn("100%", result)
+        # Should not have "100%" or other success chance markers
+        self.assertNotIn("Success", result)
+        self.assertNotIn("100%", result)
 
     def test_listing_shows_maxed(self):
         """A skill at GRANDMASTER should show 'Maxed'."""
@@ -198,7 +176,7 @@ class TestCmdTrainListing(EvenniaCommandTest):
             "bash": {"mastery": 3, "classes": ["Warrior"]},
         }
         result = self.call(CmdTrain(), "", obj=self.trainer)
-        # dodge should show Maxed (at GRANDMASTER), bash should show can't teach
+        # battleskills should show Maxed (at GRANDMASTER), bash should show can't teach
         self.assertIn("can't teach", result)
 
     def test_listing_no_class_access(self):
@@ -278,13 +256,22 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         # Gold should not be deducted
         self.assertEqual(self.char1.get_gold(), 1000)
 
+    def test_confirmation_does_not_show_success_chance(self):
+        """The Y/N prompt should NOT show success chance."""
+        result = self.call(
+            CmdTrain(), "battleskills", obj=self.trainer, inputs=["n"]
+        )
+        # Confirmation prompt should not mention success chance or non-refundable
+        self.assertNotIn("Success chance", result)
+        self.assertNotIn("non-refundable", result)
+
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("commands.npc_cmds.cmdset_trainer._resolve_skill_training")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_general_skill_deducts_gold(
         self, mock_craft, mock_resolve, mock_delay
     ):
-        """Training dodge (general skill) should deduct gold."""
+        """Training battleskills (general skill) should deduct gold."""
         # Make delay() call the callback immediately
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
@@ -295,19 +282,15 @@ class TestCmdTrainSkill(EvenniaCommandTest):
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
-    def test_train_general_skill_success(self, mock_craft, mock_delay):
-        """On success, mastery advances and skill points are deducted."""
+    def test_train_general_skill_always_succeeds(self, mock_craft, mock_delay):
+        """Training is deterministic — always advances mastery on completion."""
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
-        # Patch randint to guarantee success (roll 1 <= 100% chance)
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=1
-        ):
-            result = self.call(
-                CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"]
-            )
-        # Mastery should be BASIC (1)
+        self.call(
+            CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"]
+        )
+        # Mastery should advance to BASIC (1)
         levels = self.char1.db.general_skill_mastery_levels or {}
         self.assertEqual(levels.get("battleskills"), MasteryLevel.BASIC.value)
         # General skill points deducted (BASIC costs 1 point)
@@ -315,35 +298,17 @@ class TestCmdTrainSkill(EvenniaCommandTest):
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
-    def test_train_general_skill_failure_sets_cooldown(
-        self, mock_craft, mock_delay
-    ):
-        """On failure, cooldown is set, gold lost, points kept."""
+    def test_train_no_failure_no_cooldown(self, mock_craft, mock_delay):
+        """Training never fails — no cooldowns are ever set."""
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
-        # Patch randint to guarantee failure (roll 100 > any chance < 100)
-        # Trainer mastery 5, char mastery 0 → gap 5 → 100% chance
-        # To get failure, set trainer mastery to 1 (gap 1 → 50% chance)
-        self.trainer.trainer_masteries = {
-            "battleskills": 1, "bash": 3, "long_sword": 4,
-        }
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=100
-        ):
-            result = self.call(
-                CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"]
-            )
-        # Mastery should NOT advance
-        levels = self.char1.db.general_skill_mastery_levels or {}
-        self.assertEqual(levels.get("battleskills", 0), 0)
-        # Skill points should NOT be deducted
-        self.assertEqual(self.char1.general_skill_pts_available, 10)
-        # Gold IS deducted (non-refundable) — CHA 8 → 10 gold
-        self.assertEqual(self.char1.get_gold(), 990)
-        # Cooldown should be set
+        self.call(
+            CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"]
+        )
+        # No cooldowns should ever be set
         cooldowns = self.char1.db.training_cooldowns or {}
-        self.assertIn(str(self.trainer.dbref), cooldowns)
+        self.assertEqual(cooldowns, {})
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
@@ -352,12 +317,9 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=1
-        ):
-            self.call(
-                CmdTrain(), "bash", obj=self.trainer, inputs=["y"]
-            )
+        self.call(
+            CmdTrain(), "bash", obj=self.trainer, inputs=["y"]
+        )
         # Class skill mastery should advance
         levels = self.char1.db.class_skill_mastery_levels or {}
         self.assertIn("bash", levels)
@@ -408,25 +370,6 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         self.char1.ndb.is_processing = True
         result = self.call(CmdTrain(), "battleskills", obj=self.trainer)
         self.assertIn("already busy", result)
-
-    def test_train_cooldown_blocks(self):
-        """Can't train with a trainer you recently failed with."""
-        # Set a cooldown that's still active
-        self.char1.db.training_cooldowns = {
-            str(self.trainer.dbref): time.time(),
-        }
-        result = self.call(CmdTrain(), "battleskills", obj=self.trainer)
-        self.assertIn("cannot train", result)
-
-    def test_train_cooldown_expired_allows(self):
-        """Expired cooldown doesn't block training."""
-        # Set a cooldown from over an hour ago
-        self.char1.db.training_cooldowns = {
-            str(self.trainer.dbref): time.time() - _FAILURE_COOLDOWN - 1,
-        }
-        # Should reach confirmation prompt (not blocked)
-        result = self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["n"])
-        self.assertIn("cancelled", result)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -482,47 +425,32 @@ class TestCmdTrainWeapon(EvenniaCommandTest):
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
-    def test_train_weapon_success(self, mock_craft, mock_delay):
-        """Successful weapon training advances mastery and deducts points."""
+    def test_train_weapon_always_succeeds(self, mock_craft, mock_delay):
+        """Weapon training is deterministic — always advances mastery."""
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=1
-        ):
-            self.call(
-                CmdTrain(), "weapon long sword",
-                obj=self.trainer, inputs=["y"],
-            )
+        self.call(
+            CmdTrain(), "weapon long sword",
+            obj=self.trainer, inputs=["y"],
+        )
         levels = self.char1.db.weapon_skill_mastery_levels or {}
         self.assertEqual(levels.get("long_sword"), MasteryLevel.BASIC.value)
         self.assertEqual(self.char1.weapon_skill_pts_available, 9)
 
     @patch("commands.npc_cmds.cmdset_trainer.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
-    def test_train_weapon_failure(self, mock_craft, mock_delay):
-        """Failed weapon training: gold lost, points kept, cooldown set."""
+    def test_train_weapon_no_cooldown_after(self, mock_craft, mock_delay):
+        """Weapon training never sets a cooldown."""
         mock_delay.side_effect = (
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
-        # Set trainer mastery to 1 so gap = 1 → 50% chance
-        self.trainer.trainer_masteries = {
-            "battleskills": 5, "long_sword": 1, "dagger": 3,
-        }
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=100
-        ):
-            self.call(
-                CmdTrain(), "weapon long sword",
-                obj=self.trainer, inputs=["y"],
-            )
-        levels = self.char1.db.weapon_skill_mastery_levels or {}
-        self.assertEqual(levels.get("long_sword", 0), 0)
-        self.assertEqual(self.char1.weapon_skill_pts_available, 10)
-        # Gold IS deducted (non-refundable) — CHA 8 → 10 gold
-        self.assertEqual(self.char1.get_gold(), 990)
+        self.call(
+            CmdTrain(), "weapon long sword",
+            obj=self.trainer, inputs=["y"],
+        )
         cooldowns = self.char1.db.training_cooldowns or {}
-        self.assertIn(str(self.trainer.dbref), cooldowns)
+        self.assertEqual(cooldowns, {})
 
     def test_train_weapon_no_qualifying_class(self):
         """Can't train a weapon your classes don't support."""
@@ -621,64 +549,6 @@ class TestCmdBuyRecipe(EvenniaCommandTest):
 
 
 # ═══════════════════════════════════════════════════════════════════════
-#  Cooldown system tests
-# ═══════════════════════════════════════════════════════════════════════
-
-class TestCooldownSystem(EvenniaCommandTest):
-    """Test the per-trainer cooldown system."""
-
-    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
-
-    def create_script(self):
-        pass
-
-    def setUp(self):
-        super().setUp()
-        self.trainer = create.create_object(
-            "typeclasses.actors.npcs.trainer.TrainerNPC",
-            key="Swordmaster",
-            location=self.room1,
-        )
-
-    def test_no_cooldown_by_default(self):
-        """No cooldown if none has been set."""
-        blocked, remaining = _check_cooldown(self.char1, self.trainer)
-        self.assertFalse(blocked)
-        self.assertEqual(remaining, 0)
-
-    def test_set_and_check_cooldown(self):
-        """Setting a cooldown makes the trainer blocked."""
-        _set_cooldown(self.char1, self.trainer)
-        blocked, remaining = _check_cooldown(self.char1, self.trainer)
-        self.assertTrue(blocked)
-        self.assertGreater(remaining, 3500)
-
-    def test_expired_cooldown_cleaned_up(self):
-        """Expired cooldowns are cleaned up on check."""
-        self.char1.db.training_cooldowns = {
-            str(self.trainer.dbref): time.time() - _FAILURE_COOLDOWN - 10,
-        }
-        blocked, remaining = _check_cooldown(self.char1, self.trainer)
-        self.assertFalse(blocked)
-        # Entry should be cleaned up
-        cooldowns = self.char1.db.training_cooldowns or {}
-        self.assertNotIn(str(self.trainer.dbref), cooldowns)
-
-    def test_cooldown_per_trainer(self):
-        """Cooldown with trainer A doesn't block trainer B."""
-        trainer_b = create.create_object(
-            "typeclasses.actors.npcs.trainer.TrainerNPC",
-            key="Axemaster",
-            location=self.room1,
-        )
-        _set_cooldown(self.char1, self.trainer)
-        blocked_a, _ = _check_cooldown(self.char1, self.trainer)
-        blocked_b, _ = _check_cooldown(self.char1, trainer_b)
-        self.assertTrue(blocked_a)
-        self.assertFalse(blocked_b)
-
-
-# ═══════════════════════════════════════════════════════════════════════
 #  CHA discount integration test
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -717,10 +587,7 @@ class TestChaDiscount(EvenniaCommandTest):
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
         self.char1.charisma = 20
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=1
-        ):
-            self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
+        self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
         # 10 * (1 - 5 * 0.05) = 10 * 0.75 = 7.5 → 8
         self.assertEqual(self.char1.get_gold(), 992)
 
@@ -732,8 +599,5 @@ class TestChaDiscount(EvenniaCommandTest):
             lambda secs, cb, *a, **kw: cb(*a, **kw)
         )
         self.char1.charisma = 6
-        with patch(
-            "commands.npc_cmds.cmdset_trainer.randint", return_value=1
-        ):
-            self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
+        self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
         self.assertEqual(self.char1.get_gold(), 989)

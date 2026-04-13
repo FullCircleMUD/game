@@ -34,6 +34,7 @@ from commands.account_cmds.cmd_botlist import CmdBotList
 from commands.account_cmds.cmd_botreset import CmdBotReset
 from commands.account_cmds.cmd_wipe_spawns import CmdWipeSpawns
 from commands.account_cmds.cmd_spawn_report import CmdSpawnReport
+from commands.account_cmds.cmd_reset_scripts import CmdResetScripts
 from commands.account_cmds.cmd_run_saturation import CmdRunSaturation
 from commands.account_cmds.cmd_run_spawns import CmdRunSpawns
 from commands.account_cmds.cmd_run_telemetry import CmdRunTelemetry
@@ -43,6 +44,8 @@ from commands.account_cmds.cmd_rebuild_world import CmdRebuildWorld
 from commands.account_cmds.cmd_rebuild_test import CmdRebuildTest
 from commands.account_cmds.cmd_rebuild_zone import CmdRebuildZone
 from commands.account_cmds.cmd_accounts import CmdAccounts
+from commands.account_cmds.cmd_service_report import CmdServiceRun
+from commands.account_cmds.cmd_snapshot_history import CmdSnapshotHistory
 
 
 class CmdSetAccountCustom(CmdSet):
@@ -88,6 +91,7 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdBotReset())
         self.add(CmdWipeSpawns())
         self.add(CmdSpawnReport())
+        self.add(CmdResetScripts())
         self.add(CmdRunSaturation())
         self.add(CmdRunSpawns())
         self.add(CmdRunTelemetry())
@@ -96,3 +100,5 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdRebuildTest())
         self.add(CmdRebuildZone())
         self.add(CmdAccounts())
+        self.add(CmdServiceRun())
+        self.add(CmdSnapshotHistory())

@@ -80,21 +80,14 @@ class BlowgunMixin:
     """
 
     weapon_type_key = "blowgun"
+    base_damage = AttributeProperty("d1")
+    material = AttributeProperty("iron")
     weapon_type = AttributeProperty("missile")
     damage_type = AttributeProperty(DamageType.PIERCING)
+    weight = AttributeProperty(0.5)
     is_finesse = AttributeProperty(True)
     two_handed = AttributeProperty(False)
     range = AttributeProperty(1)
-
-    # Dart damage is always 1 at all mastery levels
-    damage = AttributeProperty({
-        MasteryLevel.UNSKILLED: "1",
-        MasteryLevel.BASIC: "1",
-        MasteryLevel.SKILLED: "1",
-        MasteryLevel.EXPERT: "1",
-        MasteryLevel.MASTER: "1",
-        MasteryLevel.GRANDMASTER: "1",
-    })
 
     # ================================================================== #
     #  Mastery Overrides

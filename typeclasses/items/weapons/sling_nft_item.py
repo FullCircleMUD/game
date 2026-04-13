@@ -22,6 +22,7 @@ Daze mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from combat.combat_utils import get_actor_size
 from enums.actor_size import ActorSize
@@ -51,6 +52,9 @@ class SlingMixin:
     """
 
     weapon_type_key = "sling"
+    base_damage = AttributeProperty("d6")
+    speed = AttributeProperty(2)
+    weight = AttributeProperty(0.3)
     weapon_type = AttributeProperty("missile")
     range = AttributeProperty(1)
 

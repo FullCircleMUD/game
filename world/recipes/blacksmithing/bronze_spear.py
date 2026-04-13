@@ -6,7 +6,7 @@ RECIPE_BRONZE_SPEAR = {
     "recipe_key": "bronze_spear",
     "name": "Bronze Spear",
     "skill": skills.BLACKSMITH,
-    "min_mastery": MasteryLevel.BASIC,
+    "min_mastery": MasteryLevel.SKILLED,
     "crafting_type": RoomCraftingType.SMITHY,
     "ingredients": {32: 1},             # 1 Bronze Ingot (resource_id 32)
     "nft_ingredients": {"shaft": 1},    # 1 Shaft (carpenter component)

@@ -27,6 +27,7 @@ Stun/Knockdown (SKILLED+):
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.actor_size import ActorSize
 from enums.character_class import CharacterClass
@@ -65,6 +66,9 @@ class NunchakuMixin:
     """
 
     weapon_type_key = "nanchaku"
+    base_damage = AttributeProperty("d4")
+    speed = AttributeProperty(2)
+    weight = AttributeProperty(1.0)
     two_handed = AttributeProperty(True)
     can_dual_wield = AttributeProperty(False)
 

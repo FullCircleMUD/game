@@ -30,6 +30,7 @@ Anti-Armor Crush mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -67,6 +68,9 @@ class MaceMixin:
     """
 
     weapon_type_key = "mace"
+    base_damage = AttributeProperty("d6")
+    speed = AttributeProperty(2)
+    weight = AttributeProperty(2.5)
 
     # ================================================================== #
     #  Mastery Overrides

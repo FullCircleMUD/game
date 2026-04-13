@@ -28,7 +28,8 @@ __pycache__
 
 # Installation-specific.
 # For group efforts, comment out some or all of these.
-server/conf/secret_settings.py
+# secret_settings.py is tracked but encrypted via git-crypt
+# server/conf/secret_settings.py
 server/logs/*.log.*
 server/.static/*
 server/.media/*

@@ -26,6 +26,7 @@ Devastating Blow mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -50,6 +51,8 @@ class HammerMixin:
     """
 
     weapon_type_key = "hammer"
+    base_damage = AttributeProperty("d8")
+    weight = AttributeProperty(3.5)
 
     # ================================================================== #
     #  Mastery Overrides

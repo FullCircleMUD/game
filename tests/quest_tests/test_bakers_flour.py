@@ -53,7 +53,7 @@ class TestBakersFlourAccept(EvenniaCommandTest):
             BakerNPC, key="Bron", location=self.room1
         )
         self.baker.quest_key = "bakers_flour"
-        self.baker.tradeable_resources = [2, 3]
+        self.baker.inventory = [2, 3]
         self.baker.shop_name = "Goldencrust Bakery"
 
     def tearDown(self):
@@ -101,7 +101,7 @@ class TestBakersFlourDelivery(EvenniaCommandTest):
             BakerNPC, key="Bron", location=self.room1
         )
         self.baker.quest_key = "bakers_flour"
-        self.baker.tradeable_resources = [2, 3]
+        self.baker.inventory = [2, 3]
         self.baker.shop_name = "Goldencrust Bakery"
 
     def tearDown(self):
@@ -203,7 +203,7 @@ class TestBakersFlourAbandon(EvenniaCommandTest):
             BakerNPC, key="Bron", location=self.room1
         )
         self.baker.quest_key = "bakers_flour"
-        self.baker.tradeable_resources = [2, 3]
+        self.baker.inventory = [2, 3]
         self.baker.shop_name = "Goldencrust Bakery"
 
     def tearDown(self):

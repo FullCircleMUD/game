@@ -10,11 +10,18 @@ pet NFT is created that follows the tamer.
 """
 
 import random
+import time
 
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 
 from .cmd_skill_base import CmdSkillBase
+
+
+TAME_FAIL_COOLDOWN_SECONDS = 120
+
+TAME_XP_PER_FAIL = 10
+TAME_XP_PER_SUCCESS = 50
 
 
 # Mastery level required string → MasteryLevel int value
@@ -101,6 +108,18 @@ class CmdTame(CmdSkillBase):
             )
             return
 
+        # ── Per-tamer cooldown after a previous failure ──
+        cooldowns = target.db.tame_cooldowns or {}
+        now = time.time()
+        ready_at = cooldowns.get(caller.id, 0)
+        if now < ready_at:
+            remaining = int(ready_at - now)
+            caller.msg(
+                f"{target.key} is still wary of you. Try again in "
+                f"{remaining} second{'s' if remaining != 1 else ''}."
+            )
+            return
+
         # ── Contested roll: d20 + CHA mod + mastery bonus vs tame_dc ──
         tame_dc = getattr(target.db, "tame_dc", 15)
         roll = random.randint(1, 20)
@@ -110,14 +129,11 @@ class CmdTame(CmdSkillBase):
         pet_type = getattr(target.db, "tame_pet_type", None)
 
         if total >= tame_dc:
-            self._tame_success(caller, target, pet_type, roll, cha_mod,
-                               mastery, total, tame_dc)
+            self._tame_success(caller, target, pet_type, required)
         else:
-            self._tame_failure(caller, target, roll, cha_mod, mastery,
-                               total, tame_dc)
+            self._tame_failure(caller, target, cooldowns, now, required)
 
-    def _tame_success(self, caller, target, pet_type, roll, cha_mod,
-                      mastery, total, tame_dc):
+    def _tame_success(self, caller, target, pet_type, required):
         """Handle successful taming."""
         from blockchain.xrpl.services.nft import NFTService
         from typeclasses.mixins.nft_pet_mirror import NFTPetMirrorMixin
@@ -128,7 +144,7 @@ class CmdTame(CmdSkillBase):
 
         # Assign a blank NFT token as this pet type
         try:
-            token_id = NFTService.assign_item_type(pet_type, None, None)
+            token_id = NFTService.assign_item_type(pet_type)
         except Exception as err:
             caller.msg(f"Taming failed (system error): {err}")
             return
@@ -136,9 +152,7 @@ class CmdTame(CmdSkillBase):
         # Announce success
         caller.msg(
             f"|gYou carefully approach {target.key}... it calms under "
-            f"your hand. You have tamed it!|n "
-            f"(Tame: {roll} + {cha_mod + mastery.bonus} = {total} "
-            f"vs DC {tame_dc})"
+            f"your hand. You have tamed it!|n"
         )
         if caller.location:
             caller.location.msg_contents(
@@ -156,13 +170,18 @@ class CmdTame(CmdSkillBase):
         if pet:
             pet.start_following(caller)
 
-    def _tame_failure(self, caller, target, roll, cha_mod, mastery,
-                      total, tame_dc):
+        # XP reward — scales with animal difficulty
+        xp = required * TAME_XP_PER_SUCCESS
+        caller.at_gain_experience_points(xp)
+        caller.msg(f"|gYou gain {xp} experience.|n")
+
+    def _tame_failure(self, caller, target, cooldowns, now, required):
         """Handle failed taming attempt."""
+        cooldowns[caller.id] = now + TAME_FAIL_COOLDOWN_SECONDS
+        target.db.tame_cooldowns = cooldowns
+
         caller.msg(
-            f"|y{target.key} shies away from your outstretched hand.|n "
-            f"(Tame: {roll} + {cha_mod + mastery.bonus} = {total} "
-            f"vs DC {tame_dc})"
+            f"|y{target.key} shies away from your outstretched hand.|n"
         )
         if caller.location:
             caller.location.msg_contents(
@@ -170,3 +189,8 @@ class CmdTame(CmdSkillBase):
                 f"backs away nervously.|n",
                 exclude=[caller],
             )
+
+        # XP reward — you learn even from failure
+        xp = required * TAME_XP_PER_FAIL
+        caller.at_gain_experience_points(xp)
+        caller.msg(f"|gYou gain {xp} experience.|n")

@@ -1,31 +1,23 @@
-from world.prototypes.weapons.training_dagger import *     # noqa: F401,F403
-from world.prototypes.weapons.training_shortsword import * # noqa: F401,F403
-from world.prototypes.weapons.training_longsword import *  # noqa: F401,F403
-from world.prototypes.weapons.training_bow import *        # noqa: F401,F403
-from world.prototypes.weapons.club import *                # noqa: F401,F403
-from world.prototypes.weapons.iron_dagger import *         # noqa: F401,F403
-from world.prototypes.weapons.iron_shortsword import *     # noqa: F401,F403
-from world.prototypes.weapons.iron_longsword import *      # noqa: F401,F403
-from world.prototypes.weapons.iron_hand_axe import *       # noqa: F401,F403
-from world.prototypes.weapons.iron_spear import *      # noqa: F401,F403
-from world.prototypes.weapons.iron_mace import *           # noqa: F401,F403
-from world.prototypes.weapons.iron_hammer import *         # noqa: F401,F403
-from world.prototypes.weapons.training_greatsword import * # noqa: F401,F403
-from world.prototypes.weapons.bronze_dagger import *      # noqa: F401,F403
-from world.prototypes.weapons.bronze_shortsword import *  # noqa: F401,F403
-from world.prototypes.weapons.bronze_longsword import *   # noqa: F401,F403
-from world.prototypes.weapons.bronze_hand_axe import *    # noqa: F401,F403
-from world.prototypes.weapons.bronze_spear import *       # noqa: F401,F403
-from world.prototypes.weapons.bronze_mace import *        # noqa: F401,F403
-from world.prototypes.weapons.bronze_hammer import *      # noqa: F401,F403
-from world.prototypes.weapons.sling import *              # noqa: F401,F403
-from world.prototypes.weapons.shortbow import *          # noqa: F401,F403
-from world.prototypes.weapons.quarterstaff import *      # noqa: F401,F403
-from world.prototypes.weapons.training_lance import *    # noqa: F401,F403
-from world.prototypes.weapons.crossbow import *          # noqa: F401,F403
-from world.prototypes.weapons.bronze_spiked_club import *  # noqa: F401,F403
-from world.prototypes.weapons.iron_spiked_club import *    # noqa: F401,F403
-from world.prototypes.weapons.bronze_greatsword import * # noqa: F401,F403
-from world.prototypes.weapons.bronze_battleaxe import *  # noqa: F401,F403
-from world.prototypes.weapons.bronze_rapier import *     # noqa: F401,F403
-from world.prototypes.weapons.shepherds_sling import *   # noqa: F401,F403
+"""
+Weapon prototypes — auto-collected from every .py file in this folder.
+
+Each prototype file defines an UPPERCASE dict with a "prototype_key" entry.
+This __init__ walks every sibling module and pulls those dicts into the
+package namespace so Evennia's prototype discovery picks them up via the
+wildcard import in world.prototypes.__init__.
+"""
+
+import importlib as _importlib
+import pkgutil as _pkgutil
+
+for _finder, _name, _ispkg in _pkgutil.iter_modules(__path__):
+    if _ispkg or _name.startswith("_"):
+        continue
+    _mod = _importlib.import_module(f"{__name__}.{_name}")
+    for _attr in dir(_mod):
+        if _attr.isupper():
+            _val = getattr(_mod, _attr)
+            if isinstance(_val, dict) and "prototype_key" in _val:
+                globals()[_attr] = _val
+
+del _importlib, _pkgutil

@@ -25,6 +25,7 @@ Stagger mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -50,6 +51,9 @@ class GreatclubMixin:
     """
 
     weapon_type_key = "greatclub"
+    base_damage = AttributeProperty("d10")
+    speed = AttributeProperty(0)
+    weight = AttributeProperty(5.0)
     two_handed = AttributeProperty(True)
 
     # ================================================================== #

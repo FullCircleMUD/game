@@ -224,6 +224,28 @@ class TestGetUnlearnedCopyCounts(EvenniaTest):
         scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
         self.assertEqual(scroll_counts["Test Ice Scroll ZZZ"], 1)
 
+    def test_scroll_spawned_in_world_counted(self):
+        """Scrolls sitting in rooms must count as unlearned copies.
+
+        Regression: without this, the spawn loop re-fires every cycle on
+        scrolls it already dropped last cycle, flooding the world until
+        a player finally picks one up.
+        """
+        scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
+        _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_spawn_1")
+        _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_spawn_2")
+
+        scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
+        self.assertEqual(scroll_counts["Test Fire Scroll ZZZ"], 2)
+
+    def test_recipe_spawned_in_world_counted(self):
+        """Recipes sitting in rooms must count as unlearned copies."""
+        recipe_type = _create_item_type("Test Recipe ZZZ", RECIPE_TYPECLASS)
+        _create_nft(recipe_type, NFTGameState.LOCATION_SPAWNED, "token_spawn_3")
+
+        _, recipe_counts = NFTSaturationService.get_unlearned_copy_counts()
+        self.assertEqual(recipe_counts["Test Recipe ZZZ"], 1)
+
     def test_scroll_in_reserve_excluded(self):
         scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
         _create_nft(scroll_type, NFTGameState.LOCATION_RESERVE, "token_103")

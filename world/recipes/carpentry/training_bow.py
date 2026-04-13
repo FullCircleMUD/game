@@ -8,6 +8,6 @@ RECIPE_TRAINING_BOW = {
     "skill": skills.CARPENTER,
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WOODSHOP,
-    "ingredients": {7: 3},              # 3 Timber (resource_id 7)
+    "ingredients": {7: 3, 9: 1},        # 3 Timber + 1 Leather (bowstring)
     "output_prototype": "training_bow",
 }

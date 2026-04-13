@@ -20,6 +20,7 @@ Two-handed, finesse, no dual-wield. Ninja only.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -52,6 +53,10 @@ class NinjatoMixin:
     """
 
     weapon_type_key = "ninjato"
+    base_damage = AttributeProperty("d8")
+    damage_type = AttributeProperty(DamageType.SLASHING)
+    speed = AttributeProperty(2)
+    weight = AttributeProperty(1.5)
     is_finesse = AttributeProperty(True)
     two_handed = AttributeProperty(True)
     can_dual_wield = AttributeProperty(False)

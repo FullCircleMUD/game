@@ -1,10 +1,10 @@
 """
 BakerNPC — Bron the Baker, quest-giving shopkeeper at Goldencrust Bakery.
 
-Subclass of QuestGivingShopkeeper. Overrides ``_build_quest_context()``
-to inject state-specific instructions based on the player's progress
-with the baker's flour delivery quest, and ``get_quest_completion_message()``
-for Bron-specific completion text.
+Composed of LLMQuestContextMixin + QuestGiverMixin + LLMResourceShopkeeperNPC.
+Overrides ``_build_quest_context()`` to inject state-specific instructions
+based on the player's progress with the baker's flour delivery quest, and
+``get_quest_completion_message()`` for Bron-specific completion text.
 
 Prompt states:
     Level >= 3           → generic friendly baker
@@ -17,7 +17,9 @@ Trades flour (ID 2) and bread (ID 3) via AMM shop commands.
 Short-term memory only (no vector embeddings).
 """
 
-from typeclasses.actors.npcs.quest_giving_shopkeeper import QuestGivingShopkeeper
+from typeclasses.actors.npcs.llm_resource_shopkeeper import LLMResourceShopkeeperNPC
+from typeclasses.mixins.llm_quest_context import LLMQuestContextMixin
+from typeclasses.mixins.quest_giver import QuestGiverMixin
 
 
 # ── Shared knowledge block ────────────────────────────────────────────
@@ -97,8 +99,10 @@ GENERIC_CONTEXT = (
 )
 
 
-class BakerNPC(QuestGivingShopkeeper):
+class BakerNPC(LLMQuestContextMixin, QuestGiverMixin, LLMResourceShopkeeperNPC):
     """Quest-aware baker NPC for the Goldencrust Bakery."""
+
+    STARTER_LEVEL_CAP = 3
 
     def _build_quest_context(self, character):
         """Build state-specific LLM instructions based on player state."""

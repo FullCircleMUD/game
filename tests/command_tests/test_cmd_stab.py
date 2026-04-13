@@ -10,7 +10,7 @@ from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
 
 from commands.all_char_cmds.cmd_attack import CmdAttack
-from commands.class_skill_cmdsets.class_skill_cmds.cmd_backstab import CmdBackstab, STAB_DICE
+from commands.class_skill_cmdsets.class_skill_cmds.cmd_stab import CmdStab, STAB_DICE
 from combat.combat_utils import enter_combat, execute_attack
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
@@ -63,7 +63,7 @@ class TestStabGates(EvenniaCommandTest):
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
         self.char1.db.wearslots["WIELD"] = None
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("finesse weapon", result)
 
     def test_ranged_weapon_blocked(self):
@@ -71,34 +71,34 @@ class TestStabGates(EvenniaCommandTest):
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
         self.dagger.weapon_type = "missile"
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("ranged weapon", result)
         self.dagger.weapon_type = "melee"  # restore
 
     def test_no_args_no_combat(self):
         """Stab with no args and not in combat → error."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
-        result = self.call(CmdBackstab(), "")
+        result = self.call(CmdStab(), "")
         self.assertIn("Stab who?", result)
 
     def test_self_target(self):
         """Can't stab yourself."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
-        result = self.call(CmdBackstab(), self.char1.key)
+        result = self.call(CmdStab(), self.char1.key)
         self.assertIn("can't stab yourself", result)
 
     def test_unskilled_blocked(self):
         """Unskilled characters can't use stab."""
         self._set_stab_mastery(self.char1, MasteryLevel.UNSKILLED)
         self.char1.add_condition(Condition.HIDDEN)
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("need training", result)
 
     def test_no_mastery_data(self):
         """Characters with no mastery data get mob_func."""
         self.char1.db.class_skill_mastery_levels = None
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("don't know", result)
 
     def test_target_dead(self):
@@ -106,7 +106,7 @@ class TestStabGates(EvenniaCommandTest):
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
         self.char2.hp = 0
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("already dead", result)
 
     def test_no_combat_room(self):
@@ -114,13 +114,13 @@ class TestStabGates(EvenniaCommandTest):
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
         self.room1.allow_combat = False
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("not allowed", result)
 
     def test_no_advantage_no_hidden(self):
         """Can't stab without advantage or hidden."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("need advantage", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -128,7 +128,7 @@ class TestStabGates(EvenniaCommandTest):
         """Can't stab mid-combat without advantage."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.char2)
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("need advantage", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -139,9 +139,9 @@ class TestStabGates(EvenniaCommandTest):
         handler = self.char1.scripts.get("combat_handler")[0]
         handler.set_advantage(self.char2, rounds=2)
         # First stab
-        self.call(CmdBackstab(), self.char2.key)
+        self.call(CmdStab(), self.char2.key)
         # Second stab — should be blocked by shared cooldown
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("cooldown", result)
 
 
@@ -191,7 +191,7 @@ class TestStabOpener(EvenniaCommandTest):
         self._set_stab_mastery(self.char1, MasteryLevel.EXPERT)
         self.char1.add_condition(Condition.HIDDEN)
 
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
 
         # Hidden is broken
         self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
@@ -214,7 +214,7 @@ class TestStabOpener(EvenniaCommandTest):
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
 
-        self.call(CmdBackstab(), self.char2.key)
+        self.call(CmdStab(), self.char2.key)
 
         handler = self.char1.scripts.get("combat_handler")[0]
         action = handler.action_dict
@@ -225,7 +225,7 @@ class TestStabOpener(EvenniaCommandTest):
     def test_opener_not_hidden_fails(self):
         """Not in combat and not hidden → blocked."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
         self.assertIn("need advantage", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -244,7 +244,7 @@ class TestStabOpener(EvenniaCommandTest):
             self._set_stab_mastery(self.char1, mastery)
             self.char1.add_condition(Condition.HIDDEN)
 
-            self.call(CmdBackstab(), self.char2.key)
+            self.call(CmdStab(), self.char2.key)
 
             handler = self.char1.scripts.get("combat_handler")[0]
             self.assertEqual(
@@ -302,7 +302,7 @@ class TestStabMidCombat(EvenniaCommandTest):
         handler = self.char1.scripts.get("combat_handler")[0]
         handler.set_advantage(self.char2, rounds=1)
 
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
 
         self.assertEqual(handler.bonus_attack_dice, "8d6")
         self.assertGreater(handler.skill_cooldown, 0)
@@ -319,7 +319,7 @@ class TestStabMidCombat(EvenniaCommandTest):
         })
         handler.set_advantage(self.char2, rounds=1)
 
-        result = self.call(CmdBackstab(), "")
+        result = self.call(CmdStab(), "")
 
         self.assertEqual(handler.bonus_attack_dice, "2d6")
         self.assertGreater(handler.skill_cooldown, 0)
@@ -349,7 +349,7 @@ class TestStabMidCombat(EvenniaCommandTest):
         # Somehow hidden mid-combat (quaff invis potion, etc.)
         self.char1.add_condition(Condition.HIDDEN)
 
-        result = self.call(CmdBackstab(), self.char2.key)
+        result = self.call(CmdStab(), self.char2.key)
 
         self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
         self.assertEqual(handler.bonus_attack_dice, "4d6")

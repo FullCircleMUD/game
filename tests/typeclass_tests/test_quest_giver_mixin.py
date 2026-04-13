@@ -311,7 +311,7 @@ class TestMixinOnBaker(EvenniaCommandTest):
             location=self.room1,
         )
         self.baker.quest_key = "bakers_flour"
-        self.baker.tradeable_resources = [2, 3]
+        self.baker.inventory = [2, 3]
         self.baker.shop_name = "Goldencrust Bakery"
 
     def tearDown(self):
@@ -320,10 +320,10 @@ class TestMixinOnBaker(EvenniaCommandTest):
         super().tearDown()
 
     def test_has_both_cmdsets(self):
-        """BakerNPC should have both QuestGiverCmdSet and ShopkeeperCmdSet."""
+        """BakerNPC should have both QuestGiverCmdSet and ResourceShopCmdSet."""
         cmdset_keys = [cs.key for cs in self.baker.cmdset.all()]
         self.assertIn("QuestGiverCmdSet", cmdset_keys)
-        self.assertIn("ShopkeeperCmdSet", cmdset_keys)
+        self.assertIn("ResourceShopCmdSet", cmdset_keys)
 
     def test_baker_completion_message(self):
         """BakerNPC should have custom completion message."""

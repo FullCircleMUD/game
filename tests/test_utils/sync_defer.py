@@ -8,7 +8,7 @@ execute inline (synchronously).
 Usage in tests:
     from tests.test_utils.sync_defer import patch_deferToThread
 
-    @patch_deferToThread("commands.npc_cmds.cmdset_shopkeeper")
+    @patch_deferToThread("commands.npc_cmds.cmdset_resource_shop")
     def test_something(self):
         ...
 """
@@ -35,7 +35,7 @@ def patch_deferToThread(module_path):
 
     Args:
         module_path: dotted module path where 'threads' is imported.
-                     e.g. "commands.npc_cmds.cmdset_shopkeeper"
+                     e.g. "commands.npc_cmds.cmdset_resource_shop"
     """
     return patch(f"{module_path}.threads.deferToThread",
                  side_effect=_sync_defer_to_thread)

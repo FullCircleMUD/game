@@ -43,8 +43,16 @@ class CmdBank(Command):
         gold = bank.get_gold()
         resources = bank.db.resources or {}
         nft_items = [obj for obj in bank.contents if isinstance(obj, BaseNFTItem)]
+        stabled_pets = [
+            obj for obj in bank.contents if getattr(obj, "is_pet", False)
+        ]
 
-        has_anything = gold > 0 or any(v > 0 for v in resources.values()) or nft_items
+        has_anything = (
+            gold > 0
+            or any(v > 0 for v in resources.values())
+            or nft_items
+            or stabled_pets
+        )
 
         if not has_anything:
             account.msg(
@@ -85,6 +93,23 @@ class CmdBank(Command):
                 )
                 cond_suffix = f"  ({condition})" if condition else ""
                 lines.append(f"  {obj.key}{token_label}{cond_suffix}")
+
+        # Stabled pets
+        if stabled_pets:
+            lines.append("")
+            lines.append("|wPets:|n")
+            for pet in stabled_pets:
+                pet_type = getattr(pet, "pet_type", "")
+                type_str = f" ({pet_type})" if pet_type else ""
+                hp = getattr(pet, "hp", None)
+                hp_max = getattr(pet, "hp_max", None)
+                hp_str = f" — {hp}/{hp_max} HP" if hp is not None and hp_max else ""
+                lines.append(f"  {pet.key}{type_str}{hp_str}")
+
+        # Ships (placeholder — ship banking not yet implemented)
+        lines.append("")
+        lines.append("|wShips:|n")
+        lines.append("  |x(to be developed)|n")
 
         lines.append("")
         lines.append(

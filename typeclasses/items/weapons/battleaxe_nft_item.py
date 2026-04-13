@@ -31,6 +31,7 @@ Sunder mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from combat.combat_utils import get_sides
 from enums.character_class import CharacterClass
@@ -70,6 +71,10 @@ class BattleaxeMixin:
     """
 
     weapon_type_key = "battleaxe"
+    base_damage = AttributeProperty("d10")
+    damage_type = AttributeProperty(DamageType.SLASHING)
+    speed = AttributeProperty(0)
+    weight = AttributeProperty(4.0)
     two_handed = AttributeProperty(True)
 
     # ================================================================== #
