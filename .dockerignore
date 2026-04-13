@@ -1,0 +1,9 @@
+# Nixpacks / Docker build context exclusions.
+#
+# secret_settings.py is git-crypt encrypted. Railway doesn't have the
+# decryption key, so the file arrives as binary garbage. Nixpacks tries
+# to scan every file as UTF-8 during build prep and crashes on the
+# binary header. Excluding it here keeps it out of the build context
+# entirely — local dev still has the file available since .dockerignore
+# only affects Docker/Nixpacks builds, not git checkouts.
+server/conf/secret_settings.py
