@@ -326,14 +326,18 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
 ######################################################################
 if not os.environ.get("DATABASE_URL"):
     import importlib.util as _importlib_util
+    from importlib.machinery import SourceFileLoader as _SourceFileLoader
 
     _secret_path = os.path.join(
         os.path.dirname(__file__), "secret_settings.local"
     )
     if os.path.exists(_secret_path):
         try:
+            # .local isn't a recognised Python source extension so we
+            # have to hand spec_from_file_location an explicit loader.
+            _loader = _SourceFileLoader("secret_settings", _secret_path)
             _spec = _importlib_util.spec_from_file_location(
-                "secret_settings", _secret_path
+                "secret_settings", _secret_path, loader=_loader
             )
             _mod = _importlib_util.module_from_spec(_spec)
             _spec.loader.exec_module(_mod)
