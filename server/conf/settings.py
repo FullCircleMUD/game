@@ -313,12 +313,32 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
 ]
 
 ######################################################################
-# Settings given in secret_settings.py override those in this file.
-# Skipped when DATABASE_URL is set (e.g. Railway production) — in that
-# environment, secrets come from env vars, not the git-crypt file.
+# Local development overrides.
+#
+# In dev, secrets live in server/conf/secret_settings.local — a
+# git-crypt encrypted file with a deliberately non-.py extension so
+# Nixpacks/Railway source scanners don't try to parse the encrypted
+# bytes as Python during build. We load it manually via importlib.util
+# when running locally.
+#
+# On Railway (DATABASE_URL set) we skip this entirely — production
+# secrets come from platform env vars.
 ######################################################################
 if not os.environ.get("DATABASE_URL"):
-    try:
-        from server.conf.secret_settings import *
-    except ImportError:
-        print("secret_settings.py file not found or failed to import.")
+    import importlib.util as _importlib_util
+
+    _secret_path = os.path.join(
+        os.path.dirname(__file__), "secret_settings.local"
+    )
+    if os.path.exists(_secret_path):
+        try:
+            _spec = _importlib_util.spec_from_file_location(
+                "secret_settings", _secret_path
+            )
+            _mod = _importlib_util.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            for _attr in dir(_mod):
+                if not _attr.startswith("_"):
+                    globals()[_attr] = getattr(_mod, _attr)
+        except Exception as _err:  # pragma: no cover
+            print(f"secret_settings.local failed to load: {_err}")

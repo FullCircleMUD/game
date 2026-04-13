@@ -1,1 +1,1 @@
-server/conf/secret_settings.py filter=git-crypt diff=git-crypt
+server/conf/secret_settings.local filter=git-crypt diff=git-crypt

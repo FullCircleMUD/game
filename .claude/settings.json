@@ -26,8 +26,10 @@
     ],
     "deny": [
       "Read(server/conf/secret_settings.py)",
+      "Read(server/conf/secret_settings.local)",
       "Read(**/secret_settings.py)",
       "Read(**/secret_settings.py.bak)",
+      "Read(**/secret_settings.local)",
       "Read(**/.env)",
       "Read(**/.env.*)",
       "Read(**/wallets.json)",
