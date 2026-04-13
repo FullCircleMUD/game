@@ -13,19 +13,29 @@ class RegenerationService(DefaultScript):
     def at_script_creation(self):
         # This makes the script persistent in the database
         self.key = "regeneration_service"
-        self.desc = "Runs every minute and depending on characters hunger state regens, degens or does nothing to every character"
-        self.interval = 60  # seconds
+        self.desc = "Runs every 20 seconds and depending on characters hunger state regens, degens or does nothing to every character"
+        self.interval = 20  # seconds
         self.persistent = True
         self.start_delay = True  # wait interval before first run
         self.repeats = 0  # repeat forever
 
     def at_repeat(self):
         """
-        This is called every `interval` seconds
+        This is called every `interval` seconds (20s).
+        Regen and pet healing run every tick. Degen only runs every 3rd tick
+        so it stays on a 60s cadence — preserves the original death timelines
+        without needing a second script.
         """
+        # Tick counter lives on ndb — no need to persist across restarts.
+        # Worst case after a reboot, one degen fires up to 40s late.
+        self.ndb.tick_count = (self.ndb.tick_count or 0) + 1
+        run_degen = self.ndb.tick_count % 3 == 0
+        if run_degen:
+            self.ndb.tick_count = 0
+
         for session in SESSION_HANDLER.get_sessions():
             try:
-                self._process_character(session)
+                self._process_character(session, run_degen)
             except Exception:
                 char = session.get_puppet()
                 logger.log_trace(f"Regen error for {char.key if char else 'unknown'}")
@@ -36,7 +46,7 @@ class RegenerationService(DefaultScript):
             except Exception:
                 logger.log_trace("Pet regen error")
 
-    def _process_character(self, session):
+    def _process_character(self, session, run_degen):
         """Process regen/degen for a single character."""
         char = session.get_puppet()
         if not char:
@@ -54,8 +64,8 @@ class RegenerationService(DefaultScript):
             # FULL, SATISFIED, PECKISH regenerate
             self.regenerate(char)
             return
-        elif hunger_level.value <= HungerLevel.FAMISHED.value:
-            # FAMISHED or STARVING - degen
+        elif hunger_level.value <= HungerLevel.FAMISHED.value and run_degen:
+            # FAMISHED or STARVING - degen on every 3rd tick (60s cadence)
             self.degenerate(char)
 
         # HungerLevel.HUNGRY not covered because no action take on this, no regen OR degen
@@ -108,26 +118,33 @@ class RegenerationService(DefaultScript):
 
     def regenerate(self,character):
 
-        # regen rate = level / 4 rounded up + constitution bonus
+        # base rate = level / 4 rounded up + constitution bonus
         if hasattr(character, "total_level") and hasattr(character, "constitution"):
             con_bonus = character.get_attribute_bonus(character.constitution)
             if con_bonus < 0:
                 con_bonus = 0
 
-            regen_rate = math.ceil(character.total_level / 4) + con_bonus
+            base_rate = math.ceil(character.total_level / 4) + con_bonus
         else:
-            regen_rate = 1
+            base_rate = 1
 
-        # Position multiplier: resting = 2x, sleeping = 3x
+        # Position multiplier: resting = 2x, sleeping = 3x, fighting = 0x
         multiplier = getattr(character, "REGEN_MULTIPLIERS", {}).get(
             getattr(character, "position", "standing"), 1
         )
-        regen_rate *= multiplier
 
-        character.hp = min(character.effective_hp_max, character.hp + regen_rate)
-        character.mana = min(character.mana_max, character.mana + regen_rate)
-        # regen movement saster than hits or mana because it gets used so quickly moving around
-        character.move = min(character.move_max, character.move + (regen_rate * 2))
+        if multiplier == 0:
+            return  # no regen in combat
+
+        # Spread the per-minute rate across three 20s ticks, floor of 1
+        hp_regen = max(1, round(base_rate * multiplier / 3))
+        mana_regen = max(1, round(base_rate * multiplier / 3))
+        # movement regens faster than hits or mana because it gets used so quickly moving around
+        move_regen = max(1, round(base_rate * multiplier * 2 / 3))
+
+        character.hp = min(character.effective_hp_max, character.hp + hp_regen)
+        character.mana = min(character.mana_max, character.mana + mana_regen)
+        character.move = min(character.move_max, character.move + move_regen)
 
         # old regen amoutn logic from pre evennia FCM
         # based on taking 20 turns to regen to full health
@@ -144,6 +161,7 @@ class RegenerationService(DefaultScript):
 
     def degenerate(self, character):
 
+        # Degen fires once per minute (every 3rd 20s tick), so cycles == minutes.
         if character.hunger_level == HungerLevel.FAMISHED:
             cycles_to_death = 30
         else:

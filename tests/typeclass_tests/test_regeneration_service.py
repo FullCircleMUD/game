@@ -48,15 +48,21 @@ class RegenServiceTestBase(EvenniaCommandTest):
         # Set it so tests don't crash on the death check.
         self.char1.health = 50
 
-    def _run_tick(self, characters):
+    def _run_tick(self, characters, force_degen=False):
         """Run one regen tick with the given character list.
-        Builds mock sessions that return each character as a puppet."""
+        Builds mock sessions that return each character as a puppet.
+
+        force_degen: prime the tick counter so this tick also runs degen
+        (degen normally fires every 3rd tick — 60s cadence)."""
         mock_sessions = []
         for char in characters:
             s = MagicMock()
             s.get_puppet.return_value = char
             mock_sessions.append(s)
-        with patch("typeclasses.scripts.regeneration_service.SESSION_HANDLER") as mock_sh:
+        fake_ndb = MagicMock()
+        fake_ndb.tick_count = 2 if force_degen else 0
+        with patch.object(type(self.service), "ndb", fake_ndb), \
+             patch("typeclasses.scripts.regeneration_service.SESSION_HANDLER") as mock_sh:
             mock_sh.get_sessions.return_value = mock_sessions
             self.service.at_repeat()
 
@@ -68,22 +74,23 @@ class TestRegeneration(RegenServiceTestBase):
         """FULL hunger should trigger regeneration."""
         self.char1.hunger_level = HungerLevel.FULL
         self._run_tick([self.char1])
-        # regen_rate = ceil(8/4) + floor((14-10)/2) = 2 + 2 = 4
-        self.assertEqual(self.char1.hp, 54)
-        self.assertEqual(self.char1.mana, 34)
-        self.assertEqual(self.char1.move, 48)  # move regens at 2x: 40 + (4*2)
+        # base_rate = ceil(8/4) + floor((14-10)/2) = 2 + 2 = 4
+        # per-tick (20s): hp = max(1, round(4/3)) = 1, move = max(1, round(8/3)) = 3
+        self.assertEqual(self.char1.hp, 51)
+        self.assertEqual(self.char1.mana, 31)
+        self.assertEqual(self.char1.move, 43)
 
     def test_regen_at_satisfied(self):
         """SATISFIED hunger should trigger regeneration."""
         self.char1.hunger_level = HungerLevel.SATISFIED
         self._run_tick([self.char1])
-        self.assertEqual(self.char1.hp, 54)
+        self.assertEqual(self.char1.hp, 51)
 
     def test_regen_at_peckish(self):
         """PECKISH hunger should trigger regeneration."""
         self.char1.hunger_level = HungerLevel.PECKISH
         self._run_tick([self.char1])
-        self.assertEqual(self.char1.hp, 54)
+        self.assertEqual(self.char1.hp, 51)
 
     def test_regen_caps_at_max(self):
         """Regen should not exceed max values."""
@@ -125,14 +132,15 @@ class TestRegeneration(RegenServiceTestBase):
         self.assertEqual(self.char1.hp, 51)
 
     def test_regen_rate_high_level(self):
-        """Level 40 with 20 CON: regen = ceil(40/4) + 5 = 15."""
+        """Level 40 with 20 CON: base = ceil(40/4) + 5 = 15."""
         self.char1.hunger_level = HungerLevel.FULL
         self.char1.total_level = 40
         self.char1.constitution = 20  # +5 bonus
         self._run_tick([self.char1])
-        self.assertEqual(self.char1.hp, 65)
-        self.assertEqual(self.char1.mana, 45)
-        self.assertEqual(self.char1.move, 70)  # move regens at 2x: 40 + (15*2)
+        # per-tick (20s): hp/mana = round(15/3) = 5, move = round(30/3) = 10
+        self.assertEqual(self.char1.hp, 55)
+        self.assertEqual(self.char1.mana, 35)
+        self.assertEqual(self.char1.move, 50)
 
 
 class TestNoActionAtHungry(RegenServiceTestBase):
@@ -153,11 +161,11 @@ class TestDegeneration(RegenServiceTestBase):
     def test_degen_at_starving(self):
         """STARVING should lose HP/mana/move."""
         self.char1.hunger_level = HungerLevel.STARVING
-        self._run_tick([self.char1])
-        # cycles_to_death = 15 (bug: enum != int, always hits else branch)
-        hp_loss = max(1, round(100 / 15))   # 7
-        mana_loss = max(1, round(60 / 15))   # 4
-        move_loss = max(1, round(80 / 15))   # 5
+        self._run_tick([self.char1], force_degen=True)
+        # cycles_to_death = 15 (degen fires every 60s, so cycles == minutes)
+        hp_loss = max(1, round(100 / 15))
+        mana_loss = max(1, round(60 / 15))
+        move_loss = max(1, round(80 / 15))
         self.assertEqual(self.char1.hp, 50 - hp_loss)
         self.assertEqual(self.char1.mana, 30 - mana_loss)
         self.assertEqual(self.char1.move, 40 - move_loss)
@@ -165,7 +173,7 @@ class TestDegeneration(RegenServiceTestBase):
     def test_degen_at_famished(self):
         """FAMISHED should lose HP/mana/move."""
         self.char1.hunger_level = HungerLevel.FAMISHED
-        self._run_tick([self.char1])
+        self._run_tick([self.char1], force_degen=True)
         hp_loss = max(1, round(100 / 30))
         self.assertEqual(self.char1.hp, 50 - hp_loss)
 
@@ -175,7 +183,7 @@ class TestDegeneration(RegenServiceTestBase):
         self.char1.hp = 1
         self.char1.mana = 1
         self.char1.move = 1
-        self._run_tick([self.char1])
+        self._run_tick([self.char1], force_degen=True)
         # die() fires when HP hits 0, resetting HP to 1
         self.assertEqual(self.char1.hp, 1)
         self.assertEqual(self.char1.mana, 0)
@@ -229,7 +237,10 @@ class TestSkipLogic(RegenServiceTestBase):
         # Session exists but get_puppet() returns None (no puppeted character)
         mock_session = MagicMock()
         mock_session.get_puppet.return_value = None
-        with patch("typeclasses.scripts.regeneration_service.SESSION_HANDLER") as mock_sh:
+        fake_ndb = MagicMock()
+        fake_ndb.tick_count = 0
+        with patch.object(type(self.service), "ndb", fake_ndb), \
+             patch("typeclasses.scripts.regeneration_service.SESSION_HANDLER") as mock_sh:
             mock_sh.get_sessions.return_value = [mock_session]
             self.service.at_repeat()
         # HP should not change — service should skip this character entirely
