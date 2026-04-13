@@ -17,6 +17,8 @@ Example:
     read winnie the pooh
 """
 
+import re
+
 from evennia import Command
 from evennia.utils import delay
 
@@ -24,6 +26,24 @@ from commands.command import FCMCommandMixin
 
 
 PARAGRAPH_PAUSE = 1.0
+
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
+
+
+def _split_paragraphs(text):
+    """Split flavour text into paragraphs.
+
+    Prefers explicit ``\\n\\n`` paragraph breaks. If none are present,
+    falls back to splitting on sentence boundaries so older books
+    (authored as a single string) still pace nicely.
+    """
+    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    if len(paragraphs) > 1:
+        return paragraphs
+    if not paragraphs:
+        return []
+    sentences = [s.strip() for s in _SENTENCE_SPLIT.split(paragraphs[0]) if s.strip()]
+    return sentences or paragraphs
 
 
 class CmdRead(FCMCommandMixin, Command):
@@ -80,7 +100,7 @@ class CmdRead(FCMCommandMixin, Command):
             return
 
         desc = book.book_description or ""
-        paragraphs = [p.strip() for p in desc.split("\n\n") if p.strip()]
+        paragraphs = _split_paragraphs(desc)
 
         caller.db.book_return_location = room
         caller.ndb.book_transport = True
