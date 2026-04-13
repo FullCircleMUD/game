@@ -1,10 +1,13 @@
 """
-MaraNPC — Mara Brightwater, quest-giving alchemy trainer at The Mortar and Pestle.
+MaraNPC — Mara Brightwater, quest-giving alchemy trainer and herb shopkeeper.
 
-Subclass of QuestGivingLLMTrainer. Overrides ``_build_quest_context()``
-to inject state-specific instructions based on the player's progress
-with the moonpetal delivery quest, and ``get_quest_completion_message()``
-for Mara-specific completion text.
+Composed of LLMQuestContextMixin + QuestGiverMixin + LLMResourceShopkeeperNPC
++ TrainerNPC. Mara wears four hats at once (LLM dialogue, quest giver,
+resource shopkeeper, alchemy trainer) so she's the canonical example of
+the explicit-composition pattern introduced in this refactor.
+
+Overrides ``_build_quest_context()`` for the moonpetal delivery quest
+and ``get_quest_completion_message()`` for Mara-specific completion text.
 
 Prompt states:
     Level >= 3           → generic enigmatic herbalist
@@ -17,9 +20,10 @@ Trains alchemy to BASIC level (mastery 1) — capped in Millholm per world desig
 Short-term memory only (no vector embeddings).
 """
 
-from evennia.typeclasses.attributes import AttributeProperty
-
-from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrainer
+from typeclasses.actors.npcs.llm_resource_shopkeeper import LLMResourceShopkeeperNPC
+from typeclasses.actors.npcs.trainer import TrainerNPC
+from typeclasses.mixins.llm_quest_context import LLMQuestContextMixin
+from typeclasses.mixins.quest_giver import QuestGiverMixin
 
 
 # ── Shared knowledge block ────────────────────────────────────────────
@@ -109,16 +113,19 @@ GENERIC_CONTEXT = (
 )
 
 
-class MaraNPC(QuestGivingLLMTrainer):
-    """Quest-aware trainer NPC for Mara Brightwater's apothecary.
+class MaraNPC(
+    LLMQuestContextMixin,
+    QuestGiverMixin,
+    LLMResourceShopkeeperNPC,
+    TrainerNPC,
+):
+    """Quest-aware alchemy trainer + herb shopkeeper.
 
-    Mara wears three hats — quest giver, alchemy trainer, and herb shopkeeper.
-    The shopkeeper attributes are declared here so the ShopkeeperCmdSet
-    commands attached at spawn time can find them after a cache flush.
+    Four-way composition: quest-context injection, quest command,
+    LLM-powered herb shop, and skill trainer. See module docstring.
     """
 
-    shop_name = AttributeProperty("The Mortar and Pestle")
-    tradeable_resources = AttributeProperty([])
+    STARTER_LEVEL_CAP = 3
 
     def _build_quest_context(self, character):
         """Build state-specific LLM instructions based on player state."""

@@ -79,7 +79,7 @@ def _spawn_baker():
     npc.llm_speech_mode = "name_match"
     npc.llm_use_vector_memory = True
     npc.llm_use_lore = True
-    npc.tradeable_resources = [2, 3]   # Flour, Bread
+    npc.inventory = [2, 3]   # Flour, Bread
     npc.shop_name = "Goldencrust Bakery"
     npc.llm_personality = (
         "A stocky, flour-dusted baker in his fifties with thick forearms "
@@ -192,10 +192,9 @@ def _spawn_mara():
         key="Mara Brightwater",
         location=room,
     )
-    # Add shop commands
-    from commands.npc_cmds.cmdset_shopkeeper import ShopkeeperCmdSet
-    npc.cmdset.add(ShopkeeperCmdSet, persistent=True)
-    npc.tradeable_resources = [12, 14, 15, 16, 17, 18, 20]  # Moonpetal, Bloodmoss, Windroot, Arcane Dust, Ogre's Cap, Sage Leaf, Vipervine
+    # Shop cmdset is attached automatically via MaraNPC's class chain
+    # (LLMResourceShopkeeperNPC → ResourceShopkeeperNPC.at_object_creation).
+    npc.inventory = [12, 14, 15, 16, 17, 18, 20]  # Moonpetal, Bloodmoss, Windroot, Arcane Dust, Ogre's Cap, Sage Leaf, Vipervine
     npc.shop_name = "The Mortar and Pestle"
     npc.quest_key = "mara_moonpetal"
     npc.llm_prompt_file = "mara.md"
@@ -793,7 +792,7 @@ def _spawn_jeweller():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.quest_giving_llm_trainer.QuestGivingLLMTrainer",
+        "typeclasses.actors.npcs.llm_trainer.LLMTrainerNPC",
         key="Gemma",
         location=room,
     )
@@ -842,11 +841,11 @@ def _spawn_general_store():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
+        "typeclasses.actors.npcs.llm_resource_shopkeeper.LLMResourceShopkeeperNPC",
         key="Merchant Harlow",
         location=room,
     )
-    npc.tradeable_resources = [2, 3, 7, 9, 11]  # Flour, Bread, Timber, Leather, Cloth
+    npc.inventory = [2, 3, 7, 9, 11]  # Flour, Bread, Timber, Leather, Cloth
     npc.shop_name = "Harlow's General Store"
     npc.db.desc = (
         "A portly, ruddy-faced man in a well-worn apron stands behind "
@@ -895,11 +894,11 @@ def _spawn_wheat_farmer():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        "typeclasses.actors.npcs.resource_shopkeeper.ResourceShopkeeperNPC",
         key="Farmer Bramble",
         location=room,
     )
-    npc.tradeable_resources = [1, 21]  # Wheat, Sage Leaf
+    npc.inventory = [1, 21]  # Wheat, Sage Leaf
     npc.shop_name = "Goldwheat Farm"
     npc.db.desc = (
         "A stout halfling woman in mud-caked boots and a wide straw hat "
@@ -1104,11 +1103,11 @@ def _spawn_lumberjack():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
+        "typeclasses.actors.npcs.llm_resource_shopkeeper.LLMResourceShopkeeperNPC",
         key="Big Bjorn",
         location=room,
     )
-    npc.tradeable_resources = [6, 7]  # Wood, Timber
+    npc.inventory = [6, 7]  # Wood, Timber
     npc.shop_name = "Bjorn's Lumber Yard"
 
     npc.llm_speech_mode = "name_match"
@@ -1192,11 +1191,11 @@ def _spawn_cotton_farmer():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        "typeclasses.actors.npcs.resource_shopkeeper.ResourceShopkeeperNPC",
         key="Goodwife Tilly",
         location=room,
     )
-    npc.tradeable_resources = [10]  # Cotton
+    npc.inventory = [10]  # Cotton
     npc.shop_name = "Brightwater Farm"
     npc.db.desc = (
         "A cheerful halfling woman with calloused hands and a dusting of "
@@ -1218,11 +1217,11 @@ def _spawn_trapper():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
+        "typeclasses.actors.npcs.llm_resource_shopkeeper.LLMResourceShopkeeperNPC",
         key="Old Buckshaw",
         location=room,
     )
-    npc.tradeable_resources = [8, 9]  # Hide, Leather
+    npc.inventory = [8, 9]  # Hide, Leather
     npc.shop_name = "Buckshaw's Pelts"
 
     npc.llm_speech_mode = "name_match"
@@ -1291,11 +1290,11 @@ def _spawn_smelter():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.llm_shopkeeper_npc.LLMShopkeeperNPC",
+        "typeclasses.actors.npcs.llm_resource_shopkeeper.LLMResourceShopkeeperNPC",
         key="Grim Thackery",
         location=room,
     )
-    npc.tradeable_resources = [23, 25]  # Copper Ore, Tin Ore
+    npc.inventory = [23, 25]  # Copper Ore, Tin Ore
     npc.shop_name = "Thackery's Ore & Fuel"
 
     npc.llm_speech_mode = "always"
@@ -1469,7 +1468,7 @@ def _spawn_durga():
         key="Durga Ironplate",
         location=room,
     )
-    npc.tradeable_item_types = [
+    npc.inventory = [
         "Bronze Helm", "Bronze Greaves", "Bronze Bracers",
         "Leather Armor", "Gambeson", "Wooden Shield",
     ]
@@ -1503,7 +1502,7 @@ def _spawn_colette():
         key="Madame Colette",
         location=room,
     )
-    npc.tradeable_item_types = [
+    npc.inventory = [
         "Bandana", "Veil", "Scarf", "Sash", "Kippah",
         "Warrior's Wraps", "Brown Corduroy Pants",
         "Coarse Robe", "Cloak",
@@ -1541,7 +1540,7 @@ def _spawn_fizwick():
         key="Fizwick",
         location=room,
     )
-    npc.tradeable_item_types = [
+    npc.inventory = [
         "Potion of Life's Essence",
         "Potion of the Zephyr",
         "Potion of the Wellspring",
@@ -1581,7 +1580,7 @@ def _spawn_pim():
         key="Polished Pim",
         location=room,
     )
-    npc.tradeable_item_types = [
+    npc.inventory = [
         "Copper Bangle", "Copper Chain", "Copper Ring", "Copper Studs",
     ]
     npc.shop_name = "The Gilded Window"
@@ -1615,7 +1614,7 @@ def _spawn_grik():
         key="Grik",
         location=room,
     )
-    npc.tradeable_item_types = [
+    npc.inventory = [
         "Training Dagger", "Training Shortsword", "Training Longsword",
         "Training Bow", "Training Greatsword", "Training Lance",
         "Club", "Quarterstaff", "Sling", "Shortbow",
@@ -1649,7 +1648,7 @@ def _spawn_boatman():
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.quest_giving_llm_trainer.QuestGivingLLMTrainer",
+        "typeclasses.actors.npcs.llm_trainer.LLMTrainerNPC",
         key="Old Barnacle Bob",
         location=room,
     )

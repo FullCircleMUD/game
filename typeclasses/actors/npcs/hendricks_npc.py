@@ -1,7 +1,8 @@
 """
 HendricksNPC — Old Hendricks, quest-giving blacksmith trainer at his smithy.
 
-Subclass of QuestGivingLLMTrainer. Overrides ``_build_quest_context()``
+Composed of LLMQuestContextMixin + QuestGiverMixin + LLMTrainerNPC.
+Overrides ``_build_quest_context()``
 to inject state-specific instructions based on the player's progress
 with the iron ore delivery quest, and ``get_quest_completion_message()``
 for Hendricks-specific completion text.
@@ -18,7 +19,9 @@ capped in Millholm per world design.
 Short-term memory only (no vector embeddings).
 """
 
-from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrainer
+from typeclasses.actors.npcs.llm_trainer import LLMTrainerNPC
+from typeclasses.mixins.llm_quest_context import LLMQuestContextMixin
+from typeclasses.mixins.quest_giver import QuestGiverMixin
 
 
 # ── Shared knowledge block ────────────────────────────────────────────
@@ -101,7 +104,7 @@ GENERIC_CONTEXT = (
 )
 
 
-class HendricksNPC(QuestGivingLLMTrainer):
+class HendricksNPC(LLMQuestContextMixin, QuestGiverMixin, LLMTrainerNPC):
     """Quest-aware trainer NPC for Old Hendricks' Smithy."""
 
     def _build_quest_context(self, character):

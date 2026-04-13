@@ -1,15 +1,18 @@
 """
 TorbenNPC — Torben Greaves, leatherworking trainer at The Tanned Hide.
 
-Subclass of QuestGivingLLMTrainer (no quest assigned). Overrides
-``_build_quest_context()`` to always return generic context — Torben
-is a trainer only, with no starter quest.
+Composed of LLMQuestContextMixin + QuestGiverMixin + LLMTrainerNPC. No
+quest assigned — ``_build_quest_context()`` always returns generic
+context so the LLM prompt still receives the personality instructions
+block via the quest-context injection path.
 
 Trains leatherworking to SKILLED level (mastery 2).
 Short-term memory only (no vector embeddings).
 """
 
-from typeclasses.actors.npcs.quest_giving_llm_trainer import QuestGivingLLMTrainer
+from typeclasses.actors.npcs.llm_trainer import LLMTrainerNPC
+from typeclasses.mixins.llm_quest_context import LLMQuestContextMixin
+from typeclasses.mixins.quest_giver import QuestGiverMixin
 
 
 # ── Shared knowledge block ────────────────────────────────────────────
@@ -54,7 +57,7 @@ GENERIC_CONTEXT = (
 )
 
 
-class TorbenNPC(QuestGivingLLMTrainer):
+class TorbenNPC(LLMQuestContextMixin, QuestGiverMixin, LLMTrainerNPC):
     """Trainer NPC for Torben Greaves at The Tanned Hide."""
 
     def _build_quest_context(self, character):

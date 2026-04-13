@@ -1,12 +1,11 @@
 """
 LLMGuildmasterNPC — LLM-powered guildmaster with quest-giving.
 
-Combines LLMMixin (LLM dialogue with vector memory support) and
-GuildmasterNPC (multiclassing + level advancement + guild commands).
+Combines LLMMixin (LLM dialogue with vector memory support),
+LLMQuestContextMixin ({quest_context} injection), and GuildmasterNPC
+(multiclassing + level advancement + guild commands + QuestGiverMixin).
 The LLM prompt receives {quest_context} and {guild_commands} blocks
 so the NPC can naturally guide players.
-
-Follows the same pattern as QuestGivingLLMTrainer but for guildmasters.
 
 Usage (spawn script)::
 
@@ -26,9 +25,10 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.actors.npcs.guildmaster import GuildmasterNPC
 from typeclasses.mixins.llm_mixin import LLMMixin
+from typeclasses.mixins.llm_quest_context import LLMQuestContextMixin
 
 
-class LLMGuildmasterNPC(LLMMixin, GuildmasterNPC):
+class LLMGuildmasterNPC(LLMQuestContextMixin, LLMMixin, GuildmasterNPC):
     """
     LLM-powered guildmaster NPC.
 
@@ -61,26 +61,14 @@ class LLMGuildmasterNPC(LLMMixin, GuildmasterNPC):
         return None
 
     # ── Context variable injection ────────────────────────────────────
+    # {quest_context} is injected by LLMQuestContextMixin. Subclasses
+    # override _build_quest_context(character) to return state-specific
+    # prompt blocks; {guild_commands} is injected here.
 
     def _get_context_variables(self):
         context = super()._get_context_variables()
-
-        speaker = getattr(self.ndb, "_llm_current_speaker", None)
-        if speaker:
-            context["quest_context"] = self._build_quest_context(speaker)
-        else:
-            context["quest_context"] = ""
-
         context["guild_commands"] = self._build_guild_commands()
         return context
-
-    def _build_quest_context(self, character):
-        """
-        Build state-specific LLM instructions based on the player's state.
-
-        Override this in subclasses for NPC-specific quest logic.
-        """
-        return ""
 
     def _build_guild_commands(self):
         """Build a formatted block of guild commands for the LLM prompt."""

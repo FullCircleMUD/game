@@ -92,14 +92,14 @@ def _spawn_guildmaster(room_key, name, guild_class, quest_key=None,
     return npc
 
 
-def _spawn_nft_shopkeeper(room_key, name, tradeable_item_types, shop_name, desc):
+def _spawn_nft_shopkeeper(room_key, name, inventory, shop_name, desc):
     """
     Spawn an NFTShopkeeperNPC into the given room.
 
     Args:
         room_key: Room key to place the shopkeeper in.
         name: Display name for the NPC.
-        tradeable_item_types: List of str NFTItemType names this shop trades.
+        inventory: List of str NFTItemType names this shop trades.
         shop_name: Display name for the shop (shown in list/quote output).
         desc: Description string for the NPC.
     """
@@ -113,21 +113,21 @@ def _spawn_nft_shopkeeper(room_key, name, tradeable_item_types, shop_name, desc)
         key=name,
         location=room,
     )
-    npc.tradeable_item_types = tradeable_item_types
+    npc.inventory = inventory
     npc.shop_name = shop_name
     npc.db.desc = desc
     print(f"  Spawned NFT shopkeeper '{name}' in {room.key} ({room.dbref})")
     return npc
 
 
-def _spawn_shopkeeper(room_key, name, tradeable_resources, shop_name, desc):
+def _spawn_shopkeeper(room_key, name, inventory, shop_name, desc):
     """
-    Spawn a ShopkeeperNPC into the given room.
+    Spawn a ResourceShopkeeperNPC into the given room.
 
     Args:
         room_key: Room key to place the shopkeeper in.
         name: Display name for the shopkeeper NPC.
-        tradeable_resources: List of int resource IDs this shop trades.
+        inventory: List of int resource IDs this shop trades.
         shop_name: Display name for the shop (shown in list/quote output).
         desc: Description string for the NPC.
     """
@@ -137,11 +137,11 @@ def _spawn_shopkeeper(room_key, name, tradeable_resources, shop_name, desc):
         return None
 
     npc = create.create_object(
-        "typeclasses.actors.npcs.shopkeeper.ShopkeeperNPC",
+        "typeclasses.actors.npcs.resource_shopkeeper.ResourceShopkeeperNPC",
         key=name,
         location=room,
     )
-    npc.tradeable_resources = tradeable_resources
+    npc.inventory = inventory
     npc.shop_name = shop_name
     npc.db.desc = desc
     print(f"  Spawned shopkeeper '{name}' in {room.key} ({room.dbref})")
@@ -385,7 +385,7 @@ def spawn_npcs():
     _spawn_shopkeeper(
         room_key="General Store",
         name="Merchant Harlow",
-        tradeable_resources=[1, 2, 3],  # Wheat, Flour, Bread
+        inventory=[1, 2, 3],  # Wheat, Flour, Bread
         shop_name="Harlow's General Store",
         desc=(
             "Merchant Harlow leans against the counter with an appraising eye, "
@@ -398,7 +398,7 @@ def spawn_npcs():
     _spawn_nft_shopkeeper(
         room_key="Arms Dealer",
         name="Grik",
-        tradeable_item_types=["Training Dagger", "Training Shortsword", "Training Longsword"],
+        inventory=["Training Dagger", "Training Shortsword", "Training Longsword"],
         shop_name="Grik's Blades & Blunts",
         desc=(
             "A wiry goblin with a surprisingly keen business sense perches "
