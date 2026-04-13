@@ -42,6 +42,7 @@ from commands.account_cmds.cmd_subscribe import CmdSubscribe
 from commands.account_cmds.cmd_rebuild_world import CmdRebuildWorld
 from commands.account_cmds.cmd_rebuild_test import CmdRebuildTest
 from commands.account_cmds.cmd_rebuild_zone import CmdRebuildZone
+from commands.account_cmds.cmd_accounts import CmdAccounts
 
 
 class CmdSetAccountCustom(CmdSet):
@@ -94,3 +95,4 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdRebuildWorld())
         self.add(CmdRebuildTest())
         self.add(CmdRebuildZone())
+        self.add(CmdAccounts())
