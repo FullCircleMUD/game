@@ -1,0 +1,11 @@
+[
+    {
+        "typeclass": "typeclasses.actors.mobs.wild_mule.WildMule",
+        "key": "a wild mule",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 43200,
+        "desc": "A stocky wild mule with a dusty brown coat and long ears. It watches you warily but doesn't seem inclined to run."
+    }
+]

@@ -840,14 +840,7 @@ def build_hundred_acre_wood():
         gold=15,
     )
 
-    # Wild Mule — tameable POC in Eeyore's Gloomy Place
-    mob = spawn_mob(
-        "typeclasses.actors.mobs.wild_mule.WildMule",
-        key="a wild mule",
-        location=rooms["r1c5"],
-    )
-
-    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo, 1 Wild Mule.")
+    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")
 
     # ==================================================================
     #  LIBRARY BOOK
@@ -894,5 +887,13 @@ def build_hundred_acre_wood():
 
 def soft_deploy():
     """Wipe and rebuild the Hundred Acre Wood."""
+    from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
+
     clean_hundred_acre_wood()
     build_hundred_acre_wood()
+
+    script = ZoneSpawnScript.create_for_zone("book_hundred_acre_wood")
+    if script:
+        print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
+    else:
+        print("  [!] Failed to create book_hundred_acre_wood spawn script")
