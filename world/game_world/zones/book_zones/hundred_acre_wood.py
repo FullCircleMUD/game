@@ -872,11 +872,14 @@ def build_hundred_acre_wood():
             location=library_children,
         )
         book.book_description = (
-            "You open the worn, honey-stained cover and begin to read. "
+            "You open the worn, honey-stained cover and begin to read."
+            "\n\n"
             "The words blur and swirl before your eyes, and the smell of "
             "the library fades, replaced by warm summer air, the buzzing "
-            "of bees, and the gentle rustling of leaves. The world around "
-            "you dissolves into dappled sunlight and soft green woods..."
+            "of bees, and the gentle rustling of leaves."
+            "\n\n"
+            "The world around you dissolves into dappled sunlight and soft "
+            "green woods..."
         )
         book.book_destination = rooms["entrance"]
         book.tags.add(ZONE, category="zone")

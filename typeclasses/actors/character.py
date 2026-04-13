@@ -206,6 +206,9 @@ class FCMCharacter(
         if self.ndb.is_processing:
             self.msg("You can't leave in the middle of a job! Wait for it to finish.")
             return False
+        if self.ndb.book_transport and move_type != "teleport":
+            self.msg("You are lost in a book and can't move.")
+            return False
         pos = getattr(self, "position", "standing")
         if pos not in ("standing", "fighting"):
             self.msg("You need to stand up first!")

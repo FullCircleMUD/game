@@ -2,9 +2,13 @@
 CmdRead — read a library book and get transported to its themed zone.
 
 Searches the current room for a LibraryBook matching the player's
-argument. If found, shows the book's description text and teleports
-the player to the book's destination zone. Saves the current room
-as the player's recall location.
+argument. If found, shows the book's description text (paragraph by
+paragraph with a 1-second pause between each) and teleports the player
+to the book's destination zone. Saves the current room as the player's
+recall location.
+
+While reading, the player is locked in place — movement and re-reading
+are blocked until the transport completes.
 
 Usage:
     read <book name>
@@ -14,8 +18,12 @@ Example:
 """
 
 from evennia import Command
+from evennia.utils import delay
 
 from commands.command import FCMCommandMixin
+
+
+PARAGRAPH_PAUSE = 1.0
 
 
 class CmdRead(FCMCommandMixin, Command):
@@ -39,11 +47,14 @@ class CmdRead(FCMCommandMixin, Command):
             caller.msg("Read what? Usage: |wread <book name>|n")
             return
 
+        if caller.ndb.book_transport:
+            caller.msg("You are already lost in a book.")
+            return
+
         room = caller.location
         if not room:
             return
 
-        # Search for a LibraryBook in the room
         target = caller.search(
             self.args.strip(),
             location=room,
@@ -52,7 +63,6 @@ class CmdRead(FCMCommandMixin, Command):
         )
 
         if not target:
-            # Try a general search for better error messages
             general = caller.search(self.args.strip(), location=room, quiet=True)
             if general:
                 caller.msg("That's not something you can read.")
@@ -62,7 +72,6 @@ class CmdRead(FCMCommandMixin, Command):
 
         book = target[0] if isinstance(target, list) else target
 
-        # Check destination is set
         destination = book.book_destination
         if not destination:
             caller.msg(
@@ -70,14 +79,36 @@ class CmdRead(FCMCommandMixin, Command):
             )
             return
 
-        # Show the book description
-        desc = book.book_description
-        if desc:
-            caller.msg(f"\n{desc}\n")
+        desc = book.book_description or ""
+        paragraphs = [p.strip() for p in desc.split("\n\n") if p.strip()]
 
-        # Save return location
         caller.db.book_return_location = room
+        caller.ndb.book_transport = True
 
-        # Transport
-        caller.move_to(destination, quiet=True)
-        caller.msg(caller.at_look(destination))
+        if not paragraphs:
+            self._transport(caller, destination)
+            return
+
+        caller.msg(f"\n{paragraphs[0]}\n")
+        for i, paragraph in enumerate(paragraphs[1:], start=1):
+            delay(PARAGRAPH_PAUSE * i, self._show_paragraph, caller, paragraph)
+
+        delay(
+            PARAGRAPH_PAUSE * len(paragraphs),
+            self._transport,
+            caller,
+            destination,
+        )
+
+    @staticmethod
+    def _show_paragraph(caller, paragraph):
+        if not caller.ndb.book_transport:
+            return
+        caller.msg(f"{paragraph}\n")
+
+    @staticmethod
+    def _transport(caller, destination):
+        caller.ndb.book_transport = False
+        if not caller.location:
+            return
+        caller.move_to(destination, quiet=True, move_type="teleport")
