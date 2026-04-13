@@ -25,6 +25,7 @@ Reach counter mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -59,6 +60,9 @@ class SpearMixin:
     """
 
     weapon_type_key = "spear"
+    base_damage = AttributeProperty("d8")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    weight = AttributeProperty(3.0)
     two_handed = AttributeProperty(True)
 
     def get_parries_per_round(self, wielder):

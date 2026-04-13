@@ -23,6 +23,7 @@ Slowing Shot mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -58,6 +59,9 @@ class BowMixin:
     """
 
     weapon_type_key = "bow"
+    base_damage = AttributeProperty("d8")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    weight = AttributeProperty(1.5)
     weapon_type = AttributeProperty("missile")
     range = AttributeProperty(1)
 

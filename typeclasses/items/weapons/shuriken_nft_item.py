@@ -27,6 +27,7 @@ Crit scaling:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -61,6 +62,10 @@ class ShurikenMixin:
     """
 
     weapon_type_key = "shuriken"
+    base_damage = AttributeProperty("d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    speed = AttributeProperty(3)
+    weight = AttributeProperty(0.1)
     weapon_type = AttributeProperty("missile")
     is_finesse = AttributeProperty(True)
     range = AttributeProperty(1)

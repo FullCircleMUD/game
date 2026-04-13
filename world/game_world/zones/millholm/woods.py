@@ -532,6 +532,7 @@ def build_millholm_woods(town_rooms):
             ("process_cost", 1),
             ("recipes", [
                 {"inputs": {6: 1}, "output": 7, "amount": 1, "cost": 1},
+                {"inputs": {40: 1}, "output": 41, "amount": 1, "cost": 3},
             ]),
             ("desc",
              "A packed-earth path leads through the woods into a working "
@@ -563,16 +564,19 @@ def build_millholm_woods(town_rooms):
             ("process_cost", 2),
             ("recipes", [
                 # Basic ore → ingot
-                {"inputs": {4: 1}, "output": 5, "amount": 1, "cost": 2},
+                {"inputs": {4: 1}, "output": 5, "amount": 1, "cost": 4},
                 {"inputs": {23: 1}, "output": 24, "amount": 1, "cost": 2},
                 {"inputs": {25: 1}, "output": 26, "amount": 1, "cost": 2},
                 {"inputs": {27: 1}, "output": 28, "amount": 1, "cost": 2},
-                {"inputs": {30: 1}, "output": 31, "amount": 1, "cost": 2},
+                {"inputs": {30: 1}, "output": 31, "amount": 1, "cost": 5},
+                {"inputs": {39: 1}, "output": 38, "amount": 1, "cost": 6},
                 # Alloys
                 {"inputs": {24: 1, 26: 1}, "output": 32, "amount": 1,
                  "cost": 3},
                 {"inputs": {26: 1, 28: 1}, "output": 29, "amount": 1,
                  "cost": 3},
+                {"inputs": {5: 1, 36: 1}, "output": 37, "amount": 1,
+                 "cost": 5},
             ]),
             ("desc",
              "The path opens into a rough smelting site cut from the "
@@ -625,6 +629,7 @@ def build_millholm_woods(town_rooms):
             ("process_cost", 1),
             ("recipes", [
                 {"inputs": {8: 1}, "output": 9, "amount": 1, "cost": 1},
+                {"inputs": {42: 1}, "output": 43, "amount": 1, "cost": 4},
             ]),
             ("desc",
              "A rough-hewn hut stands among the trees, pelts stretched "

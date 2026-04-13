@@ -25,6 +25,7 @@ Sunder mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -64,6 +65,10 @@ class AxeMixin:
     """
 
     weapon_type_key = "handaxe"
+    base_damage = AttributeProperty("d6")
+    damage_type = AttributeProperty(DamageType.SLASHING)
+    speed = AttributeProperty(2)
+    weight = AttributeProperty(2.0)
 
     # ================================================================== #
     #  Mastery Overrides

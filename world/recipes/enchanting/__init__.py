@@ -9,7 +9,6 @@ from world.recipes.enchanting.pugilists_gloves import *  # noqa: F401,F403
 from world.recipes.enchanting.cowboy_boots import *      # noqa: F401,F403
 from world.recipes.enchanting.title_belt import *        # noqa: F401,F403
 from world.recipes.enchanting.rustlers_chaps import *    # noqa: F401,F403
-from world.recipes.enchanting.shepherds_sling import *   # noqa: F401,F403
 from world.recipes.enchanting.wardens_leather import *   # noqa: F401,F403
 from world.recipes.enchanting.defenders_helm import *    # noqa: F401,F403
 from world.recipes.enchanting.bracers_of_deflection import * # noqa: F401,F403

@@ -22,6 +22,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from enums.unused_for_reference.damage_type import DamageType
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 
 _SHORTSWORD_PARRIES = {
@@ -60,6 +61,10 @@ class ShortswordMixin:
     """
 
     weapon_type_key = "shortsword"
+    base_damage = AttributeProperty("d6")
+    damage_type = AttributeProperty(DamageType.SLASHING)
+    speed = AttributeProperty(2)
+    weight = AttributeProperty(2.0)
     is_finesse = AttributeProperty(True)
     can_dual_wield = AttributeProperty(True)
 

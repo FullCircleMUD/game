@@ -31,6 +31,7 @@ Comparison:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -64,6 +65,8 @@ class StaffMixin:
     """
 
     weapon_type_key = "staff"
+    base_damage = AttributeProperty("d6")
+    weight = AttributeProperty(2.5)
     two_handed = AttributeProperty(True)
     universal_parry = True
 

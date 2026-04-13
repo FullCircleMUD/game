@@ -16,6 +16,7 @@ successful parry). Contrasts with longsword's extra-attack path:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -49,6 +50,9 @@ class RapierMixin:
     """
 
     weapon_type_key = "rapier"
+    base_damage = AttributeProperty("d8")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    weight = AttributeProperty(1.5)
     is_finesse = AttributeProperty(True)
 
     def get_mastery_hit_bonus(self, wielder):

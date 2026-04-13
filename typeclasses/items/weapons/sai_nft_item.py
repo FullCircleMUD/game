@@ -28,6 +28,7 @@ Dual-wieldable. Ninja only.
 import logging
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.actor_size import ActorSize
 from enums.character_class import CharacterClass
@@ -68,6 +69,10 @@ class SaiMixin:
     """
 
     weapon_type_key = "sai"
+    base_damage = AttributeProperty("d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    speed = AttributeProperty(3)
+    weight = AttributeProperty(0.8)
     can_dual_wield = AttributeProperty(True)
 
     # ================================================================== #

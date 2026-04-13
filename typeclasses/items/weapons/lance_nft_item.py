@@ -27,6 +27,7 @@ Prone mechanic (mounted only):
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.actor_size import ActorSize
 from enums.character_class import CharacterClass
@@ -80,6 +81,10 @@ class LanceMixin:
     """
 
     weapon_type_key = "lance"
+    base_damage = AttributeProperty("2d7")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    speed = AttributeProperty(0)
+    weight = AttributeProperty(4.0)
     two_handed = AttributeProperty(True)
 
     # ================================================================== #

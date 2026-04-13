@@ -24,6 +24,7 @@ Knockback mechanic:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from combat.combat_utils import get_actor_size
 from enums.actor_size import ActorSize
@@ -54,6 +55,10 @@ class CrossbowMixin:
     """
 
     weapon_type_key = "crossbow"
+    base_damage = AttributeProperty("d12")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    speed = AttributeProperty(0)
+    weight = AttributeProperty(3.5)
     weapon_type = AttributeProperty("missile")
     range = AttributeProperty(1)
 

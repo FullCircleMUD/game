@@ -17,6 +17,7 @@ Subclass hierarchy:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.wearables.wearable_nft_item import WearableNFTItem

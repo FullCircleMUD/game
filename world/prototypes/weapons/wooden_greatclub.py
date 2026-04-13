@@ -1,5 +1,3 @@
-from enums.unused_for_reference.damage_type import DamageType
-
 WOODEN_GREATCLUB = {
     "prototype_key": "wooden_greatclub",
     "typeclass": "typeclasses.items.weapons.greatclub_nft_item.GreatclubNFTItem",
@@ -12,13 +10,6 @@ WOODEN_GREATCLUB = {
         "enough weight behind it to rattle a target's skull even through a "
         "helmet."
     ),
-    "base_damage": "d10",
     "material": "wood",
-    "damage_type": DamageType.BLUDGEONING,
-    "weapon_type": "melee",
-    "two_handed": True,
-    "speed": 0,
-    "weight": 5.0,
     "max_durability": 2880,
-    "wear_effects": [],
 }

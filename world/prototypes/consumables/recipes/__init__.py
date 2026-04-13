@@ -14,7 +14,6 @@ from world.prototypes.consumables.recipes.iron_longsword_recipe import *        
 from world.prototypes.consumables.recipes.iron_hand_axe_recipe import *            # noqa: F401,F403
 from world.prototypes.consumables.recipes.spear_recipe import *                    # noqa: F401,F403
 from world.prototypes.consumables.recipes.ironbound_shield_recipe import *       # noqa: F401,F403
-from world.prototypes.consumables.recipes.crossbow_recipe import *              # noqa: F401,F403
 from world.prototypes.consumables.recipes.iron_spiked_club_recipe import *     # noqa: F401,F403
 from world.prototypes.consumables.recipes.studded_leather_armor_recipe import * # noqa: F401,F403
 from world.prototypes.consumables.recipes.bronze_dagger_recipe import *          # noqa: F401,F403

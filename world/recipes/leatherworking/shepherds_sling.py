@@ -5,10 +5,9 @@ from enums.skills_enum import skills
 RECIPE_SHEPHERDS_SLING = {
     "recipe_key": "shepherds_sling",
     "name": "Shepherd's Sling",
-    "skill": skills.ENCHANTING,
-    "min_mastery": MasteryLevel.BASIC,
-    "crafting_type": RoomCraftingType.WIZARDS_WORKSHOP,
-    "ingredients": {16: 2},              # 2 Arcane Dust (resource_id 16)
-    "nft_ingredients": {"sling": 1},     # 1 Sling (leatherworker item)
+    "skill": skills.LEATHERWORKER,
+    "min_mastery": MasteryLevel.EXPERT,
+    "crafting_type": RoomCraftingType.LEATHERSHOP,
+    "ingredients": {9: 1},              # 1 Leather (resource_id 9)
     "output_prototype": "shepherds_sling",
 }

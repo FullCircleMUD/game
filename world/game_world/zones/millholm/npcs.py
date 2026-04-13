@@ -1616,9 +1616,11 @@ def _spawn_grik():
     )
     npc.inventory = [
         "Training Dagger", "Training Shortsword", "Training Longsword",
-        "Training Bow", "Training Greatsword", "Training Lance",
-        "Club", "Quarterstaff", "Sling", "Shortbow",
-        "Bronze Spear", "Bronze Mace",
+        "Training Greatsword", "Training Rapier", "Training Battleaxe",
+        "Training Hand Axe", "Training Spear", "Training Lance",
+        "Training Mace", "Training Hammer",
+        "Training Bow", "Training Crossbow", "Training Sling",
+        "Club", "Quarterstaff",
         "Haft", "Shaft",
         "Wooden Torch",
     ]

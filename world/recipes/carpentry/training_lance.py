@@ -6,7 +6,7 @@ RECIPE_TRAINING_LANCE = {
     "recipe_key": "training_lance",
     "name": "Training Lance",
     "skill": skills.CARPENTER,
-    "min_mastery": MasteryLevel.SKILLED,
+    "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.WOODSHOP,
     "ingredients": {7: 6},              # 6 Timber (resource_id 7)
     "output_prototype": "training_lance",

@@ -18,6 +18,7 @@ both DaggerNFTItem (player weapons) and MobDagger (mob weapons).
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
@@ -59,6 +60,10 @@ class DaggerMixin:
     """
 
     weapon_type_key = "dagger"
+    base_damage = AttributeProperty("d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)
+    speed = AttributeProperty(3)
+    weight = AttributeProperty(0.5)
     is_finesse = AttributeProperty(True)
     can_dual_wield = AttributeProperty(True)
 
