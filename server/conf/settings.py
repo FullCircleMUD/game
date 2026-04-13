@@ -314,8 +314,11 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
 
 ######################################################################
 # Settings given in secret_settings.py override those in this file.
+# Skipped when DATABASE_URL is set (e.g. Railway production) — in that
+# environment, secrets come from env vars, not the git-crypt file.
 ######################################################################
-try:
-    from server.conf.secret_settings import *
-except ImportError:
-    print("secret_settings.py file not found or failed to import.")
+if not os.environ.get("DATABASE_URL"):
+    try:
+        from server.conf.secret_settings import *
+    except ImportError:
+        print("secret_settings.py file not found or failed to import.")
