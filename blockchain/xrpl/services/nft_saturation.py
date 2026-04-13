@@ -247,11 +247,14 @@ class NFTSaturationService:
 
     @staticmethod
     def get_unlearned_copy_counts():
-        """Count unlearned scroll/recipe NFTs in player hands.
+        """Count unlearned scroll/recipe NFTs reachable to players.
 
-        Queries NFTGameState for scroll and recipe item types in
-        CHARACTER or ACCOUNT locations. Maps item_type.name back to
-        spell/recipe keys via the item's metadata or name convention.
+        Queries NFTGameState for scroll and recipe item types in any
+        location a player can retrieve them from — CHARACTER/ACCOUNT
+        (already held) plus SPAWNED (sitting in rooms waiting to be
+        picked up). Without SPAWNED the spawn loop would re-fire every
+        cycle on scrolls it already dropped last cycle, flooding the
+        world with duplicates before any player picks one up.
 
         Returns:
             (scroll_counts, recipe_counts) — both defaultdict(int)
@@ -260,19 +263,20 @@ class NFTSaturationService:
         scroll_counts = defaultdict(int)
         recipe_counts = defaultdict(int)
 
-        player_locations = [
+        reachable_locations = [
             NFTGameState.LOCATION_CHARACTER,
             NFTGameState.LOCATION_ACCOUNT,
+            NFTGameState.LOCATION_SPAWNED,
         ]
 
-        # Scroll NFTs in player hands
+        # Scroll NFTs reachable to players
         scroll_types = NFTItemType.objects.filter(
             typeclass=SCROLL_TYPECLASS
         )
         if scroll_types.exists():
             scroll_nfts = (
                 NFTGameState.objects.filter(
-                    location__in=player_locations,
+                    location__in=reachable_locations,
                     item_type__in=scroll_types,
                 )
                 .values("item_type__name")
@@ -281,14 +285,14 @@ class NFTSaturationService:
             for row in scroll_nfts:
                 scroll_counts[row["item_type__name"]] += row["count"]
 
-        # Recipe NFTs in player hands
+        # Recipe NFTs reachable to players
         recipe_types = NFTItemType.objects.filter(
             typeclass=RECIPE_TYPECLASS
         )
         if recipe_types.exists():
             recipe_nfts = (
                 NFTGameState.objects.filter(
-                    location__in=player_locations,
+                    location__in=reachable_locations,
                     item_type__in=recipe_types,
                 )
                 .values("item_type__name")
