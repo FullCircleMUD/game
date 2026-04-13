@@ -262,7 +262,7 @@ _SKILL_DESCRIPTIONS = {
         "safely disable traps on chests, doors, and rooms."
     ),
     skills.STAB: (
-        "Backstab — a devastating sneak attack. Strike from stealth or when "
+        "Stab — a devastating sneak attack. Strike from stealth or when "
         "you have advantage for massive bonus damage. Requires a finesse "
         "weapon (dagger, shortsword, ninjato). Bonus dice scale from +2d6 at "
         "BASIC to +10d6 at GM. Crits double the bonus. Cooldown shortens "

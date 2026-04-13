@@ -69,7 +69,7 @@ THIEF = CharClassBase(
     description=(
         "Thieves are versatile adventurers who rely on skill, cunning, and "
         "stealth rather than brute force. They excel in a wide variety of "
-        "abilities from lockpicking to backstabbing, making them invaluable "
+        "abilities from lockpicking to stabbing from the shadows, making them invaluable "
         "for overcoming obstacles and gathering information."
     ),
     level_progression=PROGRESSION,

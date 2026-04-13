@@ -146,7 +146,7 @@ _WEAPON_DESCRIPTIONS = {
         "A small blade for quick stabs (d4). One-handed, finesse, "
         "dual-wieldable. Fastest weapon — extra attacks from SKILLED+, "
         "off-hand attacks at MASTER+. Crit threshold reduction at EXPERT+. "
-        "Low damage per hit, high volume. Required for backstab."
+        "Low damage per hit, high volume. Required for stab."
     ),
     WeaponType.LANCE: (
         "A mounted combat weapon (2d7). Two-handed. Devastating on "
