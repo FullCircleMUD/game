@@ -131,4 +131,7 @@ class CmdRead(FCMCommandMixin, Command):
         caller.ndb.book_transport = False
         if not caller.location:
             return
+        followers = caller.get_followers(same_room=True)
         caller.move_to(destination, quiet=True, move_type="teleport")
+        for follower in followers:
+            follower.move_to(destination, quiet=True, move_type="teleport")
