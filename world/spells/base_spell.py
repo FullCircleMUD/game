@@ -67,11 +67,32 @@ class Spell:
         school      — skills enum member (e.g. skills.EVOCATION) or string
         min_mastery — minimum MasteryLevel to learn/cast
         mana_cost   — dict {mastery_tier_int: mana_cost}
-        target_type — "hostile", "friendly", "self", or "none"
+        target_type — see below
         spell_range — "self", "melee", or "ranged" (height gating)
         cooldown    — rounds of cooldown after casting (None = use default)
         description — short flavour text shown in spellbook/spellinfo
         mechanics   — multi-line rules/scaling text for spellinfo
+
+    target_type values:
+        Actor targets (resolved via caller.search() in cmd_cast / cmd_zap):
+            "hostile"  — an enemy in the room (target required)
+            "friendly" — an ally in the room (defaults to self if blank)
+            "self"     — the caster, always
+            "none"     — no target needed
+            "any"      — any actor in the room
+
+        Item targets (resolved via spell_utils.resolve_item_target):
+            "inventory_item" — an NFT item in the caster's own contents
+                               (e.g. Recharge, Mending, Enchant Weapon)
+            "world_item"     — an object or exit in the caster's room,
+                               visibility-filtered (e.g. Knock on a door
+                               or chest)
+            "any_item"       — try world_item first, then inventory_item
+
+        Item-target spells receive the resolved item as ``target`` in
+        ``_execute()`` and dispatch on it via duck-typing rather than
+        isinstance. The caller never sees the resolution failure
+        message — the helper sends it directly.
     """
 
     key = ""

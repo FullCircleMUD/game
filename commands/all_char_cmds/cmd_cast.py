@@ -14,6 +14,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from world.spells.registry import get_spell, SPELL_REGISTRY
+from world.spells.spell_utils import resolve_item_target
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -137,6 +138,13 @@ class CmdCast(FCMCommandMixin, Command):
             target = caller.search(target_str)
             if not target:
                 return
+        elif spell_match.target_type in ("inventory_item", "world_item", "any_item"):
+            if not target_str:
+                caller.msg(f"Cast {spell_match.name} on what?")
+                return
+            target = resolve_item_target(caller, target_str, spell_match.target_type)
+            if not target:
+                return  # error message already sent
 
         # Cast the spell
         success, result = spell_match.cast(caller, target, spell_arg=spell_arg)

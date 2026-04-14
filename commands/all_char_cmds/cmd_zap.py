@@ -37,6 +37,7 @@ from enums.condition import Condition
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.wand_nft_item import WandNFTItem
 from world.spells.registry import SPELL_REGISTRY
+from world.spells.spell_utils import resolve_item_target
 
 
 class CmdZap(FCMCommandMixin, Command):
@@ -114,6 +115,13 @@ class CmdZap(FCMCommandMixin, Command):
             target = caller.search(target_str)
             if not target:
                 return
+        elif spell.target_type in ("inventory_item", "world_item", "any_item"):
+            if not target_str:
+                caller.msg(f"Zap {spell.name} at what?")
+                return
+            target = resolve_item_target(caller, target_str, spell.target_type)
+            if not target:
+                return  # error message already sent
 
         # ── 4. Cast via the bound spell, with wand overrides ─
         # Force the caster tier to the spell's base min_mastery, and
