@@ -5,6 +5,7 @@ from evennia.utils.utils import delay
 from enums.condition import Condition
 from enums.death_cause import DeathCause
 from enums.hunger_level import HungerLevel
+from enums.thirst_level import ThirstLevel
 from enums.alignment import Alignment
 from typeclasses.actors.races import Race
 from typeclasses.actors.base_actor import BaseActor
@@ -150,6 +151,12 @@ class FCMCharacter(
     # on the next hunger cycle it gets set to false
     # and from then on all hunger processing is normal
     hunger_free_pass_tick: bool = False
+
+    # Thirst meter — sister to hunger, ticked by SurvivalService on the same
+    # interval. 12 stages from REFRESHED down to CRITICAL (twice the range
+    # of hunger so a full canteen lasts proportionally longer).
+    thirst_level = AttributeProperty(ThirstLevel.REFRESHED)
+    thirst_free_pass_tick: bool = False
 
     # need to think through how banks will work
     # bank_contents: Optional[BankContents] = Field(default=None, exclude=True)
@@ -835,9 +842,11 @@ class FCMCharacter(
             if amt > 0:
                 self.transfer_resource_to(corpse, rid, amt)
 
-        # 8. Reset hunger to full with free tick (prevent immediate re-starvation)
+        # 8. Reset hunger and thirst to full with free tick (prevent immediate re-death)
         self.hunger_level = HungerLevel.FULL
         self.hunger_free_pass_tick = True
+        self.thirst_level = ThirstLevel.REFRESHED
+        self.thirst_free_pass_tick = True
 
         # 9. XP penalty — lose 5% of total experience (no level loss)
         xp_penalty = int(self.experience_points * self.DEATH_XP_PENALTY)
@@ -1169,16 +1178,73 @@ class FCMCharacter(
     # ── Prompt ──────────────────────────────────────────────────────
 
     _PROMPT_TOKENS = {
-        "%h": lambda s: str(s.hp),
+        # Vitals (longest-prefix first so %H doesn't clobber %h etc.)
         "%H": lambda s: str(s.effective_hp_max),
-        "%m": lambda s: str(s.mana),
         "%M": lambda s: str(s.mana_max),
-        "%v": lambda s: str(s.move),
         "%V": lambda s: str(s.move_max),
+        "%h": lambda s: str(s.hp),
+        "%m": lambda s: str(s.mana),
+        "%v": lambda s: str(s.move),
+        # Autowarn (colour-forced)
+        "%i": lambda s: s._autowarn_colour(s.hp, s.effective_hp_max),
+        "%n": lambda s: s._autowarn_colour(s.mana, s.mana_max),
+        "%w": lambda s: s._autowarn_colour(s.move, s.move_max),
+        "%s": lambda s: s._prompt_self_status(),
+        # World / character
+        "%A": lambda s: s._prompt_alignment(),
+        "%a": lambda s: str(s.effective_ac),
+        "%C": lambda s: (s.position or "standing").capitalize(),
+        "%T": lambda s: s._prompt_time_of_day(),
         "%g": lambda s: str(s.get_gold()),
         "%x": lambda s: str(getattr(s.db, "xp", 0) or 0),
         "%l": lambda s: str(s.get_level()),
+        "%r": lambda s: "\n",
+        # Battle-only (empty string outside combat)
+        "%f": lambda s: s._prompt_target_name(),
+        "%c": lambda s: s._prompt_target_condition(),
     }
+
+    def _autowarn_colour(self, current, maximum):
+        """Wrap a numeric vital in forced |g/|y/|r based on ratio."""
+        if maximum <= 0:
+            return str(current)
+        ratio = current / maximum
+        if ratio >= 0.66:
+            return f"|g{current}|n"
+        if ratio >= 0.33:
+            return f"|y{current}|n"
+        return f"|r{current}|n"
+
+    def _prompt_self_status(self):
+        from utils.health_desc import health_description
+        return health_description(self.hp, self.effective_hp_max)
+
+    def _prompt_alignment(self):
+        alignment = getattr(self, "alignment", None)
+        if alignment is None:
+            return "Neutral"
+        return getattr(alignment, "value", str(alignment))
+
+    def _prompt_time_of_day(self):
+        from typeclasses.scripts.day_night_service import get_time_of_day
+        return get_time_of_day().value.capitalize()
+
+    def _prompt_current_target(self):
+        target = getattr(self.ndb, "combat_target", None)
+        if target and getattr(target, "hp", 0) > 0:
+            return target
+        return None
+
+    def _prompt_target_name(self):
+        target = self._prompt_current_target()
+        return target.key if target else ""
+
+    def _prompt_target_condition(self):
+        target = self._prompt_current_target()
+        if not target:
+            return ""
+        from utils.health_desc import health_description
+        return health_description(target.hp, target.effective_hp_max)
 
     def get_prompt(self):
         """Build the text prompt string from the player's format template."""

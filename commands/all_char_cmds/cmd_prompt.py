@@ -15,12 +15,23 @@ from commands.command import FCMCommandMixin
 DEFAULT_PROMPT = "%hH %mM %vV > "
 
 TOKEN_HELP = (
-    "|wAvailable tokens:|n\n"
+    "|wVitals:|n\n"
     "  %h  Current HP        %H  Max HP\n"
     "  %m  Current Mana      %M  Max Mana\n"
     "  %v  Current Move      %V  Max Move\n"
+    "\n"
+    "|wAutowarn (forced colour):|n\n"
+    "  %i  HP                %n  Mana\n"
+    "  %w  Move              %s  Self status (e.g. \"wounded\")\n"
+    "\n"
+    "|wCharacter / World:|n\n"
     "  %g  Gold carried      %x  XP\n"
-    "  %l  Level"
+    "  %l  Level             %a  Armor class\n"
+    "  %A  Alignment         %C  Current position\n"
+    "  %T  Time of day       %r  Newline\n"
+    "\n"
+    "|wBattle only (empty outside combat):|n\n"
+    "  %f  Target name       %c  Target condition"
 )
 
 
