@@ -195,4 +195,32 @@ def spawn_test_items():
     else:
         print("  ! Outside Castle Wall not found — skipping ring")
 
+    # --- Mages Guild: Scroll of Knock + a locked chest to practice on ---
+    print("\n--- Mages Guild Scrolls + Knock Target ---\n")
+    mages_guild = _find_room("Mages Guild Entrance")
+    if mages_guild:
+        # Spell scroll so a mage can learn Knock on-site
+        spawn_nft_item("Scroll of Knock", mages_guild)
+
+        # A simple locked chest with no matching key anywhere — only way
+        # to open it is with the Knock spell. lock_dc=10 keeps it within
+        # a SKILLED caster's tier ceiling.
+        practice_chest = create_object(
+            WorldChest, key="warded practice chest", location=mages_guild,
+        )
+        practice_chest.is_locked = True
+        practice_chest.is_open = False
+        practice_chest.lock_dc = 10
+        practice_chest.key_tag = None  # no matching key exists
+        practice_chest.db.desc = (
+            "A squat iron chest placed against the wall for apprentice "
+            "mages to practice the Knock spell on. A small brass plaque "
+            "reads: 'For Training Only — Do Not Smash.'"
+        )
+        # Put a token reward inside
+        practice_chest.receive_gold_from_reserve(10)
+        print(f"  Spawned Scroll of Knock and practice chest in {mages_guild.key}")
+    else:
+        print("  ! Mages Guild Entrance not found — skipping Knock content")
+
     print("\n=== Done ===\n")
