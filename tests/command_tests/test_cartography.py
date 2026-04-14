@@ -559,6 +559,57 @@ class TestDistrictMapNFTItem(_RoomBaseMixin, EvenniaTest):
         result = item.get_display_name(looker=self.char1)
         self.assertIn("%", result)
 
+    # ── record_survey_points — mirror metadata persistence ───────────────
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_persists_to_mirror(self, mock_update):
+        item = self._make()
+        item.token_id = 9101
+        mock_update.reset_mock()
+
+        item.record_survey_points(["room_a", "room_b"])
+
+        self.assertIn("room_a", item.surveyed_points)
+        self.assertIn("room_b", item.surveyed_points)
+        mock_update.assert_called_once()
+        args = mock_update.call_args[0]
+        self.assertEqual(args[0], 9101)
+        # Points persisted as a sorted list (sets aren't JSON-serializable)
+        self.assertEqual(args[1]["surveyed_points"], ["room_a", "room_b"])
+        # completion_pct derived from FAKE_MAP_DEF (4 cells) — 2 surveyed = 50
+        self.assertEqual(args[1]["completion_pct"], 50)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_duplicate_is_noop(self, mock_update):
+        item = self._make(surveyed={"room_a"})
+        item.token_id = 9102
+        mock_update.reset_mock()
+
+        item.record_survey_points(["room_a"])  # already surveyed
+
+        mock_update.assert_not_called()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_empty_iterable_is_noop(self, mock_update):
+        item = self._make()
+        item.token_id = 9103
+        mock_update.reset_mock()
+
+        item.record_survey_points([])
+
+        mock_update.assert_not_called()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_mixed_new_and_duplicate_persists(self, mock_update):
+        item = self._make(surveyed={"room_a"})
+        item.token_id = 9104
+        mock_update.reset_mock()
+
+        item.record_survey_points(["room_a", "room_b"])  # one new
+
+        mock_update.assert_called_once()
+        self.assertIn("room_b", item.surveyed_points)
+
 
 # ══════════════════════════════════════════════════════════════════════════
 #  5. CmdSurvey — Gate Checks

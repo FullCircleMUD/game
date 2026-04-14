@@ -30,22 +30,33 @@ class OwnedWorldObjectMixin:
 
     def set_world_location(self, room):
         """
-        Update the in-world position and persist to XRPL token URI metadata.
+        Update the in-world position and persist to the NFT mirror metadata
+        (exposed to XRPL marketplaces via the nft_api HTTP endpoint).
 
         Args:
-            room: the room object (dock, stable, kennel, etc.)
+            room: the room object (dock, stable, kennel, etc.), or None to clear.
         """
         self.db.world_location = room
-        self._persist_location_to_uri()
+        self._persist_location_metadata()
 
-    def _persist_location_to_uri(self):
+    def _persist_location_metadata(self):
         """
-        Write db.world_location to the XRPL token URI so the location
-        survives withdraw/re-import and is visible on external marketplaces.
+        Write db.world_location into NFTGameState.metadata so the nft_api
+        HTTP endpoint exposes it to XRPL marketplaces as an XLS-24d attribute,
+        and so it survives chain export/import cycles (the mirror row is keyed
+        by nftoken_id and persists across round-trips).
 
-        Stub — wired up when XRPL URI write support is added to NFTService.
+        Flattens the room reference to stable JSON-serializable fields —
+        dbref (canonical within a server) and key (human-readable label
+        visible on marketplaces).
         """
-        pass
+        room = self.db.world_location
+        patch = {
+            "world_location_dbref": room.id if room else None,
+            "world_location_name": room.key if room else None,
+        }
+        # persist_metadata is provided by NFTMirrorMixin via BaseNFTItem
+        self.persist_metadata(patch)
 
     def get_world_location_display(self):
         """Return a human-readable description of where this object is."""

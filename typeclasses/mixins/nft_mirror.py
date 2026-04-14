@@ -506,6 +506,24 @@ class NFTMirrorMixin(CharacterKeyMixin):
         from blockchain.xrpl.services.nft import NFTService
         return NFTService.get_nft(token_id)
 
+    def persist_metadata(self, patch):
+        """
+        Patch mirror DB metadata for this NFT. Values must be JSON-serializable
+        (str/int/float/bool/list/dict of same). Pass None to delete a key.
+
+        No-op if the instance has no token_id yet (e.g. during creation,
+        before assign_to_blank_token has run). Errors are logged but not
+        raised — metadata persistence is best-effort and must not break
+        gameplay.
+        """
+        if self.token_id is None:
+            return
+        from blockchain.xrpl.services.nft import NFTService
+        try:
+            NFTService.update_metadata(self.token_id, patch)
+        except Exception as err:
+            self._log_error("update_metadata", err)
+
     def _log_error(self, operation, err):
         """Log a mirror update failure."""
         print(f"  NFT mirror {operation} failed for #{self.token_id}: {err}")
