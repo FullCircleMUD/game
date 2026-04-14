@@ -14,6 +14,7 @@ from django.conf import settings
 from blockchain.xrpl.currency_cache import get_resource_type
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 from typeclasses.items.base_nft_item import BaseNFTItem
+from typeclasses.items.untakeables.world_anchored_nft_item import WorldAnchoredNFTItem
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -42,7 +43,16 @@ class CmdBank(Command):
         # --- Collect bank contents ---
         gold = bank.get_gold()
         resources = bank.db.resources or {}
-        nft_items = [obj for obj in bank.contents if isinstance(obj, BaseNFTItem)]
+        all_nfts = [obj for obj in bank.contents if isinstance(obj, BaseNFTItem)]
+        # Split BaseNFTItem instances into regular items vs world-anchored
+        # (ships, future property). Ships have their own section so they
+        # don't clutter the regular Items list.
+        nft_items = [
+            obj for obj in all_nfts if not isinstance(obj, WorldAnchoredNFTItem)
+        ]
+        ships = [
+            obj for obj in all_nfts if isinstance(obj, WorldAnchoredNFTItem)
+        ]
         stabled_pets = [
             obj for obj in bank.contents if getattr(obj, "is_pet", False)
         ]
@@ -52,6 +62,7 @@ class CmdBank(Command):
             or any(v > 0 for v in resources.values())
             or nft_items
             or stabled_pets
+            or ships
         )
 
         if not has_anything:
@@ -106,10 +117,16 @@ class CmdBank(Command):
                 hp_str = f" — {hp}/{hp_max} HP" if hp is not None and hp_max else ""
                 lines.append(f"  {pet.key}{type_str}{hp_str}")
 
-        # Ships (placeholder — ship banking not yet implemented)
-        lines.append("")
-        lines.append("|wShips:|n")
-        lines.append("  |x(to be developed)|n")
+        # Ships (and future world-anchored items like property)
+        if ships:
+            lines.append("")
+            lines.append("|wShips:|n")
+            for ship in ships:
+                if hasattr(ship, "get_owned_display"):
+                    lines.append(ship.get_owned_display())
+                else:
+                    token_label = f" |w[#{ship.id}]|n" if ship.token_id else ""
+                    lines.append(f"  {ship.key}{token_label}")
 
         lines.append("")
         lines.append(
