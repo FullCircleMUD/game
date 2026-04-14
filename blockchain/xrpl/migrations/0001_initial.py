@@ -301,6 +301,12 @@ NFT_ITEM_TYPES = [
     {"name": "Ironwood Haft", "typeclass": _BASE_TC, "prototype_key": "ironwood_haft", "description": "A short, extremely dense ironwood handle. Used by master crafters for high-tier weapon hafts."},
     {"name": "Ironwood Stock", "typeclass": _BASE_TC, "prototype_key": "ironwood_stock", "description": "A shaped ironwood stock for high-tier crossbow mechanisms."},
     {"name": "Ironwood Shaft", "typeclass": _BASE_TC, "prototype_key": "ironwood_shaft", "description": "A long, straight shaft of dense ironwood. Used for high-tier spears and lances."},
+    # Blank wands — carpenter-made components waiting to be enchanted by a mage
+    {"name": "Training Wand", "typeclass": _BASE_TC, "prototype_key": "training_wand", "description": "A straight length of timber carved into an inert wand. Inputs to a basic-tier mage enchantment."},
+    {"name": "Apprentice's Wand", "typeclass": _BASE_TC, "prototype_key": "apprentices_wand", "description": "A well-seasoned timber wand carved with care. Inputs to a skilled-tier mage enchantment."},
+    {"name": "Wizard's Wand", "typeclass": _BASE_TC, "prototype_key": "wizards_wand", "description": "An ironwood wand inlaid with silver rings. Inputs to an expert-tier mage enchantment."},
+    {"name": "Master's Wand", "typeclass": _BASE_TC, "prototype_key": "masters_wand", "description": "A masterwork ironwood wand bound with bronze wire and capped with polished stone. Inputs to a master-tier mage enchantment."},
+    {"name": "Archmage's Wand", "typeclass": _BASE_TC, "prototype_key": "archmages_wand", "description": "A flawless ironwood wand set with a single polished gem at the base. Inputs to a grandmaster-tier mage enchantment."},
     {"name": "Leather Straps", "typeclass": _BASE_TC, "prototype_key": "leather_straps", "description": "Tough strips of leather cut for binding and reinforcement."},
     # ── Wearables ──
     {"name": "Leather Gloves", "typeclass": _WEARABLE_TC, "prototype_key": "leather_gloves", "description": "Sturdy leather gloves with reinforced palms.", "tracking_token": "PLeatherGloves"},
@@ -408,6 +414,12 @@ NFT_ITEM_TYPES = [
     {"name": "Training Greatsword Recipe", "typeclass": _RECIPE_TC, "prototype_key": "training_greatsword_recipe", "description": "A scroll detailing how to carve a heavy two-handed practice sword from timber."},
     {"name": "Shaft Recipe", "typeclass": _RECIPE_TC, "prototype_key": "shaft_recipe", "description": "A scroll showing how to shape a long, straight timber shaft."},
     {"name": "Haft Recipe", "typeclass": _RECIPE_TC, "prototype_key": "haft_recipe", "description": "A scroll showing how to shape timber into a sturdy handle for axes and maces."},
+    # Blank wand recipe scrolls — carpenter's ladder for producing mage wand blanks
+    {"name": "Training Wand Recipe", "typeclass": _RECIPE_TC, "prototype_key": "training_wand_recipe", "description": "A scroll describing how to carve a simple training wand from a length of timber."},
+    {"name": "Apprentice's Wand Recipe", "typeclass": _RECIPE_TC, "prototype_key": "apprentices_wand_recipe", "description": "A scroll detailing how to season and carve timber into a well-balanced apprentice's wand."},
+    {"name": "Wizard's Wand Recipe", "typeclass": _RECIPE_TC, "prototype_key": "wizards_wand_recipe", "description": "A scroll explaining how to turn ironwood and inlay silver rings to produce a wizard's wand."},
+    {"name": "Master's Wand Recipe", "typeclass": _RECIPE_TC, "prototype_key": "masters_wand_recipe", "description": "A scroll describing the masterwork techniques for turning and binding a master's wand."},
+    {"name": "Archmage's Wand Recipe", "typeclass": _RECIPE_TC, "prototype_key": "archmages_wand_recipe", "description": "A scroll detailing the grandmaster techniques for crafting an archmage's wand."},
     {"name": "Iron Dagger Recipe", "typeclass": _RECIPE_TC, "prototype_key": "iron_dagger_recipe", "description": "A scroll describing how to forge a small iron dagger."},
     {"name": "Iron Shortsword Recipe", "typeclass": _RECIPE_TC, "prototype_key": "iron_shortsword_recipe", "description": "A scroll with instructions for forging an iron shortsword."},
     {"name": "Iron Spear Recipe", "typeclass": _RECIPE_TC, "prototype_key": "iron_spear_recipe", "description": "A scroll explaining how to fit an iron head to a wooden shaft to make a spear."},

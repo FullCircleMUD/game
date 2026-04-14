@@ -746,3 +746,145 @@ class TestCmdCraftPotionScaling(EvenniaCommandTest):
         self.assertEqual(mock_item.potion_effects,
                          [{"type": "restore", "stat": "hp", "dice": "6d4+3"}])
         self.assertEqual(mock_item.duration, 0)
+
+
+# ── Blank Wand Crafting (Phase 1 of the wand system) ────────────────
+
+
+def _learn_recipe(char, recipe_key):
+    """Teach an arbitrary recipe to the character."""
+    if not char.db.recipe_book:
+        char.db.recipe_book = {}
+    char.db.recipe_book[recipe_key] = True
+
+
+class TestCmdCraftBlankWands(EvenniaCommandTest):
+    """Test that carpenters can craft blank wands at each tier.
+
+    Phase 1 only validates that the 5 recipes exist and produce the
+    expected NFTItemType names. The blank wands are inert BaseNFTItem
+    components — their only role is to feed Phase 2 (future mage
+    enchantment). Each test patches the NFT spawn helpers so we don't
+    depend on the blank-token pool during unit tests.
+    """
+
+    databases = "__all__"
+    room_typeclass = "typeclasses.terrain.rooms.room_crafting.RoomCrafting"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.db.crafting_type = "woodshop"
+        self.room1.db.mastery_level = 5  # allow any tier recipe
+        self.room1.db.craft_cost = 2
+
+    def _prepare(self, mastery, recipe_key, resources):
+        """Give the character skill + recipe + inputs for a single test."""
+        _give_carpenter_skill(self.char1, mastery=mastery)
+        _learn_recipe(self.char1, recipe_key)
+        _give_resources(self.char1, resources)
+        _give_gold(self.char1, 100)
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_craft_training_wand_basic(self, mock_assign, mock_spawn, mock_delay):
+        """A BASIC carpenter crafts a Training Wand from 1 Timber."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self._prepare(MasteryLevel.BASIC, "training_wand", {7: 3})
+        self.call(CmdCraft(), "training wand", inputs=["y"])
+
+        mock_assign.assert_called_once_with("Training Wand")
+        mock_spawn.assert_called_once_with(TOKEN_ID, self.char1)
+        self.assertEqual(self.char1.get_resource(7), 2)  # 3 - 1
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_craft_apprentices_wand_skilled(self, mock_assign, mock_spawn, mock_delay):
+        """A SKILLED carpenter crafts an Apprentice's Wand from 1 Timber."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self._prepare(MasteryLevel.SKILLED, "apprentices_wand", {7: 3})
+        self.call(CmdCraft(), "apprentice's wand", inputs=["y"])
+
+        mock_assign.assert_called_once_with("Apprentice's Wand")
+        self.assertEqual(self.char1.get_resource(7), 2)
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_craft_wizards_wand_expert_ironwood(self, mock_assign, mock_spawn, mock_delay):
+        """An EXPERT carpenter crafts a Wizard's Wand from 1 Ironwood Timber."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self._prepare(MasteryLevel.EXPERT, "wizards_wand", {41: 3})
+        self.call(CmdCraft(), "wizard's wand", inputs=["y"])
+
+        mock_assign.assert_called_once_with("Wizard's Wand")
+        self.assertEqual(self.char1.get_resource(41), 2)
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_craft_masters_wand_master_ironwood(self, mock_assign, mock_spawn, mock_delay):
+        """A MASTER carpenter crafts a Master's Wand from 1 Ironwood Timber."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self._prepare(MasteryLevel.MASTER, "masters_wand", {41: 3})
+        self.call(CmdCraft(), "master's wand", inputs=["y"])
+
+        mock_assign.assert_called_once_with("Master's Wand")
+        self.assertEqual(self.char1.get_resource(41), 2)
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_craft_archmages_wand_gm_ironwood(self, mock_assign, mock_spawn, mock_delay):
+        """A GRANDMASTER carpenter crafts an Archmage's Wand from 1 Ironwood Timber."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self._prepare(MasteryLevel.GRANDMASTER, "archmages_wand", {41: 3})
+        self.call(CmdCraft(), "archmage's wand", inputs=["y"])
+
+        mock_assign.assert_called_once_with("Archmage's Wand")
+        self.assertEqual(self.char1.get_resource(41), 2)
+
+    def test_basic_carpenter_cannot_craft_apprentices_wand(self):
+        """Mastery gate — BASIC carpenter is rejected for SKILLED recipe."""
+        # Room mastery must be high enough, otherwise room is the gate, not skill.
+        _give_carpenter_skill(self.char1, mastery=MasteryLevel.BASIC)
+        _learn_recipe(self.char1, "apprentices_wand")
+        _give_resources(self.char1, {7: 3})
+        _give_gold(self.char1, 100)
+
+        result = self.call(CmdCraft(), "apprentice's wand")
+        # Error wording: "You need at least SKILLED mastery in Carpenter ..."
+        self.assertIn("skilled mastery", result.lower())
+
+    def test_wizards_wand_rejects_regular_timber(self):
+        """EXPERT carpenter with regular Timber cannot craft a Wizard's Wand."""
+        _give_carpenter_skill(self.char1, mastery=MasteryLevel.EXPERT)
+        _learn_recipe(self.char1, "wizards_wand")
+        # Only regular Timber (id 7), no Ironwood Timber (id 41).
+        _give_resources(self.char1, {7: 5})
+        _give_gold(self.char1, 100)
+
+        result = self.call(CmdCraft(), "wizard's wand")
+        # Error wording: "You don't have enough materials ... Ironwood Timber (have 0)"
+        self.assertIn("ironwood timber", result.lower())
+        self.assertIn("have 0", result.lower())
