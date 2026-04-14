@@ -69,6 +69,11 @@ QUEST_ACTIVE_CONTEXT = (
     "YOUR GOAL: A brief nod of acknowledgement. If they seem lost, "
     "remind them you need 4 Timber — wood gets cut into timber at the "
     "sawmill. Don't hover. They'll get it done or they won't.\n\n"
+    "IF THEY CLAIM TO HAVE THE TIMBER: If the player says they've "
+    "brought the timber, have the timber, got it, etc., tell them to "
+    "type |wquest|n to hand it over — that's how the delivery gets "
+    "logged. A curt 'Good. Type quest and we'll be square.' or similar. "
+    "Don't go soft on them; stay in character.\n\n"
     f"{_COMMON_RULES}"
 )
 
