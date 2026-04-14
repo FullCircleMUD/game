@@ -59,6 +59,12 @@ def _get_visible_characters(room, looker):
                 continue
             if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
                 continue
+        # Height-gated visibility — canopy mobs invisible to ground-level lookers
+        if (
+            hasattr(char, "is_height_visible_to")
+            and not char.is_height_visible_to(looker)
+        ):
+            continue
         names.append(char.get_display_name(looker))
     return names
 
