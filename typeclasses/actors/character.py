@@ -1188,6 +1188,43 @@ class FCMCharacter(
                 fmt = fmt.replace(token, resolver(self))
         return fmt
 
+    def msg(self, text=None, from_obj=None, session=None, options=None, **kwargs):
+        """DikuMUD-style inline prompt: any text output schedules a bare
+        prompt line to be appended after the current reactor tick.
+        Debounced via ndb flag + reactor.callLater(0, ...) so a burst of
+        msg() calls in the same synchronous path yields exactly one
+        trailing prompt.
+        """
+        super().msg(
+            text=text,
+            from_obj=from_obj,
+            session=session,
+            options=options,
+            **kwargs,
+        )
+        if text is None:
+            return
+        if getattr(self.ndb, "_prompt_scheduled", False):
+            return
+        if not getattr(self, "prompt_active", True):
+            return
+        if self.sessions.count() == 0:
+            return
+        from twisted.internet import reactor
+
+        if not reactor.running:
+            return  # test harness — no reactor loop, don't schedule
+        self.ndb._prompt_scheduled = True
+        reactor.callLater(0, self._emit_inline_prompt)
+
+    def _emit_inline_prompt(self):
+        """Deferred-tick hook: flush one bare prompt line to scrollback."""
+        self.ndb._prompt_scheduled = False
+        if self.sessions.count() == 0:
+            return
+        # Bypass our own msg() override to avoid re-scheduling.
+        super().msg(text=self.get_prompt())
+
     # ── OOB Vitals ─────────────────────────────────────────────────
 
     def send_vitals_update(self):

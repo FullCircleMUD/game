@@ -52,6 +52,22 @@ class FCMCommandMixin:
                 "In your dreams or what? Try |wstand|n or |wwake|n."
             )
             return True  # abort command
+        from twisted.internet import reactor
+
+        caller = self.caller
+        raw = (self.raw_string or "").rstrip("\r\n")
+        if (
+            reactor.running
+            and raw
+            and hasattr(caller, "get_prompt")
+            and getattr(caller, "prompt_active", True)
+        ):
+            # Echo typed command inline. Flag the debounce so the msg()
+            # override doesn't queue a bare prompt for this echo line —
+            # the next real output from the command will re-queue.
+            caller.ndb._prompt_scheduled = True
+            caller.msg(f"{caller.get_prompt()}> {raw}")
+            caller.ndb._prompt_scheduled = False
         return super().at_pre_cmd()
 
     def at_post_cmd(self):
