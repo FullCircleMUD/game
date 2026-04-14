@@ -179,6 +179,8 @@ _TORCH_TC = "typeclasses.items.holdables.torch_nft_item.TorchNFTItem"
 _LANTERN_TC = "typeclasses.items.holdables.lantern_nft_item.LanternNFTItem"
 _DISTRICT_MAP_TC = "typeclasses.items.maps.district_map_nft_item.DistrictMapNFTItem"
 _ROUTE_MAP_TC = "typeclasses.items.maps.route_map_nft_item.RouteMapNFTItem"
+_CANTEEN_TC = "typeclasses.items.water_containers.canteen_nft_item.CanteenNFTItem"
+_CASK_TC = "typeclasses.items.water_containers.cask_nft_item.CaskNFTItem"
 _MULE_TC = "typeclasses.actors.pets.mule.Mule"
 _WAR_DOG_TC = "typeclasses.actors.pets.war_dog.WarDog"
 _HORSE_PET_TC = "typeclasses.actors.pets.horse.Horse"
@@ -343,6 +345,9 @@ NFT_ITEM_TYPES = [
     # ── Containers ──
     {"name": "Backpack", "typeclass": _CONTAINER_TC, "prototype_key": "backpack", "description": "A sturdy leather backpack with wide straps and brass buckles."},
     {"name": "Panniers", "typeclass": _WEARABLE_CONTAINER_TC, "prototype_key": "panniers", "description": "Large leather saddlebags designed to hang from a mule's back."},
+    # ── Water Containers ──
+    {"name": "Canteen", "typeclass": _CANTEEN_TC, "prototype_key": "canteen", "description": "A small leather canteen for carrying drinking water.", "tracking_token": "PCanteen"},
+    {"name": "Cask", "typeclass": _CASK_TC, "prototype_key": "cask", "description": "A stout wooden cask bound with iron hoops, sized for an extended journey's water.", "tracking_token": "PCask"},
     # ── Potions ──
     {"name": "Potion of Life's Essence", "typeclass": _POTION_TC, "prototype_key": "lifes_essence", "description": "A glowing crimson potion that smells of bloodmoss and warmth.", "tracking_token": "PPotionLifesEssence"},
     {"name": "Potion of the Zephyr", "typeclass": _POTION_TC, "prototype_key": "the_zephyr", "description": "A pale blue potion that swirls like a miniature storm.", "tracking_token": "PPotionZephyr"},
@@ -495,6 +500,7 @@ NFT_ITEM_TYPES = [
     {"name": "Scroll of Group Resist", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "group_resist_scroll", "description": "A large scroll with concentric elemental wards. The runes pulse outward in expanding rings."},
     {"name": "Scroll of Identify", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "identify_scroll", "description": "A scroll covered in tiny, precise runes that seem to rearrange themselves to describe whatever you hold near it."},
     {"name": "Scroll of Invisibility", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "invisibility_scroll", "description": "A scroll that is almost impossible to find once you set it down. The text is written in ink that is only visible from certain angles."},
+    {"name": "Scroll of Knock", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "knock_scroll", "description": "A parchment whose surface ripples when you run a finger across it. The glyph of a single iron key is marked in silver leaf at the top."},
     {"name": "Scroll of Invulnerability", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "invulnerability_scroll", "description": "A pristine white scroll that radiates an aura of absolute certainty. Nothing can touch it."},
     {"name": "Scroll of Mage Armor", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "mage_armor_scroll", "description": "A smooth scroll with faintly glowing runes. It feels slightly warm and protective to the touch."},
     {"name": "Scroll of Mass Confusion", "typeclass": _SPELL_SCROLL_TC, "prototype_key": "mass_confusion_scroll", "description": "A scroll covered in contradictory symbols and impossible shapes. Reading it gives you a headache."},

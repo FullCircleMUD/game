@@ -19,6 +19,7 @@ from world.prototypes.consumables.scrolls.raise_lich_scroll import *  # noqa: F4
 from world.prototypes.consumables.scrolls.death_mark_scroll import *  # noqa: F401,F403
 # Conjuration scrolls
 from world.prototypes.consumables.scrolls.acid_arrow_scroll import *  # noqa: F401,F403
+from world.prototypes.consumables.scrolls.knock_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.teleport_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.dimensional_lock_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.conjure_elemental_scroll import *  # noqa: F401,F403
