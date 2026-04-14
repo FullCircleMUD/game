@@ -178,6 +178,15 @@ class LoreMemory(models.Model):
             models.Index(fields=["scope_level"]),
             models.Index(fields=["scope_level", "created_at"]),
         ]
+        constraints = [
+            # Required for the standalone lore-import tool to use
+            # INSERT ... ON CONFLICT (source, title) atomically. Also
+            # closes a latent race in store_lore()'s get-then-create.
+            models.UniqueConstraint(
+                fields=["source", "title"],
+                name="uniq_lorememory_source_title",
+            ),
+        ]
 
     def __str__(self):
         tags = ", ".join(self.scope_tags) if self.scope_tags else "global"
