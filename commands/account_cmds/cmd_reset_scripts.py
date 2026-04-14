@@ -42,7 +42,7 @@ from twisted.internet import threads
 RESETTABLE_SCRIPTS = [
     # (key, typeclass_path, is_pipeline)
     ("regeneration_service",        "typeclasses.scripts.regeneration_service.RegenerationService",     False),
-    ("hunger_service",              "typeclasses.scripts.hunger_service.HungerService",                  False),
+    ("survival_service",            "typeclasses.scripts.survival_service.SurvivalService",              False),
     ("day_night_service",           "typeclasses.scripts.day_night_service.DayNightService",             False),
     ("season_service",              "typeclasses.scripts.season_service.SeasonService",                  False),
     ("weather_service",             "typeclasses.scripts.weather_service.WeatherService",                False),

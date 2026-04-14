@@ -30,6 +30,7 @@ def at_server_start():
     This is called every time the server starts up, regardless of
     how it was shut down.
     """
+    _cleanup_renamed_scripts()
     _ensure_global_scripts()
     _close_stale_sessions()
     _clear_dungeon_instances()
@@ -61,13 +62,40 @@ _PIPELINE_SCRIPTS = [
 # immediately at boot and tick on their own intervals.
 _GLOBAL_SCRIPTS = [
     ("regeneration_service",     "typeclasses.scripts.regeneration_service.RegenerationService"),
-    ("hunger_service",           "typeclasses.scripts.hunger_service.HungerService"),
+    ("survival_service",         "typeclasses.scripts.survival_service.SurvivalService"),
     ("day_night_service",        "typeclasses.scripts.day_night_service.DayNightService"),
     ("season_service",           "typeclasses.scripts.season_service.SeasonService"),
     ("weather_service",          "typeclasses.scripts.weather_service.WeatherService"),
     ("reallocation_service",     "typeclasses.scripts.reallocation_service.ReallocationServiceScript"),
     ("durability_decay_service", "typeclasses.scripts.durability_decay_service.DurabilityDecayService"),
 ]
+
+
+_RENAMED_SCRIPT_KEYS = [
+    # Old keys whose typeclass has been renamed/moved. Cleared on first boot
+    # after the rename and a no-op forever after. Add an entry here when
+    # renaming a global script so the old DB row doesn't linger as a ghost
+    # service alongside the new one.
+    "hunger_service",  # renamed -> survival_service
+]
+
+
+def _cleanup_renamed_scripts():
+    """
+    Delete any stale global script rows whose key has been renamed.
+
+    Evennia stores scripts by key. Renaming a class without deleting the
+    old row leaves a ghost service running on the old key alongside the
+    new one. This sweep runs once on the first boot after a rename and
+    is harmless on subsequent boots (the lookup just returns nothing).
+    """
+    from evennia import GLOBAL_SCRIPTS, logger
+
+    for stale_key in _RENAMED_SCRIPT_KEYS:
+        existing = getattr(GLOBAL_SCRIPTS, stale_key, None)
+        if existing:
+            existing.delete()
+            logger.log_info(f"Global scripts: removed stale {stale_key}")
 
 
 def _ensure_global_scripts():

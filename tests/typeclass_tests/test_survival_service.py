@@ -1,10 +1,10 @@
 """
-Tests for the HungerService script — periodic hunger decrement.
+Tests for the SurvivalService script — periodic hunger decrement.
 
 Verifies hunger level decrement, free pass tick, starving floor,
 and skip logic for characters without valid hunger levels.
 
-evennia test --settings settings tests.typeclass_tests.test_hunger_service
+evennia test --settings settings tests.typeclass_tests.test_survival_service
 """
 
 from unittest.mock import patch, MagicMock
@@ -12,14 +12,14 @@ from unittest.mock import patch, MagicMock
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from enums.hunger_level import HungerLevel
-from typeclasses.scripts.hunger_service import HungerService
+from typeclasses.scripts.survival_service import SurvivalService
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
-class HungerServiceTestBase(EvenniaCommandTest):
-    """Base class providing a character for hunger service tests."""
+class SurvivalServiceTestBase(EvenniaCommandTest):
+    """Base class providing a character for survival service tests."""
 
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
     databases = "__all__"
@@ -32,22 +32,22 @@ class HungerServiceTestBase(EvenniaCommandTest):
         self.account.attributes.add("wallet_address", WALLET_A)
         # Create an unbound instance — don't call at_script_creation
         # (it tries to save to DB). We only test at_repeat() logic.
-        self.service = HungerService.__new__(HungerService)
+        self.service = SurvivalService.__new__(SurvivalService)
 
     def _run_tick(self, characters):
-        """Run one hunger tick with the given character list.
+        """Run one survival tick with the given character list.
         Builds mock sessions that return each character as a puppet."""
         mock_sessions = []
         for char in characters:
             s = MagicMock()
             s.get_puppet.return_value = char
             mock_sessions.append(s)
-        with patch("typeclasses.scripts.hunger_service.SESSION_HANDLER") as mock_sh:
+        with patch("typeclasses.scripts.survival_service.SESSION_HANDLER") as mock_sh:
             mock_sh.get_sessions.return_value = mock_sessions
             self.service.at_repeat()
 
 
-class TestHungerDecrement(HungerServiceTestBase):
+class TestHungerDecrement(SurvivalServiceTestBase):
     """Test hunger level decrement on at_repeat()."""
 
     def test_satisfied_to_peckish(self):
@@ -91,7 +91,7 @@ class TestHungerDecrement(HungerServiceTestBase):
             self.assertEqual(self.char1.hunger_level, expected_level)
 
 
-class TestHungerStarvingFloor(HungerServiceTestBase):
+class TestHungerStarvingFloor(SurvivalServiceTestBase):
     """Test that STARVING characters stay at STARVING."""
 
     def test_starving_stays_starving(self):
@@ -108,7 +108,7 @@ class TestHungerStarvingFloor(HungerServiceTestBase):
         self.assertEqual(self.char1.hunger_level, HungerLevel.STARVING)
 
 
-class TestHungerFreePass(HungerServiceTestBase):
+class TestHungerFreePass(SurvivalServiceTestBase):
     """Test the free pass tick when character is FULL."""
 
     def test_full_with_free_pass_stays_full(self):
@@ -138,7 +138,7 @@ class TestHungerFreePass(HungerServiceTestBase):
         self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)
 
 
-class TestHungerSkipLogic(HungerServiceTestBase):
+class TestHungerSkipLogic(SurvivalServiceTestBase):
     """Test that invalid characters are skipped."""
 
     def test_skip_non_hunger_level(self):
@@ -161,7 +161,7 @@ class TestHungerSkipLogic(HungerServiceTestBase):
         # Session exists but get_puppet() returns None (no puppeted character)
         mock_session = MagicMock()
         mock_session.get_puppet.return_value = None
-        with patch("typeclasses.scripts.hunger_service.SESSION_HANDLER") as mock_sh:
+        with patch("typeclasses.scripts.survival_service.SESSION_HANDLER") as mock_sh:
             mock_sh.get_sessions.return_value = [mock_session]
             self.service.at_repeat()
         self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)

@@ -127,14 +127,14 @@ class TestResetScriptsArgParsing(EvenniaCommandTest):
         ) as mock_do:
             self.call(
                 CmdResetScripts(),
-                "hunger_service force",
+                "survival_service force",
                 caller=self.account,
             )
             mock_do.assert_called_once()
             # First positional arg is the key
             args, _ = mock_do.call_args
-            self.assertEqual(args[0], "hunger_service")
-            # Second positional arg is is_pipeline (False for hunger)
+            self.assertEqual(args[0], "survival_service")
+            # Second positional arg is is_pipeline (False for survival)
             self.assertFalse(args[1])
 
 
@@ -213,6 +213,6 @@ class TestResetScriptsPipelineGrouping(EvenniaCommandTest):
         ) as mock_one, patch(
             "commands.account_cmds.cmd_reset_scripts._reset_pipeline"
         ) as mock_pipe:
-            cmd._reset_targeted_worker("hunger_service", False)
-            mock_one.assert_called_once_with("hunger_service")
+            cmd._reset_targeted_worker("survival_service", False)
+            mock_one.assert_called_once_with("survival_service")
             mock_pipe.assert_not_called()

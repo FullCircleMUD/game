@@ -23,14 +23,14 @@ def run_scripts():
         print("Regeneration service already running.")
 
     
-            # Check if hunger timer exists
-    existing = GLOBAL_SCRIPTS.hunger_service
+            # Check if survival service exists (umbrella for hunger + thirst)
+    existing = GLOBAL_SCRIPTS.survival_service
     if not existing:
         create_script(
-            "typeclasses.scripts.hunger_service.HungerService",
-            key="hunger_service",
+            "typeclasses.scripts.survival_service.SurvivalService",
+            key="survival_service",
             obj=None
         )
-        print("Hunger service started.")
+        print("Survival service started.")
     else:
-        print("Hunger service already running.")
+        print("Survival service already running.")

@@ -264,8 +264,9 @@ TIME_FACTOR = 24
 # a fixed starting date (e.g. int(datetime(2026, 1, 1).timestamp())).
 TIME_GAME_EPOCH = None
 
-# hunger cycle settings
-HUNGER_TICK_INTERVAL = 1200  # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAME DAY
+# Survival upkeep cycle (hunger today, thirst + future meters tomorrow)
+SURVIVAL_TICK_INTERVAL = 1200  # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAME DAY
+HUNGER_TICK_INTERVAL = SURVIVAL_TICK_INTERVAL  # back-compat alias for forage cooldown / older imports
 
 # combat tick interval (seconds) — how often each combatant acts.
 # All weapons share the same tick. Float for fine-tuning (e.g. 3.5, 4.5).
