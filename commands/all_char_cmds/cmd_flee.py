@@ -131,7 +131,7 @@ class CmdFlee(FCMCommandMixin, Command):
             caller.msg("|rYou try to flee but can't escape!|n")
             if caller.location:
                 caller.location.msg_contents(
-                    "$You() $conj(try) to run but $conj(can't) escape!",
+                    "$You() $conj(try) to run but cannot escape!",
                     from_obj=caller,
                     exclude=[caller],
                 )
