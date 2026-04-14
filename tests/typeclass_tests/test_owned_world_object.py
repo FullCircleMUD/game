@@ -96,6 +96,48 @@ class TestOwnedWorldObjectPersistence(EvenniaTest):
 
         mock_update.assert_not_called()
 
+    def test_restore_from_metadata_resolves_dbref_to_room(self):
+        """
+        at_restore_from_metadata rehydrates db.world_location from the
+        flat dbref stored in mirror metadata, and drops the stale flat keys.
+        """
+        ship = self._make_ship()
+        # Simulate what spawn_into does: copy metadata onto self.db directly
+        ship.db.world_location = None
+        ship.db.world_location_dbref = self.room1.id
+        ship.db.world_location_name = self.room1.key
+
+        ship.at_restore_from_metadata({
+            "world_location_dbref": self.room1.id,
+            "world_location_name": self.room1.key,
+        })
+
+        self.assertEqual(ship.db.world_location, self.room1)
+        # Flat keys cleared so set_world_location is the only source of truth
+        self.assertIsNone(ship.db.world_location_dbref)
+        self.assertIsNone(ship.db.world_location_name)
+
+    def test_restore_from_metadata_missing_room_leaves_none(self):
+        """If the dbref points at a room that no longer exists, world_location
+        is set to None rather than crashing — the owner can still see the ship
+        and the stale name in the mirror is still on marketplaces."""
+        ship = self._make_ship()
+        ship.at_restore_from_metadata({
+            "world_location_dbref": 999999,
+            "world_location_name": "Somewhere Else",
+        })
+        self.assertIsNone(ship.db.world_location)
+
+    def test_restore_from_metadata_empty_is_noop(self):
+        """Freshly built ships have no mirror world_location yet; restore
+        must not wipe any existing db.world_location set by at_post_move."""
+        ship = self._make_ship()
+        ship.db.world_location = self.room2
+
+        ship.at_restore_from_metadata({})
+
+        self.assertEqual(ship.db.world_location, self.room2)
+
     @patch(
         "blockchain.xrpl.services.nft.NFTService.update_metadata",
         side_effect=RuntimeError("mirror row missing"),

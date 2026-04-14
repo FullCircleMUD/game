@@ -610,6 +610,36 @@ class TestDistrictMapNFTItem(_RoomBaseMixin, EvenniaTest):
         mock_update.assert_called_once()
         self.assertIn("room_b", item.surveyed_points)
 
+    # ── at_restore_from_metadata — round-trip from mirror ────────────────
+
+    def test_restore_from_metadata_converts_list_to_set(self):
+        """
+        On re-import, spawn_into copies metadata into db.surveyed_points as a
+        JSON list. at_restore_from_metadata must convert it back to a set so
+        subsequent .add() calls work.
+        """
+        item = self._make()
+        # Simulate what spawn_into does — raw list assigned from JSON
+        item.db.surveyed_points = ["room_a", "room_b"]
+
+        item.at_restore_from_metadata({
+            "surveyed_points": ["room_a", "room_b"],
+            "completion_pct": 50,
+        })
+
+        # Evennia wraps sets in _SaverSet, so assert MutableSet behaviour
+        # rather than exact `set` identity.
+        self.assertIsInstance(item.db.surveyed_points, MutableSet)
+        self.assertEqual(set(item.db.surveyed_points), {"room_a", "room_b"})
+        # And the set is live-mutable for further surveying
+        item.surveyed_points.add("room_c")
+        self.assertIn("room_c", item.surveyed_points)
+
+    def test_restore_from_metadata_empty_is_noop(self):
+        item = self._make(surveyed={"room_a"})
+        item.at_restore_from_metadata({})
+        self.assertEqual(item.db.surveyed_points, {"room_a"})
+
 
 # ══════════════════════════════════════════════════════════════════════════
 #  5. CmdSurvey — Gate Checks

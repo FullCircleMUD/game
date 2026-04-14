@@ -43,6 +43,19 @@ class DistrictMapNFTItem(BaseNFTItem):
             return self.db.surveyed_points
         return pts
 
+    def at_restore_from_metadata(self, metadata):
+        """
+        Convert surveyed_points from its JSON-friendly list form back into
+        a set after spawn_into() copies mirror metadata onto self.db. The
+        completion_pct key is derived and harmless to leave on db (the
+        @property shadows it when accessed).
+        """
+        raw = metadata.get("surveyed_points")
+        if raw is None:
+            return
+        if not isinstance(raw, set):
+            self.db.surveyed_points = set(raw)
+
     def record_survey_points(self, keys):
         """
         Add one or more surveyed point_keys to this map and persist the new

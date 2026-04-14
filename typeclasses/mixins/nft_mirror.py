@@ -417,6 +417,17 @@ class NFTMirrorMixin(CharacterKeyMixin):
 
         obj.move_to(location, **kwargs)
 
+        # Give the typeclass a chance to convert JSON-flat metadata into
+        # live object state (e.g. resolve dbref → room, list → set).
+        # Runs AFTER move_to so at_post_move hooks don't clobber restored state.
+        if hasattr(obj, "at_restore_from_metadata"):
+            try:
+                obj.at_restore_from_metadata(meta)
+            except Exception as err:
+                print(
+                    f"  NFT restore_from_metadata failed for #{token_id}: {err}"
+                )
+
         return obj
 
     # ================================================================== #
