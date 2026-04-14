@@ -29,8 +29,27 @@ from evennia.utils import delay
 from blockchain.xrpl.currency_cache import get_resource_type
 from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
+from enums.skills_enum import skills
 from typeclasses.items.base_nft_item import BaseNFTItem
 from world.prototypes.consumables.potions.potion_scaling import get_scaling
+
+
+def _get_crafting_mastery(character, skill):
+    """Read a character's mastery for a crafting skill.
+
+    Most crafting skills live in ``general_skill_mastery_levels``.
+    Enchanting is a mage class skill and lives in
+    ``class_skill_mastery_levels`` with a nested ``{"mastery": int}``
+    entry. This helper reads from whichever dict the skill belongs to.
+    """
+    if skill == skills.ENCHANTING:
+        class_levels = character.db.class_skill_mastery_levels or {}
+        entry = class_levels.get(skill.value, 0)
+        if hasattr(entry, "get"):
+            return entry.get("mastery", 0)
+        return int(entry or 0)
+
+    return (character.db.general_skill_mastery_levels or {}).get(skill.value, 0)
 
 
 # ── Crafting delay configuration ──
@@ -171,9 +190,7 @@ class CmdCraft(FCMCommandMixin, Command):
 
         # --- Check character's skill mastery ---
         craft_skill = recipe["skill"]
-        char_mastery = (caller.db.general_skill_mastery_levels or {}).get(
-            craft_skill.value, 0
-        )
+        char_mastery = _get_crafting_mastery(caller, craft_skill)
         if char_mastery < recipe["min_mastery"].value:
             mastery_name = recipe["min_mastery"].name
             skill_name = craft_skill.value.replace("_", " ").title()
@@ -267,6 +284,28 @@ class CmdCraft(FCMCommandMixin, Command):
             )
             return
 
+        # --- Wand pre-paid mana check (Phase 2) ---
+        # Wand recipes set _wand_spell_key and _wand_charges when the
+        # dynamic generator emits them. The enchanter pays the spell's
+        # mana cost × total charges up-front; zaps are free thereafter.
+        wand_mana_cost = 0
+        if recipe.get("_wand_spell_key"):
+            from world.spells.registry import SPELL_REGISTRY
+            spell = SPELL_REGISTRY.get(recipe["_wand_spell_key"])
+            if spell is None:
+                caller.msg("That spell no longer exists in the registry.")
+                return
+            spell_tier = spell.min_mastery.value
+            per_charge_mana = spell.mana_cost.get(spell_tier, 0)
+            wand_mana_cost = per_charge_mana * recipe["_wand_charges"]
+            if caller.mana < wand_mana_cost:
+                caller.msg(
+                    f"Enchanting this wand requires {wand_mana_cost} mana "
+                    f"({per_charge_mana} per charge × {recipe['_wand_charges']} charges) — "
+                    f"you only have {caller.mana}."
+                )
+                return
+
         # --- Build cost summary for confirmation ---
         ingredient_lines = []
         for res_id, needed in ingredients.items():
@@ -289,10 +328,15 @@ class CmdCraft(FCMCommandMixin, Command):
         num_ticks = _TICKS_BY_MASTERY.get(recipe["min_mastery"].value, 2)
         total_time = num_ticks * CRAFT_TICK_SECONDS
 
+        mana_line = ""
+        if wand_mana_cost > 0:
+            mana_line = f"\nMana cost: {wand_mana_cost} (pre-paid into the wand)"
+
         answer = yield (
             f"\n|y--- Craft {recipe['name']} ---|n"
             f"\nMaterials:\n{cost_display}"
             f"\nWorkshop fee: {total_gold} gold"
+            f"{mana_line}"
             f"\nCrafting time: {total_time} seconds ({recipe['min_mastery'].name})"
             f"\n\n{verb.capitalize()} {recipe['name']}? Y/[N]"
         )
@@ -355,9 +399,16 @@ class CmdCraft(FCMCommandMixin, Command):
         # --- Consume gold ---
         caller.return_gold_to_sink(total_gold)
 
+        # --- Deduct pre-paid wand mana (Phase 2) ---
+        if wand_mana_cost > 0:
+            caller.mana -= wand_mana_cost
+
         # --- Lock and start crafting ---
         caller.ndb.is_processing = True
-        item_type_name = recipe["name"]
+        # Wand recipes use a generic "Enchanted Wand" NFTItemType with
+        # per-instance spell_key + charges metadata. Other recipes
+        # default to using the recipe name as the NFTItemType name.
+        item_type_name = recipe.get("output_item_type") or recipe["name"]
 
         caller.location.msg_contents_with_invis_alt(
             f"{caller.key} begins crafting at the {room.key}.",
@@ -411,11 +462,25 @@ class CmdCraft(FCMCommandMixin, Command):
                         )
                         item.db.gem_effects = effects
                         item.db.gem_restrictions = restrictions
+
+                    # Apply wand binding (Phase 2) — bind the spell and
+                    # install charges. Dual-persist into mirror metadata.
+                    if item and recipe.get("_wand_spell_key"):
+                        item.spell_key = recipe["_wand_spell_key"]
+                        item.charges_max = recipe["_wand_charges"]
+                        item.charges_remaining = recipe["_wand_charges"]
+                        item.key = recipe["name"]  # "Wand of Fireball"
+                        persist = getattr(item, "persist_wand_state", None)
+                        if persist is not None:
+                            persist()
                 except Exception as err:
                     # Refund on spawn failure
                     for res_id, needed in ingredients.items():
                         caller.receive_resource_from_reserve(res_id, needed)
                     caller.receive_gold_from_reserve(total_gold)
+                    # Refund pre-paid wand mana
+                    if wand_mana_cost > 0:
+                        caller.mana += wand_mana_cost
                     # Best-effort refund of consumed NFT items
                     for nft_name in consumed_nft_info:
                         try:

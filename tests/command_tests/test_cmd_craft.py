@@ -888,3 +888,195 @@ class TestCmdCraftBlankWands(EvenniaCommandTest):
         # Error wording: "You don't have enough materials ... Ironwood Timber (have 0)"
         self.assertIn("ironwood timber", result.lower())
         self.assertIn("have 0", result.lower())
+
+
+# ── Phase 2: Mage Wand Enchantment ────────────────────────────────────
+
+
+def _give_enchanting_class_skill(char, mastery=MasteryLevel.BASIC):
+    """Install enchanting as a class skill at the given mastery."""
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.ENCHANTING.value] = {
+        "mastery": mastery.value,
+        "classes": ["mage"],
+    }
+
+
+def _give_evocation_mastery(char, mastery=MasteryLevel.BASIC):
+    """Install evocation school mastery."""
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels["evocation"] = {
+        "mastery": mastery.value,
+        "classes": ["mage"],
+    }
+
+
+def _learn_spell_direct(char, spell_key):
+    """Put a spell directly into the character's spellbook."""
+    if not char.db.spellbook:
+        char.db.spellbook = {}
+    char.db.spellbook[spell_key] = True
+
+
+def _spawn_blank_wand(char, prototype_key):
+    """Spawn a blank wand component (plain BaseNFTItem) into the character."""
+    from evennia.utils import create
+    obj = create.create_object(
+        "typeclasses.items.base_nft_item.BaseNFTItem",
+        key=prototype_key.replace("_", " ").title(),
+        location=char,
+    )
+    obj.db.prototype_key = prototype_key
+    return obj
+
+
+class TestCmdCraftWandEnchant(EvenniaCommandTest):
+    """Test wand enchantment — mage consumes blank + dust + spell → WandNFTItem.
+
+    These tests verify the full craft flow for dynamic wand recipes:
+      1. The wand post-spawn hook sets spell_key / charges correctly
+      2. Pre-paid mana is deducted on success
+      3. Insufficient mana aborts cleanly
+      4. The blank wand is consumed on craft
+      5. Mage-only mastery gate respects class_skill_mastery_levels
+    """
+
+    databases = "__all__"
+    room_typeclass = "typeclasses.terrain.rooms.room_crafting.RoomCrafting"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.db.crafting_type = "wizards_workshop"
+        self.room1.db.mastery_level = 5  # accept any tier
+        self.room1.db.craft_cost = 2
+        # Mage baseline
+        _give_enchanting_class_skill(self.char1, MasteryLevel.GRANDMASTER)
+        _give_evocation_mastery(self.char1, MasteryLevel.BASIC)
+        _learn_spell_direct(self.char1, "magic_missile")
+        _spawn_blank_wand(self.char1, "training_wand")
+        _give_resources(self.char1, {16: 5})   # Arcane Dust
+        _give_gold(self.char1, 100)
+        # Plenty of mana for default test conditions
+        self.char1.mana_max = 100
+        self.char1.mana = 100
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_craft_wand_of_magic_missile(self, mock_assign, mock_spawn, mock_delay):
+        """Mage crafts a Wand of Magic Missile — verify all state is set."""
+        mock_assign.return_value = TOKEN_ID
+        mock_item = MagicMock()
+        mock_spawn.return_value = mock_item
+
+        self.call(CmdCraft(), "wand of magic missile", inputs=["y"])
+
+        # Generic NFTItemType "Enchanted Wand" is used, not the recipe name.
+        mock_assign.assert_called_once_with("Enchanted Wand")
+        mock_spawn.assert_called_once_with(TOKEN_ID, self.char1)
+
+        # Wand state was set on the spawned item
+        self.assertEqual(mock_item.spell_key, "magic_missile")
+        self.assertEqual(mock_item.charges_remaining, 10)
+        self.assertEqual(mock_item.charges_max, 10)
+        self.assertEqual(mock_item.key, "Wand of Magic Missile")
+        mock_item.persist_wand_state.assert_called_once()
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_wand_craft_deducts_prepaid_mana(self, mock_assign, mock_spawn, mock_delay):
+        """Pre-paid mana should be deducted on successful craft.
+
+        Magic Missile BASIC mana_cost = 5 per cast × 10 charges = 50 mana.
+        """
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+        self.char1.mana = 100
+
+        self.call(CmdCraft(), "wand of magic missile", inputs=["y"])
+
+        self.assertEqual(self.char1.mana, 50)
+
+    def test_insufficient_mana_aborts_craft(self):
+        """Character without enough mana should get an error and no state change."""
+        self.char1.mana = 10
+        original_blanks = len([
+            o for o in self.char1.contents
+            if getattr(o.db, "prototype_key", None) == "training_wand"
+        ])
+        original_dust = self.char1.get_resource(16)
+
+        result = self.call(CmdCraft(), "wand of magic missile")
+
+        self.assertIn("mana", result.lower())
+        # State unchanged — no consumption happened
+        self.assertEqual(self.char1.mana, 10)
+        self.assertEqual(self.char1.get_resource(16), original_dust)
+        remaining_blanks = len([
+            o for o in self.char1.contents
+            if getattr(o.db, "prototype_key", None) == "training_wand"
+        ])
+        self.assertEqual(remaining_blanks, original_blanks)
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_blank_wand_is_consumed(self, mock_assign, mock_spawn, mock_delay):
+        """The blank wand must be deleted from inventory after a successful craft."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self.call(CmdCraft(), "wand of magic missile", inputs=["y"])
+
+        blanks = [
+            o for o in self.char1.contents
+            if getattr(o.db, "prototype_key", None) == "training_wand"
+        ]
+        self.assertEqual(len(blanks), 0)
+
+    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+           side_effect=_instant_delay)
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
+    @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
+    def test_arcane_dust_consumed(self, mock_assign, mock_spawn, mock_delay):
+        """2 Arcane Dust should be consumed from inventory."""
+        mock_assign.return_value = TOKEN_ID
+        mock_spawn.return_value = MagicMock()
+
+        self.call(CmdCraft(), "wand of magic missile", inputs=["y"])
+
+        # Started with 5, consumed 2, should have 3 left
+        self.assertEqual(self.char1.get_resource(16), 3)
+
+    def test_enchanting_class_skill_passes_mastery_gate(self):
+        """The class_skill_mastery_levels path for ENCHANTING must be honoured.
+
+        Pre-refactor, cmd_craft only read general_skill_mastery_levels and
+        would reject the mage even with ENCHANTING in class_skill_mastery_levels.
+        This test protects against regression.
+        """
+        # Character has ENCHANTING in class_skill_mastery_levels (from setUp).
+        # The test relies on the recipe being "known" via get_known_recipes()
+        # and the mastery check reading from the right dict.
+        known = self.char1.get_known_recipes()
+        self.assertIn("wand_magic_missile", known)
+        # And cmd_craft's mastery check should pass (tested indirectly by
+        # the other craft tests above, but we verify the helper directly
+        # here so a cmd_craft regression surfaces as a clear failure).
+        from commands.room_specific_cmds.crafting.cmd_craft import (
+            _get_crafting_mastery,
+        )
+        self.assertEqual(
+            _get_crafting_mastery(self.char1, skills.ENCHANTING),
+            MasteryLevel.GRANDMASTER.value,
+        )

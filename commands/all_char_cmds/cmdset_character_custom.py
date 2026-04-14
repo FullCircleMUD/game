@@ -70,6 +70,7 @@ from commands.all_char_cmds.cmd_cast import CmdCast
 from commands.all_char_cmds.cmd_transcribe import CmdTranscribe
 from commands.all_char_cmds.cmd_memorise import CmdMemorise, CmdForget
 from commands.all_char_cmds.cmd_spells import CmdSpells
+from commands.all_char_cmds.cmd_zap import CmdZap
 
 # equipment commands
 from commands.all_char_cmds.cmd_wear import CmdWear
@@ -226,6 +227,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdMemorise())
         self.add(CmdForget())
         self.add(CmdSpells())
+        self.add(CmdZap())
 
         # tutorial
         self.add(CmdEnterTutorial())

@@ -109,7 +109,16 @@ class Spell:
 
         Checks class_skill_mastery_levels (mage/cleric schools are class skills).
         Returns int (MasteryLevel.value): 0=UNSKILLED through 5=GRANDMASTER.
+
+        Wand zap override: if ``caster.ndb._wand_caster_tier_override`` is set
+        (an int), return that instead. This lets the zap command force wands
+        to always cast at the spell's base min_mastery regardless of who holds
+        them, without threading an override parameter through all 60+ spell
+        subclasses.
         """
+        override = getattr(caster.ndb, "_wand_caster_tier_override", None)
+        if override is not None:
+            return int(override)
         entry = (caster.db.class_skill_mastery_levels or {}).get(self.school_key)
         if not entry:
             return 0
@@ -173,6 +182,11 @@ class Spell:
                 )
 
         cost = self.mana_cost.get(tier, 0)
+
+        # Wand zap bypass: mana was pre-paid at enchant time.
+        if getattr(caster.ndb, "_wand_free_cast", False):
+            cost = 0
+
         if caster.mana < cost:
             return (
                 False,

@@ -307,6 +307,9 @@ NFT_ITEM_TYPES = [
     {"name": "Wizard's Wand", "typeclass": _BASE_TC, "prototype_key": "wizards_wand", "description": "An ironwood wand inlaid with silver rings. Inputs to an expert-tier mage enchantment."},
     {"name": "Master's Wand", "typeclass": _BASE_TC, "prototype_key": "masters_wand", "description": "A masterwork ironwood wand bound with bronze wire and capped with polished stone. Inputs to a master-tier mage enchantment."},
     {"name": "Archmage's Wand", "typeclass": _BASE_TC, "prototype_key": "archmages_wand", "description": "A flawless ironwood wand set with a single polished gem at the base. Inputs to a grandmaster-tier mage enchantment."},
+    # Enchanted wand — generic type, spell_key and charges are per-instance metadata.
+    # Not AMM-tradeable (tracking_token omitted); wands exist only via player crafting.
+    {"name": "Enchanted Wand", "typeclass": "typeclasses.items.holdables.wand_nft_item.WandNFTItem", "prototype_key": None, "description": "A wand imbued with a bound spell. Zap to release its magic."},
     {"name": "Leather Straps", "typeclass": _BASE_TC, "prototype_key": "leather_straps", "description": "Tough strips of leather cut for binding and reinforcement."},
     # ── Wearables ──
     {"name": "Leather Gloves", "typeclass": _WEARABLE_TC, "prototype_key": "leather_gloves", "description": "Sturdy leather gloves with reinforced palms.", "tracking_token": "PLeatherGloves"},
