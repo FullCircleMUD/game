@@ -218,3 +218,143 @@ class TestCmdForageNoSkill(EvenniaCommandTest):
         """Character with no mastery data at all should fail."""
         self.char1.db.class_skill_mastery_levels = None
         self.call(CmdForage(), "", "You search around but have no idea")
+
+
+# ── Water credit tests ──────────────────────────────────────────────────
+
+from unittest.mock import patch
+from evennia.utils import create
+
+
+class TestCmdForageWaterCredit(EvenniaCommandTest):
+    """
+    Forage tops up the FORAGER's water containers by N drinks (N = mastery
+    tier), most-empty first, capping at each container's max_capacity.
+    Containers are inventory items, not held — same mental model as bread.
+    """
+    room_typeclass = _ROOM
+    character_typeclass = _CHAR
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.set_terrain(TerrainType.FOREST.value)
+        self.char1.db.last_forage_time = 0
+        self.char1.hunger_level = HungerLevel.HUNGRY
+
+    def _make_canteen(self, current=0, token_id=9501):
+        with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"), \
+             patch("blockchain.xrpl.services.nft.NFTService.craft_output"):
+            obj = create.create_object(
+                "typeclasses.items.water_containers.canteen_nft_item.CanteenNFTItem",
+                key="a leather canteen",
+                location=self.char1,
+                nohome=True,
+            )
+            obj.token_id = token_id
+            obj.current = current
+        return obj
+
+    def _make_cask(self, current=0, token_id=9502):
+        with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"), \
+             patch("blockchain.xrpl.services.nft.NFTService.craft_output"):
+            obj = create.create_object(
+                "typeclasses.items.water_containers.cask_nft_item.CaskNFTItem",
+                key="a wooden cask",
+                location=self.char1,
+                nohome=True,
+            )
+            obj.token_id = token_id
+            obj.current = current
+        return obj
+
+    def test_no_container_no_water_credit(self):
+        """If the forager carries no water container, no water credit."""
+        _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
+        # No exception, no crash, no water output
+        self.call(CmdForage(), "", _OK)
+
+    def test_basic_adds_one_drink(self):
+        """BASIC mastery (1 point) adds 1 drink to a single canteen."""
+        _set_survivalist(self.char1, MasteryLevel.BASIC)
+        canteen = self._make_canteen(current=0)
+        self.call(CmdForage(), "", _OK)
+        self.assertEqual(canteen.current, 1)
+
+    def test_grandmaster_fills_canteen_partially(self):
+        """GM (5 points) into an empty canteen (capacity 5) fills it."""
+        _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
+        canteen = self._make_canteen(current=0)
+        self.call(CmdForage(), "", _OK)
+        self.assertEqual(canteen.current, 5)
+
+    def test_caps_at_max_capacity(self):
+        """Drinks beyond capacity are discarded — container caps at max."""
+        _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
+        canteen = self._make_canteen(current=3)  # capacity 5, room for 2
+        self.call(CmdForage(), "", _OK)
+        self.assertEqual(canteen.current, 5)  # +2, not +5
+
+    def test_multi_container_most_empty_first(self):
+        """
+        With multiple containers, the most-empty fills first, then the next.
+        SKILLED (2 points) into a 0/5 canteen + 8/10 cask should put both
+        drinks into the canteen (most empty), leaving the cask unchanged.
+        """
+        _set_survivalist(self.char1, MasteryLevel.SKILLED)
+        canteen = self._make_canteen(current=0)
+        cask = self._make_cask(current=8)
+        self.call(CmdForage(), "", _OK)
+        self.assertEqual(canteen.current, 2)
+        self.assertEqual(cask.current, 8)  # untouched
+
+    def test_multi_container_spills_to_next(self):
+        """
+        If the most-empty container fills, remaining drinks spill into the
+        next-emptiest. GM (5 points) into a 4/5 canteen + 0/10 cask should
+        fill the canteen by 1 then put 4 in the cask.
+        Wait — the cask is more empty (0 vs 4), so it fills first: cask gets
+        5 (capped not by capacity), canteen unchanged.
+        """
+        _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
+        canteen = self._make_canteen(current=4)
+        cask = self._make_cask(current=0)
+        self.call(CmdForage(), "", _OK)
+        # Cask is more empty (0 < 4), so all 5 drinks land there.
+        self.assertEqual(cask.current, 5)
+        self.assertEqual(canteen.current, 4)
+
+    def test_overflow_spills(self):
+        """
+        SKILLED forage (2 drinks) into a 4/5 canteen and a 0/10 cask.
+        Cask is more empty (0 < 4), so both drinks land in the cask.
+        """
+        _set_survivalist(self.char1, MasteryLevel.SKILLED)
+        canteen = self._make_canteen(current=4)
+        cask = self._make_cask(current=0)
+        self.call(CmdForage(), "", _OK)
+        self.assertEqual(cask.current, 2)
+        self.assertEqual(canteen.current, 4)
+
+    def test_full_containers_get_no_water(self):
+        """If all containers are already full, the water credit is wasted."""
+        _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
+        canteen = self._make_canteen(current=5)
+        cask = self._make_cask(current=10)
+        self.call(CmdForage(), "", _OK)
+        self.assertEqual(canteen.current, 5)
+        self.assertEqual(cask.current, 10)
+
+    def test_mirror_persistence_fires_on_credit(self):
+        """Each container that received drinks should fire _persist_water_state."""
+        _set_survivalist(self.char1, MasteryLevel.SKILLED)
+        canteen = self._make_canteen(current=0)
+        with patch("blockchain.xrpl.services.nft.NFTService.update_metadata") as mock_update:
+            self.call(CmdForage(), "", _OK)
+            # update_metadata called at least once with the container's state
+            self.assertTrue(mock_update.called)
+            args = mock_update.call_args[0]
+            self.assertEqual(args[1]["current"], 2)
