@@ -51,6 +51,7 @@ from commands.all_char_cmds.cmd_roomdesc import CmdRoomDesc
 from commands.all_char_cmds.cmd_exits import CmdExits
 from commands.all_char_cmds.cmd_posture import CmdSit, CmdRest, CmdSleep, CmdStand, CmdWake
 from commands.all_char_cmds.cmd_recalc import CmdRecalc
+from commands.all_char_cmds.cmd_override_nomatch import CmdNoMatch
 
 # world object interaction commands
 from commands.all_char_cmds.cmd_open import CmdOpen
@@ -232,3 +233,6 @@ class CmdSetCharacterCustom(CmdSet):
 
         # admin
         self.add(CmdRecalc())
+
+        # syscommand overrides
+        self.add(CmdNoMatch())
