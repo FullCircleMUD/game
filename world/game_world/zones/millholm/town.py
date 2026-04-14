@@ -1560,7 +1560,7 @@ def build_millholm_town(one_way_limbo=False):
         RoomCrafting,
         key="Arcane Study",
         attributes=[
-            ("crafting_type", "enchanting"),
+            ("crafting_type", "wizards_workshop"),
             ("mastery_level", 1),
             ("craft_cost", 2),
             ("max_height", 0),
