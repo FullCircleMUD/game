@@ -149,39 +149,39 @@ class TestCmdForageMastery(EvenniaCommandTest):
         self.assertEqual(self.char1.hunger_level, HungerLevel.PECKISH)  # 4
 
     def test_skilled_restores_2(self):
-        """SKILLED mastery should restore 2 hunger levels."""
+        """SKILLED mastery should restore 2 hunger levels (HUNGRY 3 → CONTENT 5)."""
         _set_survivalist(self.char1, MasteryLevel.SKILLED)
         self.char1.hunger_level = HungerLevel.HUNGRY  # 3
         self.call(CmdForage(), "", _OK)
-        self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)  # 5
+        self.assertEqual(self.char1.hunger_level, HungerLevel.CONTENT)  # 5
 
     def test_expert_restores_3(self):
-        """EXPERT mastery should restore 3 hunger levels."""
+        """EXPERT mastery should restore 3 hunger levels (STARVING 1 → PECKISH 4)."""
         _set_survivalist(self.char1, MasteryLevel.EXPERT)
         self.char1.hunger_level = HungerLevel.STARVING  # 1
         self.call(CmdForage(), "", _OK)
         self.assertEqual(self.char1.hunger_level, HungerLevel.PECKISH)  # 4
 
     def test_master_restores_4(self):
-        """MASTER mastery should restore 4 hunger levels."""
+        """MASTER mastery should restore 4 hunger levels (STARVING 1 → CONTENT 5)."""
         _set_survivalist(self.char1, MasteryLevel.MASTER)
         self.char1.hunger_level = HungerLevel.STARVING  # 1
         self.call(CmdForage(), "", _OK)
-        self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)  # 5
+        self.assertEqual(self.char1.hunger_level, HungerLevel.CONTENT)  # 5
 
     def test_grandmaster_restores_5(self):
-        """GRANDMASTER mastery should restore 5 hunger levels."""
+        """GRANDMASTER mastery should restore 5 hunger levels (STARVING 1 → NOURISHED 6)."""
         _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
         self.char1.hunger_level = HungerLevel.STARVING  # 1
         self.call(CmdForage(), "", _OK)
-        self.assertEqual(self.char1.hunger_level, HungerLevel.FULL)  # 6
+        self.assertEqual(self.char1.hunger_level, HungerLevel.NOURISHED)  # 6
 
     def test_capped_at_full(self):
-        """Hunger restoration should cap at FULL (6)."""
+        """Hunger restoration should cap at FULL (8)."""
         _set_survivalist(self.char1, MasteryLevel.GRANDMASTER)
-        self.char1.hunger_level = HungerLevel.SATISFIED  # 5
+        self.char1.hunger_level = HungerLevel.SATISFIED  # 7
         self.call(CmdForage(), "", _OK)
-        self.assertEqual(self.char1.hunger_level, HungerLevel.FULL)  # 6
+        self.assertEqual(self.char1.hunger_level, HungerLevel.FULL)  # 8
 
     def test_already_full(self):
         """Foraging when already FULL should succeed but restore nothing."""

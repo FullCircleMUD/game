@@ -64,6 +64,8 @@ from commands.all_char_cmds.cmd_read import CmdRead
 from commands.all_char_cmds.cmd_recall import CmdRecall
 from commands.all_char_cmds.cmd_light import CmdLight, CmdExtinguish
 from commands.all_char_cmds.cmd_refuel import CmdRefuel
+from commands.all_char_cmds.cmd_drink import CmdDrink
+from commands.all_char_cmds.cmd_refill import CmdRefill
 
 # magic commands
 from commands.all_char_cmds.cmd_cast import CmdCast
@@ -215,6 +217,10 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdLight())
         self.add(CmdExtinguish())
         self.add(CmdRefuel())
+
+        # water/thirst commands
+        self.add(CmdDrink())
+        self.add(CmdRefill())
 
         # crafting commands
         self.add(CmdLearn())

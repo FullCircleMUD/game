@@ -138,6 +138,9 @@ CURRENCY_TYPES = [
     {"currency_code": "PBronzeGreaves", "resource_id": None, "name": "PBronzeGreaves", "unit": "tokens", "description": "Proxy token for Bronze Greaves AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
     {"currency_code": "PBronzeBracers", "resource_id": None, "name": "PBronzeBracers", "unit": "tokens", "description": "Proxy token for Bronze Bracers AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
     {"currency_code": "PBronzeHelm", "resource_id": None, "name": "PBronzeHelm", "unit": "tokens", "description": "Proxy token for Bronze Helm AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    # ── Water Containers ──
+    {"currency_code": "PCanteen", "resource_id": None, "name": "PCanteen", "unit": "tokens", "description": "Proxy token for Canteen AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PCask", "resource_id": None, "name": "PCask", "unit": "tokens", "description": "Proxy token for Cask AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
 ]
 
 

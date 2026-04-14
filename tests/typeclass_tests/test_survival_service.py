@@ -12,6 +12,7 @@ from unittest.mock import patch, MagicMock
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from enums.hunger_level import HungerLevel
+from enums.thirst_level import ThirstLevel
 from typeclasses.scripts.survival_service import SurvivalService
 
 
@@ -50,14 +51,20 @@ class SurvivalServiceTestBase(EvenniaCommandTest):
 class TestHungerDecrement(SurvivalServiceTestBase):
     """Test hunger level decrement on at_repeat()."""
 
-    def test_satisfied_to_peckish(self):
-        """SATISFIED should decrement to PECKISH."""
+    def test_satisfied_to_nourished(self):
+        """SATISFIED should decrement to NOURISHED (the new intermediate stage)."""
         self.char1.hunger_level = HungerLevel.SATISFIED
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.hunger_level, HungerLevel.NOURISHED)
+
+    def test_content_to_peckish(self):
+        """CONTENT should decrement to PECKISH (the last no-penalty stage)."""
+        self.char1.hunger_level = HungerLevel.CONTENT
         self._run_tick([self.char1])
         self.assertEqual(self.char1.hunger_level, HungerLevel.PECKISH)
 
     def test_peckish_to_hungry(self):
-        """PECKISH should decrement to HUNGRY."""
+        """PECKISH should decrement to HUNGRY (regen halts here)."""
         self.char1.hunger_level = HungerLevel.PECKISH
         self._run_tick([self.char1])
         self.assertEqual(self.char1.hunger_level, HungerLevel.HUNGRY)
@@ -75,12 +82,14 @@ class TestHungerDecrement(SurvivalServiceTestBase):
         self.assertEqual(self.char1.hunger_level, HungerLevel.STARVING)
 
     def test_full_progression(self):
-        """Full decrement chain: FULL → SATISFIED → ... → STARVING."""
+        """Full decrement chain: FULL → SATISFIED → ... → STARVING (7 steps)."""
         self.char1.hunger_level = HungerLevel.FULL
         self.char1.hunger_free_pass_tick = False
 
         expected = [
             HungerLevel.SATISFIED,
+            HungerLevel.NOURISHED,
+            HungerLevel.CONTENT,
             HungerLevel.PECKISH,
             HungerLevel.HUNGRY,
             HungerLevel.FAMISHED,
@@ -138,6 +147,9 @@ class TestHungerFreePass(SurvivalServiceTestBase):
         self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)
 
 
+# (TestSurvivalServiceTicksBoth — see end of file for the canonical version)
+
+
 class TestHungerSkipLogic(SurvivalServiceTestBase):
     """Test that invalid characters are skipped."""
 
@@ -165,3 +177,83 @@ class TestHungerSkipLogic(SurvivalServiceTestBase):
             mock_sh.get_sessions.return_value = [mock_session]
             self.service.at_repeat()
         self.assertEqual(self.char1.hunger_level, HungerLevel.SATISFIED)
+
+
+# ── Thirst Tick Tests ───────────────────────────────────────────────────
+
+class TestThirstDecrement(SurvivalServiceTestBase):
+    """Verify the thirst meter decrements one stage per tick."""
+
+    def test_refreshed_to_hydrated(self):
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        self.char1.thirst_free_pass_tick = False
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.HYDRATED)
+
+    def test_aware_to_dry(self):
+        self.char1.thirst_level = ThirstLevel.AWARE
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.DRY)
+
+    def test_full_progression_to_critical(self):
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        self.char1.thirst_free_pass_tick = False
+        # 11 decrements take us from REFRESHED(12) to CRITICAL(1)
+        for _ in range(11):
+            self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.CRITICAL)
+
+
+class TestThirstCriticalFloor(SurvivalServiceTestBase):
+    """CRITICAL is the floor — death lands via RegenerationService, not here."""
+
+    def test_critical_stays_critical(self):
+        self.char1.thirst_level = ThirstLevel.CRITICAL
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.CRITICAL)
+
+    def test_critical_after_multiple_ticks(self):
+        self.char1.thirst_level = ThirstLevel.CRITICAL
+        for _ in range(3):
+            self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.CRITICAL)
+
+
+class TestThirstFreePass(SurvivalServiceTestBase):
+    """Free-pass-on-REFRESHED prevents the immediate-decrement edge case."""
+
+    def test_refreshed_with_free_pass_stays_refreshed(self):
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        self.char1.thirst_free_pass_tick = True
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.REFRESHED)
+        self.assertFalse(self.char1.thirst_free_pass_tick)
+
+    def test_refreshed_without_free_pass_decrements(self):
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        self.char1.thirst_free_pass_tick = False
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.HYDRATED)
+
+    def test_free_pass_only_works_once(self):
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        self.char1.thirst_free_pass_tick = True
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.REFRESHED)
+        self._run_tick([self.char1])
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.HYDRATED)
+
+
+class TestSurvivalServiceTicksBoth(SurvivalServiceTestBase):
+    """A single survival tick should decrement BOTH meters in one pass."""
+
+    def test_one_tick_decrements_both_meters(self):
+        self.char1.hunger_level = HungerLevel.SATISFIED
+        self.char1.thirst_level = ThirstLevel.HYDRATED
+        self.char1.hunger_free_pass_tick = False
+        self.char1.thirst_free_pass_tick = False
+
+        self._run_tick([self.char1])
+
+        self.assertEqual(self.char1.hunger_level, HungerLevel.NOURISHED)
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.QUENCHED)

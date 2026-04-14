@@ -3,9 +3,8 @@ SurvivalService — per-character survival upkeep dispatcher.
 
 A single global Evennia script that ticks every SURVIVAL_TICK_INTERVAL seconds,
 walks all puppeted characters, and decrements every survival meter on each
-one. Currently the only meter is hunger; thirst lands in a follow-up PR and
-will plug into the same loop body. Future meters (sleep, sanity, etc.) are
-designed to live here too — the script is just a tick dispatcher with a
+one. Currently ticks hunger and thirst; future meters (sleep, sanity, etc.)
+plug into the same loop body. The script is just a tick dispatcher with a
 puppeted-only guard, nothing meter-specific in its plumbing.
 
 Skips:
@@ -17,6 +16,7 @@ Skips:
 from evennia import DefaultScript, SESSION_HANDLER
 from django.conf import settings
 from enums.hunger_level import HungerLevel
+from enums.thirst_level import ThirstLevel
 
 
 class SurvivalService(DefaultScript):
@@ -28,8 +28,8 @@ class SurvivalService(DefaultScript):
     def at_script_creation(self):
         self.key = "survival_service"
         self.desc = (
-            "Per-character survival upkeep — ticks hunger (and future "
-            "meters) on every puppeted character."
+            "Per-character survival upkeep — ticks hunger and thirst "
+            "on every puppeted character."
         )
         self.interval = settings.SURVIVAL_TICK_INTERVAL
         self.persistent = True
@@ -49,6 +49,7 @@ class SurvivalService(DefaultScript):
                 continue
 
             self._tick_hunger(char)
+            self._tick_thirst(char)
 
     @staticmethod
     def _tick_hunger(char):
@@ -68,3 +69,22 @@ class SurvivalService(DefaultScript):
             return
 
         char.hunger_level = hunger_level.get_level(hunger_level.value - 1)
+
+    @staticmethod
+    def _tick_thirst(char):
+        """Decrement one thirst stage, honouring the free-pass-on-REFRESHED flag."""
+        if not hasattr(char, "thirst_level"):
+            return
+
+        thirst_level = char.thirst_level
+        if not isinstance(thirst_level, ThirstLevel):
+            return
+
+        if thirst_level == ThirstLevel.CRITICAL:
+            return
+
+        if thirst_level == ThirstLevel.REFRESHED and char.thirst_free_pass_tick:
+            char.thirst_free_pass_tick = False
+            return
+
+        char.thirst_level = thirst_level.get_level(thirst_level.value - 1)

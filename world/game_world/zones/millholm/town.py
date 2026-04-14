@@ -31,6 +31,7 @@ from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
 from typeclasses.terrain.rooms.room_stable import RoomStable
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from typeclasses.world_objects.fountain_fixture import FountainFixture
 from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 
 
@@ -451,6 +452,13 @@ def build_millholm_town(one_way_limbo=False):
                 ),
             }),
         ],
+    )
+
+    # Real water source — the `refill` command picks this up via is_water_source.
+    create_object(
+        FountainFixture,
+        key="a stone fountain",
+        location=rooms["sq_ne"],
     )
 
     rooms["sq_w"] = create_object(
