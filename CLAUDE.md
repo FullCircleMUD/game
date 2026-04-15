@@ -6,7 +6,7 @@ Core rules, critical patterns, and an index into the full design/ops docs. Keep 
 
 **FullCircleMUD** — a text MUD built on Evennia (Python/Django) with real blockchain item ownership on **XRPL**. Domain: **fcmud.world**. This folder (`src/game/`) is the Evennia game module; run `evennia start` from `FCM/src/`.
 
-For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For CLI/setup see [ops/DEV_SETUP.md](../../ops/DEV_SETUP.md). For tests see [ops/TESTING.md](../../ops/TESTING.md).
+For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For CLI/setup see [ops/DEV_SETUP.md](../../ops/DEV_SETUP.md). For tests see [ops/TESTING.md](../../ops/TESTING.md) — **always `tee` multi-package test runs to a file; piping through `grep` eats tracebacks.**
 
 ## Security Rules
 

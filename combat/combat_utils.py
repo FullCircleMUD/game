@@ -930,32 +930,57 @@ def get_sides(combatant):
     """
     Returns (allies, enemies) from combatant's perspective.
 
+    Walks ``room.contents`` via the targeting library's
+    ``walk_contents`` primitive + ``p_living`` + ``p_in_combat``
+    predicates to collect every living combatant in the room, then
+    partitions them into allies and enemies in a single bucket loop.
+
+    Two loops total (one walk inside walk_contents, one bucket loop
+    over the filtered candidates), down from the previous three-loop
+    implementation that built an intermediate ``in_combat`` list and
+    then filtered it twice. The bucket loop reads each candidate's
+    ``combat_side`` exactly once per object — the previous enemy
+    comprehension called ``_get_combat_side`` twice per object for
+    the combined ``!= my_side AND != 0`` check, doubling the
+    script-handler lookups on that pass.
+
     Sides are assigned dynamically at combat entry time based on
     who attacked who and group membership. Each combatant's handler
     stores a combat_side (1 or 2).
 
     In PvP rooms: everyone is an enemy except the combatant themselves.
     """
+    from utils.targeting.helpers import walk_contents
+    from utils.targeting.predicates import p_in_combat, p_living
+
     room = combatant.location
     if not room:
         return [], []
 
-    # Everyone in the room who is in combat and alive
-    in_combat = [
-        obj for obj in room.contents
-        if getattr(obj, "hp", None) is not None
-        and obj.hp > 0
-        and obj.scripts.get("combat_handler")
-    ]
-
     if getattr(room, "allow_pvp", False):
-        return [combatant], [c for c in in_combat if c != combatant]
+        # PvP short-circuit: everyone in combat is an enemy of
+        # everyone else. walk_contents replaces the bespoke
+        # room.contents comprehension for consistency with every
+        # other room walk in the codebase.
+        in_combat = walk_contents(combatant, room, p_living, p_in_combat)
+        return [combatant], [c for c in in_combat if c is not combatant]
 
     # Read combatant's side from their handler
     my_side = _get_combat_side(combatant)
     if not my_side:
         return [], []
 
-    allies = [c for c in in_combat if _get_combat_side(c) == my_side]
-    enemies = [c for c in in_combat if _get_combat_side(c) != my_side and _get_combat_side(c) != 0]
+    # Single bucket pass: read each candidate's side once and
+    # dispatch directly into allies or enemies. Side-zero
+    # combatants (handler attached but no side assigned — a weird
+    # edge state) fall through both branches and are excluded
+    # from both lists, matching the previous implementation.
+    allies = []
+    enemies = []
+    for c in walk_contents(combatant, room, p_living, p_in_combat):
+        side = _get_combat_side(c)
+        if side == my_side:
+            allies.append(c)
+        elif side != 0:
+            enemies.append(c)
     return allies, enemies
