@@ -114,6 +114,110 @@ def get_room_all_at_height(caster):
     ]
 
 
+# ── Actor target resolution (for spells targeting characters/mobs) ───
+
+
+def resolve_actor_target(caster, target_str, target_type):
+    """Resolve an actor target for a spell.
+
+    Used by ``cmd_cast`` and ``cmd_zap`` when the spell's ``target_type``
+    is ``"hostile"``, ``"friendly"``, or ``"any"``. Returns the resolved
+    actor or ``None``; on ``None`` an error message has already been
+    sent to the caster so callers just ``return``.
+
+    Scoping:
+        - Search is scoped to living actors in ``caster.location``
+          (same room as the caster). No fallback to the room itself,
+          no cross-room lookup.
+        - A "living actor" is an object with an ``hp`` attribute and
+          ``hp > 0``. This filters out rooms, items, fixtures, corpses,
+          and dead mobs — the exact failure mode that caused the
+          ``cast drain life bee-1`` crash.
+        - Honours ``key-N`` numeric disambiguation via ``caller.search``.
+          The user types ``bee-1`` to pick the first bee in a room full
+          of bees.
+
+    Per-target_type rules:
+        - ``"hostile"`` — self is rejected (you can't cast a hostile
+          spell on yourself via this path). Empty ``target_str`` is an
+          error (no default target for hostile spells).
+        - ``"friendly"`` — self is allowed. Empty ``target_str`` defaults
+          to self.
+        - ``"any"`` — self is allowed. Empty ``target_str`` is an error.
+
+    Args:
+        caster: The spell caster.
+        target_str: Target name typed by the player (raw; stripped here).
+        target_type: One of ``"hostile"``, ``"friendly"``, ``"any"``.
+
+    Returns:
+        The resolved actor, or ``None``. Error message already sent
+        on ``None``.
+    """
+    target_str = (target_str or "").strip()
+
+    # Friendly defaults to self when no target is given
+    if not target_str:
+        if target_type == "friendly":
+            return caster
+        caster.msg("You need to specify a target.")
+        return None
+
+    if target_type not in ("hostile", "friendly", "any"):
+        caster.msg(f"Unknown actor target type '{target_type}'.")
+        return None
+
+    if not caster.location:
+        caster.msg("You aren't anywhere where you could target that.")
+        return None
+
+    # Build candidates: living actors in the caster's current room.
+    # This scoping is the key difference from bare caller.search() —
+    # we never fall back to the room itself or to objects without hp.
+    candidates = [
+        obj for obj in caster.location.contents
+        if _is_living_actor(obj)
+    ]
+
+    # For hostile spells, the caster cannot target themselves.
+    if target_type == "hostile":
+        candidates = [obj for obj in candidates if obj is not caster]
+
+    if not candidates:
+        caster.msg(f"There is no valid target for '{target_str}' here.")
+        return None
+
+    # Delegate name/alias/numeric-disambiguation matching to Evennia's
+    # search over our constrained candidate list.
+    target = caster.search(
+        target_str,
+        candidates=candidates,
+        quiet=True,
+    )
+    if isinstance(target, list):
+        target = target[0] if target else None
+    if not target:
+        caster.msg(f"There's no '{target_str}' here.")
+        return None
+    return target
+
+
+def _is_living_actor(obj):
+    """True if ``obj`` is a living actor that can receive an actor-target spell.
+
+    Used as the filter for resolve_actor_target's candidate list.
+    Requires hp > 0 so the check filters out corpses, inanimate
+    fixtures, the room itself, and dead mobs.
+    """
+    hp = getattr(obj, "hp", None)
+    if hp is None:
+        return False
+    try:
+        return int(hp) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 # ── Item target resolution (for spells with target_type=*_item) ───────
 
 

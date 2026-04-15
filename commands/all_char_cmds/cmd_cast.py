@@ -14,7 +14,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from world.spells.registry import get_spell, SPELL_REGISTRY
-from world.spells.spell_utils import resolve_item_target
+from world.spells.spell_utils import resolve_actor_target, resolve_item_target
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -111,40 +111,27 @@ class CmdCast(FCMCommandMixin, Command):
             )
             return
 
-        # Resolve target
+        # Resolve target — each target_type except "self" and "none"
+        # has a helper in world.spells.spell_utils that does its own
+        # scoping, validation, and error messaging. On None, the helper
+        # has already told the caster what went wrong, so we just return.
         target = None
         if spell_match.target_type == "self":
             target = caller
-        elif spell_match.target_type == "friendly":
-            if target_str:
-                target = caller.search(target_str)
-                if not target:
-                    return
-            else:
-                target = caller
-        elif spell_match.target_type == "hostile":
-            if not target_str:
-                caller.msg(f"Cast {spell_match.name} at whom?")
-                return
-            target = caller.search(target_str)
-            if not target:
-                return
         elif spell_match.target_type == "none":
             target = None
-        elif spell_match.target_type == "any":
-            if not target_str:
-                caller.msg(f"Cast {spell_match.name} on what?")
-                return
-            target = caller.search(target_str)
+        elif spell_match.target_type in ("hostile", "friendly", "any"):
+            target = resolve_actor_target(
+                caller, target_str, spell_match.target_type,
+            )
             if not target:
                 return
         elif spell_match.target_type in ("inventory_item", "world_item", "any_item"):
-            if not target_str:
-                caller.msg(f"Cast {spell_match.name} on what?")
-                return
-            target = resolve_item_target(caller, target_str, spell_match.target_type)
+            target = resolve_item_target(
+                caller, target_str, spell_match.target_type,
+            )
             if not target:
-                return  # error message already sent
+                return
 
         # Cast the spell
         success, result = spell_match.cast(caller, target, spell_arg=spell_arg)
