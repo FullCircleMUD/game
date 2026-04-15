@@ -26,9 +26,12 @@ from evennia.utils import utils
 
 from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
-from typeclasses.actors.character import FCMCharacter
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import (
+    resolve_character_in_room,
+    resolve_item_in_source,
+)
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -79,12 +82,16 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
         # ---------------------------------------------------------- #
         #  Find and validate the target
         # ---------------------------------------------------------- #
-        target = caller.search(self.rhs)
+        # resolve_character_in_room filters candidates to FCMCharacter
+        # (player characters) upstream via p_is_character, so the old
+        # isinstance check becomes redundant and is removed. The
+        # target == caller check stays as a command-layer policy so
+        # the caller gets the specific "give to yourself" error
+        # rather than the helper's generic "not found". Helper
+        # identifies; command polices.
+        target = resolve_character_in_room(caller, self.rhs)
         if not target:
-            return
-
-        if not isinstance(target, FCMCharacter):
-            caller.msg("You can only give things to other characters.")
+            caller.msg(f"You don't see a character called '{self.rhs}' here.")
             return
 
         if target == caller:
@@ -374,9 +381,16 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
 
     def _give_object(self, caller, target, search_term):
         """Standard Evennia object give with fuzzy matching."""
-        to_give = caller.search(
-            search_term,
-            location=caller,
+        # resolve_item_in_source filters source.contents via the base
+        # targeting predicates (not-actor, not-exit, visible). For
+        # inventory lookups those are effectively no-ops (inventory
+        # never contains actors or exits) but the shared code path
+        # keeps filter semantics consistent with every other item
+        # lookup in the MUD. exclude_worn is forwarded through kwargs
+        # to FCMCharacter.search where the equipped-item filtering
+        # actually happens.
+        to_give = resolve_item_in_source(
+            caller, caller, search_term,
             nofound_string=f"You aren't carrying {search_term}.",
             multimatch_string=f"You carry more than one {search_term}:",
             stacked=self.number,
