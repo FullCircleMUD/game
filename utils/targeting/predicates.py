@@ -145,6 +145,53 @@ def p_visible_to(obj, caller):
         return True
 
 
+def p_living(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` has ``hp > 0``.
+
+    General "living actor" filter. Excludes corpses, items (``hp=None``),
+    dead mobs, and anything else without positive hp. Matches PCs,
+    NPCs, mobs, pets, mounts — anything that can be alive and take
+    actions.
+
+    Commonly composed with ``p_in_combat`` for combat queries
+    (``get_sides`` wants living combatants), or with other actor
+    predicates for spell targeting and damage application.
+
+    Defensive on type: returns False if ``hp`` is missing, None, or
+    non-numeric. Never raises.
+    """
+    hp = getattr(obj, "hp", None)
+    if hp is None:
+        return False
+    try:
+        return int(hp) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def p_in_combat(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` has a ``combat_handler`` script attached.
+
+    Combat-specific runtime-state filter. First consumer is
+    ``combat.combat_utils.get_sides``; future consumers will include
+    any combat-aware query (AI threat detection, mob awareness,
+    broadcast-to-combatants, flee state introspection, etc).
+
+    Checks the raw script handler list. The handler may be running
+    or stopped — in practice combat handlers are either attached and
+    running or detached and deleted, so the distinction is theoretical
+    but worth noting if a future consumer needs a stricter "currently
+    active" check.
+    """
+    scripts = getattr(obj, "scripts", None)
+    if scripts is None:
+        return False
+    try:
+        return bool(scripts.get("combat_handler"))
+    except Exception:
+        return False
+
+
 def p_is_container(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
     """True if ``obj`` inherits from ``ContainerMixin``.
 

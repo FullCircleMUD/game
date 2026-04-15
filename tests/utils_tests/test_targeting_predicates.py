@@ -11,7 +11,9 @@ from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.predicates import (
+    p_in_combat,
     p_is_character,
+    p_living,
     p_not_actor,
     p_not_exit,
     p_passes_lock,
@@ -95,6 +97,49 @@ class TestPredicates(EvenniaTest):
     def test_p_visible_to_false_when_mixin_returns_false(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
         self.assertFalse(p_visible_to(obj, caller=None))
+
+    # ── p_living ──────────────────────────────────────────────────
+
+    def test_p_living_true_when_hp_positive(self):
+        obj = SimpleNamespace(hp=10)
+        self.assertTrue(p_living(obj, caller=None))
+
+    def test_p_living_false_when_hp_zero(self):
+        obj = SimpleNamespace(hp=0)
+        self.assertFalse(p_living(obj, caller=None))
+
+    def test_p_living_false_when_hp_none(self):
+        # Items, exits, and anything without an hp attribute fail.
+        obj = SimpleNamespace()
+        self.assertFalse(p_living(obj, caller=None))
+
+    def test_p_living_false_when_hp_negative(self):
+        # Paranoid edge case — a combatant at negative hp from
+        # overkill damage should still be excluded.
+        obj = SimpleNamespace(hp=-5)
+        self.assertFalse(p_living(obj, caller=None))
+
+    # ── p_in_combat ───────────────────────────────────────────────
+
+    def test_p_in_combat_true_when_handler_attached(self):
+        # scripts.get returns a non-empty list when a combat_handler
+        # is attached to the object.
+        obj = SimpleNamespace(
+            scripts=SimpleNamespace(get=lambda key: ["mock_handler"]),
+        )
+        self.assertTrue(p_in_combat(obj, caller=None))
+
+    def test_p_in_combat_false_when_no_handler(self):
+        # scripts.get returns an empty list when nothing is attached.
+        obj = SimpleNamespace(
+            scripts=SimpleNamespace(get=lambda key: []),
+        )
+        self.assertFalse(p_in_combat(obj, caller=None))
+
+    def test_p_in_combat_false_when_no_scripts_attr(self):
+        # Items, rooms, exits don't even have a scripts attribute.
+        obj = SimpleNamespace()
+        self.assertFalse(p_in_combat(obj, caller=None))
 
     # ── p_is_container ────────────────────────────────────────────
 
