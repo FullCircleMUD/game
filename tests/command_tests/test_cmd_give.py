@@ -151,6 +151,65 @@ class TestCmdGiveObject(EvenniaCommandTest):
         self.call(CmdGive(), "horse to Char2", "You give")
         self.assertEqual(mount.location, self.char2)
 
+    def test_give_object_to_self(self):
+        """give sword to yourself should show the self-give error.
+
+        Mirrors test_give_to_self in the fungible suite — the
+        target == caller policy check runs on the object path too
+        and needs its own regression test.
+        """
+        self.call(
+            CmdGive(), "sword to Char",
+            "You can't give things to yourself.",
+        )
+        # Sword still in Char1's inventory
+        self.assertIn(self.sword, self.char1.contents)
+
+    def test_give_object_target_not_found(self):
+        """give sword to a non-existent name should show the
+        character-not-found error and NOT move the item.
+
+        This locks in the error wording introduced when cmd_give
+        migrated to resolve_character_in_room. The old bare
+        caller.search(self.rhs) would have emitted Evennia's
+        generic default; the helper now emits a specific
+        "You don't see a character called 'X' here" via the
+        command-layer error.
+        """
+        self.call(
+            CmdGive(), "sword to nobody",
+            "You don't see a character called 'nobody' here.",
+        )
+        self.assertIn(self.sword, self.char1.contents)
+
+    def test_give_object_target_is_non_character(self):
+        """give sword to a non-character object in the room should
+        be rejected by the character filter.
+
+        Creates a plain DefaultObject in the room named "pedestal"
+        and tries to give the sword to it. resolve_character_in_room
+        filters non-FCMCharacter candidates out via p_is_character
+        BEFORE the name match runs, so the helper returns None and
+        the command emits the character-not-found error.
+
+        Critical regression test: if p_is_character ever accidentally
+        broadens to match DefaultCharacter (or any object), this
+        test catches it.
+        """
+        pedestal = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="pedestal",
+            location=self.room1,
+        )
+        try:
+            self.call(
+                CmdGive(), "sword to pedestal",
+                "You don't see a character called 'pedestal' here.",
+            )
+            self.assertIn(self.sword, self.char1.contents)
+        finally:
+            pedestal.delete()
+
 
 class TestCmdGiveAll(EvenniaCommandTest):
     """Test 'give all to <target>' — gives everything with confirmation."""
