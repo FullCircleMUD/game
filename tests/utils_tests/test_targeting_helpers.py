@@ -12,6 +12,7 @@ from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.helpers import (
     BASE_ITEM_PREDICATES,
+    bucket_contents,
     resolve_character_in_room,
     resolve_container,
     resolve_item_in_source,
@@ -179,6 +180,182 @@ class TestWalkContents(EvenniaTest):
 
         result = walk_contents(None, source, p_lighter_than_10)
         self.assertEqual(result, [a])
+
+
+class TestBucketContents(EvenniaTest):
+    """Unit tests for utils.targeting.helpers.bucket_contents.
+
+    bucket_contents is the multi-way partitioning primitive that
+    sits alongside walk_contents. It's specifically designed for
+    combat-state bucketing (get_sides), AI threat tier classification,
+    and multi-faction combat. These tests cover:
+
+    - Source edge cases (None, missing .contents, empty contents)
+    - Classifier behaviour (bucket name → bucket, None → skip)
+    - Predicate composition (filters short-circuit before key_fn)
+    - Multi-bucket partitioning (more than 2 buckets at once)
+    - Ordered iteration via priority tuple (the AI threat pattern)
+    - Preservation of extra classifier buckets not in order
+    """
+
+    def create_script(self):
+        pass
+
+    # ── Source edge cases ─────────────────────────────────────────
+
+    def test_source_none_returns_empty_dict(self):
+        result = bucket_contents(None, None, lambda o, c: "bucket")
+        self.assertEqual(result, {})
+
+    def test_source_without_contents_returns_empty_dict(self):
+        source = SimpleNamespace()  # no .contents
+        result = bucket_contents(None, source, lambda o, c: "bucket")
+        self.assertEqual(result, {})
+
+    def test_empty_contents_returns_empty_dict(self):
+        source = SimpleNamespace(contents=[])
+        result = bucket_contents(None, source, lambda o, c: "bucket")
+        self.assertEqual(result, {})
+
+    # ── Classifier behaviour ──────────────────────────────────────
+
+    def test_single_bucket(self):
+        a = _make_item("a")
+        b = _make_item("b")
+        source = SimpleNamespace(contents=[a, b])
+        result = bucket_contents(None, source, lambda o, c: "all")
+        self.assertEqual(result, {"all": [a, b]})
+
+    def test_multiple_buckets(self):
+        # Classifier bucketing by key attribute
+        a = SimpleNamespace(key="red", kind="fruit")
+        b = SimpleNamespace(key="blue", kind="veggie")
+        c = SimpleNamespace(key="green", kind="veggie")
+        source = SimpleNamespace(contents=[a, b, c])
+
+        def classify(obj, _caller):
+            return obj.kind
+
+        result = bucket_contents(None, source, classify)
+        self.assertEqual(result, {"fruit": [a], "veggie": [b, c]})
+
+    def test_key_fn_returns_none_skips_object(self):
+        a = SimpleNamespace(key="a", include=True)
+        b = SimpleNamespace(key="b", include=False)
+        c = SimpleNamespace(key="c", include=True)
+        source = SimpleNamespace(contents=[a, b, c])
+
+        def classify(obj, _caller):
+            return "yes" if obj.include else None
+
+        result = bucket_contents(None, source, classify)
+        self.assertEqual(result, {"yes": [a, c]})
+
+    # ── Predicate composition ────────────────────────────────────
+
+    def test_predicates_filter_before_classifier(self):
+        a = _make_item("a")
+        exit_obj = _make_exit()
+        source = SimpleNamespace(contents=[a, exit_obj])
+        classifier_calls = []
+
+        def classify(obj, _caller):
+            classifier_calls.append(obj)
+            return "bucket"
+
+        from utils.targeting.predicates import p_not_exit
+        result = bucket_contents(None, source, classify, p_not_exit)
+        # exit_obj filtered out BEFORE classifier runs
+        self.assertEqual(classifier_calls, [a])
+        self.assertEqual(result, {"bucket": [a]})
+
+    def test_predicate_short_circuit_before_classifier(self):
+        # Cheap predicate False → classifier never called for that obj.
+        calls = []
+
+        def cheap_false(obj, caller):  # noqa: ARG001
+            calls.append(("predicate", obj.key))
+            return False
+
+        def classify(obj, _caller):
+            calls.append(("classifier", obj.key))
+            return "bucket"
+
+        source = SimpleNamespace(contents=[_make_item("a"), _make_item("b")])
+        bucket_contents(None, source, classify, cheap_false)
+        # Predicate called twice, classifier never called
+        self.assertEqual([c[0] for c in calls], ["predicate", "predicate"])
+
+    # ── Ordered iteration ────────────────────────────────────────
+
+    def test_order_empty_buckets_preserved(self):
+        # When order is passed, empty buckets for those names
+        # appear in the result. Critical for fall-through priority
+        # logic in AI threat selection.
+        source = SimpleNamespace(contents=[])
+        result = bucket_contents(
+            None, source, lambda o, c: "unreachable",
+            order=("caster", "healer", "ranged", "melee"),
+        )
+        self.assertEqual(
+            result,
+            {"caster": [], "healer": [], "ranged": [], "melee": []},
+        )
+
+    def test_order_preserves_priority_sequence(self):
+        # Classifier returns buckets out of priority order; the
+        # result dict's key order still matches the `order` tuple.
+        a = SimpleNamespace(key="a", role="melee")
+        b = SimpleNamespace(key="b", role="caster")
+        c = SimpleNamespace(key="c", role="ranged")
+        source = SimpleNamespace(contents=[a, b, c])
+
+        def classify(obj, _caller):
+            return obj.role
+
+        result = bucket_contents(
+            None, source, classify,
+            order=("caster", "healer", "ranged", "melee"),
+        )
+        # Dict keys appear in the priority order, not classification order
+        self.assertEqual(
+            list(result.keys()),
+            ["caster", "healer", "ranged", "melee"],
+        )
+        self.assertEqual(result["caster"], [b])
+        self.assertEqual(result["healer"], [])
+        self.assertEqual(result["ranged"], [c])
+        self.assertEqual(result["melee"], [a])
+
+    def test_order_extra_buckets_appended(self):
+        # Classifier produces a bucket name not in `order`.
+        # The extra bucket is kept (not dropped) and appears at
+        # the end of the result dict.
+        a = SimpleNamespace(key="a", role="caster")
+        b = SimpleNamespace(key="b", role="beast")  # not in order tuple
+        source = SimpleNamespace(contents=[a, b])
+
+        def classify(obj, _caller):
+            return obj.role
+
+        result = bucket_contents(
+            None, source, classify,
+            order=("caster", "healer"),
+        )
+        # "caster" and "healer" first (in order), "beast" last
+        self.assertEqual(list(result.keys()), ["caster", "healer", "beast"])
+        self.assertEqual(result["caster"], [a])
+        self.assertEqual(result["healer"], [])
+        self.assertEqual(result["beast"], [b])
+
+    def test_order_with_none_source_returns_empty_buckets(self):
+        # Edge case: None source + order should still honour the
+        # order contract so AI fall-through iteration doesn't crash.
+        result = bucket_contents(
+            None, None, lambda o, c: "unused",
+            order=("caster", "healer"),
+        )
+        self.assertEqual(result, {"caster": [], "healer": []})
 
 
 class TestResolveItemInSource(EvenniaTest):

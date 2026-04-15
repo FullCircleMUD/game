@@ -64,6 +64,115 @@ def walk_contents(caller, source, *predicates):
     ]
 
 
+def bucket_contents(caller, source, key_fn, *predicates, order=None):
+    """Walk ``source.contents`` once, filter via predicates, bucket via key_fn.
+
+    Single-pass sibling of ``walk_contents``. Objects that pass every
+    predicate are passed to ``key_fn(obj, caller)``, which returns:
+
+    - A hashable bucket name (string, enum, int) — ``obj`` is
+      appended to that bucket.
+    - ``None`` — ``obj`` is skipped entirely (not appended to any
+      bucket).
+
+    Returns a dict ``{bucket_name: [objects]}``. Buckets are created
+    lazily via ``setdefault`` — if no object maps to bucket "X" and
+    "X" is not in ``order``, that key will not be in the returned
+    dict. Callers should use ``buckets.get("X", [])`` to retrieve
+    safely.
+
+    **Ordered iteration via ``order``**: When a caller supplies a
+    priority tuple ``order=("caster", "healer", ...)``, the returned
+    dict pre-populates those keys (with empty lists where no object
+    was classified) and preserves insertion order so iterating the
+    dict follows the caller's priority. Extra buckets the classifier
+    produced that aren't in ``order`` are appended at the end in
+    classification order (they are NOT dropped — the caller can
+    filter post-hoc if needed).
+
+    This makes the common AI threat / priority-tier pattern idiomatic::
+
+        tiers = bucket_contents(
+            mob, mob.location, classify_by_role,
+            p_living, p_is_enemy,
+            order=("caster", "healer", "ranged", "melee"),
+        )
+        for priority, targets in tiers.items():
+            if targets:
+                return pick(targets)
+
+    Design rules:
+
+    - Use ``walk_contents`` when you want a flat filtered list and
+      don't need to partition the results.
+    - Use ``bucket_contents`` when matching objects need to be
+      partitioned into multiple named groups by a per-object key
+      (e.g. combat allies vs enemies, AI threat tiers, faction
+      membership).
+    - Pass ``order`` when callers care about iteration priority or
+      want empty buckets to be present in the result for
+      fall-through logic.
+
+    Performance: single pass over ``source.contents``. Predicates
+    short-circuit via ``all()`` before ``key_fn`` runs, so
+    expensive classifier work only touches objects that survive
+    filtering. Pre-populating ``order`` buckets is O(len(order))
+    and happens once before the walk — negligible for typical
+    priority tuples of 2–10 entries.
+
+    The primary consumer is ``combat.combat_utils.get_sides`` which
+    partitions living combatants into allies / enemies buckets. Also
+    designed for future AI threat bucketing and multi-faction combat.
+
+    Args:
+        caller: The actor driving the query. Used for visibility
+            predicates and forwarded to ``key_fn``.
+        source: Any object with a ``.contents`` attribute. May be
+            ``None`` — the helper returns ``{}`` rather than raising.
+        key_fn: Callable ``(obj, caller) -> str | None`` that
+            classifies an object into a bucket. Returning ``None``
+            skips the object.
+        *predicates: Zero or more ``(obj, caller) -> bool`` filters
+            applied before ``key_fn``.
+        order: Optional iterable of bucket names. When supplied,
+            those buckets are pre-populated (empty if no match) and
+            the returned dict preserves the specified order. Extra
+            buckets from the classifier are appended after.
+
+    Returns:
+        A dict mapping bucket names to lists of objects. Keys from
+        ``order`` (if supplied) come first in the specified
+        sequence; additional buckets from the classifier follow.
+        Empty dict if ``source`` is ``None`` or has no
+        ``.contents`` (and ``order`` was not supplied).
+    """
+    if source is None:
+        return dict.fromkeys(order, []) if order else {}
+    contents = getattr(source, "contents", None)
+    if not contents:
+        # Still honour the order contract: if caller passed an
+        # order tuple, return pre-populated empty buckets so their
+        # fall-through iteration logic works without a .get() wrap.
+        return {name: [] for name in order} if order else {}
+
+    buckets = {}
+    if order is not None:
+        # Pre-populate with empty lists. Insertion order is preserved
+        # in Python 3.7+, so iterating buckets.items() will follow
+        # the caller's priority sequence.
+        for name in order:
+            buckets[name] = []
+
+    for obj in contents:
+        if not all(p(obj, caller) for p in predicates):
+            continue
+        key = key_fn(obj, caller)
+        if key is None:
+            continue
+        buckets.setdefault(key, []).append(obj)
+    return buckets
+
+
 def resolve_item_in_source(caller, source, search_term, **kwargs):
     """Identify an item inside a source object's contents.
 
