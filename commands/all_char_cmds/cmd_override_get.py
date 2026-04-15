@@ -41,6 +41,7 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import resolve_item_in_source
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -102,7 +103,9 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
         #  "get leather(resource) FROM backpack(container)".
         # ---------------------------------------------------------- #
         if " " in self.args.strip():
-            obj = caller.search(self.args.strip(), location=caller.location, quiet=True)
+            obj = resolve_item_in_source(
+                caller, caller.location, self.args.strip(), quiet=True
+            )
             if obj:
                 self._get_object(caller, self.args.strip())
                 return
@@ -356,22 +359,24 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     def _get_object(self, caller, search_term):
         """Standard Evennia object pickup with fuzzy matching."""
-        objs = caller.search(search_term, location=caller.location, stacked=self.number)
+        # Candidate filtering (not-character, not-exit, hidden-visibility)
+        # is handled by resolve_item_in_source. The caller-is-self check
+        # and the is_hidden_visible_to post-filter that used to live here
+        # are NOT needed — the helper excludes characters (so the caller,
+        # who is always a character, can never appear in candidates) and
+        # excludes hidden items the caller has not discovered. Do NOT
+        # re-add those checks here.
+        objs = resolve_item_in_source(
+            caller, caller.location, search_term, stacked=self.number
+        )
         if not objs:
             return
         objs = utils.make_iter(objs)
 
-        if len(objs) == 1 and caller == objs[0]:
-            self.msg("You can't get yourself.")
-            return
-
-        # Block picking up hidden objects the caller hasn't discovered
-        for obj in objs:
-            if hasattr(obj, "is_hidden_visible_to"):
-                if not obj.is_hidden_visible_to(caller):
-                    self.msg(f"You don't see '{search_term}' here.")
-                    return
-
+        # The `get` access lock check STAYS here — the helper deliberately
+        # does not filter by it so this command can emit custom per-item
+        # error messages (obj.db.get_err_msg) instead of a generic "you
+        # don't see that here".
         for obj in objs:
             if not obj.access(caller, "get"):
                 if obj.db.get_err_msg:

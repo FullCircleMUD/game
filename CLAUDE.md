@@ -14,6 +14,12 @@ For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For C
 
 ---
 
+## Development Approach
+
+**Evennia-first.** Before designing or implementing any solution, explore what Evennia already provides natively. Do not build something Evennia has already solved. Check `evennia/` in the venv (`src/venv/Lib/site-packages/evennia/`), search for existing helpers on `DefaultObject`/`DefaultCharacter`/`DefaultRoom`/`DefaultScript`, read the relevant Evennia manager or utility module, and understand how Evennia's sub-methods (e.g. `get_search_candidates`, `at_object_creation`, `at_post_move`) can be overridden or composed. Where Evennia provides partial functionality, prefer **thin wrappers, narrow overrides of sub-methods, and composition over reimplementation**. Build custom solutions only for the gaps Evennia doesn't cover, and document those gaps in the relevant design doc. See [design/UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) § What Evennia Already Provides for an example of this discipline applied.
+
+---
+
 ## CRITICAL Rules (never violate)
 
 ### Service Encapsulation — game code NEVER calls service classes directly
@@ -211,6 +217,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 
 | Topic | Doc |
 |---|---|
+| Unified search & targeting (scopes, predicates, resolvers, name matching) | [UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) |
 | Combat, weapons, stealth, parry/riposte, height combat | [COMBAT_SYSTEM.md](../../design/COMBAT_SYSTEM.md) |
 | Effects, conditions, damage pipeline, DamageResistanceMixin | [EFFECTS_SYSTEM.md](../../design/EFFECTS_SYSTEM.md) |
 | Spells, schools, spellbooks, scrolls, recipe catalog | [SPELL_SKILL_DESIGN.md](../../design/SPELL_SKILL_DESIGN.md) |
