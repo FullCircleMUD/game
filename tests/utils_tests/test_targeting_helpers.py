@@ -10,7 +10,11 @@ from unittest.mock import MagicMock
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
-from utils.targeting.helpers import resolve_container, resolve_item_in_source
+from utils.targeting.helpers import (
+    resolve_character_in_room,
+    resolve_container,
+    resolve_item_in_source,
+)
 
 
 def _make_item(key="sword"):
@@ -51,6 +55,17 @@ def _make_container(key="pack", is_open=None):
     if is_open is not None:
         kwargs["is_open"] = is_open
     return SimpleNamespace(**kwargs)
+
+
+def _make_player_character():
+    """A mock that passes isinstance(x, FCMCharacter).
+
+    Used by resolve_character_in_room tests to verify the helper
+    matches player characters specifically, not generic DefaultCharacter
+    subclasses like NPCs or mobs.
+    """
+    from typeclasses.actors.character import FCMCharacter
+    return MagicMock(spec=FCMCharacter)
 
 
 class TestResolveItemInSource(EvenniaTest):
@@ -295,3 +310,75 @@ class TestResolveContainer(EvenniaTest):
         caller.search = MagicMock(return_value=closed_chest)
         result = resolve_container(caller, "chest")
         self.assertIs(result, closed_chest)
+
+
+class TestResolveCharacterInRoom(EvenniaTest):
+    """Unit tests for utils.targeting.helpers.resolve_character_in_room."""
+
+    def create_script(self):
+        pass
+
+    # ── Happy path ────────────────────────────────────────────────
+
+    def test_player_character_in_room_returned(self):
+        pc = _make_player_character()
+        caller = MagicMock()
+        caller.location = SimpleNamespace(contents=[pc])
+        caller.search = MagicMock(return_value=pc)
+        result = resolve_character_in_room(caller, "bob")
+        self.assertIs(result, pc)
+
+    # ── Filter: non-characters excluded ───────────────────────────
+
+    def test_generic_default_character_excluded(self):
+        # An NPC / mob / pet is a DefaultCharacter but NOT an
+        # FCMCharacter — p_is_character should filter it out.
+        npc = MagicMock(spec=DefaultCharacter)
+        caller = MagicMock()
+        caller.location = SimpleNamespace(contents=[npc])
+        caller.search = MagicMock(return_value=None)
+        result = resolve_character_in_room(caller, "bob")
+        self.assertIsNone(result)
+        # Empty candidates after filtering — search never called
+        caller.search.assert_not_called()
+
+    def test_plain_object_excluded(self):
+        item = _make_item("bob")
+        caller = MagicMock()
+        caller.location = SimpleNamespace(contents=[item])
+        caller.search = MagicMock(return_value=None)
+        result = resolve_character_in_room(caller, "bob")
+        self.assertIsNone(result)
+        caller.search.assert_not_called()
+
+    # ── Edge cases ────────────────────────────────────────────────
+
+    def test_no_location_returns_none(self):
+        caller = MagicMock()
+        caller.location = None
+        caller.search = MagicMock()
+        result = resolve_character_in_room(caller, "bob")
+        self.assertIsNone(result)
+        caller.search.assert_not_called()
+
+    def test_empty_room_returns_none(self):
+        caller = MagicMock()
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=None)
+        result = resolve_character_in_room(caller, "bob")
+        self.assertIsNone(result)
+        caller.search.assert_not_called()
+
+    # ── Policy: caller is NOT excluded by the helper ─────────────
+
+    def test_caller_is_returned_if_they_match(self):
+        # resolve_character_in_room deliberately does NOT exclude the
+        # caller. Commands that want "not self" apply that check in
+        # the command layer so they can emit a specific error. This
+        # test locks in that non-exclusion so future edits don't
+        # silently break the contract.
+        caller_pc = _make_player_character()
+        caller_pc.location = SimpleNamespace(contents=[caller_pc])
+        caller_pc.search = MagicMock(return_value=caller_pc)
+        result = resolve_character_in_room(caller_pc, "bob")
+        self.assertIs(result, caller_pc)

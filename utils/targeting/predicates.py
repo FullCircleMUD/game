@@ -74,27 +74,38 @@ inclusion), FCM mixin visibility, and runtime lock checks.
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 
 
-def p_not_caller(obj, caller):
-    """True if ``obj`` is not the caller themselves.
+def p_not_actor(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` is not an actor (not any ``DefaultCharacter`` subclass).
 
-    Identity compare, trivially cheap. Used to exclude the caller from
-    candidate lists where they would otherwise match their own key or
-    aliases (e.g. a PC named "bob" searching for "bob").
-    """
-    return obj is not caller
+    Excludes player characters, NPCs, mobs, pets, and mounts — every
+    entity that inherits ``DefaultCharacter``. Used by item lookups to
+    keep living entities out of the candidate pool (``get sword`` must
+    not resolve to an NPC named "swordsmith").
 
-
-def p_not_character(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
-    """True if ``obj`` is not a character (PC, NPC, or mob).
-
-    Excludes anything deriving from ``DefaultCharacter``. Used by item
-    lookups to keep actors out of the candidate pool — ``get sword``
-    should not resolve to an NPC named "swordsmith".
+    Terminology: **actor** is the generic term for any living entity
+    in the world. **Character** (see ``p_is_character``) means
+    specifically a player character (``FCMCharacter``). Predicates use
+    the two words consistently to avoid confusion.
 
     Evennia's ``typeclass=`` kwarg only supports positive filtering
     ("match these"), which is why this exclusion needs a predicate.
     """
     return not isinstance(obj, DefaultCharacter)
+
+
+def p_is_character(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` is a player character (``FCMCharacter`` instance).
+
+    Matches ONLY player-controlled characters. NPCs, mobs, pets, and
+    mounts inherit ``DefaultCharacter`` but are NOT ``FCMCharacter`` —
+    use this predicate when a command legitimately only wants PCs
+    (give, whisper, trade, party-invite, etc.).
+
+    Uses a lazy import of ``FCMCharacter`` to avoid any circular-import
+    risk between the targeting package and the character typeclass.
+    """
+    from typeclasses.actors.character import FCMCharacter
+    return isinstance(obj, FCMCharacter)
 
 
 def p_not_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform signature

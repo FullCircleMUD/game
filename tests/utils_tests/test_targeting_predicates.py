@@ -11,8 +11,8 @@ from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.predicates import (
-    p_not_caller,
-    p_not_character,
+    p_is_character,
+    p_not_actor,
     p_not_exit,
     p_passes_lock,
     p_visible_to,
@@ -28,26 +28,30 @@ class TestPredicates(EvenniaTest):
         # don't need any script fixture.
         pass
 
-    # ── p_not_caller ──────────────────────────────────────────────
+    # ── p_not_actor ───────────────────────────────────────────────
 
-    def test_p_not_caller_true_when_different_obj(self):
-        caller = SimpleNamespace()
-        other = SimpleNamespace()
-        self.assertTrue(p_not_caller(other, caller))
-
-    def test_p_not_caller_false_when_same_obj(self):
-        caller = SimpleNamespace()
-        self.assertFalse(p_not_caller(caller, caller))
-
-    # ── p_not_character ───────────────────────────────────────────
-
-    def test_p_not_character_true_for_plain_object(self):
+    def test_p_not_actor_true_for_plain_object(self):
         obj = SimpleNamespace()
-        self.assertTrue(p_not_character(obj, caller=None))
+        self.assertTrue(p_not_actor(obj, caller=None))
 
-    def test_p_not_character_false_for_character(self):
+    def test_p_not_actor_false_for_default_character(self):
+        # Any DefaultCharacter subclass is an actor — PCs, NPCs, mobs,
+        # pets, mounts all inherit from DefaultCharacter.
         char = MagicMock(spec=DefaultCharacter)
-        self.assertFalse(p_not_character(char, caller=None))
+        self.assertFalse(p_not_actor(char, caller=None))
+
+    # ── p_is_character ────────────────────────────────────────────
+
+    def test_p_is_character_false_for_plain_object(self):
+        obj = SimpleNamespace()
+        self.assertFalse(p_is_character(obj, caller=None))
+
+    def test_p_is_character_true_for_fcmcharacter(self):
+        # p_is_character matches FCMCharacter specifically — the
+        # player-character class, not the generic DefaultCharacter.
+        from typeclasses.actors.character import FCMCharacter
+        pc = MagicMock(spec=FCMCharacter)
+        self.assertTrue(p_is_character(pc, caller=None))
 
     # ── p_not_exit ────────────────────────────────────────────────
 

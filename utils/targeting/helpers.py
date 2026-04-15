@@ -7,8 +7,9 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
+    p_is_character,
     p_is_container,
-    p_not_character,
+    p_not_actor,
     p_not_exit,
     p_visible_to,
 )
@@ -17,9 +18,9 @@ from utils.targeting.predicates import (
 #: The universal "item-like" filter stack. Any lookup that wants
 #: "things in source.contents that could be items the caller might
 #: act on" combines these with additional filters as needed. Excludes
-#: characters (PCs, NPCs, mobs, the caller), exits, and objects the
-#: caller can't currently see (HiddenObjectMixin).
-BASE_ITEM_PREDICATES = (p_not_character, p_not_exit, p_visible_to)
+#: actors (PCs, NPCs, mobs, pets, mounts — anything living), exits,
+#: and objects the caller can't currently see (HiddenObjectMixin).
+BASE_ITEM_PREDICATES = (p_not_actor, p_not_exit, p_visible_to)
 
 
 def walk_contents(caller, source, *predicates):
@@ -161,3 +162,42 @@ def resolve_container(caller, name):
             if result is not None:
                 return result
     return None
+
+
+def resolve_character_in_room(caller, name):
+    """Find a player character in the caller's current room by name.
+
+    Matches ``FCMCharacter`` instances only — NPCs, mobs, pets, and
+    mounts are excluded upstream by ``p_is_character``. The caller is
+    NOT excluded; commands that want a "not self" check apply it
+    themselves as a command-layer policy so they can emit
+    command-specific error messages (e.g. "You can't give things to
+    yourself").
+
+    Scope suffix (``_in_room``) distinguishes this from future scope
+    variants (``_in_game``, ``_in_zone``, ``_in_district``). Those
+    variants will use different execution models (DB queries rather
+    than in-memory walks) and will be separate helpers when their
+    consumers appear.
+
+    Args:
+        caller: The actor doing the lookup. Used for visibility
+            checks and delegating string matching to ``caller.search``.
+        name: Keyword typed by the player. Matched against character
+            key and aliases via Evennia's built-in search.
+
+    Returns:
+        The matched ``FCMCharacter`` or ``None``. Returns ``None``
+        if the caller has no location, if no characters are in the
+        room, or if no candidate's name matches. Never raises.
+    """
+    room = caller.location
+    if room is None:
+        return None
+    candidates = walk_contents(caller, room, p_is_character)
+    if not candidates:
+        return None
+    result = caller.search(name, candidates=candidates, quiet=True)
+    if isinstance(result, list):
+        result = result[0] if result else None
+    return result
