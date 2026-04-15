@@ -243,6 +243,25 @@ class TestCmdHold(EvenniaCommandTest):
         """Hold with no arguments should show error."""
         self.call(CmdHold(), "", "Hold what?")
 
+    def test_hold_item_not_in_inventory(self):
+        """Hold a non-existent item should show command-layer error.
+
+        Locks in the error wording introduced when cmd_hold migrated
+        to resolve_item_in_source. Pre-migration, the bare
+        caller.search emitted Evennia's generic "You don't see 'X'
+        here" as a side effect. Post-migration, the command owns the
+        error wording and emits "You aren't carrying 'X'" whether
+        the inventory is empty or the name just doesn't match.
+
+        Critical regression test: if the command's explicit error
+        message is ever removed (e.g. someone reverting to the old
+        silent-return pattern), this test catches it.
+        """
+        self.call(
+            CmdHold(), "nonexistent",
+            "You aren't carrying 'nonexistent'.",
+        )
+
 
 # ================================================================== #
 #  Remove Command Tests
