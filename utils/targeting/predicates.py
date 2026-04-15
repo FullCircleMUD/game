@@ -134,6 +134,27 @@ def p_visible_to(obj, caller):
         return True
 
 
+def p_is_container(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` inherits from ``ContainerMixin``.
+
+    Containers expose a class attribute ``is_container = True`` set by
+    ``ContainerMixin`` (see ``typeclasses/mixins/container.py``). This
+    predicate is the canonical way to ask "is this a container" across
+    FCM — backpacks, wearable containers, world chests, and trap chests
+    all pass; plain items, characters, exits, and corpses do not.
+
+    This predicate checks TYPE only — it does NOT check whether the
+    container is currently open. Open/closed state is a command-layer
+    policy concern (``get from`` needs open; ``picklock`` needs closed;
+    ``smash`` doesn't care). Callers are responsible for that check.
+
+    Corpses are NOT containers — they use ``FungibleInventoryMixin``
+    directly and have their own loot gate (``can_loot()``). Use a
+    different predicate/helper when adding corpse-loot support.
+    """
+    return getattr(obj, "is_container", False)
+
+
 def p_passes_lock(lock_type):
     """Factory — returns a predicate that checks an Evennia access lock.
 

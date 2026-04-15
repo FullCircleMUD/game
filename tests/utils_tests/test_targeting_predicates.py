@@ -73,6 +73,18 @@ class TestPredicates(EvenniaTest):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
         self.assertFalse(p_visible_to(obj, caller=None))
 
+    # ── p_is_container ────────────────────────────────────────────
+
+    def test_p_is_container_true_when_is_container_true(self):
+        obj = SimpleNamespace(is_container=True)
+        from utils.targeting.predicates import p_is_container
+        self.assertTrue(p_is_container(obj, caller=None))
+
+    def test_p_is_container_false_when_attr_missing(self):
+        obj = SimpleNamespace()
+        from utils.targeting.predicates import p_is_container
+        self.assertFalse(p_is_container(obj, caller=None))
+
     # ── p_passes_lock ─────────────────────────────────────────────
 
     def test_p_passes_lock_true_when_access_returns_true(self):

@@ -7,10 +7,60 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
+    p_is_container,
     p_not_character,
     p_not_exit,
     p_visible_to,
 )
+
+
+#: The universal "item-like" filter stack. Any lookup that wants
+#: "things in source.contents that could be items the caller might
+#: act on" combines these with additional filters as needed. Excludes
+#: characters (PCs, NPCs, mobs, the caller), exits, and objects the
+#: caller can't currently see (HiddenObjectMixin).
+BASE_ITEM_PREDICATES = (p_not_character, p_not_exit, p_visible_to)
+
+
+def walk_contents(caller, source, *predicates):
+    """Walk ``source.contents`` once and return objects passing every predicate.
+
+    Universal targeting primitive. The caller supplies the predicate
+    stack they want; ``walk_contents`` runs it via short-circuit
+    ``all()`` so the first failing predicate stops evaluation for
+    that object.
+
+    Compose with ``BASE_ITEM_PREDICATES`` for the standard "item-like"
+    filter, or pass a custom stack for specialised lookups::
+
+        # Standard item filter:
+        walk_contents(caller, source, *BASE_ITEM_PREDICATES)
+
+        # Item filter plus container requirement:
+        walk_contents(
+            caller, source, *BASE_ITEM_PREDICATES, p_is_container,
+        )
+
+        # Custom filter ignoring the base stack entirely:
+        walk_contents(caller, source, p_is_mob)
+
+    Returns an empty list if ``source`` is ``None`` or has no
+    ``.contents`` attribute, so callers can iterate the result
+    unconditionally.
+
+    Predicate order matters for efficiency: place cheap predicates
+    (identity/attribute checks) before expensive ones (method calls,
+    lock checks) so short-circuit eval pays off.
+    """
+    if source is None:
+        return []
+    contents = getattr(source, "contents", None)
+    if not contents:
+        return []
+    return [
+        obj for obj in contents
+        if all(p(obj, caller) for p in predicates)
+    ]
 
 
 def resolve_item_in_source(caller, source, search_term, **kwargs):
@@ -64,20 +114,50 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
         Objects (when ``stacked=N`` is passed), or ``None`` when
         no match is found.
     """
-    if source is None:
-        return None
-    contents = getattr(source, "contents", None)
-    if not contents:
-        return None
-
-    candidates = [
-        obj for obj in contents
-        if p_not_character(obj, caller)
-        and p_not_exit(obj, caller)
-        and p_visible_to(obj, caller)
-    ]
-
+    candidates = walk_contents(caller, source, *BASE_ITEM_PREDICATES)
     if not candidates:
         return None
-
     return caller.search(search_term, candidates=candidates, **kwargs)
+
+
+def resolve_container(caller, name):
+    """Find a container by name — inventory first, then room.
+
+    Scopes the search to:
+        1. ``caller.contents`` (the caller's inventory)
+        2. ``caller.location.contents`` (the room) — only if step 1
+           returns nothing
+
+    Filter stack (on top of the shared item-candidate filter):
+        - p_is_container — must expose ``is_container = True``
+          (inherited from ``ContainerMixin``)
+
+    Does NOT check open/closed state. The helper's job is
+    identification, not access-gating. Commands decide for themselves
+    whether a found container is usable — ``get from`` needs open,
+    ``picklock`` needs closed, ``smash`` doesn't care.
+
+    Args:
+        caller: The actor doing the lookup.
+        name: The keyword typed by the player.
+
+    Returns:
+        The matched container object, or ``None``. Never raises.
+        Callers own all error messaging and all state checks (open,
+        locked, trapped, etc.).
+    """
+    for source in (caller, caller.location):
+        if source is None:
+            continue
+        candidates = walk_contents(
+            caller, source, *BASE_ITEM_PREDICATES, p_is_container,
+        )
+        if not candidates:
+            continue
+        result = caller.search(name, candidates=candidates, quiet=True)
+        if result:
+            if isinstance(result, list):
+                result = result[0] if result else None
+            if result is not None:
+                return result
+    return None

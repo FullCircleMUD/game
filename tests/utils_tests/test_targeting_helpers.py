@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
-from utils.targeting.helpers import resolve_item_in_source
+from utils.targeting.helpers import resolve_container, resolve_item_in_source
 
 
 def _make_item(key="sword"):
@@ -38,6 +38,19 @@ def _make_caller(search_return=None):
     caller = MagicMock()
     caller.search.return_value = search_return
     return caller
+
+
+def _make_container(key="pack", is_open=None):
+    """A container-like object (is_container=True).
+
+    If ``is_open`` is not None, the attribute is set explicitly —
+    used by tests that verify resolve_container doesn't filter by
+    open/closed state.
+    """
+    kwargs = {"key": key, "is_container": True}
+    if is_open is not None:
+        kwargs["is_open"] = is_open
+    return SimpleNamespace(**kwargs)
 
 
 class TestResolveItemInSource(EvenniaTest):
@@ -160,3 +173,125 @@ class TestResolveItemInSource(EvenniaTest):
         caller.search.assert_called_once()
         _, kwargs = caller.search.call_args
         self.assertEqual(kwargs.get("stacked"), 3)
+
+
+class TestResolveContainer(EvenniaTest):
+    """Unit tests for utils.targeting.helpers.resolve_container."""
+
+    def create_script(self):
+        pass
+
+    # ── Happy paths ──────────────────────────────────────────────
+
+    def test_container_in_inventory_returned(self):
+        pack = _make_container("pack")
+        caller = MagicMock()
+        caller.contents = [pack]
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=pack)
+        result = resolve_container(caller, "pack")
+        self.assertIs(result, pack)
+
+    def test_container_in_room_returned_when_inventory_empty(self):
+        chest = _make_container("chest")
+        caller = MagicMock()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[chest])
+        # Inventory is empty so the helper skips that scope entirely
+        # (no candidates → no search call). Only the room scope runs.
+        caller.search = MagicMock(return_value=chest)
+        result = resolve_container(caller, "chest")
+        self.assertIs(result, chest)
+        self.assertEqual(caller.search.call_count, 1)
+
+    def test_inventory_wins_over_room_when_both_match(self):
+        inv_pack = _make_container("pack")
+        room_pack = _make_container("pack")
+        caller = MagicMock()
+        caller.contents = [inv_pack]
+        caller.location = SimpleNamespace(contents=[room_pack])
+        caller.search = MagicMock(return_value=inv_pack)
+        result = resolve_container(caller, "pack")
+        self.assertIs(result, inv_pack)
+        # Only one call — fell out on inventory success, never looked at room
+        self.assertEqual(caller.search.call_count, 1)
+
+    # ── Fallback through to room ─────────────────────────────────
+
+    def test_inventory_has_non_matching_container_falls_through_to_room(self):
+        inv_pack = _make_container("pack")
+        room_chest = _make_container("chest")
+        caller = MagicMock()
+        caller.contents = [inv_pack]
+        caller.location = SimpleNamespace(contents=[room_chest])
+        # Inventory call returns None (pack doesn't match "chest"),
+        # room call returns the chest.
+        caller.search = MagicMock(side_effect=[None, room_chest])
+        result = resolve_container(caller, "chest")
+        self.assertIs(result, room_chest)
+
+    # ── None cases ───────────────────────────────────────────────
+
+    def test_no_container_anywhere_returns_none(self):
+        caller = MagicMock()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=None)
+        result = resolve_container(caller, "pack")
+        self.assertIsNone(result)
+
+    def test_caller_with_no_location_searches_inventory_only(self):
+        pack = _make_container("pack")
+        caller = MagicMock()
+        caller.contents = [pack]
+        caller.location = None
+        caller.search = MagicMock(return_value=pack)
+        result = resolve_container(caller, "pack")
+        self.assertIs(result, pack)
+        # Only one call — no room to fall back to
+        self.assertEqual(caller.search.call_count, 1)
+
+    # ── Filter: non-containers excluded ──────────────────────────
+
+    def test_non_container_with_matching_name_excluded(self):
+        sword = _make_item("pack")  # item named "pack" but is_container absent
+        caller = MagicMock()
+        caller.contents = [sword]
+        caller.location = SimpleNamespace(contents=[])
+        # resolve_container filters sword out before calling search;
+        # candidates list is empty, so search is never called.
+        caller.search = MagicMock(return_value=None)
+        result = resolve_container(caller, "pack")
+        self.assertIsNone(result)
+        caller.search.assert_not_called()
+
+    # ── Filter: hidden containers excluded ───────────────────────
+
+    def test_hidden_container_excluded_by_base_filter(self):
+        hidden_chest = SimpleNamespace(
+            key="chest",
+            is_container=True,
+            is_hidden_visible_to=lambda caller: False,
+        )
+        caller = MagicMock()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[hidden_chest])
+        caller.search = MagicMock(return_value=None)
+        result = resolve_container(caller, "chest")
+        self.assertIsNone(result)
+        # Both scopes have empty candidates after filtering — no search call
+        caller.search.assert_not_called()
+
+    # ── Non-gating: closed containers ARE returned ───────────────
+
+    def test_closed_container_still_returned(self):
+        # Explicitly tests that resolve_container does NOT filter by
+        # is_open. A closed chest must still be found so picklock /
+        # smash / etc. can operate on it.
+        closed_chest = _make_container("chest", is_open=False)
+        caller = MagicMock()
+        caller.contents = [closed_chest]
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=closed_chest)
+        result = resolve_container(caller, "chest")
+        self.assertIs(result, closed_chest)
