@@ -59,22 +59,19 @@ class CmdHold(FCMCommandMixin, Command):
             # keeps filter semantics consistent with every other item
             # lookup in the MUD. exclude_worn is forwarded through kwargs
             # to FCMCharacter.search where the equipped-item filtering
-            # actually happens.
+            # actually happens. nofound_string is forwarded to
+            # caller.search so the error message fires uniformly whether
+            # inventory is empty or the match just fails.
             item = resolve_item_in_source(
-                caller, caller, parsed.search_term, exclude_worn=True,
+                caller, caller, parsed.search_term,
+                nofound_string=f"You aren't carrying '{parsed.search_term}'.",
+                exclude_worn=True,
             )
         else:
             caller.msg("Hold what?")
             return
 
         if not item:
-            # Explicit command-layer error: the helper returns None
-            # silently when the inventory is empty OR when no match
-            # survives filtering. Previously, caller.search emitted
-            # its default "You don't see 'X' here" as a side effect,
-            # but post-migration the command owns all error wording.
-            if parsed.type == "item":
-                caller.msg(f"You aren't carrying '{parsed.search_term}'.")
             return
 
         # Type check — holdable OR dual-wield weapon

@@ -97,8 +97,10 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
         caller: The actor doing the identification. Used for both
             visibility checks and delegating to ``caller.search``.
         source: Any object with a ``.contents`` attribute. May be
-            ``None`` or have no ``.contents`` — the helper returns
-            ``None`` in either case rather than raising.
+            ``None`` or have no ``.contents`` — ``walk_contents``
+            returns an empty list in those cases and the helper
+            forwards that empty list to ``caller.search`` (which
+            handles it correctly; see below).
         search_term: The keyword typed by the player, already
             stripped of amount syntax (e.g. ``"sword"``, not
             ``"5.sword"``). Amount is passed separately via
@@ -115,9 +117,17 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
         Objects (when ``stacked=N`` is passed), or ``None`` when
         no match is found.
     """
+    # Unconditional delegation to caller.search, even when the
+    # filtered candidate list is empty. Evennia's search handles
+    # empty candidates natively — no match → emits ``nofound_string``
+    # (if passed) or the default "not found" error, then returns
+    # None. An earlier version of this helper short-circuited on
+    # empty candidates, which had the side effect of silently
+    # suppressing ``nofound_string`` when inventory/source was
+    # empty. Commands that passed a custom error wording saw
+    # nothing on the empty path until the short-circuit was
+    # removed.
     candidates = walk_contents(caller, source, *BASE_ITEM_PREDICATES)
-    if not candidates:
-        return None
     return caller.search(search_term, candidates=candidates, **kwargs)
 
 

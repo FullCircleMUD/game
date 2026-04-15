@@ -191,26 +191,63 @@ class TestResolveItemInSource(EvenniaTest):
         pass
 
     # ── Source edge cases ─────────────────────────────────────────
+    #
+    # All three edge cases (None source, source without .contents,
+    # source with empty .contents) produce an empty candidate list
+    # from walk_contents. The helper forwards the empty list to
+    # caller.search unconditionally — caller.search handles empty
+    # candidates correctly, firing any nofound_string kwarg or the
+    # default "not found" error, then returning None. An earlier
+    # version of the helper short-circuited on empty candidates
+    # and silently suppressed the error messaging; these tests
+    # lock in the fix by asserting caller.search IS called (with
+    # candidates=[]) in all three cases.
 
-    def test_source_is_none_returns_none(self):
+    def test_source_is_none_delegates_with_empty_candidates(self):
         caller = _make_caller()
         result = resolve_item_in_source(caller, None, "sword")
         self.assertIsNone(result)
-        caller.search.assert_not_called()
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertEqual(kwargs["candidates"], [])
 
-    def test_source_without_contents_returns_none(self):
+    def test_source_without_contents_delegates_with_empty_candidates(self):
         caller = _make_caller()
         source = SimpleNamespace()  # no .contents attribute
         result = resolve_item_in_source(caller, source, "sword")
         self.assertIsNone(result)
-        caller.search.assert_not_called()
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertEqual(kwargs["candidates"], [])
 
-    def test_source_with_empty_contents_returns_none(self):
+    def test_source_with_empty_contents_delegates_with_empty_candidates(self):
         caller = _make_caller()
         source = SimpleNamespace(contents=[])
         result = resolve_item_in_source(caller, source, "sword")
         self.assertIsNone(result)
-        caller.search.assert_not_called()
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertEqual(kwargs["candidates"], [])
+
+    def test_nofound_string_forwarded_on_empty_candidates(self):
+        # Regression test for the silent-return bug: when source
+        # yields no candidates, nofound_string must still reach
+        # caller.search so Evennia's error messaging fires. Before
+        # the fix, the helper short-circuited before caller.search
+        # was called, silently dropping nofound_string and showing
+        # no error to the player. This test locks the fix in place.
+        caller = _make_caller()
+        source = SimpleNamespace(contents=[])
+        resolve_item_in_source(
+            caller, source, "sword",
+            nofound_string="You aren't carrying sword.",
+        )
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertEqual(
+            kwargs.get("nofound_string"),
+            "You aren't carrying sword.",
+        )
 
     # ── Happy path ────────────────────────────────────────────────
 
@@ -222,6 +259,13 @@ class TestResolveItemInSource(EvenniaTest):
         self.assertIs(result, sword)
 
     # ── Filter exclusions ─────────────────────────────────────────
+    #
+    # These three tests assert that the base item predicates
+    # (p_not_actor, p_not_exit, p_visible_to) filter the named
+    # object OUT of the candidate list. After filtering, candidates
+    # is empty and the helper delegates to caller.search with
+    # candidates=[] (which fires any nofound_string or default
+    # error and returns None).
 
     def test_character_excluded_from_candidates(self):
         character = _make_character()
@@ -229,7 +273,9 @@ class TestResolveItemInSource(EvenniaTest):
         source = SimpleNamespace(contents=[character])
         result = resolve_item_in_source(caller, source, "anything")
         self.assertIsNone(result)
-        caller.search.assert_not_called()
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertNotIn(character, kwargs["candidates"])
 
     def test_exit_excluded_from_candidates(self):
         exit_obj = _make_exit()
@@ -237,7 +283,9 @@ class TestResolveItemInSource(EvenniaTest):
         source = SimpleNamespace(contents=[exit_obj])
         result = resolve_item_in_source(caller, source, "anything")
         self.assertIsNone(result)
-        caller.search.assert_not_called()
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertNotIn(exit_obj, kwargs["candidates"])
 
     def test_hidden_item_excluded_when_mixin_returns_false(self):
         hidden = _make_hidden_item(visible=False)
@@ -245,7 +293,9 @@ class TestResolveItemInSource(EvenniaTest):
         source = SimpleNamespace(contents=[hidden])
         result = resolve_item_in_source(caller, source, "anything")
         self.assertIsNone(result)
-        caller.search.assert_not_called()
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertNotIn(hidden, kwargs["candidates"])
 
     def test_hidden_item_included_when_mixin_returns_true(self):
         visible_hidden = _make_hidden_item(visible=True)

@@ -139,6 +139,24 @@ class TestCmdGiveObject(EvenniaCommandTest):
         """give item you don't have should show error."""
         self.call(CmdGive(), "banana to Char2", "You aren't carrying banana.")
 
+    def test_give_object_empty_inventory(self):
+        """give X to Y when inventory is empty should still show error.
+
+        Regression test for the resolve_item_in_source short-circuit
+        bug: the helper used to return None without calling
+        caller.search when walk_contents produced an empty candidate
+        list, silently suppressing nofound_string. Pre-fix, this
+        test would have shown no error to the player (silent return
+        after the helper bypassed caller.search). Post-fix, the
+        nofound_string fires uniformly whether inventory is empty
+        or the match just fails.
+        """
+        self.sword.delete()
+        self.call(
+            CmdGive(), "banana to Char2",
+            "You aren't carrying banana.",
+        )
+
     def test_give_world_anchored_nft_item(self):
         """give should succeed for WorldAnchoredNFTItem (ownership transfer)."""
         mount = create.create_object(
