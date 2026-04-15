@@ -23,6 +23,60 @@ Child classes MUST:
 from evennia.typeclasses.attributes import AttributeProperty
 
 
+def distribute_water_to_containers(character, drinks):
+    """
+    Top up any water containers in ``character.contents`` by ``drinks`` total
+    drinks, most-empty first.
+
+    Pure function — emits no messages. The caller is responsible for any user
+    feedback. Used by both the `forage` command (fill-all-I-carry) and any
+    future spell/command that needs the same multi-container fill semantics.
+
+    Args:
+        character: any object with a ``contents`` iterable. Containers are
+            picked up by their ``is_water_container`` marker.
+        drinks (int): total drinks to distribute across containers.
+
+    Returns:
+        tuple: ``(drinks_added, topped_up)`` where ``topped_up`` is a list of
+        ``(container, added_amount)`` pairs in fill order. Both empty if the
+        character has no containers or ``drinks <= 0``. Excess drinks beyond
+        total room left across all containers are discarded — you can only
+        carry what your containers hold.
+    """
+    if drinks <= 0:
+        return 0, []
+
+    containers = [
+        obj for obj in character.contents
+        if getattr(obj, "is_water_container", False)
+    ]
+    if not containers:
+        return 0, []
+
+    # Most-empty first so partial fills always land where they're most useful.
+    containers.sort(key=lambda c: c.current)
+
+    drinks_remaining = drinks
+    drinks_added = 0
+    topped_up = []
+
+    for container in containers:
+        if drinks_remaining <= 0:
+            break
+        room_left = container.max_capacity - container.current
+        if room_left <= 0:
+            continue
+        added = min(drinks_remaining, room_left)
+        container.current += added
+        container._persist_water_state()
+        drinks_remaining -= added
+        drinks_added += added
+        topped_up.append((container, added))
+
+    return drinks_added, topped_up
+
+
 class WaterContainerMixin:
     """
     Mixin that gives an object a finite quantity of drinkable water.

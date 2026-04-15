@@ -158,45 +158,19 @@ class CmdForage(CmdSkillBase):
     @staticmethod
     def _distribute_water_to_forager(caller, drinks):
         """
-        Top up the caller's water containers by `drinks` total drinks.
+        Top up the caller's water containers by `drinks` total drinks with
+        a forage-flavoured summary message. Delegates the actual fill logic
+        to `distribute_water_to_containers` so forage and spell callers
+        share the same most-empty-first semantics.
 
-        Most-empty container is filled first. If `drinks` exceeds the total
-        room left across all containers, the extra is discarded — you can
-        only carry what your containers hold. Returns drinks actually added.
-
-        Sends a single summary message to the caller. No-op if the caller
-        carries no water containers (no message either — silent failure
-        keeps the forage output uncluttered for non-water-carriers).
+        No-op (silent) if the caller carries no water containers — keeps
+        the forage output uncluttered for non-water-carriers.
         """
-        if drinks <= 0:
-            return 0
+        from typeclasses.mixins.water_container import (
+            distribute_water_to_containers,
+        )
 
-        containers = [
-            obj for obj in caller.contents
-            if getattr(obj, "is_water_container", False)
-        ]
-        if not containers:
-            return 0
-
-        # Sort by current ascending — most-empty first.
-        containers.sort(key=lambda c: c.current)
-
-        drinks_remaining = drinks
-        drinks_added = 0
-        topped_up = []
-
-        for container in containers:
-            if drinks_remaining <= 0:
-                break
-            room_left = container.max_capacity - container.current
-            if room_left <= 0:
-                continue
-            added = min(drinks_remaining, room_left)
-            container.current += added
-            container._persist_water_state()
-            drinks_remaining -= added
-            drinks_added += added
-            topped_up.append((container, added))
+        drinks_added, topped_up = distribute_water_to_containers(caller, drinks)
 
         if drinks_added > 0:
             if len(topped_up) == 1:
