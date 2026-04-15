@@ -13,6 +13,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import resolve_item_in_source
 
 
 class CmdRemove(FCMCommandMixin, Command):
@@ -47,7 +48,19 @@ class CmdRemove(FCMCommandMixin, Command):
         if parsed.type == "token_id":
             item = self._find_by_token_id(caller, parsed.token_id)
         elif parsed.type == "item":
-            item = caller.search(parsed.search_term, location=caller, only_worn=True)
+            # resolve_item_in_source filters source.contents via the base
+            # targeting predicates. only_worn is forwarded through
+            # **kwargs to FCMCharacter.search where the worn-item
+            # filtering actually happens — FCMCharacter.search also
+            # emits its own "You are not wearing that." message when
+            # the match exists but isn't worn. nofound_string fires
+            # only when nothing matches at all (neither worn nor
+            # unworn items with that name).
+            item = resolve_item_in_source(
+                caller, caller, parsed.search_term,
+                nofound_string=f"You aren't wearing '{parsed.search_term}'.",
+                only_worn=True,
+            )
         else:
             caller.msg("Remove what?")
             return

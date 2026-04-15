@@ -15,6 +15,7 @@ from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixi
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import resolve_item_in_source
 
 
 class CmdWear(FCMCommandMixin, Command):
@@ -49,7 +50,16 @@ class CmdWear(FCMCommandMixin, Command):
         if parsed.type == "token_id":
             item = self._find_by_token_id(caller, parsed.token_id)
         elif parsed.type == "item":
-            item = caller.search(parsed.search_term, location=caller, exclude_worn=True)
+            # resolve_item_in_source filters source.contents via the base
+            # targeting predicates. exclude_worn is forwarded through
+            # **kwargs to FCMCharacter.search where the equipped-item
+            # filtering actually happens. nofound_string fires uniformly
+            # whether inventory is empty or the match just fails.
+            item = resolve_item_in_source(
+                caller, caller, parsed.search_term,
+                nofound_string=f"You aren't carrying '{parsed.search_term}'.",
+                exclude_worn=True,
+            )
         else:
             caller.msg("Wear what?")
             return
