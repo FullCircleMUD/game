@@ -930,19 +930,22 @@ def get_sides(combatant):
     """
     Returns (allies, enemies) from combatant's perspective.
 
-    Walks ``room.contents`` via the targeting library's
-    ``walk_contents`` primitive + ``p_living`` + ``p_in_combat``
-    predicates to collect every living combatant in the room, then
-    partitions them into allies and enemies in a single bucket loop.
+    Single-pass implementation via the targeting library's
+    ``bucket_contents`` primitive. A local ``classify`` closure
+    reads each candidate's ``combat_handler`` exactly once per
+    object and uses the already-fetched handler reference for both
+    the in-combat existence check and the ``combat_side`` read —
+    eliminating the double script-handler lookup that the previous
+    three-loop implementation did in its enemy comprehension.
 
-    Two loops total (one walk inside walk_contents, one bucket loop
-    over the filtered candidates), down from the previous three-loop
-    implementation that built an intermediate ``in_combat`` list and
-    then filtered it twice. The bucket loop reads each candidate's
-    ``combat_side`` exactly once per object — the previous enemy
-    comprehension called ``_get_combat_side`` twice per object for
-    the combined ``!= my_side AND != 0`` check, doubling the
-    script-handler lookups on that pass.
+    Loops: 1 (bucket_contents walks room.contents once, and classify
+    runs inline per object as the filter and dispatch). Down from 3
+    loops in the pre-rewrite implementation and 2 loops in the
+    walk_contents + bucket loop intermediate.
+
+    Script-handler lookups: R + C (one hp check per room object via
+    p_living, one script.get per living object inside classify).
+    Down from R + 3C in the pre-rewrite implementation.
 
     Sides are assigned dynamically at combat entry time based on
     who attacked who and group membership. Each combatant's handler
@@ -950,37 +953,46 @@ def get_sides(combatant):
 
     In PvP rooms: everyone is an enemy except the combatant themselves.
     """
-    from utils.targeting.helpers import walk_contents
-    from utils.targeting.predicates import p_in_combat, p_living
+    from utils.targeting.helpers import bucket_contents
+    from utils.targeting.predicates import p_living
 
     room = combatant.location
     if not room:
         return [], []
 
-    if getattr(room, "allow_pvp", False):
-        # PvP short-circuit: everyone in combat is an enemy of
-        # everyone else. walk_contents replaces the bespoke
-        # room.contents comprehension for consistency with every
-        # other room walk in the codebase.
-        in_combat = walk_contents(combatant, room, p_living, p_in_combat)
-        return [combatant], [c for c in in_combat if c is not combatant]
+    pvp = getattr(room, "allow_pvp", False)
+    my_side = _get_combat_side(combatant) if not pvp else 0
 
-    # Read combatant's side from their handler
-    my_side = _get_combat_side(combatant)
-    if not my_side:
+    if not pvp and not my_side:
+        # Combatant has no side assigned and no PvP fallback —
+        # nothing to return.
         return [], []
 
-    # Single bucket pass: read each candidate's side once and
-    # dispatch directly into allies or enemies. Side-zero
-    # combatants (handler attached but no side assigned — a weird
-    # edge state) fall through both branches and are excluded
-    # from both lists, matching the previous implementation.
-    allies = []
-    enemies = []
-    for c in walk_contents(combatant, room, p_living, p_in_combat):
-        side = _get_combat_side(c)
+    def classify(obj, _caller):
+        # Read the combat_handler ONCE and reuse for both the
+        # in-combat check and the side read. Previously the
+        # enemy comprehension called _get_combat_side twice per
+        # object (once for != my_side, once for != 0), doubling
+        # the script-handler lookups on that pass. Reading
+        # handlers[0].combat_side directly here eliminates the
+        # redundancy.
+        handlers = obj.scripts.get("combat_handler")
+        if not handlers:
+            return None
+        if pvp:
+            # PvP short-circuit: caller is their own ally, everyone
+            # else in combat is an enemy. Side values are ignored.
+            return "allies" if obj is combatant else "enemies"
+        side = handlers[0].combat_side
         if side == my_side:
-            allies.append(c)
-        elif side != 0:
-            enemies.append(c)
-    return allies, enemies
+            return "allies"
+        if side != 0:
+            return "enemies"
+        # Side-zero combatants (handler attached but no side
+        # assigned — a weird edge state) fall through both
+        # branches and are excluded from both lists, matching
+        # the previous implementation.
+        return None
+
+    buckets = bucket_contents(combatant, room, classify, p_living)
+    return buckets.get("allies", []), buckets.get("enemies", [])
