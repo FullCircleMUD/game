@@ -11,9 +11,11 @@ from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.helpers import (
+    BASE_ITEM_PREDICATES,
     resolve_character_in_room,
     resolve_container,
     resolve_item_in_source,
+    walk_contents,
 )
 
 
@@ -66,6 +68,117 @@ def _make_player_character():
     """
     from typeclasses.actors.character import FCMCharacter
     return MagicMock(spec=FCMCharacter)
+
+
+class TestWalkContents(EvenniaTest):
+    """Unit tests for utils.targeting.helpers.walk_contents.
+
+    walk_contents is the core primitive of the library — every
+    resolver delegates to it. These tests exercise the primitive
+    directly rather than through a specific resolver, so regressions
+    in short-circuit eval, None-handling, or predicate composition
+    are caught at the right level.
+    """
+
+    def create_script(self):
+        pass
+
+    # ── Source edge cases ─────────────────────────────────────────
+
+    def test_source_is_none_returns_empty_list(self):
+        result = walk_contents(None, None, *BASE_ITEM_PREDICATES)
+        self.assertEqual(result, [])
+
+    def test_source_without_contents_returns_empty_list(self):
+        source = SimpleNamespace()  # no .contents attribute
+        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        self.assertEqual(result, [])
+
+    def test_source_with_empty_contents_returns_empty_list(self):
+        source = SimpleNamespace(contents=[])
+        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        self.assertEqual(result, [])
+
+    # ── Predicate composition ─────────────────────────────────────
+
+    def test_no_predicates_returns_all_contents(self):
+        # A walk with zero predicates is effectively "give me
+        # everything in source.contents". Python's all() over an
+        # empty iterable is True, so every object passes.
+        a = _make_item("a")
+        b = _make_item("b")
+        c = _make_item("c")
+        source = SimpleNamespace(contents=[a, b, c])
+        result = walk_contents(None, source)
+        self.assertEqual(result, [a, b, c])
+
+    def test_all_predicates_pass_returns_all_items(self):
+        a = _make_item("a")
+        b = _make_item("b")
+        source = SimpleNamespace(contents=[a, b])
+        # BASE_ITEM_PREDICATES filters out actors/exits/hidden — plain
+        # SimpleNamespace items pass all three.
+        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        self.assertEqual(result, [a, b])
+
+    def test_first_predicate_filters_out_object(self):
+        item = _make_item("sword")
+        character = _make_character()
+        source = SimpleNamespace(contents=[item, character])
+        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        # Character filtered by p_not_actor (first in BASE stack)
+        self.assertEqual(result, [item])
+
+    def test_later_predicate_filters_out_object(self):
+        visible = _make_item("sword")
+        hidden = _make_hidden_item(visible=False)
+        source = SimpleNamespace(contents=[visible, hidden])
+        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        # Hidden item filtered by p_visible_to (last in BASE stack)
+        self.assertEqual(result, [visible])
+
+    # ── Short-circuit eval ───────────────────────────────────────
+
+    def test_short_circuit_stops_at_first_false(self):
+        # Verifies that walk_contents uses all() with short-circuit
+        # evaluation — if the first predicate returns False, later
+        # predicates are never called for that object. Matters for
+        # efficiency: expensive predicates should never run against
+        # objects that fail cheap ones.
+        call_log = []
+
+        def cheap_false(obj, caller):  # noqa: ARG001
+            call_log.append(("cheap", obj.key))
+            return False
+
+        def expensive(obj, caller):  # noqa: ARG001
+            call_log.append(("expensive", obj.key))
+            return True
+
+        source = SimpleNamespace(contents=[_make_item("a"), _make_item("b")])
+        walk_contents(None, source, cheap_false, expensive)
+
+        # Cheap called twice (once per object), expensive never called
+        self.assertEqual(
+            [entry[0] for entry in call_log],
+            ["cheap", "cheap"],
+        )
+
+    # ── Custom predicates ─────────────────────────────────────────
+
+    def test_custom_predicate_composable(self):
+        # Walk with a one-off custom predicate — verifies the
+        # primitive doesn't assume BASE_ITEM_PREDICATES.
+        a = SimpleNamespace(key="a", weight=5)
+        b = SimpleNamespace(key="b", weight=15)
+        c = SimpleNamespace(key="c", weight=10)
+        source = SimpleNamespace(contents=[a, b, c])
+
+        def p_lighter_than_10(obj, caller):  # noqa: ARG001
+            return obj.weight < 10
+
+        result = walk_contents(None, source, p_lighter_than_10)
+        self.assertEqual(result, [a])
 
 
 class TestResolveItemInSource(EvenniaTest):

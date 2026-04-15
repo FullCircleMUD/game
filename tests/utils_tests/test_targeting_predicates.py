@@ -40,6 +40,16 @@ class TestPredicates(EvenniaTest):
         char = MagicMock(spec=DefaultCharacter)
         self.assertFalse(p_not_actor(char, caller=None))
 
+    def test_p_not_actor_false_for_fcmcharacter(self):
+        # FCMCharacter inherits DefaultCharacter, so a PC is also an
+        # actor. Locks in the inheritance relationship: p_not_actor
+        # and p_is_character are NOT opposites — FCMCharacter passes
+        # the positive character filter AND fails the negative actor
+        # filter.
+        from typeclasses.actors.character import FCMCharacter
+        pc = MagicMock(spec=FCMCharacter)
+        self.assertFalse(p_not_actor(pc, caller=None))
+
     # ── p_is_character ────────────────────────────────────────────
 
     def test_p_is_character_false_for_plain_object(self):
@@ -52,6 +62,15 @@ class TestPredicates(EvenniaTest):
         from typeclasses.actors.character import FCMCharacter
         pc = MagicMock(spec=FCMCharacter)
         self.assertTrue(p_is_character(pc, caller=None))
+
+    def test_p_is_character_false_for_default_character(self):
+        # Critical boundary test: an NPC or mob is a DefaultCharacter
+        # but NOT an FCMCharacter. p_is_character must return False
+        # for these or the give/whisper/trade commands would allow
+        # targeting NPCs when they shouldn't. Locks the character /
+        # actor vocabulary distinction in place.
+        npc = MagicMock(spec=DefaultCharacter)
+        self.assertFalse(p_is_character(npc, caller=None))
 
     # ── p_not_exit ────────────────────────────────────────────────
 
