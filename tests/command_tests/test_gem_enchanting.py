@@ -43,9 +43,9 @@ def _give_gold(char, amount):
 
 
 def _give_enchanting_skill(char, mastery=MasteryLevel.BASIC):
-    if not char.db.general_skill_mastery_levels:
-        char.db.general_skill_mastery_levels = {}
-    char.db.general_skill_mastery_levels[skills.ENCHANTING.value] = mastery.value
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.ENCHANTING.value] = {"mastery": mastery.value}
 
 
 def _learn_enchant_ruby(char):
@@ -514,7 +514,7 @@ class TestCmdCraftEnchantValidation(EvenniaCommandTest):
 
     def test_no_enchanting_skill(self):
         """Should fail if character lacks enchanting skill mastery."""
-        self.char1.db.general_skill_mastery_levels = {}  # clear skills
+        self.char1.db.class_skill_mastery_levels = {}  # clear skills
         _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
         result = self.call(CmdCraft(), "enchanted ruby")
