@@ -68,7 +68,7 @@ class Spell:
         min_mastery — minimum MasteryLevel to learn/cast
         mana_cost   — dict {mastery_tier_int: mana_cost}
         target_type — see below
-        spell_range — "self", "melee", or "ranged" (height gating)
+        range — "self", "melee", or "ranged" (height gating)
         cooldown    — rounds of cooldown after casting (None = use default)
         description — short flavour text shown in spellbook/spellinfo
         mechanics   — multi-line rules/scaling text for spellinfo
@@ -104,9 +104,11 @@ class Spell:
     min_mastery = MasteryLevel.BASIC
     mana_cost = {}
     target_type = "actor_hostile"
-    spell_range = "ranged"  # "self", "melee", or "ranged"
-    cooldown = None  # None = use default based on min_mastery tier
-    has_spell_arg = False  # True = cmd_cast pops first word as spell_arg
+    range = "ranged"        # "self", "melee", "ranged", or "ranged_only"
+    aoe = None              # None / "unsafe" / "unsafe_self" / "safe" / "allies"
+    medium = "air"          # "air" / "water" / "any"
+    cooldown = None         # None = use default based on min_mastery tier
+    has_spell_arg = False   # True = cmd_cast pops first word as spell_arg
     description = ""
     mechanics = ""
 
@@ -194,10 +196,18 @@ class Spell:
                 f"{self.name} is on cooldown ({remaining} round{s} remaining).",
             )
 
-        # Height filtering for melee spells is enforced at resolution
-        # time in resolve_spell_target via p_same_height. No post-
-        # resolution check needed here — melee spells only receive
-        # targets at the caster's height.
+        # Height filtering for melee spells is primarily enforced at
+        # resolution time in resolve_spell_target via p_same_height.
+        # This belt-and-suspenders check catches direct cast() callers
+        # (AI, scripts, tests) that bypass resolve_spell_target.
+        if self.range == "melee" and target:
+            caster_height = getattr(caster, "room_vertical_position", 0)
+            target_height = getattr(target, "room_vertical_position", 0)
+            if caster_height != target_height:
+                return (
+                    False,
+                    "You can't reach them from your current height.",
+                )
 
         cost = self.mana_cost.get(tier, 0)
 

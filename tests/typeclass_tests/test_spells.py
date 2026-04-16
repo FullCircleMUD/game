@@ -294,7 +294,7 @@ class TestApplySpellDamage(EvenniaTest):
 # ================================================================== #
 
 class TestSpellHeightGating(EvenniaTest):
-    """Test spell_range height gating on melee vs ranged spells."""
+    """Test range height gating on melee vs ranged spells."""
 
     def create_script(self):
         pass
@@ -365,7 +365,7 @@ class TestSpellHeightGating(EvenniaTest):
         self.assertEqual(self.char1.mana, mana_before)
 
     def test_cure_wounds_self_always_works(self):
-        """Cure Wounds on self always works regardless of spell_range."""
+        """Cure Wounds on self always works regardless of range."""
         spell = get_spell("cure_wounds")
         self.char1.db.class_skill_mastery_levels["divine_healing"] = 1
         self.char1.room_vertical_position = 1
@@ -374,12 +374,12 @@ class TestSpellHeightGating(EvenniaTest):
         success, result = spell.cast(self.char1, self.char1)
         self.assertTrue(success)
 
-    def test_spell_range_attribute_exists(self):
-        """All spells should have a spell_range attribute."""
+    def test_range_attribute_exists(self):
+        """All spells should have a range attribute."""
         for key, spell in SPELL_REGISTRY.items():
             self.assertIn(
-                spell.spell_range, ("self", "melee", "ranged"),
-                f"Spell {key} has invalid spell_range: {spell.spell_range}",
+                spell.range, ("self", "melee", "ranged"),
+                f"Spell {key} has invalid range: {spell.range}",
             )
 
 

@@ -23,7 +23,7 @@ class Vigorise(Spell):
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 12, 4: 16, 5: 20}
     target_type = "actor_friendly"
-    spell_range = "melee"
+    range = "melee"
     description = "Channels divine energy to restore stamina and vigour."
     mechanics = (
         "Restores movement points to a single target (self if no target specified).\n"

@@ -30,7 +30,7 @@ class DivineArmor(Spell):
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 4, 2: 6, 3: 8, 4: 10, 5: 14}
     target_type = "self"
-    spell_range = "self"
+    range = "self"
     cooldown = 0
     description = "Wraps the caster in a shimmering layer of divine protection."
     mechanics = (

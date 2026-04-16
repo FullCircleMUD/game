@@ -131,7 +131,7 @@ def get_room_all_at_height(caster):
 # ── Spell target resolution ──────────────────────────────────────────
 
 
-def resolve_spell_target(caster, target_str, target_type, spell_range="ranged"):
+def resolve_spell_target(caster, target_str, target_type, range="ranged"):
     """Resolve a spell target by ``target_type``.
 
     Single entry point for all spell target resolution, used by
@@ -140,7 +140,7 @@ def resolve_spell_target(caster, target_str, target_type, spell_range="ranged"):
     resolved target or ``None``. On ``None``, an error message has
     already been sent to the caster — callers just ``return``.
 
-    ``spell_range`` controls height filtering for actor target_types:
+    ``range`` controls height filtering for actor target_types:
         ``"melee"``      — only actors at the caster's height
         ``"ranged"``     — any height (default)
         ``"ranged_only"``— only actors at a different height
@@ -201,15 +201,15 @@ def resolve_spell_target(caster, target_str, target_type, spell_range="ranged"):
         caster.msg("You aren't anywhere where you could target that.")
         return None
 
-    # ── Height predicate based on spell_range ──
+    # ── Height predicate based on range ──
     # Melee spells only resolve actors at the caster's height.
     # Ranged_only spells only resolve actors at a different height.
     # Ranged spells (default) have no height filter.
     # Applied to actor target_types only — items don't have height.
     extra_predicates = ()
-    if spell_range == "melee":
+    if range == "melee":
         extra_predicates = (p_same_height(caster),)
-    elif spell_range == "ranged_only":
+    elif range == "ranged_only":
         extra_predicates = (p_different_height(caster),)
 
     # ── Hostile / any_actor: attack-priority actor resolution ──
