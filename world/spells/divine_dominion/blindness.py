@@ -37,7 +37,7 @@ class Blindness(Spell):
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 7, 3: 9, 4: 12, 5: 15}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Strikes a creature blind with divine authority."
     mechanics = (

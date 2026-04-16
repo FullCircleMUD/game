@@ -47,7 +47,7 @@ class TestEntangle(EvenniaTest):
         self.assertEqual(self.spell.name, "Entangle")
         self.assertEqual(self.spell.school, skills.NATURE_MAGIC)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
 
     def test_mana_costs(self):
         """Entangle mana costs should match design."""

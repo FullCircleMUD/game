@@ -52,7 +52,7 @@ class TestCommand(EvenniaTest):
         self.assertEqual(self.spell.name, "Command")
         self.assertEqual(self.spell.school, skills.DIVINE_DOMINION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
         self.assertTrue(self.spell.has_spell_arg)
         self.assertEqual(self.spell.cooldown, 0)
 
@@ -396,7 +396,7 @@ class TestHold(EvenniaTest):
         self.assertEqual(self.spell.name, "Hold")
         self.assertEqual(self.spell.school, skills.DIVINE_DOMINION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.EXPERT)
-        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
 
     def test_mana_costs(self):
         """Hold mana costs should match design."""

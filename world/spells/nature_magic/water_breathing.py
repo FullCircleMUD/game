@@ -33,7 +33,7 @@ class WaterBreathing(Spell):
     school = skills.NATURE_MAGIC
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 4, 2: 6, 3: 8, 4: 10, 5: 14}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     cooldown = 0
     description = "Grants the ability to breathe underwater."
     mechanics = (

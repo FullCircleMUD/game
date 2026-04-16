@@ -22,7 +22,7 @@ class Vigorise(Spell):
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 12, 4: 16, 5: 20}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     spell_range = "melee"
     description = "Channels divine energy to restore stamina and vigour."
     mechanics = (

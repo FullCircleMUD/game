@@ -125,14 +125,14 @@ class CmdCast(FCMCommandMixin, Command):
         success, result = spell_match.cast(caller, target, spell_arg=spell_arg)
 
         # Break invisibility on offensive cast (no advantage — spells only)
-        if success and spell_match.target_type == "hostile":
+        if success and spell_match.target_type == "actor_hostile":
             if (hasattr(caller, "break_invisibility")
                     and caller.has_condition(Condition.INVISIBLE)):
                 caller.break_invisibility()
                 caller.msg("|yYour invisibility fades as you cast.|n")
 
         # Break sanctuary on offensive cast
-        if success and spell_match.target_type == "hostile":
+        if success and spell_match.target_type == "actor_hostile":
             if (hasattr(caller, "break_sanctuary")
                     and caller.has_condition(Condition.SANCTUARY)):
                 caller.break_sanctuary()

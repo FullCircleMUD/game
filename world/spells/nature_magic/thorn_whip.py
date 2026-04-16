@@ -43,7 +43,7 @@ class ThornWhip(Spell):
     school = skills.NATURE_MAGIC
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 3, 2: 5, 3: 7, 4: 9, 5: 12}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Lashes a target with a thorny vine, pulling them to your level."
     mechanics = (

@@ -51,7 +51,7 @@ class TestAbjurationRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.ABJURATION)
         self.assertEqual(spell.min_mastery, MasteryLevel.SKILLED)
-        self.assertEqual(spell.target_type, "friendly")
+        self.assertEqual(spell.target_type, "actor_friendly")
         self.assertTrue(spell.has_spell_arg)
 
     def test_antimagic_field_registered(self):
@@ -232,7 +232,7 @@ class TestResist(EvenniaTest):
         """Resist should have correct class attributes."""
         self.assertEqual(self.spell.school, skills.ABJURATION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.SKILLED)
-        self.assertEqual(self.spell.target_type, "friendly")
+        self.assertEqual(self.spell.target_type, "actor_friendly")
         self.assertTrue(self.spell.has_spell_arg)
         self.assertEqual(self.spell.cooldown, 0)
 

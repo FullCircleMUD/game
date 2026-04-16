@@ -457,7 +457,7 @@ class TestPowerWordDeath(EvenniaTest):
         """PWD should have correct class attributes."""
         self.assertEqual(self.spell.name, "Power Word: Death")
         self.assertEqual(self.spell.min_mastery, MasteryLevel.GRANDMASTER)
-        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
 
     def test_mana_cost(self):
         """PWD mana cost should be 100."""
@@ -588,7 +588,7 @@ class TestFrostbolt(EvenniaTest):
         self.assertEqual(self.spell.name, "Frostbolt")
         self.assertEqual(self.spell.school, skills.EVOCATION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
         self.assertEqual(self.spell.cooldown, 0)
 
     def test_deals_cold_damage(self):

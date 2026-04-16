@@ -42,7 +42,7 @@ class Augur(Spell):
     school = skills.DIVINATION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "any_actor"
+    target_type = "actor_any"
     cooldown = 0
     description = "Reveals the nature and capabilities of a creature."
     mechanics = (

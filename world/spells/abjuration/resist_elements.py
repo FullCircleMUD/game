@@ -46,7 +46,7 @@ class ResistElements(Spell):
     school = skills.ABJURATION
     min_mastery = MasteryLevel.SKILLED
     mana_cost = {2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     has_spell_arg = True
     cooldown = 0
     description = "Grants resistance to a single damage type for a short duration."

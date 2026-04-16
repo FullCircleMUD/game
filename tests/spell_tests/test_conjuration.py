@@ -34,7 +34,7 @@ class TestConjurationRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.CONJURATION)
         self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(spell.target_type, "hostile")
+        self.assertEqual(spell.target_type, "actor_hostile")
         self.assertEqual(spell.mana_cost, {1: 5, 2: 8, 3: 10, 4: 14, 5: 16})
 
     def test_teleport_registered(self):

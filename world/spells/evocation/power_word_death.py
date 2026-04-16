@@ -37,7 +37,7 @@ class PowerWordDeath(Spell):
     school = skills.EVOCATION
     min_mastery = MasteryLevel.GRANDMASTER
     mana_cost = {5: 100}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     description = "Speaks a single word of absolute power. The target dies."
     mechanics = (
         "Single target — instant kill, no damage roll.\n"

@@ -41,7 +41,7 @@ class TestHolyInsight(EvenniaTest):
         self.assertEqual(self.spell.name, "Holy Insight")
         self.assertEqual(self.spell.school, skills.DIVINE_REVELATION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(self.spell.target_type, "any_actor")
+        self.assertEqual(self.spell.target_type, "items_inventory_then_all_room")
 
     def test_mana_costs(self):
         """Holy Insight mana costs should match design."""
@@ -58,47 +58,10 @@ class TestHolyInsight(EvenniaTest):
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
 
-    def test_identify_actor_includes_divine_sight(self):
-        """Actor identification should include Divine Sight section."""
-        # Identifying other PCs requires PvP room
-        self.room1.allow_pvp = True
-        self.char2.db.level = 1
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertTrue(success)
-        self.assertIn("Divine Sight", result["first"])
-
-    def test_divine_sight_shows_alignment(self):
-        """Divine Sight should show target's alignment."""
-        self.room1.allow_pvp = True
-        self.char2.db.level = 1
-        self.char2.alignment_score = -500  # Evil
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertIn("Alignment", result["first"])
-        self.assertIn("Evil", result["first"])
-
-    def test_divine_sight_evil_detection(self):
-        """Evil-aligned targets should trigger evil detection message."""
-        self.room1.allow_pvp = True
-        self.char2.db.level = 1
-        self.char2.alignment_score = -500  # Evil
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertIn("evil intent", result["first"].lower())
-
-    def test_divine_sight_no_evil_for_good(self):
-        """Good-aligned targets should NOT trigger evil detection."""
-        self.room1.allow_pvp = True
-        self.char2.db.level = 1
-        self.char2.alignment_score = 500  # Good
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertNotIn("evil intent", result["first"].lower())
-
-    def test_undead_detection(self):
-        """Targets tagged as undead should be flagged."""
-        self.room1.allow_pvp = True
-        self.char2.db.level = 1
-        self.char2.tags.add("undead", category="creature_type")
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertIn("UNDEAD", result["first"])
+    # NOTE: Actor tests (divine sight, alignment, evil/undead detection)
+    # removed — Holy Insight is now items-only (inspect_item). Those
+    # tests belong on TestDivineScrutiny which handles actor identification
+    # with the divine sight overlay.
 
     def test_mastery_too_low(self):
         """Should fail if mastery is 0."""

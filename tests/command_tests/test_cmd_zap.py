@@ -155,7 +155,7 @@ class TestCmdZapSuccess(EvenniaCommandTest):
                 "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
             ) as mock_registry:
                 mock_spell = MagicMock()
-                mock_spell.target_type = "hostile"
+                mock_spell.target_type = "actor_hostile"
                 mock_spell.min_mastery.value = 1
                 mock_spell.cast.return_value = (
                     True,
@@ -180,7 +180,7 @@ class TestCmdZapSuccess(EvenniaCommandTest):
                     "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
                 ) as mock_registry:
                     mock_spell = MagicMock()
-                    mock_spell.target_type = "hostile"
+                    mock_spell.target_type = "actor_hostile"
                     mock_spell.min_mastery.value = 1
                     mock_spell.cast.return_value = (
                         True,
@@ -215,7 +215,7 @@ class TestCmdZapSuccess(EvenniaCommandTest):
                 "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
             ) as mock_registry:
                 mock_spell = MagicMock()
-                mock_spell.target_type = "hostile"
+                mock_spell.target_type = "actor_hostile"
                 mock_spell.min_mastery.value = 3   # EXPERT
                 mock_spell.cast.side_effect = fake_cast
                 mock_registry.get.return_value = mock_spell
@@ -239,7 +239,7 @@ class TestCmdZapSuccess(EvenniaCommandTest):
                 "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
             ) as mock_registry:
                 mock_spell = MagicMock()
-                mock_spell.target_type = "hostile"
+                mock_spell.target_type = "actor_hostile"
                 mock_spell.min_mastery.value = 1
                 mock_spell.cast.return_value = (
                     True,
@@ -291,7 +291,7 @@ class TestCmdZapExpended(EvenniaCommandTest):
                     "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
                 ) as mock_registry:
                     mock_spell = MagicMock()
-                    mock_spell.target_type = "hostile"
+                    mock_spell.target_type = "actor_hostile"
                     mock_spell.min_mastery.value = 1
                     mock_spell.cast.return_value = (
                         True,
@@ -348,7 +348,7 @@ class TestCmdZapAccessGates(EvenniaCommandTest):
             "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
         ) as mock_registry:
             mock_spell = MagicMock()
-            mock_spell.target_type = "hostile"
+            mock_spell.target_type = "actor_hostile"
             mock_spell.min_mastery.value = 1
             mock_spell.min_mastery.name = "BASIC"
             mock_spell.cast.return_value = (
@@ -380,7 +380,7 @@ class TestCmdZapAccessGates(EvenniaCommandTest):
             "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
         ) as mock_registry:
             mock_spell = MagicMock()
-            mock_spell.target_type = "hostile"
+            mock_spell.target_type = "actor_hostile"
             mock_spell.min_mastery.value = 3
             mock_spell.min_mastery.name = "EXPERT"
             mock_spell.cast.return_value = (

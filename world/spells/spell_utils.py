@@ -139,12 +139,12 @@ def resolve_spell_target(caster, target_str, target_type):
 
         ``"self"``           — returns caster, no resolution needed.
         ``"none"``           — returns None, no resolution needed.
-        ``"hostile"``        — attack-priority actor resolution
+        ``"actor_hostile"``        — attack-priority actor resolution
                                (enemy > bystander > ally > self),
                                self rejected.
-        ``"any_actor"``      — same as hostile (attack priority,
+        ``"actor_any"``      — same as hostile (attack priority,
                                self rejected).
-        ``"friendly"``       — friendly-priority actor resolution
+        ``"actor_friendly"``       — friendly-priority actor resolution
                                (self > ally > bystander > enemy),
                                self allowed, empty target defaults
                                to self.
@@ -181,7 +181,7 @@ def resolve_spell_target(caster, target_str, target_type):
 
     # Friendly defaults to self when no target is given
     if not target_str:
-        if target_type == "friendly":
+        if target_type == "actor_friendly":
             return caster
         caster.msg("You need to specify a target.")
         return None
@@ -191,7 +191,7 @@ def resolve_spell_target(caster, target_str, target_type):
         return None
 
     # ── Hostile / any_actor: attack-priority actor resolution ──
-    if target_type in ("hostile", "any_actor"):
+    if target_type in ("actor_hostile", "actor_any"):
         if caster.scripts.get("combat_handler"):
             target = resolve_attack_target_in_combat(caster, target_str)
         else:
@@ -205,7 +205,7 @@ def resolve_spell_target(caster, target_str, target_type):
         return target
 
     # ── Friendly: friendly-priority actor resolution ──
-    if target_type == "friendly":
+    if target_type == "actor_friendly":
         if caster.scripts.get("combat_handler"):
             target = resolve_friendly_target_in_combat(caster, target_str)
         else:

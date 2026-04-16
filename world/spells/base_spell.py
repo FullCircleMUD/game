@@ -35,7 +35,7 @@ Usage:
         school = skills.EVOCATION
         min_mastery = MasteryLevel.BASIC
         mana_cost = {1: 5, 2: 8, 3: 12, 4: 16, 5: 20}
-        target_type = "hostile"
+        target_type = "actor_hostile"
 
         def _execute(self, caster, target):
             ...
@@ -75,11 +75,11 @@ class Spell:
 
     target_type values:
         Actor targets (resolved via caller.search() in cmd_cast / cmd_zap):
-            "hostile"  — an enemy in the room (target required)
-            "friendly" — an ally in the room (defaults to self if blank)
+            "actor_hostile"  — an enemy in the room (target required)
+            "actor_friendly" — an ally in the room (defaults to self if blank)
             "self"     — the caster, always
             "none"     — no target needed
-            "any_actor" — any actor in the room
+            "actor_any" — any actor in the room
 
         Item targets (resolved via spell_utils.resolve_spell_target):
             "items_inventory"
@@ -103,7 +103,7 @@ class Spell:
     school = ""
     min_mastery = MasteryLevel.BASIC
     mana_cost = {}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     spell_range = "ranged"  # "self", "melee", or "ranged"
     cooldown = None  # None = use default based on min_mastery tier
     has_spell_arg = False  # True = cmd_cast pops first word as spell_arg

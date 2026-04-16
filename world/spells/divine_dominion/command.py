@@ -48,7 +48,7 @@ class Command(Spell):
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     has_spell_arg = True
     cooldown = 0
     description = "Issues a divine command that compels the target to obey."

@@ -85,13 +85,13 @@ class TestSpellRegistry(EvenniaTest):
         mm = get_spell("magic_missile")
         self.assertEqual(mm.school_key, "evocation")
         self.assertEqual(mm.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(mm.target_type, "hostile")
+        self.assertEqual(mm.target_type, "actor_hostile")
         self.assertIn(1, mm.mana_cost)
 
         cw = get_spell("cure_wounds")
         self.assertEqual(cw.school_key, "divine_healing")
         self.assertEqual(cw.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(cw.target_type, "friendly")
+        self.assertEqual(cw.target_type, "actor_friendly")
 
     def test_spell_aliases(self):
         """Magic Missile should have aliases."""

@@ -36,7 +36,7 @@ class AcidArrow(Spell):
     school = skills.CONJURATION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Fires a bolt of acid that burns on impact and continues to corrode."
     mechanics = (

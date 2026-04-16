@@ -108,7 +108,7 @@ class CmdZap(FCMCommandMixin, Command):
             caller.ndb._wand_free_cast = False
 
         # ── 5. Break invisibility / sanctuary on hostile zap ─
-        if success and spell.target_type == "hostile":
+        if success and spell.target_type == "actor_hostile":
             if (hasattr(caller, "break_invisibility")
                     and caller.has_condition(Condition.INVISIBLE)):
                 caller.break_invisibility()

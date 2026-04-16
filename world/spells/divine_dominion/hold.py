@@ -44,7 +44,7 @@ class Hold(Spell):
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.EXPERT
     mana_cost = {3: 28, 4: 39, 5: 49}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     description = "Binds the target in divine chains, paralyzing them."
     mechanics = (
         "Single target — PARALYSED with per-round WIS save to break free.\n"

@@ -27,7 +27,7 @@ class Purify(Spell):
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.SKILLED
     mana_cost = {2: 10, 3: 14, 4: 18, 5: 22}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     description = "Purges a harmful condition from the target."
     mechanics = (
         "Removes a single harmful condition (poison, disease, etc.).\n"

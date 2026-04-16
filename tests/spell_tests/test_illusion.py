@@ -61,7 +61,7 @@ class TestIllusionRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.ILLUSION)
         self.assertEqual(spell.min_mastery, MasteryLevel.MASTER)
-        self.assertEqual(spell.target_type, "friendly")
+        self.assertEqual(spell.target_type, "actor_friendly")
         self.assertEqual(spell.mana_cost, {4: 56, 5: 64})
 
     def test_phantasmal_killer_registered(self):
@@ -70,7 +70,7 @@ class TestIllusionRegistry(EvenniaTest):
         self.assertEqual(spell.school, skills.ILLUSION)
         self.assertEqual(spell.min_mastery, MasteryLevel.GRANDMASTER)
         self.assertEqual(spell.mana_cost, {5: 100})
-        self.assertEqual(spell.target_type, "hostile")
+        self.assertEqual(spell.target_type, "actor_hostile")
 
     def test_illusion_school_has_all_spells(self):
         ill = get_spells_for_school("illusion")

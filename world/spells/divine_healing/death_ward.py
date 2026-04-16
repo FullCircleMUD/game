@@ -28,7 +28,7 @@ class DeathWard(Spell):
     school = skills.DIVINE_HEALING
     min_mastery = MasteryLevel.GRANDMASTER
     mana_cost = {5: 100}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     description = "Places a divine ward on the target that intercepts a killing blow."
     mechanics = (
         "Preemptive buff — cast on self or ally.\n"

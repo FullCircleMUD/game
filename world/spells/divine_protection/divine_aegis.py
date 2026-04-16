@@ -24,7 +24,7 @@ class DivineAegis(Spell):
     school = skills.DIVINE_PROTECTION
     min_mastery = MasteryLevel.GRANDMASTER
     mana_cost = {5: 100}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     description = "Envelops the target in an impenetrable divine shield."
     mechanics = (
         "Total damage immunity on target for a short duration.\n"

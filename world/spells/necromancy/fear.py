@@ -38,7 +38,7 @@ class Fear(Spell):
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 4, 2: 6, 3: 8, 4: 10, 5: 14}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Fills a creature with supernatural terror, causing it to flee."
     mechanics = (

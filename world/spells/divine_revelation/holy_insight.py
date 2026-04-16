@@ -5,7 +5,7 @@ Cleric mirror of the mage's Identify spell. Reveals stats and properties
 of items via the shared inspection templates in `utils/inspection_templates.py`.
 
 For creature identification, see Divine Scrutiny (same school, same mastery
-gates, but targets actors via `target_type = "any_actor"`).
+gates, but targets actors via `target_type = "actor_any"`).
 
 Item mastery gate is per-item via the `identify_mastery_gate` attribute
 (default BASIC).

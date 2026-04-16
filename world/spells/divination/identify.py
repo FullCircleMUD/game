@@ -6,7 +6,7 @@ Item-only identification spell. Reveals stats and properties of NFT items
 from `utils/inspection_templates.py`.
 
 For actor identification, see the Augur spell (same school, same mastery
-gates, but targets actors via `target_type = "any_actor"`).
+gates, but targets actors via `target_type = "actor_any"`).
 
 Item mastery gate is per-item via the `identify_mastery_gate` attribute
 (default BASIC). Some rare or powerful items require higher mastery to

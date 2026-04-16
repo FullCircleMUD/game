@@ -37,7 +37,7 @@ class TestNecromancyRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.NECROMANCY)
         self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(spell.target_type, "hostile")
+        self.assertEqual(spell.target_type, "actor_hostile")
         self.assertEqual(spell.mana_cost, {1: 5, 2: 8, 3: 10, 4: 14, 5: 16})
 
     def test_raise_dead_registered(self):
@@ -52,7 +52,7 @@ class TestNecromancyRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.NECROMANCY)
         self.assertEqual(spell.min_mastery, MasteryLevel.SKILLED)
-        self.assertEqual(spell.target_type, "hostile")
+        self.assertEqual(spell.target_type, "actor_hostile")
 
     def test_soul_harvest_registered(self):
         spell = get_spell("soul_harvest")
@@ -408,7 +408,7 @@ class TestVampiricTouch(EvenniaTest):
         self.assertEqual(self.spell.name, "Vampiric Touch")
         self.assertEqual(self.spell.school, skills.NECROMANCY)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.SKILLED)
-        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
         self.assertEqual(self.spell.cooldown, 0)
         self.assertIn("vt", self.spell.aliases)
         self.assertIn("vamp", self.spell.aliases)

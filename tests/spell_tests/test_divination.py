@@ -46,7 +46,7 @@ class TestDivinationRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.DIVINATION)
         self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(spell.target_type, "any_actor")
+        self.assertEqual(spell.target_type, "actor_any")
         self.assertEqual(spell.mana_cost, {1: 5, 2: 8, 3: 10, 4: 14, 5: 16})
 
     def test_true_sight_registered(self):
@@ -607,7 +607,7 @@ class TestAugur(EvenniaTest):
     """Test Augur spell execution — actor template, mastery gate, PvP check.
 
     Augur is the actor-identification spell split from Identify. It uses
-    target_type="any_actor" which routes through the hostile-priority
+    target_type="actor_any" which routes through the hostile-priority
     attack resolvers (enemy > bystander > ally > self) and rejects
     self-targeting (score/prompt is free).
     """
