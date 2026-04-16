@@ -11,12 +11,14 @@ from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.predicates import (
+    p_different_height,
     p_in_combat,
     p_is_character,
     p_living,
     p_not_actor,
     p_not_exit,
     p_passes_lock,
+    p_same_height,
     p_visible_to,
 )
 
@@ -164,3 +166,49 @@ class TestPredicates(EvenniaTest):
         obj = SimpleNamespace(access=lambda caller, lock_type: False)
         pred = p_passes_lock("get")
         self.assertFalse(pred(obj, caller=None))
+
+    # ── p_same_height ────────────────────────────────────────────
+
+    def test_p_same_height_matches_same_position(self):
+        caller = SimpleNamespace(room_vertical_position=2)
+        obj = SimpleNamespace(room_vertical_position=2)
+        pred = p_same_height(caller)
+        self.assertTrue(pred(obj, caller))
+
+    def test_p_same_height_rejects_different_position(self):
+        caller = SimpleNamespace(room_vertical_position=0)
+        obj = SimpleNamespace(room_vertical_position=2)
+        pred = p_same_height(caller)
+        self.assertFalse(pred(obj, caller))
+
+    def test_p_same_height_defaults_to_zero(self):
+        caller = SimpleNamespace()  # no room_vertical_position
+        obj = SimpleNamespace()     # no room_vertical_position
+        pred = p_same_height(caller)
+        self.assertTrue(pred(obj, caller))  # both default to 0
+
+    def test_p_same_height_default_vs_explicit_zero(self):
+        caller = SimpleNamespace(room_vertical_position=0)
+        obj = SimpleNamespace()  # defaults to 0
+        pred = p_same_height(caller)
+        self.assertTrue(pred(obj, caller))
+
+    # ── p_different_height ───────────────────────────────────────
+
+    def test_p_different_height_matches_different_position(self):
+        caller = SimpleNamespace(room_vertical_position=0)
+        obj = SimpleNamespace(room_vertical_position=2)
+        pred = p_different_height(caller)
+        self.assertTrue(pred(obj, caller))
+
+    def test_p_different_height_rejects_same_position(self):
+        caller = SimpleNamespace(room_vertical_position=2)
+        obj = SimpleNamespace(room_vertical_position=2)
+        pred = p_different_height(caller)
+        self.assertFalse(pred(obj, caller))
+
+    def test_p_different_height_defaults_to_zero(self):
+        caller = SimpleNamespace()
+        obj = SimpleNamespace()
+        pred = p_different_height(caller)
+        self.assertFalse(pred(obj, caller))  # both default to 0 = same

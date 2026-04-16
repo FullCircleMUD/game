@@ -17,7 +17,12 @@ from utils.targeting.helpers import (
     resolve_item_in_source,
     walk_contents,
 )
-from utils.targeting.predicates import p_not_actor, p_visible_to
+from utils.targeting.predicates import (
+    p_different_height,
+    p_not_actor,
+    p_same_height,
+    p_visible_to,
+)
 
 
 def apply_spell_damage(target, raw_damage, damage_type):
@@ -126,7 +131,7 @@ def get_room_all_at_height(caster):
 # ── Spell target resolution ──────────────────────────────────────────
 
 
-def resolve_spell_target(caster, target_str, target_type):
+def resolve_spell_target(caster, target_str, target_type, spell_range="ranged"):
     """Resolve a spell target by ``target_type``.
 
     Single entry point for all spell target resolution, used by
@@ -134,6 +139,12 @@ def resolve_spell_target(caster, target_str, target_type):
     primitive based on the spell's ``target_type``. Returns the
     resolved target or ``None``. On ``None``, an error message has
     already been sent to the caster — callers just ``return``.
+
+    ``spell_range`` controls height filtering for actor target_types:
+        ``"melee"``      — only actors at the caster's height
+        ``"ranged"``     — any height (default)
+        ``"ranged_only"``— only actors at a different height
+        ``"self"``       — no target resolution (ignored)
 
     Target types — actors:
 
@@ -190,12 +201,27 @@ def resolve_spell_target(caster, target_str, target_type):
         caster.msg("You aren't anywhere where you could target that.")
         return None
 
+    # ── Height predicate based on spell_range ──
+    # Melee spells only resolve actors at the caster's height.
+    # Ranged_only spells only resolve actors at a different height.
+    # Ranged spells (default) have no height filter.
+    # Applied to actor target_types only — items don't have height.
+    extra_predicates = ()
+    if spell_range == "melee":
+        extra_predicates = (p_same_height(caster),)
+    elif spell_range == "ranged_only":
+        extra_predicates = (p_different_height(caster),)
+
     # ── Hostile / any_actor: attack-priority actor resolution ──
     if target_type in ("actor_hostile", "actor_any"):
         if caster.scripts.get("combat_handler"):
-            target = resolve_attack_target_in_combat(caster, target_str)
+            target = resolve_attack_target_in_combat(
+                caster, target_str, extra_predicates=extra_predicates,
+            )
         else:
-            target = resolve_attack_target_out_of_combat(caster, target_str)
+            target = resolve_attack_target_out_of_combat(
+                caster, target_str, extra_predicates=extra_predicates,
+            )
         if target is None:
             caster.msg(f"There's no '{target_str}' here.")
             return None
@@ -207,9 +233,13 @@ def resolve_spell_target(caster, target_str, target_type):
     # ── Friendly: friendly-priority actor resolution ──
     if target_type == "actor_friendly":
         if caster.scripts.get("combat_handler"):
-            target = resolve_friendly_target_in_combat(caster, target_str)
+            target = resolve_friendly_target_in_combat(
+                caster, target_str, extra_predicates=extra_predicates,
+            )
         else:
-            target = resolve_friendly_target_out_of_combat(caster, target_str)
+            target = resolve_friendly_target_out_of_combat(
+                caster, target_str, extra_predicates=extra_predicates,
+            )
         if target is None:
             caster.msg(f"There's no '{target_str}' here.")
             return None

@@ -330,7 +330,7 @@ def _is_self_keyword(name):
 ATTACK_OUT_OF_COMBAT_ORDER = ("stranger", "groupmate", "self")
 
 
-def resolve_attack_target_out_of_combat(caller, name, order=None):
+def resolve_attack_target_out_of_combat(caller, name, order=None, extra_predicates=()):
     """Find a hostile-action target for a caller not currently in combat.
 
     Walks ``caller.location`` for living, visible actors and buckets
@@ -404,7 +404,7 @@ def resolve_attack_target_out_of_combat(caller, name, order=None):
 
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_visible_to,
+        p_living, p_visible_to, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -417,7 +417,7 @@ def resolve_attack_target_out_of_combat(caller, name, order=None):
 ATTACK_IN_COMBAT_ORDER = ("enemy", "bystander", "ally", "self")
 
 
-def resolve_attack_target_in_combat(caller, name, order=None):
+def resolve_attack_target_in_combat(caller, name, order=None, extra_predicates=()):
     """Find a hostile-action target for a caller currently in combat.
 
     Walks ``caller.location`` for living, visible actors and buckets
@@ -481,7 +481,7 @@ def resolve_attack_target_in_combat(caller, name, order=None):
 
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_visible_to,
+        p_living, p_visible_to, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -498,7 +498,7 @@ FRIENDLY_IN_COMBAT_ORDER = ("self", "ally", "bystander", "enemy")
 FRIENDLY_OUT_OF_COMBAT_ORDER = ("self", "groupmate", "stranger")
 
 
-def resolve_friendly_target_in_combat(caller, name):
+def resolve_friendly_target_in_combat(caller, name, extra_predicates=()):
     """Find a friendly-intent target for a caller currently in combat.
 
     Same classifier as ``resolve_attack_target_in_combat`` — buckets
@@ -509,30 +509,19 @@ def resolve_friendly_target_in_combat(caller, name):
         3. ``bystander`` — no ``combat_handler``, or ``combat_side == 0``
         4. ``enemy``     — ``combat_side`` opposes caller's side
 
-    Used by friendly / any spell target resolution so
-    ``cast cure light goblin`` prefers an allied goblin over an enemy
-    goblin when both are in the room. Enemy still wins if it's the
-    only name match — self is first-preference, not hard-exclusive.
-
-    ``me`` / ``self`` keywords land in ``_is_self_keyword`` at the top
-    of the underlying resolver and return caller unchanged. Friendly
-    spells allow self, so the command layer just uses whatever comes
-    back.
-
     Thin wrapper over ``resolve_attack_target_in_combat`` with the
-    reversed-priority ``order`` kwarg. Same classifier, same bucket
-    walk, same ``walk_contents`` machinery — only the priority
-    tuple differs. Adding new intent variants in future is one
-    constant + one wrapper.
+    reversed-priority ``order`` kwarg. ``extra_predicates`` passed
+    through for height filtering etc.
 
     Returns the matched actor or None.
     """
     return resolve_attack_target_in_combat(
         caller, name, order=FRIENDLY_IN_COMBAT_ORDER,
+        extra_predicates=extra_predicates,
     )
 
 
-def resolve_friendly_target_out_of_combat(caller, name):
+def resolve_friendly_target_out_of_combat(caller, name, extra_predicates=()):
     """Find a friendly-intent target for a caller not currently in combat.
 
     Same classifier as ``resolve_attack_target_out_of_combat`` —
@@ -543,17 +532,15 @@ def resolve_friendly_target_out_of_combat(caller, name):
                            ``caller.active_pet`` / ``active_mount``
         3. ``stranger``  — everyone else
 
-    Used by friendly / any spell target resolution out of combat.
-    Mirror of the out-of-combat attack resolver which prefers
-    strangers over groupmates over self.
-
     Thin wrapper over ``resolve_attack_target_out_of_combat`` with
-    the reversed-priority ``order`` kwarg.
+    the reversed-priority ``order`` kwarg. ``extra_predicates`` passed
+    through for height filtering etc.
 
     Returns the matched actor or None.
     """
     return resolve_attack_target_out_of_combat(
         caller, name, order=FRIENDLY_OUT_OF_COMBAT_ORDER,
+        extra_predicates=extra_predicates,
     )
 
 

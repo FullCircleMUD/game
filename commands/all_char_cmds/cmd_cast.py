@@ -117,6 +117,7 @@ class CmdCast(FCMCommandMixin, Command):
         # for "none" where None is the expected return).
         target = resolve_spell_target(
             caller, target_str, spell_match.target_type,
+            spell_range=spell_match.spell_range,
         )
         if target is None and spell_match.target_type != "none":
             return

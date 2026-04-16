@@ -236,3 +236,38 @@ def p_passes_lock(lock_type):
         except Exception:
             return False
     return _pred
+
+
+def p_same_height(caller):
+    """Factory — returns a predicate matching actors at ``caller``'s height.
+
+    Compares ``obj.room_vertical_position`` against the caller's value
+    at factory-creation time. Objects without the attribute default to
+    height 0 (ground level).
+
+    Used by melee-range spells so the targeting resolver only considers
+    actors the caster can physically reach. Ranged spells skip this
+    predicate entirely.
+    """
+    caller_height = getattr(caller, "room_vertical_position", 0)
+
+    def _pred(obj, _caller):  # noqa: ARG001
+        return getattr(obj, "room_vertical_position", 0) == caller_height
+
+    return _pred
+
+
+def p_different_height(caller):
+    """Factory — returns a predicate matching actors NOT at ``caller``'s height.
+
+    Inverse of ``p_same_height``. Used by ``ranged_only`` spells that
+    can only target actors at a different vertical position (e.g. aerial
+    bombardment, sniper abilities). No current consumer — built for
+    future use alongside the melee/ranged height system.
+    """
+    caller_height = getattr(caller, "room_vertical_position", 0)
+
+    def _pred(obj, _caller):  # noqa: ARG001
+        return getattr(obj, "room_vertical_position", 0) != caller_height
+
+    return _pred

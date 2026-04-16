@@ -194,15 +194,10 @@ class Spell:
                 f"{self.name} is on cooldown ({remaining} round{s} remaining).",
             )
 
-        # Height check for melee-range spells
-        if self.spell_range == "melee" and target:
-            caster_height = getattr(caster, "room_vertical_position", 0)
-            target_height = getattr(target, "room_vertical_position", 0)
-            if caster_height != target_height:
-                return (
-                    False,
-                    "You can't reach them from your current height.",
-                )
+        # Height filtering for melee spells is enforced at resolution
+        # time in resolve_spell_target via p_same_height. No post-
+        # resolution check needed here — melee spells only receive
+        # targets at the caster's height.
 
         cost = self.mana_cost.get(tier, 0)
 

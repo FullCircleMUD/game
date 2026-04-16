@@ -92,7 +92,10 @@ class CmdZap(FCMCommandMixin, Command):
         # what went wrong, so we just return (except "none" where None
         # is the expected return).
         target_str = self.args.strip()
-        target = resolve_spell_target(caller, target_str, spell.target_type)
+        target = resolve_spell_target(
+            caller, target_str, spell.target_type,
+            spell_range=spell.spell_range,
+        )
         if target is None and spell.target_type != "none":
             return
 
