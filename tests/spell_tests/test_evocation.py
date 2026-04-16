@@ -328,85 +328,64 @@ class TestFlameBurst(EvenniaTest):
         self.assertEqual(self.spell.name, "Flame Burst")
         self.assertEqual(self.spell.school, skills.EVOCATION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.SKILLED)
-        self.assertEqual(self.spell.target_type, "none")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
+        self.assertEqual(self.spell.aoe, "safe")
 
     def test_mana_costs(self):
         """Flame Burst mana costs should match design."""
         self.assertEqual(self.spell.mana_cost, {2: 11, 3: 14, 4: 18, 5: 21})
 
-    def test_does_not_hit_caster(self):
-        """Flame Burst (safe AoE) should NOT damage the caster."""
-        start_hp = self.char1.hp
-        self.spell.cast(self.char1, None)
-        self.assertEqual(self.char1.hp, start_hp)
-
     def test_deducts_mana_skilled(self):
         """Flame Burst should deduct correct mana at SKILLED tier."""
         start_mana = self.char1.mana
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertEqual(self.char1.mana, start_mana - 11)
 
-    @patch("world.spells.evocation.flame_burst.get_room_enemies")
-    def test_first_enemy_always_hit(self, mock_enemies):
-        """With one enemy and 100% chance, should always deal damage."""
-        mock_enemies.return_value = [self.char2]
+    def test_primary_target_always_hit(self):
+        """Primary target is a guaranteed hit — always takes damage."""
         for _ in range(5):
             self.char2.hp = 200
             self.char1.mana = 500
             self.char1.db.spell_cooldowns = {}
-            self.spell.cast(self.char1, None)
+            self.spell.cast(self.char1, self.char2)
             self.assertLess(self.char2.hp, 200)
 
-    @patch("world.spells.evocation.flame_burst.get_room_enemies")
     @patch("world.spells.evocation.flame_burst.dice")
-    def test_skilled_damage_range(self, mock_dice, mock_enemies):
-        """At SKILLED tier, 3d6 = 3-18 damage."""
-        mock_enemies.return_value = [self.char2]
-        mock_dice.roll.side_effect = [11, 50]  # 11 damage, 50 <= 100 (hit)
+    def test_skilled_damage_range(self, mock_dice):
+        """At SKILLED tier, 3d6 = 3-18 damage on primary target."""
+        mock_dice.roll.side_effect = [11]  # 11 damage
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         self.assertEqual(damage, 11)
 
-    @patch("world.spells.evocation.flame_burst.get_room_enemies")
     @patch("world.spells.evocation.flame_burst.dice")
-    def test_gm_damage_range(self, mock_dice, mock_enemies):
-        """At GM tier (5), 6d6 = 6-36 damage."""
+    def test_gm_damage_range(self, mock_dice):
+        """At GM tier (5), 6d6 = 6-36 damage on primary target."""
         self.char1.db.class_skill_mastery_levels = {"evocation": 5}
-        mock_enemies.return_value = [self.char2]
-        mock_dice.roll.side_effect = [21, 50]  # 21 damage, 50 <= 100 (hit)
+        mock_dice.roll.side_effect = [21]  # 21 damage
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         self.assertEqual(damage, 21)
 
-    @patch("world.spells.evocation.flame_burst.get_room_enemies")
-    def test_returns_message_dict(self, mock_enemies):
+    def test_returns_message_dict(self):
         """Successful cast should return message dict."""
-        mock_enemies.return_value = [self.char2]
-        success, result = self.spell.cast(self.char1, None)
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
         self.assertIn("third", result)
 
-    def test_no_enemies_message(self):
-        """Cast with no enemies should return appropriate message."""
-        success, result = self.spell.cast(self.char1, None)
-        self.assertTrue(success)
-        self.assertIn("no enemies", result["first"].lower())
-
     def test_no_cooldown(self):
         """Flame Burst should have no cooldown (SKILLED default)."""
         self.assertEqual(self.spell.get_cooldown(), 0)
 
-    @patch("world.spells.evocation.flame_burst.get_room_enemies")
-    def test_fire_resistance_reduces_damage(self, mock_enemies):
-        """Fire resistance should reduce flame burst damage."""
-        mock_enemies.return_value = [self.char2]
+    def test_fire_resistance_reduces_damage(self):
+        """Fire resistance should reduce flame burst damage on primary."""
         self.char2.damage_resistances = {"fire": 50}
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         # 50% resist on 3-18 raw = 2-9 actual
         self.assertLessEqual(damage, 9)
@@ -414,7 +393,7 @@ class TestFlameBurst(EvenniaTest):
     def test_mastery_too_low(self):
         """Should fail if mastery is BASIC (1) — needs SKILLED."""
         self.char1.db.class_skill_mastery_levels = {"evocation": 1}
-        success, msg = self.spell.cast(self.char1, None)
+        success, msg = self.spell.cast(self.char1, self.char2)
         self.assertFalse(success)
         self.assertIn("mastery", msg.lower())
 
