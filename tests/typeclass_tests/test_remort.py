@@ -79,25 +79,6 @@ class TestRemortReset(EvenniaTest):
 
     @patch("blockchain.xrpl.services.nft.NFTService.bank")
     @patch("blockchain.xrpl.services.gold.GoldService.unbank")
-    def test_remort_does_not_reference_active_pet_or_mount(self, *mocks):
-        """
-        The old active_pet / active_mount relic attributes should NOT be
-        touched by remort. The actual mount system uses self.db.mounted_on
-        and pets are actors in rooms — neither needs clearing on remort.
-        """
-        # Set relic attrs to a sentinel value
-        self.char1.active_pet = "SENTINEL"
-        self.char1.active_mount = "SENTINEL"
-
-        self.char1.at_remort(self.bank)
-
-        # If remort cleared them, they'd be None. They should still be
-        # the sentinel because remort no longer touches them.
-        self.assertEqual(self.char1.active_pet, "SENTINEL")
-        self.assertEqual(self.char1.active_mount, "SENTINEL")
-
-    @patch("blockchain.xrpl.services.nft.NFTService.bank")
-    @patch("blockchain.xrpl.services.gold.GoldService.unbank")
     def test_remort_preserves_mounted_on(self, *mocks):
         """
         mounted_on should survive remort — a character sitting on a horse

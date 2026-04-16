@@ -166,11 +166,6 @@ class FCMCharacter(
     general_skill_pts_available = AttributeProperty(0)
     weapon_skill_pts_available = AttributeProperty(0)
 
-    # holds an instance of NFTPet
-    active_pet = AttributeProperty(None)
-    #holds an instance of NFTMount
-    active_mount = AttributeProperty(None)
-
     # ── Group / Follow system ──
     # following, nofollow, get_group_leader(), get_followers() from FollowableMixin
     # nofollow also in PlayerPreferencesMixin (player-facing toggle)
