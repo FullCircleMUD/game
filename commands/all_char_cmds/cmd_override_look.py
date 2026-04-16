@@ -21,6 +21,8 @@ from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
 
 from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from utils.targeting.helpers import resolve_container
+from utils.targeting.predicates import p_visible_to
 
 # Build set of all direction strings (abbreviations + full names)
 _DIRECTION_STRINGS = set()
@@ -99,14 +101,12 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             if found:
                 if not isinstance(found, list):
                     found = [found]
-                # Filter out the room itself and hidden/invisible objects
+                # Filter out the room itself and hidden/invisible objects.
+                # p_visible_to is the targeting library's canonical
+                # visibility check — one source of truth.
                 found = [
                     obj for obj in found
-                    if obj != caller.location
-                    and (
-                        not hasattr(obj, "is_visible_to")
-                        or obj.is_visible_to(caller)
-                    )
+                    if obj != caller.location and p_visible_to(obj, caller)
                 ]
             if found:
                 # Show the first visible match directly (bypass super's
@@ -141,18 +141,13 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                 # Filter out room and hidden/invisible objects
                 visible = [
                     obj for obj in found
-                    if obj != caller.location
-                    and (
-                        not hasattr(obj, "is_visible_to")
-                        or obj.is_visible_to(caller)
-                    )
+                    if obj != caller.location and p_visible_to(obj, caller)
                 ]
                 if not visible and found:
                     # All matches were room or hidden — check if any were
                     # hidden (no period hint) vs just the room (with period)
                     has_hidden = any(
-                        hasattr(obj, "is_visible_to")
-                        and not obj.is_visible_to(caller)
+                        not p_visible_to(obj, caller)
                         for obj in found
                         if obj != caller.location
                     )
@@ -222,19 +217,20 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             if isinstance(container, list):
                 container = container[0]
         else:
-            # Search inventory first, then room
-            container = caller.search(
-                container_name, location=caller, quiet=True
-            )
+            # Inventory first, then room — resolve_container handles
+            # the fallback and p_is_container filtering.
+            container = resolve_container(caller, container_name)
             if not container:
-                container = caller.search(
-                    container_name, location=caller.location, quiet=True
-                )
-            if not container:
-                caller.msg(f"You don't see '{container_name}' here.")
+                # Check if something by that name exists but isn't a
+                # container — give a specific error rather than "not here"
+                non_container = caller.search(container_name, quiet=True)
+                if non_container:
+                    if isinstance(non_container, list):
+                        non_container = non_container[0]
+                    caller.msg(f"{non_container.key} is not a container.")
+                else:
+                    caller.msg(f"You don't see '{container_name}' here.")
                 return
-            if isinstance(container, list):
-                container = container[0]
 
         if not getattr(container, "is_container", False):
             caller.msg(f"{container.key} is not a container.")
