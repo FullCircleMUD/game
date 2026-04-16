@@ -197,13 +197,14 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
             caster.get_group_leader()
             if hasattr(caster, "get_group_leader") else None
         )
-        pet = getattr(caster, "active_pet", None)
-        mount = getattr(caster, "active_mount", None)
+        def _is_own_pet(obj):
+            return (getattr(obj, "is_pet", False)
+                    and getattr(obj, "owner_key", None) == caster.key)
 
         def _is_enemy(obj):
             if obj is caster or obj is primary_target:
                 return False
-            if obj is pet or obj is mount:
+            if _is_own_pet(obj):
                 return False
             other_leader = (
                 obj.get_group_leader()
@@ -225,18 +226,20 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
                 a for a in candidates
                 if a is not primary_target and id(a) in ally_set
             ]
-        # Out of combat: groupmates + caster + pet/mount are allies
+        # Out of combat: groupmates + caster + pets/mounts are allies
         caster_leader = (
             caster.get_group_leader()
             if hasattr(caster, "get_group_leader") else None
         )
-        pet = getattr(caster, "active_pet", None)
-        mount = getattr(caster, "active_mount", None)
+
+        def _is_own_pet_ally(obj):
+            return (getattr(obj, "is_pet", False)
+                    and getattr(obj, "owner_key", None) == caster.key)
 
         def _is_ally(obj):
             if obj is primary_target:
                 return False
-            if obj is caster or obj is pet or obj is mount:
+            if obj is caster or _is_own_pet_ally(obj):
                 return True
             other_leader = (
                 obj.get_group_leader()
