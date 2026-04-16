@@ -14,7 +14,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from world.spells.registry import get_spell, SPELL_REGISTRY
-from world.spells.spell_utils import resolve_actor_target, resolve_item_target
+from world.spells.spell_utils import resolve_spell_target
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -111,27 +111,15 @@ class CmdCast(FCMCommandMixin, Command):
             )
             return
 
-        # Resolve target — each target_type except "self" and "none"
-        # has a helper in world.spells.spell_utils that does its own
-        # scoping, validation, and error messaging. On None, the helper
-        # has already told the caster what went wrong, so we just return.
-        target = None
-        if spell_match.target_type == "self":
-            target = caller
-        elif spell_match.target_type == "none":
-            target = None
-        elif spell_match.target_type in ("hostile", "friendly", "any_actor"):
-            target = resolve_actor_target(
-                caller, target_str, spell_match.target_type,
-            )
-            if not target:
-                return
-        elif spell_match.target_type in ("inventory_item", "world_item", "any_item"):
-            target = resolve_item_target(
-                caller, target_str, spell_match.target_type,
-            )
-            if not target:
-                return
+        # Resolve target — resolve_spell_target handles all target_types
+        # including "self" and "none". On None, the helper has already
+        # told the caster what went wrong, so we just return (except
+        # for "none" where None is the expected return).
+        target = resolve_spell_target(
+            caller, target_str, spell_match.target_type,
+        )
+        if target is None and spell_match.target_type != "none":
+            return
 
         # Cast the spell
         success, result = spell_match.cast(caller, target, spell_arg=spell_arg)

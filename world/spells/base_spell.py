@@ -81,7 +81,7 @@ class Spell:
             "none"     — no target needed
             "any_actor" — any actor in the room
 
-        Item targets (resolved via spell_utils.resolve_item_target):
+        Item targets (resolved via spell_utils.resolve_spell_target):
             "inventory_item" — an NFT item in the caster's own contents
                                (e.g. Recharge, Mending, Enchant Weapon)
             "world_item"     — an object or exit in the caster's room,

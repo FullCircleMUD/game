@@ -19,7 +19,7 @@ creates a tradeable water resource — both top up containers the caller
 already carries, preserving the canteen/cask supply chain.
 
 Targets an inventory item — the cast command resolves the container
-via spell_utils.resolve_item_target, so the player types e.g.
+via spell_utils.resolve_spell_target, so the player types e.g.
 `cast create water on canteen` and the resolver finds the named container.
 
 Cooldown: 0 (utility spell, spammable).

@@ -121,48 +121,43 @@ def get_room_all_at_height(caster):
     ]
 
 
-# ── Actor target resolution (for spells targeting characters/mobs) ───
+# ── Spell target resolution ──────────────────────────────────────────
 
 
-def resolve_actor_target(caster, target_str, target_type):
-    """Resolve an actor target for a spell.
+def resolve_spell_target(caster, target_str, target_type):
+    """Resolve a spell target by ``target_type``.
 
-    Used by ``cmd_cast`` and ``cmd_zap`` when the spell's ``target_type``
-    is ``"hostile"``, ``"friendly"``, or ``"any_actor"``. Returns the resolved
-    actor or ``None``; on ``None`` an error message has already been
-    sent to the caster so callers just ``return``.
+    Single entry point for all spell target resolution, used by
+    ``cmd_cast`` and ``cmd_zap``. Routes to the appropriate targeting
+    primitive based on the spell's ``target_type``. Returns the
+    resolved target or ``None``. On ``None``, an error message has
+    already been sent to the caster — callers just ``return``.
 
-    Scoping:
-        - Search is scoped to living actors in ``caster.location``
-          (same room as the caster). No fallback to the room itself,
-          no cross-room lookup.
-        - A "living actor" is an object with an ``hp`` attribute and
-          ``hp > 0``. This filters out rooms, items, fixtures, corpses,
-          and dead mobs — the exact failure mode that caused the
-          ``cast drain life bee-1`` crash.
-        - Honours ``key-N`` numeric disambiguation via ``caller.search``.
-          The user types ``bee-1`` to pick the first bee in a room full
-          of bees.
+    Target types:
 
-    Per-target_type rules:
-        - ``"hostile"`` — self is rejected (you can't cast a hostile
-          spell on yourself via this path). Empty ``target_str`` is an
-          error (no default target for hostile spells).
-        - ``"friendly"`` — self is allowed. Empty ``target_str`` defaults
-          to self.
-        - ``"any_actor"`` — self is rejected (same as hostile — use
-          ``score`` to check your own stats). Empty ``target_str`` is
-          an error.
-
-    Args:
-        caster: The spell caster.
-        target_str: Target name typed by the player (raw; stripped here).
-        target_type: One of ``"hostile"``, ``"friendly"``, ``"any_actor"``.
-
-    Returns:
-        The resolved actor, or ``None``. Error message already sent
-        on ``None``.
+        ``"self"``           — returns caster, no resolution needed.
+        ``"none"``           — returns None, no resolution needed.
+        ``"hostile"``        — attack-priority actor resolution
+                               (enemy > bystander > ally > self),
+                               self rejected.
+        ``"any_actor"``      — same as hostile (attack priority,
+                               self rejected).
+        ``"friendly"``       — friendly-priority actor resolution
+                               (self > ally > bystander > enemy),
+                               self allowed, empty target defaults
+                               to self.
+        ``"inventory_item"`` — item in caster's inventory.
+        ``"world_item"``     — item/exit in caster's room (via
+                               ``find_exit_target``).
+        ``"any_item"``       — inventory first (exclude worn),
+                               room fallback.
     """
+    # ── Self / none: no resolution ──
+    if target_type == "self":
+        return caster
+    if target_type == "none":
+        return None
+
     target_str = (target_str or "").strip()
 
     # Friendly defaults to self when no target is given
@@ -172,112 +167,45 @@ def resolve_actor_target(caster, target_str, target_type):
         caster.msg("You need to specify a target.")
         return None
 
-    if target_type not in ("hostile", "friendly", "any_actor"):
-        caster.msg(f"Unknown actor target type '{target_type}'.")
-        return None
-
-    if not caster.location:
+    if not caster.location and target_type != "inventory_item":
         caster.msg("You aren't anywhere where you could target that.")
         return None
 
-    # ── Hostile / any_actor: delegate to attack priority resolvers ──
-    # Both use hostile priority (enemy > bystander > ally > self in
-    # combat, stranger > groupmate > self out of combat). Self is
-    # rejected for both — hostile spells can't self-target, and
-    # any_actor spells (augur, identify_creature) have no reason to
-    # self-target when score/prompt are free. walk_contents inside
-    # the priority helpers never includes the room object, so the
-    # bee-tree crash is structurally impossible on this path.
+    # ── Hostile / any_actor: attack-priority actor resolution ──
     if target_type in ("hostile", "any_actor"):
         if caster.scripts.get("combat_handler"):
             target = resolve_attack_target_in_combat(caster, target_str)
         else:
             target = resolve_attack_target_out_of_combat(caster, target_str)
-
         if target is None:
             caster.msg(f"There's no '{target_str}' here.")
             return None
-
-        # Self reached only via the self-bucket fallback in the
-        # priority helpers, or via _is_self_keyword interception
-        # when the player typed "me" / "self". Both hostile and
-        # any_actor reject self-targeting.
         if target is caster:
             caster.msg("You can't target yourself with that spell.")
             return None
-
         return target
 
-    # ── Friendly: delegate to friendly priority resolvers ──
-    # Friendly priority (self > ally/groupmate > bystander/stranger >
-    # enemy). "cast cure light goblin" prefers an allied goblin over
-    # an enemy goblin; enemy still wins when it's the only name match.
-    # Hidden actors are filtered via walk_contents inside the priority
-    # resolvers. me / self keywords return caster directly — friendly
-    # spells allow self. (Empty target_str for friendly is already
-    # handled above — defaults to caster.)
-    if caster.scripts.get("combat_handler"):
-        target = resolve_friendly_target_in_combat(caster, target_str)
-    else:
-        target = resolve_friendly_target_out_of_combat(caster, target_str)
+    # ── Friendly: friendly-priority actor resolution ──
+    if target_type == "friendly":
+        if caster.scripts.get("combat_handler"):
+            target = resolve_friendly_target_in_combat(caster, target_str)
+        else:
+            target = resolve_friendly_target_out_of_combat(caster, target_str)
+        if target is None:
+            caster.msg(f"There's no '{target_str}' here.")
+            return None
+        return target
 
-    if target is None:
-        caster.msg(f"There's no '{target_str}' here.")
-        return None
-
-    return target
-
-
-# ── Item target resolution (for spells with target_type=*_item) ───────
-
-
-def resolve_item_target(caster, target_str, target_type):
-    """Resolve an item target for a spell.
-
-    Used by ``cmd_cast`` and ``cmd_zap`` when the spell's ``target_type``
-    is ``"inventory_item"``, ``"world_item"``, or ``"any_item"``.
-
-    Visibility:
-        - ``inventory_item`` candidates are everything in
-          ``caster.contents`` that is not the caster itself. Carried
-          items are always visible to their owner; no hidden/invisible
-          filtering is applied. (If a future "carried but hidden" item
-          type appears, this needs revisiting.)
-        - ``world_item`` candidates are objects in the caster's
-          location and exits in the room, filtered by the existing
-          ``utils.find_exit_target`` helper which respects
-          ``HiddenObjectMixin`` and ``InvisibleObjectMixin``.
-        - ``any_item`` tries ``world_item`` first, then falls through
-          to ``inventory_item``.
-
-    Args:
-        caster: The spell caster.
-        target_str: The target name typed by the player (raw, not
-            stripped — the helper handles whitespace).
-        target_type: One of ``"inventory_item"``, ``"world_item"``,
-            ``"any_item"``.
-
-    Returns:
-        The resolved object, or ``None``. On ``None`` an error message
-        has already been sent to the caster, so callers should simply
-        return without doing further work.
-    """
-    target_str = (target_str or "").strip()
-    if not target_str:
-        caster.msg("You need to specify a target.")
-        return None
-
+    # ── Inventory item ──
     if target_type == "inventory_item":
         return _resolve_inventory_item(caster, target_str)
 
+    # ── World item ──
     if target_type == "world_item":
         return _resolve_world_item(caster, target_str)
 
+    # ── Any item: inventory first, room fallback ──
     if target_type == "any_item":
-        # Inventory first — players most often identify items they
-        # just picked up ("what does this new loot do?"). Worn items
-        # excluded via exclude_worn — remove it first to identify.
-        # Falls through to room if nothing in inventory matches.
         target = resolve_item_in_source(
             caster, caster, target_str, quiet=True, exclude_worn=True,
         )
@@ -285,7 +213,6 @@ def resolve_item_target(caster, target_str, target_type):
             target = target[0] if target else None
         if target is not None:
             return target
-        # Fall through to room
         if caster.location:
             target = resolve_item_in_source(
                 caster, caster.location, target_str, quiet=True,
@@ -297,8 +224,8 @@ def resolve_item_target(caster, target_str, target_type):
         caster.msg(f"You don't see '{target_str}' here.")
         return None
 
-    # Caller passed an unknown type. Defensive — should not happen.
-    caster.msg(f"Unknown item target type '{target_type}'.")
+    # Unknown type — defensive
+    caster.msg(f"Unknown target type '{target_type}'.")
     return None
 
 
