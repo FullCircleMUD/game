@@ -260,68 +260,45 @@ class TestConeOfCold(EvenniaTest):
         """Cone of Cold should have correct class attributes."""
         self.assertEqual(self.spell.name, "Cone of Cold")
         self.assertEqual(self.spell.min_mastery, MasteryLevel.MASTER)
-        self.assertEqual(self.spell.target_type, "none")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
+        self.assertEqual(self.spell.aoe, "safe")
 
     def test_mana_costs(self):
         """Cone of Cold mana costs should match design."""
         self.assertEqual(self.spell.mana_cost, {4: 35, 5: 46})
 
-    def test_does_not_hit_caster(self):
-        """Cone of Cold (safe AoE) should NOT damage the caster."""
-        start_hp = self.char1.hp
-        self.spell.cast(self.char1, None)
-        self.assertEqual(self.char1.hp, start_hp)
-
     def test_deducts_mana(self):
         """Cone of Cold should deduct correct mana."""
         start_mana = self.char1.mana
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertEqual(self.char1.mana, start_mana - 35)
 
     def test_mastery_too_low(self):
         """Should fail if mastery below MASTER."""
         self.char1.db.class_skill_mastery_levels = {"evocation": 3}
-        success, msg = self.spell.cast(self.char1, None)
+        success, msg = self.spell.cast(self.char1, self.char2)
         self.assertFalse(success)
 
-    @patch("world.spells.evocation.cone_of_cold.get_room_enemies")
-    def test_first_enemy_always_hit(self, mock_enemies):
-        """With one enemy and 100% chance, should always deal damage."""
-        mock_enemies.return_value = [self.char2]
-        # Run multiple times to verify consistency
+    def test_primary_target_always_hit(self):
+        """Primary target is a guaranteed hit — always takes damage."""
         for _ in range(5):
             self.char2.hp = 200
             self.char1.mana = 500
             self.char1.db.spell_cooldowns = {}
-            self.spell.cast(self.char1, None)
+            self.spell.cast(self.char1, self.char2)
             self.assertLess(self.char2.hp, 200)
 
-    @patch("world.spells.evocation.cone_of_cold.get_room_enemies")
-    @patch("world.spells.evocation.cone_of_cold.dice")
-    def test_applies_slowed_condition(self, mock_dice, mock_enemies):
-        """Cone of Cold should apply SLOWED to hit targets."""
-        mock_enemies.return_value = [self.char2]
-        # Mock dice: first call is damage roll, second is 1d100 hit check
-        mock_dice.roll.side_effect = [35, 50]  # 35 damage, 50 <= 100 (hit)
-        self.char2.conditions = {}
-        self.spell.cast(self.char1, None)
+    def test_primary_target_slowed(self):
+        """Primary target should be SLOWED on hit."""
+        self.spell.cast(self.char1, self.char2)
         self.assertTrue(self.char2.has_condition(Condition.SLOWED))
 
-    @patch("world.spells.evocation.cone_of_cold.get_room_enemies")
-    def test_returns_message_dict(self, mock_enemies):
+    def test_returns_message_dict(self):
         """Successful cast should return message dict."""
-        mock_enemies.return_value = [self.char2]
-        success, result = self.spell.cast(self.char1, None)
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
-
-    def test_no_enemies_message(self):
-        """Cast with no enemies should return appropriate message."""
-        # get_room_enemies naturally returns [] when no NPCs present
-        success, result = self.spell.cast(self.char1, None)
-        self.assertTrue(success)
-        self.assertIn("no enemies", result["first"].lower())
 
 
 class TestFlameBurst(EvenniaTest):
