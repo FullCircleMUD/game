@@ -86,8 +86,10 @@ def text(session, *args, **kwargs):
 
     # ── Semicolon command stacking ───────────────────────────────
     # Split "get sword;wield sword" into two commands.
-    # Skip splitting if no semicolon present (common case).
-    if ";" in txt:
+    # Skip splitting for alias/nick commands — semicolons there are
+    # part of the alias definition, not command delimiters.
+    _first_word = txt.split(None, 1)[0].lower() if txt.strip() else ""
+    if ";" in txt and _first_word not in ("alias", "nick", "nickname", "nicks"):
         commands = [cmd.strip() for cmd in txt.split(";") if cmd.strip()]
     else:
         commands = [txt]
