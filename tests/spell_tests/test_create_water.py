@@ -34,7 +34,7 @@ class TestCreateWaterRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.CONJURATION)
         self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(spell.target_type, "inventory_item")
+        self.assertEqual(spell.target_type, "items_inventory")
 
     def test_in_conjuration_school(self):
         conj = get_spells_for_school("conjuration")

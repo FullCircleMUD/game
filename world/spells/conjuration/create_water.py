@@ -43,7 +43,7 @@ class CreateWater(Spell):
     school = skills.CONJURATION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 3, 2: 4, 3: 6, 4: 8, 5: 10}
-    target_type = "inventory_item"
+    target_type = "items_inventory"
     cooldown = 0
     description = "Conjure clean drinking water into a container, scaled by mastery."
     mechanics = (

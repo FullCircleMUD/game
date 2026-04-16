@@ -6,7 +6,7 @@ conditions, and effects of creatures and players via dynamic templates
 from `utils/inspection_templates.py`.
 
 For item identification, see the Identify spell (same school, same mastery
-gates, but targets items via `target_type = "any_item"`).
+gates, but targets items via `target_type = "items_inventory_then_all_room"`).
 
 Actor mastery gate is level-based — higher-level targets require higher
 divination mastery:

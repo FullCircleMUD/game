@@ -82,12 +82,14 @@ class Spell:
             "any_actor" — any actor in the room
 
         Item targets (resolved via spell_utils.resolve_spell_target):
-            "inventory_item" — an NFT item in the caster's own contents
-                               (e.g. Recharge, Mending, Enchant Weapon)
-            "world_item"     — an object or exit in the caster's room,
-                               visibility-filtered (e.g. Knock on a door
-                               or chest)
-            "any_item"       — try world_item first, then inventory_item
+            "items_inventory"
+                Inventory only (e.g. Create Water — fill a container).
+            "items_all_room_then_inventory"
+                Room (objects + exits) first, inventory fallback
+                (e.g. Knock — unlock a door or chest).
+            "items_inventory_then_all_room"
+                Inventory first, room (objects + exits) fallback
+                (e.g. Identify — inspect a looted item or a door).
 
         Item-target spells receive the resolved item as ``target`` in
         ``_execute()`` and dispatch on it via duck-typing rather than

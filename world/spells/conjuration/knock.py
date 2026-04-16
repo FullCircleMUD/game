@@ -55,7 +55,7 @@ class Knock(Spell):
     school = skills.CONJURATION
     min_mastery = MasteryLevel.SKILLED
     mana_cost = {2: 12, 3: 18, 4: 25, 5: 35}
-    target_type = "world_item"
+    target_type = "items_all_room_then_inventory"
     description = (
         "Magically unlock and open a door, chest, or other lockable "
         "object. The caster conjures an unseen force that operates the "

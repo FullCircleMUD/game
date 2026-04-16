@@ -15,7 +15,9 @@ from utils.targeting.helpers import (
     resolve_friendly_target_in_combat,
     resolve_friendly_target_out_of_combat,
     resolve_item_in_source,
+    walk_contents,
 )
+from utils.targeting.predicates import p_not_actor, p_visible_to
 
 
 def apply_spell_damage(target, raw_damage, damage_type):
@@ -133,7 +135,7 @@ def resolve_spell_target(caster, target_str, target_type):
     resolved target or ``None``. On ``None``, an error message has
     already been sent to the caster — callers just ``return``.
 
-    Target types:
+    Target types — actors:
 
         ``"self"``           — returns caster, no resolution needed.
         ``"none"``           — returns None, no resolution needed.
@@ -146,11 +148,28 @@ def resolve_spell_target(caster, target_str, target_type):
                                (self > ally > bystander > enemy),
                                self allowed, empty target defaults
                                to self.
-        ``"inventory_item"`` — item in caster's inventory.
-        ``"world_item"``     — item/exit in caster's room (via
-                               ``find_exit_target``).
-        ``"any_item"``       — inventory first (exclude worn),
-                               room fallback.
+
+    Target types — items (``items_`` prefix, composable naming):
+
+        ``"items_inventory"``
+            Inventory only. Consumer: Create Water.
+        ``"items_all_room_then_inventory"``
+            Room (all visible objects + exits) first, inventory
+            fallback. Consumer: Knock.
+        ``"items_inventory_then_all_room"``
+            Inventory first, room (all visible objects + exits)
+            fallback. Consumer: Identify, Holy Insight.
+
+    Defined, not yet implemented (``NotImplementedError``):
+
+        ``"items_all_room"``
+            Room only, no fallback.
+        ``"items_gettable_room"``
+            Gettable items in room only.
+        ``"items_fixed_room"``
+            Fixtures + exits in room only.
+        ``"items_gettable_room_then_inventory"``
+        ``"items_inventory_then_gettable_room"``
     """
     # ── Self / none: no resolution ──
     if target_type == "self":
@@ -167,7 +186,7 @@ def resolve_spell_target(caster, target_str, target_type):
         caster.msg("You need to specify a target.")
         return None
 
-    if not caster.location and target_type != "inventory_item":
+    if not caster.location and target_type != "items_inventory":
         caster.msg("You aren't anywhere where you could target that.")
         return None
 
@@ -196,20 +215,36 @@ def resolve_spell_target(caster, target_str, target_type):
             return None
         return target
 
-    # ── Inventory item ──
-    if target_type == "inventory_item":
+    # ── items_inventory: inventory only ──
+    if target_type == "items_inventory":
         target = resolve_item_in_source(
             caster, caster, target_str,
             nofound_string=f"You aren't carrying anything called '{target_str}'.",
         )
         return target
 
-    # ── World item ──
-    if target_type == "world_item":
-        return _resolve_world_item(caster, target_str)
+    # ── items_all_room_then_inventory: room first, inventory fallback ──
+    if target_type == "items_all_room_then_inventory":
+        # Room step uses _resolve_world_item which includes exits +
+        # directional parsing ("door south") via find_exit_target.
+        target = _resolve_world_item(caster, target_str, silent=True)
+        if target is not None:
+            return target
+        # Inventory fallback — locked box in inventory, etc.
+        target = resolve_item_in_source(
+            caster, caster, target_str, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        if target is not None:
+            return target
+        caster.msg(f"You don't see '{target_str}' here.")
+        return None
 
-    # ── Any item: inventory first, room fallback ──
-    if target_type == "any_item":
+    # ── items_inventory_then_all_room: inventory first, room fallback ──
+    if target_type == "items_inventory_then_all_room":
+        # Inventory first — most often identifying a looted item.
+        # Worn items excluded (remove to identify).
         target = resolve_item_in_source(
             caster, caster, target_str, quiet=True, exclude_worn=True,
         )
@@ -217,16 +252,28 @@ def resolve_spell_target(caster, target_str, target_type):
             target = target[0] if target else None
         if target is not None:
             return target
+        # Room fallback — includes exits so "cast identify door" works.
         if caster.location:
-            target = resolve_item_in_source(
-                caster, caster.location, target_str, quiet=True,
-            )
-            if isinstance(target, list):
-                target = target[0] if target else None
+            target = _resolve_all_room(caster, target_str, quiet=True)
             if target is not None:
                 return target
         caster.msg(f"You don't see '{target_str}' here.")
         return None
+
+    # ── Future item types (convention-defined, not yet implemented) ──
+    _FUTURE_ITEM_TYPES = (
+        "items_all_room",
+        "items_gettable_room",
+        "items_fixed_room",
+        "items_gettable_room_then_inventory",
+        "items_inventory_then_gettable_room",
+    )
+    if target_type in _FUTURE_ITEM_TYPES:
+        raise NotImplementedError(
+            f"target_type '{target_type}' is defined in the naming "
+            f"convention but not yet implemented. Add a consumer spell "
+            f"first, then implement the branch."
+        )
 
     # Unknown type — defensive
     caster.msg(f"Unknown target type '{target_type}'.")
@@ -236,50 +283,46 @@ def resolve_spell_target(caster, target_str, target_type):
 def _resolve_world_item(caster, target_str, silent=False):
     """Find an object or exit in the caster's room by name.
 
-    When ``silent`` is True, suppresses the not-found message — used
-    by the ``any_item`` fall-through so we don't double-report.
+    Delegates to ``find_exit_target`` which includes directional
+    parsing ("door south" → direction + name decomposition). Used by
+    the ``items_all_room_then_inventory`` branch for Knock and similar.
+
+    When ``silent`` is True, uses ``_resolve_all_room`` instead to
+    suppress error messages — used by fallback paths that emit their
+    own errors.
     """
     if not caster.location:
         if not silent:
             caster.msg("You aren't anywhere where you could target that.")
         return None
 
-    # find_exit_target sends its own "you don't see X" message on miss.
-    # Suppress it when we're inside the any_item fall-through path.
     if silent:
-        # Inline a quieter version of the lookup so we don't print noise.
-        return _find_world_item_quiet(caster, target_str)
+        return _resolve_all_room(caster, target_str, quiet=True)
 
     from utils.find_exit_target import find_exit_target
     return find_exit_target(caster, target_str)
 
 
-def _find_world_item_quiet(caster, target_str):
-    """Quiet version of find_exit_target — no error messages.
+def _resolve_all_room(caster, target_str, quiet=False):
+    """Find any visible non-actor object in the room, including exits.
 
-    Mirrors the lookup logic but returns None silently on miss so the
-    any_item path can fall through to inventory.
+    Single-pass walk over ``room.contents`` via ``walk_contents`` with
+    ``(p_not_actor, p_visible_to)`` — includes exits, fixtures, loose
+    items, containers. Excludes actors.
+
+    Used by ``items_inventory_then_all_room`` (room fallback) and
+    ``items_all_room_then_inventory`` (room step, silent mode).
     """
-    from utils.find_exit_target import _is_visible
-
-    target = caster.search(
-        target_str,
-        location=caster.location,
-        quiet=True,
+    candidates = walk_contents(
+        caster, caster.location, p_not_actor, p_visible_to,
     )
-    if target:
-        if isinstance(target, list):
-            target = target[0]
-        if _is_visible(target, caster):
-            return target
-
-    name_lower = target_str.lower()
-    for ex in caster.location.exits:
-        if not _is_visible(ex, caster):
-            continue
-        if name_lower in ex.key.lower():
-            return ex
-        if name_lower in [a.lower() for a in ex.aliases.all()]:
-            return ex
-
-    return None
+    if not candidates:
+        if not quiet:
+            caster.msg(f"You don't see '{target_str}' here.")
+        return None
+    target = caster.search(target_str, candidates=candidates, quiet=True)
+    if isinstance(target, list):
+        target = target[0] if target else None
+    if not target and not quiet:
+        caster.msg(f"You don't see '{target_str}' here.")
+    return target

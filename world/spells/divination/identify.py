@@ -36,7 +36,7 @@ class Identify(Spell):
     school = skills.DIVINATION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "any_item"
+    target_type = "items_inventory_then_all_room"
     cooldown = 0
     description = "Reveals hidden properties of items."
     mechanics = (

@@ -2,8 +2,8 @@
 Tests for ``world.spells.spell_utils.resolve_spell_target``.
 
 The helper drives target resolution for all spell target_types. Item-
-target tests cover ``"inventory_item"``, ``"world_item"``, and
-``"any_item"``. It is called by both ``cmd_cast`` and ``cmd_zap`` and
+target tests cover ``"items_inventory"``, ``"items_all_room_then_inventory"``, and
+``"items_inventory_then_all_room"``. It is called by both ``cmd_cast`` and ``cmd_zap`` and
 must respect the canonical visibility rules (HiddenObjectMixin /
 InvisibleObjectMixin) for room targets while always finding inventory
 items the caster is carrying.
@@ -35,11 +35,11 @@ class TestResolveInventoryItem(EvenniaTest):
 
     def test_finds_carried_item_by_name(self):
         wand = self._spawn_inv_item("training wand")
-        result = resolve_spell_target(self.char1, "training wand", "inventory_item")
+        result = resolve_spell_target(self.char1, "training wand", "items_inventory")
         self.assertEqual(result, wand)
 
     def test_returns_none_for_unknown_inventory_name(self):
-        result = resolve_spell_target(self.char1, "phantom item", "inventory_item")
+        result = resolve_spell_target(self.char1, "phantom item", "items_inventory")
         self.assertIsNone(result)
 
     def test_does_not_match_room_objects(self):
@@ -49,15 +49,15 @@ class TestResolveInventoryItem(EvenniaTest):
             key="iron chest",
             location=self.room1,
         )
-        result = resolve_spell_target(self.char1, "iron chest", "inventory_item")
+        result = resolve_spell_target(self.char1, "iron chest", "items_inventory")
         self.assertIsNone(result)
 
     def test_empty_target_str_returns_none(self):
-        result = resolve_spell_target(self.char1, "", "inventory_item")
+        result = resolve_spell_target(self.char1, "", "items_inventory")
         self.assertIsNone(result)
 
     def test_whitespace_only_target_str_returns_none(self):
-        result = resolve_spell_target(self.char1, "   ", "inventory_item")
+        result = resolve_spell_target(self.char1, "   ", "items_inventory")
         self.assertIsNone(result)
 
 
@@ -74,13 +74,13 @@ class TestResolveWorldItem(EvenniaTest):
 
     def test_finds_room_chest_by_name(self):
         chest = self._spawn_room_object("iron chest")
-        result = resolve_spell_target(self.char1, "iron chest", "world_item")
+        result = resolve_spell_target(self.char1, "iron chest", "items_all_room_then_inventory")
         self.assertEqual(result, chest)
 
     def test_returns_none_when_target_hidden(self):
         chest = self._spawn_room_object("hidden chest")
         chest.is_hidden = True   # HiddenObjectMixin attribute
-        result = resolve_spell_target(self.char1, "hidden chest", "world_item")
+        result = resolve_spell_target(self.char1, "hidden chest", "items_all_room_then_inventory")
         self.assertIsNone(result)
 
     def test_finds_hidden_chest_after_discovery(self):
@@ -88,11 +88,11 @@ class TestResolveWorldItem(EvenniaTest):
         chest = self._spawn_room_object("hidden chest")
         chest.is_hidden = True
         chest.discovered_by.add(self.char1.key)
-        result = resolve_spell_target(self.char1, "hidden chest", "world_item")
+        result = resolve_spell_target(self.char1, "hidden chest", "items_all_room_then_inventory")
         self.assertEqual(result, chest)
 
     def test_empty_target_str_returns_none(self):
-        result = resolve_spell_target(self.char1, "", "world_item")
+        result = resolve_spell_target(self.char1, "", "items_all_room_then_inventory")
         self.assertIsNone(result)
 
 
@@ -121,7 +121,7 @@ class TestResolveAnyItem(EvenniaTest):
             key="iron chest",
             location=self.char1,
         )
-        result = resolve_spell_target(self.char1, "iron chest", "any_item")
+        result = resolve_spell_target(self.char1, "iron chest", "items_inventory_then_all_room")
         self.assertEqual(result, carried)
         self.assertNotEqual(result, chest)
 
@@ -132,11 +132,11 @@ class TestResolveAnyItem(EvenniaTest):
             key="dusty wand",
             location=self.char1,
         )
-        result = resolve_spell_target(self.char1, "dusty wand", "any_item")
+        result = resolve_spell_target(self.char1, "dusty wand", "items_inventory_then_all_room")
         self.assertEqual(result, wand)
 
     def test_returns_none_when_neither_matches(self):
-        result = resolve_spell_target(self.char1, "phantom thing", "any_item")
+        result = resolve_spell_target(self.char1, "phantom thing", "items_inventory_then_all_room")
         self.assertIsNone(result)
 
 
