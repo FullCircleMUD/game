@@ -582,6 +582,27 @@ class TestResolveItemInSource(EvenniaTest):
         _, kwargs = caller.search.call_args
         self.assertEqual(kwargs.get("stacked"), 3)
 
+    def test_quiet_kwarg_forwarded(self):
+        item = _make_item("sword")
+        caller = _make_caller(search_return=[item])
+        source = SimpleNamespace(contents=[item])
+        resolve_item_in_source(caller, source, "sword", quiet=True)
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertTrue(kwargs.get("quiet"))
+
+    def test_exclude_worn_kwarg_forwarded(self):
+        item = _make_item("sword")
+        caller = _make_caller(search_return=item)
+        source = SimpleNamespace(contents=[item])
+        resolve_item_in_source(
+            caller, source, "sword", quiet=True, exclude_worn=True,
+        )
+        caller.search.assert_called_once()
+        _, kwargs = caller.search.call_args
+        self.assertTrue(kwargs.get("quiet"))
+        self.assertTrue(kwargs.get("exclude_worn"))
+
 
 class TestResolveContainer(EvenniaTest):
     """Unit tests for utils.targeting.helpers.resolve_container."""

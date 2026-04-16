@@ -14,6 +14,7 @@ from utils.targeting.helpers import (
     resolve_attack_target_out_of_combat,
     resolve_friendly_target_in_combat,
     resolve_friendly_target_out_of_combat,
+    resolve_item_in_source,
 )
 
 
@@ -273,12 +274,28 @@ def resolve_item_target(caster, target_str, target_type):
         return _resolve_world_item(caster, target_str)
 
     if target_type == "any_item":
-        # Try the room first — a door called "iron door" should resolve
-        # to the door, not to a carried item with the same name.
-        target = _resolve_world_item(caster, target_str, silent=True)
+        # Inventory first — players most often identify items they
+        # just picked up ("what does this new loot do?"). Worn items
+        # excluded via exclude_worn — remove it first to identify.
+        # Falls through to room if nothing in inventory matches.
+        target = resolve_item_in_source(
+            caster, caster, target_str, quiet=True, exclude_worn=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
         if target is not None:
             return target
-        return _resolve_inventory_item(caster, target_str)
+        # Fall through to room
+        if caster.location:
+            target = resolve_item_in_source(
+                caster, caster.location, target_str, quiet=True,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
+            if target is not None:
+                return target
+        caster.msg(f"You don't see '{target_str}' here.")
+        return None
 
     # Caller passed an unknown type. Defensive — should not happen.
     caster.msg(f"Unknown item target type '{target_type}'.")

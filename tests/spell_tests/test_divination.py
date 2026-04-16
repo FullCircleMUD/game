@@ -93,7 +93,15 @@ class TestDivinationRegistry(EvenniaTest):
 # ================================================================== #
 
 class TestIdentify(EvenniaTest):
-    """Test Identify spell execution — actor template, mastery gate, PvP check."""
+    """Test Identify spell execution — item templates, mastery gate, mana.
+
+    Identify is now item-only (target_type="any_item"). Actor
+    identification is handled by the Augur spell (see TestAugur).
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
 
     def create_script(self):
         pass
@@ -104,109 +112,30 @@ class TestIdentify(EvenniaTest):
         self.char1.db.class_skill_mastery_levels = {"divination": 1}  # BASIC
         self.char1.mana = 100
 
-    def _make_mob(self, level=3, **kwargs):
-        """Create a CombatMob for testing."""
-        from typeclasses.actors.mob import CombatMob
-        mob = create_object(CombatMob, key="test goblin", location=self.room1)
-        mob.level = level
-        mob.hp = kwargs.get("hp", 20)
-        mob.hp_max = kwargs.get("hp_max", 20)
-        mob.mana = kwargs.get("mana", 0)
-        mob.mana_max = kwargs.get("mana_max", 0)
-        mob.move = kwargs.get("move", 10)
-        mob.move_max = kwargs.get("move_max", 10)
-        mob.damage_dice = kwargs.get("damage_dice", "1d6")
-        mob.attack_message = kwargs.get("attack_message", "slashes")
-        mob.size = kwargs.get("size", "medium")
-        mob.strength = kwargs.get("strength", 14)
-        mob.dexterity = kwargs.get("dexterity", 12)
-        mob.constitution = kwargs.get("constitution", 13)
-        mob.intelligence = kwargs.get("intelligence", 8)
-        mob.wisdom = kwargs.get("wisdom", 10)
-        mob.charisma = kwargs.get("charisma", 6)
-        mob.armor_class = kwargs.get("armor_class", 2)
-        mob.damage_resistances = kwargs.get("damage_resistances", {})
-        return mob
+    # ── Mastery / mana gates ─────────────────────────────────────
 
-    def test_identify_mob_basic_success(self):
-        """Level 3 mob with BASIC divination should succeed."""
-        mob = self._make_mob(level=3)
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertTrue(success)
-        self.assertIsInstance(result, dict)
-        output = result["first"]
-        self.assertIn("test goblin", output)
-        self.assertIn("HP:", output)
-        self.assertIn("AC:", output)
-        self.assertIn("STR:", output)
-        self.assertIn("Damage:", output)
-
-    def test_identify_mob_mastery_gate_fails(self):
-        """Level 16 mob with BASIC tier should show 'too powerful' message."""
-        mob = self._make_mob(level=16)
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertTrue(success)
-        self.assertIn("too powerful", result["first"])
-
-    def test_identify_mob_mastery_gate_tiers(self):
-        """Verify level-to-tier boundaries."""
-        test_cases = [
-            # (mob_level, caster_tier, should_see_stats)
-            (5, 1, True),    # level 5, BASIC → pass
-            (6, 1, False),   # level 6, BASIC → fail
-            (6, 2, True),    # level 6, SKILLED → pass
-            (15, 2, True),   # level 15, SKILLED → pass
-            (16, 2, False),  # level 16, SKILLED → fail
-            (16, 3, True),   # level 16, EXPERT → pass
-            (25, 3, True),   # level 25, EXPERT → pass
-            (26, 3, False),  # level 26, EXPERT → fail
-            (26, 4, True),   # level 26, MASTER → pass
-            (35, 4, True),   # level 35, MASTER → pass
-            (36, 4, False),  # level 36, MASTER → fail
-            (36, 5, True),   # level 36, GM → pass
-        ]
-        for mob_level, caster_tier, expect_stats in test_cases:
-            mob = self._make_mob(level=mob_level)
-            self.char1.db.class_skill_mastery_levels = {"divination": caster_tier}
-            self.char1.mana = 100
-            success, result = self.spell.cast(self.char1, mob)
-            self.assertTrue(success)
-            has_stats = "STR:" in result["first"]
-            self.assertEqual(
-                has_stats, expect_stats,
-                f"Level {mob_level} mob, tier {caster_tier}: "
-                f"expected stats={'shown' if expect_stats else 'hidden'}"
-            )
-            mob.delete()
-
-    def test_identify_pc_requires_pvp_room(self):
-        """Identifying a PC in non-PvP room should fail with mana refund."""
-        mana_before = self.char1.mana
-        success, result = self.spell.cast(self.char1, self.char2)
+    def test_identify_mastery_check(self):
+        """Should fail without divination mastery."""
+        from evennia.objects.objects import DefaultObject
+        obj = create_object(DefaultObject, key="a rock", location=self.char1)
+        self.char1.db.class_skill_mastery_levels = {}
+        success, msg = self.spell.cast(self.char1, obj)
         self.assertFalse(success)
-        self.assertIn("PvP", result)
-        self.assertEqual(self.char1.mana, mana_before)  # mana refunded
+        self.assertIn("mastery", msg.lower())
 
-    def test_identify_pc_in_pvp_room(self):
-        """Identifying a PC in PvP room should succeed."""
-        self.room1.allow_pvp = True
-        self.char2.hp = 50
-        self.char2.hp_max = 50
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertTrue(success)
-        output = result["first"]
-        self.assertIn("HP:", output)
-        self.assertIn("Wielding:", output)
-        self.assertIn("Memorised Spells:", output)
+    def test_identify_not_enough_mana(self):
+        """Should fail with insufficient mana."""
+        from evennia.objects.objects import DefaultObject
+        obj = create_object(DefaultObject, key="a rock", location=self.char1)
+        self.char1.mana = 4
+        success, msg = self.spell.cast(self.char1, obj)
+        self.assertFalse(success)
+        self.assertIn("mana", msg.lower())
 
-    def test_identify_pc_self_always_works(self):
-        """Identifying yourself should work even in non-PvP rooms."""
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertTrue(success)
-        self.assertIn("STR:", result["first"])
+    # ── Mundane objects ──────────────────────────────────────────
 
     def test_identify_mundane_object_sassy(self):
-        """Non-actor, non-NFT target gets a sassy one-liner, mana consumed."""
+        """Non-NFT target gets a sassy one-liner, mana consumed."""
         from evennia.objects.objects import DefaultObject
         obj = create_object(DefaultObject, key="a rock", location=self.char1)
         mana_before = self.char1.mana
@@ -214,89 +143,6 @@ class TestIdentify(EvenniaTest):
         self.assertTrue(success)
         self.assertIn("a rock is a rock", result["first"])
         self.assertLess(self.char1.mana, mana_before)
-
-    def test_identify_output_contains_ability_scores(self):
-        """Output should contain all 6 ability score labels."""
-        mob = self._make_mob()
-        success, result = self.spell.cast(self.char1, mob)
-        output = result["first"]
-        for label in ["STR:", "DEX:", "CON:", "INT:", "WIS:", "CHA:"]:
-            self.assertIn(label, output, f"Missing {label} in output")
-
-    def test_identify_output_contains_resistances(self):
-        """Resistances should appear when set."""
-        mob = self._make_mob(damage_resistances={"fire": 25, "cold": -15})
-        success, result = self.spell.cast(self.char1, mob)
-        output = result["first"]
-        self.assertIn("Fire: 25%", output)
-        self.assertIn("Cold: -15%", output)
-        self.assertIn("vulnerable", output)
-
-    def test_identify_output_no_resistances(self):
-        """Should show 'None' when no resistances."""
-        mob = self._make_mob()
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertIn("Resistances:|n None", result["first"])
-
-    def test_identify_output_contains_conditions(self):
-        """Conditions should appear when set."""
-        mob = self._make_mob()
-        mob.add_condition(Condition.DARKVISION)
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertIn("DARKVISION", result["first"])
-
-    def test_identify_output_contains_effects(self):
-        """Named effects should appear when active."""
-        mob = self._make_mob()
-        from enums.named_effect import NamedEffect
-        mob.apply_named_effect(key="stunned", duration=1,
-                               duration_type="combat_rounds", messages={})
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertIn("stunned", result["first"])
-
-    def test_identify_pc_shows_memorised_spells(self):
-        """Memorised spells should appear for PC targets."""
-        self.room1.allow_pvp = True
-        self.char2.db.memorised_spells = {"magic_missile": True}
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertTrue(success)
-        self.assertIn("Magic Missile", result["first"])
-
-    def test_identify_third_person_message(self):
-        """Third person should be flavour, second should be None."""
-        mob = self._make_mob()
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertIsNone(result["second"])
-        self.assertIn("studies", result["third"])
-
-    def test_identify_mob_shows_size(self):
-        """Size should appear in mob output."""
-        mob = self._make_mob(size="large")
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertIn("Large", result["first"])
-
-    def test_identify_mob_shows_damage_dice(self):
-        """Damage dice should appear in mob output."""
-        mob = self._make_mob(damage_dice="2d8", attack_message="crushes")
-        success, result = self.spell.cast(self.char1, mob)
-        self.assertIn("2d8", result["first"])
-        self.assertIn("crushes", result["first"])
-
-    def test_identify_mastery_check(self):
-        """Should fail without divination mastery."""
-        mob = self._make_mob()
-        self.char1.db.class_skill_mastery_levels = {}
-        success, msg = self.spell.cast(self.char1, mob)
-        self.assertFalse(success)
-        self.assertIn("mastery", msg.lower())
-
-    def test_identify_not_enough_mana(self):
-        """Should fail with insufficient mana."""
-        mob = self._make_mob()
-        self.char1.mana = 4
-        success, msg = self.spell.cast(self.char1, mob)
-        self.assertFalse(success)
-        self.assertIn("mana", msg.lower())
 
     # ── NFT Item Identify Tests ─────────────────────────────────────
 
