@@ -167,6 +167,15 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
     if aoe == "unsafe":
         return [a for a in candidates if a is not primary_target]
 
+    if aoe == "unsafe_all_heights":
+        # Everyone in the room regardless of height — caster included.
+        # Used by spells like Call Lightning where the effect passes
+        # through all vertical levels.
+        all_candidates = walk_contents(
+            caster, caster.location, p_living, p_visible_to,
+        )
+        return [a for a in all_candidates if a is not primary_target]
+
     if aoe == "unsafe_self":
         return [
             a for a in candidates

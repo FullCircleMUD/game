@@ -135,33 +135,43 @@ class TestFireball(EvenniaTest):
         """Fireball should have correct class attributes."""
         self.assertEqual(self.spell.name, "Fireball")
         self.assertEqual(self.spell.min_mastery, MasteryLevel.EXPERT)
-        self.assertEqual(self.spell.target_type, "none")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
+        self.assertEqual(self.spell.aoe, "unsafe")
 
     def test_mana_costs(self):
         """Fireball mana costs should match design."""
         self.assertEqual(self.spell.mana_cost, {3: 28, 4: 39, 5: 49})
 
-    def test_hits_caster(self):
-        """Fireball should damage the caster (unsafe AoE)."""
+    def test_hits_primary_target(self):
+        """Fireball should damage the primary target."""
+        start_hp = self.char2.hp
+        self.spell.cast(self.char1, self.char2)
+        self.assertLess(self.char2.hp, start_hp)
+
+    def test_hits_caster_in_secondaries(self):
+        """Fireball should damage the caster when they're in secondaries (unsafe AoE)."""
         start_hp = self.char1.hp
-        self.spell.cast(self.char1, None)
+        # Caster is in secondaries — simulates being at the same height
+        self.spell.cast(self.char1, self.char2, secondaries=[self.char1])
         self.assertLess(self.char1.hp, start_hp)
 
-    def test_hits_others_in_room(self):
-        """Fireball should damage others in the room."""
+    def test_hits_secondaries(self):
+        """Fireball should damage all secondaries."""
         start_hp = self.char2.hp
-        self.spell.cast(self.char1, None)
+        # char2 is primary, char1 is secondary
+        self.spell.cast(self.char1, self.char2, secondaries=[self.char1])
         self.assertLess(self.char2.hp, start_hp)
+        self.assertLess(self.char1.hp, 100)  # caster also took damage
 
     def test_deducts_mana(self):
         """Fireball should deduct correct mana."""
         start_mana = self.char1.mana
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertEqual(self.char1.mana, start_mana - 28)
 
     def test_returns_message_dict(self):
         """Successful cast should return message dict."""
-        success, result = self.spell.cast(self.char1, None)
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
@@ -170,7 +180,7 @@ class TestFireball(EvenniaTest):
     def test_expert_damage_range(self):
         """At EXPERT tier, 8d6 = 8-48 full, 4-24 half (with save)."""
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         # Min is 4 (half of 8 on save), max is 48 (full on fail)
         self.assertGreaterEqual(damage, 4)
@@ -179,7 +189,7 @@ class TestFireball(EvenniaTest):
     def test_mastery_too_low(self):
         """Should fail if mastery below EXPERT."""
         self.char1.db.class_skill_mastery_levels = {"evocation": 2}
-        success, msg = self.spell.cast(self.char1, None)
+        success, msg = self.spell.cast(self.char1, self.char2)
         self.assertFalse(success)
         self.assertIn("mastery", msg.lower())
 
@@ -187,40 +197,40 @@ class TestFireball(EvenniaTest):
         """Fire resistance should reduce fireball damage."""
         self.char2.damage_resistances = {"fire": 50}
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         # 50% resist on max 48 = max 24, half save on max 24 = max 12
         self.assertLessEqual(damage, 24)
 
     @patch("world.spells.evocation.fireball.dice")
     def test_save_full_damage_on_fail(self, mock_dice):
-        """Failed DEX save should deal full damage."""
-        # damage roll, save DC roll, char1 save, char2 save
-        # High DC (20), low saves (1) → both fail → full damage
-        mock_dice.roll.side_effect = [24, 20, 1, 1]
+        """Failed DEX save should deal full damage on primary target."""
+        # damage roll, save DC roll, primary target save
+        # High DC (20), low save (1) → fail → full damage
+        mock_dice.roll.side_effect = [24, 20, 1]
         self.char2.hp = 200
         self.char2.dexterity = 10
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         # char2 takes full 24 damage (no resistance)
         self.assertEqual(self.char2.hp, 200 - 24)
 
     @patch("world.spells.evocation.fireball.dice")
     def test_save_half_damage_on_success(self, mock_dice):
-        """Successful DEX save should deal half damage."""
-        # damage roll, save DC roll, char1 save, char2 save
-        # Low DC (1), high saves (20) → both save → half damage
-        mock_dice.roll.side_effect = [24, 1, 20, 20]
+        """Successful DEX save should deal half damage on primary target."""
+        # damage roll, save DC roll, primary target save
+        # Low DC (1), high save (20) → save → half damage
+        mock_dice.roll.side_effect = [24, 1, 20]
         self.char2.hp = 200
         self.char2.dexterity = 10
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         # char2 takes half of 24 = 12
         self.assertEqual(self.char2.hp, 200 - 12)
 
     @patch("world.spells.evocation.fireball.dice")
     def test_save_dc_shown_in_message(self, mock_dice):
         """Save DC should appear in caster message."""
-        mock_dice.roll.side_effect = [24, 15, 1, 1]
-        success, result = self.spell.cast(self.char1, None)
+        mock_dice.roll.side_effect = [24, 15, 1]
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertIn("Save DC", result["first"])
 
 
