@@ -198,7 +198,11 @@ def resolve_spell_target(caster, target_str, target_type):
 
     # ── Inventory item ──
     if target_type == "inventory_item":
-        return _resolve_inventory_item(caster, target_str)
+        target = resolve_item_in_source(
+            caster, caster, target_str,
+            nofound_string=f"You aren't carrying anything called '{target_str}'.",
+        )
+        return target
 
     # ── World item ──
     if target_type == "world_item":
@@ -227,26 +231,6 @@ def resolve_spell_target(caster, target_str, target_type):
     # Unknown type — defensive
     caster.msg(f"Unknown target type '{target_type}'.")
     return None
-
-
-def _resolve_inventory_item(caster, target_str):
-    """Find an item in the caster's own contents by name."""
-    candidates = [obj for obj in caster.contents if obj is not caster]
-    if not candidates:
-        caster.msg(f"You aren't carrying anything called '{target_str}'.")
-        return None
-
-    target = caster.search(
-        target_str,
-        candidates=candidates,
-        quiet=True,
-    )
-    if isinstance(target, list):
-        target = target[0] if target else None
-    if not target:
-        caster.msg(f"You aren't carrying anything called '{target_str}'.")
-        return None
-    return target
 
 
 def _resolve_world_item(caster, target_str, silent=False):
