@@ -220,6 +220,9 @@ class FCMCharacter(
         if pos not in ("standing", "fighting"):
             self.msg("You need to stand up first!")
             return False
+        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
+            self.msg("Thorny vines hold you in place — you can't move!")
+            return False
         if self.scripts.get("combat_handler") and move_type != "flee":
             self.msg("You can't leave while in combat! Use |wflee|n to escape.")
             return False
