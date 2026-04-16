@@ -99,7 +99,7 @@ class TestLanceUnmounted(EvenniaTest):
     def test_no_crit_bonus_unmounted(self):
         """All mastery tiers: 0 crit threshold modifier when unmounted."""
         lance = _make_lance()
-        self.char1.db.active_mount = None
+        self.char1.db.mounted_on = None
         for level in range(6):
             _set_mastery(self.char1, level)
             self.assertEqual(
@@ -110,7 +110,7 @@ class TestLanceUnmounted(EvenniaTest):
     def test_no_extra_attacks_unmounted(self):
         """All mastery tiers: 0 extra attacks when unmounted."""
         lance = _make_lance()
-        self.char1.db.active_mount = None
+        self.char1.db.mounted_on = None
         for level in range(6):
             _set_mastery(self.char1, level)
             self.assertEqual(
@@ -131,7 +131,7 @@ class TestLanceMountedCrit(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.active_mount = 1  # truthy = mounted
+        self.char1.db.mounted_on = 1  # truthy = mounted
 
     def test_no_crit_unskilled(self):
         lance = _make_lance()
@@ -176,7 +176,7 @@ class TestLanceMountedExtraAttacks(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.active_mount = 1  # truthy = mounted
+        self.char1.db.mounted_on = 1  # truthy = mounted
 
     def test_no_extra_attacks_low_mastery(self):
         lance = _make_lance()
@@ -215,12 +215,12 @@ class TestLanceProne(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.lance = _make_lance()
-        self.char1.db.active_mount = 1  # truthy = mounted
+        self.char1.db.mounted_on = 1  # truthy = mounted
         self.char1.ndb.lance_prone_used = False
 
     def test_no_prone_unmounted(self):
         """Unmounted: at_hit should NOT attempt prone."""
-        self.char1.db.active_mount = None
+        self.char1.db.mounted_on = None
         _set_mastery(self.char1, 5)  # GM
         target = _mock_target()
 

@@ -69,8 +69,8 @@ _LANCE_PRONE = {
 
 
 def _is_mounted(wielder):
-    """Check if wielder is mounted (has a non-None active_mount)."""
-    return getattr(wielder.db, "active_mount", None) is not None
+    """Check if wielder is mounted (has a mount via MountMixin)."""
+    return getattr(wielder.db, "mounted_on", None) is not None
 
 
 class LanceMixin:
