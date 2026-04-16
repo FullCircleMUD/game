@@ -11,6 +11,8 @@ Tests:
 evennia test --settings settings tests.spell_tests.test_illusion
 """
 
+from unittest.mock import patch
+
 from evennia.utils.create import create_script
 from evennia.utils.test_resources import EvenniaTest
 
@@ -365,3 +367,48 @@ class TestInvisibility(EvenniaTest):
         """break_invisibility() should return False if not invisible."""
         result = self.char1.break_invisibility()
         self.assertFalse(result)
+
+
+# ================================================================== #
+#  Invisibility Recast Fix Tests
+# ================================================================== #
+
+class TestInvisibilityRecast(EvenniaTest):
+    """Test that recasting Invisibility refreshes duration correctly."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.spell = get_spell("invisibility")
+        self.char1.db.class_skill_mastery_levels = {"illusion": 2}
+        self.char1.mana = 500
+        self.char1.db.spell_cooldowns = {}
+
+    def test_recast_refreshes(self):
+        """Recasting Invisibility should refresh duration (not waste mana)."""
+        self.spell.cast(self.char1, self.char1)
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
+        start_mana = self.char1.mana
+        success, result = self.spell.cast(self.char1, self.char1)
+        self.assertTrue(success)
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
+        self.assertEqual(self.char1.mana, start_mana - 15)  # tier 2 = 15 mana
+
+    @patch("world.spells.illusion.invisibility.Invisibility.get_caster_tier")
+    def test_recast_skips_when_existing_stronger(self, mock_tier):
+        """Recast should skip and refund if existing invisibility has more time."""
+        mock_tier.return_value = 5
+        self.spell.cast(self.char1, self.char1)
+
+        with patch.object(
+            type(self.char1), "get_effect_remaining_seconds",
+            return_value=3500,
+        ):
+            mock_tier.return_value = 2
+            start_mana = self.char1.mana
+            success, result = self.spell.cast(self.char1, self.char1)
+            self.assertFalse(success)
+            self.assertEqual(self.char1.mana, start_mana)  # refunded
+            self.assertIn("stronger", result["first"].lower())

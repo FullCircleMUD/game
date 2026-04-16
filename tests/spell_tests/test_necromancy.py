@@ -12,13 +12,14 @@ Tests:
 evennia test --settings settings tests.spell_tests.test_necromancy
 """
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from evennia.utils.test_resources import EvenniaTest
 
+from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
-from world.spells.registry import get_spell, get_spells_for_school
+from world.spells.registry import SPELL_REGISTRY, get_spell, get_spells_for_school
 
 
 # ================================================================== #
@@ -373,3 +374,269 @@ class TestNecromancyVsUndead(EvenniaTest):
             self.assertLess(living.hp, 200)
             # Undead char2 should be unharmed
             self.assertEqual(self.char2.hp, 100)
+
+
+# ================================================================== #
+#  Vampiric Touch Tests
+# ================================================================== #
+
+class TestVampiricTouch(EvenniaTest):
+    """Test Vampiric Touch spell execution."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.spell = get_spell("vampiric_touch")
+        self.char1.db.class_skill_mastery_levels = {"necromancy": 2}
+        self.char1.mana = 100
+        self.char1.mana_max = 100
+        self.char1.hp = 50
+        self.char1.hp_max = 100
+        self.char1.intelligence = 14  # +2 mod
+        self.char1.db.spell_cooldowns = {}
+        self.char2.hp = 200
+        self.char2.hp_max = 200
+
+    def test_registration(self):
+        """Vampiric Touch should be in the registry."""
+        self.assertIn("vampiric_touch", SPELL_REGISTRY)
+
+    def test_attributes(self):
+        """Vampiric Touch should have correct class attributes."""
+        self.assertEqual(self.spell.name, "Vampiric Touch")
+        self.assertEqual(self.spell.school, skills.NECROMANCY)
+        self.assertEqual(self.spell.min_mastery, MasteryLevel.SKILLED)
+        self.assertEqual(self.spell.target_type, "hostile")
+        self.assertEqual(self.spell.cooldown, 0)
+        self.assertIn("vt", self.spell.aliases)
+        self.assertIn("vamp", self.spell.aliases)
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_touch_attack_miss(self, mock_dice):
+        """Miss should deal no damage but still spend mana."""
+        mock_dice.roll.return_value = 1
+        start_mana = self.char1.mana
+        start_hp = self.char2.hp
+        success, result = self.spell.cast(self.char1, self.char2)
+        self.assertTrue(success)
+        self.assertEqual(self.char2.hp, start_hp)
+        self.assertLess(self.char1.mana, start_mana)
+        self.assertIn("misses", result["first"])
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_touch_attack_hit_heals(self, mock_dice):
+        """Hit should deal damage and heal the caster."""
+        mock_dice.roll.side_effect = [20, 4]
+        hp_before = self.char1.hp
+        self.spell.cast(self.char1, self.char2)
+        self.assertLess(self.char2.hp, 200)
+        self.assertGreater(self.char1.hp, hp_before)
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_healing_above_max_hp(self, mock_dice):
+        """Caster HP should be able to exceed effective_hp_max."""
+        self.char1.hp = self.char1.effective_hp_max
+        mock_dice.roll.side_effect = [20, 5]
+        self.spell.cast(self.char1, self.char2)
+        self.assertGreater(self.char1.hp, self.char1.effective_hp_max)
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_bonus_hp_tracking(self, mock_dice):
+        """db.vampiric_bonus_hp should track HP above max."""
+        self.char1.hp = self.char1.effective_hp_max
+        mock_dice.roll.side_effect = [20, 5]
+        self.spell.cast(self.char1, self.char2)
+        bonus = self.char1.db.vampiric_bonus_hp or 0
+        self.assertEqual(bonus, 5)
+
+    def test_mana_cost_base_bracket(self):
+        """At +0 bonus HP, cost should be 3% of max mana."""
+        self.char1.mana_max = 100
+        cost, error = self.spell._get_mana_cost(self.char1)
+        self.assertIsNone(error)
+        self.assertEqual(cost, 3)
+
+    def test_mana_cost_escalation(self):
+        """Higher bonus HP bracket should cost more mana."""
+        self.char1.mana_max = 100
+        self.char1.db.vampiric_bonus_hp = 300
+        cost, error = self.spell._get_mana_cost(self.char1)
+        self.assertIsNone(error)
+        self.assertEqual(cost, 16)
+
+    def test_mana_cost_hard_cap(self):
+        """At +1000 bonus HP, should return error (101% cost)."""
+        self.char1.db.vampiric_bonus_hp = 1000
+        cost, error = self.spell._get_mana_cost(self.char1)
+        self.assertIsNotNone(error)
+        self.assertIn("too far", error)
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_vampiric_effect_applied(self, mock_dice):
+        """has_effect('vampiric') should be True after successful cast."""
+        mock_dice.roll.side_effect = [20, 4]
+        self.spell.cast(self.char1, self.char2)
+        self.assertTrue(self.char1.has_effect("vampiric"))
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_timer_expiry_hp_loss(self, mock_dice):
+        """When vampiric effect removed, bonus HP should be lost (floor 1)."""
+        self.char1.hp = self.char1.effective_hp_max
+        mock_dice.roll.side_effect = [20, 5]
+        self.spell.cast(self.char1, self.char2)
+        self.assertGreater(self.char1.hp, self.char1.effective_hp_max)
+
+        from world.spells.necromancy.vampiric_touch import remove_vampiric
+        remove_vampiric(self.char1)
+
+        self.assertLessEqual(self.char1.hp, self.char1.effective_hp_max)
+        self.assertGreaterEqual(self.char1.hp, 1)
+        self.assertIsNone(self.char1.db.vampiric_bonus_hp)
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_necrotic_resistance_reduces_healing(self, mock_dice):
+        """Necrotic resistance should reduce both damage and healing."""
+        self.char2.damage_resistances = {"necrotic": 50}
+        mock_dice.roll.side_effect = [20, 6]
+        hp_before = self.char1.hp
+        self.spell.cast(self.char1, self.char2)
+        heal_amount = self.char1.hp - hp_before
+        self.assertEqual(heal_amount, 3)
+
+    @patch("world.spells.necromancy.vampiric_touch.dice")
+    def test_damage_scaling(self, mock_dice):
+        """SKILLED=1d6 range, GM=4d6 range."""
+        mock_dice.roll.side_effect = [20, 4]
+        self.spell.cast(self.char1, self.char2)
+        tier2_damage = 200 - self.char2.hp
+        self.assertGreaterEqual(tier2_damage, 1)
+        self.assertLessEqual(tier2_damage, 6)
+
+        self.char1.db.class_skill_mastery_levels = {"necromancy": 5}
+        self.char2.hp = 200
+        self.char1.hp = 50
+        self.char1.mana = 100
+        self.char1.attributes.remove("vampiric_bonus_hp")
+        if self.char1.has_effect("vampiric"):
+            self.char1.remove_named_effect("vampiric")
+        existing = self.char1.scripts.get("vampiric_timer")
+        if existing:
+            existing[0].delete()
+        mock_dice.roll.side_effect = [20, 14]
+        self.spell.cast(self.char1, self.char2)
+        tier5_damage = 200 - self.char2.hp
+        self.assertGreaterEqual(tier5_damage, 4)
+        self.assertLessEqual(tier5_damage, 24)
+
+    def test_mastery_check(self):
+        """BASIC mastery should not be able to cast Vampiric Touch."""
+        self.char1.db.class_skill_mastery_levels = {"necromancy": 1}
+        success, msg = self.spell.cast(self.char1, self.char2)
+        self.assertFalse(success)
+        self.assertIn("mastery", msg.lower())
+
+
+# ================================================================== #
+#  SLOWED Combat Mechanic Tests
+# ================================================================== #
+
+class TestSlowedMechanic(EvenniaTest):
+    """Test SLOWED effect enforcement in combat_handler."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.hp = 200
+        self.char1.hp_max = 200
+        self.char2.hp = 200
+        self.char2.hp_max = 200
+
+    def _start_combat(self, attacker, target):
+        """Put attacker into combat against target."""
+        from combat.combat_handler import CombatHandler
+        from evennia.utils.create import create_script
+        handler = create_script(
+            CombatHandler, obj=attacker, key="combat_handler",
+            autostart=False,
+        )
+        handler.start()
+        handler.queue_action({
+            "key": "attack", "target": target,
+            "dt": 3, "repeat": True,
+        })
+        return handler
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_slowed_caps_attacks_at_one(self, mock_attack):
+        """SLOWED actor with multiple APR should only get 1 attack."""
+        self.char1.attacks_per_round = 3
+        handler = self._start_combat(self.char1, self.char2)
+        self.char1.apply_named_effect(
+            key="slowed",
+            condition=Condition.SLOWED,
+            duration=3,
+            duration_type="combat_rounds",
+        )
+        handler.execute_next_action()
+        self.assertEqual(mock_attack.call_count, 1)
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_slowed_blocks_offhand(self, mock_attack):
+        """SLOWED actor with off-hand weapon should only get 1 main attack."""
+        self.char1.attacks_per_round = 1
+        handler = self._start_combat(self.char1, self.char2)
+
+        self.char1.apply_named_effect(
+            key="slowed",
+            condition=Condition.SLOWED,
+            duration=3,
+            duration_type="combat_rounds",
+        )
+
+        mock_weapon = MagicMock()
+        mock_weapon.get_extra_attacks.return_value = 0
+        mock_weapon.get_parries_per_round.return_value = 0
+        mock_weapon.get_parry_advantage.return_value = False
+        mock_weapon.get_offhand_attacks.return_value = 1
+        mock_weapon.get_reach_counters_per_round.return_value = 0
+        mock_weapon.get_stun_checks_per_round.return_value = 0
+        mock_weapon.get_disarm_checks_per_round.return_value = 0
+
+        mock_get_offhand = MagicMock(return_value=MagicMock())
+
+        with patch("combat.combat_utils.get_weapon", return_value=mock_weapon):
+            with patch("combat.combat_utils.get_offhand_weapon", mock_get_offhand):
+                handler.execute_next_action()
+
+        self.assertEqual(mock_attack.call_count, 1)
+        mock_get_offhand.assert_not_called()
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_slowed_per_round_message(self, mock_attack):
+        """SLOWED actor should receive sluggish message each round."""
+        self.char1.attacks_per_round = 1
+        handler = self._start_combat(self.char1, self.char2)
+        self.char1.apply_named_effect(
+            key="slowed",
+            condition=Condition.SLOWED,
+            duration=3,
+            duration_type="combat_rounds",
+        )
+        mock_msg = MagicMock()
+        original_msg = self.char1.msg
+        self.char1.msg = mock_msg
+        try:
+            handler.execute_next_action()
+        finally:
+            self.char1.msg = original_msg
+        found = False
+        for call in mock_msg.call_args_list:
+            msg = call.args[0] if call.args else ""
+            if "SLOWED" in msg and "sluggish" in msg:
+                found = True
+                break
+        self.assertTrue(found, "SLOWED per-round message not found")
