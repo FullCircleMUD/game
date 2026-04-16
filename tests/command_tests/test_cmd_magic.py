@@ -196,7 +196,7 @@ class TestCmdCast(EvenniaCommandTest):
 
     def test_cast_hostile_no_target(self):
         """Cast hostile spell with no target should show error."""
-        self.call(CmdCast(), "magic missile", "Cast Magic Missile at whom?")
+        self.call(CmdCast(), "magic missile", "You need to specify a target.")
 
     def test_cast_not_memorised(self):
         """Cast a spell that isn't memorised should fail."""

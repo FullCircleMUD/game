@@ -128,11 +128,17 @@ class TestCombatHeight(EvenniaCommandTest):
     # ------------------------------------------------------------------ #
 
     def test_attack_blocked_melee_different_height(self):
-        """Attack command blocks melee against target at different height."""
+        """Attack command blocks melee against target at different height.
+
+        Height filtering now happens at resolution time via p_same_height
+        in resolve_target (range="melee"). The target at a different height
+        is not found by the resolver — "There's no 'X' here" rather than
+        the old post-resolution "out of melee range" message.
+        """
         self.char1.room_vertical_position = 0
         self.char2.room_vertical_position = 2
         result = self.call(CmdAttack(), self.char2.key)
-        self.assertIn("out of melee range", result)
+        self.assertIn("There's no", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_attack_allowed_missile_different_height(self, mock_ticker):
