@@ -809,9 +809,10 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
         if target is None:
             caller.msg(f"There's no '{target_str}' here.")
             return None, []
-        if target is caller:
-            caller.msg("You can't target yourself with that spell.")
-            return None, []
+        # Self reached via self-bucket fallback or _is_self_keyword.
+        # Do NOT reject here — return the caller so the command layer
+        # can emit its own context-specific self-error ("You can't
+        # attack yourself" vs "You can't cast that on yourself" etc).
         secondaries = (
             _resolve_aoe_secondaries(caller, target, aoe) if aoe else []
         )

@@ -83,7 +83,7 @@ class TestCmdAttack(EvenniaCommandTest):
         """
         self.char2.hp = 0
         result = self.call(CmdAttack(), self.char2.key)
-        self.assertIn(f"You don't see '{self.char2.key}' here", result)
+        self.assertIn(f"There's no '{self.char2.key}' here", result)
 
     def test_attack_no_combat_room(self):
         """Can't attack in a non-combat room."""

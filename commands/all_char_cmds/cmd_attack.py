@@ -11,10 +11,7 @@ from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
 from combat.height_utils import can_reach_target
 from enums.condition import Condition
-from utils.targeting.helpers import (
-    resolve_attack_target_in_combat,
-    resolve_attack_target_out_of_combat,
-)
+from utils.targeting.helpers import resolve_target
 
 
 class CmdAttack(FCMCommandMixin, Command):
@@ -41,21 +38,35 @@ class CmdAttack(FCMCommandMixin, Command):
             return
 
         search_term = self.args.strip()
-        if caller.scripts.get("combat_handler"):
-            target = resolve_attack_target_in_combat(caller, search_term)
+
+        # Determine weapon range for height filtering.
+        # TODO: temporary call-site mapping for POC. When weapons gain
+        # a universal `range` attribute (matching spells), this mapping
+        # goes away and we pass weapon.range directly.
+        weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
+        if weapon and getattr(weapon, "weapon_type", "melee") == "missile":
+            attack_range = "ranged"
+        elif getattr(caller, "mob_weapon_type", None) == "missile":
+            attack_range = "ranged"
         else:
-            target = resolve_attack_target_out_of_combat(caller, search_term)
+            attack_range = "melee"
+
+        target, _ = resolve_target(
+            caller, search_term, "actor_hostile", range=attack_range,
+        )
 
         if target is None:
-            caller.msg(f"You don't see '{search_term}' here.")
+            # resolve_target already sent the error message
             return
 
         if target == caller:
             caller.msg("You can't attack yourself.")
             return
 
-        # Height reachability check — melee requires same height
-        weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
+        # Belt-and-suspenders height check — resolve_target already
+        # filters by height via the range parameter, but this catches
+        # edge cases like innate ranged with limited range that the
+        # simple melee/ranged binary doesn't express.
         if not can_reach_target(caller, target, weapon):
             caller.msg(
                 "They are out of melee range. "

@@ -123,6 +123,11 @@ class CmdCast(FCMCommandMixin, Command):
         if target is None and spell_match.target_type != "none":
             return
 
+        # Self-targeting rejection for hostile/any_actor spells
+        if spell_match.target_type in ("actor_hostile", "actor_any") and target is caller:
+            caller.msg("You can't target yourself with that spell.")
+            return
+
         # Cast the spell
         success, result = spell_match.cast(
             caller, target, spell_arg=spell_arg, secondaries=secondaries,
