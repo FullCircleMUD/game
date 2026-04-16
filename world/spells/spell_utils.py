@@ -127,7 +127,7 @@ def resolve_actor_target(caster, target_str, target_type):
     """Resolve an actor target for a spell.
 
     Used by ``cmd_cast`` and ``cmd_zap`` when the spell's ``target_type``
-    is ``"hostile"``, ``"friendly"``, or ``"any"``. Returns the resolved
+    is ``"hostile"``, ``"friendly"``, or ``"any_actor"``. Returns the resolved
     actor or ``None``; on ``None`` an error message has already been
     sent to the caster so callers just ``return``.
 
@@ -149,12 +149,14 @@ def resolve_actor_target(caster, target_str, target_type):
           error (no default target for hostile spells).
         - ``"friendly"`` — self is allowed. Empty ``target_str`` defaults
           to self.
-        - ``"any"`` — self is allowed. Empty ``target_str`` is an error.
+        - ``"any_actor"`` — self is rejected (same as hostile — use
+          ``score`` to check your own stats). Empty ``target_str`` is
+          an error.
 
     Args:
         caster: The spell caster.
         target_str: Target name typed by the player (raw; stripped here).
-        target_type: One of ``"hostile"``, ``"friendly"``, ``"any"``.
+        target_type: One of ``"hostile"``, ``"friendly"``, ``"any_actor"``.
 
     Returns:
         The resolved actor, or ``None``. Error message already sent
@@ -169,7 +171,7 @@ def resolve_actor_target(caster, target_str, target_type):
         caster.msg("You need to specify a target.")
         return None
 
-    if target_type not in ("hostile", "friendly", "any"):
+    if target_type not in ("hostile", "friendly", "any_actor"):
         caster.msg(f"Unknown actor target type '{target_type}'.")
         return None
 
@@ -177,14 +179,15 @@ def resolve_actor_target(caster, target_str, target_type):
         caster.msg("You aren't anywhere where you could target that.")
         return None
 
-    # ── Hostile: delegate to priority-bucketed attack resolvers ──
-    # Inherits enemy > bystander > ally priority (in combat) or
-    # stranger > groupmate priority (out of combat) from the attack
-    # verbs, so "cast drain life goblin" picks the same goblin
-    # "attack goblin" picks. walk_contents inside the priority
-    # helpers never includes the room object, so the bee-tree crash
-    # is structurally impossible on this path.
-    if target_type == "hostile":
+    # ── Hostile / any_actor: delegate to attack priority resolvers ──
+    # Both use hostile priority (enemy > bystander > ally > self in
+    # combat, stranger > groupmate > self out of combat). Self is
+    # rejected for both — hostile spells can't self-target, and
+    # any_actor spells (augur, identify_creature) have no reason to
+    # self-target when score/prompt are free. walk_contents inside
+    # the priority helpers never includes the room object, so the
+    # bee-tree crash is structurally impossible on this path.
+    if target_type in ("hostile", "any_actor"):
         if caster.scripts.get("combat_handler"):
             target = resolve_attack_target_in_combat(caster, target_str)
         else:
@@ -196,27 +199,22 @@ def resolve_actor_target(caster, target_str, target_type):
 
         # Self reached only via the self-bucket fallback in the
         # priority helpers, or via _is_self_keyword interception
-        # when the player typed "me" / "self". Hostile spells reject.
+        # when the player typed "me" / "self". Both hostile and
+        # any_actor reject self-targeting.
         if target is caster:
-            caster.msg("You can't cast a hostile spell on yourself.")
+            caster.msg("You can't target yourself with that spell.")
             return None
 
         return target
 
-    # ── Friendly / any: delegate to friendly priority resolvers ──
-    # Both target_types share the same priority semantics:
-    # self > ally/groupmate > bystander/stranger > enemy. "cast cure
-    # light goblin" prefers an allied goblin over an enemy goblin;
-    # enemy still wins when it's the only name match — self is
-    # first-preference, not hard-exclusive. Hidden actors are filtered
-    # via walk_contents inside the priority resolvers (previously
-    # friendly/any had no visibility filter — a latent inconsistency
-    # with the hostile path now fixed).
-    #
-    # me / self keywords land in _is_self_keyword at the top of the
-    # priority resolver and return caster directly. Friendly spells
-    # allow self so we pass that through unchanged. (Empty target_str
-    # for friendly is already handled above — defaults to caster.)
+    # ── Friendly: delegate to friendly priority resolvers ──
+    # Friendly priority (self > ally/groupmate > bystander/stranger >
+    # enemy). "cast cure light goblin" prefers an allied goblin over
+    # an enemy goblin; enemy still wins when it's the only name match.
+    # Hidden actors are filtered via walk_contents inside the priority
+    # resolvers. me / self keywords return caster directly — friendly
+    # spells allow self. (Empty target_str for friendly is already
+    # handled above — defaults to caster.)
     if caster.scripts.get("combat_handler"):
         target = resolve_friendly_target_in_combat(caster, target_str)
     else:

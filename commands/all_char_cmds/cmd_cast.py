@@ -120,7 +120,7 @@ class CmdCast(FCMCommandMixin, Command):
             target = caller
         elif spell_match.target_type == "none":
             target = None
-        elif spell_match.target_type in ("hostile", "friendly", "any"):
+        elif spell_match.target_type in ("hostile", "friendly", "any_actor"):
             target = resolve_actor_target(
                 caller, target_str, spell_match.target_type,
             )

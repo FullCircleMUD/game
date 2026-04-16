@@ -79,7 +79,7 @@ class Spell:
             "friendly" — an ally in the room (defaults to self if blank)
             "self"     — the caster, always
             "none"     — no target needed
-            "any"      — any actor in the room
+            "any_actor" — any actor in the room
 
         Item targets (resolved via spell_utils.resolve_item_target):
             "inventory_item" — an NFT item in the caster's own contents

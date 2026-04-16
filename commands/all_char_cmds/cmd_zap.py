@@ -98,7 +98,7 @@ class CmdZap(FCMCommandMixin, Command):
             target = caller
         elif spell.target_type == "none":
             target = None
-        elif spell.target_type in ("hostile", "friendly", "any"):
+        elif spell.target_type in ("hostile", "friendly", "any_actor"):
             target = resolve_actor_target(caller, target_str, spell.target_type)
             if not target:
                 return

@@ -68,12 +68,10 @@ class CmdIdentify(CmdSkillBase):
         if not target:
             return  # caller.search already sent error message
 
-        # Classify and identify — reuse Identify spell's template builders
+        # Classify and identify — shared inspection templates used by
+        # both the Identify/Augur spells and this bard LORE command.
         from typeclasses.actors.base_actor import BaseActor
-        from typeclasses.items.base_nft_item import BaseNFTItem
-        from world.spells.divination.identify import Identify
-
-        spell = Identify()
+        from utils.inspection_templates import inspect_actor, inspect_item
 
         if isinstance(target, BaseActor):
             # PvP room check for other players
@@ -86,21 +84,9 @@ class CmdIdentify(CmdSkillBase):
                     )
                     return
 
-            success, result = spell._identify_actor(caller, target, tier)
-        elif isinstance(target, BaseNFTItem):
-            success, result = spell._identify_item(caller, target, tier)
+            success, result = inspect_actor(caller, target, tier)
         else:
-            # Mundane object — sassy one-liner
-            caller.msg(
-                f"|cYou study {target.key} intently... "
-                f"{target.key} is {target.key}. 'Nuf said.|n"
-            )
-            if caller.location:
-                caller.location.msg_contents(
-                    f"|c$You() $conj(study) {target.key} intently.|n",
-                    from_obj=caller, exclude=[caller],
-                )
-            return
+            success, result = inspect_item(caller, target, tier)
 
         # Display result
         if isinstance(result, str):

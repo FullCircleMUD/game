@@ -227,7 +227,15 @@ class TestDivinationRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.DIVINATION)
         self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(spell.target_type, "any")
+        self.assertEqual(spell.target_type, "any_item")
+        self.assertEqual(spell.mana_cost, {1: 5, 2: 8, 3: 10, 4: 14, 5: 16})
+
+    def test_augur_registered(self):
+        spell = get_spell("augur")
+        self.assertIsNotNone(spell)
+        self.assertEqual(spell.school, skills.DIVINATION)
+        self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
+        self.assertEqual(spell.target_type, "any_actor")
         self.assertEqual(spell.mana_cost, {1: 5, 2: 8, 3: 10, 4: 14, 5: 16})
 
     def test_true_sight_registered(self):
@@ -256,7 +264,7 @@ class TestDivinationRegistry(EvenniaTest):
     def test_divination_school_has_all_spells(self):
         div = get_spells_for_school("divination")
         expected = {
-            "identify", "true_sight", "scry", "mass_revelation",
+            "identify", "augur", "true_sight", "scry", "mass_revelation",
             "locate_object", "detect_traps", "darkvision",
         }
         self.assertEqual(set(div.keys()), expected)
@@ -1282,3 +1290,185 @@ class TestInvisibility(EvenniaTest):
         """break_invisibility() should return False if not invisible."""
         result = self.char1.break_invisibility()
         self.assertFalse(result)
+
+
+# ================================================================== #
+#  Augur Execution Tests
+# ================================================================== #
+
+
+class TestAugur(EvenniaTest):
+    """Test Augur spell execution — actor template, mastery gate, PvP check.
+
+    Augur is the actor-identification spell split from Identify. It uses
+    target_type="any_actor" which routes through the hostile-priority
+    attack resolvers (enemy > bystander > ally > self) and rejects
+    self-targeting (score/prompt is free).
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.spell = get_spell("augur")
+        self.char1.db.class_skill_mastery_levels = {"divination": 1}  # BASIC
+        self.char1.mana = 100
+
+    def _make_mob(self, level=3, **kwargs):
+        """Create a CombatMob for testing."""
+        from typeclasses.actors.mob import CombatMob
+        mob = create_object(CombatMob, key="test goblin", location=self.room1)
+        mob.level = level
+        mob.hp = kwargs.get("hp", 20)
+        mob.hp_max = kwargs.get("hp_max", 20)
+        mob.mana = kwargs.get("mana", 0)
+        mob.mana_max = kwargs.get("mana_max", 0)
+        mob.move = kwargs.get("move", 10)
+        mob.move_max = kwargs.get("move_max", 10)
+        mob.damage_dice = kwargs.get("damage_dice", "1d6")
+        mob.attack_message = kwargs.get("attack_message", "slashes")
+        mob.size = kwargs.get("size", "medium")
+        mob.strength = kwargs.get("strength", 14)
+        mob.dexterity = kwargs.get("dexterity", 12)
+        mob.constitution = kwargs.get("constitution", 13)
+        mob.intelligence = kwargs.get("intelligence", 8)
+        mob.wisdom = kwargs.get("wisdom", 10)
+        mob.charisma = kwargs.get("charisma", 6)
+        mob.armor_class = kwargs.get("armor_class", 2)
+        mob.damage_resistances = kwargs.get("damage_resistances", {})
+        return mob
+
+    # ── Mob identification ───────────────────────────────────────
+
+    def test_augur_mob_basic_success(self):
+        """Level 3 mob with BASIC divination should succeed."""
+        mob = self._make_mob(level=3)
+        success, result = self.spell.cast(self.char1, mob)
+        self.assertTrue(success)
+        self.assertIsInstance(result, dict)
+        output = result["first"]
+        self.assertIn("test goblin", output)
+        self.assertIn("HP:", output)
+        self.assertIn("AC:", output)
+        self.assertIn("STR:", output)
+        self.assertIn("Damage:", output)
+
+    def test_augur_mob_mastery_gate_fails(self):
+        """Level 16 mob with BASIC tier should show 'too powerful' message."""
+        mob = self._make_mob(level=16)
+        success, result = self.spell.cast(self.char1, mob)
+        self.assertTrue(success)
+        self.assertIn("too powerful", result["first"])
+
+    def test_augur_mob_mastery_gate_tiers(self):
+        """Verify level-to-tier boundaries."""
+        test_cases = [
+            # (mob_level, caster_tier, should_see_stats)
+            (5, 1, True),    # level 5, BASIC → pass
+            (6, 1, False),   # level 6, BASIC → fail
+            (6, 2, True),    # level 6, SKILLED → pass
+            (15, 2, True),   # level 15, SKILLED → pass
+            (16, 2, False),  # level 16, SKILLED → fail
+            (16, 3, True),   # level 16, EXPERT → pass
+            (36, 5, True),   # level 36, GM → pass
+        ]
+        for mob_level, caster_tier, expect_stats in test_cases:
+            mob = self._make_mob(level=mob_level)
+            self.char1.db.class_skill_mastery_levels = {"divination": caster_tier}
+            self.char1.mana = 100
+            success, result = self.spell.cast(self.char1, mob)
+            self.assertTrue(success)
+            has_stats = "STR:" in result["first"]
+            self.assertEqual(
+                has_stats, expect_stats,
+                f"Level {mob_level} mob, tier {caster_tier}: "
+                f"expected stats={'shown' if expect_stats else 'hidden'}"
+            )
+            mob.delete()
+
+    # ── PC identification ────────────────────────────────────────
+
+    def test_augur_pc_requires_pvp_room(self):
+        """Identifying a PC in non-PvP room should fail with mana refund."""
+        mana_before = self.char1.mana
+        success, result = self.spell.cast(self.char1, self.char2)
+        self.assertFalse(success)
+        self.assertIn("PvP", result)
+        self.assertEqual(self.char1.mana, mana_before)  # mana refunded
+
+    def test_augur_pc_in_pvp_room(self):
+        """Identifying a PC in PvP room should succeed."""
+        self.room1.allow_pvp = True
+        self.char2.hp = 50
+        self.char2.hp_max = 50
+        success, result = self.spell.cast(self.char1, self.char2)
+        self.assertTrue(success)
+        output = result["first"]
+        self.assertIn("HP:", output)
+
+    # ── Output content ───────────────────────────────────────────
+
+    def test_augur_output_contains_ability_scores(self):
+        """Output should contain all 6 ability score labels."""
+        mob = self._make_mob()
+        success, result = self.spell.cast(self.char1, mob)
+        output = result["first"]
+        for label in ["STR:", "DEX:", "CON:", "INT:", "WIS:", "CHA:"]:
+            self.assertIn(label, output, f"Missing {label} in output")
+
+    def test_augur_output_contains_resistances(self):
+        """Resistances should appear when set."""
+        mob = self._make_mob(damage_resistances={"fire": 25, "cold": -15})
+        success, result = self.spell.cast(self.char1, mob)
+        output = result["first"]
+        self.assertIn("Fire: 25%", output)
+        self.assertIn("Cold: -15%", output)
+
+    def test_augur_output_no_resistances(self):
+        """Should show 'None' when no resistances."""
+        mob = self._make_mob()
+        success, result = self.spell.cast(self.char1, mob)
+        self.assertIn("Resistances:|n None", result["first"])
+
+    def test_augur_mob_shows_size(self):
+        """Size should appear in mob output."""
+        mob = self._make_mob(size="large")
+        success, result = self.spell.cast(self.char1, mob)
+        self.assertIn("Large", result["first"])
+
+    def test_augur_mob_shows_damage_dice(self):
+        """Damage dice should appear in mob output."""
+        mob = self._make_mob(damage_dice="2d8", attack_message="crushes")
+        success, result = self.spell.cast(self.char1, mob)
+        self.assertIn("2d8", result["first"])
+        self.assertIn("crushes", result["first"])
+
+    def test_augur_third_person_message(self):
+        """Third person should be flavour, second should be None."""
+        mob = self._make_mob()
+        success, result = self.spell.cast(self.char1, mob)
+        self.assertIsNone(result["second"])
+        self.assertIn("studies", result["third"])
+
+    # ── Mastery / mana gates ─────────────────────────────────────
+
+    def test_augur_mastery_check(self):
+        """Should fail without divination mastery."""
+        mob = self._make_mob()
+        self.char1.db.class_skill_mastery_levels = {}
+        success, msg = self.spell.cast(self.char1, mob)
+        self.assertFalse(success)
+        self.assertIn("mastery", msg.lower())
+
+    def test_augur_not_enough_mana(self):
+        """Should fail with insufficient mana."""
+        mob = self._make_mob()
+        self.char1.mana = 4
+        success, msg = self.spell.cast(self.char1, mob)
+        self.assertFalse(success)
+        self.assertIn("mana", msg.lower())
