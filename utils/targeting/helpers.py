@@ -874,10 +874,24 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
         caller.msg(f"You don't see '{target_str}' here.")
         return None, []
 
+    # ── items_gettable_room: room items only (no exits, no actors) ──
+    if target_type == "items_gettable_room":
+        preds = list(BASE_ITEM_PREDICATES) + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            caller.msg(f"You don't see '{target_str}' here.")
+            return None, []
+        target = caller.search(target_str, candidates=candidates, quiet=True)
+        if isinstance(target, list):
+            target = target[0] if target else None
+        if not target:
+            caller.msg(f"You don't see '{target_str}' here.")
+            return None, []
+        return target, []
+
     # ── Future item types (convention-defined, not yet implemented) ──
     _FUTURE_ITEM_TYPES = (
         "items_all_room",
-        "items_gettable_room",
         "items_fixed_room",
         "items_gettable_room_then_inventory",
         "items_inventory_then_gettable_room",

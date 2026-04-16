@@ -41,7 +41,11 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
-from utils.targeting.helpers import resolve_container, resolve_item_in_source
+from utils.targeting.helpers import (
+    resolve_container,
+    resolve_item_in_source,
+    resolve_target,
+)
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -354,16 +358,22 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     def _get_object(self, caller, search_term):
         """Standard Evennia object pickup with fuzzy matching."""
-        # Candidate filtering (not-character, not-exit, hidden-visibility)
-        # is handled by resolve_item_in_source. The caller-is-self check
-        # and the is_hidden_visible_to post-filter that used to live here
-        # are NOT needed — the helper excludes characters (so the caller,
-        # who is always a character, can never appear in candidates) and
-        # excludes hidden items the caller has not discovered. Do NOT
-        # re-add those checks here.
-        objs = resolve_item_in_source(
-            caller, caller.location, search_term, stacked=self.number
-        )
+        # Target resolution via the universal targeting service.
+        # items_gettable_room filters by BASE_ITEM_PREDICATES (not-actor,
+        # not-exit, visible) + height (melee = same height only).
+        # The get-lock check stays post-resolution so this command can
+        # emit custom per-item error messages (obj.db.get_err_msg).
+        if self.number and self.number > 1:
+            # Stacked pickup — resolve_target doesn't support stacked
+            # kwarg, fall back to direct resolve_item_in_source.
+            objs = resolve_item_in_source(
+                caller, caller.location, search_term, stacked=self.number
+            )
+        else:
+            target, _ = resolve_target(
+                caller, search_term, "items_gettable_room", range="melee",
+            )
+            objs = target
         if not objs:
             return
         objs = utils.make_iter(objs)
