@@ -29,7 +29,7 @@ matching the existing convention):
     - target is not lockable
     - target is already unlocked
     - target's lock_dc exceeds the caster's tier ceiling
-    - (target visibility is filtered earlier by ``resolve_spell_target``)
+    - (target visibility is filtered earlier by ``resolve_target``)
 """
 
 from enums.mastery_level import MasteryLevel

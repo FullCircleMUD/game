@@ -218,15 +218,15 @@ class TestSpellCooldown(EvenniaTest):
 
     def test_cooldown_applied_after_cast(self):
         """Casting should set cooldown on caster."""
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         on_cd, remaining = self.spell.is_on_cooldown(self.char1)
         self.assertTrue(on_cd)
         self.assertEqual(remaining, 1)
 
     def test_cooldown_blocks_recast(self):
         """Spell on cooldown should not be castable."""
-        self.spell.cast(self.char1, None)
-        success, msg = self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
+        success, msg = self.spell.cast(self.char1, self.char2)
         self.assertFalse(success)
         self.assertIn("cooldown", msg.lower())
 

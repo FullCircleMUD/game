@@ -7,11 +7,14 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
+    p_different_height,
     p_is_character,
     p_is_container,
     p_living,
     p_not_actor,
     p_not_exit,
+    p_same_height,
+    p_same_height_value,
     p_visible_to,
 )
 
@@ -578,3 +581,362 @@ def resolve_character_in_room(caller, name):
     if isinstance(result, list):
         result = result[0] if result else None
     return result
+
+
+
+
+
+# ── AoE secondaries ─────────────────────────────────────────────────
+
+
+def _resolve_aoe_secondaries(caster, primary_target, aoe):
+    """Build the AoE secondaries list from the primary target's height.
+
+    Collects living visible actors at the primary target's
+    ``room_vertical_position``, filtered by the ``aoe`` type. The
+    primary target is always excluded (they're already the primary).
+
+    AoE types:
+
+        ``"unsafe"``      — everyone at target's height, caster included.
+        ``"unsafe_self"`` — everyone at target's height except caster.
+        ``"safe"``        — enemies only at target's height (via
+                            ``get_sides`` in combat, group membership
+                            out of combat).
+        ``"allies"``      — allies only at target's height, caster
+                            included (mass heal heals you too).
+
+    Returns an empty list if ``primary_target`` is None, ``caster``
+    has no location, or ``aoe`` is not a recognised type.
+    """
+    if not primary_target or not caster.location:
+        return []
+
+    target_height = getattr(primary_target, "room_vertical_position", 0)
+    height_pred = p_same_height_value(target_height)
+
+    # Walk room for all living visible actors at target's height
+    candidates = walk_contents(
+        caster, caster.location, p_living, p_visible_to, height_pred,
+    )
+
+    if aoe == "unsafe":
+        return [a for a in candidates if a is not primary_target]
+
+    if aoe == "unsafe_all_heights":
+        # Everyone in the room regardless of height — caster included.
+        # Used by spells like Call Lightning where the effect passes
+        # through all vertical levels.
+        all_candidates = walk_contents(
+            caster, caster.location, p_living, p_visible_to,
+        )
+        return [a for a in all_candidates if a is not primary_target]
+
+    if aoe == "unsafe_self":
+        return [
+            a for a in candidates
+            if a is not primary_target and a is not caster
+        ]
+
+    if aoe == "safe":
+        handler = caster.scripts.get("combat_handler")
+        if handler:
+            from combat.combat_utils import get_sides
+            _allies, enemies = get_sides(caster)
+            enemy_set = set(id(e) for e in enemies)
+            return [
+                a for a in candidates
+                if a is not primary_target and id(a) in enemy_set
+            ]
+        # Out of combat: non-groupmates are "enemies"
+        caster_leader = (
+            caster.get_group_leader()
+            if hasattr(caster, "get_group_leader") else None
+        )
+        def _is_own_pet(obj):
+            return (getattr(obj, "is_pet", False)
+                    and getattr(obj, "owner_key", None) == caster.key)
+
+        def _is_enemy(obj):
+            if obj is caster or obj is primary_target:
+                return False
+            if _is_own_pet(obj):
+                return False
+            other_leader = (
+                obj.get_group_leader()
+                if hasattr(obj, "get_group_leader") else None
+            )
+            if caster_leader and other_leader and caster_leader == other_leader:
+                return False
+            return True
+
+        return [a for a in candidates if _is_enemy(a)]
+
+    if aoe == "allies":
+        handler = caster.scripts.get("combat_handler")
+        if handler:
+            from combat.combat_utils import get_sides
+            allies, _enemies = get_sides(caster)
+            ally_set = set(id(a) for a in allies)
+            return [
+                a for a in candidates
+                if a is not primary_target and id(a) in ally_set
+            ]
+        # Out of combat: groupmates + caster + pets/mounts are allies
+        caster_leader = (
+            caster.get_group_leader()
+            if hasattr(caster, "get_group_leader") else None
+        )
+
+        def _is_own_pet_ally(obj):
+            return (getattr(obj, "is_pet", False)
+                    and getattr(obj, "owner_key", None) == caster.key)
+
+        def _is_ally(obj):
+            if obj is primary_target:
+                return False
+            if obj is caster or _is_own_pet_ally(obj):
+                return True
+            other_leader = (
+                obj.get_group_leader()
+                if hasattr(obj, "get_group_leader") else None
+            )
+            if caster_leader and other_leader and caster_leader == other_leader:
+                return True
+            return False
+
+        return [a for a in candidates if _is_ally(a)]
+
+    return []
+
+
+# ── Spell target resolution ──────────────────────────────────────────
+
+
+def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
+    """Resolve a spell target by ``target_type``.
+
+    Single entry point for all spell target resolution, used by
+    ``cmd_cast`` and ``cmd_zap``. Routes to the appropriate targeting
+    primitive based on the spell's ``target_type``.
+
+    Returns ``(target, secondaries)`` — a tuple of the primary target
+    and a list of AoE secondary targets. For non-AoE spells (``aoe=None``),
+    ``secondaries`` is always ``[]``. On failure, returns ``(None, [])``
+    with an error message already sent to the caller.
+
+    ``range`` controls height filtering for actor target_types:
+        ``"melee"``      — only actors at the caller's height
+        ``"ranged"``     — any height (default)
+        ``"ranged_only"``— only actors at a different height
+        ``"self"``       — no target resolution (ignored)
+
+    Target types — actors:
+
+        ``"self"``           — returns caller, no resolution needed.
+        ``"none"``           — returns None, no resolution needed.
+        ``"actor_hostile"``        — attack-priority actor resolution
+                               (enemy > bystander > ally > self),
+                               self rejected.
+        ``"actor_any"``      — same as hostile (attack priority,
+                               self rejected).
+        ``"actor_friendly"``       — friendly-priority actor resolution
+                               (self > ally > bystander > enemy),
+                               self allowed, empty target defaults
+                               to self.
+
+    Target types — items (``items_`` prefix, composable naming):
+
+        ``"items_inventory"``
+            Inventory only. Consumer: Create Water.
+        ``"items_all_room_then_inventory"``
+            Room (all visible objects + exits) first, inventory
+            fallback. Consumer: Knock.
+        ``"items_inventory_then_all_room"``
+            Inventory first, room (all visible objects + exits)
+            fallback. Consumer: Identify, Holy Insight.
+
+    Defined, not yet implemented (``NotImplementedError``):
+
+        ``"items_all_room"``
+            Room only, no fallback.
+        ``"items_gettable_room"``
+            Gettable items in room only.
+        ``"items_fixed_room"``
+            Fixtures + exits in room only.
+        ``"items_gettable_room_then_inventory"``
+        ``"items_inventory_then_gettable_room"``
+    """
+    # ── Self / none: no resolution ──
+    if target_type == "self":
+        return caller, []
+    if target_type == "none":
+        return None, []
+
+    target_str = (target_str or "").strip()
+
+    # Friendly defaults to self when no target is given
+    if not target_str:
+        if target_type == "actor_friendly":
+            secondaries = (
+                _resolve_aoe_secondaries(caller, caller, aoe) if aoe else []
+            )
+            return caller, secondaries
+        caller.msg("You need to specify a target.")
+        return None, []
+
+    if not caller.location and target_type != "items_inventory":
+        caller.msg("You aren't anywhere where you could target that.")
+        return None, []
+
+    # ── Height predicate based on range ──
+    extra_predicates = ()
+    if range == "melee":
+        extra_predicates = (p_same_height(caller),)
+    elif range == "ranged_only":
+        extra_predicates = (p_different_height(caller),)
+
+    # ── Hostile / any_actor: attack-priority actor resolution ──
+    if target_type in ("actor_hostile", "actor_any"):
+        if caller.scripts.get("combat_handler"):
+            target = resolve_attack_target_in_combat(
+                caller, target_str, extra_predicates=extra_predicates,
+            )
+        else:
+            target = resolve_attack_target_out_of_combat(
+                caller, target_str, extra_predicates=extra_predicates,
+            )
+        if target is None:
+            caller.msg(f"There's no '{target_str}' here.")
+            return None, []
+        if target is caller:
+            caller.msg("You can't target yourself with that spell.")
+            return None, []
+        secondaries = (
+            _resolve_aoe_secondaries(caller, target, aoe) if aoe else []
+        )
+        return target, secondaries
+
+    # ── Friendly: friendly-priority actor resolution ──
+    if target_type == "actor_friendly":
+        if caller.scripts.get("combat_handler"):
+            target = resolve_friendly_target_in_combat(
+                caller, target_str, extra_predicates=extra_predicates,
+            )
+        else:
+            target = resolve_friendly_target_out_of_combat(
+                caller, target_str, extra_predicates=extra_predicates,
+            )
+        if target is None:
+            caller.msg(f"There's no '{target_str}' here.")
+            return None, []
+        secondaries = (
+            _resolve_aoe_secondaries(caller, target, aoe) if aoe else []
+        )
+        return target, secondaries
+
+    # ── items_inventory: inventory only ──
+    if target_type == "items_inventory":
+        target = resolve_item_in_source(
+            caller, caller, target_str,
+            nofound_string=f"You aren't carrying anything called '{target_str}'.",
+        )
+        return target, []
+
+    # ── items_all_room_then_inventory: room first, inventory fallback ──
+    if target_type == "items_all_room_then_inventory":
+        target = _resolve_world_item(caller, target_str, silent=True)
+        if target is not None:
+            return target, []
+        target = resolve_item_in_source(
+            caller, caller, target_str, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        if target is not None:
+            return target, []
+        caller.msg(f"You don't see '{target_str}' here.")
+        return None, []
+
+    # ── items_inventory_then_all_room: inventory first, room fallback ──
+    if target_type == "items_inventory_then_all_room":
+        target = resolve_item_in_source(
+            caller, caller, target_str, quiet=True, exclude_worn=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        if target is not None:
+            return target, []
+        if caller.location:
+            target = _resolve_all_room(caller, target_str, quiet=True)
+            if target is not None:
+                return target, []
+        caller.msg(f"You don't see '{target_str}' here.")
+        return None, []
+
+    # ── Future item types (convention-defined, not yet implemented) ──
+    _FUTURE_ITEM_TYPES = (
+        "items_all_room",
+        "items_gettable_room",
+        "items_fixed_room",
+        "items_gettable_room_then_inventory",
+        "items_inventory_then_gettable_room",
+    )
+    if target_type in _FUTURE_ITEM_TYPES:
+        raise NotImplementedError(
+            f"target_type '{target_type}' is defined in the naming "
+            f"convention but not yet implemented. Add a consumer spell "
+            f"first, then implement the branch."
+        )
+
+    # Unknown type — defensive
+    caller.msg(f"Unknown target type '{target_type}'.")
+    return None, []
+
+
+def _resolve_world_item(caller, target_str, silent=False):
+    """Find an object or exit in the caller's room by name.
+
+    Delegates to ``find_exit_target`` which includes directional
+    parsing ("door south" → direction + name decomposition). Used by
+    the ``items_all_room_then_inventory`` branch for Knock and similar.
+
+    When ``silent`` is True, uses ``_resolve_all_room`` instead to
+    suppress error messages — used by fallback paths that emit their
+    own errors.
+    """
+    if not caller.location:
+        if not silent:
+            caller.msg("You aren't anywhere where you could target that.")
+        return None
+
+    if silent:
+        return _resolve_all_room(caller, target_str, quiet=True)
+
+    from utils.find_exit_target import find_exit_target
+    return find_exit_target(caller, target_str)
+
+
+def _resolve_all_room(caller, target_str, quiet=False):
+    """Find any visible non-actor object in the room, including exits.
+
+    Single-pass walk over ``room.contents`` via ``walk_contents`` with
+    ``(p_not_actor, p_visible_to)`` — includes exits, fixtures, loose
+    items, containers. Excludes actors.
+
+    Used by ``items_inventory_then_all_room`` (room fallback) and
+    ``items_all_room_then_inventory`` (room step, silent mode).
+    """
+    candidates = walk_contents(
+        caller, caller.location, p_not_actor, p_visible_to,
+    )
+    if not candidates:
+        if not quiet:
+            caller.msg(f"You don't see '{target_str}' here.")
+        return None
+    target = caller.search(target_str, candidates=candidates, quiet=True)
+    if isinstance(target, list):
+        target = target[0] if target else None
+    if not target and not quiet:
+        caller.msg(f"You don't see '{target_str}' here.")
+    return target

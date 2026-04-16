@@ -14,7 +14,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from world.spells.registry import get_spell, SPELL_REGISTRY
-from world.spells.spell_utils import resolve_spell_target
+from utils.targeting.helpers import resolve_target
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -111,11 +111,11 @@ class CmdCast(FCMCommandMixin, Command):
             )
             return
 
-        # Resolve target — resolve_spell_target handles all target_types
+        # Resolve target — resolve_target handles all target_types
         # including "self" and "none". On None, the helper has already
         # told the caster what went wrong, so we just return (except
         # for "none" where None is the expected return).
-        target, secondaries = resolve_spell_target(
+        target, secondaries = resolve_target(
             caller, target_str, spell_match.target_type,
             range=spell_match.range,
             aoe=spell_match.aoe,

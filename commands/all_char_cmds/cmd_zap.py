@@ -37,7 +37,7 @@ from enums.condition import Condition
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.wand_nft_item import WandNFTItem
 from world.spells.registry import SPELL_REGISTRY
-from world.spells.spell_utils import resolve_spell_target
+from utils.targeting.helpers import resolve_target
 
 
 class CmdZap(FCMCommandMixin, Command):
@@ -87,12 +87,12 @@ class CmdZap(FCMCommandMixin, Command):
             return
 
         # ── 3. Resolve target per the spell's target_type ────
-        # resolve_spell_target handles all target_types including "self"
+        # resolve_target handles all target_types including "self"
         # and "none". On None the helper has already told the caster
         # what went wrong, so we just return (except "none" where None
         # is the expected return).
         target_str = self.args.strip()
-        target, secondaries = resolve_spell_target(
+        target, secondaries = resolve_target(
             caller, target_str, spell.target_type,
             range=spell.range,
             aoe=spell.aoe,

@@ -59,7 +59,8 @@ class TestNecromancyRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.NECROMANCY)
         self.assertEqual(spell.min_mastery, MasteryLevel.EXPERT)
-        self.assertEqual(spell.target_type, "none")
+        self.assertEqual(spell.target_type, "actor_hostile")
+        self.assertEqual(spell.aoe, "unsafe_self")
         self.assertEqual(spell.mana_cost, {3: 28, 4: 39, 5: 49})
 
     def test_raise_lich_registered(self):

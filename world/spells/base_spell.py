@@ -81,7 +81,7 @@ class Spell:
             "none"     — no target needed
             "actor_any" — any actor in the room
 
-        Item targets (resolved via spell_utils.resolve_spell_target):
+        Item targets (resolved via spell_utils.resolve_target):
             "items_inventory"
                 Inventory only (e.g. Create Water — fill a container).
             "items_all_room_then_inventory"
@@ -179,7 +179,7 @@ class Spell:
             target: resolved target (or None)
             spell_arg: optional spell argument (e.g. element for Resist)
             secondaries: list of AoE secondary targets (default []).
-                Populated by resolve_spell_target when spell.aoe is set.
+                Populated by resolve_target when spell.aoe is set.
                 Non-AoE spells receive []. Passed to _execute via kwargs.
 
         Returns:
@@ -202,9 +202,9 @@ class Spell:
             )
 
         # Height filtering for melee spells is primarily enforced at
-        # resolution time in resolve_spell_target via p_same_height.
+        # resolution time in resolve_target via p_same_height.
         # This belt-and-suspenders check catches direct cast() callers
-        # (AI, scripts, tests) that bypass resolve_spell_target.
+        # (AI, scripts, tests) that bypass resolve_target.
         if self.range == "melee" and target:
             caster_height = getattr(caster, "room_vertical_position", 0)
             target_height = getattr(target, "room_vertical_position", 0)
