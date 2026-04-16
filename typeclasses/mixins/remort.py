@@ -127,12 +127,6 @@ class RemortMixin:
         self.hunger_level = self._get_default_hunger()
         self.room_vertical_position = 0
 
-        # Dismiss pet and mount
-        if self.active_pet:
-            self.active_pet = None
-        if self.active_mount:
-            self.active_mount = None
-
         # Remove class and race cmdsets (chargen will re-add)
         self._remove_class_and_race_cmdsets()
 
