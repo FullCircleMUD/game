@@ -80,6 +80,7 @@ class TestConjurationRegistry(EvenniaTest):
             "acid_arrow", "teleport", "dimensional_lock",
             "conjure_elemental", "gate",
             "light_spell", "find_familiar",
+            "create_water", "knock",
         }
         self.assertEqual(set(conj.keys()), expected)
 

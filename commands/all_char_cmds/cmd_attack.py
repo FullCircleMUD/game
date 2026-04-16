@@ -11,6 +11,10 @@ from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
 from combat.height_utils import can_reach_target
 from enums.condition import Condition
+from utils.targeting.helpers import (
+    resolve_attack_target_in_combat,
+    resolve_attack_target_out_of_combat,
+)
 
 
 class CmdAttack(FCMCommandMixin, Command):
@@ -36,27 +40,18 @@ class CmdAttack(FCMCommandMixin, Command):
             caller.msg("Attack what?")
             return
 
-        # Search room contents only — quiet=True takes first match instead
-        # of showing a disambiguation prompt (MUD convention: attack the
-        # first matching mob, use 2.rat for the second).
-        results = caller.search(
-            self.args.strip(), location=caller.location, quiet=True
-        )
-        if not results:
-            caller.msg(f"You don't see '{self.args.strip()}' here.")
+        search_term = self.args.strip()
+        if caller.scripts.get("combat_handler"):
+            target = resolve_attack_target_in_combat(caller, search_term)
+        else:
+            target = resolve_attack_target_out_of_combat(caller, search_term)
+
+        if target is None:
+            caller.msg(f"You don't see '{search_term}' here.")
             return
-        target = results[0] if isinstance(results, list) else results
 
         if target == caller:
             caller.msg("You can't attack yourself.")
-            return
-
-        if not hasattr(target, "hp") or target.hp is None:
-            caller.msg("You can't attack that.")
-            return
-
-        if target.hp <= 0:
-            caller.msg(f"{target.key} is already dead.")
             return
 
         # Height reachability check — melee requires same height

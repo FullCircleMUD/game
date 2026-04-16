@@ -54,15 +54,30 @@ class TestCmdAttack(EvenniaCommandTest):
         self.assertIn("Attack what?", result)
 
     def test_attack_self(self):
-        """Can't attack yourself."""
-        result = self.call(CmdAttack(), self.char1.key)
+        """Attacking 'me' emits the friendly self-error.
+
+        Exercises the self-targeting path via Evennia's direct-match
+        shortcut. The resolver lands caller in the 'self' bucket (last
+        priority) and the command-layer self-check emits the friendly
+        refusal. Typing your own literal key when another actor in the
+        room shares a name-prefix honestly resolves to that other
+        actor — self-attack-by-literal-key is the rare edge case we
+        deliberately don't optimise for.
+        """
+        result = self.call(CmdAttack(), "me")
         self.assertIn("can't attack yourself", result)
 
     def test_attack_dead_target(self):
-        """Can't attack a dead target."""
+        """A dead target is not distinguishable from 'not here'.
+
+        hp=0 is a microseconds-wide race between actor death and corpse
+        creation — not a state players can usefully target. The targeting
+        library filters it out via p_living, so the command reports the
+        same 'not here' wording as if the target didn't exist at all.
+        """
         self.char2.hp = 0
         result = self.call(CmdAttack(), self.char2.key)
-        self.assertIn("already dead", result)
+        self.assertIn(f"You don't see '{self.char2.key}' here", result)
 
     def test_attack_no_combat_room(self):
         """Can't attack in a non-combat room."""

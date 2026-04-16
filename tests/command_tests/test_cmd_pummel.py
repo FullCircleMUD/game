@@ -90,10 +90,15 @@ class TestPummelGates(_PummelTestBase):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_pummel_self_blocked(self, mock_ticker):
-        """Can't pummel yourself."""
+        """Can't pummel yourself.
+
+        Uses 'me' to exercise the self-targeting path via Evennia's
+        direct-match shortcut, caught by _is_self_keyword at the top
+        of the resolver.
+        """
         self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
-        result = self.call(CmdPummel(), self.char1.key)
+        result = self.call(CmdPummel(), "me")
         self.assertIn("can't pummel yourself", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")

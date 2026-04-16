@@ -92,10 +92,16 @@ class TestBashGates(_BashTestBase):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_bash_self_blocked(self, mock_ticker):
-        """Can't bash yourself."""
+        """Can't bash yourself.
+
+        Uses 'me' to exercise the self-targeting path via Evennia's
+        direct-match shortcut, caught by _is_self_keyword at the top
+        of the resolver. Typing your own literal key is the rare
+        edge case we don't optimise for (see test_attack_self).
+        """
         self._set_bash_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
-        result = self.call(CmdBash(), self.char1.key)
+        result = self.call(CmdBash(), "me")
         self.assertIn("can't bash yourself", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")

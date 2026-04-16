@@ -9,6 +9,7 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 from utils.targeting.predicates import (
     p_is_character,
     p_is_container,
+    p_living,
     p_not_actor,
     p_not_exit,
     p_visible_to,
@@ -281,6 +282,279 @@ def resolve_container(caller, name):
             if result is not None:
                 return result
     return None
+
+
+def _first_match_in_priority(caller, name, buckets, order):
+    """Run ``caller.search`` against each bucket in priority order.
+
+    Returns the first matching object. Short-circuits on the first
+    non-empty bucket that yields a match. Buckets with no name match
+    fall through to the next priority tier.
+
+    Shared by the priority-bucketed attack resolvers. Private to this
+    module — not part of the targeting public API.
+    """
+    for tier in order:
+        candidates = buckets.get(tier, [])
+        if not candidates:
+            continue
+        result = caller.search(name, candidates=candidates, quiet=True)
+        if not result:
+            continue
+        if isinstance(result, list):
+            result = result[0] if result else None
+        if result is not None:
+            return result
+    return None
+
+
+def _is_self_keyword(name):
+    """True if ``name`` is a direct self-reference keyword.
+
+    Evennia's ``get_search_direct_match`` intercepts ``me`` / ``self``
+    and returns the searcher, but only if the searcher is in the
+    candidate list. When we walk priority buckets, the caller is
+    usually NOT in the first bucket's candidate list, and Evennia's
+    direct-match path silently mutates ``searchdata`` to the caller
+    object — which then prefix-matches against candidate keys
+    downstream, returning the wrong actor. Intercepting these
+    keywords at the resolver level bypasses that quirk entirely.
+    """
+    return isinstance(name, str) and name.lower() in ("me", "self")
+
+
+#: Default priority order for out-of-combat attack targeting.
+#: Stranger wins over groupmate wins over self. Exposed so friendly
+#: / any spell wrappers can pass a reversed order and reuse the
+#: same classifier machinery.
+ATTACK_OUT_OF_COMBAT_ORDER = ("stranger", "groupmate", "self")
+
+
+def resolve_attack_target_out_of_combat(caller, name, order=None):
+    """Find a hostile-action target for a caller not currently in combat.
+
+    Walks ``caller.location`` for living, visible actors and buckets
+    them by group membership relative to the caller. Default priority
+    order (hostile intent):
+
+        1. ``stranger``  — actors not in caller's follow-chain group
+        2. ``groupmate`` — actors in caller's group plus
+                           ``caller.active_pet`` and ``caller.active_mount``
+        3. ``self``      — the caller themselves (last-resort fallback)
+
+    Name matching happens against each bucket in priority order via
+    ``caller.search``, so a stranger "goblin" wins over a groupmate
+    "goblin" even though both match the keyword. Only if no stranger
+    matches does the search fall through to groupmates — that way a
+    player whose pet shares a mob name can still choose to attack it
+    by being explicit (no stranger goblin in the room).
+
+    The ``self`` bucket is intentionally last priority under the
+    default order. If a player types their own name while some other
+    actor in the room matches it too, they almost certainly meant the
+    other actor. Self only wins when nothing else matches. When it
+    does, the command layer recognises ``target is caller`` and emits
+    a friendly self-error ("You can't attack yourself"). The ``me`` /
+    ``self`` keywords land here via Evennia's direct-match shortcut.
+
+    ``order`` parameter: when None, uses ``ATTACK_OUT_OF_COMBAT_ORDER``
+    (the default hostile-intent tuple). Friendly-intent wrappers
+    (``resolve_friendly_target_out_of_combat``) pass a reversed tuple
+    so "cast cure light goblin" prefers the groupmate goblin over a
+    stranger goblin. The classifier is identical in both cases — only
+    the fall-through priority differs.
+
+    Consumers: ``cmd_attack`` (pre-combat), ``cmd_bash`` / ``cmd_pummel``
+    / ``cmd_taunt`` when caller not in combat, hostile spells cast out
+    of combat. Friendly-intent wrapper consumed by friendly spells.
+
+    Reads group state via duck-typed ``get_group_leader()`` — no import
+    from ``typeclasses`` or ``combat``. Targeting stays a leaf package.
+    """
+    room = caller.location
+    if room is None:
+        return None
+    if _is_self_keyword(name):
+        return caller
+    caller_leader = (
+        caller.get_group_leader() if hasattr(caller, "get_group_leader") else None
+    )
+
+    # need to check how pets actually work...
+    # I think active_pet and active_mount might be legacy from old design
+    # that has been superceded.... not sure, but need to check and possibly
+    # update pet detection logic here - this will do for now
+    pet = getattr(caller, "active_pet", None)
+    mount = getattr(caller, "active_mount", None)
+
+    def classify(obj, _caller):
+        if obj is caller:
+            return "self"
+        if obj is pet or obj is mount:
+            return "groupmate"
+        other_leader = (
+            obj.get_group_leader() if hasattr(obj, "get_group_leader") else None
+        )
+        if caller_leader and other_leader and caller_leader == other_leader:
+            return "groupmate"
+        return "stranger"
+
+    if order is None:
+        order = ATTACK_OUT_OF_COMBAT_ORDER
+
+    buckets = bucket_contents(
+        caller, room, classify,
+        p_living, p_visible_to,
+        order=order,
+    )
+    return _first_match_in_priority(caller, name, buckets, order)
+
+
+#: Default priority order for in-combat attack targeting.
+#: Enemy wins over bystander wins over ally wins over self. Exposed
+#: so friendly / any spell wrappers can pass a reversed order and
+#: reuse the same classifier machinery.
+ATTACK_IN_COMBAT_ORDER = ("enemy", "bystander", "ally", "self")
+
+
+def resolve_attack_target_in_combat(caller, name, order=None):
+    """Find a hostile-action target for a caller currently in combat.
+
+    Walks ``caller.location`` for living, visible actors and buckets
+    them by combat relationship. Default priority order (hostile intent):
+
+        1. ``enemy``     — ``combat_side`` opposes caller's side (nonzero)
+        2. ``bystander`` — no ``combat_handler``, or ``combat_side == 0``
+        3. ``ally``      — same ``combat_side`` as caller
+        4. ``self``      — the caller themselves (last-resort fallback)
+
+    Name matching happens against each bucket in priority order via
+    ``caller.search``, so an enemy "goblin" wins over a bystander
+    "goblin" wins over an ally "goblin". A command issuing
+    ``attack goblin`` mid-fight picks the hostile goblin even when an
+    allied goblin shares the keyword.
+
+    Returns ``None`` if the caller has no combat handler — callers
+    should branch to the out-of-combat variant in that case.
+
+    ``order`` parameter: when None, uses ``ATTACK_IN_COMBAT_ORDER``
+    (the default hostile-intent tuple). Friendly-intent wrappers
+    (``resolve_friendly_target_in_combat``) pass a reversed tuple so
+    "cast cure light goblin" prefers an allied goblin over an enemy
+    goblin. The classifier is identical in both cases — only the
+    fall-through priority differs.
+
+    Combat side is read directly from
+    ``obj.scripts.get("combat_handler")[0].combat_side`` — no import
+    from ``combat/``. Targeting stays a leaf package; combat imports
+    from targeting, not the other way.
+
+    Consumers: ``cmd_attack`` (mid-combat re-target), ``cmd_bash`` /
+    ``cmd_pummel`` when already in combat, hostile spells cast in
+    combat. Friendly-intent wrapper consumed by friendly spells.
+    """
+    room = caller.location
+    if room is None:
+        return None
+    caller_handlers = caller.scripts.get("combat_handler")
+    if not caller_handlers:
+        return None
+    if _is_self_keyword(name):
+        return caller
+    my_side = caller_handlers[0].combat_side
+
+    def classify(obj, _caller):
+        if obj is caller:
+            return "self"
+        handlers = obj.scripts.get("combat_handler")
+        if not handlers:
+            return "bystander"
+        their_side = handlers[0].combat_side
+        if their_side == 0:
+            return "bystander"
+        if their_side == my_side:
+            return "ally"
+        return "enemy"
+
+    if order is None:
+        order = ATTACK_IN_COMBAT_ORDER
+
+    buckets = bucket_contents(
+        caller, room, classify,
+        p_living, p_visible_to,
+        order=order,
+    )
+    return _first_match_in_priority(caller, name, buckets, order)
+
+
+#: Priority order for in-combat friendly-intent targeting (heal, buff,
+#: protect, etc). Reverse of ``ATTACK_IN_COMBAT_ORDER`` — self first,
+#: then ally, then bystander, then enemy as last resort.
+FRIENDLY_IN_COMBAT_ORDER = ("self", "ally", "bystander", "enemy")
+
+#: Priority order for out-of-combat friendly-intent targeting.
+#: Reverse of ``ATTACK_OUT_OF_COMBAT_ORDER`` — self first, then
+#: groupmate, then stranger as last resort.
+FRIENDLY_OUT_OF_COMBAT_ORDER = ("self", "groupmate", "stranger")
+
+
+def resolve_friendly_target_in_combat(caller, name):
+    """Find a friendly-intent target for a caller currently in combat.
+
+    Same classifier as ``resolve_attack_target_in_combat`` — buckets
+    actors by combat relationship — but priority reversed:
+
+        1. ``self``      — the caller themselves (highest priority)
+        2. ``ally``      — same ``combat_side`` as caller
+        3. ``bystander`` — no ``combat_handler``, or ``combat_side == 0``
+        4. ``enemy``     — ``combat_side`` opposes caller's side
+
+    Used by friendly / any spell target resolution so
+    ``cast cure light goblin`` prefers an allied goblin over an enemy
+    goblin when both are in the room. Enemy still wins if it's the
+    only name match — self is first-preference, not hard-exclusive.
+
+    ``me`` / ``self`` keywords land in ``_is_self_keyword`` at the top
+    of the underlying resolver and return caller unchanged. Friendly
+    spells allow self, so the command layer just uses whatever comes
+    back.
+
+    Thin wrapper over ``resolve_attack_target_in_combat`` with the
+    reversed-priority ``order`` kwarg. Same classifier, same bucket
+    walk, same ``walk_contents`` machinery — only the priority
+    tuple differs. Adding new intent variants in future is one
+    constant + one wrapper.
+
+    Returns the matched actor or None.
+    """
+    return resolve_attack_target_in_combat(
+        caller, name, order=FRIENDLY_IN_COMBAT_ORDER,
+    )
+
+
+def resolve_friendly_target_out_of_combat(caller, name):
+    """Find a friendly-intent target for a caller not currently in combat.
+
+    Same classifier as ``resolve_attack_target_out_of_combat`` —
+    buckets actors by group membership — but priority reversed:
+
+        1. ``self``      — the caller themselves (highest priority)
+        2. ``groupmate`` — actors in caller's follow-chain group +
+                           ``caller.active_pet`` / ``active_mount``
+        3. ``stranger``  — everyone else
+
+    Used by friendly / any spell target resolution out of combat.
+    Mirror of the out-of-combat attack resolver which prefers
+    strangers over groupmates over self.
+
+    Thin wrapper over ``resolve_attack_target_out_of_combat`` with
+    the reversed-priority ``order`` kwarg.
+
+    Returns the matched actor or None.
+    """
+    return resolve_attack_target_out_of_combat(
+        caller, name, order=FRIENDLY_OUT_OF_COMBAT_ORDER,
+    )
 
 
 def resolve_character_in_room(caller, name):

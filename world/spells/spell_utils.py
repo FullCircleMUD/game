@@ -9,6 +9,12 @@ get_room_enemies() and get_room_all() provide AoE targeting helpers.
 """
 
 from enums.damage_type import DamageType
+from utils.targeting.helpers import (
+    resolve_attack_target_in_combat,
+    resolve_attack_target_out_of_combat,
+    resolve_friendly_target_in_combat,
+    resolve_friendly_target_out_of_combat,
+)
 
 
 def apply_spell_damage(target, raw_damage, damage_type):
@@ -171,51 +177,56 @@ def resolve_actor_target(caster, target_str, target_type):
         caster.msg("You aren't anywhere where you could target that.")
         return None
 
-    # Build candidates: living actors in the caster's current room.
-    # This scoping is the key difference from bare caller.search() —
-    # we never fall back to the room itself or to objects without hp.
-    candidates = [
-        obj for obj in caster.location.contents
-        if _is_living_actor(obj)
-    ]
-
-    # For hostile spells, the caster cannot target themselves.
+    # ── Hostile: delegate to priority-bucketed attack resolvers ──
+    # Inherits enemy > bystander > ally priority (in combat) or
+    # stranger > groupmate priority (out of combat) from the attack
+    # verbs, so "cast drain life goblin" picks the same goblin
+    # "attack goblin" picks. walk_contents inside the priority
+    # helpers never includes the room object, so the bee-tree crash
+    # is structurally impossible on this path.
     if target_type == "hostile":
-        candidates = [obj for obj in candidates if obj is not caster]
+        if caster.scripts.get("combat_handler"):
+            target = resolve_attack_target_in_combat(caster, target_str)
+        else:
+            target = resolve_attack_target_out_of_combat(caster, target_str)
 
-    if not candidates:
-        caster.msg(f"There is no valid target for '{target_str}' here.")
-        return None
+        if target is None:
+            caster.msg(f"There's no '{target_str}' here.")
+            return None
 
-    # Delegate name/alias/numeric-disambiguation matching to Evennia's
-    # search over our constrained candidate list.
-    target = caster.search(
-        target_str,
-        candidates=candidates,
-        quiet=True,
-    )
-    if isinstance(target, list):
-        target = target[0] if target else None
-    if not target:
+        # Self reached only via the self-bucket fallback in the
+        # priority helpers, or via _is_self_keyword interception
+        # when the player typed "me" / "self". Hostile spells reject.
+        if target is caster:
+            caster.msg("You can't cast a hostile spell on yourself.")
+            return None
+
+        return target
+
+    # ── Friendly / any: delegate to friendly priority resolvers ──
+    # Both target_types share the same priority semantics:
+    # self > ally/groupmate > bystander/stranger > enemy. "cast cure
+    # light goblin" prefers an allied goblin over an enemy goblin;
+    # enemy still wins when it's the only name match — self is
+    # first-preference, not hard-exclusive. Hidden actors are filtered
+    # via walk_contents inside the priority resolvers (previously
+    # friendly/any had no visibility filter — a latent inconsistency
+    # with the hostile path now fixed).
+    #
+    # me / self keywords land in _is_self_keyword at the top of the
+    # priority resolver and return caster directly. Friendly spells
+    # allow self so we pass that through unchanged. (Empty target_str
+    # for friendly is already handled above — defaults to caster.)
+    if caster.scripts.get("combat_handler"):
+        target = resolve_friendly_target_in_combat(caster, target_str)
+    else:
+        target = resolve_friendly_target_out_of_combat(caster, target_str)
+
+    if target is None:
         caster.msg(f"There's no '{target_str}' here.")
         return None
+
     return target
-
-
-def _is_living_actor(obj):
-    """True if ``obj`` is a living actor that can receive an actor-target spell.
-
-    Used as the filter for resolve_actor_target's candidate list.
-    Requires hp > 0 so the check filters out corpses, inanimate
-    fixtures, the room itself, and dead mobs.
-    """
-    hp = getattr(obj, "hp", None)
-    if hp is None:
-        return False
-    try:
-        return int(hp) > 0
-    except (TypeError, ValueError):
-        return False
 
 
 # ── Item target resolution (for spells with target_type=*_item) ───────

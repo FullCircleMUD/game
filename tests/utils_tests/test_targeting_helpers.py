@@ -13,11 +13,64 @@ from evennia.utils.test_resources import EvenniaTest
 from utils.targeting.helpers import (
     BASE_ITEM_PREDICATES,
     bucket_contents,
+    resolve_attack_target_in_combat,
+    resolve_attack_target_out_of_combat,
     resolve_character_in_room,
     resolve_container,
     resolve_item_in_source,
     walk_contents,
 )
+
+
+def _make_actor(
+    key="bob",
+    hp=10,
+    leader=None,
+    combat_side=None,
+    visible=True,
+):
+    """An actor-shaped mock for attack-target resolver tests.
+
+    - ``hp`` controls p_living (pass hp=0 to simulate dead).
+    - ``leader`` is returned by ``get_group_leader()``. A sentinel
+      object shared between actors marks them as same-group. None
+      means solo / no group.
+    - ``combat_side`` builds a ``scripts.get("combat_handler")`` list
+      holding one stub handler with ``.combat_side``. None means no
+      combat handler attached (bystander).
+    - ``visible`` controls ``is_hidden_visible_to``.
+    """
+    actor = MagicMock()
+    actor.key = key
+    actor.hp = hp
+    actor.get_group_leader = MagicMock(return_value=leader)
+    actor.is_hidden_visible_to = MagicMock(return_value=visible)
+    scripts = MagicMock()
+    if combat_side is None:
+        scripts.get = MagicMock(return_value=[])
+    else:
+        handler = SimpleNamespace(combat_side=combat_side)
+        scripts.get = MagicMock(return_value=[handler])
+    actor.scripts = scripts
+    return actor
+
+
+def _search_returns_first(name=None, candidates=None, **_kwargs):
+    """Side-effect for caller.search: return the first candidate matching ``name``.
+
+    Mimics Evennia's ``caller.search(quiet=True, candidates=[...])``
+    closely enough for priority-bucket tests. Does a simple
+    case-insensitive substring match against each candidate's ``.key``
+    so "no match in this bucket" falls through to the next tier.
+    """
+    if not candidates or not name:
+        return None
+    needle = name.lower()
+    for obj in candidates:
+        key = getattr(obj, "key", None)
+        if isinstance(key, str) and needle in key.lower():
+            return obj
+    return None
 
 
 def _make_item(key="sword"):
@@ -722,3 +775,243 @@ class TestResolveCharacterInRoom(EvenniaTest):
         caller_pc.search = MagicMock(return_value=caller_pc)
         result = resolve_character_in_room(caller_pc, "bob")
         self.assertIs(result, caller_pc)
+
+
+class TestResolveAttackTargetOutOfCombat(EvenniaTest):
+    """Unit tests for resolve_attack_target_out_of_combat.
+
+    Covers the group-priority classifier: strangers win over
+    groupmates even when both match the keyword. Pet and mount are
+    treated as groupmates (priority fallback, never preferred).
+    """
+
+    def create_script(self):
+        pass
+
+    def _caller(self, leader=None, pet=None, mount=None):
+        """Build a caller with group/pet/mount state and room."""
+        caller = _make_actor(key="me", leader=leader)
+        caller.active_pet = pet
+        caller.active_mount = mount
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        return caller
+
+    # ── Source edge cases ─────────────────────────────────────────
+
+    def test_no_location_returns_none(self):
+        caller = self._caller()
+        caller.location = None
+        self.assertIsNone(resolve_attack_target_out_of_combat(caller, "goblin"))
+
+    def test_caller_alone_in_room_returns_none(self):
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        self.assertIsNone(resolve_attack_target_out_of_combat(caller, "goblin"))
+
+    # ── Single-bucket matches ────────────────────────────────────
+
+    def test_single_stranger_matches(self):
+        caller = self._caller()
+        goblin = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, goblin)
+
+    def test_only_groupmate_still_matches_as_fallback(self):
+        # Pet-named "goblin" and nothing else — the groupmate bucket
+        # is last priority but still matches when no stranger is
+        # available. Player chose to attack their pet explicitly.
+        leader = object()
+        caller = self._caller(leader=leader)
+        groupmate = _make_actor(key="goblin", leader=leader)
+        caller.location = SimpleNamespace(contents=[caller, groupmate])
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, groupmate)
+
+    # ── Priority: stranger wins over groupmate ───────────────────
+
+    def test_stranger_wins_over_groupmate_same_name(self):
+        leader = object()
+        caller = self._caller(leader=leader)
+        stranger_goblin = _make_actor(key="goblin")  # no leader = solo
+        group_goblin = _make_actor(key="goblin", leader=leader)
+        caller.location = SimpleNamespace(
+            contents=[caller, group_goblin, stranger_goblin]
+        )
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, stranger_goblin)
+
+    def test_pet_goes_to_groupmate_bucket(self):
+        pet = _make_actor(key="goblin")  # pet has no leader, caught via active_pet
+        caller = self._caller(pet=pet)
+        stranger_goblin = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, pet, stranger_goblin])
+        # Stranger goblin wins; pet would only match if no stranger.
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, stranger_goblin)
+
+    def test_pet_only_still_matches(self):
+        pet = _make_actor(key="goblin")
+        caller = self._caller(pet=pet)
+        caller.location = SimpleNamespace(contents=[caller, pet])
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, pet)
+
+    def test_mount_goes_to_groupmate_bucket(self):
+        mount = _make_actor(key="horse")
+        caller = self._caller(mount=mount)
+        stranger_horse = _make_actor(key="horse")
+        caller.location = SimpleNamespace(contents=[caller, mount, stranger_horse])
+        result = resolve_attack_target_out_of_combat(caller, "horse")
+        self.assertIs(result, stranger_horse)
+
+    # ── Caller lands in 'self' bucket, last priority ─────────────
+
+    def test_caller_alone_in_room_with_matching_name_returns_self(self):
+        # Caller lands in the 'self' bucket. With no stranger or
+        # groupmate to match, self is the fallback and the resolver
+        # returns the caller. Command layer then emits the friendly
+        # self-error.
+        caller = self._caller()
+        caller.key = "goblin"
+        caller.location = SimpleNamespace(contents=[caller])
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, caller)
+
+    def test_stranger_wins_over_self_same_name(self):
+        # Self bucket is last priority. Any other match wins. Typing
+        # your own name when another actor in the room also matches
+        # resolves to that actor, not yourself — the honest UX.
+        caller = self._caller()
+        caller.key = "goblin"
+        stranger_goblin = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, stranger_goblin])
+        result = resolve_attack_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, stranger_goblin)
+
+    # ── p_living / p_visible_to filter correctly ─────────────────
+
+    def test_dead_stranger_is_filtered(self):
+        caller = self._caller()
+        dead = _make_actor(key="goblin", hp=0)
+        caller.location = SimpleNamespace(contents=[caller, dead])
+        self.assertIsNone(resolve_attack_target_out_of_combat(caller, "goblin"))
+
+    def test_hidden_stranger_is_filtered(self):
+        caller = self._caller()
+        hidden = _make_actor(key="goblin", visible=False)
+        caller.location = SimpleNamespace(contents=[caller, hidden])
+        self.assertIsNone(resolve_attack_target_out_of_combat(caller, "goblin"))
+
+
+class TestResolveAttackTargetInCombat(EvenniaTest):
+    """Unit tests for resolve_attack_target_in_combat.
+
+    Covers the combat-side priority classifier: enemy > bystander >
+    ally. Combat side is read via a stubbed
+    ``scripts.get("combat_handler")`` list where each handler has a
+    ``.combat_side`` attribute.
+    """
+
+    def create_script(self):
+        pass
+
+    def _caller(self, combat_side=1):
+        """Build a caller currently on the given combat side."""
+        caller = _make_actor(key="me", combat_side=combat_side)
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        return caller
+
+    # ── Source / state edge cases ────────────────────────────────
+
+    def test_no_location_returns_none(self):
+        caller = self._caller()
+        caller.location = None
+        self.assertIsNone(resolve_attack_target_in_combat(caller, "goblin"))
+
+    def test_caller_not_in_combat_returns_none(self):
+        caller = _make_actor(key="me", combat_side=None)
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        goblin = _make_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        self.assertIsNone(resolve_attack_target_in_combat(caller, "goblin"))
+
+    def test_caller_alone_in_combat_returns_none(self):
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        self.assertIsNone(resolve_attack_target_in_combat(caller, "goblin"))
+
+    # ── Priority: enemy > bystander > ally ───────────────────────
+
+    def test_enemy_wins_over_bystander_and_ally(self):
+        caller = self._caller(combat_side=1)
+        enemy_goblin = _make_actor(key="goblin", combat_side=2)
+        bystander_goblin = _make_actor(key="goblin", combat_side=None)
+        ally_goblin = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(
+            contents=[caller, ally_goblin, bystander_goblin, enemy_goblin]
+        )
+        result = resolve_attack_target_in_combat(caller, "goblin")
+        self.assertIs(result, enemy_goblin)
+
+    def test_bystander_wins_when_no_enemy(self):
+        caller = self._caller(combat_side=1)
+        bystander_goblin = _make_actor(key="goblin", combat_side=None)
+        ally_goblin = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(
+            contents=[caller, ally_goblin, bystander_goblin]
+        )
+        result = resolve_attack_target_in_combat(caller, "goblin")
+        self.assertIs(result, bystander_goblin)
+
+    def test_side_zero_handler_classified_as_bystander(self):
+        # A combatant with combat_side=0 is a degenerate state but
+        # defined as "not on a side"; treated as a bystander.
+        caller = self._caller(combat_side=1)
+        zero = _make_actor(key="goblin", combat_side=0)
+        ally = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, ally, zero])
+        result = resolve_attack_target_in_combat(caller, "goblin")
+        self.assertIs(result, zero)
+
+    def test_ally_matches_when_nothing_else(self):
+        caller = self._caller(combat_side=1)
+        ally_goblin = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, ally_goblin])
+        result = resolve_attack_target_in_combat(caller, "goblin")
+        self.assertIs(result, ally_goblin)
+
+    def test_no_match_returns_none(self):
+        caller = self._caller(combat_side=1)
+        rat = _make_actor(key="rat", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, rat])
+        self.assertIsNone(resolve_attack_target_in_combat(caller, "goblin"))
+
+    # ── Caller lands in 'self' bucket, last priority ─────────────
+
+    def test_caller_alone_in_combat_with_matching_name_returns_self(self):
+        # Self is the last-priority fallback. With no enemy,
+        # bystander, or ally named "goblin", self wins and the
+        # resolver returns caller so the command layer emits the
+        # friendly self-error.
+        caller = self._caller(combat_side=1)
+        caller.key = "goblin"
+        caller.location = SimpleNamespace(contents=[caller])
+        result = resolve_attack_target_in_combat(caller, "goblin")
+        self.assertIs(result, caller)
+
+    def test_enemy_wins_over_self_same_name(self):
+        # Enemy tier beats self tier — priority semantics hold for
+        # self just like any other bucket.
+        caller = self._caller(combat_side=1)
+        caller.key = "goblin"
+        enemy_goblin = _make_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, enemy_goblin])
+        result = resolve_attack_target_in_combat(caller, "goblin")
+        self.assertIs(result, enemy_goblin)
+
+    def test_dead_enemy_is_filtered(self):
+        caller = self._caller(combat_side=1)
+        dead_enemy = _make_actor(key="goblin", combat_side=2, hp=0)
+        caller.location = SimpleNamespace(contents=[caller, dead_enemy])
+        self.assertIsNone(resolve_attack_target_in_combat(caller, "goblin"))
