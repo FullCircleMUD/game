@@ -115,15 +115,18 @@ class CmdCast(FCMCommandMixin, Command):
         # including "self" and "none". On None, the helper has already
         # told the caster what went wrong, so we just return (except
         # for "none" where None is the expected return).
-        target = resolve_spell_target(
+        target, secondaries = resolve_spell_target(
             caller, target_str, spell_match.target_type,
             range=spell_match.range,
+            aoe=spell_match.aoe,
         )
         if target is None and spell_match.target_type != "none":
             return
 
         # Cast the spell
-        success, result = spell_match.cast(caller, target, spell_arg=spell_arg)
+        success, result = spell_match.cast(
+            caller, target, spell_arg=spell_arg, secondaries=secondaries,
+        )
 
         # Break invisibility on offensive cast (no advantage — spells only)
         if success and spell_match.target_type == "actor_hostile":

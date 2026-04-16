@@ -271,3 +271,18 @@ def p_different_height(caller):
         return getattr(obj, "room_vertical_position", 0) != caller_height
 
     return _pred
+
+
+def p_same_height_value(height):
+    """Factory — returns a predicate matching actors at an explicit height.
+
+    Unlike ``p_same_height(caller)`` which captures the caller's height,
+    this factory takes a raw height value. Used by AoE secondaries
+    building where the height comes from the **primary target's**
+    position, not the caster's — a ranged fireball cast from height 2
+    at a goblin at height 0 cascades to all actors at height 0.
+    """
+    def _pred(obj, _caller):  # noqa: ARG001
+        return getattr(obj, "room_vertical_position", 0) == height
+
+    return _pred

@@ -68,9 +68,9 @@ class ResistElements(Spell):
         5: 60,
     }
 
-    def _execute(self, caster, target, spell_arg=None):
+    def _execute(self, caster, target, **kwargs):
         tier = self.get_caster_tier(caster)
-        element = spell_arg
+        element = kwargs.get("spell_arg")
 
         # --- Validate element ---
         if not element or element not in _VALID_ELEMENTS:

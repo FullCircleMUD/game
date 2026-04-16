@@ -59,11 +59,11 @@ class Command(Spell):
         "Combat-only. HUGE+ immune."
     )
 
-    def _execute(self, caster, target, spell_arg=None):
+    def _execute(self, caster, target, **kwargs):
         tier = self.get_caster_tier(caster)
 
         # --- Validate command word ---
-        command_word = spell_arg
+        command_word = kwargs.get("spell_arg")
         if not command_word or command_word not in _VALID_COMMANDS:
             caster.mana += self.mana_cost.get(tier, 0)
             valid = ", ".join(sorted(_VALID_COMMANDS))

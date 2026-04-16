@@ -170,7 +170,7 @@ class Spell:
         cooldowns[self.key] = cd
         caster.db.spell_cooldowns = cooldowns
 
-    def cast(self, caster, target=None, spell_arg=None):
+    def cast(self, caster, target=None, spell_arg=None, secondaries=None):
         """
         Validate mastery, cooldown, and mana, then dispatch to _execute.
 
@@ -178,11 +178,16 @@ class Spell:
             caster: the actor casting the spell
             target: resolved target (or None)
             spell_arg: optional spell argument (e.g. element for Resist)
+            secondaries: list of AoE secondary targets (default []).
+                Populated by resolve_spell_target when spell.aoe is set.
+                Non-AoE spells receive []. Passed to _execute via kwargs.
 
         Returns:
             (bool, str) on validation failure — caster-only error message
             (bool, dict) on spell execution — multi-perspective messages
         """
+        if secondaries is None:
+            secondaries = []
         tier = self.get_caster_tier(caster)
         if tier < self.min_mastery.value:
             return (False, "Your mastery is too low to cast this spell.")
@@ -222,10 +227,15 @@ class Spell:
             )
 
         caster.mana -= cost
+        # Build kwargs for _execute. Only pass secondaries and spell_arg
+        # when set, so spells with simple (self, caster, target) signatures
+        # don't need **kwargs just to ignore them.
+        exec_kwargs = {}
         if self.has_spell_arg:
-            result = self._execute(caster, target, spell_arg=spell_arg)
-        else:
-            result = self._execute(caster, target)
+            exec_kwargs["spell_arg"] = spell_arg
+        if secondaries:
+            exec_kwargs["secondaries"] = secondaries
+        result = self._execute(caster, target, **exec_kwargs)
 
         # Apply cooldown on successful cast
         if result[0]:
@@ -233,7 +243,7 @@ class Spell:
 
         return result
 
-    def _execute(self, caster, target, spell_arg=None):
+    def _execute(self, caster, target, **kwargs):
         """
         Execute the spell.
 
@@ -241,10 +251,13 @@ class Spell:
         contains keys: "first" (caster), "second" (target), "third" (room).
         Set "second" to None for self-targeted spells.
 
-        Args:
+        Kwargs passed by cast():
             spell_arg: optional argument parsed from cast command
                        (e.g. element for Resist). Only set when
                        has_spell_arg = True.
+            secondaries: list of AoE secondary targets (default []).
+                       AoE spells access via kwargs.get("secondaries", []).
+                       Non-AoE spells ignore this kwarg.
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _execute()"

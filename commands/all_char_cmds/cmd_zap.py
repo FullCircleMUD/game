@@ -92,9 +92,10 @@ class CmdZap(FCMCommandMixin, Command):
         # what went wrong, so we just return (except "none" where None
         # is the expected return).
         target_str = self.args.strip()
-        target = resolve_spell_target(
+        target, secondaries = resolve_spell_target(
             caller, target_str, spell.target_type,
             range=spell.range,
+            aoe=spell.aoe,
         )
         if target is None and spell.target_type != "none":
             return
@@ -105,7 +106,7 @@ class CmdZap(FCMCommandMixin, Command):
         caller.ndb._wand_caster_tier_override = spell.min_mastery.value
         caller.ndb._wand_free_cast = True
         try:
-            success, result = spell.cast(caller, target)
+            success, result = spell.cast(caller, target, secondaries=secondaries)
         finally:
             caller.ndb._wand_caster_tier_override = None
             caller.ndb._wand_free_cast = False

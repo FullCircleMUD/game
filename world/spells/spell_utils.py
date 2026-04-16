@@ -19,8 +19,10 @@ from utils.targeting.helpers import (
 )
 from utils.targeting.predicates import (
     p_different_height,
+    p_living,
     p_not_actor,
     p_same_height,
+    p_same_height_value,
     p_visible_to,
 )
 
@@ -128,17 +130,132 @@ def get_room_all_at_height(caster):
     ]
 
 
+# ── AoE secondaries ─────────────────────────────────────────────────
+
+
+def _resolve_aoe_secondaries(caster, primary_target, aoe):
+    """Build the AoE secondaries list from the primary target's height.
+
+    Collects living visible actors at the primary target's
+    ``room_vertical_position``, filtered by the ``aoe`` type. The
+    primary target is always excluded (they're already the primary).
+
+    AoE types:
+
+        ``"unsafe"``      — everyone at target's height, caster included.
+        ``"unsafe_self"`` — everyone at target's height except caster.
+        ``"safe"``        — enemies only at target's height (via
+                            ``get_sides`` in combat, group membership
+                            out of combat).
+        ``"allies"``      — allies only at target's height, caster
+                            included (mass heal heals you too).
+
+    Returns an empty list if ``primary_target`` is None, ``caster``
+    has no location, or ``aoe`` is not a recognised type.
+    """
+    if not primary_target or not caster.location:
+        return []
+
+    target_height = getattr(primary_target, "room_vertical_position", 0)
+    height_pred = p_same_height_value(target_height)
+
+    # Walk room for all living visible actors at target's height
+    candidates = walk_contents(
+        caster, caster.location, p_living, p_visible_to, height_pred,
+    )
+
+    if aoe == "unsafe":
+        return [a for a in candidates if a is not primary_target]
+
+    if aoe == "unsafe_self":
+        return [
+            a for a in candidates
+            if a is not primary_target and a is not caster
+        ]
+
+    if aoe == "safe":
+        handler = caster.scripts.get("combat_handler")
+        if handler:
+            from combat.combat_utils import get_sides
+            _allies, enemies = get_sides(caster)
+            enemy_set = set(id(e) for e in enemies)
+            return [
+                a for a in candidates
+                if a is not primary_target and id(a) in enemy_set
+            ]
+        # Out of combat: non-groupmates are "enemies"
+        caster_leader = (
+            caster.get_group_leader()
+            if hasattr(caster, "get_group_leader") else None
+        )
+        pet = getattr(caster, "active_pet", None)
+        mount = getattr(caster, "active_mount", None)
+
+        def _is_enemy(obj):
+            if obj is caster or obj is primary_target:
+                return False
+            if obj is pet or obj is mount:
+                return False
+            other_leader = (
+                obj.get_group_leader()
+                if hasattr(obj, "get_group_leader") else None
+            )
+            if caster_leader and other_leader and caster_leader == other_leader:
+                return False
+            return True
+
+        return [a for a in candidates if _is_enemy(a)]
+
+    if aoe == "allies":
+        handler = caster.scripts.get("combat_handler")
+        if handler:
+            from combat.combat_utils import get_sides
+            allies, _enemies = get_sides(caster)
+            ally_set = set(id(a) for a in allies)
+            return [
+                a for a in candidates
+                if a is not primary_target and id(a) in ally_set
+            ]
+        # Out of combat: groupmates + caster + pet/mount are allies
+        caster_leader = (
+            caster.get_group_leader()
+            if hasattr(caster, "get_group_leader") else None
+        )
+        pet = getattr(caster, "active_pet", None)
+        mount = getattr(caster, "active_mount", None)
+
+        def _is_ally(obj):
+            if obj is primary_target:
+                return False
+            if obj is caster or obj is pet or obj is mount:
+                return True
+            other_leader = (
+                obj.get_group_leader()
+                if hasattr(obj, "get_group_leader") else None
+            )
+            if caster_leader and other_leader and caster_leader == other_leader:
+                return True
+            return False
+
+        return [a for a in candidates if _is_ally(a)]
+
+    return []
+
+
 # ── Spell target resolution ──────────────────────────────────────────
 
 
-def resolve_spell_target(caster, target_str, target_type, range="ranged"):
+def resolve_spell_target(caster, target_str, target_type, range="ranged", aoe=None):
     """Resolve a spell target by ``target_type``.
 
     Single entry point for all spell target resolution, used by
     ``cmd_cast`` and ``cmd_zap``. Routes to the appropriate targeting
-    primitive based on the spell's ``target_type``. Returns the
-    resolved target or ``None``. On ``None``, an error message has
-    already been sent to the caster — callers just ``return``.
+    primitive based on the spell's ``target_type``.
+
+    Returns ``(target, secondaries)`` — a tuple of the primary target
+    and a list of AoE secondary targets. For non-AoE spells (``aoe=None``),
+    ``secondaries`` is always ``[]``. On failure, returns ``(None, [])``
+    with an error message already sent to the caster.
 
     ``range`` controls height filtering for actor target_types:
         ``"melee"``      — only actors at the caster's height
@@ -184,28 +301,27 @@ def resolve_spell_target(caster, target_str, target_type, range="ranged"):
     """
     # ── Self / none: no resolution ──
     if target_type == "self":
-        return caster
+        return caster, []
     if target_type == "none":
-        return None
+        return None, []
 
     target_str = (target_str or "").strip()
 
     # Friendly defaults to self when no target is given
     if not target_str:
         if target_type == "actor_friendly":
-            return caster
+            secondaries = (
+                _resolve_aoe_secondaries(caster, caster, aoe) if aoe else []
+            )
+            return caster, secondaries
         caster.msg("You need to specify a target.")
-        return None
+        return None, []
 
     if not caster.location and target_type != "items_inventory":
         caster.msg("You aren't anywhere where you could target that.")
-        return None
+        return None, []
 
     # ── Height predicate based on range ──
-    # Melee spells only resolve actors at the caster's height.
-    # Ranged_only spells only resolve actors at a different height.
-    # Ranged spells (default) have no height filter.
-    # Applied to actor target_types only — items don't have height.
     extra_predicates = ()
     if range == "melee":
         extra_predicates = (p_same_height(caster),)
@@ -224,11 +340,14 @@ def resolve_spell_target(caster, target_str, target_type, range="ranged"):
             )
         if target is None:
             caster.msg(f"There's no '{target_str}' here.")
-            return None
+            return None, []
         if target is caster:
             caster.msg("You can't target yourself with that spell.")
-            return None
-        return target
+            return None, []
+        secondaries = (
+            _resolve_aoe_secondaries(caster, target, aoe) if aoe else []
+        )
+        return target, secondaries
 
     # ── Friendly: friendly-priority actor resolution ──
     if target_type == "actor_friendly":
@@ -242,8 +361,11 @@ def resolve_spell_target(caster, target_str, target_type, range="ranged"):
             )
         if target is None:
             caster.msg(f"There's no '{target_str}' here.")
-            return None
-        return target
+            return None, []
+        secondaries = (
+            _resolve_aoe_secondaries(caster, target, aoe) if aoe else []
+        )
+        return target, secondaries
 
     # ── items_inventory: inventory only ──
     if target_type == "items_inventory":
@@ -251,44 +373,38 @@ def resolve_spell_target(caster, target_str, target_type, range="ranged"):
             caster, caster, target_str,
             nofound_string=f"You aren't carrying anything called '{target_str}'.",
         )
-        return target
+        return target, []
 
     # ── items_all_room_then_inventory: room first, inventory fallback ──
     if target_type == "items_all_room_then_inventory":
-        # Room step uses _resolve_world_item which includes exits +
-        # directional parsing ("door south") via find_exit_target.
         target = _resolve_world_item(caster, target_str, silent=True)
         if target is not None:
-            return target
-        # Inventory fallback — locked box in inventory, etc.
+            return target, []
         target = resolve_item_in_source(
             caster, caster, target_str, quiet=True,
         )
         if isinstance(target, list):
             target = target[0] if target else None
         if target is not None:
-            return target
+            return target, []
         caster.msg(f"You don't see '{target_str}' here.")
-        return None
+        return None, []
 
     # ── items_inventory_then_all_room: inventory first, room fallback ──
     if target_type == "items_inventory_then_all_room":
-        # Inventory first — most often identifying a looted item.
-        # Worn items excluded (remove to identify).
         target = resolve_item_in_source(
             caster, caster, target_str, quiet=True, exclude_worn=True,
         )
         if isinstance(target, list):
             target = target[0] if target else None
         if target is not None:
-            return target
-        # Room fallback — includes exits so "cast identify door" works.
+            return target, []
         if caster.location:
             target = _resolve_all_room(caster, target_str, quiet=True)
             if target is not None:
-                return target
+                return target, []
         caster.msg(f"You don't see '{target_str}' here.")
-        return None
+        return None, []
 
     # ── Future item types (convention-defined, not yet implemented) ──
     _FUTURE_ITEM_TYPES = (
@@ -307,7 +423,7 @@ def resolve_spell_target(caster, target_str, target_type, range="ranged"):
 
     # Unknown type — defensive
     caster.msg(f"Unknown target type '{target_type}'.")
-    return None
+    return None, []
 
 
 def _resolve_world_item(caster, target_str, silent=False):

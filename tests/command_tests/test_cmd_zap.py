@@ -199,7 +199,7 @@ class TestCmdZapSuccess(EvenniaCommandTest):
         observed_tier = []
         observed_free = []
 
-        def fake_cast(caster, target):
+        def fake_cast(caster, target, **kwargs):
             observed_tier.append(
                 getattr(caster.ndb, "_wand_caster_tier_override", None)
             )
