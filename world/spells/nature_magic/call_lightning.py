@@ -1,10 +1,16 @@
 """
 Call Lightning — nature magic spell, available from EXPERT mastery.
 
-Calls down a lightning storm that strikes everything in the room.
-Unsafe AoE — damages enemies, allies, AND the caster. The druid's
-Fireball equivalent, but weaker damage (nature school trades damage
-for CC via Entangle).
+Calls down a lightning storm that strikes everything in the room at ALL
+heights. Unsafe AoE — damages enemies, allies, AND the caster regardless
+of vertical position. Lightning comes from the sky and passes through all
+height levels.
+
+The primary target is resolved by name ("cast call lightning goblin"). The
+AoE framework builds the secondaries list — all living visible actors in
+the room at ANY height (unsafe_all_heights). Unlike Fireball which only
+hits actors at the target's height, Call Lightning hits everyone regardless
+of vertical position.
 
 Each target gets a DEX save for half damage. Save DC = caster d20 + WIS
 bonus + mastery bonus.
@@ -23,7 +29,7 @@ from enums.skills_enum import skills
 from utils.dice_roller import dice
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
-from world.spells.spell_utils import apply_spell_damage, get_room_all
+from world.spells.spell_utils import apply_spell_damage
 
 
 @register_spell
@@ -34,12 +40,13 @@ class CallLightning(Spell):
     school = skills.NATURE_MAGIC
     min_mastery = MasteryLevel.EXPERT
     mana_cost = {3: 21, 4: 32, 5: 42}
-    target_type = "none"
+    target_type = "actor_hostile"
+    aoe = "unsafe_all_heights"
     description = "Calls down a devastating lightning storm that strikes everything in the room."
     mechanics = (
-        "Unsafe AoE — hits EVERYTHING in the room including you and your allies.\n"
+        "Unsafe AoE — hits EVERYTHING in the room at ALL heights.\n"
+        "Lightning passes through all vertical levels — flying won't save you.\n"
         "DEX save for half damage (DC = caster d20 + WIS + mastery).\n"
-        "Safe to cast at range (flying vs ground, or across area rooms).\n"
         "Damage: 6d6 (Expert), 9d6 (Master), 12d6 (Grandmaster) lightning.\n"
         "Lightning resistance reduces damage; vulnerability increases it.\n"
         "1 round cooldown."
@@ -48,7 +55,8 @@ class CallLightning(Spell):
     # Dice per tier: base 6d6 at EXPERT, +3d6 per tier above
     _DICE = {3: 6, 4: 9, 5: 12}
 
-    def _execute(self, caster, target):
+    def _execute(self, caster, target, **kwargs):
+        secondaries = kwargs.get("secondaries", [])
         tier = self.get_caster_tier(caster)
         num_dice = self._DICE.get(tier, 6)
         raw_damage = dice.roll(f"{num_dice}d6")
@@ -59,19 +67,12 @@ class CallLightning(Spell):
         mastery_bonus = MasteryLevel(tier).bonus
         save_dc = save_dc_roll + caster_wis + mastery_bonus
 
-        targets = get_room_all(caster)
-        if not targets:
-            return (True, {
-                "first": (
-                    "|WYou call down lightning but there's nothing to hit!|n"
-                ),
-                "second": None,
-                "third": "|WLightning crashes down harmlessly!|n",
-            })
+        # All targets = primary + secondaries
+        all_targets = [target] + secondaries
 
-        # Apply damage to every entity in the room (including caster)
+        # Apply damage to every target (including caster if in secondaries)
         damage_results = []
-        for entity in targets:
+        for entity in all_targets:
             # DEX save for half damage
             save_roll = dice.roll("1d20")
             dex_bonus = entity.get_attribute_bonus(entity.dexterity)

@@ -157,7 +157,8 @@ class TestCallLightning(EvenniaTest):
         self.assertEqual(self.spell.name, "Call Lightning")
         self.assertEqual(self.spell.school, skills.NATURE_MAGIC)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.EXPERT)
-        self.assertEqual(self.spell.target_type, "none")
+        self.assertEqual(self.spell.target_type, "actor_hostile")
+        self.assertEqual(self.spell.aoe, "unsafe_all_heights")
 
     def test_mana_costs(self):
         """Call Lightning mana costs should match design."""
@@ -165,22 +166,22 @@ class TestCallLightning(EvenniaTest):
 
     # --- Unsafe AoE ---
 
-    def test_hits_caster(self):
-        """Call Lightning should damage the caster (unsafe AoE)."""
-        start_hp = self.char1.hp
-        self.spell.cast(self.char1, None)
-        self.assertLess(self.char1.hp, start_hp)
-
-    def test_hits_others_in_room(self):
-        """Call Lightning should damage others in the room."""
+    def test_hits_primary_target(self):
+        """Call Lightning should damage the primary target."""
         start_hp = self.char2.hp
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertLess(self.char2.hp, start_hp)
+
+    def test_hits_caster_in_secondaries(self):
+        """Call Lightning should damage the caster when in secondaries (unsafe AoE)."""
+        start_hp = self.char1.hp
+        self.spell.cast(self.char1, self.char2, secondaries=[self.char1])
+        self.assertLess(self.char1.hp, start_hp)
 
     def test_deducts_mana(self):
         """Call Lightning should deduct 21 mana at EXPERT tier."""
         start_mana = self.char1.mana
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertEqual(self.char1.mana, start_mana - 21)
 
     # --- Damage range ---
@@ -188,7 +189,7 @@ class TestCallLightning(EvenniaTest):
     def test_expert_damage_range(self):
         """At EXPERT tier, 6d6 = 6-36 full, 3-18 half (with save)."""
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         # Min is 3 (half of 6 on save), max is 36 (full on fail)
         self.assertGreaterEqual(damage, 3)
@@ -199,7 +200,7 @@ class TestCallLightning(EvenniaTest):
     def test_mastery_too_low(self):
         """Should fail if mastery below EXPERT."""
         self.char1.db.class_skill_mastery_levels = {"nature_magic": 2}
-        success, msg = self.spell.cast(self.char1, None)
+        success, msg = self.spell.cast(self.char1, self.char2)
         self.assertFalse(success)
         self.assertIn("mastery", msg.lower())
 
@@ -209,7 +210,7 @@ class TestCallLightning(EvenniaTest):
         """Lightning resistance should reduce Call Lightning damage."""
         self.char2.damage_resistances = {"lightning": 50}
         self.char2.hp = 200
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         damage = 200 - self.char2.hp
         # 50% resist on max 36 = max 18
         self.assertLessEqual(damage, 18)
@@ -218,37 +219,37 @@ class TestCallLightning(EvenniaTest):
 
     @patch("world.spells.nature_magic.call_lightning.dice")
     def test_save_full_damage_on_fail(self, mock_dice):
-        """Failed DEX save should deal full damage."""
-        # damage roll, save DC roll, char1 save, char2 save
-        mock_dice.roll.side_effect = [18, 20, 1, 1]
+        """Failed DEX save should deal full damage on primary target."""
+        # damage roll, save DC roll, primary target save
+        mock_dice.roll.side_effect = [18, 20, 1]
         self.char2.hp = 200
         self.char2.dexterity = 10
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertEqual(self.char2.hp, 200 - 18)
 
     @patch("world.spells.nature_magic.call_lightning.dice")
     def test_save_half_damage_on_success(self, mock_dice):
-        """Successful DEX save should deal half damage."""
-        # damage roll, save DC roll, char1 save, char2 save
-        mock_dice.roll.side_effect = [18, 1, 20, 20]
+        """Successful DEX save should deal half damage on primary target."""
+        # damage roll, save DC roll, primary target save
+        mock_dice.roll.side_effect = [18, 1, 20]
         self.char2.hp = 200
         self.char2.dexterity = 10
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         # half of 18 = 9
         self.assertEqual(self.char2.hp, 200 - 9)
 
     @patch("world.spells.nature_magic.call_lightning.dice")
     def test_save_dc_shown_in_message(self, mock_dice):
         """Save DC should appear in caster message."""
-        mock_dice.roll.side_effect = [18, 15, 1, 1]
-        success, result = self.spell.cast(self.char1, None)
+        mock_dice.roll.side_effect = [18, 15, 1]
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertIn("Save DC", result["first"])
 
     # --- Messages ---
 
     def test_returns_message_dict(self):
         """Successful cast should return message dict."""
-        success, result = self.spell.cast(self.char1, None)
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
@@ -256,6 +257,6 @@ class TestCallLightning(EvenniaTest):
 
     def test_lightning_themed_messages(self):
         """Messages should reference lightning, not fire."""
-        success, result = self.spell.cast(self.char1, None)
+        success, result = self.spell.cast(self.char1, self.char2)
         self.assertIn("lightning", result["first"].lower())
         self.assertIn("lightning", result["third"].lower())
