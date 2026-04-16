@@ -339,7 +339,7 @@ def resolve_attack_target_out_of_combat(caller, name, order=None, extra_predicat
 
         1. ``stranger``  — actors not in caller's follow-chain group
         2. ``groupmate`` — actors in caller's group plus
-                           ``caller.active_pet`` and ``caller.active_mount``
+                           pets/mounts via ``is_pet`` + ``owner_key``
         3. ``self``      — the caller themselves (last-resort fallback)
 
     Name matching happens against each bucket in priority order via
@@ -380,17 +380,14 @@ def resolve_attack_target_out_of_combat(caller, name, order=None, extra_predicat
         caller.get_group_leader() if hasattr(caller, "get_group_leader") else None
     )
 
-    # need to check how pets actually work...
-    # I think active_pet and active_mount might be legacy from old design
-    # that has been superceded.... not sure, but need to check and possibly
-    # update pet detection logic here - this will do for now
-    pet = getattr(caller, "active_pet", None)
-    mount = getattr(caller, "active_mount", None)
-
     def classify(obj, _caller):
         if obj is caller:
             return "self"
-        if obj is pet or obj is mount:
+        # Pets (including mounts) are groupmates — they're actors in the
+        # room with owner_key pointing at the caller. MountMixin composes
+        # into BasePet, so a mounted horse is already is_pet=True.
+        if (getattr(obj, "is_pet", False)
+                and getattr(obj, "owner_key", None) == caller.key):
             return "groupmate"
         other_leader = (
             obj.get_group_leader() if hasattr(obj, "get_group_leader") else None
@@ -529,7 +526,7 @@ def resolve_friendly_target_out_of_combat(caller, name, extra_predicates=()):
 
         1. ``self``      — the caller themselves (highest priority)
         2. ``groupmate`` — actors in caller's follow-chain group +
-                           ``caller.active_pet`` / ``active_mount``
+                           pets/mounts via ``is_pet`` + ``owner_key``
         3. ``stranger``  — everyone else
 
     Thin wrapper over ``resolve_attack_target_out_of_combat`` with

@@ -809,13 +809,18 @@ class TestResolveAttackTargetOutOfCombat(EvenniaTest):
     def create_script(self):
         pass
 
-    def _caller(self, leader=None, pet=None, mount=None):
-        """Build a caller with group/pet/mount state and room."""
+    def _caller(self, leader=None):
+        """Build a caller with group state and room."""
         caller = _make_actor(key="me", leader=leader)
-        caller.active_pet = pet
-        caller.active_mount = mount
         caller.search = MagicMock(side_effect=_search_returns_first)
         return caller
+
+    def _make_pet(self, key="goblin", owner_key="me"):
+        """Build a pet-shaped mock owned by the caller."""
+        pet = _make_actor(key=key)
+        pet.is_pet = True
+        pet.owner_key = owner_key
+        return pet
 
     # ── Source edge cases ─────────────────────────────────────────
 
@@ -863,8 +868,8 @@ class TestResolveAttackTargetOutOfCombat(EvenniaTest):
         self.assertIs(result, stranger_goblin)
 
     def test_pet_goes_to_groupmate_bucket(self):
-        pet = _make_actor(key="goblin")  # pet has no leader, caught via active_pet
-        caller = self._caller(pet=pet)
+        caller = self._caller()
+        pet = self._make_pet(key="goblin", owner_key=caller.key)
         stranger_goblin = _make_actor(key="goblin")
         caller.location = SimpleNamespace(contents=[caller, pet, stranger_goblin])
         # Stranger goblin wins; pet would only match if no stranger.
@@ -872,15 +877,16 @@ class TestResolveAttackTargetOutOfCombat(EvenniaTest):
         self.assertIs(result, stranger_goblin)
 
     def test_pet_only_still_matches(self):
-        pet = _make_actor(key="goblin")
-        caller = self._caller(pet=pet)
+        caller = self._caller()
+        pet = self._make_pet(key="goblin", owner_key=caller.key)
         caller.location = SimpleNamespace(contents=[caller, pet])
         result = resolve_attack_target_out_of_combat(caller, "goblin")
         self.assertIs(result, pet)
 
     def test_mount_goes_to_groupmate_bucket(self):
-        mount = _make_actor(key="horse")
-        caller = self._caller(mount=mount)
+        """Mounts are pets (is_pet=True via BasePet) — same groupmate classification."""
+        caller = self._caller()
+        mount = self._make_pet(key="horse", owner_key=caller.key)
         stranger_horse = _make_actor(key="horse")
         caller.location = SimpleNamespace(contents=[caller, mount, stranger_horse])
         result = resolve_attack_target_out_of_combat(caller, "horse")
