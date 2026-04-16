@@ -214,84 +214,66 @@ class TestSoulHarvest(EvenniaTest):
         self.char2.hp_max = 200
         self.char2.damage_resistances = {}
 
-    def test_soul_harvest_damages_others(self):
-        """Should damage other entities in the room."""
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            success, result = self.spell.cast(self.char1, None)
-            self.assertTrue(success)
-            self.assertLess(self.char2.hp, 200)
+    @patch("world.spells.necromancy.soul_harvest.dice")
+    def test_soul_harvest_damages_primary(self, mock_dice):
+        """Primary target should take necrotic damage on failed CON save."""
+        # damage roll, save DC roll, target CON save (fails)
+        mock_dice.roll.side_effect = [28, 20, 1]
+        self.char2.constitution = 10
+        success, result = self.spell.cast(self.char1, self.char2)
+        self.assertTrue(success)
+        self.assertLess(self.char2.hp, 200)
 
-    def test_soul_harvest_does_not_damage_caster(self):
-        """Caster should NOT take damage from their own Soul Harvest."""
-        caster_hp = self.char1.hp
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            self.spell.cast(self.char1, None)
-            # Caster HP should go UP (healed), not down
-            self.assertGreaterEqual(self.char1.hp, caster_hp)
+    @patch("world.spells.necromancy.soul_harvest.dice")
+    def test_soul_harvest_save_negates(self, mock_dice):
+        """Successful CON save should negate all damage."""
+        # damage roll, save DC roll (low), target CON save (high)
+        mock_dice.roll.side_effect = [28, 1, 20]
+        self.char2.constitution = 10
+        self.spell.cast(self.char1, self.char2)
+        self.assertEqual(self.char2.hp, 200)
 
-    def test_soul_harvest_heals_caster(self):
-        """Caster should heal for total damage dealt to all targets."""
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            success, result = self.spell.cast(self.char1, None)
-            self.assertTrue(success)
-            # Started at 50, should be healed (up to max 100)
-            self.assertGreater(self.char1.hp, 50)
+    @patch("world.spells.necromancy.soul_harvest.dice")
+    def test_soul_harvest_heals_caster(self, mock_dice):
+        """Caster should heal for total damage dealt on failed saves."""
+        # damage roll, save DC roll, target CON save (fails)
+        mock_dice.roll.side_effect = [28, 20, 1]
+        self.char2.constitution = 10
+        success, result = self.spell.cast(self.char1, self.char2)
+        self.assertTrue(success)
+        # Started at 50, should be healed
+        self.assertGreater(self.char1.hp, 50)
 
-    def test_soul_harvest_heal_capped_at_max(self):
+    @patch("world.spells.necromancy.soul_harvest.dice")
+    def test_soul_harvest_heal_capped_at_max(self, mock_dice):
         """Caster heal from Soul Harvest capped at max HP."""
         self.char1.hp = 100  # Already full
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            self.spell.cast(self.char1, None)
-            self.assertEqual(self.char1.hp, 100)
-
-    def test_soul_harvest_empty_room(self):
-        """Should succeed but note nothing to drain if room is empty."""
-        # Move char2 out of the room
-        self.char2.location = None
-        success, result = self.spell.cast(self.char1, None)
-        self.assertTrue(success)
-        self.assertIn("nothing", result["first"].lower())
+        mock_dice.roll.side_effect = [28, 20, 1]
+        self.char2.constitution = 10
+        self.spell.cast(self.char1, self.char2)
+        self.assertEqual(self.char1.hp, 100)
 
     def test_soul_harvest_deducts_mana(self):
         """Should deduct 28 mana at tier 3."""
-        self.spell.cast(self.char1, None)
+        self.spell.cast(self.char1, self.char2)
         self.assertEqual(self.char1.mana, 472)
 
-    def test_soul_harvest_damage_scaling_tier3(self):
-        """At EXPERT (tier 3), should roll 8d6."""
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            self.spell.cast(self.char1, None)
-            mock_dice.roll.assert_called_with("8d6")
-
-    def test_soul_harvest_damage_scaling_tier5(self):
-        """At GM (tier 5), should roll 14d6."""
-        self.char1.db.class_skill_mastery_levels = {"necromancy": 5}
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 49
-            self.spell.cast(self.char1, None)
-            mock_dice.roll.assert_called_with("14d6")
-
-    def test_soul_harvest_multi_perspective_messages(self):
+    def test_soul_harvest_returns_message_dict(self):
         """Should return first and third person messages (second is None)."""
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            success, result = self.spell.cast(self.char1, None)
-            self.assertTrue(success)
-            self.assertIn("first", result)
-            self.assertIsNone(result["second"])
-            self.assertIn("third", result)
+        success, result = self.spell.cast(self.char1, self.char2)
+        self.assertTrue(success)
+        self.assertIn("first", result)
+        self.assertIsNone(result["second"])
+        self.assertIn("third", result)
 
-    def test_soul_harvest_cold_resistance(self):
-        """Cold resistance should reduce damage and therefore healing."""
-        self.char2.damage_resistances = {"cold": 50}
+    def test_soul_harvest_necrotic_resistance(self):
+        """Necrotic resistance should reduce damage and therefore healing."""
+        self.char2.damage_resistances = {"necrotic": 50}
         with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 20
-            self.spell.cast(self.char1, None)
+            # damage roll, save DC roll (high), target CON save (fails)
+            mock_dice.roll.side_effect = [20, 20, 1]
+            self.char2.constitution = 10
+            self.spell.cast(self.char1, self.char2)
             # 20 raw, 50% resist = 10 actual
             self.assertEqual(self.char2.hp, 190)
 
@@ -340,23 +322,21 @@ class TestNecromancyVsUndead(EvenniaTest):
         self.assertEqual(self.char2.hp, hp_before)
         self.assertIn("no life to drain", result["first"].lower())
 
-    def test_soul_harvest_skips_undead(self):
-        """Soul Harvest should skip undead targets in the room."""
+    def test_soul_harvest_skips_undead_primary(self):
+        """Soul Harvest on an undead primary target should drain nothing."""
         spell = get_spell("soul_harvest")
         hp_before = self.char2.hp
-        with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            success, result = spell.cast(self.char1, None)
-            self.assertTrue(success)
-            # Undead char2 should take no damage
-            self.assertEqual(self.char2.hp, hp_before)
-            # Only undead in room — nothing to drain message
-            self.assertIn("nothing", result["first"].lower())
+        success, result = spell.cast(self.char1, self.char2)
+        self.assertTrue(success)
+        # Undead char2 should take no damage
+        self.assertEqual(self.char2.hp, hp_before)
+        # Only undead — nothing to drain message
+        self.assertIn("nothing", result["first"].lower())
 
-    def test_soul_harvest_mixed_room(self):
-        """Soul Harvest should damage living but skip undead."""
+    def test_soul_harvest_mixed_targets(self):
+        """Soul Harvest should damage living secondaries but skip undead."""
         spell = get_spell("soul_harvest")
-        # char2 is undead (tagged in setUp), make a living target too
+        # char2 is undead (tagged in setUp), make a living secondary
         from evennia.utils import create
         living = create.create_object(
             "typeclasses.actors.character.FCMCharacter",
@@ -366,9 +346,14 @@ class TestNecromancyVsUndead(EvenniaTest):
         living.hp = 200
         living.hp_max = 200
         living.damage_resistances = {}
+        living.constitution = 10
+        # Cast on undead char2, living as secondary
         with patch("world.spells.necromancy.soul_harvest.dice") as mock_dice:
-            mock_dice.roll.return_value = 28
-            success, result = spell.cast(self.char1, None)
+            # damage, save DC (high), living CON save (fails)
+            mock_dice.roll.side_effect = [28, 20, 1]
+            success, result = spell.cast(
+                self.char1, self.char2, secondaries=[living],
+            )
             self.assertTrue(success)
             # Living target should take damage
             self.assertLess(living.hp, 200)
