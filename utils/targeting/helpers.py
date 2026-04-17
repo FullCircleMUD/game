@@ -1174,20 +1174,34 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
         caller.msg(f"You don't see '{target_str}' here.")
         return None, []
 
-    # ── items_inventory_then_gettable_room: inventory first, room fallback ──
-    if target_type == "items_inventory_then_gettable_room":
-        # Inventory — no height filter, no exclude_worn (worn containers
-        # are valid targets for inspection commands like "look in").
-        target = resolve_item_in_source(
-            caller, caller, target_str, quiet=True,
-        )
-        if isinstance(target, list):
-            target = target[0] if target else None
-        if target is not None:
-            return target, []
-        # Room fallback — no actors, no exits, visible + extra predicates.
+    # ── items_inventory_then_room_nonexit ────────────────────────────
+    #
+    # Composite: items_inventory first, items_room_nonexit fallback.
+    #
+    # Inventory step: caller.contents, exclude worn. No structural
+    # predicates needed (no actors/exits/fixed objects in inventory).
+    # Room step: all non-actor, non-exit objects (fixtures, loose items,
+    # containers — anything in the room that isn't alive or a door).
+    # Both steps pass extra_predicates through.
+    #
+    # Consumer: cmd_look "look in" (find a container — could be in
+    # inventory or a bolted-down chest in the room).
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_inventory_then_room_nonexit":
+        # Inventory step — items_inventory
+        candidates = walk_contents(caller, caller, *extra_predicates)
+        if candidates:
+            target = caller.search(
+                target_str, candidates=candidates,
+                quiet=True, exclude_worn=True,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
+            if target is not None:
+                return target, []
+        # Room fallback — items_room_nonexit
         if caller.location:
-            preds = [p_not_actor, p_not_exit, p_visible_to] + list(extra_predicates)
+            preds = [p_not_actor, p_not_exit] + list(extra_predicates)
             candidates = walk_contents(caller, caller.location, *preds)
             if candidates:
                 target = caller.search(
@@ -1197,7 +1211,6 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
                     target = target[0] if target else None
                 if target is not None:
                     return target, []
-        caller.msg(f"You don't see '{target_str}' here.")
         return None, []
 
     # ── Future item types (convention-defined, not yet implemented) ──

@@ -22,7 +22,9 @@ from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
 from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see, p_is_container
+from utils.targeting.predicates import (
+    p_can_see, p_is_container, p_is_open, p_is_openable, p_same_height,
+)
 
 # Build set of all direction strings (abbreviations + full names)
 _DIRECTION_STRINGS = set()
@@ -212,20 +214,24 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             return
 
         # Broad targeting — find whatever the player named, then
-        # check container status at command layer (design principle #7).
-        # range="melee" ensures room objects must be at caller's height.
+        # check container/height/open at command layer (design principle #7).
+        # p_can_see filters hidden and height-barrier-gated objects.
         container, _ = resolve_target(
             caller, container_name,
-            "items_inventory_then_gettable_room", range="melee",
+            "items_inventory_then_room_nonexit",
+            extra_predicates=(p_can_see,),
         )
         if not container:
-            return  # resolve_target already messaged
+            caller.msg(f"You don't see '{container_name}' here.")
+            return
+        # Height check — only for room objects, not inventory
+        if container.location != caller and not p_same_height(caller)(container, caller):
+            caller.msg(f"{container.key} is out of reach.")
+            return
         if not p_is_container(container, caller):
             caller.msg(f"{container.key} is not a container.")
             return
-
-        # Closed container check (chests, etc.)
-        if hasattr(container, "is_open") and not container.is_open:
+        if p_is_openable(container, caller) and not p_is_open(container, caller):
             caller.msg(f"{container.key} is closed.")
             return
 
