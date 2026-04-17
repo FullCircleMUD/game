@@ -22,7 +22,7 @@ from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
 from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from utils.targeting.helpers import resolve_container
-from utils.targeting.predicates import p_visible_to
+from utils.targeting.predicates import p_can_see
 
 # Build set of all direction strings (abbreviations + full names)
 _DIRECTION_STRINGS = set()
@@ -101,12 +101,12 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             if found:
                 if not isinstance(found, list):
                     found = [found]
-                # Filter out the room itself and hidden/invisible objects.
-                # p_visible_to is the targeting library's canonical
-                # visibility check — one source of truth.
+                # Filter out the room itself and non-perceivable objects.
+                # p_can_see is the targeting library's composite
+                # visibility gate — stealth + height in one check.
                 found = [
                     obj for obj in found
-                    if obj != caller.location and p_visible_to(obj, caller)
+                    if obj != caller.location and p_can_see(obj, caller)
                 ]
             if found:
                 # Show the first visible match directly (bypass super's
@@ -141,13 +141,13 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                 # Filter out room and hidden/invisible objects
                 visible = [
                     obj for obj in found
-                    if obj != caller.location and p_visible_to(obj, caller)
+                    if obj != caller.location and p_can_see(obj, caller)
                 ]
                 if not visible and found:
                     # All matches were room or hidden — check if any were
                     # hidden (no period hint) vs just the room (with period)
                     has_hidden = any(
-                        not p_visible_to(obj, caller)
+                        not p_can_see(obj, caller)
                         for obj in found
                         if obj != caller.location
                     )

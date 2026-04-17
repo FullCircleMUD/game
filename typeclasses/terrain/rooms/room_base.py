@@ -14,6 +14,7 @@ from enums.condition import Condition
 from enums.terrain_type import TerrainType
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.quest_tag import QuestTagMixin
+from utils.targeting.predicates import p_height_visible_to
 
 
 def _can_see_hidden(entity):
@@ -613,8 +614,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # Filter by height-gated visibility
         visible = [
             char for char in visible
-            if not hasattr(char, "is_height_visible_to")
-            or char.is_height_visible_to(looker)
+            if p_height_visible_to(char, looker)
         ]
 
         if not visible:
@@ -674,8 +674,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # Filter by height-gated visibility
         things = [
             thing for thing in things
-            if not hasattr(thing, "is_height_visible_to")
-            or thing.is_height_visible_to(looker)
+            if p_height_visible_to(thing, looker)
         ]
 
         # Separate items with ground descriptions (full sentences) from

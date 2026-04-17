@@ -2,6 +2,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
+from utils.targeting.predicates import p_height_visible_to
 
 
 # Canonical scan directions — only follow cardinal + vertical exits
@@ -60,10 +61,7 @@ def _get_visible_characters(room, looker):
             if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
                 continue
         # Height-gated visibility — canopy mobs invisible to ground-level lookers
-        if (
-            hasattr(char, "is_height_visible_to")
-            and not char.is_height_visible_to(looker)
-        ):
+        if not p_height_visible_to(char, looker):
             continue
         names.append(char.get_display_name(looker))
     return names

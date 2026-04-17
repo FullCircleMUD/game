@@ -122,7 +122,7 @@ def p_not_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform signatur
 
 
 def p_visible_to(obj, caller):
-    """True if ``obj`` is visible to ``caller``.
+    """True if ``obj`` is not hidden/invisible to ``caller`` (stealth gate).
 
     Respects FCM's ``HiddenObjectMixin`` — a hidden object returns
     False unless the caller has discovered it. Objects without the
@@ -135,6 +135,17 @@ def p_visible_to(obj, caller):
 
     When ``InvisibleObjectMixin`` support is needed by a real consumer,
     extend this predicate to delegate to both mixins.
+
+    **Visibility predicate family:**
+
+    - ``p_visible_to`` (this) — stealth only. Use in targeting
+      resolvers where height is handled separately by range predicates.
+    - ``p_height_visible_to`` — spatial only. Use when you need just
+      the height gate (e.g. room display methods that have their own
+      stealth logic).
+    - ``p_can_see`` — composite of both. Use for display/perception
+      paths (look, scan) where "can the player see this?" is the
+      question and there is no separate stealth filtering.
     """
     check = getattr(obj, "is_hidden_visible_to", None)
     if check is None:
@@ -143,6 +154,52 @@ def p_visible_to(obj, caller):
         return bool(check(caller))
     except Exception:
         return True
+
+
+def p_height_visible_to(obj, caller):
+    """True if ``obj`` is visible to ``caller`` given vertical position.
+
+    Wraps ``HeightAwareMixin.is_height_visible_to`` — objects with
+    ``visible_min_height`` / ``visible_max_height`` are only visible to
+    observers whose ``room_vertical_position`` falls within that range.
+
+    Objects without the mixin (or without height gates set) are visible
+    by default.
+
+    This is a **spatial** visibility check, not a stealth check — see
+    ``p_visible_to`` for hidden/invisible filtering.
+    """
+    check = getattr(obj, "is_height_visible_to", None)
+    if check is None:
+        return True
+    try:
+        return bool(check(caller))
+    except Exception:
+        return True
+
+
+def p_can_see(obj, caller):
+    """True if ``caller`` can perceive ``obj`` — composite visibility gate.
+
+    Combines all visibility checks into a single predicate:
+
+    1. ``p_visible_to`` — stealth (hidden/invisible mixin)
+    2. ``p_height_visible_to`` — spatial (height-gated visibility)
+
+    Use this for **display/perception** paths: room appearance, look
+    command, scan command — anywhere the question is "can the player
+    see this thing right now?"
+
+    Targeting resolvers should generally use the specific predicates
+    instead, since they handle height through range predicates
+    (``p_same_height`` / ``p_different_height``) separately from
+    stealth visibility.
+
+    Extensible — when a new visibility gate is introduced (e.g.
+    ethereal, phased, fog-of-war), add it here and all display
+    consumers pick it up automatically.
+    """
+    return p_visible_to(obj, caller) and p_height_visible_to(obj, caller)
 
 
 def p_living(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
