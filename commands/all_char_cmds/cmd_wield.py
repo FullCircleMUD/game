@@ -27,7 +27,7 @@ class CmdWield(FCMCommandMixin, Command):
     """
 
     key = "wield"
-    aliases = ("wie", "wiel")
+    aliases = ()
     locks = "cmd:all()"
     help_category = "Items"
 

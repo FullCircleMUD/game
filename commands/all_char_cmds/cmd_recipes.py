@@ -41,7 +41,7 @@ class CmdRecipes(FCMCommandMixin, Command):
     """
 
     key = "recipes"
-    aliases = ["re", "rec", "reci", "recip"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
     allow_while_sleeping = True

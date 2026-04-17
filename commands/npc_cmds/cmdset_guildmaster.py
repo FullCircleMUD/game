@@ -29,7 +29,7 @@ class CmdGuild(FCMCommandMixin, Command):
     """
 
     key = "guild"
-    aliases = ["gu"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Guild"
 

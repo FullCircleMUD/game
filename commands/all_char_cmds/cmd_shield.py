@@ -25,7 +25,7 @@ class CmdShield(FCMCommandMixin, Command):
     """
 
     key = "shield"
-    aliases = ["shi"]
+    aliases = []
     help_category = "Combat"
     locks = "cmd:all()"
 

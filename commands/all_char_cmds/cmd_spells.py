@@ -25,7 +25,7 @@ class CmdSpells(FCMCommandMixin, Command):
     """
 
     key = "spells"
-    aliases = ["sp", "spe"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Magic"
     allow_while_sleeping = True

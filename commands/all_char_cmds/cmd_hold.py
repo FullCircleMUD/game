@@ -33,7 +33,7 @@ class CmdHold(FCMCommandMixin, Command):
     """
 
     key = "hold"
-    aliases = ("ho", "hol")
+    aliases = ()
     locks = "cmd:all()"
     help_category = "Items"
 

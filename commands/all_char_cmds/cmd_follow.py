@@ -27,7 +27,7 @@ class CmdFollow(FCMCommandMixin, Command):
     """
 
     key = "follow"
-    aliases = ("fol", "foll")
+    aliases = ("fol",)
     locks = "cmd:all()"
     help_category = "Group"
     allow_while_sleeping = True
@@ -118,7 +118,7 @@ class CmdUnfollow(FCMCommandMixin, Command):
     """
 
     key = "unfollow"
-    aliases = ("unf", "unfo", "unfol")
+    aliases = ("unfol",)
     locks = "cmd:all()"
     help_category = "Group"
     allow_while_sleeping = True
@@ -158,7 +158,7 @@ class CmdNofollow(FCMCommandMixin, Command):
     """
 
     key = "nofollow"
-    aliases = ["nof", "nofol"]
+    aliases = ["nofol"]
     locks = "cmd:all()"
     help_category = "Group"
     allow_while_sleeping = True

@@ -59,7 +59,7 @@ class CmdRetreat(CmdSkillBase):
     """
 
     key = "retreat"
-    aliases = ["ret"]
+    aliases = []
     skill = skills.STRATEGY.value
     help_category = "Group Combat"
 

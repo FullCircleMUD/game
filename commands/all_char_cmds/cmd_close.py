@@ -20,7 +20,7 @@ class CmdClose(FCMCommandMixin, Command):
     """
 
     key = "close"
-    aliases = ["cl", "clo", "clos"]
+    aliases = []
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 

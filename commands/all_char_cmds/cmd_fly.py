@@ -15,7 +15,7 @@ class CmdFly(FCMCommandMixin, Command):
     """
 
     key = "fly"
-    aliases = "fl"
+    aliases = []
     locks = "cmd:all()"
     help_category = "Character"
 

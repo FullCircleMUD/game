@@ -20,7 +20,7 @@ class CmdOpen(FCMCommandMixin, Command):
     """
 
     key = "open"
-    aliases = ["o", "op", "ope"]
+    aliases = []
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 

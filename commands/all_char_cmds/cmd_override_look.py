@@ -49,7 +49,7 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
     Use 'look in' to view the contents of a container.
     """
 
-    aliases = ["l", "ls", "examine", "exam"]
+    aliases = ["l"]
     help_category = "General"
     allow_while_sleeping = False
 

@@ -12,7 +12,7 @@ class CmdWhere(FCMCommandMixin, Command):
     """
 
     key = "where"
-    aliases = ["whe"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Character"
     allow_while_sleeping = True

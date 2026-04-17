@@ -36,7 +36,7 @@ class CmdSearch(FCMCommandMixin, Command):
     """
 
     key = "search"
-    aliases = ("sea", "sear")
+    aliases = ()
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 
