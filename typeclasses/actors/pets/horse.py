@@ -7,6 +7,7 @@ fast movement bonus, can kick in combat.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.combat_companion import CombatCompanionMixin
 from typeclasses.mixins.mount_mixin import MountMixin

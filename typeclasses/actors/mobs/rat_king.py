@@ -11,6 +11,7 @@ import random
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 
 

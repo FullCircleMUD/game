@@ -5,6 +5,7 @@ from evennia.utils.utils import delay
 from enums.condition import Condition
 from enums.death_cause import DeathCause
 from enums.hunger_level import HungerLevel
+from enums.size import Size, size_value
 from enums.thirst_level import ThirstLevel
 from enums.alignment import Alignment
 from typeclasses.actors.races import Race
@@ -98,8 +99,7 @@ class FCMCharacter(
                     )
 
     # Size thresholds for room access — large+ can't enter indoor rooms
-    _SIZE_ORDER = {"tiny": 0, "small": 1, "medium": 2, "large": 3, "huge": 4, "gargantuan": 5}
-    _INDOOR_MAX_SIZE = 2  # medium — large and above are blocked
+    _INDOOR_MAX_SIZE = size_value(Size.MEDIUM)  # large and above are blocked
 
     def _check_pet_room_access(self, destination):
         """Check if any following pet is too large for the destination room.
@@ -120,9 +120,8 @@ class FCMCharacter(
         for f in followers:
             if not getattr(f, "is_pet", False):
                 continue
-            pet_size = getattr(f, "size", "medium")
-            size_val = self._SIZE_ORDER.get(pet_size, 2)
-            if size_val > self._INDOOR_MAX_SIZE:
+            pet_size = getattr(f, "size", Size.MEDIUM)
+            if size_value(pet_size) > self._INDOOR_MAX_SIZE:
                 return f
         return None
 
@@ -236,9 +235,8 @@ class FCMCharacter(
         if mount and move_type not in ("teleport", "flee") and destination:
             max_height = getattr(destination, "max_height", None)
             if max_height is not None and max_height <= 0:
-                pet_size = getattr(mount, "size", "medium")
-                size_val = self._SIZE_ORDER.get(pet_size, 2)
-                if size_val > self._INDOOR_MAX_SIZE:
+                pet_size = getattr(mount, "size", Size.MEDIUM)
+                if size_value(pet_size) > self._INDOOR_MAX_SIZE:
                     self.msg(
                         f"You cannot enter here while mounted on {mount.key}. "
                         f"Dismount first (|wpet dismount|n)."

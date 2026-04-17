@@ -7,6 +7,7 @@ per combat tick. Retreats to the wolves den to heal when below 50% health.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.mob_behaviours.tactical_dodge_mixin import TacticalDodgeMixin
 

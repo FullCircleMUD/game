@@ -20,6 +20,7 @@ from anywhere:
 """
 
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 
 
 # ================================================================== #
@@ -205,9 +206,8 @@ def _build_pc_header(target, lines):
 def _build_mob_header(target, lines):
     """Level and size info for mobs."""
     level = target.get_level()
-    size = getattr(target, "size", "medium")
-    if size:
-        size = str(size).capitalize()
+    size = getattr(target, "size", Size.MEDIUM)
+    size = size.value.capitalize() if isinstance(size, Size) else str(size).capitalize()
     lines.append(f"|cLevel:|n {level}   |cSize:|n {size}")
 
 

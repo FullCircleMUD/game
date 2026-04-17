@@ -11,6 +11,7 @@ removed, unblocking forward exits for players to proceed.
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.search import search_tag
 
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 
 

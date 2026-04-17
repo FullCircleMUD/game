@@ -52,8 +52,8 @@ class Blindness(Spell):
         tier = self.get_caster_tier(caster)
 
         # Size gate
-        target_size = getattr(target, "size", None)
-        if target_size and target_size in _IMMUNE_SIZES:
+        target_size = getattr(target, "size", Size.MEDIUM)
+        if target_size in _IMMUNE_SIZES:
             return (True, {
                 "first": (
                     f"|W{target.key} is too large to be affected by "

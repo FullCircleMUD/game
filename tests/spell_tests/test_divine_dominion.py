@@ -10,6 +10,7 @@ from evennia.utils.test_resources import EvenniaTest
 
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from enums.skills_enum import skills
 from world.spells.registry import SPELL_REGISTRY, get_spell
 

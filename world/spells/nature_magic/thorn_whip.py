@@ -63,8 +63,8 @@ class ThornWhip(Spell):
         actual_damage = apply_spell_damage(target, raw_damage, DamageType.PIERCING)
 
         # Size gate for pull
-        target_size = getattr(target, "size", None)
-        size_immune = target_size and target_size in _IMMUNE_SIZES
+        target_size = getattr(target, "size", Size.MEDIUM)
+        size_immune = target_size in _IMMUNE_SIZES
 
         pulled = False
         hold_rounds = tier

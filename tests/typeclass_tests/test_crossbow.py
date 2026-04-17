@@ -19,6 +19,7 @@ from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 
 
 def _make_crossbow(location=None):

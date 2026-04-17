@@ -22,7 +22,7 @@ visible regardless of barriers.
 
 from evennia import AttributeProperty
 
-from enums.size import size_value
+from enums.size import Size, size_value
 
 
 class HeightAwareMixin:
@@ -53,7 +53,7 @@ class HeightAwareMixin:
         if room is None:
             return True
 
-        obj_size = size_value(getattr(self, "size", "medium"))
+        obj_size = size_value(getattr(self, "size", Size.MEDIUM))
 
         # Observer below object — check up barrier
         if looker_height < obj_height:

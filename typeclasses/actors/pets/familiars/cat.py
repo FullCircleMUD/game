@@ -7,6 +7,7 @@ it ideal for scouting dangerous areas safely.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
 

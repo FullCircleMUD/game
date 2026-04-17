@@ -7,6 +7,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from enums.size import Size
+
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 

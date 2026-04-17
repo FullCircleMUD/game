@@ -19,6 +19,7 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.flying_mixin import FlyingMixin
 from typeclasses.mixins.mob_behaviours.pack_courage_mixin import PackCourageMixin

@@ -29,6 +29,7 @@ from evennia import TICKER_HANDLER
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
+from enums.size import Size
 from typeclasses.actors.ai_handler import StateMachineAIMixin
 from typeclasses.actors.npc import BaseNPC
 from typeclasses.mixins.combat_mixin import CombatMixin
@@ -71,11 +72,6 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     # ── AI ──
     ai_tick_interval = AttributeProperty(10)
     is_alive = AttributeProperty(True)
-
-    # ── Size (override in subclasses for large/huge mobs) ──
-    # Stored as string value, not enum — Evennia can't serialize str enums.
-    # Use Size("medium") to convert back when needed.
-    size = AttributeProperty("medium")
 
     # ── Simple Combat ──
     damage_dice = AttributeProperty("1d4")

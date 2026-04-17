@@ -36,16 +36,10 @@ INTERCEPT_CHANCE = {
 
 def get_actor_size(actor):
     """Get an actor's size as Size enum.
-    Checks race.size for PCs, .size for mobs (stored as string)."""
-    # PC path: character.race.size (already Size enum)
-    race = getattr(actor, "race", None)
-    if race and hasattr(race, "size"):
-        return race.size
-    # Mob path: direct .size attribute (stored as string)
+    All actors store size as a string AttributeProperty on BaseActor.
+    PCs get it set from race.size during chargen/remort."""
     size = getattr(actor, "size", None)
     if size:
-        if isinstance(size, Size):
-            return size
         try:
             return Size(size)
         except ValueError:

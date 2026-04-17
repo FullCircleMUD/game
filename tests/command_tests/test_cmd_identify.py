@@ -11,6 +11,7 @@ from commands.class_skill_cmdsets.class_skill_cmds.cmd_identify import (
     CmdIdentify,
 )
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from enums.skills_enum import skills
 
 

@@ -24,6 +24,7 @@ Usage (spawning items):
 from evennia.objects.objects import DefaultObject
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 from typeclasses.mixins.item_restriction import ItemRestrictionMixin

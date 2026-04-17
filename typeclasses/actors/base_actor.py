@@ -14,6 +14,12 @@ from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 
 class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
 
+    # ── Size — unified across all actors ──
+    # Stored as string for Evennia serialization (dbserialize can't handle
+    # str enums). PCs get this set from race.size in at_taking_race();
+    # mobs/pets override via their own AttributeProperty.
+    size = AttributeProperty("medium")
+
     def at_object_creation(self):
         super().at_object_creation()
         # Auto-init composed mixins if present. Defensive pattern —

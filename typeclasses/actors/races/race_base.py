@@ -76,8 +76,9 @@ class RaceBase:
         applies ability score bonuses (permanent), conditions, resistances,
         and languages.
         """
-        # Race identifier
+        # Race identifier and size
         character.race = self.key
+        character.size = self.size.value
 
         # Starting stats
         character.hp = self.base_hp

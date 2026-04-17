@@ -8,6 +8,7 @@ atmospheric. Weak — not intended as a real fight.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 from typeclasses.mixins.flying_mixin import FlyingMixin
 
