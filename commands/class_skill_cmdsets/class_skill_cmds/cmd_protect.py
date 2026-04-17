@@ -36,7 +36,7 @@ class CmdProtect(CmdSkillBase):
     """
 
     key = "protect"
-    aliases = ["rescue", "prot", "resc"]
+    aliases = ["rescue"]
     skill = skills.PROTECT.value
     help_category = "Combat"
 

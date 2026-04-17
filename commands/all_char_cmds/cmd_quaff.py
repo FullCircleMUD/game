@@ -33,7 +33,7 @@ class CmdQuaff(FCMCommandMixin, Command):
     """
 
     key = "quaff"
-    aliases = ["qu", "drink", "dr"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Items"
 

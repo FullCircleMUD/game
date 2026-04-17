@@ -29,7 +29,7 @@ class CmdLight(FCMCommandMixin, Command):
     """
 
     key = "light"
-    aliases = ("li", "lig", "ignite")
+    aliases = ()
     locks = "cmd:all()"
     help_category = "Items"
 
