@@ -23,6 +23,9 @@ from evennia import Command
 from evennia.utils import delay
 
 from commands.command import FCMCommandMixin
+from typeclasses.world_objects.library_book import LibraryBook
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see, p_same_height
 
 
 PARAGRAPH_PAUSE = 1.0
@@ -75,22 +78,25 @@ class CmdRead(FCMCommandMixin, Command):
         if not room:
             return
 
-        target = caller.search(
-            self.args.strip(),
-            location=room,
-            typeclass="typeclasses.world_objects.library_book.LibraryBook",
-            quiet=True,
-        )
-
-        if not target:
-            general = caller.search(self.args.strip(), location=room, quiet=True)
-            if general:
-                caller.msg("That's not something you can read.")
-            else:
-                caller.msg("You don't see that here.")
+        # Darkness — can't read without sight
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        book = target[0] if isinstance(target, list) else target
+        # Broad targeting — find whatever the player named in the room
+        book, _ = resolve_target(
+            caller, self.args.strip(), "items_room_fixed_nonexit",
+            extra_predicates=(p_can_see,),
+        )
+        if not book:
+            caller.msg("You don't see that here.")
+            return
+        if not p_same_height(caller)(book, caller):
+            caller.msg(f"{book.key} is out of reach.")
+            return
+        if not isinstance(book, LibraryBook):
+            caller.msg("That's not something you can read.")
+            return
 
         destination = book.book_destination
         if not destination:
