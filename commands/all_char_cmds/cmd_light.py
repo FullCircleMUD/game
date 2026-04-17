@@ -2,18 +2,19 @@
 Light and extinguish commands for light sources (torches, lanterns).
 
 Usage:
-    light <item>       — light a held or carried light source
+    light <item>       — light an equipped light source
     extinguish <item>  — put out a lit light source
 
-If the item is in inventory but not held, 'light' will auto-hold it
-first (if the HOLD slot is free).
+Light sources must be equipped (held/worn) to be lit or extinguished.
+Neither command requires sight — you can light a torch by touch in
+the dark, and if a torch is lit the room isn't dark.
 """
 
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from enums.wearslot import HumanoidWearSlot
-from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdLight(FCMCommandMixin, Command):
@@ -23,9 +24,8 @@ class CmdLight(FCMCommandMixin, Command):
     Usage:
         light <item>
 
-    Lights an item you are holding or carrying. If the item is in
-    your inventory but not held, it will be equipped to your Hold
-    slot first (if the slot is free).
+    The item must be equipped (held or worn). You can light a torch
+    in the dark by touch — no sight required.
     """
 
     key = "light"
@@ -42,26 +42,19 @@ class CmdLight(FCMCommandMixin, Command):
 
         query = self.args.strip()
 
-        # Search inventory (including worn/held items)
-        item = caller.search(query, location=caller)
+        # No darkness check — you can light an equipped torch by touch
+        item, _ = resolve_target(
+            caller, query, "items_equipped",
+            extra_predicates=(p_can_see,),
+        )
         if not item:
+            caller.msg(f"You aren't wearing '{query}'.")
             return
 
         # Must be a light source
         if not getattr(item, "is_light_source", False):
             caller.msg("That's not something you can light.")
             return
-
-        # If not held, try to auto-hold it
-        if item.location == caller and not self._is_held(caller, item):
-            if not isinstance(item, HoldableNFTItem):
-                caller.msg("You need to hold that first.")
-                return
-            success, msg = caller.wear(item)
-            if not success:
-                caller.msg(msg)
-                return
-            caller.msg(msg)
 
         # Light it
         success, msg = item.light(lighter=caller)
@@ -75,12 +68,6 @@ class CmdLight(FCMCommandMixin, Command):
         else:
             caller.msg(msg)
 
-    def _is_held(self, caller, item):
-        """Check if item is in the HOLD wearslot."""
-        if not hasattr(caller, "get_slot"):
-            return False
-        return caller.get_slot(HumanoidWearSlot.HOLD) == item
-
 
 class CmdExtinguish(FCMCommandMixin, Command):
     """
@@ -91,8 +78,8 @@ class CmdExtinguish(FCMCommandMixin, Command):
         douse <item>
         snuff <item>
 
-    Puts out a torch, lantern, or other light source you are
-    carrying. Remaining fuel is preserved.
+    Puts out an equipped torch, lantern, or other light source.
+    Remaining fuel is preserved.
     """
 
     key = "extinguish"
@@ -109,9 +96,13 @@ class CmdExtinguish(FCMCommandMixin, Command):
 
         query = self.args.strip()
 
-        # Search inventory
-        item = caller.search(query, location=caller)
+        # No darkness check — if a light source is lit, the room isn't dark
+        item, _ = resolve_target(
+            caller, query, "items_equipped",
+            extra_predicates=(p_can_see,),
+        )
         if not item:
+            caller.msg(f"You aren't wearing '{query}'.")
             return
 
         if not getattr(item, "is_light_source", False):

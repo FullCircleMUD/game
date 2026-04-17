@@ -22,23 +22,32 @@ class TestCmdLight(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.torch = create.create_object(
             "typeclasses.items.holdables.torch_nft_item.TorchNFTItem",
             key="torch",
             location=self.char1,
             nohome=True,
         )
+        # Equip the torch — must be held to light
+        self.char1.wear(self.torch)
 
     def test_light_no_args(self):
         self.call(CmdLight(), "", "Light what?")
 
     def test_light_nonexistent_item(self):
-        result = self.call(CmdLight(), "banana")
-        self.assertIn("Could not find", result)
+        self.call(CmdLight(), "banana", "You aren't wearing 'banana'.")
 
     def test_light_non_light_source(self):
-        rock = create.create_object(key="rock", location=self.char1, nohome=True)
-        result = self.call(CmdLight(), "rock")
+        """Non-light-source equipped item can't be lit."""
+        from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
+        # Remove torch first to free the hold slot
+        self.char1.remove(self.torch)
+        shield = create.create_object(
+            HoldableNFTItem, key="shield", location=self.char1, nohome=True,
+        )
+        self.char1.wear(shield)
+        result = self.call(CmdLight(), "shield")
         self.assertIn("not something you can light", result)
 
     def test_light_torch_success(self):
@@ -52,6 +61,11 @@ class TestCmdLight(EvenniaCommandTest):
         result = self.call(CmdLight(), "torch")
         self.assertIn("already lit", result)
 
+    def test_light_unequipped_not_found(self):
+        """An unequipped torch in inventory can't be lit."""
+        self.char1.remove(self.torch)
+        self.call(CmdLight(), "torch", "You aren't wearing 'torch'.")
+
 
 class TestCmdExtinguish(EvenniaCommandTest):
     """Test the 'extinguish' command."""
@@ -64,12 +78,15 @@ class TestCmdExtinguish(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.torch = create.create_object(
             "typeclasses.items.holdables.torch_nft_item.TorchNFTItem",
             key="torch",
             location=self.char1,
             nohome=True,
         )
+        # Equip the torch — must be held to extinguish
+        self.char1.wear(self.torch)
 
     def test_extinguish_no_args(self):
         self.call(CmdExtinguish(), "", "Extinguish what?")
@@ -86,8 +103,15 @@ class TestCmdExtinguish(EvenniaCommandTest):
         self.assertIn("not lit", result)
 
     def test_extinguish_non_light_source(self):
-        rock = create.create_object(key="rock", location=self.char1, nohome=True)
-        result = self.call(CmdExtinguish(), "rock")
+        """Non-light-source equipped item can't be extinguished."""
+        from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
+        # Remove torch first to free the hold slot
+        self.char1.remove(self.torch)
+        shield = create.create_object(
+            HoldableNFTItem, key="shield", location=self.char1, nohome=True,
+        )
+        self.char1.wear(shield)
+        result = self.call(CmdExtinguish(), "shield")
         self.assertIn("not something you can extinguish", result)
 
 
