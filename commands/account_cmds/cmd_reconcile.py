@@ -33,7 +33,7 @@ class CmdReconcile(Command):
     """
 
     key = "reconcile"
-    aliases = ["recon"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Economy"
 

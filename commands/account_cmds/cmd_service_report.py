@@ -60,7 +60,7 @@ class CmdServiceRun(Command):
     """
 
     key = "service_run"
-    aliases = ["services"]
+    aliases = []
     locks = "cmd:id(1)"
     help_category = "Admin"
 

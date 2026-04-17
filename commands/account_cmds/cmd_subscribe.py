@@ -29,7 +29,7 @@ class CmdSubscribe(Command):
     """
 
     key = "subscribe"
-    aliases = ["sub"]
+    aliases = []
     locks = "cmd:is_ooc()"
     help_category = "System"
 

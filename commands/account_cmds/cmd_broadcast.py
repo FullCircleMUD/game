@@ -21,7 +21,7 @@ class CmdBroadcast(Command):
     """
 
     key = "broadcast"
-    aliases = ["wall"]
+    aliases = []
     locks = "cmd:id(1)"
     help_category = "System"
 

@@ -32,7 +32,7 @@ class CmdRebuildZone(Command):
     """
 
     key = "rebuild_zone"
-    aliases = ["rebuildzone"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Admin"
 

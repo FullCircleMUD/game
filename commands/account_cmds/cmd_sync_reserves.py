@@ -38,7 +38,7 @@ class CmdSyncReserves(Command):
     """
 
     key = "sync_reserves"
-    aliases = ["syncreserves"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Economy"
 

@@ -27,7 +27,7 @@ class CmdRebuildTest(Command):
     """
 
     key = "rebuild_test"
-    aliases = ["rebuildtest"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Admin"
 
