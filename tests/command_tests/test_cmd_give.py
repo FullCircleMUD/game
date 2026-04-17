@@ -27,6 +27,7 @@ class TestCmdGiveGold(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account2.attributes.add("wallet_address", WALLET_B)
         self.char1.db.gold = 100
@@ -82,6 +83,7 @@ class TestCmdGiveResource(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account2.attributes.add("wallet_address", WALLET_B)
         self.char1.db.gold = 0
@@ -124,6 +126,7 @@ class TestCmdGiveObject(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.sword = create.create_object(
             "evennia.objects.objects.DefaultObject",
             key="sword",
@@ -137,7 +140,7 @@ class TestCmdGiveObject(EvenniaCommandTest):
 
     def test_give_object_not_found(self):
         """give item you don't have should show error."""
-        self.call(CmdGive(), "banana to Char2", "You aren't carrying banana.")
+        self.call(CmdGive(), "banana to Char2", "You aren't carrying 'banana'.")
 
     def test_give_object_empty_inventory(self):
         """give X to Y when inventory is empty should still show error.
@@ -154,7 +157,7 @@ class TestCmdGiveObject(EvenniaCommandTest):
         self.sword.delete()
         self.call(
             CmdGive(), "banana to Char2",
-            "You aren't carrying banana.",
+            "You aren't carrying 'banana'.",
         )
 
     def test_give_world_anchored_nft_item(self):
@@ -240,6 +243,7 @@ class TestCmdGiveAll(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account2.attributes.add("wallet_address", WALLET_B)
         self.char1.db.gold = 50

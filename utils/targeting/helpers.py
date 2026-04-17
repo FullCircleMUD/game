@@ -707,7 +707,7 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
 
 
 def resolve_target(caller, target_str, target_type, aoe=None,
-                    extra_predicates=()):
+                    extra_predicates=(), stacked=0):
     """Resolve a spell target by ``target_type``.
 
     Single entry point for all spell target resolution, used by
@@ -854,7 +854,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             return None, []
         target = caller.search(
             target_str, candidates=candidates,
-            quiet=True, exclude_worn=True,
+            quiet=True, exclude_worn=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -885,7 +885,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             return None, []
         target = caller.search(
             target_str, candidates=candidates,
-            quiet=True, only_worn=True,
+            quiet=True, only_worn=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -915,7 +915,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if not candidates:
             return None, []
         target = caller.search(
-            target_str, candidates=candidates, quiet=True,
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -958,7 +958,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if not candidates:
             return None, []
         target = caller.search(
-            target_str, candidates=candidates, quiet=True,
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -991,7 +991,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if not candidates:
             return None, []
         target = caller.search(
-            target_str, candidates=candidates, quiet=True,
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -1031,7 +1031,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if not candidates:
             return None, []
         target = caller.search(
-            target_str, candidates=candidates, quiet=True,
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -1070,7 +1070,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if not candidates:
             return None, []
         target = caller.search(
-            target_str, candidates=candidates, quiet=True,
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -1109,7 +1109,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if not candidates:
             return None, []
         target = caller.search(
-            target_str, candidates=candidates, quiet=True,
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
         if isinstance(target, list):
             target = target[0] if target else None
@@ -1136,7 +1136,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             candidates = walk_contents(caller, caller.location, *preds)
             if candidates:
                 target = caller.search(
-                    target_str, candidates=candidates, quiet=True,
+                    target_str, candidates=candidates, quiet=True, stacked=stacked,
                 )
                 if isinstance(target, list):
                     target = target[0] if target else None
@@ -1147,7 +1147,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if candidates:
             target = caller.search(
                 target_str, candidates=candidates,
-                quiet=True, exclude_worn=True,
+                quiet=True, exclude_worn=True, stacked=stacked,
             )
             if isinstance(target, list):
                 target = target[0] if target else None
@@ -1172,7 +1172,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if candidates:
             target = caller.search(
                 target_str, candidates=candidates,
-                quiet=True, exclude_worn=True,
+                quiet=True, exclude_worn=True, stacked=stacked,
             )
             if isinstance(target, list):
                 target = target[0] if target else None
@@ -1184,7 +1184,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             candidates = walk_contents(caller, caller.location, *preds)
             if candidates:
                 target = caller.search(
-                    target_str, candidates=candidates, quiet=True,
+                    target_str, candidates=candidates, quiet=True, stacked=stacked,
                 )
                 if isinstance(target, list):
                     target = target[0] if target else None
@@ -1211,7 +1211,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         if candidates:
             target = caller.search(
                 target_str, candidates=candidates,
-                quiet=True, exclude_worn=True,
+                quiet=True, exclude_worn=True, stacked=stacked,
             )
             if isinstance(target, list):
                 target = target[0] if target else None
@@ -1223,7 +1223,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             candidates = walk_contents(caller, caller.location, *preds)
             if candidates:
                 target = caller.search(
-                    target_str, candidates=candidates, quiet=True,
+                    target_str, candidates=candidates, quiet=True, stacked=stacked,
                 )
                 if isinstance(target, list):
                     target = target[0] if target else None

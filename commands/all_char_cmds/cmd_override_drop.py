@@ -24,7 +24,7 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
-from utils.targeting.helpers import resolve_item_in_source, resolve_target
+from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
 
 GOLD = settings.GOLD_DISPLAY
@@ -277,18 +277,11 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
             caller.msg("It's too dark to see anything.")
             return
 
-        if self.number and self.number > 1:
-            # Stacked drop — resolve_target doesn't support stacked,
-            # fall back to resolve_item_in_source.
-            objs = resolve_item_in_source(
-                caller, caller, search_term, stacked=self.number,
-            )
-        else:
-            target, _ = resolve_target(
-                caller, search_term, "items_inventory",
-                extra_predicates=(p_can_see,),
-            )
-            objs = target
+        objs, _ = resolve_target(
+            caller, search_term, "items_inventory",
+            extra_predicates=(p_can_see,),
+            stacked=self.number or 0,
+        )
 
         if not objs:
             caller.msg(f"You aren't carrying '{search_term}'.")

@@ -30,8 +30,9 @@ from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import (
     resolve_character_in_room,
-    resolve_item_in_source,
+    resolve_target,
 )
+from utils.targeting.predicates import p_can_see, p_same_height
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -79,21 +80,25 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                 caller.msg("Usage: give <item> to <target>")
                 return
 
+        # Darkness — can't identify items or people without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # ---------------------------------------------------------- #
-        #  Find and validate the target
+        #  Find and validate the target character
         # ---------------------------------------------------------- #
-        # resolve_character_in_room filters candidates to FCMCharacter
-        # (player characters) upstream via p_is_character, so the old
-        # isinstance check becomes redundant and is removed. The
-        # target == caller check stays as a command-layer policy so
-        # the caller gets the specific "give to yourself" error
-        # rather than the helper's generic "not found". Helper
-        # identifies; command polices.
         target = resolve_character_in_room(caller, self.rhs)
         if not target:
             caller.msg(f"You don't see a character called '{self.rhs}' here.")
             return
-
+        if not p_can_see(target, caller):
+            caller.msg(f"You don't see a character called '{self.rhs}' here.")
+            return
+        if not p_same_height(caller)(target, caller):
+            caller.msg("They're out of reach.")
+            return
         if target == caller:
             caller.msg("You can't give things to yourself.")
             return
@@ -381,25 +386,23 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
 
     def _give_object(self, caller, target, search_term):
         """Standard Evennia object give with fuzzy matching."""
-        # resolve_item_in_source filters source.contents via the base
-        # targeting predicates (not-actor, not-exit, visible). For
-        # inventory lookups those are effectively no-ops (inventory
-        # never contains actors or exits) but the shared code path
-        # keeps filter semantics consistent with every other item
-        # lookup in the MUD. exclude_worn is forwarded through kwargs
-        # to FCMCharacter.search where the equipped-item filtering
-        # actually happens.
-        to_give = resolve_item_in_source(
-            caller, caller, search_term,
-            nofound_string=f"You aren't carrying {search_term}.",
-            multimatch_string=f"You carry more than one {search_term}:",
-            stacked=self.number,
-            exclude_worn=True,
+        to_give, _ = resolve_target(
+            caller, search_term, "items_inventory",
+            extra_predicates=(p_can_see,),
+            stacked=self.number or 0,
         )
+
         if not to_give:
+            caller.msg(f"You aren't carrying '{search_term}'.")
             return
 
         to_give = utils.make_iter(to_give)
+
+        # Worn check — can't give equipped items
+        for obj in to_give:
+            if caller.is_worn(obj):
+                self.msg(f"You must remove {obj.key} first.")
+                return
         target_name = target.get_display_name(caller)
 
         for obj in to_give:

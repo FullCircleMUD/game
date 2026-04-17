@@ -365,18 +365,11 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
         _get_lock = p_passes_lock("get")
         _height_ok = p_same_height(caller)
 
-        if self.number and self.number > 1:
-            # Stacked pickup — resolve_target doesn't support stacked
-            # kwarg, fall back to direct resolve_item_in_source.
-            objs = resolve_item_in_source(
-                caller, caller.location, search_term, stacked=self.number
-            )
-        else:
-            target, _ = resolve_target(
-                caller, search_term, "items_room_nonexit",
-                extra_predicates=(p_visible_to,),
-            )
-            objs = target
+        objs, _ = resolve_target(
+            caller, search_term, "items_room_nonexit",
+            extra_predicates=(p_visible_to,),
+            stacked=self.number or 0,
+        )
         if not objs:
             caller.msg(f"You don't see '{search_term}' here.")
             return
