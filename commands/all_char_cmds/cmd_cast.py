@@ -2,8 +2,9 @@
 Cast command — cast a memorised spell.
 
 Usage:
-    cast <spell> [target]
+    cast '<spell>' [target]
 
+Spell names must be enclosed in single quotes (the Magic Symbols).
 For hostile spells, a target is required. For friendly spells
 (healing), no target defaults to self. Mana is deducted on cast.
 The spell stays memorised after casting.
@@ -15,7 +16,7 @@ from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_different_height, p_same_height
-from world.spells.registry import get_spell, SPELL_REGISTRY
+from world.spells.registry import SPELL_REGISTRY
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -23,14 +24,13 @@ class CmdCast(FCMCommandMixin, Command):
     Cast a memorised spell.
 
     Usage:
-        cast <spell>
-        cast <spell> <target>
+        cast '<spell>'
+        cast '<spell>' <target>
 
     Examples:
-        cast magic missile goblin
-        cast mm goblin
-        cast cure wounds
-        cast cure wounds bob
+        cast 'magic missile' goblin
+        cast 'cure wounds'
+        cast 'cure wounds' bob
     """
 
     key = "cast"
@@ -42,54 +42,46 @@ class CmdCast(FCMCommandMixin, Command):
         caller = self.caller
 
         if not self.args:
-            caller.msg("Cast what? Usage: cast <spell> [target]")
+            caller.msg("Cast what? Usage: cast '<spell>' [target]")
             return
 
         args = self.args.strip()
 
-        # Try to find the spell — match against known spell keys/names/aliases
-        # Strategy: try longest prefix match against spell names
+        # Spell name must be enclosed in single quotes
+        if "'" not in args:
+            caller.msg(
+                "Spell names must be enclosed in the Magic Symbols: '\n"
+                "Usage: cast '<spell>' [target]"
+            )
+            return
+
+        first_quote = args.index("'")
+        rest = args[first_quote + 1:]
+        if "'" not in rest:
+            caller.msg(
+                "Spell names must be enclosed in the Magic Symbols: '\n"
+                "Usage: cast '<spell>' [target]"
+            )
+            return
+
+        second_quote = rest.index("'")
+        spell_name = rest[:second_quote].strip()
+        target_str = rest[second_quote + 1:].strip()
+
+        if not spell_name:
+            caller.msg("Cast what? Usage: cast '<spell>' [target]")
+            return
+
+        # Look up spell by name or key (underscores as spaces)
         spell_match = None
-        target_str = ""
-        best_match_len = 0
-
+        spell_name_lower = spell_name.lower()
         for spell_key, spell_obj in SPELL_REGISTRY.items():
-            # Check if args starts with the spell name (case insensitive)
-            # Require word boundary after match to prevent partial matches
-            name_lower = spell_obj.name.lower()
-            if args.lower().startswith(name_lower):
-                after = args[len(name_lower):]
-                if after and not after[0].isspace():
-                    pass  # partial word match — skip
-                elif len(name_lower) > best_match_len:
-                    spell_match = spell_obj
-                    target_str = after.strip()
-                    best_match_len = len(name_lower)
-
-            # Also check by key with underscores replaced
-            key_display = spell_key.replace("_", " ")
-            if args.lower().startswith(key_display):
-                after = args[len(key_display):]
-                if after and not after[0].isspace():
-                    pass  # partial word match — skip
-                elif len(key_display) > best_match_len:
-                    spell_match = spell_obj
-                    target_str = after.strip()
-                    best_match_len = len(key_display)
-
-            # Check aliases — require word boundary (space or end of string)
-            # to prevent short aliases like "ma" matching inside "magic"
-            for alias in getattr(spell_obj, "aliases", []):
-                alias_lower = alias.lower()
-                if args.lower().startswith(alias_lower):
-                    after = args[len(alias_lower):]
-                    if after and not after[0].isspace():
-                        continue  # partial word match — skip
-                    remainder = after.strip()
-                    if len(alias_lower) > best_match_len:
-                        spell_match = spell_obj
-                        target_str = remainder
-                        best_match_len = len(alias_lower)
+            if spell_obj.name.lower() == spell_name_lower:
+                spell_match = spell_obj
+                break
+            if spell_key.replace("_", " ") == spell_name_lower:
+                spell_match = spell_obj
+                break
 
         if not spell_match:
             caller.msg("You don't know a spell by that name.")

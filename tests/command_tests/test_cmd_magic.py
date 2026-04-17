@@ -189,34 +189,38 @@ class TestCmdCast(EvenniaCommandTest):
         """Cast with no args shows usage."""
         self.call(CmdCast(), "", "Cast what?")
 
+    def test_cast_no_quotes_shows_error(self):
+        """Cast without single quotes shows Magic Symbols error."""
+        self.call(CmdCast(), f"magic missile {self.char2.key}", "Spell names must be enclosed in the Magic Symbols")
+
     def test_cast_hostile_with_target(self):
         """Cast magic missile at target should deal damage."""
-        self.call(CmdCast(), f"magic missile {self.char2.key}")
+        self.call(CmdCast(), f"'magic missile' {self.char2.key}")
         self.assertLess(self.char2.hp, 100)
 
     def test_cast_hostile_no_target(self):
         """Cast hostile spell with no target should show error."""
-        self.call(CmdCast(), "magic missile", "You need to specify a target.")
+        self.call(CmdCast(), "'magic missile'", "You need to specify a target.")
 
     def test_cast_not_memorised(self):
         """Cast a spell that isn't memorised should fail."""
         self.char1.db.memorised_spells = {}
-        self.call(CmdCast(), f"magic missile {self.char2.key}", "You haven't memorised")
+        self.call(CmdCast(), f"'magic missile' {self.char2.key}", "You haven't memorised")
 
     def test_cast_unknown_spell(self):
         """Cast a spell that doesn't exist should fail."""
-        self.call(CmdCast(), f"baleful polymorph {self.char2.key}", "You don't know a spell")
+        self.call(CmdCast(), f"'baleful polymorph' {self.char2.key}", "You don't know a spell")
 
     def test_cast_deducts_mana(self):
         """Casting should deduct mana."""
         start_mana = self.char1.mana
-        self.call(CmdCast(), f"magic missile {self.char2.key}")
+        self.call(CmdCast(), f"'magic missile' {self.char2.key}")
         self.assertLess(self.char1.mana, start_mana)
 
     def test_cast_insufficient_mana(self):
         """Cast with insufficient mana should fail."""
         self.char1.mana = 0
-        self.call(CmdCast(), f"magic missile {self.char2.key}", "Not enough mana")
+        self.call(CmdCast(), f"'magic missile' {self.char2.key}", "Not enough mana")
 
     def test_cast_friendly_no_target_heals_self(self):
         """Cast friendly spell with no target should target self."""
@@ -225,17 +229,12 @@ class TestCmdCast(EvenniaCommandTest):
         self.char1.db.memorised_spells = {"cure_wounds": True}
         self.char1.hp = 10
         self.char1.hp_max = 100
-        self.call(CmdCast(), "cure wounds")
+        self.call(CmdCast(), "'cure wounds'")
         self.assertGreater(self.char1.hp, 10)
-
-    def test_cast_by_alias(self):
-        """Cast via alias (mm) should resolve to magic missile."""
-        self.call(CmdCast(), f"mm {self.char2.key}")
-        self.assertLess(self.char2.hp, 100)
 
     def test_cast_success_message(self):
         """Successful cast should show first-person message to caster."""
-        result = self.call(CmdCast(), f"magic missile {self.char2.key}")
+        result = self.call(CmdCast(), f"'magic missile' {self.char2.key}")
         self.assertIn("You fire", result)
         self.assertIn("glowing missile", result)
 
