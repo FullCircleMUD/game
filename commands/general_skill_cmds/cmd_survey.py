@@ -32,7 +32,7 @@ class CmdSurvey(FCMCommandMixin, Command):
     """
 
     key = "survey"
-    aliases = ["sur", "surv"]
+    aliases = []
     help_category = "Exploration"
 
     def func(self):

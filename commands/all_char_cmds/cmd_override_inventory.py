@@ -35,7 +35,7 @@ class CmdInventory(FCMCommandMixin, Command):
     """
 
     key = "inventory"
-    aliases = ["inv", "i"]
+    aliases = ["inv"]
     locks = "cmd:all()"
     help_category = "Items"
     allow_while_sleeping = True

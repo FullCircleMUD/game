@@ -23,7 +23,7 @@ class CmdUnconnectedCreate(COMMAND_DEFAULT_CLASS):
     """
 
     key = "create"
-    aliases = ["cre", "cr"]
+    aliases = []
     locks = "cmd:all()"
     arg_regex = r"\s.*?|$"
 

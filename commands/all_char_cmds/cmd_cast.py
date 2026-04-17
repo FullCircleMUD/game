@@ -34,7 +34,7 @@ class CmdCast(FCMCommandMixin, Command):
     """
 
     key = "cast"
-    aliases = ["c", "ca"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Magic"
 

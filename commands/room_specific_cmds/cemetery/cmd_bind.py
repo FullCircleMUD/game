@@ -17,7 +17,7 @@ class CmdBind(FCMCommandMixin, Command):
     """
 
     key = "bind"
-    aliases = ["bi", "bin"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Character"
 
