@@ -113,6 +113,7 @@ class TestCmdDropObject(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.sword = create.create_object(
             "evennia.objects.objects.DefaultObject",
             key="sword",
@@ -126,7 +127,7 @@ class TestCmdDropObject(EvenniaCommandTest):
 
     def test_drop_object_not_found(self):
         """drop item you don't have should show error."""
-        self.call(CmdDrop(), "banana", "You aren't carrying banana.")
+        self.call(CmdDrop(), "banana", "You aren't carrying 'banana'.")
 
     def test_drop_object_empty_inventory(self):
         """drop X when inventory is empty should still show the error.
@@ -141,7 +142,7 @@ class TestCmdDropObject(EvenniaCommandTest):
         nofound_string still fires.
         """
         self.sword.delete()
-        self.call(CmdDrop(), "banana", "You aren't carrying banana.")
+        self.call(CmdDrop(), "banana", "You aren't carrying 'banana'.")
 
     def test_drop_world_anchored_nft_item(self):
         """drop should refuse to drop an WorldAnchoredNFTItem."""

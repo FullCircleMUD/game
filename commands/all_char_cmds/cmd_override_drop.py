@@ -24,7 +24,8 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
-from utils.targeting.helpers import resolve_item_in_source
+from utils.targeting.helpers import resolve_item_in_source, resolve_target
+from utils.targeting.predicates import p_can_see
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -270,24 +271,35 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
 
     def _drop_object(self, caller, search_term):
         """Standard Evennia object drop with fuzzy matching."""
-        # resolve_item_in_source filters source.contents via the base
-        # targeting predicates (not-character, not-exit, visible). For
-        # inventory lookups those are effectively no-ops (inventory
-        # never contains exits/characters) but the shared code path
-        # keeps filter semantics consistent with every other item
-        # lookup in the MUD. exclude_worn is forwarded through kwargs
-        # to FCMCharacter.search where the equipped-item filtering
-        # actually happens.
-        objs = resolve_item_in_source(
-            caller, caller, search_term,
-            nofound_string=f"You aren't carrying {search_term}.",
-            multimatch_string=f"You carry more than one {search_term}:",
-            stacked=self.number,
-            exclude_worn=True,
-        )
+        # Darkness — can't identify items without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        if self.number and self.number > 1:
+            # Stacked drop — resolve_target doesn't support stacked,
+            # fall back to resolve_item_in_source.
+            objs = resolve_item_in_source(
+                caller, caller, search_term, stacked=self.number,
+            )
+        else:
+            target, _ = resolve_target(
+                caller, search_term, "items_inventory",
+                extra_predicates=(p_can_see,),
+            )
+            objs = target
+
         if not objs:
+            caller.msg(f"You aren't carrying '{search_term}'.")
             return
         objs = utils.make_iter(objs)
+
+        # Worn check — can't drop equipped items
+        for obj in objs:
+            if caller.is_worn(obj):
+                self.msg(f"You must remove {obj.key} first.")
+                return
 
         for obj in objs:
             if not obj.at_pre_drop(caller):
