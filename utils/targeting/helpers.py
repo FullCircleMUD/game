@@ -19,14 +19,6 @@ from utils.targeting.predicates import (
 )
 
 
-#: The universal "item-like" filter stack. Any lookup that wants
-#: "things in source.contents that could be items the caller might
-#: act on" combines these with additional filters as needed. Excludes
-#: actors (PCs, NPCs, mobs, pets, mounts — anything living), exits,
-#: and objects the caller can't currently see (HiddenObjectMixin).
-BASE_ITEM_PREDICATES = (p_not_actor, p_not_exit, p_visible_to)
-
-
 def walk_contents(caller, source, *predicates):
     """Walk ``source.contents`` once and return objects passing every predicate.
 
@@ -35,19 +27,18 @@ def walk_contents(caller, source, *predicates):
     ``all()`` so the first failing predicate stops evaluation for
     that object.
 
-    Compose with ``BASE_ITEM_PREDICATES`` for the standard "item-like"
-    filter, or pass a custom stack for specialised lookups::
+    Each call site declares its own predicate stack explicitly —
+    there is no shared "base" constant. This forces every resolver
+    to evaluate what it actually needs to filter::
 
-        # Standard item filter:
-        walk_contents(caller, source, *BASE_ITEM_PREDICATES)
+        # Room items — no actors, no exits, stealth-visible:
+        walk_contents(caller, room, p_not_actor, p_not_exit, p_visible_to)
 
-        # Item filter plus container requirement:
-        walk_contents(
-            caller, source, *BASE_ITEM_PREDICATES, p_is_container,
-        )
+        # Room containers — same plus container check:
+        walk_contents(caller, room, p_not_actor, p_not_exit, p_visible_to, p_is_container)
 
-        # Custom filter ignoring the base stack entirely:
-        walk_contents(caller, source, p_is_mob)
+        # Inventory — no predicates needed (only items in contents):
+        walk_contents(caller, caller)
 
     Returns an empty list if ``source`` is ``None`` or has no
     ``.contents`` attribute, so callers can iterate the result
@@ -240,7 +231,9 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
     # empty. Commands that passed a custom error wording saw
     # nothing on the empty path until the short-circuit was
     # removed.
-    candidates = walk_contents(caller, source, *BASE_ITEM_PREDICATES)
+    candidates = walk_contents(
+        caller, source, p_not_actor, p_not_exit, p_visible_to,
+    )
     return caller.search(search_term, candidates=candidates, **kwargs)
 
 
@@ -274,7 +267,8 @@ def resolve_container(caller, name):
         if source is None:
             continue
         candidates = walk_contents(
-            caller, source, *BASE_ITEM_PREDICATES, p_is_container,
+            caller, source,
+            p_not_actor, p_not_exit, p_visible_to, p_is_container,
         )
         if not candidates:
             continue
@@ -877,7 +871,7 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
 
     # ── items_gettable_room: room items only (no exits, no actors) ──
     if target_type == "items_gettable_room":
-        preds = list(BASE_ITEM_PREDICATES) + list(extra_predicates)
+        preds = [p_not_actor, p_not_exit, p_visible_to] + list(extra_predicates)
         candidates = walk_contents(caller, caller.location, *preds)
         if not candidates:
             caller.msg(f"You don't see '{target_str}' here.")
@@ -890,12 +884,37 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
             return None, []
         return target, []
 
+    # ── items_inventory_then_gettable_room: inventory first, room fallback ──
+    if target_type == "items_inventory_then_gettable_room":
+        # Inventory — no height filter, no exclude_worn (worn containers
+        # are valid targets for inspection commands like "look in").
+        target = resolve_item_in_source(
+            caller, caller, target_str, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        if target is not None:
+            return target, []
+        # Room fallback — no actors, no exits, visible + extra predicates.
+        if caller.location:
+            preds = [p_not_actor, p_not_exit, p_visible_to] + list(extra_predicates)
+            candidates = walk_contents(caller, caller.location, *preds)
+            if candidates:
+                target = caller.search(
+                    target_str, candidates=candidates, quiet=True,
+                )
+                if isinstance(target, list):
+                    target = target[0] if target else None
+                if target is not None:
+                    return target, []
+        caller.msg(f"You don't see '{target_str}' here.")
+        return None, []
+
     # ── Future item types (convention-defined, not yet implemented) ──
     _FUTURE_ITEM_TYPES = (
         "items_all_room",
         "items_fixed_room",
         "items_gettable_room_then_inventory",
-        "items_inventory_then_gettable_room",
     )
     if target_type in _FUTURE_ITEM_TYPES:
         raise NotImplementedError(

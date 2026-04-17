@@ -11,7 +11,6 @@ from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.helpers import (
-    BASE_ITEM_PREDICATES,
     bucket_contents,
     resolve_attack_target_in_combat,
     resolve_attack_target_out_of_combat,
@@ -20,6 +19,7 @@ from utils.targeting.helpers import (
     resolve_item_in_source,
     walk_contents,
 )
+from utils.targeting.predicates import p_not_actor, p_not_exit, p_visible_to
 
 
 def _make_actor(
@@ -140,17 +140,17 @@ class TestWalkContents(EvenniaTest):
     # ── Source edge cases ─────────────────────────────────────────
 
     def test_source_is_none_returns_empty_list(self):
-        result = walk_contents(None, None, *BASE_ITEM_PREDICATES)
+        result = walk_contents(None, None, p_not_actor, p_not_exit, p_visible_to)
         self.assertEqual(result, [])
 
     def test_source_without_contents_returns_empty_list(self):
         source = SimpleNamespace()  # no .contents attribute
-        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
         self.assertEqual(result, [])
 
     def test_source_with_empty_contents_returns_empty_list(self):
         source = SimpleNamespace(contents=[])
-        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
         self.assertEqual(result, [])
 
     # ── Predicate composition ─────────────────────────────────────
@@ -170,25 +170,25 @@ class TestWalkContents(EvenniaTest):
         a = _make_item("a")
         b = _make_item("b")
         source = SimpleNamespace(contents=[a, b])
-        # BASE_ITEM_PREDICATES filters out actors/exits/hidden — plain
-        # SimpleNamespace items pass all three.
-        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
+        # p_not_actor, p_not_exit, p_visible_to filters out
+        # actors/exits/hidden — plain SimpleNamespace items pass all three.
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
         self.assertEqual(result, [a, b])
 
     def test_first_predicate_filters_out_object(self):
         item = _make_item("sword")
         character = _make_character()
         source = SimpleNamespace(contents=[item, character])
-        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
-        # Character filtered by p_not_actor (first in BASE stack)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        # Character filtered by p_not_actor (first predicate)
         self.assertEqual(result, [item])
 
     def test_later_predicate_filters_out_object(self):
         visible = _make_item("sword")
         hidden = _make_hidden_item(visible=False)
         source = SimpleNamespace(contents=[visible, hidden])
-        result = walk_contents(None, source, *BASE_ITEM_PREDICATES)
-        # Hidden item filtered by p_visible_to (last in BASE stack)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        # Hidden item filtered by p_visible_to (last predicate)
         self.assertEqual(result, [visible])
 
     # ── Short-circuit eval ───────────────────────────────────────
@@ -222,7 +222,7 @@ class TestWalkContents(EvenniaTest):
 
     def test_custom_predicate_composable(self):
         # Walk with a one-off custom predicate — verifies the
-        # primitive doesn't assume BASE_ITEM_PREDICATES.
+        # primitive doesn't assume any default predicate stack.
         a = SimpleNamespace(key="a", weight=5)
         b = SimpleNamespace(key="b", weight=15)
         c = SimpleNamespace(key="c", weight=10)
@@ -316,7 +316,6 @@ class TestBucketContents(EvenniaTest):
             classifier_calls.append(obj)
             return "bucket"
 
-        from utils.targeting.predicates import p_not_exit
         result = bucket_contents(None, source, classify, p_not_exit)
         # exit_obj filtered out BEFORE classifier runs
         self.assertEqual(classifier_calls, [a])

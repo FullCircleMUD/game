@@ -21,8 +21,8 @@ from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
 
 from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from utils.targeting.helpers import resolve_container
-from utils.targeting.predicates import p_can_see
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see, p_is_container
 
 # Build set of all direction strings (abbreviations + full names)
 _DIRECTION_STRINGS = set()
@@ -206,33 +206,21 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
         """Display contents of a container."""
         room = caller.location
 
-        # Darkness check — can only inspect containers in inventory when dark
+        # Darkness — can't inspect containers without sight
         if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            container = caller.search(
-                container_name, location=caller, quiet=True
-            )
-            if not container:
-                caller.msg("It's too dark to see anything.")
-                return
-            if isinstance(container, list):
-                container = container[0]
-        else:
-            # Inventory first, then room — resolve_container handles
-            # the fallback and p_is_container filtering.
-            container = resolve_container(caller, container_name)
-            if not container:
-                # Check if something by that name exists but isn't a
-                # container — give a specific error rather than "not here"
-                non_container = caller.search(container_name, quiet=True)
-                if non_container:
-                    if isinstance(non_container, list):
-                        non_container = non_container[0]
-                    caller.msg(f"{non_container.key} is not a container.")
-                else:
-                    caller.msg(f"You don't see '{container_name}' here.")
-                return
+            caller.msg("It's too dark to see anything.")
+            return
 
-        if not getattr(container, "is_container", False):
+        # Broad targeting — find whatever the player named, then
+        # check container status at command layer (design principle #7).
+        # range="melee" ensures room objects must be at caller's height.
+        container, _ = resolve_target(
+            caller, container_name,
+            "items_inventory_then_gettable_room", range="melee",
+        )
+        if not container:
+            return  # resolve_target already messaged
+        if not p_is_container(container, caller):
             caller.msg(f"{container.key} is not a container.")
             return
 

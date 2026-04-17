@@ -359,8 +359,8 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
     def _get_object(self, caller, search_term):
         """Standard Evennia object pickup with fuzzy matching."""
         # Target resolution via the universal targeting service.
-        # items_gettable_room filters by BASE_ITEM_PREDICATES (not-actor,
-        # not-exit, visible) + height (melee = same height only).
+        # items_gettable_room filters by p_not_actor, p_not_exit,
+        # p_visible_to + height (melee = same height only).
         # The get-lock check stays post-resolution so this command can
         # emit custom per-item error messages (obj.db.get_err_msg).
         if self.number and self.number > 1:
