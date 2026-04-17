@@ -11,6 +11,8 @@ Usage:
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 def _compare(yours, theirs):
@@ -83,9 +85,18 @@ class CmdConsider(FCMCommandMixin, Command):
             caller.msg("Consider who?")
             return
 
-        target = caller.search(self.args.strip())
-        if not target:
+        # Darkness — can't assess what you can't see
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
+
+        target, _ = resolve_target(
+            caller, self.args.strip(), "actor_hostile",
+            extra_predicates=(p_can_see,),
+        )
+        if not target:
+            return  # actor resolver already messaged
 
         if not hasattr(target, "get_level"):
             caller.msg("You can't consider that.")
