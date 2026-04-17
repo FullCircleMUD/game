@@ -107,6 +107,9 @@ class Spell:
     range = "ranged"        # "self", "melee", "ranged", or "ranged_only"
     aoe = None              # None / "unsafe" / "unsafe_self" / "safe" / "allies"
     medium = "air"          # "air" / "water" / "any"
+    requires_sight = True   # False for detect/sense spells that work without line of sight
+    out_of_reach_message = "That's out of reach."
+    too_close_message = "You're too close for that spell."
     cooldown = None         # None = use default based on min_mastery tier
     has_spell_arg = False   # True = cmd_cast pops first word as spell_arg
     description = ""

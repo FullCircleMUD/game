@@ -13,8 +13,9 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
-from world.spells.registry import get_spell, SPELL_REGISTRY
 from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see, p_different_height, p_same_height
+from world.spells.registry import get_spell, SPELL_REGISTRY
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -111,17 +112,28 @@ class CmdCast(FCMCommandMixin, Command):
             )
             return
 
-        # Resolve target — resolve_target handles all target_types
-        # including "self" and "none". On None, the helper has already
-        # told the caster what went wrong, so we just return (except
-        # for "none" where None is the expected return).
+        # Resolve target — requires_sight controls whether p_can_see
+        # is passed as an extra predicate. Actor types also get it
+        # so hidden/height-barrier-gated targets are filtered.
+        extra = (p_can_see,) if spell_match.requires_sight else ()
         target, secondaries = resolve_target(
             caller, target_str, spell_match.target_type,
-            range=spell_match.range,
             aoe=spell_match.aoe,
+            extra_predicates=extra,
         )
         if target is None and spell_match.target_type != "none":
             return
+
+        # Range/height check — universal, uses spell's overridable messages
+        if target and target is not caller:
+            if spell_match.range == "melee":
+                if not p_same_height(caller)(target, caller):
+                    caller.msg(spell_match.out_of_reach_message)
+                    return
+            elif spell_match.range == "ranged_only":
+                if not p_different_height(caller)(target, caller):
+                    caller.msg(spell_match.too_close_message)
+                    return
 
         # Self-targeting rejection for hostile/any_actor spells
         if spell_match.target_type in ("actor_hostile", "actor_any") and target is caller:

@@ -706,7 +706,7 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
 # ── Spell target resolution ──────────────────────────────────────────
 
 
-def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
+def resolve_target(caller, target_str, target_type, aoe=None,
                     extra_predicates=()):
     """Resolve a spell target by ``target_type``.
 
@@ -783,9 +783,6 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
         caller.msg("You aren't anywhere where you could target that.")
         return None, []
 
-    # range is accepted but no longer auto-mapped to predicates.
-    # Commands and spells that need height filtering pass it
-    # explicitly via extra_predicates or check at command layer.
     extra_predicates = tuple(extra_predicates)
 
     # ── Hostile / any_actor: attack-priority actor resolution ──

@@ -34,7 +34,7 @@ matching the existing convention):
 
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
-from utils.targeting.predicates import p_is_lockable, p_is_locked, p_same_height
+from utils.targeting.predicates import p_is_lockable, p_is_locked
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
 
@@ -76,9 +76,7 @@ class Knock(Spell):
     )
 
     def _execute(self, caster, target):
-        # Height check — must be at same height to touch the lock
-        if not p_same_height(caster)(target, caster):
-            return (False, f"{target.key} is out of reach.")
+        # Height check handled by cmd_cast (range="melee")
 
         # Lockability check — anything with LockableMixin
         if not p_is_lockable(target, caster):

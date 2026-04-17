@@ -38,6 +38,7 @@ from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.wand_nft_item import WandNFTItem
 from world.spells.registry import SPELL_REGISTRY
 from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see, p_different_height, p_same_height
 
 
 class CmdZap(FCMCommandMixin, Command):
@@ -87,18 +88,26 @@ class CmdZap(FCMCommandMixin, Command):
             return
 
         # ── 3. Resolve target per the spell's target_type ────
-        # resolve_target handles all target_types including "self"
-        # and "none". On None the helper has already told the caster
-        # what went wrong, so we just return (except "none" where None
-        # is the expected return).
         target_str = self.args.strip()
+        extra = (p_can_see,) if spell.requires_sight else ()
         target, secondaries = resolve_target(
             caller, target_str, spell.target_type,
-            range=spell.range,
             aoe=spell.aoe,
+            extra_predicates=extra,
         )
         if target is None and spell.target_type != "none":
             return
+
+        # Range/height check — uses spell's overridable messages
+        if target and target is not caller:
+            if spell.range == "melee":
+                if not p_same_height(caller)(target, caller):
+                    caller.msg(spell.out_of_reach_message)
+                    return
+            elif spell.range == "ranged_only":
+                if not p_different_height(caller)(target, caller):
+                    caller.msg(spell.too_close_message)
+                    return
 
         # ── 4. Cast via the bound spell, with wand overrides ─
         # Force the caster tier to the spell's base min_mastery, and
