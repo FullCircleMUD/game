@@ -15,6 +15,8 @@ When oil is added as a resource, swap FUEL_RESOURCE_ID to the oil ID.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 # Resource ID for fuel. Currently wheat (ID 1) as an oil placeholder.
@@ -49,9 +51,25 @@ class CmdRefuel(FCMCommandMixin, Command):
 
         query = self.args.strip()
 
-        # Search inventory
-        item = caller.search(query, location=caller)
+        # Darkness — need sight to pour fuel
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        # Search inventory first, then equipped (held lantern)
+        item, _ = resolve_target(
+            caller, query, "items_inventory",
+            extra_predicates=(p_can_see,),
+        )
         if not item:
+            item, _ = resolve_target(
+                caller, query, "items_equipped",
+                extra_predicates=(p_can_see,),
+            )
+        if not item:
+            caller.msg(f"You aren't carrying '{query}'.")
+            return
             return
 
         # Must be a light source
