@@ -309,7 +309,7 @@ class TestCmdRemove(EvenniaCommandTest):
     def test_remove_not_worn(self):
         """Removing an item that isn't worn should fail."""
         _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
-        self.call(CmdRemove(), "Iron Helmet", "You are not wearing that.")
+        self.call(CmdRemove(), "Iron Helmet", "You aren't wearing 'Iron Helmet'.")
 
     def test_remove_weapon(self):
         """Removing a wielded weapon should work."""
@@ -334,7 +334,7 @@ class TestCmdRemove(EvenniaCommandTest):
     def test_remove_no_worn_match(self):
         """Removing an item when no worn match exists should fail."""
         _make_wearable("Copper Earring", HumanoidWearSlot.LEFT_EAR.value, self.char1)
-        self.call(CmdRemove(), "earring", "You are not wearing that.")
+        self.call(CmdRemove(), "earring", "You aren't wearing 'earring'.")
 
     def test_remove_no_args(self):
         """Remove with no arguments should show error."""
