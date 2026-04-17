@@ -23,7 +23,6 @@ class BeeSwarm(FlyingMixin, AggressiveMob):
 
     # ── Flight ──
     preferred_height = AttributeProperty(1)
-    visible_min_height = AttributeProperty(1)  # invisible to ground-level lookers
 
     # ── Stats ──
     hp = AttributeProperty(8)

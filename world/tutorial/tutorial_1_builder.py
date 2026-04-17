@@ -397,9 +397,10 @@ def build_tutorial_1(instance):
         },
     )
     _connect_bidirectional_exit(rooms["armoury"], rooms["courtyard"], "east")
-    courtyard_pip = _spawn_pip(rooms["courtyard"])
-    courtyard_pip.visible_min_height = 0
-    courtyard_pip.visible_max_height = 0
+    _spawn_pip(rooms["courtyard"])
+    # Barriers hide ground-level NPCs from flyers and swimmers
+    rooms["courtyard"].visibility_up_barrier = (1, "medium")
+    rooms["courtyard"].visibility_down_barrier = (-1, "medium")
 
     # ================================================================== #
     #  ROOM 6: The Dim Passage — Light & Darkness

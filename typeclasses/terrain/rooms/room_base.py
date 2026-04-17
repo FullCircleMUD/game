@@ -47,6 +47,12 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
     # this room does not go underwater (must be negative)
     max_depth = AttributeProperty(0)
 
+    # Height visibility barriers — tuple of (barrier_height, max_concealed_size)
+    # or None. Objects small enough are hidden from observers on the other side.
+    # See HeightAwareMixin.is_height_visible_to() for the check algorithm.
+    visibility_up_barrier = AttributeProperty(None, autocreate=False)
+    visibility_down_barrier = AttributeProperty(None, autocreate=False)
+
     # Lightweight examinable descriptions: {"keyword": "description", ...}
     details = AttributeProperty(default=dict)
 

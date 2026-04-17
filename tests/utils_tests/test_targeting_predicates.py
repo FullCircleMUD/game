@@ -11,7 +11,9 @@ from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.predicates import (
+    p_can_see,
     p_different_height,
+    p_height_visible_to,
     p_in_combat,
     p_is_character,
     p_living,
@@ -212,3 +214,94 @@ class TestPredicates(EvenniaTest):
         obj = SimpleNamespace()
         pred = p_different_height(caller)
         self.assertFalse(pred(obj, caller))  # both default to 0 = same
+
+    # ── p_height_visible_to (barrier system) ─────────────────────
+
+    def test_p_height_visible_to_true_when_no_mixin(self):
+        obj = SimpleNamespace()
+        self.assertTrue(p_height_visible_to(obj, caller=None))
+
+    def test_p_height_visible_to_same_height_always_visible(self):
+        room = SimpleNamespace(visibility_up_barrier=(1, "small"))
+        obj = SimpleNamespace(
+            room_vertical_position=1, size="tiny", location=room,
+        )
+        # is_height_visible_to is on HeightAwareMixin — test via predicate
+        # which wraps it. For SimpleNamespace we need to attach the method.
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=1)
+        self.assertTrue(p_height_visible_to(obj, looker))
+
+    def test_p_height_visible_to_up_barrier_hides_small_obj(self):
+        room = SimpleNamespace(visibility_up_barrier=(1, "small"))
+        obj = SimpleNamespace(
+            room_vertical_position=1, size="tiny", location=room,
+        )
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=0)
+        self.assertFalse(p_height_visible_to(obj, looker))
+
+    def test_p_height_visible_to_up_barrier_large_obj_visible(self):
+        room = SimpleNamespace(visibility_up_barrier=(1, "small"))
+        obj = SimpleNamespace(
+            room_vertical_position=1, size="large", location=room,
+        )
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=0)
+        self.assertTrue(p_height_visible_to(obj, looker))
+
+    def test_p_height_visible_to_down_barrier_hides_small_obj(self):
+        room = SimpleNamespace(
+            visibility_up_barrier=None,
+            visibility_down_barrier=(-1, "small"),
+        )
+        obj = SimpleNamespace(
+            room_vertical_position=-2, size="small", location=room,
+        )
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=0)
+        self.assertFalse(p_height_visible_to(obj, looker))
+
+    def test_p_height_visible_to_no_barrier_always_visible(self):
+        room = SimpleNamespace()  # no barriers
+        obj = SimpleNamespace(
+            room_vertical_position=1, size="tiny", location=room,
+        )
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=0)
+        self.assertTrue(p_height_visible_to(obj, looker))
+
+    def test_p_height_visible_to_no_location_always_visible(self):
+        """Object not in a room (e.g. in inventory) — always visible."""
+        obj = SimpleNamespace(
+            room_vertical_position=1, size="tiny", location=None,
+        )
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=0)
+        self.assertTrue(p_height_visible_to(obj, looker))
+
+    # ── p_can_see (composite) ────────────────────────────────────
+
+    def test_p_can_see_true_when_both_pass(self):
+        obj = SimpleNamespace()  # no hidden mixin, no height mixin
+        self.assertTrue(p_can_see(obj, caller=None))
+
+    def test_p_can_see_false_when_hidden(self):
+        obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
+        self.assertFalse(p_can_see(obj, caller=None))
+
+    def test_p_can_see_false_when_height_gated(self):
+        room = SimpleNamespace(visibility_up_barrier=(1, "small"))
+        obj = SimpleNamespace(
+            room_vertical_position=1, size="tiny", location=room,
+        )
+        from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+        obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
+        looker = SimpleNamespace(room_vertical_position=0)
+        self.assertFalse(p_can_see(obj, looker))

@@ -683,6 +683,10 @@ def build_hundred_acre_wood():
         room.set_terrain(TerrainType.FOREST.value)
         room.max_height = 1
 
+    # Height visibility barriers — canopy rooms hide small creatures from below
+    rooms["r5c4"].visibility_up_barrier = (1, "small")  # Bee Tree canopy
+    rooms["r2c5"].visibility_up_barrier = (1, "small")  # Owl's House tree
+
     # Indoor rooms (houses + underground)
     indoor = [
         rooms["piglet_house"], rooms["pooh_house"], rooms["kanga_house"],

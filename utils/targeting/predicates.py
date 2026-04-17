@@ -159,12 +159,12 @@ def p_visible_to(obj, caller):
 def p_height_visible_to(obj, caller):
     """True if ``obj`` is visible to ``caller`` given vertical position.
 
-    Wraps ``HeightAwareMixin.is_height_visible_to`` — objects with
-    ``visible_min_height`` / ``visible_max_height`` are only visible to
-    observers whose ``room_vertical_position`` falls within that range.
+    Wraps ``HeightAwareMixin.is_height_visible_to`` — checks the room's
+    visibility barriers against the object's size.  Objects small enough
+    to be concealed by a barrier between observer and object are hidden.
+    Same-height objects are always visible.
 
-    Objects without the mixin (or without height gates set) are visible
-    by default.
+    Objects without the mixin are visible by default.
 
     This is a **spatial** visibility check, not a stealth check — see
     ``p_visible_to`` for hidden/invisible filtering.
