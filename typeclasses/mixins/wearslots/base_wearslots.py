@@ -316,20 +316,31 @@ class BaseWearslotsMixin:
     #  Display
     # ================================================================== #
 
-    def equipment_cmd_output(self, header="\n|wEquipped Items|n\n"):
+    def equipment_cmd_output(self, header="\n|wEquipped Items|n\n", looker=None):
         """
         Formatted display of all wearslots and what is equipped in them.
 
         Args:
             header: str — header line (e.g. "You are wearing:" or
                     "Cujo is wearing:" for pet commands)
+            looker: object or None — the character viewing. When provided,
+                    items are masked ("Something") if the looker is in
+                    darkness or the item fails visibility checks.
 
         Returns:
             str — formatted multi-line string
         """
+        from utils.targeting.predicates import p_visible_to
+
         wearslots = self.db.wearslots or {}
         if not wearslots:
             return f"{header}\n  Nothing — no equipment slots."
+
+        # Darkness — can't identify items without sight
+        is_dark = False
+        if looker:
+            room = looker.location
+            is_dark = room and hasattr(room, "is_dark") and room.is_dark(looker)
 
         lines = [header]
 
@@ -343,16 +354,21 @@ class BaseWearslotsMixin:
             display_slot = slot.replace("_", " ").title()
             slot_str = f"<|c{display_slot}|n>"
             if item is not None:
-                # Pad after > to align item names (exclude ANSI codes from width calc)
                 pad = col_width - len(display_slot) - 2
-                condition = (
-                    item.get_condition_label()
-                    if hasattr(item, "get_condition_label")
-                    else ""
+                can_see = not is_dark and (
+                    not looker or p_visible_to(item, looker)
                 )
-                line = f"  {slot_str}{' ' * pad} |w{item.key}|n"
-                if condition:
-                    line = f"{line}  ({condition})"
+                if can_see:
+                    condition = (
+                        item.get_condition_label()
+                        if hasattr(item, "get_condition_label")
+                        else ""
+                    )
+                    line = f"  {slot_str}{' ' * pad} |w{item.key}|n"
+                    if condition:
+                        line = f"{line}  ({condition})"
+                else:
+                    line = f"  {slot_str}{' ' * pad} Something"
                 lines.append(line)
             else:
                 lines.append(f"  {slot_str}")

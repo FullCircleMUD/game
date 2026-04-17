@@ -29,4 +29,4 @@ class CmdEquipment(FCMCommandMixin, Command):
     allow_while_sleeping = True
 
     def func(self):
-        self.caller.msg(self.caller.equipment_cmd_output())
+        self.caller.msg(self.caller.equipment_cmd_output(looker=self.caller))
