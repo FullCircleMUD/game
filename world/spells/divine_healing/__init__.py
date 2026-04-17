@@ -1,7 +1,6 @@
 from world.spells.divine_healing.cure_blindness import *  # noqa: F401,F403
 from world.spells.divine_healing.cure_poison import *  # noqa: F401,F403
 from world.spells.divine_healing.cure_wounds import *  # noqa: F401,F403
-from world.spells.divine_healing.detect_undead import *  # noqa: F401,F403
 from world.spells.divine_healing.relieve_hunger import *  # noqa: F401,F403
 from world.spells.divine_healing.restore_vigour import *  # noqa: F401,F403
 from world.spells.divine_healing.purify import *  # noqa: F401,F403
