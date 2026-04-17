@@ -14,6 +14,8 @@ holding a torch, the same way you can eat bread mid-combat.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdDrink(FCMCommandMixin, Command):
@@ -34,9 +36,19 @@ class CmdDrink(FCMCommandMixin, Command):
         caller = self.caller
         query = self.args.strip()
 
+        # Darkness — can't identify items without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         if query:
-            container = caller.search(query, location=caller)
+            container, _ = resolve_target(
+                caller, query, "items_inventory",
+                extra_predicates=(p_can_see,),
+            )
             if not container:
+                caller.msg(f"You aren't carrying '{query}'.")
                 return
             if not getattr(container, "is_water_container", False):
                 caller.msg(f"You can't drink from {container.key}.")
