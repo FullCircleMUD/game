@@ -1158,20 +1158,41 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
                 return target, []
         return None, []
 
-    # ── items_inventory_then_room_all: inventory first, room fallback ──
+    # ── items_inventory_then_room_all ────────────────────────────────
+    #
+    # Composite: items_inventory first, items_room_all fallback.
+    #
+    # Inventory step: caller.contents, exclude worn.
+    # Room step: all non-actor objects including exits (doors).
+    # Both steps pass extra_predicates through.
+    #
+    # Consumers: Identify, Holy Insight (inspect any item — could be
+    # loot in inventory or a trapped door in the room).
+    # ─────────────────────────────────────────────────────────────────
     if target_type == "items_inventory_then_room_all":
-        target = resolve_item_in_source(
-            caller, caller, target_str, quiet=True, exclude_worn=True,
-        )
-        if isinstance(target, list):
-            target = target[0] if target else None
-        if target is not None:
-            return target, []
-        if caller.location:
-            target = _resolve_all_room(caller, target_str, quiet=True)
+        # Inventory step — items_inventory
+        candidates = walk_contents(caller, caller, *extra_predicates)
+        if candidates:
+            target = caller.search(
+                target_str, candidates=candidates,
+                quiet=True, exclude_worn=True,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
             if target is not None:
                 return target, []
-        caller.msg(f"You don't see '{target_str}' here.")
+        # Room fallback — items_room_all
+        if caller.location:
+            preds = [p_not_actor] + list(extra_predicates)
+            candidates = walk_contents(caller, caller.location, *preds)
+            if candidates:
+                target = caller.search(
+                    target_str, candidates=candidates, quiet=True,
+                )
+                if isinstance(target, list):
+                    target = target[0] if target else None
+                if target is not None:
+                    return target, []
         return None, []
 
     # ── items_inventory_then_room_nonexit ────────────────────────────
@@ -1213,18 +1234,7 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
                     return target, []
         return None, []
 
-    # ── Future item types (convention-defined, not yet implemented) ──
-    _FUTURE_ITEM_TYPES = (
-        "items_all_room",
-        "items_fixed_room",
-        "items_gettable_room_then_inventory",
-    )
-    if target_type in _FUTURE_ITEM_TYPES:
-        raise NotImplementedError(
-            f"target_type '{target_type}' is defined in the naming "
-            f"convention but not yet implemented. Add a consumer spell "
-            f"first, then implement the branch."
-        )
+
 
     # Unknown type — defensive
     caller.msg(f"Unknown target type '{target_type}'.")
