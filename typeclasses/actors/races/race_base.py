@@ -78,6 +78,7 @@ class RaceBase:
         """
         # Race identifier and size
         character.race = self.key
+        character.base_size = self.size.value
         character.size = self.size.value
 
         # Starting stats

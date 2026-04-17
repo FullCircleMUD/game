@@ -16,6 +16,7 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
     """A massive dire wolf that attacks players on sight."""
 
     # ── Size ──
+    base_size = AttributeProperty("large")
     size = AttributeProperty("large")
 
     # ── Stats — tougher than a regular wolf ──

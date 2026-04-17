@@ -18,6 +18,7 @@ from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 class CellarRat(AggressiveMob):
     """A large cellar rat. Aggressive but weak."""
 
+    base_size = AttributeProperty("small")
     size = AttributeProperty("small")
 
     # ── Stats — level 1, fragile ──

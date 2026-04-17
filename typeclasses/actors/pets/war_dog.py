@@ -16,6 +16,7 @@ class WarDog(CombatCompanionMixin, BasePet):
     """A trained war dog. Medium-sized combat companion."""
 
     pet_type = AttributeProperty("dog")
+    base_size = AttributeProperty("medium")
     size = AttributeProperty("medium")
 
     # ── Combat ──

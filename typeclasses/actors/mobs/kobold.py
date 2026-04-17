@@ -31,6 +31,7 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
     """A small, cowardly kobold. Fights in packs, flees when alone."""
 
     alignment_score = AttributeProperty(-60)  # evil (hostile raider)
+    base_size = AttributeProperty("small")
     size = AttributeProperty("small")
     default_weapon_masteries = {"dagger": MasteryLevel.BASIC.value}
 

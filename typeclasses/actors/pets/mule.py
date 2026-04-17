@@ -16,6 +16,7 @@ class Mule(BasePet):
     """A sturdy mule. Medium-sized pack animal."""
 
     pet_type = AttributeProperty("mule")
+    base_size = AttributeProperty("medium")
     size = AttributeProperty("medium")
 
     # ── Stats — hardy but not a fighter ──

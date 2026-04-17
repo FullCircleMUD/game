@@ -16,6 +16,7 @@ from typeclasses.mixins.flying_mixin import FlyingMixin
 class OwlBird(FlyingMixin, CombatMob):
     """An owl perched in the branches. Non-aggressive."""
 
+    base_size = AttributeProperty("small")
     size = AttributeProperty("small")
     room_description = AttributeProperty("perches in the branches, watching with large round eyes.")
 

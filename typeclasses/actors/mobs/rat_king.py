@@ -18,6 +18,7 @@ from typeclasses.actors.mob import CombatMob
 class RatKing(CombatMob):
     """An enormous rat king — boss of the cellar infestation."""
 
+    base_size = AttributeProperty("medium")
     size = AttributeProperty("medium")
 
     # ── Stats — level 2, weakened mini-boss ──

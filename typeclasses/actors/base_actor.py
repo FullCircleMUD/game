@@ -16,8 +16,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
 
     # ── Size — unified across all actors ──
     # Stored as string for Evennia serialization (dbserialize can't handle
-    # str enums). PCs get this set from race.size in at_taking_race();
+    # str enums). PCs get base_size set from race.size in at_taking_race();
     # mobs/pets override via their own AttributeProperty.
+    # size is the active value, rebuilt from base_size by _recalculate_stats().
+    base_size = AttributeProperty("medium")
     size = AttributeProperty("medium")
 
     def at_object_creation(self):
@@ -277,7 +279,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         self.mana_max = self.base_mana_max
         self.move_max = self.base_move_max
 
-        # 3. Reset bonus stats to zero/defaults
+        # 3. Reset size to base
+        self.size = self.base_size
+
+        # 4. Reset bonus stats to zero/defaults
         self.armor_class = self.base_armor_class
         self.total_hit_bonus = 0
         self.save_bonus = 0

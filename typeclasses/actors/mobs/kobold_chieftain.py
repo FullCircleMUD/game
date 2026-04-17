@@ -28,6 +28,7 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
     """
 
     is_unique = AttributeProperty(True)
+    base_size = AttributeProperty("small")
     size = AttributeProperty("small")
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
 

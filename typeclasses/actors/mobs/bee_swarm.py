@@ -19,6 +19,7 @@ from typeclasses.mixins.flying_mixin import FlyingMixin
 class BeeSwarm(FlyingMixin, AggressiveMob):
     """A swarm of angry bees. Attacks anyone who flies up to their tree."""
 
+    base_size = AttributeProperty("tiny")
     size = AttributeProperty("tiny")
     room_description = AttributeProperty("buzzes angrily around the branches.")
 

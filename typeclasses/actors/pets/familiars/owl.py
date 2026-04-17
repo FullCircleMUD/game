@@ -17,6 +17,7 @@ class FamiliarOwl(FamiliarMixin, FlyingMixin, BasePet):
     """A flying owl familiar — EXPERT conjuration."""
 
     pet_type = AttributeProperty("familiar")
+    base_size = AttributeProperty("small")
     size = AttributeProperty("small")
     preferred_height = AttributeProperty(0)  # starts on ground with owner
     room_description = AttributeProperty("perches on its master's shoulder.")
