@@ -34,6 +34,7 @@ matching the existing convention):
 
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.targeting.predicates import p_is_lockable, p_is_locked, p_same_height
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
 
@@ -55,7 +56,8 @@ class Knock(Spell):
     school = skills.CONJURATION
     min_mastery = MasteryLevel.SKILLED
     mana_cost = {2: 12, 3: 18, 4: 25, 5: 35}
-    target_type = "items_all_room_then_inventory"
+    target_type = "items_room_all_then_inventory"
+    range = "melee"
     description = (
         "Magically unlock and open a door, chest, or other lockable "
         "object. The caster conjures an unseen force that operates the "
@@ -74,11 +76,15 @@ class Knock(Spell):
     )
 
     def _execute(self, caster, target):
-        # Duck-type the target — anything with is_locked is fair game
-        if not hasattr(target, "is_locked"):
+        # Height check — must be at same height to touch the lock
+        if not p_same_height(caster)(target, caster):
+            return (False, f"{target.key} is out of reach.")
+
+        # Lockability check — anything with LockableMixin
+        if not p_is_lockable(target, caster):
             return (False, f"{target.key} cannot be magically unlocked.")
 
-        if not target.is_locked:
+        if not p_is_locked(target, caster):
             return (False, f"{target.key} is not locked.")
 
         tier = self.get_caster_tier(caster)
@@ -89,7 +95,7 @@ class Knock(Spell):
             return (
                 False,
                 f"The lock on {target.key} resists your magic — it is "
-                f"too intricate for your current mastery (DC {target_dc}).",
+                f"too intricate for your current mastery.",
             )
 
         # ── Unlock the target ──────────────────────────────────

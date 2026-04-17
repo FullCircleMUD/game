@@ -142,7 +142,7 @@ class TestCmdGetObject(EvenniaCommandTest):
         """get should fail when item is at a different height."""
         self.char1.room_vertical_position = 0
         self.sword.room_vertical_position = 2
-        self.call(CmdGet(), "sword", "You don't see 'sword' here.")
+        self.call(CmdGet(), "sword", "That's out of reach.")
         # Sword should still be in the room, not picked up
         self.assertNotIn(self.sword, self.char1.contents)
 

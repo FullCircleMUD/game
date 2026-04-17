@@ -7,13 +7,12 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
-    p_different_height,
     p_is_character,
     p_is_container,
     p_living,
     p_not_actor,
     p_not_exit,
-    p_same_height,
+    p_passes_lock,
     p_same_height_value,
     p_visible_to,
 )
@@ -707,7 +706,8 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
 # ── Spell target resolution ──────────────────────────────────────────
 
 
-def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
+def resolve_target(caller, target_str, target_type, range="ranged", aoe=None,
+                    extra_predicates=()):
     """Resolve a spell target by ``target_type``.
 
     Single entry point for all spell target resolution, used by
@@ -743,10 +743,10 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
 
         ``"items_inventory"``
             Inventory only. Consumer: Create Water.
-        ``"items_all_room_then_inventory"``
+        ``"items_room_all_then_inventory"``
             Room (all visible objects + exits) first, inventory
             fallback. Consumer: Knock.
-        ``"items_inventory_then_all_room"``
+        ``"items_inventory_then_room_all"``
             Inventory first, room (all visible objects + exits)
             fallback. Consumer: Identify, Holy Insight.
 
@@ -783,12 +783,10 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
         caller.msg("You aren't anywhere where you could target that.")
         return None, []
 
-    # ── Height predicate based on range ──
-    extra_predicates = ()
-    if range == "melee":
-        extra_predicates = (p_same_height(caller),)
-    elif range == "ranged_only":
-        extra_predicates = (p_different_height(caller),)
+    # range is accepted but no longer auto-mapped to predicates.
+    # Commands and spells that need height filtering pass it
+    # explicitly via extra_predicates or check at command layer.
+    extra_predicates = tuple(extra_predicates)
 
     # ── Hostile / any_actor: attack-priority actor resolution ──
     if target_type in ("actor_hostile", "actor_any"):
@@ -830,31 +828,338 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
         )
         return target, secondaries
 
-    # ── items_inventory: inventory only ──
-    if target_type == "items_inventory":
-        target = resolve_item_in_source(
-            caller, caller, target_str,
-            nofound_string=f"You aren't carrying anything called '{target_str}'.",
-        )
-        return target, []
 
-    # ── items_all_room_then_inventory: room first, inventory fallback ──
-    if target_type == "items_all_room_then_inventory":
-        target = _resolve_world_item(caller, target_str, silent=True)
-        if target is not None:
-            return target, []
-        target = resolve_item_in_source(
-            caller, caller, target_str, quiet=True,
+    # ============ ACTOR / ITEM DEMARCATION =============
+
+    # ── items_inventory ─────────────────────────────────────────────
+    #
+    # Searches: caller.contents only.
+    #
+    # Returns: a single non-worn item matching target_str, or None.
+    #
+    # Structural filtering: none. Actors, exits and fixed world objects
+    # cannot exist in a character's contents, so no predicates are 
+    # needed to exclude them. 
+    # The walk passes only caller-supplied extra_predicates.
+    #
+    # Worn/equipped items are excluded via Evennia's exclude_worn
+    # search kwarg — this is NOT a predicate, it's handled by
+    # caller.search() at the name-matching step.
+    #
+    # Height is not relevant in an inventory search
+    #
+    # Visibility, container checks etc. are the caller's
+    # responsibility via extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_inventory":
+        candidates = walk_contents(caller, caller, *extra_predicates)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates,
+            quiet=True, exclude_worn=True,
         )
         if isinstance(target, list):
             target = target[0] if target else None
-        if target is not None:
-            return target, []
-        caller.msg(f"You don't see '{target_str}' here.")
+        return target, []
+
+    # ── items_equipped ───────────────────────────────────────────────
+    #
+    # Searches: caller.contents only — worn/equipped items.
+    #
+    # Returns: a single worn item matching target_str, or None.
+    #
+    # Structural filtering: none. Same rationale as items_inventory —
+    # actors, fixed world items and exits cannot exist in a character's
+    # contents. The walk passes only caller-supplied extra_predicates.
+    #
+    # ONLY worn items are returned. FCMCharacter.search supports an
+    # ``only_worn=True`` kwarg that filters to items the character
+    # has equipped via the wearslot system (``is_worn(obj)``).
+    #
+    # Height is not relevant in an equipment search.
+    #
+    # Visibility, type checks etc. are the caller's responsibility
+    # via extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_equipped":
+        candidates = walk_contents(caller, caller, *extra_predicates)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates,
+            quiet=True, only_worn=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+    # ── items_room_all ───────────────────────────────────────────────
+    #
+    # Searches: caller.location.contents — everything in the room
+    # that is not an actor.
+    #
+    # Returns: a single non-actor object matching target_str, or None.
+    # This includes exits, fixed fixtures, loose items, containers,
+    # doors — every non-living object in the room.
+    #
+    # Structural filtering: p_not_actor only. Exits are deliberately
+    # included — this is the broadest room item scope. Commands that
+    # need exits excluded should use items_room_nonexit instead.
+    #
+    # Visibility, height, type checks etc. are the caller's
+    # responsibility via extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_all":
+        if not caller.location:
+            return None, []
+        preds = [p_not_actor] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+    # ── items_room_exits ─────────────────────────────────────────────
+    #
+    # Searches: caller.location — exits only, by NAME.
+    #
+    # Returns: a single exit matching target_str, or None.
+    #
+    # Structural filtering: uses Evennia's ``room.exits`` which is a
+    # native filtered view of room.contents containing only
+    # DefaultExit subclasses. No walk_contents needed — Evennia
+    # already provides the candidate list.
+    #
+    # extra_predicates are applied as a post-filter on room.exits
+    # so callers can add visibility, height accessibility etc.
+    #
+    # This is a NAME-BASED lookup ("find the exit called 'gate'").
+    # It does NOT handle direction-based lookups ("find the exit
+    # whose direction attribute is 'north'") or directional qualifier
+    # parsing ("door south" → direction + name split). Those are
+    # higher-level operations that live in the command layer or in
+    # dedicated helpers like find_exit_target / _look_direction.
+    #
+    # Current consumers that find exits by direction (cmd_look
+    # direction lookup, find_exit_target for open/close/lock/unlock)
+    # need direction-aware logic on top of basic exit targeting.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_exits":
+        if not caller.location:
+            return None, []
+        candidates = list(caller.location.exits)
+        if extra_predicates and candidates:
+            candidates = [
+                obj for obj in candidates
+                if all(p(obj, caller) for p in extra_predicates)
+            ]
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+    # ── items_room_nonexit ───────────────────────────────────────────
+    #
+    # Searches: caller.location.contents — everything in the room
+    # that is not an actor and not an exit.
+    #
+    # Returns: a single non-actor, non-exit object matching target_str,
+    # or None. This includes fixed fixtures (chests, signs, fountains),
+    # loose items on the ground, containers — anything a player could
+    # see, inspect, or interact with that isn't alive or a door.
+    #
+    # Structural filtering: p_not_actor, p_not_exit. This is the
+    # standard scope for most item-interaction commands: look in,
+    # get, drop target inspection, put target inspection, etc.
+    # The key difference from items_room_all is that exits are
+    # excluded — "get north" should not resolve to the north exit.
+    #
+    # Visibility, height, container, get-lock checks etc. are the
+    # caller's responsibility via extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_nonexit":
+        if not caller.location:
+            return None, []
+        preds = [p_not_actor, p_not_exit] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+
+    # ── items_room_gettable ─────────────────────────────────────────
+    #
+    # Searches: caller.location.contents — only items that can be
+    # picked up.
+    #
+    # Returns: a single gettable item matching target_str, or None.
+    #
+    # Structural filtering: p_not_actor, p_not_exit, p_passes_lock("get").
+    # This is the narrowest non-exit room scope — excludes actors,
+    # exits, AND fixed objects (WorldFixtures with get:false() lock).
+    # Only loose, takeable items remain.
+    #
+    # The difference from items_room_nonexit: nonexit finds a chest
+    # bolted to the floor. gettable does not — the chest fails the
+    # get lock. Use nonexit for inspection commands (look in, examine),
+    # gettable for pickup commands (get, take, loot).
+    #
+    # Visibility, height etc. are the caller's responsibility via
+    # extra_predicates.
+    #
+    # Accepts legacy name "items_gettable_room" for existing consumers
+    # pending migration.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type in ("items_room_gettable", "items_gettable_room"):
+        if not caller.location:
+            return None, []
+        preds = [
+            p_not_actor, p_not_exit, p_passes_lock("get"),
+        ] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+
+    # ── items_room_fixed ──────────────────────────────────────────────
+    #
+    # Searches: caller.location.contents — only objects that cannot be
+    # picked up.
+    #
+    # Returns: a single non-gettable object matching target_str, or None.
+    # This includes exits/doors, WorldFixtures (chests, signs, fountains,
+    # levers, climbable objects), and any item with get:false() lock.
+    #
+    # Structural filtering: p_not_actor + inverse of p_passes_lock("get").
+    # Exits ARE included — doors are fixed objects. Commands that want
+    # fixed objects without exits should use items_room_fixed_nonexit.
+    #
+    # The inverse of items_room_gettable. Together they partition the
+    # non-actor room contents: gettable ∪ fixed = all non-actor objects.
+    #
+    # Visibility, height etc. are the caller's responsibility via
+    # extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_fixed":
+        if not caller.location:
+            return None, []
+        _gettable = p_passes_lock("get")
+
+        def _not_gettable(obj, caller):
+            return not _gettable(obj, caller)
+
+        preds = [p_not_actor, _not_gettable] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+    # ── items_room_fixed_nonexit ──────────────────────────────────────
+    #
+    # Searches: caller.location.contents — non-gettable objects that
+    # are not exits.
+    #
+    # Returns: a single non-gettable, non-exit object matching
+    # target_str, or None. This includes WorldFixtures (chests, signs,
+    # fountains, levers, climbable objects) and any non-exit item
+    # with get:false() lock.
+    #
+    # Structural filtering: p_not_actor, p_not_exit, inverse of
+    # p_passes_lock("get"). The difference from items_room_fixed:
+    # this excludes exits/doors. Use for commands that interact with
+    # furniture but not doorways
+    #
+    # Visibility, height etc. are the caller's responsibility via
+    # extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_fixed_nonexit":
+        if not caller.location:
+            return None, []
+        _gettable = p_passes_lock("get")
+
+        def _not_gettable(obj, caller):
+            return not _gettable(obj, caller)
+
+        preds = [
+            p_not_actor, p_not_exit, _not_gettable,
+        ] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+
+    # ======= SINGLE VS MULTI LOOKUP DEMARCATION ===================
+
+    # ── items_room_all_then_inventory ────────────────────────────────
+    #
+    # Composite: items_room_all first, items_inventory fallback.
+    #
+    # Room step: all non-actor objects including exits (doors).
+    # Inventory step: carried items (exclude_worn).
+    # Both steps pass extra_predicates through.
+    #
+    # Consumer: Knock (unlock a door or chest).
+    #
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_all_then_inventory":
+        # Room step — items_room_all
+        if caller.location:
+            preds = [p_not_actor] + list(extra_predicates)
+            candidates = walk_contents(caller, caller.location, *preds)
+            if candidates:
+                target = caller.search(
+                    target_str, candidates=candidates, quiet=True,
+                )
+                if isinstance(target, list):
+                    target = target[0] if target else None
+                if target is not None:
+                    return target, []
+        # Inventory fallback — items_inventory
+        candidates = walk_contents(caller, caller, *extra_predicates)
+        if candidates:
+            target = caller.search(
+                target_str, candidates=candidates,
+                quiet=True, exclude_worn=True,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
+            if target is not None:
+                return target, []
         return None, []
 
-    # ── items_inventory_then_all_room: inventory first, room fallback ──
-    if target_type == "items_inventory_then_all_room":
+    # ── items_inventory_then_room_all: inventory first, room fallback ──
+    if target_type == "items_inventory_then_room_all":
         target = resolve_item_in_source(
             caller, caller, target_str, quiet=True, exclude_worn=True,
         )
@@ -868,21 +1173,6 @@ def resolve_target(caller, target_str, target_type, range="ranged", aoe=None):
                 return target, []
         caller.msg(f"You don't see '{target_str}' here.")
         return None, []
-
-    # ── items_gettable_room: room items only (no exits, no actors) ──
-    if target_type == "items_gettable_room":
-        preds = [p_not_actor, p_not_exit, p_visible_to] + list(extra_predicates)
-        candidates = walk_contents(caller, caller.location, *preds)
-        if not candidates:
-            caller.msg(f"You don't see '{target_str}' here.")
-            return None, []
-        target = caller.search(target_str, candidates=candidates, quiet=True)
-        if isinstance(target, list):
-            target = target[0] if target else None
-        if not target:
-            caller.msg(f"You don't see '{target_str}' here.")
-            return None, []
-        return target, []
 
     # ── items_inventory_then_gettable_room: inventory first, room fallback ──
     if target_type == "items_inventory_then_gettable_room":
@@ -933,7 +1223,7 @@ def _resolve_world_item(caller, target_str, silent=False):
 
     Delegates to ``find_exit_target`` which includes directional
     parsing ("door south" → direction + name decomposition). Used by
-    the ``items_all_room_then_inventory`` branch for Knock and similar.
+    the ``items_room_all_then_inventory`` branch for Knock and similar.
 
     When ``silent`` is True, uses ``_resolve_all_room`` instead to
     suppress error messages — used by fallback paths that emit their
@@ -958,8 +1248,8 @@ def _resolve_all_room(caller, target_str, quiet=False):
     ``(p_not_actor, p_visible_to)`` — includes exits, fixtures, loose
     items, containers. Excludes actors.
 
-    Used by ``items_inventory_then_all_room`` (room fallback) and
-    ``items_all_room_then_inventory`` (room step, silent mode).
+    Used by ``items_inventory_then_room_all`` (room fallback) and
+    ``items_room_all_then_inventory`` (room step, silent mode).
     """
     candidates = walk_contents(
         caller, caller.location, p_not_actor, p_visible_to,

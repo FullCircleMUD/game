@@ -38,7 +38,7 @@ class TestDivinationRegistry(EvenniaTest):
         self.assertIsNotNone(spell)
         self.assertEqual(spell.school, skills.DIVINATION)
         self.assertEqual(spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(spell.target_type, "items_inventory_then_all_room")
+        self.assertEqual(spell.target_type, "items_inventory_then_room_all")
         self.assertEqual(spell.mana_cost, {1: 5, 2: 8, 3: 10, 4: 14, 5: 16})
 
     def test_augur_registered(self):
@@ -95,7 +95,7 @@ class TestDivinationRegistry(EvenniaTest):
 class TestIdentify(EvenniaTest):
     """Test Identify spell execution — item templates, mastery gate, mana.
 
-    Identify is now item-only (target_type="items_inventory_then_all_room"). Actor
+    Identify is now item-only (target_type="items_inventory_then_room_all"). Actor
     identification is handled by the Augur spell (see TestAugur).
     """
 

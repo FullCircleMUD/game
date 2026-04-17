@@ -84,10 +84,10 @@ class Spell:
         Item targets (resolved via spell_utils.resolve_target):
             "items_inventory"
                 Inventory only (e.g. Create Water — fill a container).
-            "items_all_room_then_inventory"
+            "items_room_all_then_inventory"
                 Room (objects + exits) first, inventory fallback
                 (e.g. Knock — unlock a door or chest).
-            "items_inventory_then_all_room"
+            "items_inventory_then_room_all"
                 Inventory first, room (objects + exits) fallback
                 (e.g. Identify — inspect a looted item or a door).
 

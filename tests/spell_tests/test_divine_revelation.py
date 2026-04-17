@@ -41,7 +41,7 @@ class TestHolyInsight(EvenniaTest):
         self.assertEqual(self.spell.name, "Holy Insight")
         self.assertEqual(self.spell.school, skills.DIVINE_REVELATION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.BASIC)
-        self.assertEqual(self.spell.target_type, "items_inventory_then_all_room")
+        self.assertEqual(self.spell.target_type, "items_inventory_then_room_all")
 
     def test_mana_costs(self):
         """Holy Insight mana costs should match design."""

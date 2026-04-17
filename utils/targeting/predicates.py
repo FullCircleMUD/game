@@ -270,6 +270,46 @@ def p_is_container(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
     return getattr(obj, "is_container", False)
 
 
+def p_is_lockable(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` has the ``is_locked`` attribute (``LockableMixin``).
+
+    Type check — "can this object be locked/unlocked?" Does NOT check
+    current lock state. Use ``p_is_locked`` for that.
+
+    Consumers: Knock spell, cmd_lock, cmd_unlock, cmd_picklock — all
+    use this as vocabulary at the command layer for specific error
+    messaging ("cannot be unlocked" vs "not here").
+    """
+    return hasattr(obj, "is_locked")
+
+
+def p_is_locked(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` is currently locked.
+
+    State check — requires ``is_lockable`` to be meaningful. A non-lockable
+    object returns False (not locked because it can't be).
+    """
+    return getattr(obj, "is_locked", False)
+
+
+def p_is_openable(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` has the ``is_open`` attribute (``CloseableMixin``).
+
+    Type check — "can this object be opened/closed?" Does NOT check
+    current open/closed state. Use ``p_is_open`` for that.
+    """
+    return hasattr(obj, "is_open")
+
+
+def p_is_open(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` is currently open.
+
+    State check — requires ``is_openable`` to be meaningful. A non-openable
+    object returns False.
+    """
+    return getattr(obj, "is_open", False)
+
+
 def p_passes_lock(lock_type):
     """Factory — returns a predicate that checks an Evennia access lock.
 

@@ -46,6 +46,7 @@ from utils.targeting.helpers import (
     resolve_item_in_source,
     resolve_target,
 )
+from utils.targeting.predicates import p_passes_lock, p_same_height, p_visible_to
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -358,11 +359,12 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     def _get_object(self, caller, search_term):
         """Standard Evennia object pickup with fuzzy matching."""
-        # Target resolution via the universal targeting service.
-        # items_gettable_room filters by p_not_actor, p_not_exit,
-        # p_visible_to + height (melee = same height only).
-        # The get-lock check stays post-resolution so this command can
-        # emit custom per-item error messages (obj.db.get_err_msg).
+        # Broad room targeting — finds any visible non-exit object.
+        # Height, get-lock, and weight checks stay at command layer
+        # so we can emit specific error messages for each failure.
+        _get_lock = p_passes_lock("get")
+        _height_ok = p_same_height(caller)
+
         if self.number and self.number > 1:
             # Stacked pickup — resolve_target doesn't support stacked
             # kwarg, fall back to direct resolve_item_in_source.
@@ -371,19 +373,20 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
             )
         else:
             target, _ = resolve_target(
-                caller, search_term, "items_gettable_room", range="melee",
+                caller, search_term, "items_room_nonexit",
+                extra_predicates=(p_visible_to,),
             )
             objs = target
         if not objs:
+            caller.msg(f"You don't see '{search_term}' here.")
             return
         objs = utils.make_iter(objs)
 
-        # The `get` access lock check STAYS here — the helper deliberately
-        # does not filter by it so this command can emit custom per-item
-        # error messages (obj.db.get_err_msg) instead of a generic "you
-        # don't see that here".
         for obj in objs:
-            if not obj.access(caller, "get"):
+            if not _height_ok(obj, caller):
+                self.msg("That's out of reach.")
+                return
+            if not _get_lock(obj, caller):
                 if obj.db.get_err_msg:
                     self.msg(obj.db.get_err_msg)
                 else:

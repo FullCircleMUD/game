@@ -6,7 +6,7 @@ resistances, conditions, and effects of creatures and players via the
 shared inspection templates in `utils/inspection_templates.py`.
 
 For item identification, see Holy Insight (same school, same mastery
-gates, but targets items via `target_type = "items_inventory_then_all_room"`).
+gates, but targets items via `target_type = "items_inventory_then_room_all"`).
 
 Actor mastery gate is level-based (same thresholds as Augur):
     Levels 1-5:   BASIC (tier 1)

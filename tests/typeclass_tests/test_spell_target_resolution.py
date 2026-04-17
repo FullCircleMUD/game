@@ -2,8 +2,8 @@
 Tests for ``world.spells.spell_utils.resolve_target``.
 
 The helper drives target resolution for all spell target_types. Item-
-target tests cover ``"items_inventory"``, ``"items_all_room_then_inventory"``, and
-``"items_inventory_then_all_room"``. It is called by both ``cmd_cast`` and ``cmd_zap`` and
+target tests cover ``"items_inventory"``, ``"items_room_all_then_inventory"``, and
+``"items_inventory_then_room_all"``. It is called by both ``cmd_cast`` and ``cmd_zap`` and
 must respect the canonical visibility rules (HiddenObjectMixin /
 InvisibleObjectMixin) for room targets while always finding inventory
 items the caster is carrying.
@@ -15,6 +15,7 @@ from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
 from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_visible_to
 
 
 class TestResolveInventoryItem(EvenniaTest):
@@ -74,13 +75,19 @@ class TestResolveWorldItem(EvenniaTest):
 
     def test_finds_room_chest_by_name(self):
         chest = self._spawn_room_object("iron chest")
-        result, _secondaries = resolve_target(self.char1, "iron chest", "items_all_room_then_inventory")
+        result, _secondaries = resolve_target(
+            self.char1, "iron chest", "items_room_all_then_inventory",
+            extra_predicates=(p_visible_to,),
+        )
         self.assertEqual(result, chest)
 
     def test_returns_none_when_target_hidden(self):
         chest = self._spawn_room_object("hidden chest")
         chest.is_hidden = True   # HiddenObjectMixin attribute
-        result, _secondaries = resolve_target(self.char1, "hidden chest", "items_all_room_then_inventory")
+        result, _secondaries = resolve_target(
+            self.char1, "hidden chest", "items_room_all_then_inventory",
+            extra_predicates=(p_visible_to,),
+        )
         self.assertIsNone(result)
 
     def test_finds_hidden_chest_after_discovery(self):
@@ -88,11 +95,16 @@ class TestResolveWorldItem(EvenniaTest):
         chest = self._spawn_room_object("hidden chest")
         chest.is_hidden = True
         chest.discovered_by.add(self.char1.key)
-        result, _secondaries = resolve_target(self.char1, "hidden chest", "items_all_room_then_inventory")
+        result, _secondaries = resolve_target(
+            self.char1, "hidden chest", "items_room_all_then_inventory",
+            extra_predicates=(p_visible_to,),
+        )
         self.assertEqual(result, chest)
 
     def test_empty_target_str_returns_none(self):
-        result, _secondaries = resolve_target(self.char1, "", "items_all_room_then_inventory")
+        result, _secondaries = resolve_target(
+            self.char1, "", "items_room_all_then_inventory",
+        )
         self.assertIsNone(result)
 
 
@@ -121,7 +133,7 @@ class TestResolveAnyItem(EvenniaTest):
             key="iron chest",
             location=self.char1,
         )
-        result, _secondaries = resolve_target(self.char1, "iron chest", "items_inventory_then_all_room")
+        result, _secondaries = resolve_target(self.char1, "iron chest", "items_inventory_then_room_all")
         self.assertEqual(result, carried)
         self.assertNotEqual(result, chest)
 
@@ -132,11 +144,11 @@ class TestResolveAnyItem(EvenniaTest):
             key="dusty wand",
             location=self.char1,
         )
-        result, _secondaries = resolve_target(self.char1, "dusty wand", "items_inventory_then_all_room")
+        result, _secondaries = resolve_target(self.char1, "dusty wand", "items_inventory_then_room_all")
         self.assertEqual(result, wand)
 
     def test_returns_none_when_neither_matches(self):
-        result, _secondaries = resolve_target(self.char1, "phantom thing", "items_inventory_then_all_room")
+        result, _secondaries = resolve_target(self.char1, "phantom thing", "items_inventory_then_room_all")
         self.assertIsNone(result)
 
 
