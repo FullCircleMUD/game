@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ActorSize(str, Enum):
+class Size(str, Enum):
     TINY = "tiny"
     SMALL = "small"
     MEDIUM = "medium"
@@ -11,21 +11,21 @@ class ActorSize(str, Enum):
 
 
 _SIZE_VALUE = {
-    ActorSize.TINY: 1,
-    ActorSize.SMALL: 2,
-    ActorSize.MEDIUM: 3,
-    ActorSize.LARGE: 4,
-    ActorSize.HUGE: 5,
-    ActorSize.GARGANTUAN: 6,
+    Size.TINY: 1,
+    Size.SMALL: 2,
+    Size.MEDIUM: 3,
+    Size.LARGE: 4,
+    Size.HUGE: 5,
+    Size.GARGANTUAN: 6,
 }
 
 
 def size_value(size):
     """Return numeric value for a size (1=tiny .. 6=gargantuan).
 
-    Accepts ActorSize enum members or raw strings.
+    Accepts Size enum members or raw strings.
     """
-    return _SIZE_VALUE[ActorSize(size)]
+    return _SIZE_VALUE[Size(size)]
 
 
 def bigger_than(check_size, reference_size):

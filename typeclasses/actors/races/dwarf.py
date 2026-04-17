@@ -1,5 +1,5 @@
 from enums.abilities_enum import Ability
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.weapon_type import WeaponType
 from typeclasses.actors.races.race_base import RaceBase
 
@@ -12,7 +12,7 @@ DWARF = RaceBase(
         "make them excellent warriors. Though slower than other "
         "races, their durability more than compensates."
     ),
-    size=ActorSize.MEDIUM,
+    size=Size.MEDIUM,
     base_hp=14,
     base_mana=6,
     base_move=80,

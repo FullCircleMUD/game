@@ -26,6 +26,7 @@ class WorldItem(HeightAwareMixin, HiddenObjectMixin, DefaultObject):
         can_bank: Whether this item can be deposited in AccountBank.
     """
 
+    size = AttributeProperty("small")
     can_export = AttributeProperty(False)
     can_bank = AttributeProperty(True)
 

@@ -103,8 +103,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_on_hit(self, mock_dice, mock_size):
         """Winning contested roll should apply ENTANGLED effect."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         # attacker d20=15, defender d20=8
         mock_dice.roll.side_effect = [15, 8]
         _set_mastery(self.char1, 1)  # BASIC: +0 bonus
@@ -117,8 +117,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_stores_escape_dc(self, mock_dice, mock_size):
         """Escape DC should equal attacker's total roll."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         # attacker d20=15 + DEX(+2) + mastery(+2) = 19
         mock_dice.roll.side_effect = [15, 5]
         _set_mastery(self.char1, 2)  # SKILLED: +2 bonus
@@ -133,8 +133,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_miss(self, mock_dice, mock_size):
         """Losing contested roll should NOT apply entangle."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         # attacker d20=5, defender d20=18
         mock_dice.roll.side_effect = [5, 18]
         _set_mastery(self.char1, 1)
@@ -147,8 +147,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_tie_is_miss(self, mock_dice, mock_size):
         """Tie on contested roll should NOT apply entangle (attacker must win)."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         # attacker d20=10 + DEX(+2) = 12, defender d20=12 + DEX(+0) = 12
         mock_dice.roll.side_effect = [10, 12]
         _set_mastery(self.char1, 1)  # BASIC: +0 bonus
@@ -161,8 +161,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_max_rounds_basic(self, mock_dice, mock_size):
         """BASIC entangle should have max 2 rounds."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [20, 3]
         _set_mastery(self.char1, 1)  # BASIC
 
@@ -175,8 +175,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_max_rounds_gm(self, mock_dice, mock_size):
         """GM entangle should have max 6 rounds."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [20, 3]
         _set_mastery(self.char1, 5)  # GM
 
@@ -189,8 +189,8 @@ class TestBolaEntangle(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_at_hit_returns_damage_unchanged(self, mock_dice, mock_size):
         """at_hit should return the original damage value."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [20, 3]
         _set_mastery(self.char1, 1)
         result = self.bola.at_hit(self.char1, self.char2, 1, "bludgeoning")
@@ -221,8 +221,8 @@ class TestBolaEntangleSizeGate(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_huge_immune(self, mock_dice, mock_size):
         """HUGE targets should be immune to entangle."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.HUGE
+        from enums.size import Size
+        mock_size.return_value = Size.HUGE
         mock_dice.roll.side_effect = [20, 1]  # would entangle on MEDIUM
         _set_mastery(self.char1, 1)
 
@@ -234,8 +234,8 @@ class TestBolaEntangleSizeGate(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_gargantuan_immune(self, mock_dice, mock_size):
         """GARGANTUAN targets should be immune to entangle."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.GARGANTUAN
+        from enums.size import Size
+        mock_size.return_value = Size.GARGANTUAN
         mock_dice.roll.side_effect = [20, 1]
         _set_mastery(self.char1, 1)
 
@@ -269,8 +269,8 @@ class TestBolaAntiStacking(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_already_entangled_no_stack(self, mock_dice, mock_size):
         """Second bola hit should not replace or stack entangle."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
 
         # First hit: attacker d20=18, defender d20=5 → entangle
         mock_dice.roll.side_effect = [18, 5]
@@ -316,8 +316,8 @@ class TestBolaAdvantageGrant(EvenniaTest):
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
     def test_entangle_grants_advantage(self, mock_dice, mock_size, mock_sides):
         """Entangle should grant advantage to all enemies of the target."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [18, 5]
         _set_mastery(self.char1, 2)  # SKILLED: max 3 rounds
 

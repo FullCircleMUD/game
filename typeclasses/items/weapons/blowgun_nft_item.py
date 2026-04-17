@@ -25,7 +25,7 @@ Poison timing fork: combat_rounds if target is in combat, seconds if not.
 from evennia.typeclasses.attributes import AttributeProperty
 
 from combat.combat_utils import get_actor_size
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
@@ -33,7 +33,7 @@ from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
 
 # Sizes immune to blowgun paralysis
-_PARALYSIS_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_PARALYSIS_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 # Poison duration dice by mastery
 _BLOWGUN_POISON_DURATION = {

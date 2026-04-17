@@ -74,7 +74,7 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
 
     # ── Size (override in subclasses for large/huge mobs) ──
     # Stored as string value, not enum — Evennia can't serialize str enums.
-    # Use ActorSize("medium") to convert back when needed.
+    # Use Size("medium") to convert back when needed.
     size = AttributeProperty("medium")
 
     # ── Simple Combat ──

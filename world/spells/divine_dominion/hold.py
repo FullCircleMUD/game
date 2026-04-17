@@ -14,7 +14,7 @@ GARGANTUAN always immune.
 Cooldown: 1 round (default EXPERT).
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from combat.combat_utils import get_actor_size
@@ -24,9 +24,9 @@ from world.spells.registry import register_spell
 
 # Per-tier size immunity: sizes the spell CANNOT affect at each tier
 _HOLD_IMMUNE = {
-    3: {ActorSize.LARGE, ActorSize.HUGE, ActorSize.GARGANTUAN},
-    4: {ActorSize.HUGE, ActorSize.GARGANTUAN},
-    5: {ActorSize.GARGANTUAN},
+    3: {Size.LARGE, Size.HUGE, Size.GARGANTUAN},
+    4: {Size.HUGE, Size.GARGANTUAN},
+    5: {Size.GARGANTUAN},
 }
 
 # Duration in rounds per tier
@@ -58,7 +58,7 @@ class Hold(Spell):
         tier = self.get_caster_tier(caster)
 
         # --- Size gate ---
-        immune_sizes = _HOLD_IMMUNE.get(tier, {ActorSize.GARGANTUAN})
+        immune_sizes = _HOLD_IMMUNE.get(tier, {Size.GARGANTUAN})
         target_size = get_actor_size(target)
         if target_size in immune_sizes:
             cap_name = _SIZE_CAP_NAMES.get(tier, "medium")

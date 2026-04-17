@@ -16,7 +16,7 @@ FRIGHTENED: target attempts to flee through a random exit each round.
 If no exits, they cower (lose action). HUGE+ immune.
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.dice_roller import dice
@@ -27,7 +27,7 @@ from world.spells.registry import register_spell
 _DURATION_ROUNDS = {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
 
 # HUGE and larger are immune
-_IMMUNE_SIZES = frozenset({ActorSize.HUGE, ActorSize.GARGANTUAN})
+_IMMUNE_SIZES = frozenset({Size.HUGE, Size.GARGANTUAN})
 
 
 @register_spell

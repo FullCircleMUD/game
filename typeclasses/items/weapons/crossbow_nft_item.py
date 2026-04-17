@@ -27,7 +27,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
 from combat.combat_utils import get_actor_size
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
@@ -44,7 +44,7 @@ _CROSSBOW_KNOCKBACK = {
 }
 
 # Sizes immune to knockback
-_KNOCKBACK_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_KNOCKBACK_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 
 class CrossbowMixin:

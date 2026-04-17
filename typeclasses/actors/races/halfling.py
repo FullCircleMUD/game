@@ -1,5 +1,5 @@
 from enums.abilities_enum import Ability
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.weapon_type import WeaponType
 from typeclasses.actors.races.race_base import RaceBase
 
@@ -13,7 +13,7 @@ HALFLING = RaceBase(
         "that makes them welcome companions on any adventure. Their small size "
         "and quiet nature grants them permanent advantage on stealth checks."
     ),
-    size=ActorSize.SMALL,
+    size=Size.SMALL,
     base_hp=8,
     base_mana=10,
     base_move=80,

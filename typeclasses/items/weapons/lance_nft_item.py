@@ -29,7 +29,7 @@ Prone mechanic (mounted only):
 from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
@@ -61,10 +61,10 @@ _LANCE_MOUNTED_EXTRA_ATTACKS = {
 _LANCE_PRONE = {
     MasteryLevel.UNSKILLED: (0, set()),
     MasteryLevel.BASIC: (0, set()),
-    MasteryLevel.SKILLED: (15, {ActorSize.HUGE, ActorSize.GARGANTUAN}),
-    MasteryLevel.EXPERT: (20, {ActorSize.GARGANTUAN}),
-    MasteryLevel.MASTER: (20, {ActorSize.GARGANTUAN}),
-    MasteryLevel.GRANDMASTER: (25, {ActorSize.GARGANTUAN}),
+    MasteryLevel.SKILLED: (15, {Size.HUGE, Size.GARGANTUAN}),
+    MasteryLevel.EXPERT: (20, {Size.GARGANTUAN}),
+    MasteryLevel.MASTER: (20, {Size.GARGANTUAN}),
+    MasteryLevel.GRANDMASTER: (25, {Size.GARGANTUAN}),
 }
 
 

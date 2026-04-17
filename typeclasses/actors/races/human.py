@@ -1,4 +1,4 @@
-from enums.actor_size import ActorSize
+from enums.size import Size
 from typeclasses.actors.races.race_base import RaceBase
 
 HUMAN = RaceBase(
@@ -10,7 +10,7 @@ HUMAN = RaceBase(
         "for any class or playstyle. Their balanced nature and determination "
         "make them excellent adventurers."
     ),
-    size=ActorSize.MEDIUM,
+    size=Size.MEDIUM,
     base_hp=10,
     base_mana=10,
     base_move=100,

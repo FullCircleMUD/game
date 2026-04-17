@@ -39,6 +39,7 @@ class BaseNFTItem(NFTMirrorMixin, HeightAwareMixin, HiddenObjectMixin, ItemRestr
     weight, identification, ground display, hidden-state visibility.
     """
 
+    size = AttributeProperty("small")
     weight = AttributeProperty(0.0)
     identify_mastery_gate = AttributeProperty(1)  # tier required to identify (1=BASIC)
     ground_description = AttributeProperty("")  # e.g. "A rusty sword lies here."

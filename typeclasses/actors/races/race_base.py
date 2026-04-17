@@ -16,7 +16,7 @@ from typing import List, Dict, Optional, Type
 from evennia import CmdSet
 
 from enums.abilities_enum import Ability
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.weapon_type import WeaponType
 
@@ -26,7 +26,7 @@ class RaceBase:
     key: str = ""
     display_name: str = ""
     description: str = ""
-    size: ActorSize = ActorSize.MEDIUM
+    size: Size = Size.MEDIUM
 
     # Starting stats — race sets the foundation, class adds on top
     base_hp: int = 10

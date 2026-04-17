@@ -21,7 +21,7 @@ Damage always applies regardless of contest result.
 HUGE+ immune to pull (damage still applies).
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from enums.named_effect import NamedEffect
@@ -32,7 +32,7 @@ from world.spells.registry import register_spell
 from world.spells.spell_utils import apply_spell_damage
 
 
-_IMMUNE_SIZES = frozenset({ActorSize.HUGE, ActorSize.GARGANTUAN})
+_IMMUNE_SIZES = frozenset({Size.HUGE, Size.GARGANTUAN})
 
 
 @register_spell

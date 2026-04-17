@@ -375,7 +375,7 @@ class TestUnarmedCombat(EvenniaCommandTest):
         """HUGE targets are immune to unarmed stun."""
         from enums.mastery_level import MasteryLevel
         from enums.condition import Condition
-        from enums.actor_size import ActorSize
+        from enums.size import Size
         from combat.combat_utils import enter_combat, execute_attack
 
         self.char1.db.weapon_skill_mastery_levels = {"unarmed": MasteryLevel.MASTER.value}
@@ -414,7 +414,7 @@ class TestUnarmedCombat(EvenniaCommandTest):
         """LARGE targets CAN be stunned by unarmed (only HUGE+ immune)."""
         from enums.mastery_level import MasteryLevel
         from enums.condition import Condition
-        from enums.actor_size import ActorSize
+        from enums.size import Size
         from combat.combat_utils import enter_combat, execute_attack
 
         self.char1.db.weapon_skill_mastery_levels = {"unarmed": MasteryLevel.SKILLED.value}

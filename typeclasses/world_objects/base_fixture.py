@@ -12,6 +12,7 @@ Usage:
         ...
 """
 
+from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
 
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
@@ -27,6 +28,8 @@ class WorldFixture(HeightAwareMixin, InvisibleObjectMixin, HiddenObjectMixin, De
     - Not blockchain-tracked — no token_id, no NFT service hooks
     - Supports hidden and invisible states via mixins
     """
+
+    size = AttributeProperty("small")
 
     def at_object_creation(self):
         super().at_object_creation()

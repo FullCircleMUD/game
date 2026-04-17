@@ -9,7 +9,7 @@ get_sides()       — ally/enemy detection from a combatant's perspective
 import random
 
 from combat.height_utils import can_reach_target, get_height_hit_modifier
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
@@ -35,22 +35,22 @@ INTERCEPT_CHANCE = {
 # ================================================================== #
 
 def get_actor_size(actor):
-    """Get an actor's size as ActorSize enum.
+    """Get an actor's size as Size enum.
     Checks race.size for PCs, .size for mobs (stored as string)."""
-    # PC path: character.race.size (already ActorSize enum)
+    # PC path: character.race.size (already Size enum)
     race = getattr(actor, "race", None)
     if race and hasattr(race, "size"):
         return race.size
     # Mob path: direct .size attribute (stored as string)
     size = getattr(actor, "size", None)
     if size:
-        if isinstance(size, ActorSize):
+        if isinstance(size, Size):
             return size
         try:
-            return ActorSize(size)
+            return Size(size)
         except ValueError:
-            return ActorSize.MEDIUM
-    return ActorSize.MEDIUM
+            return Size.MEDIUM
+    return Size.MEDIUM
 
 
 # ================================================================== #

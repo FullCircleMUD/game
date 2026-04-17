@@ -194,8 +194,8 @@ class TestSaiDisarm(EvenniaTest):
     @patch("typeclasses.items.weapons.sai_nft_item.dice")
     def test_gargantuan_immune(self, mock_dice, mock_gas, mock_get_weapon, mock_fdw):
         """GARGANTUAN target is immune to disarm."""
-        from enums.actor_size import ActorSize
-        mock_gas.return_value = ActorSize.GARGANTUAN
+        from enums.size import Size
+        mock_gas.return_value = Size.GARGANTUAN
 
         self.sai._try_disarm(self.char1, self.char2)
 

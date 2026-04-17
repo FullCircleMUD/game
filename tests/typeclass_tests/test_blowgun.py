@@ -338,8 +338,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_paralysis_on_failed_save(self, mock_dice, mock_size):
         """Failed CON save should apply PARALYSED condition."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         # First dice.roll = poison duration, second = CON save d20
         mock_dice.roll.side_effect = [2, 5]  # poison ticks=2, save roll=5
         _set_mastery(self.char1, 1)  # BASIC: DC 10
@@ -354,8 +354,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_paralysis_resisted_on_passed_save(self, mock_dice, mock_size):
         """Passed CON save should NOT apply PARALYSED."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         # poison ticks=2, save roll=15
         mock_dice.roll.side_effect = [2, 15]
         _set_mastery(self.char1, 1)  # BASIC: DC 10
@@ -369,8 +369,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_paralysis_huge_immune(self, mock_dice, mock_size):
         """HUGE targets should be immune to paralysis."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.HUGE
+        from enums.size import Size
+        mock_size.return_value = Size.HUGE
         mock_dice.roll.side_effect = [2, 1]  # poison ticks=2, save roll=1 (nat 1, would fail)
         _set_mastery(self.char1, 1)
 
@@ -383,8 +383,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_paralysis_gargantuan_immune(self, mock_dice, mock_size):
         """GARGANTUAN targets should be immune to paralysis."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.GARGANTUAN
+        from enums.size import Size
+        mock_size.return_value = Size.GARGANTUAN
         mock_dice.roll.side_effect = [2, 1]
         _set_mastery(self.char1, 1)
 
@@ -396,8 +396,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_paralysis_grants_advantage(self, mock_dice, mock_size, mock_sides):
         """Paralysis should grant advantage to all enemies of the target."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [2, 3]  # poison ticks=2, save=3 (fail DC 10)
         _set_mastery(self.char1, 1)
 
@@ -416,8 +416,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_expert_paralysis_two_rounds(self, mock_dice, mock_size):
         """EXPERT paralysis should last 2 rounds."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [3, 1]  # poison ticks=3, save=1 (fail DC 14)
         _set_mastery(self.char1, 3)  # EXPERT
 
@@ -431,8 +431,8 @@ class TestBlowgunParalysis(EvenniaTest):
     @patch("typeclasses.items.weapons.blowgun_nft_item.dice")
     def test_gm_paralysis_three_rounds(self, mock_dice, mock_size):
         """GM paralysis should last 3 rounds."""
-        from enums.actor_size import ActorSize
-        mock_size.return_value = ActorSize.MEDIUM
+        from enums.size import Size
+        mock_size.return_value = Size.MEDIUM
         mock_dice.roll.side_effect = [5, 1]  # poison ticks=5, save=1 (fail DC 20)
         _set_mastery(self.char1, 5)  # GM
 

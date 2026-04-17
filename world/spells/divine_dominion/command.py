@@ -24,7 +24,7 @@ Cooldown: 0 (spammable).
 Combat-only. HUGE+ immune.
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from combat.combat_utils import force_drop_weapon, get_actor_size
@@ -33,7 +33,7 @@ from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
 
 _VALID_COMMANDS = {"halt", "grovel", "drop", "flee"}
-_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 # Duration scaling: tier → rounds
 _HALT_ROUNDS = {1: 1, 2: 2, 3: 2, 4: 3, 5: 3}
