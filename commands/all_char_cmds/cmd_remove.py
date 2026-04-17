@@ -29,7 +29,7 @@ class CmdRemove(FCMCommandMixin, Command):
     """
 
     key = "remove"
-    aliases = ["unequip", "rem"]
+    aliases = ["rem"]
     locks = "cmd:all()"
     help_category = "Items"
 

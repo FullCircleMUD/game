@@ -61,7 +61,7 @@ FORAGE_COOLDOWN = 900  # 15 minutes in seconds
 
 class CmdForage(CmdSkillBase):
     key = "forage"
-    aliases = ["scavenge"]
+    aliases = []
     skill = skills.SURVIVALIST.value
     help_category = "Nature"
 

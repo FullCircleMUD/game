@@ -83,7 +83,7 @@ class CmdExtinguish(FCMCommandMixin, Command):
     """
 
     key = "extinguish"
-    aliases = ["douse", "snuff"]
+    aliases = ["douse"]
     locks = "cmd:all()"
     help_category = "Items"
 

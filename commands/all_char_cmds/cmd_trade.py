@@ -206,7 +206,7 @@ class CmdTrade(FCMCommandMixin, Command):
     """
 
     key = "trade"
-    aliases = ["barter"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Items"
     arg_regex = r"\s|$"
@@ -434,7 +434,7 @@ class CmdTradeAccept(CmdTradeBase):
     """
 
     key = "accept"
-    aliases = ["agree"]
+    aliases = []
 
     def func(self):
         if not self._guard():
