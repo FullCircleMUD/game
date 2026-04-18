@@ -20,6 +20,7 @@ from evennia import AttributeProperty
 from evennia.objects.objects import ExitCommand
 
 from commands.command import FCMCommandMixin
+from enums.size import Size, size_value
 from .exit_base import ExitBase
 
 
@@ -130,6 +131,13 @@ class ExitVerticalAware(ExitBase):
     fall_warning = AttributeProperty(None)
     """Warning message shown before a fall. None = generic default.
     E.g. 'You step off the wall and plummet!'"""
+
+    # ── Size gating ─────────────────────────────────────────────────
+    max_size = AttributeProperty(Size.GARGANTUAN.value)
+    """Largest actor size that can pass through this exit. Defaults to
+    gargantuan (unrestricted). Set to a smaller Size.X.value to gate:
+    e.g. Size.TINY.value for a mousehole, Size.SMALL.value for a
+    halfling passage, Size.MEDIUM.value for a standard doorway."""
 
     # ── Direction methods ───────────────────────────────────────────
 
@@ -255,6 +263,12 @@ class ExitVerticalAware(ExitBase):
         # --- Height gating ---
         if not self.is_height_accessible(height):
             traversing_object.msg("You can't go that way from here.")
+            return
+
+        # --- Size gating ---
+        actor_size = getattr(traversing_object, "size", Size.MEDIUM.value)
+        if size_value(actor_size) > size_value(self.max_size):
+            traversing_object.msg("You are too large to fit through there.")
             return
 
         # --- Determine arrival height ---

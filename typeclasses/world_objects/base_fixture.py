@@ -30,7 +30,7 @@ class WorldFixture(HeightAwareMixin, InvisibleObjectMixin, HiddenObjectMixin, De
     - Supports hidden and invisible states via mixins
     """
 
-    size = AttributeProperty("medium")
+    size = AttributeProperty(Size.MEDIUM.value)
 
     def at_object_creation(self):
         super().at_object_creation()

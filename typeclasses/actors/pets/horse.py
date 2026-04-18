@@ -17,8 +17,8 @@ class Horse(CombatCompanionMixin, MountMixin, BasePet):
     """A riding horse. Large mount with combat kick."""
 
     pet_type = AttributeProperty("horse")
-    base_size = AttributeProperty("large")
-    size = AttributeProperty("large")
+    base_size = AttributeProperty(Size.LARGE.value)
+    size = AttributeProperty(Size.LARGE.value)
     mount_movement_bonus = AttributeProperty(3)  # 3x move efficiency
 
     # ── Combat ──

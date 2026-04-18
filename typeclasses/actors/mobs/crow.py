@@ -29,8 +29,8 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     """A black crow. Attacks in packs, flees when alone."""
 
     alignment_score = AttributeProperty(-30)  # slightly evil (aggressive pest)
-    base_size = AttributeProperty("tiny")
-    size = AttributeProperty("tiny")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
 
     # ── Flight ──
     preferred_height = AttributeProperty(1)

@@ -5,6 +5,7 @@ from evennia import DefaultCharacter
 from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.condition import Condition
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from typeclasses.mixins.effects_manager import EffectsManagerMixin
@@ -19,8 +20,8 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # str enums). PCs get base_size set from race.size in at_taking_race();
     # mobs/pets override via their own AttributeProperty.
     # size is the active value, rebuilt from base_size by _recalculate_stats().
-    base_size = AttributeProperty("medium")
-    size = AttributeProperty("medium")
+    base_size = AttributeProperty(Size.MEDIUM.value)
+    size = AttributeProperty(Size.MEDIUM.value)
 
     def at_object_creation(self):
         super().at_object_creation()
