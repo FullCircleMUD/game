@@ -153,7 +153,6 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
             if container:
                 self._get_from_container(caller, item_part, container.key)
             else:
-                # No match — run normal get which will show the error
                 self._get_object(caller, parsed.search_term)
 
     # ============================================================== #

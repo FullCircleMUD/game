@@ -92,7 +92,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         from blockchain.xrpl.services.nft import NFTService
 
         if dest_type == "CHARACTER":
-            wallet = self._get_wallet(dest_owner)
+            wallet = self._get_owner_wallet(dest_owner)
             char_key = self._get_character_key(dest_owner)
             try:
                 NFTService.craft_output(
@@ -131,7 +131,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
             return
 
         if source_type == "WORLD" and dest_type == "CHARACTER":
-            wallet = self._get_wallet(dest_owner)
+            wallet = self._get_owner_wallet(dest_owner)
             char_key = self._get_character_key(dest_owner)
             try:
                 NFTService.pickup(
@@ -149,9 +149,9 @@ class NFTMirrorMixin(CharacterKeyMixin):
                 self._log_error("drop", err)
 
         elif source_type == "CHARACTER" and dest_type == "CHARACTER":
-            from_wallet = self._get_wallet(source_owner)
+            from_wallet = self._get_owner_wallet(source_owner)
             from_key = self._get_character_key(source_owner)
-            to_wallet = self._get_wallet(dest_owner)
+            to_wallet = self._get_owner_wallet(dest_owner)
             to_key = self._get_character_key(dest_owner)
             try:
                 NFTService.transfer(
@@ -215,7 +215,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         vault = settings.XRPL_VAULT_ADDRESS
 
         source_wallet = (
-            self._get_wallet(source_owner) if source_type == "CHARACTER"
+            self._get_owner_wallet(source_owner) if source_type == "CHARACTER"
             else vault
         )
         source_key = (
@@ -223,7 +223,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
             if source_type == "CHARACTER" else None
         )
         dest_wallet = (
-            self._get_wallet(dest_owner) if dest_type == "CHARACTER"
+            self._get_owner_wallet(dest_owner) if dest_type == "CHARACTER"
             else vault
         )
         dest_key = (
@@ -473,8 +473,8 @@ class NFTMirrorMixin(CharacterKeyMixin):
         if source_owner is None or dest_owner is None:
             return source_owner is dest_owner
         if source_type == "CHARACTER":
-            from_wallet = NFTMirrorMixin._get_wallet(source_owner)
-            to_wallet = NFTMirrorMixin._get_wallet(dest_owner)
+            from_wallet = NFTMirrorMixin._get_owner_wallet(source_owner)
+            to_wallet = NFTMirrorMixin._get_owner_wallet(dest_owner)
             return from_wallet == to_wallet
         if source_type == "ACCOUNT":
             return (getattr(source_owner, "wallet_address", None)
@@ -482,7 +482,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         return source_owner is dest_owner
 
     @staticmethod
-    def _get_wallet(character):
+    def _get_owner_wallet(character):
         """Get a character's wallet address from their account."""
         if character is None or character.account is None:
             return None
