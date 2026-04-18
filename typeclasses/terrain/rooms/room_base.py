@@ -648,6 +648,14 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                     line = f"|Y(Good)|n {line}"
                 else:
                     line = f"|w(Neutral)|n {line}"
+            # Append height tags
+            char_height = getattr(char, "room_vertical_position", 0)
+            if char_height > 0:
+                line += " (Flying)"
+            elif char_height < 0:
+                line += " (Underwater)"
+            elif self.max_depth < 0:
+                line += " (Swimming)"
             # Append visibility tags
             if hasattr(char, "has_condition"):
                 if char.has_condition(Condition.INVISIBLE):
