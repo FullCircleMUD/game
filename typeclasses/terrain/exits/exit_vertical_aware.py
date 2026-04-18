@@ -139,6 +139,10 @@ class ExitVerticalAware(ExitBase):
     e.g. Size.TINY.value for a mousehole, Size.SMALL.value for a
     halfling passage, Size.MEDIUM.value for a standard doorway."""
 
+    # ── Traversal cost ──────────────────────────────────────────────
+    traversal_movement_cost = AttributeProperty(1)
+    """Movement point cost to traverse this exit. Defaults to 1."""
+
     # ── Direction methods ───────────────────────────────────────────
 
     def set_direction(self, direction):

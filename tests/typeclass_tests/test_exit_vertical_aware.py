@@ -324,3 +324,58 @@ class TestExitDirectionSystem(TestExitVerticalAwareBase):
         self.exit.db.desc = "a ladder"
         name = self.exit.get_display_name(self.char1)
         self.assertEqual(name, "up: a ladder")
+
+
+# ================================================================
+#  Traversal movement cost tests
+# ================================================================
+
+
+class TestTraversalMovementCost(TestExitVerticalAwareBase):
+    """Test per-exit movement cost on traversal."""
+
+    def setUp(self):
+        super().setUp()
+        self.room2.max_height = 1
+        self.room2.max_depth = 0
+
+    def test_default_cost_is_one(self):
+        """Exit defaults to traversal_movement_cost=1."""
+        self.assertEqual(self.exit.traversal_movement_cost, 1)
+
+    def test_default_cost_deducts_one(self):
+        """Traversing a default exit deducts 1 movement point."""
+        self.char1.move = 5
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+        self.assertEqual(self.char1.move, 4)
+
+    def test_custom_cost_deducts_correctly(self):
+        """Traversing an exit with cost=3 deducts 3 movement points."""
+        self.char1.move = 5
+        self.exit.traversal_movement_cost = 3
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+        self.assertEqual(self.char1.move, 2)
+
+    def test_blocked_when_move_below_cost(self):
+        """Character with fewer move points than exit cost is blocked."""
+        self.char1.move = 2
+        self.exit.traversal_movement_cost = 3
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertEqual(self.char1.move, 2)  # unchanged
+
+    def test_allowed_when_move_equals_cost(self):
+        """Character with exactly enough move points can traverse."""
+        self.char1.move = 3
+        self.exit.traversal_movement_cost = 3
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room2)
+        self.assertEqual(self.char1.move, 0)
+
+    def test_blocked_at_zero_move(self):
+        """Character with 0 move points is blocked even for cost=1."""
+        self.char1.move = 0
+        self.exit.at_traverse(self.char1, self.room2)
+        self.assertEqual(self.char1.location, self.room1)

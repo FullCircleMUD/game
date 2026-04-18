@@ -227,7 +227,9 @@ class FCMCharacter(
                     self.msg(msg)
                 return False
         # Movement point cost — normal moves, follows, and exit traversals
-        if move_type in ("move", "follow", "traverse") and self.move < 1:
+        exit_obj = kwargs.get("exit_obj")
+        cost = getattr(exit_obj, "traversal_movement_cost", 1) if exit_obj else 1
+        if move_type in ("move", "follow", "traverse") and self.move < cost:
             self.msg("You are too exhausted to move.")
             return False
         # Mounted restriction — can't enter indoor rooms while mounted on large+ pet
@@ -258,6 +260,8 @@ class FCMCharacter(
         super().at_post_move(source_location, move_type=move_type, **kwargs)
 
         # Deduct movement points — reduced when mounted
+        exit_obj = kwargs.get("exit_obj")
+        cost = getattr(exit_obj, "traversal_movement_cost", 1) if exit_obj else 1
         if move_type in ("move", "follow", "traverse"):
             mount = self.db.mounted_on
             if mount and hasattr(mount, "mount_movement_bonus"):
@@ -265,11 +269,11 @@ class FCMCharacter(
                 # Only deduct every Nth move (e.g. bonus=3 means 1 in 3 moves costs a point)
                 mount_steps = getattr(self.ndb, "_mount_steps", 0) + 1
                 if mount_steps >= bonus:
-                    self.move = max(0, self.move - 1)
+                    self.move = max(0, self.move - cost)
                     mount_steps = 0
                 self.ndb._mount_steps = mount_steps
             else:
-                self.move = max(0, self.move - 1)
+                self.move = max(0, self.move - cost)
 
         # Breath timer — start if we moved into underwater without one
         if self.room_vertical_position < 0:
