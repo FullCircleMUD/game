@@ -383,3 +383,52 @@ def p_same_height_value(height):
         return getattr(obj, "room_vertical_position", 0) == height
 
     return _pred
+
+
+def p_involved_with(caster):
+    """Factory — predicate matching actors involved with ``caster``.
+
+    Returns a ``(obj, caller) -> bool`` predicate used to filter
+    bystanders out of unsafe AOE secondaries in non-PvP rooms.
+
+    In combat: returns True for any actor that also has a
+    ``combat_handler`` script — i.e. a participant on either side of
+    the fight. Bystanders (no handler) are excluded.
+
+    Out of combat: returns True for actors in the caster's group
+    (shared ``get_group_leader()``), including the caster themselves.
+    Everyone outside the group is a bystander.
+
+    The factory captures the caster's combat state and group leader
+    at creation time, consistent with ``p_same_height(caller)`` which
+    captures height at factory time.
+    """
+    in_combat = bool(
+        getattr(caster, "scripts", None)
+        and caster.scripts.get("combat_handler")
+    )
+
+    if in_combat:
+        def _pred(obj, _caller):  # noqa: ARG001
+            scripts = getattr(obj, "scripts", None)
+            if scripts is None:
+                return False
+            return bool(scripts.get("combat_handler"))
+        return _pred
+
+    # Out of combat: group membership
+    caster_leader = (
+        caster.get_group_leader()
+        if hasattr(caster, "get_group_leader") else caster
+    )
+
+    def _pred(obj, _caller):  # noqa: ARG001
+        if obj is caster:
+            return True
+        other_leader = (
+            obj.get_group_leader()
+            if hasattr(obj, "get_group_leader") else None
+        )
+        return other_leader is not None and other_leader is caster_leader
+
+    return _pred

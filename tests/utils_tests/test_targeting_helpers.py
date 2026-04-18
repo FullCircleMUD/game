@@ -1809,14 +1809,14 @@ class TestAoESecondaries(EvenniaTest):
         caller.msg = MagicMock()
         return caller
 
-    # ── unsafe: everyone at target's height, caster included ────
+    # ── unsafe (PvP room): everyone at target's height, caster included
 
     def test_unsafe_includes_caster(self):
         caller = self._caller()
         target = self._make_aoe_actor(key="goblin")
         bystander = self._make_aoe_actor(key="rat")
         caller.location = SimpleNamespace(
-            contents=[caller, target, bystander]
+            contents=[caller, target, bystander], allow_pvp=True,
         )
         _, secondaries = resolve_target(
             caller, "goblin", "actor_hostile", aoe="unsafe",
@@ -1830,14 +1830,14 @@ class TestAoESecondaries(EvenniaTest):
         target = self._make_aoe_actor(key="goblin", height=0)
         flying = self._make_aoe_actor(key="bird", height=1)
         caller.location = SimpleNamespace(
-            contents=[caller, target, flying]
+            contents=[caller, target, flying], allow_pvp=True,
         )
         _, secondaries = resolve_target(
             caller, "goblin", "actor_hostile", aoe="unsafe",
         )
         self.assertNotIn(flying, secondaries)
 
-    # ── unsafe_all_heights: everyone regardless of height ────────
+    # ── unsafe_all_heights (PvP room): everyone regardless of height
 
     def test_unsafe_all_heights_includes_all(self):
         caller = self._caller()
@@ -1845,7 +1845,7 @@ class TestAoESecondaries(EvenniaTest):
         flying = self._make_aoe_actor(key="bird", height=1)
         ground = self._make_aoe_actor(key="rat", height=0)
         caller.location = SimpleNamespace(
-            contents=[caller, target, flying, ground]
+            contents=[caller, target, flying, ground], allow_pvp=True,
         )
         _, secondaries = resolve_target(
             caller, "goblin", "actor_hostile", aoe="unsafe_all_heights",
@@ -1855,20 +1855,110 @@ class TestAoESecondaries(EvenniaTest):
         self.assertIn(ground, secondaries)
         self.assertNotIn(target, secondaries)
 
-    # ── unsafe_self: everyone at height except caster ────────────
+    # ── unsafe_self (PvP room): everyone at height except caster ──
 
     def test_unsafe_self_excludes_caster(self):
         caller = self._caller()
         target = self._make_aoe_actor(key="goblin")
         bystander = self._make_aoe_actor(key="rat")
         caller.location = SimpleNamespace(
-            contents=[caller, target, bystander]
+            contents=[caller, target, bystander], allow_pvp=True,
         )
         _, secondaries = resolve_target(
             caller, "goblin", "actor_hostile", aoe="unsafe_self",
         )
         self.assertNotIn(caller, secondaries)
         self.assertIn(bystander, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    # ── unsafe (non-PvP): bystander protection ────────────────────
+
+    def test_unsafe_nonpvp_in_combat_excludes_bystanders(self):
+        """In combat, only combat participants are hit — bystanders immune."""
+        leader = object()
+        caller = self._caller(combat_side=1, leader=leader)
+        target = self._make_aoe_actor(key="goblin", combat_side=2)
+        ally = self._make_aoe_actor(key="bob", combat_side=1, leader=leader)
+        bystander = self._make_aoe_actor(key="rat")  # no combat_side
+        caller.location = SimpleNamespace(
+            contents=[caller, target, ally, bystander],
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertIn(ally, secondaries)
+        self.assertNotIn(bystander, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    def test_unsafe_nonpvp_out_of_combat_only_group(self):
+        """Out of combat, only caster's group members are hit."""
+        leader = object()
+        caller = self._caller(leader=leader)
+        target = self._make_aoe_actor(key="goblin")
+        groupmate = self._make_aoe_actor(key="bob", leader=leader)
+        stranger = self._make_aoe_actor(key="orc")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, groupmate, stranger],
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertIn(groupmate, secondaries)
+        self.assertNotIn(stranger, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    def test_unsafe_nonpvp_solo_caster_only_self(self):
+        """Solo caster out of combat — only caster in secondaries."""
+        caller = self._caller()
+        target = self._make_aoe_actor(key="goblin")
+        bystander = self._make_aoe_actor(key="rat")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, bystander],
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertNotIn(bystander, secondaries)
+
+    def test_unsafe_self_nonpvp_filters_bystanders(self):
+        """unsafe_self in non-PvP: bystanders excluded, caster excluded."""
+        leader = object()
+        caller = self._caller(combat_side=1, leader=leader)
+        target = self._make_aoe_actor(key="goblin", combat_side=2)
+        ally = self._make_aoe_actor(key="bob", combat_side=1, leader=leader)
+        bystander = self._make_aoe_actor(key="rat")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, ally, bystander],
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe_self",
+        )
+        self.assertIn(ally, secondaries)
+        self.assertNotIn(caller, secondaries)
+        self.assertNotIn(bystander, secondaries)
+
+    def test_unsafe_all_heights_nonpvp_filters_bystanders(self):
+        """unsafe_all_heights in non-PvP: bystanders at any height excluded."""
+        leader = object()
+        caller = self._caller(combat_side=1, leader=leader)
+        caller.room_vertical_position = 0
+        target = self._make_aoe_actor(key="goblin", combat_side=2, height=0)
+        flying_ally = self._make_aoe_actor(
+            key="bird", combat_side=1, leader=leader, height=2,
+        )
+        bystander = self._make_aoe_actor(key="rat", height=0)
+        caller.location = SimpleNamespace(
+            contents=[caller, target, flying_ally, bystander],
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe_all_heights",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertIn(flying_ally, secondaries)
+        self.assertNotIn(bystander, secondaries)
         self.assertNotIn(target, secondaries)
 
     # ── safe: enemies only at target's height ────────────────────

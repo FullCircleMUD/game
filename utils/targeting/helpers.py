@@ -8,6 +8,7 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 
 from utils.targeting.predicates import (
     p_in_combat,
+    p_involved_with,
     p_is_character,
     p_is_container,
     p_living,
@@ -592,13 +593,23 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
 
     AoE types:
 
-        ``"unsafe"``      — everyone at target's height, caster included.
-        ``"unsafe_self"`` — everyone at target's height except caster.
-        ``"safe"``        — enemies only at target's height (via
-                            ``get_sides`` in combat, group membership
-                            out of combat).
-        ``"allies"``      — allies only at target's height, caster
-                            included (mass heal heals you too).
+        ``"unsafe"``            — everyone at target's height, caster
+                                  included.
+        ``"unsafe_all_heights"``— everyone in the room regardless of
+                                  height, caster included.
+        ``"unsafe_self"``       — everyone at target's height except
+                                  caster.
+        ``"safe"``              — enemies only at target's height (via
+                                  ``get_sides`` in combat, group
+                                  membership out of combat).
+        ``"allies"``            — allies only at target's height, caster
+                                  included (mass heal heals you too).
+
+    **Bystander protection (non-PvP rooms):** For the three unsafe
+    variants, candidates are filtered through ``p_involved_with`` so
+    that only combat participants (in combat) or the caster's group
+    members (out of combat) can be hit. Bystanders are immune. In PvP
+    rooms the filter is skipped — everyone is fair game.
 
     Returns an empty list if ``primary_target`` is None, ``caster``
     has no location, or ``aoe`` is not a recognised type.
@@ -606,25 +617,30 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
     if not primary_target or not caster.location:
         return []
 
-    target_height = getattr(primary_target, "room_vertical_position", 0)
-    height_pred = p_same_height_value(target_height)
-
-    # Walk room for all living visible actors at target's height
-    candidates = walk_contents(
-        caster, caster.location, p_living, p_visible_to, height_pred,
-    )
-
-    if aoe == "unsafe":
-        return [a for a in candidates if a is not primary_target]
-
+    # ── Build candidate pool ──
     if aoe == "unsafe_all_heights":
-        # Everyone in the room regardless of height — caster included.
-        # Used by spells like Call Lightning where the effect passes
-        # through all vertical levels.
-        all_candidates = walk_contents(
+        # All living visible actors regardless of height.
+        candidates = walk_contents(
             caster, caster.location, p_living, p_visible_to,
         )
-        return [a for a in all_candidates if a is not primary_target]
+    else:
+        # Living visible actors at the primary target's height.
+        target_height = getattr(primary_target, "room_vertical_position", 0)
+        height_pred = p_same_height_value(target_height)
+        candidates = walk_contents(
+            caster, caster.location, p_living, p_visible_to, height_pred,
+        )
+
+    # ── Bystander filter (non-PvP rooms, unsafe variants only) ──
+    if aoe in ("unsafe", "unsafe_self", "unsafe_all_heights"):
+        pvp = getattr(caster.location, "allow_pvp", False)
+        if not pvp:
+            involved = p_involved_with(caster)
+            candidates = [a for a in candidates if involved(a, caster)]
+
+    # ── Per-type exclusions ──
+    if aoe in ("unsafe", "unsafe_all_heights"):
+        return [a for a in candidates if a is not primary_target]
 
     if aoe == "unsafe_self":
         return [

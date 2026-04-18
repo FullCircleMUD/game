@@ -17,6 +17,7 @@ from utils.targeting.predicates import (
     p_different_height,
     p_height_visible_to,
     p_in_combat,
+    p_involved_with,
     p_is_character,
     p_living,
     p_not_actor,
@@ -307,3 +308,76 @@ class TestPredicates(EvenniaTest):
         obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
         looker = SimpleNamespace(room_vertical_position=0)
         self.assertFalse(p_can_see(obj, looker))
+
+    # ── p_involved_with ──────────────────────────────────────────
+
+    def _make_scripts(self, has_handler=False):
+        """Return a mock scripts object for combat handler checks."""
+        if has_handler:
+            return SimpleNamespace(get=lambda key: ["mock_handler"])
+        return SimpleNamespace(get=lambda key: [])
+
+    def test_p_involved_with_in_combat_true_for_combatant(self):
+        caster = SimpleNamespace(scripts=self._make_scripts(has_handler=True))
+        other = SimpleNamespace(scripts=self._make_scripts(has_handler=True))
+        pred = p_involved_with(caster)
+        self.assertTrue(pred(other, caster))
+
+    def test_p_involved_with_in_combat_false_for_bystander(self):
+        caster = SimpleNamespace(scripts=self._make_scripts(has_handler=True))
+        bystander = SimpleNamespace(scripts=self._make_scripts(has_handler=False))
+        pred = p_involved_with(caster)
+        self.assertFalse(pred(bystander, caster))
+
+    def test_p_involved_with_in_combat_false_when_no_scripts(self):
+        caster = SimpleNamespace(scripts=self._make_scripts(has_handler=True))
+        item = SimpleNamespace()  # no scripts attr at all
+        pred = p_involved_with(caster)
+        self.assertFalse(pred(item, caster))
+
+    def test_p_involved_with_out_of_combat_true_for_self(self):
+        leader = SimpleNamespace()
+        caster = SimpleNamespace(
+            scripts=self._make_scripts(has_handler=False),
+            get_group_leader=lambda: leader,
+        )
+        pred = p_involved_with(caster)
+        self.assertTrue(pred(caster, caster))
+
+    def test_p_involved_with_out_of_combat_true_for_group_member(self):
+        leader = SimpleNamespace()
+        caster = SimpleNamespace(
+            scripts=self._make_scripts(has_handler=False),
+            get_group_leader=lambda: leader,
+        )
+        ally = SimpleNamespace(get_group_leader=lambda: leader)
+        pred = p_involved_with(caster)
+        self.assertTrue(pred(ally, caster))
+
+    def test_p_involved_with_out_of_combat_false_for_non_group(self):
+        caster_leader = SimpleNamespace()
+        other_leader = SimpleNamespace()
+        caster = SimpleNamespace(
+            scripts=self._make_scripts(has_handler=False),
+            get_group_leader=lambda: caster_leader,
+        )
+        stranger = SimpleNamespace(get_group_leader=lambda: other_leader)
+        pred = p_involved_with(caster)
+        self.assertFalse(pred(stranger, caster))
+
+    def test_p_involved_with_out_of_combat_false_when_no_group_mixin(self):
+        caster_leader = SimpleNamespace()
+        caster = SimpleNamespace(
+            scripts=self._make_scripts(has_handler=False),
+            get_group_leader=lambda: caster_leader,
+        )
+        mob = SimpleNamespace()  # no get_group_leader
+        pred = p_involved_with(caster)
+        self.assertFalse(pred(mob, caster))
+
+    def test_p_involved_with_solo_caster_true_for_self(self):
+        # Caster with no group and no combat — only self passes.
+        caster = SimpleNamespace(scripts=self._make_scripts(has_handler=False))
+        # No get_group_leader, so caster_leader defaults to caster itself.
+        pred = p_involved_with(caster)
+        self.assertTrue(pred(caster, caster))
