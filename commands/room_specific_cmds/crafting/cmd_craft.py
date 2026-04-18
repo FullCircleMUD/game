@@ -117,15 +117,7 @@ class CmdCraft(FCMCommandMixin, Command):
     """
 
     key = "craft"
-    aliases = [
-        "cr", "cra", "craf",
-        "forge", "fo", "for", "forg",
-        "carve", "ca", "car", "carv",
-        "sew",
-        "brew", "br", "bre",
-        "enchant", "enc", "ench", "en",
-        "build", "bu", "bui", "buil",
-    ]
+    aliases = ["forge", "carve", "sew", "brew", "enchant", "build"]
     locks = "cmd:all()"
     help_category = "Crafting"
 
