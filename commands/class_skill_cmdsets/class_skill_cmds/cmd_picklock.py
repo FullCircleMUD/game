@@ -6,11 +6,16 @@ LockableMixin.picklock() on the target object.
 
 Usage:
     picklock <target>
-    pl <target>
+    picklock <target> <direction>
+    picklock <direction>
 """
 
 from enums.skills_enum import skills
-from utils.find_exit_target import find_exit_target
+from utils.direction_parser import parse_direction
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import (
+    p_can_see, p_is_lockable, p_is_locked, p_same_height,
+)
 from .cmd_skill_base import CmdSkillBase
 
 
@@ -28,16 +33,36 @@ class CmdPicklock(CmdSkillBase):
             caller.msg("Pick the lock on what?")
             return
 
-        target_name = self.args.strip()
-        target = find_exit_target(caller, target_name)
-        if not target:
+        # Darkness
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        if not hasattr(target, "picklock"):
+        target_str = self.args.strip()
+        parsed_name, direction = parse_direction(target_str)
+
+        if direction:
+            target, _ = resolve_target(
+                caller, parsed_name, "items_room_exit_by_direction",
+                extra_predicates=(p_can_see,), direction=direction,
+            )
+        else:
+            target, _ = resolve_target(
+                caller, target_str, "items_room_all_then_inventory",
+                extra_predicates=(p_can_see,),
+            )
+
+        if not target:
+            caller.msg(f"You don't see '{target_str}' here.")
+            return
+        if target.location != caller and not p_same_height(caller)(target, caller):
+            caller.msg(f"{target.key} is out of reach.")
+            return
+        if not p_is_lockable(target, caller):
             caller.msg("That doesn't have a lock to pick.")
             return
-
-        if not target.is_locked:
+        if not p_is_locked(target, caller):
             caller.msg(f"{target.key} is not locked.")
             return
 
