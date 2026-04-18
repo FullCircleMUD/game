@@ -311,6 +311,7 @@ MIDDLEWARE = list(MIDDLEWARE) + ['web.middleware.geo.GeoDetectionMiddleware']  #
 # Inject geo_variant + geo_country into every template context.
 TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
     'web.middleware.geo.geo_context',
+    'web.middleware.analytics.google_analytics_context',
 ]
 
 ######################################################################

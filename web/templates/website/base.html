@@ -34,6 +34,17 @@
     {% block header_ext %}
     {% endblock %}
 
+    {% if google_analytics_id %}
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_analytics_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ google_analytics_id }}');
+    </script>
+    {% endif %}
+
     <title>{{game_name}} - {% if flatpage %}{{flatpage.title}}{% else %}{% block titleblock %}{{page_title}}{% endblock %}{% endif %}</title>
   </head>
   <body>
