@@ -205,6 +205,7 @@ def build_tutorial_3(instance):
              "could refill a water container here with |wrefill canteen|n."),
         ],
     )
+    fountain.db.tutorial_item = True
     fountain.tags.add(tag, category="tutorial_item")
     fountain.aliases.add("fountain")
 

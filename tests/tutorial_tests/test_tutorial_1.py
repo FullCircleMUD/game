@@ -33,6 +33,7 @@ _NFT_ITEM_MAP = {
     "Wooden Shield": "typeclasses.items.holdables.holdable_nft_item.HoldableNFTItem",
     "Skydancer's Ring": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
     "Aquatic N95": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "Canteen": "typeclasses.items.water_containers.canteen_nft_item.CanteenNFTItem",
 }
 
 
@@ -112,6 +113,21 @@ class TestTutorial1Rooms(EvenniaTest):
 
     def test_pantry_exists(self):
         self.assertIn("The Pantry", self.rooms)
+
+    def test_wellspring_exists(self):
+        self.assertIn("The Wellspring", self.rooms)
+
+    def test_wellspring_has_fountain(self):
+        """Wellspring should have a fountain fixture."""
+        room = self.rooms["The Wellspring"]
+        fountains = [obj for obj in room.contents if "fountain" in obj.key.lower()]
+        self.assertEqual(len(fountains), 1)
+
+    def test_wellspring_has_canteen(self):
+        """Wellspring should have a canteen."""
+        room = self.rooms["The Wellspring"]
+        canteens = [obj for obj in room.contents if "canteen" in obj.key.lower()]
+        self.assertEqual(len(canteens), 1)
 
     def test_complete_room_exists(self):
         self.assertIn("Tutorial Complete", self.rooms)

@@ -1,13 +1,14 @@
 """
 Tutorial 1 Builder — Survival Basics.
 
-Creates a per-player instance of Tutorial 1 with 9 rooms. All objects
+Creates a per-player instance of Tutorial 1 with 10 rooms. All objects
 are tagged with the instance key for cleanup.
 
 Room layout:
     Hub → [1] Welcome → [2] Look → [3] Inventory → [4] Armoury
     → [5] Courtyard (fly/swim within room) → [6] Dark Passage
-    → [7] Combat Arena → [8] Pantry → [9] Complete → Hub
+    → [7] Combat Arena → [8] Pantry → [9] Wellspring
+    → [10] Complete → Hub
 
 Usage:
     Called by TutorialInstanceScript.start_tutorial(character, chunk_num=1).
@@ -19,6 +20,7 @@ from evennia import create_object
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from typeclasses.world_objects.fountain_fixture import FountainFixture
 from utils.exit_helpers import connect_bidirectional_exit
 
 
@@ -560,7 +562,70 @@ def build_tutorial_1(instance):
         )
 
     # ================================================================== #
-    #  ROOM 9: Tutorial Complete — Help & Exit
+    #  ROOM 9: The Wellspring — Drinking & Thirst
+    # ================================================================== #
+
+    rooms["wellspring"] = _room(
+        "The Wellspring",
+        "A cool stone chamber where a natural spring feeds a stone "
+        "fountain set into the wall. The sound of running water echoes "
+        "softly. An empty leather canteen sits on a ledge beside the "
+        "fountain.",
+        "|wTutorial: Drinking & Thirst|n\n\n"
+        "Like hunger, your character gets thirsty over time.\n"
+        "Thirst levels:\n"
+        "  |gREFRESHED|n → HYDRATED → ... → |yDRY|n → THIRSTY "
+        "→ ... → |rCRITICAL|n\n\n"
+        "When DRY, health regeneration halts.\n"
+        "When CRITICAL, you take damage and will die!\n\n"
+        "  |wget canteen|n — Pick up the canteen.\n"
+        "  |wrefill canteen|n — Fill it at a fountain (5 drinks).\n"
+        "  |wdrink canteen|n — Take a drink (restores one thirst stage).\n"
+        "  |wscore|n — Shows your current thirst level.\n\n"
+        "Canteens are refillable at any fountain in the world. "
+        "Keep one in your inventory and refill whenever you find water.\n\n"
+        "|yPractice:|n\n"
+        "  Pick up the canteen: |wget canteen|n\n"
+        "  Fill it: |wrefill canteen|n\n"
+        "  Take a drink: |wdrink canteen|n\n"
+        "  Check your thirst: |wscore|n\n"
+        "  Move |weast|n when ready.",
+        guide_context=(
+            "Teach the thirst system. Characters get thirsty over time, "
+            "parallel to hunger. REFRESHED is full, DRY halts regen, "
+            "CRITICAL causes death. |wget canteen|n picks up the canteen, "
+            "|wrefill canteen|n fills it at the fountain (5 drinks), "
+            "|wdrink canteen|n takes a drink restoring one thirst stage. "
+            "|wscore|n shows thirst level. Canteens are refillable at "
+            "any fountain. Suggest they pick up the canteen, fill it, "
+            "drink, and check score."
+        ),
+    )
+    _connect_bidirectional_exit(rooms["pantry"], rooms["wellspring"], "east")
+
+    _spawn_pip(rooms["wellspring"])
+
+    # Fountain for refilling
+    fountain = create_object(
+        FountainFixture,
+        key="a stone fountain",
+        location=rooms["wellspring"],
+        attributes=[
+            ("desc",
+             "A stone fountain fed by a natural spring. Clear, cold water "
+             "flows steadily. You can refill a water container here with "
+             "|wrefill canteen|n."),
+        ],
+    )
+    fountain.db.tutorial_item = True
+    fountain.tags.add(tag, category="tutorial_item")
+    fountain.aliases.add("fountain")
+
+    # Empty canteen for practice
+    _spawn_nft_item("Canteen", rooms["wellspring"], tag)
+
+    # ================================================================== #
+    #  ROOM 10: Tutorial Complete — Help & Exit
     # ================================================================== #
 
     rooms["complete"] = _room(
@@ -578,7 +643,8 @@ def build_tutorial_1(instance):
         "  |wSwimming:|n     swim up/down (WATER_BREATHING prevents drowning)\n"
         "  |wLight:|n        light <torch>, extinguish <torch>\n"
         "  |wCombat:|n       attack, dodge, flee, score, stats\n"
-        "  |wEating:|n       eat <food>, hunger\n\n"
+        "  |wEating:|n       eat <food>, hunger\n"
+        "  |wDrinking:|n     drink, refill, score (thirst level)\n\n"
         "For more info on any topic, use |whelp <topic>|n.\n"
         "For a list of all help topics, use |whelp|n.\n\n"
         "|yMove |weast|y to return to the Tutorial Hub and "
@@ -586,20 +652,20 @@ def build_tutorial_1(instance):
         guide_context=(
             "Congratulate the player! They've learned the survival basics: "
             "movement, looking, inventory, equipment, flying, swimming, "
-            "light, combat, and eating. Mention |whelp <topic>|n for more "
-            "info. Tell them to head |weast|n for their graduation reward. "
-            "Mention Tutorials 2 (economics) and 3 (growth & social) are "
-            "available from the hub."
+            "light, combat, eating, and drinking. Mention |whelp <topic>|n "
+            "for more info. Tell them to head |weast|n for their graduation "
+            "reward. Mention Tutorials 2 (economics) and 3 (growth & social) "
+            "are available from the hub."
         ),
     )
-    _connect_bidirectional_exit(rooms["pantry"], rooms["complete"], "east")
+    _connect_bidirectional_exit(rooms["wellspring"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
     # ================================================================== #
     #  Exit from Tutorial Complete back to Hub — special handling
     # ================================================================== #
 
-    # The east exit from Room 9 goes to the hub and triggers completion.
+    # The east exit from Room 10 goes to the hub and triggers completion.
     # This is handled by the TutorialCompletionExit.
     hub = instance.hub_room
     if hub:
