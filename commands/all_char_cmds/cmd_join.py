@@ -13,6 +13,8 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
 from enums.condition import Condition
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see, p_in_combat, p_same_height
 
 
 class CmdJoin(FCMCommandMixin, Command):
@@ -38,17 +40,32 @@ class CmdJoin(FCMCommandMixin, Command):
             caller.msg("Join who? Usage: join <ally>")
             return
 
-        ally = caller.search(self.args.strip())
+        # Darkness — can't see who to join
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        ally, _ = resolve_target(
+            caller, self.args.strip(),
+            "actors_in_combat_then_not_in_combat",
+            extra_predicates=(p_can_see,),
+        )
         if not ally:
+            caller.msg(f"You don't see '{self.args.strip()}' here.")
             return
 
         if ally == caller:
             caller.msg("You can't join your own fight.")
             return
 
+        # Height check — must be at same height to join melee
+        if not p_same_height(caller)(ally, caller):
+            caller.msg(f"{ally.key} is out of reach.")
+            return
+
         # Ally must be in combat
-        ally_handler = ally.scripts.get("combat_handler")
-        if not ally_handler:
+        if not p_in_combat(ally, caller):
             caller.msg(f"{ally.key} is not in combat.")
             return
 

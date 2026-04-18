@@ -889,6 +889,54 @@ def resolve_target(caller, target_str, target_type, aoe=None,
         return target, []
 
 
+    # ── actors_in_combat_then_not_in_combat ─────────────────────────
+    #
+    # Composite: actors_in_combat first, actors_not_in_combat fallback.
+    #
+    # Step 1: find a living actor in combat matching the name.
+    # Step 2: if not found, find a living idle actor matching the name.
+    # Both steps pass extra_predicates through.
+    #
+    # Returns the actor regardless of combat state. The command
+    # checks p_in_combat at command layer to decide behaviour
+    # (join fight vs snark about not fighting).
+    #
+    # Consumer: cmd_join (join an ally's fight).
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "actors_in_combat_then_not_in_combat":
+        if not caller.location:
+            return None, []
+
+        # Step 1 — actors_in_combat
+        preds = [p_living, p_in_combat] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if candidates:
+            target = caller.search(
+                target_str, candidates=candidates, quiet=True,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
+            if target is not None:
+                return target, []
+
+        # Step 2 — actors_not_in_combat
+        def _not_in_combat(obj, caller):
+            return not p_in_combat(obj, caller)
+
+        preds = [p_living, _not_in_combat] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if candidates:
+            target = caller.search(
+                target_str, candidates=candidates, quiet=True,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
+            if target is not None:
+                return target, []
+
+        return None, []
+
+
     # ============ ACTOR / ITEM DEMARCATION =============
 
     # ── items_inventory ─────────────────────────────────────────────
