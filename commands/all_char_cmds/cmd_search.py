@@ -48,6 +48,11 @@ class CmdSearch(FCMCommandMixin, Command):
             caller.msg("You have nowhere to search.")
             return
 
+        # Darkness — can't search what you can't see
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # Cooldown after failed searches — same message to avoid leaking info
         cooldown_until = getattr(caller.ndb, "search_cooldown_until", 0) or 0
         if time.time() < cooldown_until:

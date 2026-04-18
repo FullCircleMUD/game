@@ -24,6 +24,7 @@ class TestCmdSearch(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
 
     def _make_hidden_fixture(self, find_dc=10):
