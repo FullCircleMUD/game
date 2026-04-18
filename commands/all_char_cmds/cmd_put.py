@@ -22,7 +22,10 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
-from utils.targeting.helpers import resolve_container, resolve_item_in_source
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import (
+    p_can_see, p_is_container, p_is_open, p_is_openable, p_same_height,
+)
 from utils.weight_check import get_gold_weight, get_resource_weight
 
 GOLD = settings.GOLD_DISPLAY
@@ -55,27 +58,30 @@ class CmdPut(FCMCommandMixin, Command):
             caller.msg("Put what where?")
             return
 
+        # Darkness — can't identify items or containers without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # ---------------------------------------------------------- #
         #  Split on " in " to separate item spec from container name
         # ---------------------------------------------------------- #
         lower = self.args.lower()
         idx = lower.rfind(" in ")
-        if idx != -1:
-            item_part = self.args[:idx].strip()
-            container_name = self.args[idx + 4:].strip()
-            if item_part and container_name:
-                container = self._find_container(caller, container_name)
-                if not container:
-                    return
-            else:
-                caller.msg("Usage: put <item> [in] <container>")
-                return
-        else:
-            # Fallback: try last word as container name
-            container, item_part = self._try_split_container(caller)
-            if not container:
-                caller.msg("Usage: put <item> [in] <container>")
-                return
+        if idx == -1:
+            caller.msg("Usage: put <item> in <container>")
+            return
+
+        item_part = self.args[:idx].strip()
+        container_name = self.args[idx + 4:].strip()
+        if not item_part or not container_name:
+            caller.msg("Usage: put <item> in <container>")
+            return
+
+        container = self._find_container(caller, container_name)
+        if not container:
+            return
 
         # ---------------------------------------------------------- #
         #  Parse the item spec
@@ -103,34 +109,6 @@ class CmdPut(FCMCommandMixin, Command):
             self._put_object(caller, container, parsed.search_term)
 
     # ============================================================== #
-    #  Try last word as container (no-preposition fallback)
-    # ============================================================== #
-
-    def _try_split_container(self, caller):
-        """
-        Try the last word of args as a container name.
-
-        Silent fallback probe — returns (container, item_part) on
-        success or (None, None) on any failure. No error messages
-        are emitted; the main func owns the "Usage" error on failure.
-
-        Returns (container, item_part) or (None, None).
-        """
-        parts = self.args.rsplit(None, 1)
-        if len(parts) < 2:
-            return None, None
-        item_part, container_word = parts
-        container = resolve_container(caller, container_word)
-        if container is None:
-            return None, None
-        # Command-layer state check: a closed container here should
-        # behave like "no container found" so the caller falls through
-        # to the usage error. Silent — no message emitted.
-        if hasattr(container, "is_open") and not container.is_open:
-            return None, None
-        return container, item_part.strip()
-
-    # ============================================================== #
     #  Find Container
     # ============================================================== #
 
@@ -139,33 +117,23 @@ class CmdPut(FCMCommandMixin, Command):
         Search for a container in caller's inventory and room.
         Returns the container or None (with error message).
         """
-        # resolve_container handles identification — finds a container
-        # by name in inventory first, then room. The helper does NOT
-        # check open/closed state; that's a command-layer policy
-        # decision. For the `put in <container>` flow we need the
-        # container to be open, so the state check stays here.
-        container = resolve_container(caller, name)
-        if container is None:
-            # No container matched. Disambiguate the error by checking
-            # if there's any non-container with that name, so we can
-            # emit "X is not a container" instead of generic "not found".
-            fallback = (
-                resolve_item_in_source(caller, caller, name, quiet=True)
-                or resolve_item_in_source(caller, caller.location, name, quiet=True)
-            )
-            if isinstance(fallback, list):
-                fallback = fallback[0] if fallback else None
-            if fallback is not None:
-                caller.msg(f"{fallback.key} is not a container.")
-            else:
-                caller.msg(f"You don't see '{name}' here.")
+        container, _ = resolve_target(
+            caller, name, "items_inventory_then_room_nonexit",
+            extra_predicates=(p_can_see,),
+        )
+        if not container:
+            caller.msg(f"You don't see '{name}' here.")
             return None
-
-        # Container found — now the command-layer state check.
-        if hasattr(container, "is_open") and not container.is_open:
+        # Height check — room containers must be at same height
+        if container.location != caller and not p_same_height(caller)(container, caller):
+            caller.msg(f"{container.key} is out of reach.")
+            return None
+        if not p_is_container(container, caller):
+            caller.msg(f"{container.key} is not a container.")
+            return None
+        if p_is_openable(container, caller) and not p_is_open(container, caller):
             caller.msg(f"{container.key} is closed.")
             return None
-
         return container
 
     # ============================================================== #
@@ -186,20 +154,13 @@ class CmdPut(FCMCommandMixin, Command):
 
     def _put_object(self, caller, container, search_term):
         """Put an NFT by name into container."""
-        # resolve_item_in_source filters source.contents via the base
-        # targeting predicates (not-actor, not-exit, visible). For
-        # inventory lookups those are effectively no-ops but the
-        # shared code path keeps filter semantics consistent with
-        # every other item lookup in the MUD. nofound_string fires
-        # uniformly whether inventory is empty or the match just
-        # fails.
-        obj = resolve_item_in_source(
-            caller, caller, search_term,
-            nofound_string=f"You aren't carrying {search_term}.",
+        obj, _ = resolve_target(
+            caller, search_term, "items_inventory",
+            extra_predicates=(p_can_see,),
         )
         if not obj:
+            caller.msg(f"You aren't carrying '{search_term}'.")
             return
-        obj = utils.make_iter(obj)[0]
         self._do_put_nft(caller, container, obj)
 
     # ============================================================== #
