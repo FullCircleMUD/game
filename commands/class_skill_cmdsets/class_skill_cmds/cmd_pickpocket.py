@@ -46,7 +46,7 @@ class CmdPickpocket(CmdSkillBase):
     """
 
     key = "pickpocket"
-    aliases = ["pp"]
+    aliases = []
     skill = skills.SUBTERFUGE.value
     help_category = "Stealth"
 

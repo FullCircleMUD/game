@@ -28,7 +28,7 @@ class CmdRecalc(Command):
     """
 
     key = "recalc"
-    aliases = ["recalculate"]
+    aliases = []
     locks = "cmd:perm(Admin)"
     help_category = "Admin"
 

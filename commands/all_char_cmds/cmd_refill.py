@@ -26,7 +26,7 @@ class CmdRefill(FCMCommandMixin, Command):
     """
 
     key = "refill"
-    aliases = ["refill"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Items"
 

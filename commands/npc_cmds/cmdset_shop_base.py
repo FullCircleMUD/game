@@ -57,7 +57,7 @@ class CmdShopList(FCMCommandMixin, Command):
     """
 
     key = "list"
-    aliases = ["browse"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Shopping"
 

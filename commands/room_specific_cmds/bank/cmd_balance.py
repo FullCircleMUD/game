@@ -78,7 +78,7 @@ class CmdBalance(FCMCommandMixin, Command):
     """
 
     key = "balance"
-    aliases = ["bal"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Bank"
 

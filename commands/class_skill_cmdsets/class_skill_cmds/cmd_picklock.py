@@ -16,7 +16,7 @@ from .cmd_skill_base import CmdSkillBase
 
 class CmdPicklock(CmdSkillBase):
     key = "picklock"
-    aliases = ["pl"]
+    aliases = []
     skill = skills.SUBTERFUGE.value
     help_category = "Stealth"
 

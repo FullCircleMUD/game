@@ -21,7 +21,7 @@ _ROOM_KEYWORDS = {"floor", "ground", "plate", "room", "pressure"}
 
 class CmdDisarmTrap(CmdSkillBase):
     key = "disarm"
-    aliases = ["dis"]
+    aliases = []
     skill = skills.SUBTERFUGE.value
     help_category = "Stealth"
 

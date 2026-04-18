@@ -16,7 +16,7 @@ class CmdShapeshift(CmdSkillBase):
       GM = legendary forms (dragon?)
     """
     key = "shapeshift"
-    aliases = ["ss"]
+    aliases = []
     skill = skills.SHAPE_SHIFTING.value
     help_category = "Nature"
 

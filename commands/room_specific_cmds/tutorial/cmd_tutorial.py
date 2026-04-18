@@ -23,7 +23,7 @@ class CmdTutorial(FCMCommandMixin, Command):
     """
 
     key = "tutorial"
-    aliases = ["tut"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Tutorial"
     arg_regex = r"\s|$"

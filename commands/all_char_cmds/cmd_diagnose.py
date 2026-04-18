@@ -2,6 +2,8 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.health_desc import health_description as _health_description
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdDiagnose(FCMCommandMixin, Command):
@@ -16,7 +18,7 @@ class CmdDiagnose(FCMCommandMixin, Command):
     """
 
     key = "diagnose"
-    aliases = ["diag"]
+    aliases = []
     help_category = "General"
     locks = "cmd:all()"
     allow_while_sleeping = True
@@ -27,9 +29,18 @@ class CmdDiagnose(FCMCommandMixin, Command):
         if not self.args or not self.args.strip():
             target = caller
         else:
-            target = caller.search(self.args.strip())
-            if not target:
+            # Darkness — can't assess what you can't see
+            room = caller.location
+            if room and hasattr(room, "is_dark") and room.is_dark(caller):
+                caller.msg("It's too dark to see anything.")
                 return
+
+            target, _ = resolve_target(
+                caller, self.args.strip(), "actor_friendly",
+                extra_predicates=(p_can_see,),
+            )
+            if not target:
+                return  # actor resolver already messaged
 
         if not hasattr(target, "hp"):
             caller.msg("You can't diagnose that.")

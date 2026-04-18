@@ -73,7 +73,7 @@ class CmdConsider(FCMCommandMixin, Command):
     """
 
     key = "consider"
-    aliases = ["con"]
+    aliases = []
     help_category = "Combat"
     locks = "cmd:all()"
     allow_while_sleeping = True

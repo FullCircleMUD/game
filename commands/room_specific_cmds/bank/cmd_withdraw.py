@@ -48,7 +48,7 @@ class CmdWithdraw(FCMCommandMixin, Command):
     """
 
     key = "withdraw"
-    aliases = ["with"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Bank"
 

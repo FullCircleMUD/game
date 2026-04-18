@@ -48,7 +48,7 @@ class CmdFlee(FCMCommandMixin, Command):
     """
 
     key = "flee"
-    aliases = ["run", "escape"]
+    aliases = []
     help_category = "Combat"
 
     def func(self):

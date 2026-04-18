@@ -56,7 +56,7 @@ class CmdStab(CmdSkillBase):
     """
 
     key = "stab"
-    aliases = ["bs"]
+    aliases = []
     skill = skills.STAB.value
     help_category = "Combat"
 

@@ -495,7 +495,7 @@ class CmdTradeStatus(CmdTradeBase):
     """
 
     key = "status"
-    aliases = ["offers", "deal"]
+    aliases = []
 
     def func(self):
         if not self._guard():
@@ -532,7 +532,7 @@ class CmdEndTrade(CmdTradeBase):
     """
 
     key = "end trade"
-    aliases = ["finish trade", "cancel trade"]
+    aliases = []
 
     def func(self):
         if not self._guard():

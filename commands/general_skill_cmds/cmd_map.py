@@ -32,7 +32,7 @@ class CmdMap(FCMCommandMixin, Command):
     """
 
     key = "map"
-    aliases = ["maps"]
+    aliases = []
     help_category = "Exploration"
 
     def func(self):

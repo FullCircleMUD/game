@@ -24,7 +24,7 @@ class CmdExits(FCMCommandMixin, Command):
     """
 
     key = "exits"
-    aliases = ["ex"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "General"
     allow_while_sleeping = True

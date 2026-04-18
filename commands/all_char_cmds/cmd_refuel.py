@@ -38,7 +38,7 @@ class CmdRefuel(FCMCommandMixin, Command):
     """
 
     key = "refuel"
-    aliases = ["refill"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Items"
 

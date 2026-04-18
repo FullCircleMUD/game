@@ -72,7 +72,7 @@ class CmdHide(FCMCommandMixin, Command):
     """
 
     key = "hide"
-    aliases = ["hi"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Stealth"
 

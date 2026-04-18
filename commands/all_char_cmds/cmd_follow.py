@@ -180,7 +180,7 @@ class CmdDisband(FCMCommandMixin, Command):
     """
 
     key = "disband"
-    aliases = ["dis"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Group"
 

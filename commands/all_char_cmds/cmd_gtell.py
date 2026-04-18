@@ -27,7 +27,7 @@ class CmdGtell(FCMCommandMixin, Command):
     """
 
     key = "gtell"
-    aliases = ["gt"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Communication"
     allow_while_sleeping = True

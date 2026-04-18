@@ -34,7 +34,7 @@ class CmdIdentify(CmdSkillBase):
     """
 
     key = "identify"
-    aliases = ["id"]
+    aliases = []
     skill = skills.LORE.value
     help_category = "Performance"
     allow_while_sleeping = True

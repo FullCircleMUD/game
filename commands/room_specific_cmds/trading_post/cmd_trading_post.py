@@ -38,7 +38,7 @@ class CmdBrowse(FCMCommandMixin, Command):
     """
 
     key = "browse"
-    aliases = ["listings"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Trading"
 

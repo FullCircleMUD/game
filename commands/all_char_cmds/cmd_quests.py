@@ -24,7 +24,7 @@ class CmdQuests(FCMCommandMixin, Command):
     """
 
     key = "quests"
-    aliases = ["quest log", "questlog"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Character"
     allow_while_sleeping = True

@@ -16,7 +16,7 @@ class CmdSwim(FCMCommandMixin, Command):
     """
 
     key = "swim"
-    aliases = ["sw"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Character"
 

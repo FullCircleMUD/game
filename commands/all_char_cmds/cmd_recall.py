@@ -37,7 +37,7 @@ class CmdRecall(FCMCommandMixin, Command):
     """
 
     key = "recall"
-    aliases = ["return"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "General"
 

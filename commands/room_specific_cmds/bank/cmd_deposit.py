@@ -45,7 +45,7 @@ class CmdDeposit(FCMCommandMixin, Command):
     """
 
     key = "deposit"
-    aliases = ["dep"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Bank"
 
