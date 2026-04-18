@@ -765,38 +765,8 @@ def build_hundred_acre_wood():
 
     from evennia.utils.create import create_object as spawn_mob
 
-    _jagular_desc = (
-        "A large cat-like creature with wild eyes and sharp claws. "
-        "It moves with a predatory grace, stalking through the wood "
-        "as if everything in it belongs on its menu."
-    )
-    _woozle_desc = (
-        "A strange, shadowy creature with beady eyes and a long "
-        "snout. It tries very hard to look fierce and scary, with "
-        "mixed results."
-    )
-
-    # Jagulars — 6 total: 4 gold, 1 recipe, 1 scroll
-    jagular_types = [
-        ("typeclasses.actors.mobs.jagular.Jagular", 4),
-        ("typeclasses.actors.mobs.jagular.JagularRecipeLoad", 1),
-        ("typeclasses.actors.mobs.jagular.JagularScrollLoad", 1),
-    ]
-    for typeclass, count in jagular_types:
-        for _ in range(count):
-            mob = spawn_mob(typeclass, key="a Jagular", location=rooms["r6c5"])
-            mob.db.desc = _jagular_desc
-
-    # Woozles — 6 total: 4 gold, 1 recipe, 1 scroll
-    woozle_types = [
-        ("typeclasses.actors.mobs.woozle.Woozle", 4),
-        ("typeclasses.actors.mobs.woozle.WoozleRecipeLoad", 1),
-        ("typeclasses.actors.mobs.woozle.WoozleScrollLoad", 1),
-    ]
-    for typeclass, count in woozle_types:
-        for _ in range(count):
-            mob = spawn_mob(typeclass, key="a Woozle", location=rooms["r1c2"])
-            mob.db.desc = _woozle_desc
+    # Jagulars and Woozles are managed by the zone spawn script
+    # (see world/spawns/book_hundred_acre_wood.json)
 
     # Bee Swarms — 3 at height 1 in the Bee Tree (r5c4)
     for _ in range(3):
@@ -890,7 +860,8 @@ def build_hundred_acre_wood():
         gold=15,
     )
 
-    print("  Spawned 6 Jagulars, 6 Woozles, 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")
+    print("  Spawned 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")
+    print("  Jagulars and Woozles managed by zone spawn script.")
 
     # ==================================================================
     #  LIBRARY BOOK

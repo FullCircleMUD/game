@@ -7,5 +7,59 @@
         "max_per_room": 1,
         "respawn_seconds": 43200,
         "desc": "A stocky wild mule with a dusty brown coat and long ears. It watches you warily but doesn't seem inclined to run."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.jagular.Jagular",
+        "key": "a Jagular",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 6,
+        "max_per_room": 1,
+        "respawn_seconds": 300,
+        "desc": "A large cat-like creature with wild eyes and sharp claws. It moves with a predatory grace, stalking through the wood as if everything in it belongs on its menu."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.jagular.JagularRecipeLoad",
+        "key": "a Jagular",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 300,
+        "desc": "A large cat-like creature with wild eyes and sharp claws. It moves with a predatory grace, stalking through the wood as if everything in it belongs on its menu."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.jagular.JagularScrollLoad",
+        "key": "a Jagular",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 300,
+        "desc": "A large cat-like creature with wild eyes and sharp claws. It moves with a predatory grace, stalking through the wood as if everything in it belongs on its menu."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.woozle.Woozle",
+        "key": "a Woozle",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 6,
+        "max_per_room": 1,
+        "respawn_seconds": 300,
+        "desc": "A strange, shadowy creature with beady eyes and a long snout. It tries very hard to look fierce and scary, with mixed results."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.woozle.WoozleRecipeLoad",
+        "key": "a Woozle",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 300,
+        "desc": "A strange, shadowy creature with beady eyes and a long snout. It tries very hard to look fierce and scary, with mixed results."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.woozle.WoozleScrollLoad",
+        "key": "a Woozle",
+        "area_tag": "hundred_acre_wood_main",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 300,
+        "desc": "A strange, shadowy creature with beady eyes and a long snout. It tries very hard to look fierce and scary, with mixed results."
     }
 ]
