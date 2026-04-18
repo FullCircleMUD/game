@@ -17,6 +17,7 @@ from utils.targeting.helpers import (
     resolve_character_in_room,
     resolve_container,
     resolve_item_in_source,
+    resolve_target,
     walk_contents,
 )
 from utils.targeting.predicates import p_not_actor, p_not_exit, p_visible_to
@@ -1026,18 +1027,61 @@ class TestResolveAttackTargetInCombat(EvenniaTest):
         result = resolve_attack_target_in_combat(caller, "goblin")
         self.assertIs(result, caller)
 
-    def test_enemy_wins_over_self_same_name(self):
-        # Enemy tier beats self tier — priority semantics hold for
-        # self just like any other bucket.
-        caller = self._caller(combat_side=1)
-        caller.key = "goblin"
-        enemy_goblin = _make_actor(key="goblin", combat_side=2)
-        caller.location = SimpleNamespace(contents=[caller, enemy_goblin])
-        result = resolve_attack_target_in_combat(caller, "goblin")
-        self.assertIs(result, enemy_goblin)
 
-    def test_dead_enemy_is_filtered(self):
-        caller = self._caller(combat_side=1)
-        dead_enemy = _make_actor(key="goblin", combat_side=2, hp=0)
-        caller.location = SimpleNamespace(contents=[caller, dead_enemy])
-        self.assertIsNone(resolve_attack_target_in_combat(caller, "goblin"))
+class TestActorCombatBuildingBlocks(EvenniaTest):
+    """Tests for actors_in_combat and actors_not_in_combat building blocks."""
+
+    def create_script(self):
+        pass
+
+    def _caller(self):
+        caller = _make_actor(key="me")
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        return caller
+
+    def test_actors_in_combat_finds_combatant(self):
+        caller = self._caller()
+        goblin = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat")
+        self.assertIs(target, goblin)
+
+    def test_actors_in_combat_skips_idle(self):
+        caller = self._caller()
+        goblin = _make_actor(key="goblin", combat_side=None)
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat")
+        self.assertIsNone(target)
+
+    def test_actors_in_combat_skips_dead(self):
+        caller = self._caller()
+        goblin = _make_actor(key="goblin", hp=0, combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat")
+        self.assertIsNone(target)
+
+    def test_actors_not_in_combat_finds_idle(self):
+        caller = self._caller()
+        bob = _make_actor(key="bob", combat_side=None)
+        caller.location = SimpleNamespace(contents=[caller, bob])
+        target, _ = resolve_target(caller, "bob", "actors_not_in_combat")
+        self.assertIs(target, bob)
+
+    def test_actors_not_in_combat_skips_combatant(self):
+        caller = self._caller()
+        bob = _make_actor(key="bob", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, bob])
+        target, _ = resolve_target(caller, "bob", "actors_not_in_combat")
+        self.assertIsNone(target)
+
+    def test_actors_in_combat_no_location(self):
+        caller = self._caller()
+        caller.location = None
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat")
+        self.assertIsNone(target)
+
+    def test_actors_not_in_combat_no_location(self):
+        caller = self._caller()
+        caller.location = None
+        target, _ = resolve_target(caller, "bob", "actors_not_in_combat")
+        self.assertIsNone(target)

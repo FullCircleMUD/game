@@ -7,6 +7,7 @@ design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
+    p_in_combat,
     p_is_character,
     p_is_container,
     p_living,
@@ -824,6 +825,68 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             _resolve_aoe_secondaries(caller, target, aoe) if aoe else []
         )
         return target, secondaries
+
+
+    # ── actors_in_combat ──────────────────────────────────────────────
+    #
+    # Searches: caller.location.contents — living actors currently
+    # in combat.
+    #
+    # Returns: a single living, in-combat actor matching target_str,
+    # or None.
+    #
+    # Structural filtering: p_living, p_in_combat. Finds any actor
+    # (PCs, NPCs, mobs) that is alive and has a combat_handler
+    # attached. No priority bucketing — just name match.
+    #
+    # Visibility, height etc. are the caller's responsibility via
+    # extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "actors_in_combat":
+        if not caller.location:
+            return None, []
+        preds = [p_living, p_in_combat] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+    # ── actors_not_in_combat ─────────────────────────────────────────
+    #
+    # Searches: caller.location.contents — living actors NOT currently
+    # in combat.
+    #
+    # Returns: a single living, non-combat actor matching target_str,
+    # or None.
+    #
+    # Structural filtering: p_living + inverse of p_in_combat. Finds
+    # any actor (PCs, NPCs, mobs) that is alive and idle.
+    #
+    # Visibility, height etc. are the caller's responsibility via
+    # extra_predicates.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "actors_not_in_combat":
+        if not caller.location:
+            return None, []
+
+        def _not_in_combat(obj, caller):
+            return not p_in_combat(obj, caller)
+
+        preds = [p_living, _not_in_combat] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if not candidates:
+            return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
 
 
     # ============ ACTOR / ITEM DEMARCATION =============
