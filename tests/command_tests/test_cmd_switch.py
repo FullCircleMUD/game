@@ -23,6 +23,7 @@ class TestCmdSwitch(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
         self.lever = create.create_object(
             "typeclasses.world_objects.switch_fixture.SwitchFixture",
@@ -57,11 +58,24 @@ class TestCmdSwitch(EvenniaCommandTest):
 
     def test_non_switch_target(self):
         """pull on a non-switch object should error."""
-        result = self.call(CmdSwitch(), "Char")
+        create.create_object(
+            "typeclasses.world_objects.base_fixture.WorldFixture",
+            key="a stone pedestal",
+            location=self.room1,
+            nohome=True,
+        )
+        result = self.call(CmdSwitch(), "pedestal")
         self.assertIn("can't do that", result)
 
     def test_nothing_switchable(self):
         """pull in room with no switches should error."""
         self.lever.delete()
         result = self.call(CmdSwitch(), "lever")
-        self.assertIn("nothing here", result)
+        self.assertIn("don't see", result)
+
+    def test_darkness_blocks(self):
+        """pull in darkness should error."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        result = self.call(CmdSwitch(), "lever")
+        self.assertIn("too dark", result)

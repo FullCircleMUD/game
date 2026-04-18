@@ -15,6 +15,8 @@ it (unless can_deactivate is False).
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdSwitch(FCMCommandMixin, Command):
@@ -51,26 +53,18 @@ class CmdSwitch(FCMCommandMixin, Command):
         if not room:
             return
 
-        # Find switchable fixtures in the room
-        switches = [
-            obj for obj in room.contents
-            if hasattr(obj, "is_activated")
-            and hasattr(obj, "activate")
-        ]
-
-        if not switches:
-            caller.msg("There's nothing here to pull, push, or turn.")
+        # Darkness — can't interact with what you can't see
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        # Search for the target
-        target = caller.search(
-            self.target_name, location=room, quiet=True,
+        target, _ = resolve_target(
+            caller, self.target_name, "items_room_nonexit",
+            extra_predicates=(p_can_see,),
         )
         if not target:
             caller.msg(f"You don't see '{self.target_name}' here.")
             return
-        if isinstance(target, list):
-            target = target[0]
 
         if not hasattr(target, "activate"):
             caller.msg(f"You can't do that with {target.key}.")
