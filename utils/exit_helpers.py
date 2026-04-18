@@ -107,7 +107,7 @@ def connect_bidirectional_door_exit(
     lock_dc=15,
     key_tag=None,
     relock_seconds=0,
-    max_size=Size.GARGANTUAN.value,
+    max_size=Size.MEDIUM.value,
 ):
     """
     Create door exits in BOTH directions between two rooms, linked as a pair.
@@ -197,7 +197,7 @@ def connect_bidirectional_trapped_door_exit(
     trap_effect_duration=None,
     trap_effect_duration_type=None,
     trap_side="ab",
-    max_size=Size.GARGANTUAN.value,
+    max_size=Size.MEDIUM.value,
 ):
     """
     Create door exits in BOTH directions with a trap on ONE side.
