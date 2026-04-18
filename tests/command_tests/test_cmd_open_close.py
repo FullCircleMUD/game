@@ -23,6 +23,7 @@ class OpenCloseTestBase(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
 
     def _make_chest(self, is_open=False, is_locked=False):

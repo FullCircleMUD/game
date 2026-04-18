@@ -708,7 +708,7 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
 
 
 def resolve_target(caller, target_str, target_type, aoe=None,
-                    extra_predicates=(), stacked=0):
+                    extra_predicates=(), stacked=0, direction=None):
     """Resolve a spell target by ``target_type``.
 
     Single entry point for all spell target resolution, used by
@@ -1068,6 +1068,52 @@ def resolve_target(caller, target_str, target_type, aoe=None,
             ]
         if not candidates:
             return None, []
+        target = caller.search(
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
+        )
+        if isinstance(target, list):
+            target = target[0] if target else None
+        return target, []
+
+    # ── items_room_exit_by_direction ────────────────────────────────
+    #
+    # Searches: caller.location exits filtered by compass direction.
+    #
+    # Returns: a single exit matching both direction AND target_str
+    # (if target_str is non-empty), or direction alone (if target_str
+    # is empty — e.g. "open south").
+    #
+    # Requires `direction` kwarg on resolve_target — the canonical
+    # direction string (e.g. "south", "northeast"). The parser
+    # (utils/direction_parser.py) extracts this from player input.
+    #
+    # Structural filtering: exits only (via room.exits), direction
+    # match. extra_predicates applied for visibility etc.
+    #
+    # Used when player qualifies with a direction: "open door south"
+    # or "open south". When no direction is parsed, commands should
+    # use items_room_all_then_inventory instead — directional
+    # qualification means the player is specifically targeting an
+    # exit, so room objects and inventory are not searched.
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_exit_by_direction":
+        if not caller.location or not direction:
+            return None, []
+        candidates = [
+            ex for ex in caller.location.exits
+            if getattr(ex, "direction", None) == direction
+        ]
+        if extra_predicates and candidates:
+            candidates = [
+                obj for obj in candidates
+                if all(p(obj, caller) for p in extra_predicates)
+            ]
+        if not candidates:
+            return None, []
+        # If target_str is empty, direction alone matched — return first
+        if not target_str.strip():
+            return candidates[0], []
+        # Name match against direction-filtered candidates
         target = caller.search(
             target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
