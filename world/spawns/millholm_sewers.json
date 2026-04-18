@@ -18,6 +18,7 @@
             "level": 1,
             "damage_dice": "1d3",
             "attack_message": "bites",
+            "damage_type": "piercing",
             "attack_delay_min": 2,
             "attack_delay_max": 5,
             "is_aggressive_to_players": true,

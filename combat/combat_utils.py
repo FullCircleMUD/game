@@ -404,6 +404,9 @@ def execute_attack(attacker, target, _is_riposte=False,
     dmg_type = DamageType.BLUDGEONING
     if weapon:
         dmg_type = weapon.damage_type
+    elif hasattr(attacker, "damage_type"):
+        raw = attacker.damage_type
+        dmg_type = DamageType(raw) if isinstance(raw, str) else raw
 
     hit = (total_hit >= total_ac) or is_crit
     damage_dealt = 0
@@ -549,16 +552,20 @@ def execute_attack(attacker, target, _is_riposte=False,
                     exclude=[attacker, target],
                 )
             else:
-                # Animal mob natural attack — use attack_message as-is
-                atk_msg = getattr(attacker, "attack_message", "attacks")
+                # Natural attack — use damage descriptor system
+                second_verb, third_verb = get_descriptor(
+                    dmg_type, damage_dealt,
+                    getattr(target, "effective_hp_max", 1),
+                )
+                punct = "!" if second_verb[0].isupper() else "."
                 attacker.msg(
-                    f"|r{crit_prefix}You {atk_msg} {target_key}!|n"
+                    f"|r{crit_prefix}You {second_verb} {target_key}{punct}|n"
                 )
                 target.msg(
-                    f"|r{crit_prefix}{attacker.key} {atk_msg} you!|n"
+                    f"|r{crit_prefix}{attacker.key} {third_verb} you{punct}|n"
                 )
                 attacker.location.msg_contents(
-                    f"|r{crit_prefix}{attacker.key} {atk_msg} {target_key}!|n",
+                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key}{punct}|n",
                     exclude=[attacker, target],
                 )
 

@@ -18,6 +18,7 @@
             "level": 1,
             "damage_dice": "1d4",
             "attack_message": "claws at",
+            "damage_type": "slashing",
             "attack_delay_min": 3,
             "attack_delay_max": 6,
             "loot_gold_max": 3,

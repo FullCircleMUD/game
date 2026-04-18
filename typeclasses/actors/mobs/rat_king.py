@@ -11,6 +11,7 @@ import random
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
+from enums.damage_type import DamageType
 from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 
@@ -38,6 +39,7 @@ class RatKing(CombatMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(1)
     damage_dice = AttributeProperty("1d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("savagely bites")
     attack_delay_min = AttributeProperty(5)
     attack_delay_max = AttributeProperty(8)

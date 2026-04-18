@@ -15,6 +15,7 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 
 
@@ -38,6 +39,7 @@ class Wolf(AggressiveMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(2)
     damage_dice = AttributeProperty("1d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("bites")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(8)

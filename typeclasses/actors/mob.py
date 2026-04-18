@@ -29,6 +29,7 @@ from evennia import TICKER_HANDLER
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
+from enums.damage_type import DamageType
 from enums.size import Size
 from typeclasses.actors.ai_handler import StateMachineAIMixin
 from typeclasses.actors.npc import BaseNPC
@@ -75,6 +76,7 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
 
     # ── Simple Combat ──
     damage_dice = AttributeProperty("1d4")
+    damage_type = AttributeProperty(DamageType.BLUDGEONING)
     attack_message = AttributeProperty("bites")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)

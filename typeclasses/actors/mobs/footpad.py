@@ -12,6 +12,7 @@ quest giver. Fights back when attacked with EXPERT stab + dodge.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from evennia.utils import create
 
@@ -32,6 +33,7 @@ class Footpad(StabAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressiv
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)  # dagger fallback
     attack_message = AttributeProperty("stabs at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
@@ -91,6 +93,7 @@ class FootpadBoss(
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d4")
+    damage_type = AttributeProperty(DamageType.SLASHING)  # dagger fallback
     attack_message = AttributeProperty("slashes at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)

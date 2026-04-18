@@ -7,6 +7,7 @@ just atmospheric. Weak — not intended as a real fight.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 from typeclasses.mixins.flying_mixin import FlyingMixin
@@ -39,6 +40,7 @@ class OwlBird(FlyingMixin, CombatMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("1d2")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("pecks at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)

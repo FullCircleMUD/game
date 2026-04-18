@@ -253,11 +253,13 @@ def _build_mob_combat(target, lines):
     """Damage dice and attacks for mobs."""
     damage_dice = getattr(target, "damage_dice", "1d2")
     attack_msg = getattr(target, "attack_message", "attacks")
+    raw_dmg_type = getattr(target, "damage_type", "bludgeoning")
+    dmg_type_str = raw_dmg_type.value if hasattr(raw_dmg_type, "value") else raw_dmg_type
     apr = getattr(target, "effective_attacks_per_round",
                   getattr(target, "attacks_per_round", 1))
     lines.append("|cCombat:|n")
     lines.append(
-        f"  Damage: {damage_dice} ({attack_msg})   Attacks/Round: {apr}"
+        f"  Damage: {damage_dice} ({attack_msg})   Type: {dmg_type_str}   Attacks/Round: {apr}"
     )
 
 
