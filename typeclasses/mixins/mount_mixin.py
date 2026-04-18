@@ -2,13 +2,14 @@
 MountMixin — composable mounting capability for pets.
 
 Compose onto any BasePet subclass that can be ridden. Tracks mounted
-state and provides mount/dismount methods. The character's at_pre_move
-and at_post_move check mounted state for room restrictions and
-movement cost reduction.
+state and provides mount/dismount methods. When mounted, movement cost
+is deducted from the mount's move pool instead of the character's.
+The mount's move attribute (inherited from BaseActor) should be
+overridden to an appropriate value for each mount type.
 
 Usage:
     class Horse(CombatCompanionMixin, MountMixin, BasePet):
-        mount_movement_bonus = AttributeProperty(3)
+        move = AttributeProperty(300)
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -19,7 +20,6 @@ class MountMixin:
 
     is_mounted = AttributeProperty(False)
     mounted_by = AttributeProperty(None)  # character key of rider
-    mount_movement_bonus = AttributeProperty(3)  # move cost divisor when mounted
 
     def mount(self, rider):
         """

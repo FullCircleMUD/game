@@ -229,9 +229,18 @@ class FCMCharacter(
         # Movement point cost — normal moves, follows, and exit traversals
         exit_obj = kwargs.get("exit_obj")
         cost = getattr(exit_obj, "traversal_movement_cost", 1) if exit_obj else 1
-        if move_type in ("move", "follow", "traverse") and self.move < cost:
-            self.msg("You are too exhausted to move.")
-            return False
+        if move_type in ("move", "follow", "traverse"):
+            mount = self.db.mounted_on
+            if mount and getattr(mount, "is_mounted", False):
+                if mount.move < cost:
+                    self.msg(
+                        f"Your {mount.key} is too exhausted to continue. "
+                        f"Dismount or let it rest (|wpet dismount|n)."
+                    )
+                    return False
+            elif self.move < cost:
+                self.msg("You are too exhausted to move.")
+                return False
         # Mounted restriction — can't enter indoor rooms while mounted on large+ pet
         mount = self.db.mounted_on
         if mount and move_type not in ("teleport", "flee") and destination:
@@ -259,19 +268,13 @@ class FCMCharacter(
         """Deduct movement and auto-move followers when this character moves."""
         super().at_post_move(source_location, move_type=move_type, **kwargs)
 
-        # Deduct movement points — reduced when mounted
+        # Deduct movement points — from mount when mounted, from self otherwise
         exit_obj = kwargs.get("exit_obj")
         cost = getattr(exit_obj, "traversal_movement_cost", 1) if exit_obj else 1
         if move_type in ("move", "follow", "traverse"):
             mount = self.db.mounted_on
-            if mount and hasattr(mount, "mount_movement_bonus"):
-                bonus = mount.mount_movement_bonus or 1
-                # Only deduct every Nth move (e.g. bonus=3 means 1 in 3 moves costs a point)
-                mount_steps = getattr(self.ndb, "_mount_steps", 0) + 1
-                if mount_steps >= bonus:
-                    self.move = max(0, self.move - cost)
-                    mount_steps = 0
-                self.ndb._mount_steps = mount_steps
+            if mount and getattr(mount, "is_mounted", False):
+                mount.move = max(0, mount.move - cost)
             else:
                 self.move = max(0, self.move - cost)
 

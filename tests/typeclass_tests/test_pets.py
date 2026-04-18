@@ -270,6 +270,54 @@ class TestMount(_PetTestBase):
         desc = horse.get_room_description()
         self.assertEqual(desc, "")
 
+    def test_mounted_movement_deducts_from_mount(self):
+        """Moving while mounted should deduct from mount's move, not rider's."""
+        horse = _make_horse(self.room1, self.char1)
+        horse.mount(self.char1)
+        char_move_before = self.char1.move
+        horse_move_before = horse.move
+        self.char1.move_to(
+            self.room2, quiet=True, move_type="move", exit_obj=self.exit,
+        )
+        self.assertEqual(self.char1.move, char_move_before)
+        self.assertEqual(horse.move, horse_move_before - 1)
+
+    def test_unmounted_movement_deducts_from_character(self):
+        """Moving without a mount should deduct from character's move."""
+        char_move_before = self.char1.move
+        self.char1.move_to(
+            self.room2, quiet=True, move_type="move", exit_obj=self.exit,
+        )
+        self.assertEqual(self.char1.move, char_move_before - 1)
+
+    def test_mount_exhausted_blocks_movement(self):
+        """Mount at 0 move should block movement."""
+        horse = _make_horse(self.room1, self.char1)
+        horse.mount(self.char1)
+        horse.move = 0
+        result = self.char1.at_pre_move(
+            self.room2, move_type="move", exit_obj=self.exit,
+        )
+        self.assertFalse(result)
+
+    def test_dismount_then_walk_uses_character_move(self):
+        """After dismounting, movement should deduct from character again."""
+        horse = _make_horse(self.room1, self.char1)
+        horse.mount(self.char1)
+        horse.dismount(self.char1)
+        char_move_before = self.char1.move
+        self.char1.move_to(
+            self.room2, quiet=True, move_type="move", exit_obj=self.exit,
+        )
+        self.assertEqual(self.char1.move, char_move_before - 1)
+
+    def test_horse_default_move(self):
+        """Horse should have 300 base movement."""
+        horse = _make_horse(self.room1, self.char1)
+        self.assertEqual(horse.move, 300)
+        self.assertEqual(horse.base_move_max, 300)
+        self.assertEqual(horse.move_max, 300)
+
 
 # ── NFTPetMirrorMixin Guards ─────────────────────────────────────────
 

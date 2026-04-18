@@ -2,7 +2,7 @@
 Horse — large-sized mount.
 
 First mount POC. Large-sized (can't enter indoor rooms while mounted),
-fast movement bonus, can kick in combat.
+300 move stamina pool, can kick in combat.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -19,7 +19,10 @@ class Horse(CombatCompanionMixin, MountMixin, BasePet):
     pet_type = AttributeProperty("horse")
     base_size = AttributeProperty(Size.LARGE.value)
     size = AttributeProperty(Size.LARGE.value)
-    mount_movement_bonus = AttributeProperty(3)  # 3x move efficiency
+    # ── Movement ──
+    move = AttributeProperty(300)
+    base_move_max = AttributeProperty(300)
+    move_max = AttributeProperty(300)
 
     # ── Combat ──
     damage_dice = AttributeProperty("1d4")
