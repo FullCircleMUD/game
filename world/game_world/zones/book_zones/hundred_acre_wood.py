@@ -190,20 +190,18 @@ def build_hundred_acre_wood():
              "birds chirping and little animals scurrying. There is a "
              "small house up in a tree here and there are lots of bird "
              "droppings on the ground."),
-            ("vert_descriptions", {
-                0: (
-                    "You are standing inside the Hundred Acre Wood. You "
-                    "can hear birds chirping and little animals scurrying. "
-                    "There is a small house up in a tree here and there "
-                    "are lots of bird droppings on the ground."
-                ),
-                1: (
-                    "You are standing inside a tree house belonging to "
-                    "Owl. Pictures of Owls relations cover the walls, but "
-                    "don't ask him about any of them unless you want to "
-                    "listen to a very long story."
-                ),
-            }),
+        ],
+    )
+
+    rooms["owls_house"] = create_object(
+        RoomBase,
+        key="Owl's House",
+        attributes=[
+            ("desc",
+             "You are standing inside a tree house belonging to "
+             "Owl. Pictures of Owl's relations cover the walls, but "
+             "don't ask him about any of them unless you want to "
+             "listen to a very long story."),
         ],
     )
 
@@ -579,24 +577,66 @@ def build_hundred_acre_wood():
     connect_bidirectional_exit(rooms["r1c2"], rooms["r2c2"], "north")
     connect_bidirectional_exit(rooms["r1c3"], rooms["r2c3"], "north")
     connect_bidirectional_exit(rooms["r1c4"], rooms["r2c4"], "north")
-    connect_bidirectional_exit(rooms["r1c5"], rooms["r2c5"], "north")
-    exit_count += 10
+    # r1c5 → r2c5 (ground) / owls_house (height 1) — height-aware
+    exit_ab, exit_ba = connect_bidirectional_exit(rooms["r1c5"], rooms["r2c5"], "north")
+    exit_ab.required_min_height = 0
+    exit_ab.required_max_height = 0
+    exit_ba.required_min_height = 0
+    exit_ba.required_max_height = 0
+    exit_ab_h, exit_ba_h = connect_bidirectional_exit(
+        rooms["r1c5"], rooms["owls_house"], "north",
+        desc_ab="Owl's House", desc_ba="Eeyore's Gloomy Place")
+    exit_ab_h.required_min_height = 1
+    exit_ab_h.required_max_height = 1
+    exit_ab_h.arrival_heights = {1: 0}
+    exit_ba_h.required_min_height = 0
+    exit_ba_h.required_max_height = 0
+    exit_ba_h.arrival_heights = {0: 1}
+    exit_count += 14
 
     # ── Row 2 east-west ──
     connect_bidirectional_exit(rooms["piglet_house"], rooms["r2c1"], "east")
     connect_bidirectional_exit(rooms["r2c1"], rooms["r2c2"], "east")
     connect_bidirectional_exit(rooms["r2c2"], rooms["r2c3"], "east")
     connect_bidirectional_exit(rooms["r2c3"], rooms["r2c4"], "east")
-    connect_bidirectional_exit(rooms["r2c4"], rooms["r2c5"], "east")
-    exit_count += 10
+    # r2c4 → r2c5 (ground) / owls_house (height 1) — height-aware
+    exit_ab, exit_ba = connect_bidirectional_exit(rooms["r2c4"], rooms["r2c5"], "east")
+    exit_ab.required_min_height = 0
+    exit_ab.required_max_height = 0
+    exit_ba.required_min_height = 0
+    exit_ba.required_max_height = 0
+    exit_ab_h, exit_ba_h = connect_bidirectional_exit(
+        rooms["r2c4"], rooms["owls_house"], "east",
+        desc_ab="Owl's House", desc_ba="the Hundred Acre Wood")
+    exit_ab_h.required_min_height = 1
+    exit_ab_h.required_max_height = 1
+    exit_ab_h.arrival_heights = {1: 0}
+    exit_ba_h.required_min_height = 0
+    exit_ba_h.required_max_height = 0
+    exit_ba_h.arrival_heights = {0: 1}
+    exit_count += 14
 
     # ── Row 2 → Row 3 (north-south) ──
     connect_bidirectional_exit(rooms["r2c1"], rooms["r3c1"], "north")
     connect_bidirectional_exit(rooms["r2c2"], rooms["r3c2"], "north")
     connect_bidirectional_exit(rooms["r2c3"], rooms["r3c3"], "north")
     connect_bidirectional_exit(rooms["r2c4"], rooms["r3c4"], "north")
-    connect_bidirectional_exit(rooms["r2c5"], rooms["r3c5"], "north")
-    exit_count += 10
+    # r2c5 → r3c5 (ground) / owls_house → r3c5 (height 1) — height-aware
+    exit_ab, exit_ba = connect_bidirectional_exit(rooms["r2c5"], rooms["r3c5"], "north")
+    exit_ab.required_min_height = 0
+    exit_ab.required_max_height = 0
+    exit_ba.required_min_height = 0
+    exit_ba.required_max_height = 0
+    exit_ab_h, exit_ba_h = connect_bidirectional_exit(
+        rooms["owls_house"], rooms["r3c5"], "north",
+        desc_ab="the Hundred Acre Wood", desc_ba="Owl's House")
+    exit_ab_h.required_min_height = 0
+    exit_ab_h.required_max_height = 0
+    exit_ab_h.arrival_heights = {0: 1}
+    exit_ba_h.required_min_height = 1
+    exit_ba_h.required_max_height = 1
+    exit_ba_h.arrival_heights = {1: 0}
+    exit_count += 14
 
     # ── Row 3 east-west ──
     connect_bidirectional_exit(rooms["r3c1"], rooms["r3c2"], "east")
@@ -662,6 +702,10 @@ def build_hundred_acre_wood():
     connect_bidirectional_exit(rooms["r3c2"], rooms["pooh_trap"], "down")
     exit_count += 4
 
+    # ── Up/down: Outside Owl's House ↔ Owl's House (tree) ──
+    connect_bidirectional_exit(rooms["r2c5"], rooms["owls_house"], "up")
+    exit_count += 2
+
     print(f"  Created {exit_count} exits.")
 
     # ==================================================================
@@ -677,21 +721,23 @@ def build_hundred_acre_wood():
     outdoor = [r for k, r in rooms.items() if k not in (
         "piglet_house", "pooh_house", "kanga_house",
         "rabbit_house", "christopher_house",
-        "gopher_hole", "pooh_trap",
+        "gopher_hole", "pooh_trap", "owls_house",
     )]
     for room in outdoor:
         room.set_terrain(TerrainType.FOREST.value)
         room.max_height = 1
 
+    # r2c5 is ground-level only — Owl's House is a separate room above
+    rooms["r2c5"].max_height = 0
+
     # Height visibility barriers — canopy rooms hide small creatures from below
     rooms["r5c4"].visibility_up_barrier = (1, "small")  # Bee Tree canopy
-    rooms["r2c5"].visibility_up_barrier = (1, "small")  # Owl's House tree
 
     # Indoor rooms (houses + underground)
     indoor = [
         rooms["piglet_house"], rooms["pooh_house"], rooms["kanga_house"],
         rooms["rabbit_house"], rooms["christopher_house"],
-        rooms["gopher_hole"], rooms["pooh_trap"],
+        rooms["gopher_hole"], rooms["pooh_trap"], rooms["owls_house"],
     ]
     for room in indoor:
         room.set_terrain(TerrainType.UNDERGROUND.value)
@@ -764,12 +810,12 @@ def build_hundred_acre_wood():
             "They do not appreciate visitors."
         )
 
-    # Owls — 2 at height 1 outside Owl's House (r2c5)
+    # Owls — 2 in Owl's House (treehouse above r2c5)
     for _ in range(2):
         mob = spawn_mob(
             "typeclasses.actors.mobs.owl_bird.OwlBird",
             key="an owl",
-            location=rooms["r2c5"],
+            location=rooms["owls_house"],
         )
         mob.db.desc = (
             "A plump brown owl perched on a branch, watching you with "

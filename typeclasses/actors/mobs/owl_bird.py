@@ -1,9 +1,8 @@
 """
-Owl (bird) — non-aggressive flying mob at Owl's House in the Hundred Acre Wood.
+Owl (bird) — non-aggressive flying mob in Owl's House in the Hundred Acre Wood.
 
-Spawns at height 1 (up in the tree). Invisible from ground level —
-players only see them when they fly up. Non-aggressive, just
-atmospheric. Weak — not intended as a real fight.
+Lives in the treehouse room above the forest floor. Non-aggressive,
+just atmospheric. Weak — not intended as a real fight.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -21,7 +20,7 @@ class OwlBird(FlyingMixin, CombatMob):
     room_description = AttributeProperty("perches in the branches, watching with large round eyes.")
 
     # ── Flight ──
-    preferred_height = AttributeProperty(1)
+    preferred_height = AttributeProperty(0)
 
     # ── Stats ──
     hp = AttributeProperty(15)
@@ -56,10 +55,5 @@ class OwlBird(FlyingMixin, CombatMob):
     respawn_delay = AttributeProperty(120)
 
     def ai_wander(self):
-        """Stay in the tree — owls don't wander."""
-        if (
-            self.location
-            and not self.scripts.get("combat_handler")
-            and self.room_vertical_position < self.preferred_height
-        ):
-            self.ascend(self.preferred_height - self.room_vertical_position)
+        """Stay put — owls don't wander."""
+        pass
