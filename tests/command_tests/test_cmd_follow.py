@@ -54,7 +54,7 @@ class TestCmdFollow(EvenniaCommandTest):
 
     def test_follow_self_rejected(self):
         """Can't follow yourself."""
-        result = self.call(CmdFollow(), self.char1.key)
+        result = self.call(CmdFollow(), "me")
         self.assertIn("can't follow yourself", result)
         self.assertIsNone(self.char1.following)
 

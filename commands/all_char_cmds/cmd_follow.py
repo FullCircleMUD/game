@@ -12,6 +12,8 @@ room auto-move via FCMCharacter.at_post_move().
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdFollow(FCMCommandMixin, Command):
@@ -50,23 +52,32 @@ class CmdFollow(FCMCommandMixin, Command):
                 caller.msg("You are not following anyone.")
             return
 
-        target = caller.search(self.args.strip())
-        if not target:
+        # Can't change groups mid-combat
+        if caller.scripts.get("combat_handler"):
+            caller.msg("You can't change sides mid-fight, traitor!")
             return
+
+        # Darkness — can't see who to follow
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        target, _ = resolve_target(
+            caller, self.args.strip(), "actor_hostile",
+            extra_predicates=(p_can_see,),
+        )
+        if not target:
+            return  # actor resolver already messaged
 
         # Can't follow yourself
         if target == caller:
             caller.msg("You can't follow yourself.")
             return
 
-        # Can't follow non-characters (must have follow system)
+        # Can't follow non-actors (must have follow system)
         if not hasattr(target, "following"):
-            caller.msg("You can only follow other characters.")
-            return
-
-        # Must be in the same room
-        if target.location != caller.location:
-            caller.msg("They aren't here.")
+            caller.msg(f"You can't follow {target.key}.")
             return
 
         # Resolve to the chain leader
