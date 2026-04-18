@@ -22,6 +22,8 @@ Usage:
 
 from evennia import create_object
 
+from enums.size import Size
+
 # Opposite direction mapping — also used by ExitDoor for reverse
 # direction announcements, so keep this module-level.
 OPPOSITES = {
@@ -45,7 +47,8 @@ OPPOSITES = {
 # ================================================================== #
 
 
-def connect_bidirectional_exit(room_a, room_b, direction, desc_ab=None, desc_ba=None):
+def connect_bidirectional_exit(room_a, room_b, direction, desc_ab=None, desc_ba=None,
+                               max_size=Size.GARGANTUAN.value):
     """
     Create exits in BOTH directions between two rooms (A→B and B→A).
 
@@ -55,6 +58,8 @@ def connect_bidirectional_exit(room_a, room_b, direction, desc_ab=None, desc_ba=
         direction: Direction from A to B (e.g. "east"). Reverse auto-derived.
         desc_ab: Exit description A to B (defaults to room_b.key).
         desc_ba: Exit description B to A (defaults to room_a.key).
+        max_size: Largest actor size that can pass (Size.X.value).
+            Defaults to gargantuan (unrestricted).
 
     Returns:
         (exit_ab, exit_ba): The two exit objects.
@@ -70,6 +75,7 @@ def connect_bidirectional_exit(room_a, room_b, direction, desc_ab=None, desc_ba=
         destination=room_b,
     )
     exit_ab.set_direction(direction)
+    exit_ab.max_size = max_size
 
     exit_ba = create_object(
         ExitVerticalAware,
@@ -78,6 +84,7 @@ def connect_bidirectional_exit(room_a, room_b, direction, desc_ab=None, desc_ba=
         destination=room_a,
     )
     exit_ba.set_direction(reverse)
+    exit_ba.max_size = max_size
 
     return exit_ab, exit_ba
 
@@ -100,6 +107,7 @@ def connect_bidirectional_door_exit(
     lock_dc=15,
     key_tag=None,
     relock_seconds=0,
+    max_size=Size.GARGANTUAN.value,
 ):
     """
     Create door exits in BOTH directions between two rooms, linked as a pair.
@@ -139,6 +147,7 @@ def connect_bidirectional_door_exit(
     if key_tag:
         door_ab.key_tag = key_tag
     door_ab.relock_seconds = relock_seconds
+    door_ab.max_size = max_size
 
     door_ba = create_object(ExitDoor, key=key, location=room_b, destination=room_a)
     door_ba.set_direction(reverse)
@@ -153,6 +162,7 @@ def connect_bidirectional_door_exit(
     if key_tag:
         door_ba.key_tag = key_tag
     door_ba.relock_seconds = relock_seconds
+    door_ba.max_size = max_size
 
     ExitDoor.link_door_pair(door_ab, door_ba)
     return door_ab, door_ba
@@ -187,6 +197,7 @@ def connect_bidirectional_trapped_door_exit(
     trap_effect_duration=None,
     trap_effect_duration_type=None,
     trap_side="ab",
+    max_size=Size.GARGANTUAN.value,
 ):
     """
     Create door exits in BOTH directions with a trap on ONE side.
@@ -237,6 +248,7 @@ def connect_bidirectional_trapped_door_exit(
     if key_tag:
         door_ab.key_tag = key_tag
     door_ab.relock_seconds = relock_seconds
+    door_ab.max_size = max_size
 
     door_ba = create_object(SafeClass, key=key, location=room_b, destination=room_a)
     door_ba.set_direction(reverse)
@@ -251,6 +263,7 @@ def connect_bidirectional_trapped_door_exit(
     if key_tag:
         door_ba.key_tag = key_tag
     door_ba.relock_seconds = relock_seconds
+    door_ba.max_size = max_size
 
     ExitDoor.link_door_pair(door_ab, door_ba)
 
@@ -295,6 +308,7 @@ def connect_bidirectional_tripwire_exit(
     trap_effect_duration=None,
     trap_effect_duration_type=None,
     trap_side="ab",
+    max_size=Size.GARGANTUAN.value,
 ):
     """
     Create exits in BOTH directions with a tripwire trap on ONE side.
@@ -340,6 +354,7 @@ def connect_bidirectional_tripwire_exit(
         destination=room_b,
     )
     exit_ab.set_direction(direction)
+    exit_ab.max_size = max_size
 
     exit_ba = create_object(
         SafeClass,
@@ -348,6 +363,7 @@ def connect_bidirectional_tripwire_exit(
         destination=room_a,
     )
     exit_ba.set_direction(reverse)
+    exit_ba.max_size = max_size
 
     # Configure the trap on the trapped side only
     trapped_exit = exit_ab if trap_side == "ab" else exit_ba
@@ -375,7 +391,8 @@ def connect_bidirectional_tripwire_exit(
 # ================================================================== #
 
 
-def connect_oneway_loopback_exit(room, direction, key=None, destination=None):
+def connect_oneway_loopback_exit(room, direction, key=None, destination=None,
+                                 max_size=Size.GARGANTUAN.value):
     """
     Create a single exit that loops back to the same room or another room.
 
@@ -388,6 +405,8 @@ def connect_oneway_loopback_exit(room, direction, key=None, destination=None):
         direction: Direction the exit faces (e.g. "west").
         key: Exit display name (defaults to destination room's key).
         destination: Where the exit leads (defaults to room itself).
+        max_size: Largest actor size that can pass (Size.X.value).
+            Defaults to gargantuan (unrestricted).
 
     Returns:
         The exit object.
@@ -402,6 +421,7 @@ def connect_oneway_loopback_exit(room, direction, key=None, destination=None):
         destination=dest,
     )
     exit_obj.set_direction(direction)
+    exit_obj.max_size = max_size
     return exit_obj
 
 
