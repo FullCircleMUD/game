@@ -22,6 +22,7 @@ Usage:
 
 from evennia import create_object, ObjectDB
 
+from enums.size import Size
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_bank import RoomBank
@@ -2103,6 +2104,7 @@ def build_millholm_town(one_way_limbo=False):
         open_ab="The open stable doors reveal stalls of horses within.",
         closed_ba="Large double doors lead south to the market square.",
         open_ba="The market square is visible through the open doors.",
+        max_size=Size.LARGE.value,
     )
     exit_count += 2
 
