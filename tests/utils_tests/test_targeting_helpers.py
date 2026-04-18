@@ -16,6 +16,8 @@ from utils.targeting.helpers import (
     resolve_attack_target_out_of_combat,
     resolve_character_in_room,
     resolve_container,
+    resolve_friendly_target_in_combat,
+    resolve_friendly_target_out_of_combat,
     resolve_item_in_source,
     resolve_target,
     walk_contents,
@@ -99,6 +101,20 @@ def _make_caller(search_return=None):
     caller = MagicMock()
     caller.search.return_value = search_return
     return caller
+
+
+def _make_gettable_item(key="sword"):
+    """An item that passes the get lock (access("get") returns True)."""
+    obj = SimpleNamespace(key=key)
+    obj.access = lambda caller, access_type, **kw: access_type == "get"
+    return obj
+
+
+def _make_fixed_item(key="chest"):
+    """An item that fails the get lock (access("get") returns False)."""
+    obj = SimpleNamespace(key=key)
+    obj.access = lambda caller, access_type, **kw: access_type != "get"
+    return obj
 
 
 def _make_container(key="pack", is_open=None):
@@ -1085,3 +1101,849 @@ class TestActorCombatBuildingBlocks(EvenniaTest):
         caller.location = None
         target, _ = resolve_target(caller, "bob", "actors_not_in_combat")
         self.assertIsNone(target)
+
+
+class TestResolveFriendlyTargetInCombat(EvenniaTest):
+    """Tests for resolve_friendly_target_in_combat.
+
+    Reversed priority: self > ally > bystander > enemy.
+    Verifies that friendly-intent targeting prefers allies over enemies.
+    """
+
+    def create_script(self):
+        pass
+
+    def _caller(self, combat_side=1):
+        caller = _make_actor(key="me", combat_side=combat_side)
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        return caller
+
+    def test_ally_wins_over_enemy_same_name(self):
+        caller = self._caller(combat_side=1)
+        ally_goblin = _make_actor(key="goblin", combat_side=1)
+        enemy_goblin = _make_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(
+            contents=[caller, enemy_goblin, ally_goblin]
+        )
+        result = resolve_friendly_target_in_combat(caller, "goblin")
+        self.assertIs(result, ally_goblin)
+
+    def test_self_wins_over_ally(self):
+        caller = self._caller(combat_side=1)
+        caller.key = "goblin"
+        ally_goblin = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, ally_goblin])
+        result = resolve_friendly_target_in_combat(caller, "goblin")
+        self.assertIs(result, caller)
+
+    def test_bystander_wins_over_enemy(self):
+        caller = self._caller(combat_side=1)
+        bystander = _make_actor(key="goblin", combat_side=None)
+        enemy = _make_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, enemy, bystander])
+        result = resolve_friendly_target_in_combat(caller, "goblin")
+        self.assertIs(result, bystander)
+
+    def test_enemy_still_matches_as_last_resort(self):
+        caller = self._caller(combat_side=1)
+        enemy = _make_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, enemy])
+        result = resolve_friendly_target_in_combat(caller, "goblin")
+        self.assertIs(result, enemy)
+
+    def test_no_match_returns_none(self):
+        caller = self._caller(combat_side=1)
+        rat = _make_actor(key="rat", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, rat])
+        result = resolve_friendly_target_in_combat(caller, "goblin")
+        self.assertIsNone(result)
+
+    def test_caller_not_in_combat_returns_none(self):
+        caller = _make_actor(key="me", combat_side=None)
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        goblin = _make_actor(key="goblin", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        result = resolve_friendly_target_in_combat(caller, "goblin")
+        self.assertIsNone(result)
+
+
+class TestResolveFriendlyTargetOutOfCombat(EvenniaTest):
+    """Tests for resolve_friendly_target_out_of_combat.
+
+    Reversed priority: self > groupmate > stranger.
+    Verifies that friendly-intent targeting prefers self and group.
+    """
+
+    def create_script(self):
+        pass
+
+    def _caller(self, leader=None):
+        caller = _make_actor(key="me", leader=leader)
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        return caller
+
+    def _make_pet(self, key="goblin", owner_key="me"):
+        pet = _make_actor(key=key)
+        pet.is_pet = True
+        pet.owner_key = owner_key
+        return pet
+
+    def test_self_wins_over_groupmate(self):
+        leader = object()
+        caller = self._caller(leader=leader)
+        caller.key = "goblin"
+        groupmate = _make_actor(key="goblin", leader=leader)
+        caller.location = SimpleNamespace(contents=[caller, groupmate])
+        result = resolve_friendly_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, caller)
+
+    def test_groupmate_wins_over_stranger(self):
+        leader = object()
+        caller = self._caller(leader=leader)
+        groupmate = _make_actor(key="goblin", leader=leader)
+        stranger = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, stranger, groupmate])
+        result = resolve_friendly_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, groupmate)
+
+    def test_pet_classified_as_groupmate(self):
+        caller = self._caller()
+        pet = self._make_pet(key="goblin", owner_key=caller.key)
+        stranger = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, stranger, pet])
+        result = resolve_friendly_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, pet)
+
+    def test_stranger_matches_as_last_resort(self):
+        caller = self._caller()
+        stranger = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, stranger])
+        result = resolve_friendly_target_out_of_combat(caller, "goblin")
+        self.assertIs(result, stranger)
+
+    def test_no_match_returns_none(self):
+        caller = self._caller()
+        rat = _make_actor(key="rat")
+        caller.location = SimpleNamespace(contents=[caller, rat])
+        result = resolve_friendly_target_out_of_combat(caller, "goblin")
+        self.assertIsNone(result)
+
+    def test_no_location_returns_none(self):
+        caller = self._caller()
+        caller.location = None
+        result = resolve_friendly_target_out_of_combat(caller, "goblin")
+        self.assertIsNone(result)
+
+
+class TestActorsInCombatThenNotInCombat(EvenniaTest):
+    """Tests for actors_in_combat_then_not_in_combat target_type.
+
+    Composite: finds in-combat actors first, falls back to idle actors.
+    """
+
+    def create_script(self):
+        pass
+
+    def _caller(self):
+        caller = _make_actor(key="me")
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        return caller
+
+    def test_in_combat_actor_found_first(self):
+        caller = self._caller()
+        fighting = _make_actor(key="goblin", combat_side=1)
+        idle = _make_actor(key="goblin", combat_side=None)
+        caller.location = SimpleNamespace(contents=[caller, idle, fighting])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat_then_not_in_combat")
+        self.assertIs(target, fighting)
+
+    def test_falls_back_to_idle_when_no_combatant_matches(self):
+        caller = self._caller()
+        idle = _make_actor(key="goblin", combat_side=None)
+        caller.location = SimpleNamespace(contents=[caller, idle])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat_then_not_in_combat")
+        self.assertIs(target, idle)
+
+    def test_no_match_returns_none(self):
+        caller = self._caller()
+        rat = _make_actor(key="rat", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, rat])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat_then_not_in_combat")
+        self.assertIsNone(target)
+
+    def test_no_location_returns_none(self):
+        caller = self._caller()
+        caller.location = None
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat_then_not_in_combat")
+        self.assertIsNone(target)
+
+    def test_dead_actors_filtered_from_both_steps(self):
+        caller = self._caller()
+        dead_fighting = _make_actor(key="goblin", hp=0, combat_side=1)
+        dead_idle = _make_actor(key="goblin", hp=0, combat_side=None)
+        caller.location = SimpleNamespace(contents=[caller, dead_fighting, dead_idle])
+        target, _ = resolve_target(caller, "goblin", "actors_in_combat_then_not_in_combat")
+        self.assertIsNone(target)
+
+
+class TestResolveTargetActorRouting(EvenniaTest):
+    """Tests for resolve_target routing: self, none, actor_hostile, actor_friendly."""
+
+    def create_script(self):
+        pass
+
+    def _caller(self, combat_side=None, leader=None):
+        caller = _make_actor(key="me", combat_side=combat_side, leader=leader)
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        caller.msg = MagicMock()
+        return caller
+
+    # ── self target_type ─────────────────────────────────────────
+
+    def test_self_returns_caller(self):
+        caller = self._caller()
+        target, secondaries = resolve_target(caller, "", "self")
+        self.assertIs(target, caller)
+        self.assertEqual(secondaries, [])
+
+    def test_self_ignores_target_str(self):
+        caller = self._caller()
+        target, _ = resolve_target(caller, "goblin", "self")
+        self.assertIs(target, caller)
+
+    # ── none target_type ─────────────────────────────────────────
+
+    def test_none_returns_none(self):
+        caller = self._caller()
+        target, secondaries = resolve_target(caller, "", "none")
+        self.assertIsNone(target)
+        self.assertEqual(secondaries, [])
+
+    # ── actor_hostile ────────────────────────────────────────────
+
+    def test_actor_hostile_finds_enemy_in_combat(self):
+        caller = self._caller(combat_side=1)
+        goblin = _make_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        target, _ = resolve_target(caller, "goblin", "actor_hostile")
+        self.assertIs(target, goblin)
+
+    def test_actor_hostile_finds_stranger_out_of_combat(self):
+        caller = self._caller()
+        goblin = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        target, _ = resolve_target(caller, "goblin", "actor_hostile")
+        self.assertIs(target, goblin)
+
+    def test_actor_hostile_no_target_str_sends_error(self):
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        target, _ = resolve_target(caller, "", "actor_hostile")
+        self.assertIsNone(target)
+        caller.msg.assert_called()
+
+    def test_actor_hostile_no_match_sends_error(self):
+        caller = self._caller()
+        rat = _make_actor(key="rat")
+        caller.location = SimpleNamespace(contents=[caller, rat])
+        target, _ = resolve_target(caller, "goblin", "actor_hostile")
+        self.assertIsNone(target)
+        caller.msg.assert_called_with("There's no 'goblin' here.")
+
+    def test_actor_hostile_returns_self_for_command_layer_rejection(self):
+        """Self-targeting via 'me' keyword — resolver returns caller,
+        command layer decides whether to reject."""
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        target, _ = resolve_target(caller, "me", "actor_hostile")
+        self.assertIs(target, caller)
+
+    # ── actor_any ────────────────────────────────────────────────
+
+    def test_actor_any_same_as_hostile(self):
+        caller = self._caller()
+        goblin = _make_actor(key="goblin")
+        caller.location = SimpleNamespace(contents=[caller, goblin])
+        target, _ = resolve_target(caller, "goblin", "actor_any")
+        self.assertIs(target, goblin)
+
+    # ── actor_friendly ───────────────────────────────────────────
+
+    def test_actor_friendly_empty_target_defaults_to_self(self):
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        target, _ = resolve_target(caller, "", "actor_friendly")
+        self.assertIs(target, caller)
+
+    def test_actor_friendly_finds_ally_in_combat(self):
+        caller = self._caller(combat_side=1)
+        ally = _make_actor(key="bob", combat_side=1)
+        caller.location = SimpleNamespace(contents=[caller, ally])
+        target, _ = resolve_target(caller, "bob", "actor_friendly")
+        self.assertIs(target, ally)
+
+    def test_actor_friendly_finds_groupmate_out_of_combat(self):
+        leader = object()
+        caller = self._caller(leader=leader)
+        groupmate = _make_actor(key="bob", leader=leader)
+        caller.location = SimpleNamespace(contents=[caller, groupmate])
+        target, _ = resolve_target(caller, "bob", "actor_friendly")
+        self.assertIs(target, groupmate)
+
+    def test_actor_friendly_no_match_sends_error(self):
+        caller = self._caller()
+        rat = _make_actor(key="rat")
+        caller.location = SimpleNamespace(contents=[caller, rat])
+        target, _ = resolve_target(caller, "goblin", "actor_friendly")
+        self.assertIsNone(target)
+        caller.msg.assert_called_with("There's no 'goblin' here.")
+
+    # ── unknown target_type ──────────────────────────────────────
+
+    def test_unknown_target_type_sends_error(self):
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        target, _ = resolve_target(caller, "goblin", "bogus_type")
+        self.assertIsNone(target)
+        caller.msg.assert_called_with("Unknown target type 'bogus_type'.")
+
+
+class TestResolveTargetInventoryItems(EvenniaTest):
+    """Tests for resolve_target items_inventory and items_equipped."""
+
+    def create_script(self):
+        pass
+
+    def _caller(self):
+        caller = MagicMock()
+        caller.msg = MagicMock()
+        caller.location = SimpleNamespace(contents=[])
+        return caller
+
+    # ── items_inventory ──────────────────────────────────────────
+
+    def test_items_inventory_finds_item(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [sword]
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_inventory")
+        self.assertIs(target, sword)
+
+    def test_items_inventory_passes_exclude_worn(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [sword]
+        caller.search = MagicMock(return_value=sword)
+        resolve_target(caller, "sword", "items_inventory")
+        _, kwargs = caller.search.call_args
+        self.assertTrue(kwargs.get("exclude_worn"))
+
+    def test_items_inventory_empty_returns_none(self):
+        caller = self._caller()
+        caller.contents = []
+        target, _ = resolve_target(caller, "sword", "items_inventory")
+        self.assertIsNone(target)
+
+    def test_items_inventory_no_match_returns_none(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [sword]
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "hammer", "items_inventory")
+        self.assertIsNone(target)
+
+    def test_items_inventory_passes_stacked(self):
+        coin = _make_item("coin")
+        caller = self._caller()
+        caller.contents = [coin]
+        caller.search = MagicMock(return_value=[coin])
+        resolve_target(caller, "coin", "items_inventory", stacked=3)
+        _, kwargs = caller.search.call_args
+        self.assertEqual(kwargs.get("stacked"), 3)
+
+    # ── items_equipped ───────────────────────────────────────────
+
+    def test_items_equipped_finds_worn_item(self):
+        helm = _make_item("helm")
+        caller = self._caller()
+        caller.contents = [helm]
+        caller.search = MagicMock(return_value=helm)
+        target, _ = resolve_target(caller, "helm", "items_equipped")
+        self.assertIs(target, helm)
+
+    def test_items_equipped_passes_only_worn(self):
+        helm = _make_item("helm")
+        caller = self._caller()
+        caller.contents = [helm]
+        caller.search = MagicMock(return_value=helm)
+        resolve_target(caller, "helm", "items_equipped")
+        _, kwargs = caller.search.call_args
+        self.assertTrue(kwargs.get("only_worn"))
+
+    def test_items_equipped_empty_returns_none(self):
+        caller = self._caller()
+        caller.contents = []
+        target, _ = resolve_target(caller, "helm", "items_equipped")
+        self.assertIsNone(target)
+
+
+class TestResolveTargetRoomItems(EvenniaTest):
+    """Tests for resolve_target room item target types."""
+
+    def create_script(self):
+        pass
+
+    def _caller(self):
+        caller = MagicMock()
+        caller.msg = MagicMock()
+        caller.contents = []
+        return caller
+
+    # ── items_room_all ───────────────────────────────────────────
+
+    def test_items_room_all_finds_item(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_room_all")
+        self.assertIs(target, sword)
+
+    def test_items_room_all_includes_exits(self):
+        exit_obj = _make_exit()
+        exit_obj.key = "gate"
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[exit_obj])
+        caller.search = MagicMock(return_value=exit_obj)
+        target, _ = resolve_target(caller, "gate", "items_room_all")
+        self.assertIs(target, exit_obj)
+
+    def test_items_room_all_excludes_actors(self):
+        actor = _make_character()
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[actor])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "bob", "items_room_all")
+        self.assertIsNone(target)
+
+    def test_items_room_all_no_location(self):
+        caller = self._caller()
+        caller.location = None
+        target, _ = resolve_target(caller, "sword", "items_room_all")
+        self.assertIsNone(target)
+
+    # ── items_room_exits ─────────────────────────────────────────
+
+    def test_items_room_exits_finds_exit(self):
+        exit_obj = _make_exit()
+        exit_obj.key = "gate"
+        caller = self._caller()
+        caller.location = MagicMock()
+        caller.location.exits = [exit_obj]
+        caller.search = MagicMock(return_value=exit_obj)
+        target, _ = resolve_target(caller, "gate", "items_room_exits")
+        self.assertIs(target, exit_obj)
+
+    def test_items_room_exits_no_location(self):
+        caller = self._caller()
+        caller.location = None
+        target, _ = resolve_target(caller, "gate", "items_room_exits")
+        self.assertIsNone(target)
+
+    def test_items_room_exits_empty(self):
+        caller = self._caller()
+        caller.location = MagicMock()
+        caller.location.exits = []
+        target, _ = resolve_target(caller, "gate", "items_room_exits")
+        self.assertIsNone(target)
+
+    # ── items_room_nonexit ───────────────────────────────────────
+
+    def test_items_room_nonexit_finds_item(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_room_nonexit")
+        self.assertIs(target, sword)
+
+    def test_items_room_nonexit_excludes_exits(self):
+        exit_obj = _make_exit()
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[exit_obj])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "gate", "items_room_nonexit")
+        self.assertIsNone(target)
+
+    def test_items_room_nonexit_excludes_actors(self):
+        actor = _make_character()
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[actor])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "bob", "items_room_nonexit")
+        self.assertIsNone(target)
+
+    # ── items_room_gettable ──────────────────────────────────────
+
+    def test_items_room_gettable_finds_gettable(self):
+        sword = _make_gettable_item("sword")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_room_gettable")
+        self.assertIs(target, sword)
+
+    def test_items_room_gettable_excludes_fixed(self):
+        chest = _make_fixed_item("chest")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[chest])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "chest", "items_room_gettable")
+        self.assertIsNone(target)
+
+    # ── items_room_fixed ─────────────────────────────────────────
+
+    def test_items_room_fixed_finds_fixed(self):
+        chest = _make_fixed_item("chest")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[chest])
+        caller.search = MagicMock(return_value=chest)
+        target, _ = resolve_target(caller, "chest", "items_room_fixed")
+        self.assertIs(target, chest)
+
+    def test_items_room_fixed_excludes_gettable(self):
+        sword = _make_gettable_item("sword")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "sword", "items_room_fixed")
+        self.assertIsNone(target)
+
+    def test_items_room_fixed_includes_exits(self):
+        """Exits are fixed (get:false by default) — included in items_room_fixed."""
+        exit_obj = _make_exit()
+        exit_obj.key = "gate"
+        # Exits don't have .access — they'll fail p_passes_lock("get")
+        # which means NOT gettable = fixed. But _make_exit is a MagicMock
+        # so .access returns a truthy MagicMock. Need explicit override.
+        exit_obj.access = lambda c, access_type, **kw: access_type != "get"
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[exit_obj])
+        caller.search = MagicMock(return_value=exit_obj)
+        target, _ = resolve_target(caller, "gate", "items_room_fixed")
+        self.assertIs(target, exit_obj)
+
+    # ── items_room_fixed_nonexit ─────────────────────────────────
+
+    def test_items_room_fixed_nonexit_finds_fixed(self):
+        chest = _make_fixed_item("chest")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[chest])
+        caller.search = MagicMock(return_value=chest)
+        target, _ = resolve_target(caller, "chest", "items_room_fixed_nonexit")
+        self.assertIs(target, chest)
+
+    def test_items_room_fixed_nonexit_excludes_exits(self):
+        exit_obj = _make_exit()
+        exit_obj.access = lambda c, access_type, **kw: access_type != "get"
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[exit_obj])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "gate", "items_room_fixed_nonexit")
+        self.assertIsNone(target)
+
+    def test_items_room_fixed_nonexit_excludes_gettable(self):
+        sword = _make_gettable_item("sword")
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "sword", "items_room_fixed_nonexit")
+        self.assertIsNone(target)
+
+
+class TestResolveTargetCompositeItems(EvenniaTest):
+    """Tests for composite item target types (fallback chains)."""
+
+    def create_script(self):
+        pass
+
+    def _caller(self):
+        caller = MagicMock()
+        caller.msg = MagicMock()
+        return caller
+
+    # ── items_room_all_then_inventory ────────────────────────────
+
+    def test_room_all_then_inv_finds_in_room(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_room_all_then_inventory")
+        self.assertIs(target, sword)
+
+    def test_room_all_then_inv_falls_back_to_inventory(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [sword]
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_room_all_then_inventory")
+        self.assertIs(target, sword)
+
+    def test_room_all_then_inv_room_wins_over_inventory(self):
+        room_sword = _make_item("sword")
+        inv_sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [inv_sword]
+        caller.location = SimpleNamespace(contents=[room_sword])
+        caller.search = MagicMock(return_value=room_sword)
+        target, _ = resolve_target(caller, "sword", "items_room_all_then_inventory")
+        self.assertIs(target, room_sword)
+
+    def test_room_all_then_inv_neither_returns_none(self):
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[])
+        target, _ = resolve_target(caller, "sword", "items_room_all_then_inventory")
+        self.assertIsNone(target)
+
+    # ── items_inventory_then_room_all ────────────────────────────
+
+    def test_inv_then_room_all_finds_in_inventory(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [sword]
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_all")
+        self.assertIs(target, sword)
+
+    def test_inv_then_room_all_falls_back_to_room(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_all")
+        self.assertIs(target, sword)
+
+    def test_inv_then_room_all_inventory_wins(self):
+        inv_sword = _make_item("sword")
+        room_sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [inv_sword]
+        caller.location = SimpleNamespace(contents=[room_sword])
+        caller.search = MagicMock(return_value=inv_sword)
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_all")
+        self.assertIs(target, inv_sword)
+
+    def test_inv_then_room_all_neither_returns_none(self):
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[])
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_all")
+        self.assertIsNone(target)
+
+    # ── items_inventory_then_room_nonexit ────────────────────────
+
+    def test_inv_then_room_nonexit_finds_in_inventory(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = [sword]
+        caller.location = SimpleNamespace(contents=[])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_nonexit")
+        self.assertIs(target, sword)
+
+    def test_inv_then_room_nonexit_falls_back_to_room(self):
+        sword = _make_item("sword")
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[sword])
+        caller.search = MagicMock(return_value=sword)
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_nonexit")
+        self.assertIs(target, sword)
+
+    def test_inv_then_room_nonexit_excludes_exits_from_room(self):
+        exit_obj = _make_exit()
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[exit_obj])
+        caller.search = MagicMock(return_value=None)
+        target, _ = resolve_target(caller, "gate", "items_inventory_then_room_nonexit")
+        self.assertIsNone(target)
+
+    def test_inv_then_room_nonexit_neither_returns_none(self):
+        caller = self._caller()
+        caller.contents = []
+        caller.location = SimpleNamespace(contents=[])
+        target, _ = resolve_target(caller, "sword", "items_inventory_then_room_nonexit")
+        self.assertIsNone(target)
+
+
+class TestAoESecondaries(EvenniaTest):
+    """Tests for AoE secondary target resolution via resolve_target aoe param.
+
+    Tests _resolve_aoe_secondaries indirectly through the public API.
+    All actors are at height 0 unless specified.
+    """
+
+    def create_script(self):
+        pass
+
+    def _make_aoe_actor(self, key="mob", hp=10, combat_side=None,
+                        height=0, leader=None):
+        actor = _make_actor(key=key, hp=hp, combat_side=combat_side,
+                            leader=leader)
+        actor.room_vertical_position = height
+        return actor
+
+    def _caller(self, combat_side=None, leader=None):
+        caller = self._make_aoe_actor(
+            key="caster", combat_side=combat_side, leader=leader,
+        )
+        caller.search = MagicMock(side_effect=_search_returns_first)
+        caller.msg = MagicMock()
+        return caller
+
+    # ── unsafe: everyone at target's height, caster included ────
+
+    def test_unsafe_includes_caster(self):
+        caller = self._caller()
+        target = self._make_aoe_actor(key="goblin")
+        bystander = self._make_aoe_actor(key="rat")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, bystander]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertIn(bystander, secondaries)
+        self.assertNotIn(target, secondaries)  # primary excluded
+
+    def test_unsafe_excludes_different_height(self):
+        caller = self._caller()
+        target = self._make_aoe_actor(key="goblin", height=0)
+        flying = self._make_aoe_actor(key="bird", height=1)
+        caller.location = SimpleNamespace(
+            contents=[caller, target, flying]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe",
+        )
+        self.assertNotIn(flying, secondaries)
+
+    # ── unsafe_all_heights: everyone regardless of height ────────
+
+    def test_unsafe_all_heights_includes_all(self):
+        caller = self._caller()
+        target = self._make_aoe_actor(key="goblin", height=0)
+        flying = self._make_aoe_actor(key="bird", height=1)
+        ground = self._make_aoe_actor(key="rat", height=0)
+        caller.location = SimpleNamespace(
+            contents=[caller, target, flying, ground]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe_all_heights",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertIn(flying, secondaries)
+        self.assertIn(ground, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    # ── unsafe_self: everyone at height except caster ────────────
+
+    def test_unsafe_self_excludes_caster(self):
+        caller = self._caller()
+        target = self._make_aoe_actor(key="goblin")
+        bystander = self._make_aoe_actor(key="rat")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, bystander]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe_self",
+        )
+        self.assertNotIn(caller, secondaries)
+        self.assertIn(bystander, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    # ── safe: enemies only at target's height ────────────────────
+
+    def test_safe_in_combat_only_enemies(self):
+        caller = self._caller(combat_side=1)
+        target = self._make_aoe_actor(key="goblin", combat_side=2)
+        ally = self._make_aoe_actor(key="bob", combat_side=1)
+        enemy2 = self._make_aoe_actor(key="orc", combat_side=2)
+        caller.location = SimpleNamespace(
+            contents=[caller, target, ally, enemy2]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="safe",
+        )
+        self.assertIn(enemy2, secondaries)
+        self.assertNotIn(ally, secondaries)
+        self.assertNotIn(caller, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    def test_safe_out_of_combat_non_group_are_enemies(self):
+        leader = object()
+        caller = self._caller(leader=leader)
+        target = self._make_aoe_actor(key="goblin")
+        groupmate = self._make_aoe_actor(key="bob", leader=leader)
+        stranger = self._make_aoe_actor(key="orc")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, groupmate, stranger]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="safe",
+        )
+        self.assertIn(stranger, secondaries)
+        self.assertNotIn(groupmate, secondaries)
+        self.assertNotIn(caller, secondaries)
+
+    # ── allies: allies at target's height, caster included ───────
+
+    def test_allies_in_combat_only_allies(self):
+        caller = self._caller(combat_side=1)
+        target = self._make_aoe_actor(key="bob", combat_side=1)
+        ally2 = self._make_aoe_actor(key="sue", combat_side=1)
+        enemy = self._make_aoe_actor(key="goblin", combat_side=2)
+        caller.location = SimpleNamespace(
+            contents=[caller, target, ally2, enemy]
+        )
+        _, secondaries = resolve_target(
+            caller, "bob", "actor_friendly", aoe="allies",
+        )
+        self.assertIn(caller, secondaries)
+        self.assertIn(ally2, secondaries)
+        self.assertNotIn(enemy, secondaries)
+        self.assertNotIn(target, secondaries)
+
+    # ── no AoE: secondaries always empty ─────────────────────────
+
+    def test_no_aoe_returns_empty_secondaries(self):
+        caller = self._caller()
+        target = self._make_aoe_actor(key="goblin")
+        bystander = self._make_aoe_actor(key="rat")
+        caller.location = SimpleNamespace(
+            contents=[caller, target, bystander]
+        )
+        _, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile",
+        )
+        self.assertEqual(secondaries, [])
+
+    # ── no primary target: secondaries empty ─────────────────────
+
+    def test_aoe_with_no_match_returns_empty(self):
+        caller = self._caller()
+        caller.location = SimpleNamespace(contents=[caller])
+        target, secondaries = resolve_target(
+            caller, "goblin", "actor_hostile", aoe="unsafe",
+        )
+        self.assertIsNone(target)
+        self.assertEqual(secondaries, [])
