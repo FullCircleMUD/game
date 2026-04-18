@@ -7,12 +7,15 @@ something that does not exist?
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 
 
 class Heffalump(AggressiveMob):
     """The Heffalump. It does not exist. Or does it?"""
 
+    base_size = AttributeProperty(Size.LARGE.value)
+    size = AttributeProperty(Size.LARGE.value)
     room_description = AttributeProperty("is here doing his thing.")
 
     # ── Stats (L7, 50% tougher than Woozle/Jagular) ──

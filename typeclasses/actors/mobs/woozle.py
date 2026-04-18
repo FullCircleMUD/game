@@ -9,12 +9,15 @@ Wanders the main wood area, stays out of character houses.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 
 
 class Woozle(CombatMob):
     """A Woozle trying to look scary."""
 
+    base_size = AttributeProperty(Size.SMALL.value)
+    size = AttributeProperty(Size.SMALL.value)
     room_description = AttributeProperty("is here trying to look scary.")
 
     # ── Stats (L5, slightly weaker than Jagular, sneakier) ──

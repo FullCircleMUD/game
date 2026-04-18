@@ -18,8 +18,8 @@ class FamiliarHawk(FamiliarMixin, FlyingMixin, CombatCompanionMixin, BasePet):
     """A combat-capable hawk familiar — MASTER conjuration."""
 
     pet_type = AttributeProperty("familiar")
-    base_size = AttributeProperty(Size.SMALL.value)
-    size = AttributeProperty(Size.SMALL.value)
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     preferred_height = AttributeProperty(0)
     room_description = AttributeProperty("circles watchfully above its master.")
 

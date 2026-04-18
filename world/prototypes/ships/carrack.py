@@ -4,4 +4,5 @@ CARRACK = {
     "key": "Carrack",
     "aliases": ["carrack"],
     "desc": "A large three-masted merchant vessel built for long voyages.",
+    "size": "gargantuan",
 }

@@ -185,6 +185,8 @@ class LanceNFTItem(LanceMixin, WeaponNFTItem):
     Devastating when mounted, deliberately terrible on foot.
     """
 
+    size = AttributeProperty(Size.MEDIUM.value)
+
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,
     ])

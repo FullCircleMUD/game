@@ -18,6 +18,7 @@ Usage (build script / prototype):
 
 from evennia import AttributeProperty
 
+from enums.size import Size
 from typeclasses.mixins.closeable import CloseableMixin
 from typeclasses.mixins.container import ContainerMixin
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
@@ -40,6 +41,8 @@ class WorldChest(
     Chests start closed (override CloseableMixin default).
     Contents are only accessible when open.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     # Override CloseableMixin default — chests start closed
     is_open = AttributeProperty(False)

@@ -4,4 +4,5 @@ COG = {
     "key": "Cog",
     "aliases": ["cog"],
     "desc": "A small, sturdy single-masted trading vessel.",
+    "size": "huge",
 }

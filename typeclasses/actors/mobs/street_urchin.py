@@ -20,6 +20,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 from utils.dice_roller import dice
 
@@ -31,6 +32,8 @@ _SUBTERFUGE_BONUS = MasteryLevel.SKILLED.bonus
 class StreetUrchin(CombatMob):
     """A street urchin with quick fingers."""
 
+    base_size = AttributeProperty(Size.SMALL.value)
+    size = AttributeProperty(Size.SMALL.value)
     room_description = AttributeProperty("loiters here, eyes darting to every coin pouch.")
 
     # ── Combat ──

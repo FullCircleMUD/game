@@ -7,4 +7,5 @@ LONGBOW = {
     "desc": "A tall stave of seasoned yew, taller than the archer who draws it. Heavy draw, devastating range.",
     "material": "steel",
     "max_durability": 7200,
+    "size": "medium",
 }

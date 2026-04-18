@@ -8,4 +8,5 @@ WOODEN_SHIELD = {
     "wear_effects": [{"type": "stat_bonus", "stat": "armor_class", "value": 1}],
     "weight": 3.0,
     "max_durability": 1440,
+    "size": "small",
 }

@@ -4,4 +4,5 @@ CARAVEL = {
     "key": "Caravel",
     "aliases": ["caravel"],
     "desc": "A nimble two-masted ship capable of coastal voyages.",
+    "size": "huge",
 }

@@ -12,4 +12,5 @@ PANNIERS = {
     "max_durability": 0,
     "max_container_capacity_kg": 30.0,
     "transfer_weight": False,
+    "size": "medium",
 }

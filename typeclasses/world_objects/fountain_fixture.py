@@ -13,6 +13,9 @@ FountainFixture instances or any other fixture that exposes
 `is_water_source = True`. The command surface only checks the marker.
 """
 
+from evennia import AttributeProperty
+
+from enums.size import Size
 from typeclasses.world_objects.base_fixture import WorldFixture
 
 
@@ -21,6 +24,7 @@ class FountainFixture(WorldFixture):
     Permanent world water source. Free, infinite, no state.
     """
 
+    size = AttributeProperty(Size.LARGE.value)
     is_water_source = True
 
     def at_object_creation(self):

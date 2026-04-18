@@ -12,4 +12,5 @@ GREAVES_OF_THE_VANGUARD = {
     "excluded_classes": ["mage"],
     "weight": 2.0,
     "max_durability": 5400,
+    "size": "small",
 }

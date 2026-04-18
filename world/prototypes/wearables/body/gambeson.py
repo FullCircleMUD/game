@@ -12,4 +12,5 @@ GAMBESON = {
     "excluded_classes": ["mage"],
     "weight": 3.0,
     "max_durability": 1440,
+    "size": "small",
 }

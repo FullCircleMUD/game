@@ -4,4 +4,5 @@ BRIGANTINE = {
     "key": "Brigantine",
     "aliases": ["brigantine"],
     "desc": "A fast two-masted vessel with square and lateen rigging.",
+    "size": "gargantuan",
 }

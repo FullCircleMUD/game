@@ -133,6 +133,8 @@ class CrossbowNFTItem(CrossbowMixin, WeaponNFTItem):
     Crossbow weapons — missile, knockback mastery path. No extra attacks.
     """
 
+    size = AttributeProperty(Size.SMALL.value)
+
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC,
     ])

@@ -36,6 +36,7 @@ from enums.unused_for_reference.damage_type import DamageType
 from combat.combat_utils import get_sides
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
 
@@ -235,6 +236,8 @@ class BattleaxeNFTItem(BattleaxeMixin, WeaponNFTItem):
     """
     Battleaxe weapons — melee, two-handed, cleave + sunder mastery path.
     """
+
+    size = AttributeProperty(Size.MEDIUM.value)
 
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,

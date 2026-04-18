@@ -7,4 +7,5 @@ HUNTING_CROSSBOW = {
     "desc": "A well-made crossbow with an iron prod and reinforced stock. Reliable enough to bring down game and men alike.",
     "material": "iron",
     "max_durability": 5400,
+    "size": "medium",
 }

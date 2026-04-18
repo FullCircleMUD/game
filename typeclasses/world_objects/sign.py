@@ -14,6 +14,7 @@ Usage (build script / prototype):
 
 from evennia import AttributeProperty
 
+from enums.size import Size
 from typeclasses.world_objects.base_fixture import WorldFixture
 
 
@@ -65,6 +66,7 @@ class WorldSign(WorldFixture):
     A readable sign. Look at it to see its text rendered in ASCII art.
     """
 
+    size = AttributeProperty(Size.SMALL.value)
     sign_text = AttributeProperty("")
     sign_style = AttributeProperty(DEFAULT_STYLE)
 

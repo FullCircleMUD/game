@@ -7,4 +7,5 @@ ARBALEST = {
     "desc": "A master-crafted crossbow with a star-metal prod and windlass spanning gear. Fires a bolt that nothing mortal can turn aside.",
     "material": "adamantine",
     "max_durability": 9000,
+    "size": "medium",
 }

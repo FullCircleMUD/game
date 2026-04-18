@@ -12,4 +12,5 @@ CASK = {
     "max_capacity": 10,
     "current": 10,
     "max_durability": 0,
+    "size": "small",
 }
