@@ -771,7 +771,7 @@ def resolve_target(caller, target_str, target_type, aoe=None,
     target_str = (target_str or "").strip()
 
     # Friendly defaults to self when no target is given
-    if not target_str:
+    if not target_str and not direction:
         if target_type == "actor_friendly":
             secondaries = (
                 _resolve_aoe_secondaries(caller, caller, aoe) if aoe else []
@@ -1388,6 +1388,41 @@ def resolve_target(caller, target_str, target_type, aoe=None,
                     return target, []
         return None, []
 
+
+
+    # ── items_room_all_then_room ────────────────────────────────────
+    #
+    # Composite: items_room_all first, room itself as last-resort
+    # fallback.
+    #
+    # Room contents step: all non-actor objects including exits.
+    # Room fallback: if nothing in contents matched, return the room
+    # itself — no name matching on this step. The room is always the
+    # last candidate.
+    #
+    # The command decides what to do with a room result (e.g. check
+    # is_trapped for pressure plates, or reject with a specific
+    # message). This keeps the building block generic.
+    #
+    # Consumer: cmd_disarm_trap (pressure plate rooms as fallback
+    # after searching objects/exits).
+    # ─────────────────────────────────────────────────────────────────
+    if target_type == "items_room_all_then_room":
+        if not caller.location:
+            return None, []
+        # Room contents step — items_room_all
+        preds = [p_not_actor] + list(extra_predicates)
+        candidates = walk_contents(caller, caller.location, *preds)
+        if candidates:
+            target = caller.search(
+                target_str, candidates=candidates, quiet=True, stacked=stacked,
+            )
+            if isinstance(target, list):
+                target = target[0] if target else None
+            if target is not None:
+                return target, []
+        # Room fallback — return the room itself unconditionally
+        return caller.location, []
 
 
     # Unknown type — defensive

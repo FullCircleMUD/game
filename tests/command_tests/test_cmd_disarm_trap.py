@@ -41,6 +41,7 @@ class TestCmdDisarmTrap(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
 
     # ── Argument validation ──
@@ -55,7 +56,7 @@ class TestCmdDisarmTrap(EvenniaCommandTest):
 
     def test_room_keyword_no_trap(self):
         """Room keyword when room isn't trapped."""
-        self.call(CmdDisarmTrap(), "floor", "You don't see a trap here.")
+        self.call(CmdDisarmTrap(), "floor", "You don't see 'floor' here.")
 
     def test_room_keyword_pressure_plate(self):
         """Room keyword finds trapped room and attempts disarm."""
@@ -64,6 +65,7 @@ class TestCmdDisarmTrap(EvenniaCommandTest):
             key="narrow passage",
             nohome=True,
         )
+        plate_room.always_lit = True
         plate_room.is_trapped = True
         plate_room.trap_armed = True
         plate_room.trap_detected = True
@@ -197,6 +199,7 @@ class TestCmdDisarmTrap(EvenniaCommandTest):
             destination=self.room2,
             nohome=True,
         )
+        tripwire.set_direction("north")
         tripwire.is_trapped = True
         tripwire.trap_armed = True
         tripwire.trap_detected = True
