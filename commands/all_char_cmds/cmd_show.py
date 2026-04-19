@@ -6,13 +6,14 @@ see it without needing to search for it themselves.
 
 Usage:
     show <object> to <character>
-    show <object> <character>
 """
 
 from evennia import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
+from utils.targeting.helpers import resolve_character_in_room, resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdShow(FCMCommandMixin, Command):
@@ -21,7 +22,6 @@ class CmdShow(FCMCommandMixin, Command):
 
     Usage:
         show <object> to <character>
-        show <object> <character>
 
     If you've discovered something hidden in the room, you can
     show it to another character so they can see it too.
@@ -41,41 +41,30 @@ class CmdShow(FCMCommandMixin, Command):
             return
 
         args = self.args.strip() if self.args else ""
-        if not args:
+        if not args or " to " not in args:
             caller.msg("Usage: show <object> to <character>")
             return
 
-        # Parse: "obj to char" or "obj char"
-        if " to " in args:
-            obj_str, char_str = args.split(" to ", 1)
-        else:
-            parts = args.rsplit(None, 1)
-            if len(parts) < 2:
-                caller.msg("Usage: show <object> to <character>")
-                return
-            obj_str, char_str = parts
-
+        obj_str, char_str = args.split(" to ", 1)
         obj_str = obj_str.strip()
         char_str = char_str.strip()
         if not obj_str or not char_str:
             caller.msg("Usage: show <object> to <character>")
             return
 
-        # Find the object in the room
-        target_obj = caller.search(obj_str, location=room, quiet=True)
-        if target_obj:
-            target_obj = target_obj[0]
-        else:
-            caller.msg(f"Could not find '{obj_str}'.")
+        # Darkness — can't see what you're pointing out
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        # Info-leak prevention: if the object is hidden and the caller
-        # can't see it, pretend it doesn't exist
-        if (
-            isinstance(target_obj, HiddenObjectMixin)
-            and not target_obj.is_hidden_visible_to(caller)
-        ):
-            caller.msg(f"Could not find '{obj_str}'.")
+        # Find the object in the room — p_can_see handles info-leak
+        # prevention: undiscovered hidden objects are filtered out
+        target_obj, _ = resolve_target(
+            caller, obj_str, "items_room_nonexit",
+            extra_predicates=(p_can_see,),
+        )
+        if not target_obj:
+            caller.msg(f"You don't see '{obj_str}' here.")
             return
 
         # Must be a hidden-type object
@@ -89,8 +78,11 @@ class CmdShow(FCMCommandMixin, Command):
             return
 
         # Find the target character in the room
-        target_char = caller.search(char_str, location=room)
+        target_char = resolve_character_in_room(caller, char_str)
         if not target_char:
+            caller.msg(
+                f"You don't see a character called '{char_str}' here."
+            )
             return
 
         # Can't show to yourself
@@ -98,14 +90,8 @@ class CmdShow(FCMCommandMixin, Command):
             caller.msg("You already know about that.")
             return
 
-        # Target must have a character_key (i.e. be a player character or NPC)
-        char_key = target_obj._get_character_key(target_char)
-        if not char_key:
-            caller.msg("You can only show things to other characters.")
-            return
-
         # Check if target has already discovered it
-        if char_key in set(target_obj.discovered_by):
+        if target_char.key in set(target_obj.discovered_by):
             caller.msg(
                 f"{target_char.key} has already found {target_obj.key}."
             )
@@ -113,7 +99,7 @@ class CmdShow(FCMCommandMixin, Command):
 
         # Add target to discovered_by set
         discovered = set(target_obj.discovered_by)
-        discovered.add(char_key)
+        discovered.add(target_char.key)
         target_obj.discovered_by = discovered
 
         # Messages
