@@ -56,6 +56,7 @@ class TestPickpocketGates(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.BASIC)
         self.char2.db.gold = 100
         self.char2.db.resources = {}
@@ -72,7 +73,7 @@ class TestPickpocketGates(EvenniaCommandTest):
 
     def test_self_target(self):
         _pre_case(self.char1, self.char1)
-        self.call(CmdPickpocket(), "gold from Char", "You can't pickpocket yourself.")
+        self.call(CmdPickpocket(), "gold from me", "You can't pickpocket yourself.")
 
     def test_unskilled_blocked(self):
         _set_subterfuge(self.char1, MasteryLevel.UNSKILLED)
@@ -108,6 +109,13 @@ class TestPickpocketGates(EvenniaCommandTest):
         _pre_case(self.char1, self.char2, gold_visible=False)
         self.call(CmdPickpocket(), "gold from Char2", "You didn't spot any gold")
 
+    def test_darkness_blocks(self):
+        """Pickpocket in darkness should fail."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        _pre_case(self.char1, self.char2)
+        self.call(CmdPickpocket(), "gold from Char2", "It's too dark")
+
 
 # ── Success ───────────────────────────────────────────────────────
 
@@ -122,6 +130,7 @@ class TestPickpocketSuccess(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.SKILLED)
         self.char2.db.gold = 100
         self.char2.db.resources = {}
@@ -220,6 +229,7 @@ class TestPickpocketFailure(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.BASIC)
         self.char2.db.gold = 100
         self.char2.db.resources = {}
