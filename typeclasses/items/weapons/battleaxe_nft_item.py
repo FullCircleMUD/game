@@ -238,6 +238,7 @@ class BattleaxeNFTItem(BattleaxeMixin, WeaponNFTItem):
     """
 
     size = AttributeProperty(Size.MEDIUM.value)
+    min_size = AttributeProperty(Size.MEDIUM.value)
 
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC, CharacterClass.THIEF,

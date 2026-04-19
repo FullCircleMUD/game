@@ -75,28 +75,34 @@ class FCMCharacter(
         Items the character no longer qualifies for are forcibly removed.
         """
         self.alignment_score = max(-1000, min(1000, self.alignment_score + amount))
-        self._check_alignment_equipment()
+        self._check_equipment_restrictions()
 
-    def _check_alignment_equipment(self):
+    def _check_equipment_restrictions(self):
         """Remove any equipped items the character no longer qualifies for."""
+        if getattr(self, "_checking_equipment", False):
+            return  # prevent recursion from remove → recalculate → check
         if not hasattr(self, "get_all_worn"):
             return
-        for slot, item in list(self.get_all_worn().items()):
-            if item is None:
-                continue
-            if not hasattr(item, "can_use"):
-                continue
-            allowed, _ = item.can_use(self)
-            if not allowed:
-                self.remove(item)
-                self.msg(
-                    f"|rYou are zapped by {item.key} and instantly let go of it!|n"
-                )
-                if self.location:
-                    self.location.msg_contents(
-                        f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
-                        exclude=[self],
+        self._checking_equipment = True
+        try:
+            for slot, item in list(self.get_all_worn().items()):
+                if item is None:
+                    continue
+                if not hasattr(item, "can_use"):
+                    continue
+                allowed, _ = item.can_use(self)
+                if not allowed:
+                    self.remove(item)
+                    self.msg(
+                        f"|rYou are zapped by {item.key} and instantly let go of it!|n"
                     )
+                    if self.location:
+                        self.location.msg_contents(
+                            f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
+                            exclude=[self],
+                        )
+        finally:
+            self._checking_equipment = False
 
     # Size thresholds for room access — large+ can't enter indoor rooms
     _INDOOR_MAX_SIZE = size_value(Size.MEDIUM)  # large and above are blocked

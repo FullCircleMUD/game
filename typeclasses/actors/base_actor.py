@@ -332,6 +332,8 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
 
         # 5. Post-recalculate checks
         self._check_encumbrance_consequences()
+        if hasattr(self, '_check_equipment_restrictions'):
+            self._check_equipment_restrictions()
 
     def _accumulate_effect(self, effect):
         """
