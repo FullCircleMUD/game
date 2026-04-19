@@ -18,8 +18,9 @@ Usage:
                         out of combat: flail awkwardly
 """
 
-from combat.combat_utils import enter_combat, get_sides
+from combat.combat_utils import enter_combat, get_actor_size, get_sides
 from enums.mastery_level import MasteryLevel
+from enums.size import size_value
 from enums.skills_enum import skills
 from utils.dice_roller import dice
 from utils.targeting.helpers import (
@@ -160,6 +161,15 @@ class CmdPummel(CmdSkillBase):
         _, enemies = get_sides(caller)
         if target not in enemies:
             caller.msg(f"{target.key} is not an enemy.")
+            return
+
+        # ── Size gate: can only pummel targets up to 1 size larger ──
+        caller_size = get_actor_size(caller)
+        target_size = get_actor_size(target)
+        if size_value(target_size) > size_value(caller_size) + 1:
+            caller.msg(
+                f"|y{target.key} is too large for you to stun!|n"
+            )
             return
 
         # ── Cooldown check ──
