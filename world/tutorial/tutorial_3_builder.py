@@ -202,7 +202,7 @@ def build_tutorial_3(instance):
         attributes=[
             ("desc",
              "A small stone fountain bubbles with clear water. You "
-             "could refill a water container here with |wrefill canteen fountain|n."),
+             "could refill a water container here with |wrefill canteen from fountain|n."),
         ],
     )
     fountain.db.tutorial_item = True

@@ -579,14 +579,14 @@ def build_tutorial_1(instance):
         "When DRY, health regeneration halts.\n"
         "When CRITICAL, you take damage and will die!\n\n"
         "  |wget canteen|n — Pick up the canteen.\n"
-        "  |wrefill canteen fountain|n — Fill it at a fountain (5 drinks).\n"
+        "  |wrefill canteen from fountain|n — Fill it at a fountain (5 drinks).\n"
         "  |wdrink canteen|n — Take a drink (restores one thirst stage).\n"
         "  |wscore|n — Shows your current thirst level.\n\n"
         "Canteens are refillable at any fountain in the world. "
         "Keep one in your inventory and refill whenever you find water.\n\n"
         "|yPractice:|n\n"
         "  Pick up the canteen: |wget canteen|n\n"
-        "  Fill it: |wrefill canteen fountain|n\n"
+        "  Fill it: |wrefill canteen from fountain|n\n"
         "  Take a drink: |wdrink canteen|n\n"
         "  Check your thirst: |wscore|n\n"
         "  Move |weast|n when ready.",
@@ -594,7 +594,7 @@ def build_tutorial_1(instance):
             "Teach the thirst system. Characters get thirsty over time, "
             "parallel to hunger. REFRESHED is full, DRY halts regen, "
             "CRITICAL causes death. |wget canteen|n picks up the canteen, "
-            "|wrefill canteen fountain|n fills it at the fountain (5 drinks), "
+            "|wrefill canteen from fountain|n fills it at the fountain (5 drinks), "
             "|wdrink canteen|n takes a drink restoring one thirst stage. "
             "|wscore|n shows thirst level. Canteens are refillable at "
             "any fountain. Suggest they pick up the canteen, fill it, "
@@ -614,7 +614,7 @@ def build_tutorial_1(instance):
             ("desc",
              "A stone fountain fed by a natural spring. Clear, cold water "
              "flows steadily. You can refill a water container here with "
-             "|wrefill canteen fountain|n."),
+             "|wrefill canteen from fountain|n."),
         ],
     )
     fountain.db.tutorial_item = True

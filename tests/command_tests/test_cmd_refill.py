@@ -47,16 +47,16 @@ class TestCmdRefill(EvenniaCommandTest):
         return canteen
 
     def test_refill_success(self):
-        """refill canteen fountain should fill the canteen."""
+        """refill canteen from fountain should fill the canteen."""
         canteen = self._make_canteen(current=1)
-        result = self.call(CmdRefill(), "canteen fountain")
+        result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("refill", result.lower())
         self.assertEqual(canteen.current, canteen.max_capacity)
 
     def test_refill_already_full(self):
         """refill a full canteen should fail."""
         self._make_canteen(current=5)
-        result = self.call(CmdRefill(), "canteen fountain")
+        result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("already full", result.lower())
 
     def test_no_args(self):
@@ -74,7 +74,7 @@ class TestCmdRefill(EvenniaCommandTest):
         """refill with no water source should error."""
         self._make_canteen()
         self.fountain.delete()
-        result = self.call(CmdRefill(), "canteen fountain")
+        result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("don't see", result)
 
     def test_non_water_source(self):
@@ -86,7 +86,7 @@ class TestCmdRefill(EvenniaCommandTest):
             location=self.room1,
             nohome=True,
         )
-        result = self.call(CmdRefill(), "canteen pedestal")
+        result = self.call(CmdRefill(), "canteen from pedestal")
         self.assertIn("can't refill from", result)
 
     def test_non_water_container(self):
@@ -100,12 +100,12 @@ class TestCmdRefill(EvenniaCommandTest):
                 nohome=True,
             )
             sword.token_id = 9302
-        result = self.call(CmdRefill(), "sword fountain")
+        result = self.call(CmdRefill(), "sword from fountain")
         self.assertIn("can't refill", result)
 
     def test_container_not_in_inventory(self):
         """refill a container not in inventory should error."""
-        result = self.call(CmdRefill(), "canteen fountain")
+        result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("don't see", result)
 
     def test_darkness_blocks(self):
@@ -113,5 +113,5 @@ class TestCmdRefill(EvenniaCommandTest):
         self._make_canteen()
         self.room1.always_lit = False
         self.room1.natural_light = False
-        result = self.call(CmdRefill(), "canteen fountain")
+        result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("too dark", result)

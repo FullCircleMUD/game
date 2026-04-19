@@ -2,8 +2,8 @@
 Refill command — top up a water container from a water source in the room.
 
 Usage:
-    refill <container> <source>
-    fill <container> <source>
+    refill <container> from <source>
+    fill <container> from <source>
 
 Both arguments are required. The container must be a water container
 in inventory, the source must be a water source fixture in the room
@@ -22,12 +22,12 @@ class CmdRefill(FCMCommandMixin, Command):
     Refill a water container from a water source in the room.
 
     Usage:
-        refill <container> <source>
-        fill <container> <source>
+        refill <container> from <source>
+        fill <container> from <source>
 
     Examples:
-        refill canteen fountain
-        fill waterskin well
+        refill canteen from fountain
+        fill waterskin from well
     """
 
     key = "refill"
@@ -36,15 +36,20 @@ class CmdRefill(FCMCommandMixin, Command):
     help_category = "Items"
 
     def parse(self):
-        parts = self.args.strip().split(None, 1)
-        self.container_name = parts[0] if parts else ""
-        self.source_name = parts[1] if len(parts) > 1 else ""
+        args = self.args.strip()
+        if " from " in args:
+            container, source = args.split(" from ", 1)
+            self.container_name = container.strip()
+            self.source_name = source.strip()
+        else:
+            self.container_name = args
+            self.source_name = ""
 
     def func(self):
         caller = self.caller
 
         if not self.container_name or not self.source_name:
-            caller.msg("Usage: refill <container> <source>")
+            caller.msg("Usage: refill <container> from <source>")
             return
 
         room = caller.location
