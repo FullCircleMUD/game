@@ -1,16 +1,23 @@
 """
 FountainFixture — a permanent water source in the world.
 
-Used for town fountains, public wells, and any other fixture that lets
-players refill their water containers. The `refill` command finds these
-in the room via `is_water_source = True`.
+Covers any flavour of water source: town fountains, wells, streams,
+springs, waterfalls, cisterns, etc. The key, aliases, and description
+are set per-instance at creation time so a single class works for all.
 
-Builders create them with:
-    @create/drop a stone fountain:typeclasses.world_objects.fountain_fixture.FountainFixture
+The ``refill`` command finds these in the room via
+``is_water_source = True``.
 
-Future natural water sources (rivers, wells, springs) can either be
-FountainFixture instances or any other fixture that exposes
-`is_water_source = True`. The command surface only checks the marker.
+Example builder usage::
+
+    create_object(
+        FountainFixture,
+        key="a babbling creek",
+        aliases=["creek", "stream", "water"],
+        location=room,
+        nohome=True,
+    )
+    obj.db.desc = "A shallow creek flows over smooth stones..."
 """
 
 from evennia import AttributeProperty
@@ -32,6 +39,6 @@ class FountainFixture(WorldFixture):
         self.tags.add("water_source", category="fixture_type")
         if not self.db.desc:
             self.db.desc = (
-                "A stone fountain bubbles with clear, cold water. "
+                "A source of fresh water. "
                 "You could refill a water container here."
             )

@@ -459,6 +459,7 @@ def build_millholm_town(one_way_limbo=False):
     create_object(
         FountainFixture,
         key="a stone fountain",
+        aliases=["fountain", "water"],
         location=rooms["sq_ne"],
     )
 
