@@ -14,6 +14,8 @@ import time
 
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 from .cmd_skill_base import CmdSkillBase
 
@@ -87,9 +89,21 @@ class CmdTame(CmdSkillBase):
             caller.msg("Tame what? Usage: tame <animal>")
             return
 
-        target = caller.search(self.args.strip(), location=caller.location)
+        room = caller.location
+        if not room:
+            return
+
+        # Darkness — can't approach what you can't see
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        target, _ = resolve_target(
+            caller, self.args.strip(), "actor_hostile",
+            extra_predicates=(p_can_see,),
+        )
         if not target:
-            return  # search() already sent "Could not find" message
+            return  # actor resolver already messaged
 
         # ── Validate tameable ──
         if not getattr(target.db, "tameable", False):
