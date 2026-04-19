@@ -250,8 +250,8 @@ def _clear_dungeon_instances():
 
 def _restart_corpse_timers():
     """
-    Find all Corpse objects and restart their unlock/despawn timers
-    based on persisted timestamps.
+    Find all Corpse and QuitDrop objects and restart their unlock/despawn
+    timers based on persisted timestamps.
     """
     from evennia import logger
     from evennia.objects.models import ObjectDB
@@ -261,6 +261,8 @@ def _restart_corpse_timers():
     corpse_count = 0
     for obj in ObjectDB.objects.filter(
         db_typeclass_path__contains="corpse"
+    ) | ObjectDB.objects.filter(
+        db_typeclass_path__contains="quit_drop"
     ):
         if not isinstance(obj, Corpse):
             continue
