@@ -227,14 +227,16 @@ class NamedEffect(Enum):
     #########################################################
     # Divination / Perception
     #########################################################
-    # APPLIED: true_sight.py (_execute) — divination self-buff
+    # APPLIED: true_sight.py (_execute) — both True Sight (Divination) and
+    #   Holy Sight (Divine Revelation) spells apply this. Holy Sight is a
+    #   thin subclass of TrueSight, identical except for school/name/flavour.
     # CHECKED: has_effect("true_sight") for hidden detection in room_base.py,
-    #   hidden_object.py. Also sets Condition.DETECT_INVIS for
-    #   invisible detection (existing infrastructure handles that).
-    # DURATION: 5-60 minutes (mastery-scaled: SKILLED=5min, GM=60min).
+    #   hidden_object.py, cmd_scan.py.
+    # DURATION: 30-120 minutes (mastery-scaled: SKILLED=30min, GM=120min).
     #   duration_type="seconds" — EffectTimerScript handles expiry.
-    # Dual-system: named effect for hidden detection + condition for invisible.
     # Does NOT remove HIDDEN from targets — only lets the caster see them.
+    # Anti-stacking: shared between both spells (you can't have True Sight
+    # and Holy Sight active at once — they grant the same capability).
     TRUE_SIGHT = "true_sight"
 
     # APPLIED: detection potion (alchemy), future detect_invis spell
@@ -243,14 +245,6 @@ class NamedEffect(Enum):
     # Condition flag only (Condition.DETECT_INVIS) — no stat impact.
     # NO anti-stacking needed — condition is ref-counted boolean flag.
     DETECT_INVIS = "detect_invis"
-
-    # APPLIED: holy_sight.py (_execute) — divine revelation self-buff
-    # CHECKED: has_effect("holy_sight") for hidden detection (MASTER+) in
-    #   room_base.py, hidden_object.py. Also sets Condition.DETECT_INVIS
-    #   at EXPERT+ (earlier than True Sight's MASTER+).
-    # DURATION: 5-60 minutes (mastery-scaled, same as True Sight).
-    # Tier order differs from True Sight: traps → invis → hidden.
-    HOLY_SIGHT = "holy_sight"
 
     #########################################################
     # Illusion / Evasion
@@ -426,7 +420,6 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.BLURRED: "Your image shimmers and distorts, making you harder to hit!",
     NamedEffect.TRUE_SIGHT: "Your eyes tingle with magical energy. The world reveals its secrets to you.",
     NamedEffect.DETECT_INVIS: "Your vision sharpens and the unseen becomes visible.",
-    NamedEffect.HOLY_SIGHT: "Divine light fills your vision. The sacred reveals what is concealed.",
     NamedEffect.INVISIBLE: "Your body shimmers and fades from sight.",
     NamedEffect.OFFENSIVE_STANCE: "You shift to an aggressive fighting stance!",
     NamedEffect.DEFENSIVE_STANCE: "You shift to a defensive fighting stance!",
@@ -470,7 +463,6 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.BLURRED: "Your image solidifies and you become easy to see again.",
     NamedEffect.TRUE_SIGHT: "The magical sight fades and the world's secrets are hidden once more.",
     NamedEffect.DETECT_INVIS: "Your sharpened vision fades and the unseen slips from sight.",
-    NamedEffect.HOLY_SIGHT: "The divine light fades from your vision and the world grows dim once more.",
     NamedEffect.INVISIBLE: "Your body shimmers back into view.",
     NamedEffect.OFFENSIVE_STANCE: "You return to your normal fighting stance.",
     NamedEffect.DEFENSIVE_STANCE: "You return to your normal fighting stance.",
@@ -514,7 +506,6 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.BLURRED: "{name}'s image shimmers and distorts, making them harder to hit!",
     NamedEffect.TRUE_SIGHT: "{name}'s eyes begin to glow with a faint magical light.",
     NamedEffect.DETECT_INVIS: "{name}'s eyes sharpen with an unnatural awareness.",
-    NamedEffect.HOLY_SIGHT: "{name}'s eyes begin to glow with a warm divine light.",
     NamedEffect.INVISIBLE: "{name}'s body shimmers and fades from sight.",
     NamedEffect.OFFENSIVE_STANCE: "{name} shifts to an aggressive fighting stance!",
     NamedEffect.DEFENSIVE_STANCE: "{name} shifts to a defensive fighting stance!",
@@ -558,7 +549,6 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.BLURRED: "{name}'s image solidifies and they become easy to see again.",
     NamedEffect.TRUE_SIGHT: "The magical glow fades from {name}'s eyes.",
     NamedEffect.DETECT_INVIS: "The sharpness fades from {name}'s gaze.",
-    NamedEffect.HOLY_SIGHT: "The divine glow fades from {name}'s eyes.",
     NamedEffect.INVISIBLE: "{name}'s body shimmers back into view.",
     NamedEffect.OFFENSIVE_STANCE: "{name} returns to a normal fighting stance.",
     NamedEffect.DEFENSIVE_STANCE: "{name} returns to a normal fighting stance.",
@@ -644,7 +634,6 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.SHADOWCLOAKED: "seconds",
     NamedEffect.TRUE_SIGHT: "seconds",
     NamedEffect.DETECT_INVIS: "seconds",
-    NamedEffect.HOLY_SIGHT: "seconds",
     NamedEffect.RESIST_FIRE: "seconds",
     NamedEffect.RESIST_COLD: "seconds",
     NamedEffect.RESIST_LIGHTNING: "seconds",

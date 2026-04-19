@@ -44,13 +44,24 @@ class TrueSight(Spell):
     # Duration in minutes per tier
     _DURATION_MINUTES = {2: 30, 3: 60, 4: 90, 5: 120}
 
+    # Flavour strings — subclasses override for school-specific wording.
+    _ALREADY_ACTIVE_MSG = "Your True Sight is already active."
+    _CAST_FIRST_MSG = (
+        "|MYour eyes tingle with magical energy. "
+        "You can now see hidden things! "
+        "({duration_minutes} {min_s})|n"
+    )
+    _CAST_THIRD_MSG = (
+        "|M{caster_key}'s eyes begin to glow with a faint magical light.|n"
+    )
+
     def _execute(self, caster, target):
         # Anti-stacking — can't recast while active
         if caster.has_effect("true_sight"):
             tier = self.get_caster_tier(caster)
             caster.mana += self.mana_cost.get(tier, 0)
             return (False, {
-                "first": "Your True Sight is already active.",
+                "first": self._ALREADY_ACTIVE_MSG,
                 "second": None,
                 "third": None,
             })
@@ -59,20 +70,13 @@ class TrueSight(Spell):
         duration_minutes = self._DURATION_MINUTES.get(tier, 30)
         duration_seconds = duration_minutes * 60
 
-        # No DETECT_INVIS — true sight only pierces physical concealment
         caster.apply_true_sight(duration_seconds, detect_invis=False)
 
-        # Build message
         min_s = "minute" if duration_minutes == 1 else "minutes"
         return (True, {
-            "first": (
-                f"|MYour eyes tingle with magical energy. "
-                f"You can now see hidden things! "
-                f"({duration_minutes} {min_s})|n"
+            "first": self._CAST_FIRST_MSG.format(
+                duration_minutes=duration_minutes, min_s=min_s,
             ),
             "second": None,  # self-cast
-            "third": (
-                f"|M{caster.key}'s eyes begin to glow with a faint "
-                f"magical light.|n"
-            ),
+            "third": self._CAST_THIRD_MSG.format(caster_key=caster.key),
         })

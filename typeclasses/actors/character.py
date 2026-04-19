@@ -393,20 +393,9 @@ class FCMCharacter(
         Checks all objects, exits, and the room itself for armed,
         undetected traps. If passive perception (10 + bonus) meets
         or exceeds the trap's find_dc, the trap is auto-detected.
-
-        True Sight at EXPERT+ tier auto-detects all traps regardless
-        of perception (magical sight pierces all concealment).
         """
         room = self.location
         passive_dc = 10 + self.effective_perception_bonus
-
-        # True Sight EXPERT+ or Holy Sight SKILLED+ auto-detects traps
-        true_sight_detects_traps = (
-            (self.has_effect("true_sight")
-             and (self.db.true_sight_tier or 0) >= 3)  # True Sight EXPERT+
-            or (self.has_effect("holy_sight")
-                and (self.db.holy_sight_tier or 0) >= 2)  # Holy Sight SKILLED+
-        )
 
         # Check objects and exits in the room
         for obj in list(room.contents) + list(room.exits):
@@ -417,7 +406,7 @@ class FCMCharacter(
                 and obj.trap_armed
                 and hasattr(obj, "trap_detected")
                 and not obj.trap_detected
-                and (true_sight_detects_traps or passive_dc >= obj.trap_find_dc)
+                and passive_dc >= obj.trap_find_dc
             ):
                 obj.detect_trap(self)
 
@@ -429,7 +418,7 @@ class FCMCharacter(
             and room.trap_armed
             and hasattr(room, "trap_detected")
             and not room.trap_detected
-            and (true_sight_detects_traps or passive_dc >= room.trap_find_dc)
+            and passive_dc >= room.trap_find_dc
         ):
             room.detect_trap(self)
 

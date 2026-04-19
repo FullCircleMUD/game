@@ -3,12 +3,10 @@ Tests for the divine revelation spell school.
 
 Tests:
     - Holy Insight: divine sight, alignment/evil/undead detection, actor identification
-    - Holy Sight: self-buff, tiered visibility (traps/invisible/hidden), anti-stacking
+    - Holy Sight: self-buff (Divine Revelation flavour of True Sight)
 
 evennia test --settings settings tests.spell_tests.test_divine_revelation
 """
-
-from unittest.mock import patch
 
 from evennia.utils.create import create_object
 from evennia.utils.test_resources import EvenniaTest
@@ -72,10 +70,11 @@ class TestHolyInsight(EvenniaTest):
 
 
 class TestHolySight(EvenniaTest):
-    """Tests for the Holy Sight spell (divine revelation self-buff).
+    """Tests for Holy Sight — Divine Revelation flavour of True Sight.
 
-    Holy Sight mirrors True Sight with different tier unlock order:
-        SKILLED: traps, EXPERT: +invisible, MASTER: +hidden.
+    Holy Sight is a thin subclass of TrueSight: same capability (see HIDDEN),
+    same mana cost, same duration scaling, same `true_sight` named effect.
+    Only school, name, and flavour wording differ.
     """
 
     def create_script(self):
@@ -91,120 +90,39 @@ class TestHolySight(EvenniaTest):
 
     def test_registered(self):
         """Holy Sight should be in the spell registry."""
+        self.assertIn("holy_sight", SPELL_REGISTRY)
         self.assertIsNotNone(self.spell)
 
     def test_attributes(self):
-        """Spell should have correct key, school, min_mastery."""
+        """Spell should have correct key, school, min_mastery, target."""
         self.assertEqual(self.spell.key, "holy_sight")
+        self.assertEqual(self.spell.name, "Holy Sight")
         self.assertEqual(self.spell.school, skills.DIVINE_REVELATION)
         self.assertEqual(self.spell.min_mastery, MasteryLevel.SKILLED)
         self.assertEqual(self.spell.target_type, "self")
 
-    # --- Named effect ---
+    # --- Named effect (shared with True Sight) ---
 
-    def test_applies_named_effect(self):
-        """Casting should create a holy_sight named effect on caster."""
+    def test_applies_true_sight_effect(self):
+        """Casting should apply the shared `true_sight` named effect."""
         success, result = self.spell.cast(self.char1, self.char1)
         self.assertTrue(success)
-        self.assertTrue(self.char1.has_effect("holy_sight"))
+        self.assertTrue(self.char1.has_effect("true_sight"))
 
-    def test_tier_stored(self):
-        """Caster tier should be stored in db.holy_sight_tier on cast."""
-        self.spell.cast(self.char1, self.char1)
-        self.assertEqual(self.char1.db.holy_sight_tier, 2)
-
-    def test_tier_stored_expert(self):
-        """EXPERT tier should store tier 3."""
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
-        self.spell.cast(self.char1, self.char1)
-        self.assertEqual(self.char1.db.holy_sight_tier, 3)
-
-    # --- DETECT_INVIS tiering (EXPERT+, not MASTER+ like True Sight) ---
-
-    def test_skilled_no_detect_invis(self):
-        """SKILLED Holy Sight should NOT grant DETECT_INVIS."""
-        self.spell.cast(self.char1, self.char1)
-        self.assertFalse(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_expert_grants_detect_invis(self):
-        """EXPERT Holy Sight SHOULD grant DETECT_INVIS (earlier than True Sight)."""
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
-        self.spell.cast(self.char1, self.char1)
-        self.assertTrue(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_master_grants_detect_invis(self):
-        """MASTER Holy Sight SHOULD grant DETECT_INVIS."""
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 4}
-        self.spell.cast(self.char1, self.char1)
-        self.assertTrue(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_remove_clears_detect_invis(self):
-        """Removing EXPERT Holy Sight should remove DETECT_INVIS."""
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
-        self.spell.cast(self.char1, self.char1)
-        self.assertTrue(self.char1.has_condition(Condition.DETECT_INVIS))
-        self.char1.remove_named_effect("holy_sight")
-        self.assertFalse(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    # --- Trap detection tiering (SKILLED+, not EXPERT+ like True Sight) ---
-
-    def test_skilled_auto_detects_traps_on_cast(self):
-        """SKILLED Holy Sight should call _detect_traps_in_room on cast."""
-        with patch.object(self.spell, "_detect_traps_in_room") as mock_detect:
+    def test_no_detect_invis_at_any_tier(self):
+        """Holy Sight should NOT grant DETECT_INVIS at any tier (parity with True Sight)."""
+        for tier in (2, 3, 4, 5):
+            if self.char1.has_effect("true_sight"):
+                self.char1.remove_named_effect("true_sight")
+            self.char1.db.class_skill_mastery_levels = {"divine_revelation": tier}
+            self.char1.mana = 100
             self.spell.cast(self.char1, self.char1)
-            mock_detect.assert_called_once_with(self.char1)
+            self.assertFalse(
+                self.char1.has_condition(Condition.DETECT_INVIS),
+                f"Tier {tier} should NOT grant DETECT_INVIS",
+            )
 
-    def test_expert_auto_detects_traps_on_cast(self):
-        """EXPERT Holy Sight should also call _detect_traps_in_room."""
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
-        with patch.object(self.spell, "_detect_traps_in_room") as mock_detect:
-            self.spell.cast(self.char1, self.char1)
-            mock_detect.assert_called_once_with(self.char1)
-
-    # --- HIDDEN visibility tiering (MASTER+, not SKILLED+ like True Sight) ---
-
-    def test_skilled_cannot_see_hidden(self):
-        """SKILLED Holy Sight should NOT reveal HIDDEN characters."""
-        from evennia.utils.create import create_object
-        from typeclasses.terrain.rooms.room_base import RoomBase
-        room = create_object(RoomBase, key="TestRoom", nohome=True)
-        room.always_lit = True
-        self.char1.location = room
-        self.char2.location = room
-        self.spell.cast(self.char1, self.char1)
-        self.char2.add_condition(Condition.HIDDEN)
-        display = room.get_display_characters(self.char1)
-        self.assertNotIn(self.char2.key, display)
-
-    def test_expert_cannot_see_hidden(self):
-        """EXPERT Holy Sight should NOT reveal HIDDEN characters."""
-        from evennia.utils.create import create_object
-        from typeclasses.terrain.rooms.room_base import RoomBase
-        room = create_object(RoomBase, key="TestRoom", nohome=True)
-        room.always_lit = True
-        self.char1.location = room
-        self.char2.location = room
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
-        self.spell.cast(self.char1, self.char1)
-        self.char2.add_condition(Condition.HIDDEN)
-        display = room.get_display_characters(self.char1)
-        self.assertNotIn(self.char2.key, display)
-
-    def test_master_can_see_hidden(self):
-        """MASTER Holy Sight SHOULD reveal HIDDEN characters."""
-        from evennia.utils.create import create_object
-        from typeclasses.terrain.rooms.room_base import RoomBase
-        room = create_object(RoomBase, key="TestRoom", nohome=True)
-        room.always_lit = True
-        self.char1.location = room
-        self.char2.location = room
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 4}
-        self.spell.cast(self.char1, self.char1)
-        self.char2.add_condition(Condition.HIDDEN)
-        display = room.get_display_characters(self.char1)
-        self.assertIn(self.char2.key, display)
-
-    # --- Anti-stacking ---
+    # --- Anti-stacking (shared `true_sight` effect, so cross-school anti-stacks too) ---
 
     def test_anti_stacking_refunds_mana(self):
         """Recasting while active should fail and refund mana."""
@@ -214,14 +132,14 @@ class TestHolySight(EvenniaTest):
         self.assertFalse(success)
         self.assertEqual(self.char1.mana, mana_after_first)
 
-    # --- Duration and mana scaling ---
+    # --- Duration and mana scaling (matches True Sight) ---
 
     def test_duration_scales_with_tier(self):
-        """Duration should scale: SKILLED=5min, EXPERT=10min, MASTER=30min, GM=60min."""
-        expected_minutes = {2: 5, 3: 10, 4: 30, 5: 60}
+        """Duration should scale: SKILLED=30, EXPERT=60, MASTER=90, GM=120."""
+        expected_minutes = {2: 30, 3: 60, 4: 90, 5: 120}
         for tier, minutes in expected_minutes.items():
-            if self.char1.has_effect("holy_sight"):
-                self.char1.remove_named_effect("holy_sight")
+            if self.char1.has_effect("true_sight"):
+                self.char1.remove_named_effect("true_sight")
             self.char1.db.class_skill_mastery_levels = {"divine_revelation": tier}
             self.char1.mana = 100
             success, result = self.spell.cast(self.char1, self.char1)
@@ -230,11 +148,11 @@ class TestHolySight(EvenniaTest):
                           f"Tier {tier} message should mention {minutes}")
 
     def test_mana_cost_scales_with_tier(self):
-        """Mana cost: SKILLED=15, EXPERT=25, MASTER=40, GM=40."""
-        expected = {2: 15, 3: 25, 4: 40, 5: 40}
+        """Mana cost: SKILLED=5, EXPERT=10, MASTER=15, GM=20."""
+        expected = {2: 5, 3: 10, 4: 15, 5: 20}
         for tier, cost in expected.items():
-            if self.char1.has_effect("holy_sight"):
-                self.char1.remove_named_effect("holy_sight")
+            if self.char1.has_effect("true_sight"):
+                self.char1.remove_named_effect("true_sight")
             self.char1.db.class_skill_mastery_levels = {"divine_revelation": tier}
             self.char1.mana = 100
             self.spell.cast(self.char1, self.char1)
@@ -258,7 +176,7 @@ class TestHolySight(EvenniaTest):
 
     def test_not_enough_mana(self):
         """Should fail with insufficient mana."""
-        self.char1.mana = 14
+        self.char1.mana = 4
         success, msg = self.spell.cast(self.char1, self.char1)
         self.assertFalse(success)
         self.assertIn("mana", msg.lower())
@@ -274,29 +192,48 @@ class TestHolySight(EvenniaTest):
         self.assertIsNone(result["second"])
         self.assertIn("third", result)
 
-    def test_message_reflects_tier_capabilities(self):
-        """Cast message should describe what this tier reveals."""
-        # SKILLED — traps only
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertIn("traps", result["first"])
-        self.assertNotIn("invisible", result["first"])
-
-        # EXPERT — traps and invisible
-        self.char1.remove_named_effect("holy_sight")
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 3}
-        self.char1.mana = 100
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertIn("invisible", result["first"])
-
-        # MASTER — traps, invisible, and hidden
-        self.char1.remove_named_effect("holy_sight")
-        self.char1.db.class_skill_mastery_levels = {"divine_revelation": 4}
-        self.char1.mana = 100
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertIn("hidden", result["first"])
+    def test_message_says_hidden_things(self):
+        """Cast message should say 'hidden things' at all tiers."""
+        for tier in (2, 3, 4, 5):
+            if self.char1.has_effect("true_sight"):
+                self.char1.remove_named_effect("true_sight")
+            self.char1.db.class_skill_mastery_levels = {"divine_revelation": tier}
+            self.char1.mana = 100
+            success, result = self.spell.cast(self.char1, self.char1)
+            self.assertIn("hidden things", result["first"],
+                          f"Tier {tier} message should mention hidden things")
+            self.assertNotIn("traps", result["first"],
+                             f"Tier {tier} should NOT mention traps")
+            self.assertNotIn("invisible", result["first"],
+                             f"Tier {tier} should NOT mention invisible")
 
     def test_divine_themed_messages(self):
-        """Messages should reference divine light, not magical energy."""
+        """Messages should reference divine light (school flavour)."""
         success, result = self.spell.cast(self.char1, self.char1)
         self.assertIn("divine", result["first"].lower())
         self.assertIn("divine", result["third"].lower())
+
+    # --- Hidden visibility (parity with True Sight) ---
+
+    def test_hidden_character_visible_with_holy_sight(self):
+        """A character with Holy Sight should see HIDDEN characters in room display."""
+        from typeclasses.terrain.rooms.room_base import RoomBase
+        room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
+        self.char1.location = room
+        self.char2.location = room
+        self.spell.cast(self.char1, self.char1)
+        self.char2.add_condition(Condition.HIDDEN)
+        display = room.get_display_characters(self.char1)
+        self.assertIn(self.char2.key, display)
+
+    def test_hidden_character_not_visible_without_holy_sight(self):
+        """A character without Holy Sight should NOT see HIDDEN characters."""
+        from typeclasses.terrain.rooms.room_base import RoomBase
+        room = create_object(RoomBase, key="TestRoom", nohome=True)
+        room.always_lit = True
+        self.char1.location = room
+        self.char2.location = room
+        self.char2.add_condition(Condition.HIDDEN)
+        display = room.get_display_characters(self.char1)
+        self.assertNotIn(self.char2.key, display)
