@@ -24,6 +24,7 @@ class CmdDrinkTestBase(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
         self.char1.thirst_level = ThirstLevel.THIRSTY
 
     def _make_canteen(self):

@@ -403,7 +403,7 @@ class TestCmdCraftEnchantRuby(EvenniaCommandTest):
                                             mock_roll, mock_delay):
         """Success message should use 'enchant' verb."""
         mock_assign.return_value = TOKEN_ID
-        mock_spawn.return_value = MagicMock()
+        mock_spawn.return_value = MagicMock(key="Enchanted Ruby")
         mock_roll.side_effect = [_RUBY_BASIC_EFFECTS[0], "none"]
 
         result = self.call(CmdCraft(), "enchanted ruby", inputs=["y"])
@@ -552,7 +552,7 @@ class TestCmdCraftEnchantAlias(EvenniaCommandTest):
                                   mock_roll, mock_delay):
         """'enchant ruby' should work via the enchant alias."""
         mock_assign.return_value = TOKEN_ID
-        mock_spawn.return_value = MagicMock()
+        mock_spawn.return_value = MagicMock(key="Enchanted Ruby")
         mock_roll.side_effect = [_RUBY_BASIC_EFFECTS[0], "none"]
 
         result = self.call(CmdCraft(), "enchanted ruby", cmdstring="enchant",
