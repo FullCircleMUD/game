@@ -17,7 +17,6 @@ import random
 import time
 
 from blockchain.xrpl.currency_cache import get_resource_type
-from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
@@ -110,11 +109,6 @@ class CmdCase(CmdSkillBase):
         # Can't case in combat
         if caller.scripts.get("combat_handler"):
             caller.msg("You can't case someone while in combat!")
-            return
-
-        # Can't case hidden targets
-        if hasattr(target, "has_condition") and target.has_condition(Condition.HIDDEN):
-            caller.msg("You can't see them well enough to case them.")
             return
 
         # Mastery check — UNSKILLED can't case

@@ -56,10 +56,11 @@ class TestCaseGates(EvenniaCommandTest):
         self.char1.scripts.add(CombatHandler, autostart=False)
         self.call(CmdCase(), "Char2", "You can't case someone while in combat!")
 
-    def test_hidden_target_blocked(self):
-        """Can't case a hidden target."""
+    def test_hidden_target_not_found(self):
+        """HIDDEN targets filtered by p_can_see — not found."""
         self.char2.add_condition(Condition.HIDDEN)
-        self.call(CmdCase(), "Char2", "You can't see them well enough")
+        result = self.call(CmdCase(), "Char2")
+        self.assertIn("no 'Char2' here", result)
 
     def test_darkness_blocks(self):
         """Case in darkness should fail."""

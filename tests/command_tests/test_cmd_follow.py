@@ -28,6 +28,7 @@ class TestCmdFollow(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.char1.following = None
         self.char1.nofollow = False
         self.char2.following = None
@@ -112,6 +113,7 @@ class TestCmdNofollow(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.char1.following = None
         self.char1.nofollow = False
         self.char2.following = None

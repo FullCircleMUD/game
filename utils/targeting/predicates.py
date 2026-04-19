@@ -178,13 +178,52 @@ def p_height_visible_to(obj, caller):
         return True
 
 
+def p_condition_visible_to(obj, caller):
+    """True if ``obj`` is not concealed from ``caller`` by a condition.
+
+    Checks actor conditions that make an entity hard to see:
+
+    - ``Condition.HIDDEN`` (physical stealth) — visible only if caller
+      has the ``true_sight`` named effect.
+    - ``Condition.INVISIBLE`` (magical) — visible only if caller has
+      the ``Condition.DETECT_INVIS`` condition.
+
+    Objects without ``has_condition`` (items, fixtures, exits) pass
+    through unconditionally — this predicate only gates actors.
+
+    This is separate from ``p_visible_to`` which handles
+    ``HiddenObjectMixin`` (hidden objects with ``find_dc``). The two
+    systems are independent: an actor can be HIDDEN (condition) while
+    a chest can be hidden (mixin). ``p_can_see`` composes both.
+    """
+    has_cond = getattr(obj, "has_condition", None)
+    if has_cond is None:
+        return True  # not an actor — items pass through
+
+    from enums.condition import Condition
+
+    try:
+        if has_cond(Condition.HIDDEN):
+            has_effect = getattr(caller, "has_effect", None)
+            return bool(has_effect and has_effect("true_sight"))
+
+        if has_cond(Condition.INVISIBLE):
+            caller_cond = getattr(caller, "has_condition", None)
+            return bool(caller_cond and caller_cond(Condition.DETECT_INVIS))
+    except Exception:
+        return True
+
+    return True
+
+
 def p_can_see(obj, caller):
     """True if ``caller`` can perceive ``obj`` — composite visibility gate.
 
     Combines all visibility checks into a single predicate:
 
-    1. ``p_visible_to`` — stealth (hidden/invisible mixin)
+    1. ``p_visible_to`` — stealth (hidden/invisible object mixin)
     2. ``p_height_visible_to`` — spatial (height-gated visibility)
+    3. ``p_condition_visible_to`` — actor conditions (HIDDEN/INVISIBLE)
 
     Use this for **display/perception** paths: room appearance, look
     command, scan command — anywhere the question is "can the player
@@ -199,7 +238,11 @@ def p_can_see(obj, caller):
     ethereal, phased, fog-of-war), add it here and all display
     consumers pick it up automatically.
     """
-    return p_visible_to(obj, caller) and p_height_visible_to(obj, caller)
+    return (
+        p_visible_to(obj, caller)
+        and p_height_visible_to(obj, caller)
+        and p_condition_visible_to(obj, caller)
+    )
 
 
 def p_living(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
