@@ -26,6 +26,8 @@ from combat.combat_utils import get_sides
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.dice_roller import dice
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 TAUNT_COOLDOWNS = {
@@ -85,12 +87,21 @@ class CmdTaunt(CmdSkillBase):
 
         in_combat = handler is not None
 
+        # Darkness — can't taunt what you can't see
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # ── Parse target ──
         target = None
         if self.args and self.args.strip():
-            target = caller.search(self.args.strip())
+            target, _ = resolve_target(
+                caller, self.args.strip(), "actor_hostile",
+                extra_predicates=(p_can_see,),
+            )
             if not target:
-                return
+                return  # actor resolver already messaged
         elif in_combat:
             action = handler.action_dict
             if action and action.get("key") == "attack":
@@ -107,18 +118,6 @@ class CmdTaunt(CmdSkillBase):
             caller.msg("You can't taunt yourself.")
             return
 
-        if not hasattr(target, "hp") or target.hp is None:
-            caller.msg("You can't taunt that.")
-            return
-
-        if target.hp <= 0:
-            caller.msg(f"{target.key} is already dead.")
-            return
-
-        if target.location != caller.location:
-            caller.msg("They're not here.")
-            return
-
         # ── Must be a CombatMob ──
         from typeclasses.actors.mob import CombatMob
         if not isinstance(target, CombatMob):
@@ -126,7 +125,6 @@ class CmdTaunt(CmdSkillBase):
             return
 
         # ── Room must allow combat ──
-        room = caller.location
         if not getattr(room, "allow_combat", False):
             caller.msg("Combat is not allowed here.")
             return
