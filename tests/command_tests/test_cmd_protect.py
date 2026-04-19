@@ -27,6 +27,7 @@ class _ProtectTestBase(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.room1.allow_combat = True
         self.char1.hp = 50
         self.char1.hp_max = 50
@@ -92,7 +93,7 @@ class TestProtectGates(_ProtectTestBase):
         """Can't protect yourself."""
         self._set_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
-        result = self.call(CmdProtect(), self.char1.key)
+        result = self.call(CmdProtect(), "me")
         self.assertIn("can't protect yourself", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -112,13 +113,13 @@ class TestProtectGates(_ProtectTestBase):
         self.assertIn("not an ally", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_protect_dead_target(self, mock_ticker):
-        """Can't protect a dead ally."""
+    def test_protect_dead_target_not_found(self, mock_ticker):
+        """Dead allies are filtered by actor resolver — not found."""
         self._set_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
         self.char2.hp = 0
         result = self.call(CmdProtect(), self.char2.key)
-        self.assertIn("already dead", result)
+        self.assertIn("no 'Char2' here", result)
 
 
 # ================================================================== #
