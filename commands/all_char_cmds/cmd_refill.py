@@ -1,60 +1,90 @@
 """
-Refill command — top up a water container from a fountain in the room.
+Refill command — top up a water container from a water source in the room.
 
 Usage:
-    refill <container>   — refill a specific container by name
-    refill               — refill the first non-full water container
+    refill <container> <source>
+    fill <container> <source>
 
-Requires a `FountainFixture` (or any object with `is_water_source = True`)
-in the current room. Future zones will tag rivers, wells, and the
-spring-fed pool the same way.
+Both arguments are required. The container must be a water container
+in inventory, the source must be a water source fixture in the room
+(fountain, well, spring, etc).
 """
 
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdRefill(FCMCommandMixin, Command):
     """
-    Refill a water container from a fountain or other water source in
-    the room.
+    Refill a water container from a water source in the room.
 
     Usage:
-        refill
-        refill <container>
+        refill <container> <source>
+        fill <container> <source>
+
+    Examples:
+        refill canteen fountain
+        fill waterskin well
     """
 
     key = "refill"
-    aliases = []
+    aliases = ("fill",)
     locks = "cmd:all()"
     help_category = "Items"
 
+    def parse(self):
+        parts = self.args.strip().split(None, 1)
+        self.container_name = parts[0] if parts else ""
+        self.source_name = parts[1] if len(parts) > 1 else ""
+
     def func(self):
         caller = self.caller
-        if not caller.location:
-            caller.msg("You can't refill anything here.")
+
+        if not self.container_name or not self.source_name:
+            caller.msg("Usage: refill <container> <source>")
             return
 
-        source = self._find_water_source(caller.location)
-        if source is None:
-            caller.msg("There is no water source here to refill from.")
+        room = caller.location
+        if not room:
             return
 
-        query = self.args.strip()
-        if query:
-            container = caller.search(query, location=caller)
-            if not container:
-                return
-            if not getattr(container, "is_water_container", False):
-                caller.msg(f"You can't refill {container.key}.")
-                return
-        else:
-            container = self._first_non_full_container(caller)
-            if container is None:
-                caller.msg("You have no water container to refill.")
-                return
+        # Darkness — can't see what you're doing
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
 
+        # Find container in inventory
+        container, _ = resolve_target(
+            caller, self.container_name, "items_inventory",
+            extra_predicates=(p_can_see,),
+        )
+        if not container:
+            caller.msg(
+                f"You don't see '{self.container_name}' in your inventory."
+            )
+            return
+
+        if not getattr(container, "is_water_container", False):
+            caller.msg(f"You can't refill {container.key}.")
+            return
+
+        # Find water source in room
+        source, _ = resolve_target(
+            caller, self.source_name, "items_room_nonexit",
+            extra_predicates=(p_can_see,),
+        )
+        if not source:
+            caller.msg(f"You don't see '{self.source_name}' here.")
+            return
+
+        if not getattr(source, "is_water_source", False):
+            caller.msg(f"You can't refill from {source.key}.")
+            return
+
+        # Refill
         success, msg = container.refill_to_full()
         if not success:
             caller.msg(msg)
@@ -67,20 +97,3 @@ class CmdRefill(FCMCommandMixin, Command):
                 from_obj=caller,
                 exclude=[caller],
             )
-
-    @staticmethod
-    def _find_water_source(room):
-        for obj in room.contents:
-            if getattr(obj, "is_water_source", False):
-                return obj
-        return None
-
-    @staticmethod
-    def _first_non_full_container(caller):
-        for obj in caller.contents:
-            if not getattr(obj, "is_water_container", False):
-                continue
-            if getattr(obj, "is_full", False):
-                continue
-            return obj
-        return None

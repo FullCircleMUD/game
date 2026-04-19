@@ -1,5 +1,7 @@
 """
-Tests for the `refill` command — top up a water container at a fountain.
+Tests for the `refill` command — top up a water container at a water source.
+
+evennia test --settings settings tests.command_tests.test_cmd_refill
 """
 
 from unittest.mock import patch
@@ -13,7 +15,7 @@ from commands.all_char_cmds.cmd_refill import CmdRefill
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 
-class CmdRefillTestBase(EvenniaCommandTest):
+class TestCmdRefill(EvenniaCommandTest):
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
     databases = "__all__"
 
@@ -22,7 +24,14 @@ class CmdRefillTestBase(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.fountain = create.create_object(
+            "typeclasses.world_objects.fountain_fixture.FountainFixture",
+            key="a stone fountain",
+            location=self.room1,
+            nohome=True,
+        )
 
     def _make_canteen(self, current=1):
         with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"), \
@@ -37,42 +46,72 @@ class CmdRefillTestBase(EvenniaCommandTest):
             canteen.current = current
         return canteen
 
-    def _place_fountain(self):
-        return create.create_object(
-            "typeclasses.world_objects.fountain_fixture.FountainFixture",
-            key="a stone fountain",
-            location=self.char1.location,
-            nohome=True,
-        )
+    def test_refill_success(self):
+        """refill canteen fountain should fill the canteen."""
+        canteen = self._make_canteen(current=1)
+        result = self.call(CmdRefill(), "canteen fountain")
+        self.assertIn("refill", result.lower())
+        self.assertEqual(canteen.current, canteen.max_capacity)
 
+    def test_refill_already_full(self):
+        """refill a full canteen should fail."""
+        self._make_canteen(current=5)
+        result = self.call(CmdRefill(), "canteen fountain")
+        self.assertIn("already full", result.lower())
 
-class TestRefillNoFountain(CmdRefillTestBase):
+    def test_no_args(self):
+        """refill with no args should show usage."""
+        result = self.call(CmdRefill(), "")
+        self.assertIn("Usage", result)
 
-    def test_refill_without_fountain_in_room(self):
+    def test_missing_source(self):
+        """refill with only container arg should show usage."""
         self._make_canteen()
         result = self.call(CmdRefill(), "canteen")
-        self.assertIn("no water source", result.lower())
+        self.assertIn("Usage", result)
 
+    def test_no_fountain_in_room(self):
+        """refill with no water source should error."""
+        self._make_canteen()
+        self.fountain.delete()
+        result = self.call(CmdRefill(), "canteen fountain")
+        self.assertIn("don't see", result)
 
-class TestRefillSuccess(CmdRefillTestBase):
+    def test_non_water_source(self):
+        """refill from a non-water-source fixture should error."""
+        self._make_canteen()
+        create.create_object(
+            "typeclasses.world_objects.base_fixture.WorldFixture",
+            key="a stone pedestal",
+            location=self.room1,
+            nohome=True,
+        )
+        result = self.call(CmdRefill(), "canteen pedestal")
+        self.assertIn("can't refill from", result)
 
-    def test_refill_at_fountain(self):
-        self._place_fountain()
-        canteen = self._make_canteen(current=1)
-        self.call(CmdRefill(), "canteen")
-        self.assertEqual(canteen.current, canteen.max_capacity)
+    def test_non_water_container(self):
+        """refill a non-water-container item should error."""
+        with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"), \
+             patch("blockchain.xrpl.services.nft.NFTService.craft_output"):
+            sword = create.create_object(
+                "typeclasses.items.base_nft_item.BaseNFTItem",
+                key="a rusty sword",
+                location=self.char1,
+                nohome=True,
+            )
+            sword.token_id = 9302
+        result = self.call(CmdRefill(), "sword fountain")
+        self.assertIn("can't refill", result)
 
-    def test_refill_default_picks_first_non_full(self):
-        self._place_fountain()
-        canteen = self._make_canteen(current=2)
-        self.call(CmdRefill(), "")
-        self.assertEqual(canteen.current, canteen.max_capacity)
+    def test_container_not_in_inventory(self):
+        """refill a container not in inventory should error."""
+        result = self.call(CmdRefill(), "canteen fountain")
+        self.assertIn("don't see", result)
 
-
-class TestRefillAlreadyFull(CmdRefillTestBase):
-
-    def test_refill_full_canteen_fails(self):
-        self._place_fountain()
-        canteen = self._make_canteen(current=5)
-        result = self.call(CmdRefill(), "canteen")
-        self.assertIn("already full", result.lower())
+    def test_darkness_blocks(self):
+        """refill in darkness should error."""
+        self._make_canteen()
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        result = self.call(CmdRefill(), "canteen fountain")
+        self.assertIn("too dark", result)
