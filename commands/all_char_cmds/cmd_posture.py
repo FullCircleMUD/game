@@ -85,12 +85,25 @@ class CmdSleep(_PostureCommand):
     Sleeping triples your HP, mana, and movement regeneration rate,
     but you can't see the room or act until you wake up.
     You must wake before you can move.
+
+    Some locations do not allow sleeping. Inns and safe havens
+    provide enhanced recovery while sleeping.
     """
     key = "sleep"
     aliases = []
     target_position = "sleeping"
     self_msg = "You lie down and go to sleep."
     room_msg = "{name} lies down and goes to sleep."
+
+    def func(self):
+        caller = self.caller
+        if (
+            caller.location
+            and getattr(caller.location, "get_sleep_policy", lambda: None)() == "none"
+        ):
+            caller.msg("You can't sleep here.")
+            return
+        super().func()
 
 
 class CmdStand(_PostureCommand):

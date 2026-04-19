@@ -115,6 +115,17 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         """Return this room's terrain type, or None."""
         return self.tags.get(category="terrain")
 
+    # --- Sleep policy helpers ---
+
+    def set_sleep_policy(self, policy):
+        """Set sleep policy: 'none' or 'super'. Clear to restore default."""
+        self.tags.clear(category="sleep_policy")
+        self.tags.add(policy, category="sleep_policy")
+
+    def get_sleep_policy(self):
+        """Return sleep policy tag, or None (default = normal sleep)."""
+        return self.tags.get(category="sleep_policy")
+
     # --- Lighting helpers ---
 
     @property

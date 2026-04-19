@@ -133,3 +133,19 @@ class TestPostureCommands(EvenniaCommandTest):
     def test_regen_multiplier_fighting(self):
         """Fighting has 0x regen."""
         self.assertEqual(self.char1.REGEN_MULTIPLIERS["fighting"], 0)
+
+    # ── Sleep policy ─────────────────────────────────────────────────
+
+    def test_sleep_blocked_in_no_sleep_room(self):
+        """Can't sleep in a room tagged sleep_policy: none."""
+        self.room1.set_sleep_policy("none")
+        result = self.call(CmdSleep(), "")
+        self.assertIn("can't sleep here", result)
+        self.assertEqual(self.char1.position, "standing")
+
+    def test_sleep_allowed_in_super_room(self):
+        """Can sleep in a room tagged sleep_policy: super."""
+        self.room1.set_sleep_policy("super")
+        result = self.call(CmdSleep(), "")
+        self.assertIn("sleep", result)
+        self.assertEqual(self.char1.position, "sleeping")

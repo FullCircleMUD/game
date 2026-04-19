@@ -168,6 +168,14 @@ class RegenerationService(DefaultScript):
             getattr(character, "position", "standing"), 1
         )
 
+        # Super-sleep rooms boost sleeping regen to 5x
+        if (
+            getattr(character, "position", "standing") == "sleeping"
+            and character.location
+            and getattr(character.location, "get_sleep_policy", lambda: None)() == "super"
+        ):
+            multiplier = 5
+
         if multiplier == 0:
             return  # no regen in combat
 
