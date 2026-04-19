@@ -194,7 +194,7 @@ def _spawn_mara():
     )
     # Shop cmdset is attached automatically via MaraNPC's class chain
     # (LLMResourceShopkeeperNPC → ResourceShopkeeperNPC.at_object_creation).
-    npc.inventory = [12, 14, 15, 16, 17, 18, 20]  # Moonpetal, Bloodmoss, Windroot, Arcane Dust, Ogre's Cap, Sage Leaf, Vipervine
+    npc.inventory = [12, 14, 15, 16, 17, 18, 20]  # Moonpetal, Bloodmoss, Windroot, Arcane Dust, Ogre's Cap, Vipervine, Mindcap
     npc.shop_name = "The Mortar and Pestle"
     npc.quest_key = "mara_moonpetal"
     npc.llm_prompt_file = "mara.md"
@@ -845,7 +845,7 @@ def _spawn_general_store():
         key="Merchant Harlow",
         location=room,
     )
-    npc.inventory = [2, 3, 7, 9, 11]  # Flour, Bread, Timber, Leather, Cloth
+    npc.inventory = [2, 3, 7, 9, 11, 46]  # Flour, Bread, Timber, Leather, Cloth, Oil
     npc.shop_name = "Harlow's General Store"
     npc.db.desc = (
         "A portly, ruddy-faced man in a well-worn apron stands behind "
@@ -1221,7 +1221,7 @@ def _spawn_trapper():
         key="Old Buckshaw",
         location=room,
     )
-    npc.inventory = [8, 9]  # Hide, Leather
+    npc.inventory = [8, 9, 45]  # Hide, Leather, Animal Fat
     npc.shop_name = "Buckshaw's Pelts"
 
     npc.llm_speech_mode = "name_match"
@@ -1471,6 +1471,7 @@ def _spawn_durga():
     npc.inventory = [
         "Bronze Helm", "Bronze Greaves", "Bronze Bracers",
         "Leather Armor", "Gambeson", "Wooden Shield",
+        "Canteen",
     ]
     npc.shop_name = "Ironclad Outfitters"
     npc.db.desc = (
