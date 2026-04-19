@@ -393,16 +393,17 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
         )
 
         if not to_give:
+            # Secondary lookup against worn items — gives a useful
+            # "remove first" message instead of "not carrying" when the
+            # only match is currently equipped.
+            worn, _ = resolve_target(caller, search_term, "items_equipped")
+            if worn:
+                caller.msg(f"You'll have to remove {worn.key} first.")
+                return
             caller.msg(f"You aren't carrying '{search_term}'.")
             return
 
         to_give = utils.make_iter(to_give)
-
-        # Worn check — can't give equipped items
-        for obj in to_give:
-            if caller.is_worn(obj):
-                self.msg(f"You must remove {obj.key} first.")
-                return
         target_name = target.get_display_name(caller)
 
         for obj in to_give:

@@ -71,15 +71,21 @@ class TestDropWornGuard(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
 
     def test_drop_worn_by_name_rejected(self):
-        """Dropping a worn item by name should be rejected."""
+        """Dropping a worn item by name should give a 'remove first' message.
+
+        Name-based inventory lookup excludes worn items, so a secondary
+        lookup against equipped items provides the useful error.
+        """
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
         self.char1.wear(helmet)
         result = self.call(CmdDrop(), "Iron Helmet")
-        self.assertIn("You must remove Iron Helmet first", result)
+        self.assertIn("You'll have to remove Iron Helmet first", result)
         # Item should still be on the character
         self.assertIn(helmet, self.char1.contents)
+        self.assertTrue(self.char1.is_worn(helmet))
 
     def test_drop_worn_by_token_id_rejected(self):
         """Dropping a worn item by dbref should be rejected."""
@@ -95,12 +101,13 @@ class TestDropWornGuard(EvenniaCommandTest):
         self.assertNotIn("must remove", result)
 
     def test_drop_wielded_weapon_rejected(self):
-        """Dropping a wielded weapon should be rejected."""
+        """Dropping a wielded weapon should give a 'remove first' message."""
         sword = _make_weapon("Iron Longsword", self.char1)
         self.char1.wear(sword)
         result = self.call(CmdDrop(), "Iron Longsword")
-        self.assertIn("You must remove Iron Longsword first", result)
+        self.assertIn("You'll have to remove Iron Longsword first", result)
         self.assertIn(sword, self.char1.contents)
+        self.assertTrue(self.char1.is_worn(sword))
 
     def test_drop_duplicate_name_skips_worn(self):
         """Two items with same name — worn one excluded, unworn one dropped."""
@@ -148,18 +155,20 @@ class TestGiveWornGuard(EvenniaCommandTest):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account2.attributes.add("wallet_address", WALLET_B)
+        self.room1.always_lit = True
         self.char1.db.gold = 0
         self.char1.db.resources = {}
         self.char2.db.gold = 0
         self.char2.db.resources = {}
 
     def test_give_worn_by_name_rejected(self):
-        """Giving a worn item by name should be rejected."""
+        """Giving a worn item by name should give a 'remove first' message."""
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
         self.char1.wear(helmet)
         result = self.call(CmdGive(), f"Iron Helmet to {self.char2.key}")
-        self.assertIn("You must remove Iron Helmet first", result)
+        self.assertIn("You'll have to remove Iron Helmet first", result)
         self.assertIn(helmet, self.char1.contents)
+        self.assertTrue(self.char1.is_worn(helmet))
 
     def test_give_worn_by_token_id_rejected(self):
         """Giving a worn item by dbref should be rejected."""
