@@ -9,5 +9,5 @@ RECIPE_THE_WELLSPRING = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 16: 2},  # 1 Moonpetal Essence + 2 Arcane Dust
-    "output_prototype": "the_wellspring",
+    "mastery_tiered": True,
 }

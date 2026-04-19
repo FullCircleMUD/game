@@ -94,6 +94,39 @@ class NamedEffect(Enum):
     # No condition flag — AC bonus via stat_bonus effect.
     ARMORED = "armored"
 
+    # APPLIED: barkskin potion (alchemy) — AC bonus self-buff
+    # CHECKED: has_effect("barkskin") for anti-stacking
+    # DURATION: seconds-based timer (wall-clock). 10min–120min (mastery-scaled).
+    # AC bonus via stat_bonus effect. Stacks with Shield and Armored.
+    # No condition flag — AC bonus via stat_bonus effect.
+    BARKSKIN = "barkskin"
+
+    # APPLIED: stoneskin potion (alchemy) — physical damage resistance self-buff
+    # CHECKED: has_effect("stoneskin") for anti-stacking
+    # DURATION: seconds-based timer (wall-clock). 60s–120s (mastery-scaled).
+    # Resists bludgeoning, slashing, piercing via damage_resistance effects.
+    # No condition flag — damage_resistance via effects= param.
+    STONESKIN = "stoneskin"
+
+    # APPLIED: haste potion (alchemy), future haste spell
+    # CHECKED: has_effect("hasted") for anti-stacking
+    # DURATION: seconds-based timer (wall-clock). 30s–120s (mastery-scaled).
+    # Sets Condition.HASTED for extra attack per round.
+    HASTED = "hasted"
+
+    # APPLIED: flight potion (alchemy), future fly spell
+    # CHECKED: has_effect("fly_buff") for anti-stacking
+    # DURATION: seconds-based timer (wall-clock). 15min–60min (mastery-scaled).
+    # Sets Condition.FLY for aerial movement.
+    # On expiry: triggers _check_fall() for fall damage if airborne.
+    FLY_BUFF = "fly_buff"
+
+    # APPLIED: comprehension potion (alchemy), future comprehend languages spell
+    # CHECKED: has_effect("comprehend_languages_buff") for anti-stacking
+    # DURATION: seconds-based timer (wall-clock). 15min–60min (mastery-scaled).
+    # Sets Condition.COMPREHEND_LANGUAGES for universal language understanding.
+    COMPREHEND_LANGUAGES_BUFF = "comprehend_languages_buff"
+
     # APPLIED: shadowcloak.py (_execute) — group stealth buff
     # CHECKED: has_effect("shadowcloaked") for anti-stacking
     # DURATION: 4-10 minutes (mastery-scaled: SKILLED 4min, EXPERT 6min,
@@ -203,6 +236,13 @@ class NamedEffect(Enum):
     # Dual-system: named effect for hidden detection + condition for invisible.
     # Does NOT remove HIDDEN from targets — only lets the caster see them.
     TRUE_SIGHT = "true_sight"
+
+    # APPLIED: detection potion (alchemy), future detect_invis spell
+    # CHECKED: has_condition("detect_invis") for invisible detection
+    # DURATION: seconds-based timer (wall-clock). 10min–120min (mastery-scaled).
+    # Condition flag only (Condition.DETECT_INVIS) — no stat impact.
+    # NO anti-stacking needed — condition is ref-counted boolean flag.
+    DETECT_INVIS = "detect_invis"
 
     # APPLIED: holy_sight.py (_execute) — divine revelation self-buff
     # CHECKED: has_effect("holy_sight") for hidden detection (MASTER+) in
@@ -373,6 +413,11 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.SLOWED: "Your movements become sluggish and slow.",
     NamedEffect.SHIELD: "A shimmering barrier of magical force springs into existence around you!",
     NamedEffect.ARMORED: "A protective aura wraps around you.",
+    NamedEffect.BARKSKIN: "Your skin hardens and takes on a rough, bark-like texture.",
+    NamedEffect.STONESKIN: "Your skin turns grey and hard as stone, deflecting blows.",
+    NamedEffect.HASTED: "The world slows around you as you surge with unnatural speed.",
+    NamedEffect.FLY_BUFF: "Your feet lift off the ground and you begin to fly.",
+    NamedEffect.COMPREHEND_LANGUAGES_BUFF: "A surge of understanding washes over you. All languages become clear.",
     NamedEffect.SHADOWCLOAKED: "Shadows coil around you, muffling your presence.",
     NamedEffect.PARALYSED: "Your muscles seize up and you cannot move!",
     NamedEffect.POISONED: "You feel poison burning through your veins!",
@@ -380,6 +425,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.ENTANGLED: "Weighted cords wrap around your legs, binding you in place!",
     NamedEffect.BLURRED: "Your image shimmers and distorts, making you harder to hit!",
     NamedEffect.TRUE_SIGHT: "Your eyes tingle with magical energy. The world reveals its secrets to you.",
+    NamedEffect.DETECT_INVIS: "Your vision sharpens and the unseen becomes visible.",
     NamedEffect.HOLY_SIGHT: "Divine light fills your vision. The sacred reveals what is concealed.",
     NamedEffect.INVISIBLE: "Your body shimmers and fades from sight.",
     NamedEffect.OFFENSIVE_STANCE: "You shift to an aggressive fighting stance!",
@@ -411,6 +457,11 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.SLOWED: "You shake off the sluggishness and move normally again.",
     NamedEffect.SHIELD: "The shimmering barrier of force around you fades away.",
     NamedEffect.ARMORED: "The protective aura around you fades away.",
+    NamedEffect.BARKSKIN: "Your skin softens and returns to normal.",
+    NamedEffect.STONESKIN: "The stone-like hardness fades from your skin.",
+    NamedEffect.HASTED: "The unnatural speed drains away and the world returns to normal pace.",
+    NamedEffect.FLY_BUFF: "You drift back to the ground as the power of flight leaves you.",
+    NamedEffect.COMPREHEND_LANGUAGES_BUFF: "The magical translation fades from your mind.",
     NamedEffect.SHADOWCLOAKED: "The cloak of shadows dissipates and you feel exposed once more.",
     NamedEffect.PARALYSED: "Your muscles relax and you can move again.",
     NamedEffect.POISONED: "The poison finally runs its course.",
@@ -418,6 +469,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.ENTANGLED: "You tear free from the tangling cords!",
     NamedEffect.BLURRED: "Your image solidifies and you become easy to see again.",
     NamedEffect.TRUE_SIGHT: "The magical sight fades and the world's secrets are hidden once more.",
+    NamedEffect.DETECT_INVIS: "Your sharpened vision fades and the unseen slips from sight.",
     NamedEffect.HOLY_SIGHT: "The divine light fades from your vision and the world grows dim once more.",
     NamedEffect.INVISIBLE: "Your body shimmers back into view.",
     NamedEffect.OFFENSIVE_STANCE: "You return to your normal fighting stance.",
@@ -449,6 +501,11 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.SLOWED: "{name}'s movements become sluggish and slow.",
     NamedEffect.SHIELD: "A shimmering barrier of force springs up around {name}!",
     NamedEffect.ARMORED: "A protective aura wraps around {name}.",
+    NamedEffect.BARKSKIN: "{name}'s skin hardens and takes on a rough, bark-like texture.",
+    NamedEffect.STONESKIN: "{name}'s skin turns grey and hard as stone.",
+    NamedEffect.HASTED: "{name} surges with unnatural speed, their movements a blur.",
+    NamedEffect.FLY_BUFF: "{name}'s feet lift off the ground as they begin to fly.",
+    NamedEffect.COMPREHEND_LANGUAGES_BUFF: "{name}'s eyes widen with sudden understanding.",
     NamedEffect.SHADOWCLOAKED: "Shadows coil around {name}, muffling their presence.",
     NamedEffect.PARALYSED: "{name}'s muscles seize up and they freeze in place!",
     NamedEffect.POISONED: "{name} looks sickly as poison burns through their veins.",
@@ -456,6 +513,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.ENTANGLED: "Weighted cords wrap around {name}'s legs, binding them in place!",
     NamedEffect.BLURRED: "{name}'s image shimmers and distorts, making them harder to hit!",
     NamedEffect.TRUE_SIGHT: "{name}'s eyes begin to glow with a faint magical light.",
+    NamedEffect.DETECT_INVIS: "{name}'s eyes sharpen with an unnatural awareness.",
     NamedEffect.HOLY_SIGHT: "{name}'s eyes begin to glow with a warm divine light.",
     NamedEffect.INVISIBLE: "{name}'s body shimmers and fades from sight.",
     NamedEffect.OFFENSIVE_STANCE: "{name} shifts to an aggressive fighting stance!",
@@ -487,6 +545,11 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.SLOWED: "{name} shakes off the sluggishness and moves normally again.",
     NamedEffect.SHIELD: "The shimmering barrier around {name} fades away.",
     NamedEffect.ARMORED: "The protective aura around {name} fades away.",
+    NamedEffect.BARKSKIN: "{name}'s skin softens and returns to normal.",
+    NamedEffect.STONESKIN: "The stone-like hardness fades from {name}'s skin.",
+    NamedEffect.HASTED: "The unnatural speed drains from {name} as they slow to normal pace.",
+    NamedEffect.FLY_BUFF: "{name} drifts back to the ground as the power of flight fades.",
+    NamedEffect.COMPREHEND_LANGUAGES_BUFF: "The look of deep understanding fades from {name}'s eyes.",
     NamedEffect.SHADOWCLOAKED: "The cloak of shadows around {name} dissipates.",
     NamedEffect.PARALYSED: "{name}'s muscles relax and they can move again.",
     NamedEffect.POISONED: "{name} looks relieved as the poison fades.",
@@ -494,6 +557,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.ENTANGLED: "{name} tears free from the tangling cords!",
     NamedEffect.BLURRED: "{name}'s image solidifies and they become easy to see again.",
     NamedEffect.TRUE_SIGHT: "The magical glow fades from {name}'s eyes.",
+    NamedEffect.DETECT_INVIS: "The sharpness fades from {name}'s gaze.",
     NamedEffect.HOLY_SIGHT: "The divine glow fades from {name}'s eyes.",
     NamedEffect.INVISIBLE: "{name}'s body shimmers back into view.",
     NamedEffect.OFFENSIVE_STANCE: "{name} returns to a normal fighting stance.",
@@ -538,6 +602,10 @@ _EFFECT_CONDITIONS = {
     NamedEffect.SLOWED: Condition.SLOWED,
     NamedEffect.PARALYSED: Condition.PARALYSED,
     NamedEffect.INVISIBLE: Condition.INVISIBLE,
+    NamedEffect.DETECT_INVIS: Condition.DETECT_INVIS,
+    NamedEffect.HASTED: Condition.HASTED,
+    NamedEffect.FLY_BUFF: Condition.FLY,
+    NamedEffect.COMPREHEND_LANGUAGES_BUFF: Condition.COMPREHEND_LANGUAGES,
     NamedEffect.SANCTUARY: Condition.SANCTUARY,
 }
 
@@ -568,8 +636,14 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.BRAVERY: "seconds",
     NamedEffect.SANCTUARY: "seconds",
     NamedEffect.ARMORED: "seconds",
+    NamedEffect.BARKSKIN: "seconds",
+    NamedEffect.STONESKIN: "seconds",
+    NamedEffect.HASTED: "seconds",
+    NamedEffect.FLY_BUFF: "seconds",
+    NamedEffect.COMPREHEND_LANGUAGES_BUFF: "seconds",
     NamedEffect.SHADOWCLOAKED: "seconds",
     NamedEffect.TRUE_SIGHT: "seconds",
+    NamedEffect.DETECT_INVIS: "seconds",
     NamedEffect.HOLY_SIGHT: "seconds",
     NamedEffect.RESIST_FIRE: "seconds",
     NamedEffect.RESIST_COLD: "seconds",

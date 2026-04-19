@@ -30,8 +30,8 @@ from blockchain.xrpl.currency_cache import get_resource_type
 from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 from enums.skills_enum import skills
+from enums.potion_quality import PotionQuality
 from typeclasses.items.base_nft_item import BaseNFTItem
-from world.prototypes.consumables.potions.potion_scaling import get_scaling
 
 
 def _get_crafting_mastery(character, skill):
@@ -402,6 +402,13 @@ class CmdCraft(FCMCommandMixin, Command):
         # default to using the recipe name as the NFTItemType name.
         item_type_name = recipe.get("output_item_type") or recipe["name"]
 
+        # Mastery-tiered recipes (potions) route to a tier-specific NFTItemType
+        if recipe.get("mastery_tiered"):
+            mastery = _get_crafting_mastery(caller, recipe["skill"])
+            item_type_name = (
+                f"{PotionQuality(mastery).prefix} {recipe['name']}"
+            )
+
         caller.location.msg_contents_with_invis_alt(
             f"{caller.key} begins crafting at the {room.key}.",
             f"Tools seem to fly around the {room.key} on their own, "
@@ -424,21 +431,6 @@ class CmdCraft(FCMCommandMixin, Command):
                 try:
                     token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
                     item = BaseNFTItem.spawn_into(token_id, caller)
-
-                    # Apply mastery scaling for potions
-                    proto_key = recipe.get("output_prototype")
-                    scaling = get_scaling(proto_key) if proto_key else None
-                    if scaling and item:
-                        mastery = (
-                            caller.db.general_skill_mastery_levels or {}
-                        ).get(recipe["skill"].value, 1)
-                        tier_data = scaling.get(mastery, scaling.get(1))
-                        if tier_data:
-                            item.potion_effects = tier_data["effects"]
-                            item.duration = tier_data["duration"]
-                        effect_key = scaling.get("named_effect_key")
-                        if effect_key:
-                            item.named_effect_key = effect_key
 
                     # Apply gem enchantment for roll-table recipes
                     output_table = recipe.get("output_table")
@@ -486,7 +478,8 @@ class CmdCraft(FCMCommandMixin, Command):
                     caller.ndb.is_processing = False
                     return
 
-                caller.msg(f"|gYou {verb} a {recipe['name']}!|n")
+                display_name = item.key if item else recipe["name"]
+                caller.msg(f"|gYou {verb} a {display_name}!|n")
 
                 # Award XP based on recipe mastery, scaled by room multiplier
                 base_xp = _CRAFT_XP_BY_MASTERY.get(recipe["min_mastery"].value, 5)

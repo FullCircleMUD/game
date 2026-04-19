@@ -9,5 +9,5 @@ RECIPE_SILVER_TONGUE = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 22: 2},  # 1 Moonpetal Essence + 2 Siren Petal
-    "output_prototype": "silver_tongue",
+    "mastery_tiered": True,
 }

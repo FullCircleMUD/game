@@ -9,5 +9,5 @@ RECIPE_CATS_GRACE = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 18: 2},  # 1 Moonpetal Essence + 2 Vipervine
-    "output_prototype": "cats_grace",
+    "mastery_tiered": True,
 }

@@ -9,5 +9,5 @@ RECIPE_OWLS_INSIGHT = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 21: 2},  # 1 Moonpetal Essence + 2 Sage Leaf
-    "output_prototype": "owls_insight",
+    "mastery_tiered": True,
 }

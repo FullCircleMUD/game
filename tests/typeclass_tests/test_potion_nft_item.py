@@ -328,37 +328,91 @@ class TestPotionNamedEffect(EvenniaTest):
         self.assertEqual(self.char1.strength, original_str + 2)
 
 
-# ── Potion Scaling named_effect_key ──────────────────────────────
+# ── Mastery Tier Attribute ────────────────────────────────────────
 
-class TestPotionScalingKeys(unittest.TestCase):
-    """Verify potion_scaling.py has named_effect_key for all stat potions."""
+class TestPotionMasteryTier(EvenniaTest):
+    """Test mastery_tier AttributeProperty on PotionNFTItem."""
 
-    def test_all_stat_potions_have_named_effect_key(self):
-        """All 6 stat potions must have a named_effect_key."""
-        from world.prototypes.consumables.potions.potion_scaling import POTION_SCALING
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def test_default_mastery_tier(self):
+        """New potions default to mastery_tier 1."""
+        potion = _make_potion("test", [])
+        self.assertEqual(potion.mastery_tier, 1)
+
+    def test_mastery_tier_persists(self):
+        """mastery_tier can be set and read back."""
+        potion = _make_potion("test", [])
+        potion.mastery_tier = 3
+        self.assertEqual(potion.mastery_tier, 3)
+
+
+# ── PotionQuality Enum ───────────────────────────────────────────
+
+class TestPotionQualityEnum(unittest.TestCase):
+    """Test PotionQuality enum and get_quality_name helper."""
+
+    def test_all_prefixes(self):
+        from enums.potion_quality import PotionQuality
+        self.assertEqual(PotionQuality(1).prefix, "Watery")
+        self.assertEqual(PotionQuality(2).prefix, "Weak")
+        self.assertEqual(PotionQuality(3).prefix, "Standard")
+        self.assertEqual(PotionQuality(4).prefix, "Potent")
+        self.assertEqual(PotionQuality(5).prefix, "Ascendant")
+
+    def test_get_quality_name(self):
+        from world.prototypes.consumables.potions.potion_scaling import (
+            get_quality_name,
+        )
+        self.assertEqual(
+            get_quality_name("Potion of the Bull", 1),
+            "Watery Potion of the Bull",
+        )
+        self.assertEqual(
+            get_quality_name("Potion of Cat's Grace", 5),
+            "Ascendant Potion of Cat's Grace",
+        )
+
+
+# ── Prototype Validation ─────────────────────────────────────────
+
+class TestPotionPrototypesExist(unittest.TestCase):
+    """Verify tier-specific prototypes exist for all stat potions."""
+
+    def test_all_stat_potion_prototypes_have_named_effect_key(self):
+        """All stat potion prototypes must have a named_effect_key."""
+        from world.prototypes.consumables.potions.watery_the_bull import WATERY_THE_BULL
+        from world.prototypes.consumables.potions.watery_cats_grace import WATERY_CATS_GRACE
+        from world.prototypes.consumables.potions.watery_the_bear import WATERY_THE_BEAR
+        from world.prototypes.consumables.potions.watery_foxs_cunning import WATERY_FOXS_CUNNING
+        from world.prototypes.consumables.potions.watery_owls_insight import WATERY_OWLS_INSIGHT
+        from world.prototypes.consumables.potions.watery_silver_tongue import WATERY_SILVER_TONGUE
 
         expected = {
-            "the_bull": "potion_strength",
-            "cats_grace": "potion_dexterity",
-            "the_bear": "potion_constitution",
-            "foxs_cunning": "potion_intelligence",
-            "owls_insight": "potion_wisdom",
-            "silver_tongue": "potion_charisma",
+            "watery_the_bull": ("potion_strength", WATERY_THE_BULL),
+            "watery_cats_grace": ("potion_dexterity", WATERY_CATS_GRACE),
+            "watery_the_bear": ("potion_constitution", WATERY_THE_BEAR),
+            "watery_foxs_cunning": ("potion_intelligence", WATERY_FOXS_CUNNING),
+            "watery_owls_insight": ("potion_wisdom", WATERY_OWLS_INSIGHT),
+            "watery_silver_tongue": ("potion_charisma", WATERY_SILVER_TONGUE),
         }
-        for proto_key, expected_key in expected.items():
-            scaling = POTION_SCALING[proto_key]
+        for proto_key, (expected_key, proto) in expected.items():
             self.assertEqual(
-                scaling.get("named_effect_key"), expected_key,
+                proto.get("named_effect_key"), expected_key,
                 f"{proto_key} missing or wrong named_effect_key",
             )
 
-    def test_restore_potions_no_named_effect_key(self):
-        """Restore potions (instant) should NOT have named_effect_key."""
-        from world.prototypes.consumables.potions.potion_scaling import POTION_SCALING
+    def test_restore_prototypes_no_named_effect_key(self):
+        """Restore potion prototypes should NOT have named_effect_key."""
+        from world.prototypes.consumables.potions.watery_lifes_essence import WATERY_LIFES_ESSENCE
+        from world.prototypes.consumables.potions.watery_the_wellspring import WATERY_THE_WELLSPRING
+        from world.prototypes.consumables.potions.watery_the_zephyr import WATERY_THE_ZEPHYR
 
-        for proto_key in ("lifes_essence", "the_wellspring", "the_zephyr"):
-            scaling = POTION_SCALING[proto_key]
-            self.assertIsNone(
-                scaling.get("named_effect_key"),
-                f"{proto_key} should not have named_effect_key",
+        for proto in (WATERY_LIFES_ESSENCE, WATERY_THE_WELLSPRING, WATERY_THE_ZEPHYR):
+            self.assertNotIn(
+                "named_effect_key", proto,
+                f"{proto['prototype_key']} should not have named_effect_key",
             )
