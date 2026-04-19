@@ -107,6 +107,7 @@ def connect_bidirectional_door_exit(
     lock_dc=15,
     key_tag=None,
     relock_seconds=0,
+    auto_close_seconds=300,
     max_size=Size.MEDIUM.value,
 ):
     """
@@ -126,6 +127,7 @@ def connect_bidirectional_door_exit(
         lock_dc: Difficulty class for lockpicking.
         key_tag: Key item tag for unlocking.
         relock_seconds: Auto-relock timer (0 = disabled).
+        auto_close_seconds: Auto-close timer (default 300 = 5 min, 0 = disabled).
 
     Returns:
         (door_ab, door_ba): The two linked door objects.
@@ -147,6 +149,7 @@ def connect_bidirectional_door_exit(
     if key_tag:
         door_ab.key_tag = key_tag
     door_ab.relock_seconds = relock_seconds
+    door_ab.auto_close_seconds = auto_close_seconds
     door_ab.max_size = max_size
 
     door_ba = create_object(ExitDoor, key=key, location=room_b, destination=room_a)
@@ -162,6 +165,7 @@ def connect_bidirectional_door_exit(
     if key_tag:
         door_ba.key_tag = key_tag
     door_ba.relock_seconds = relock_seconds
+    door_ba.auto_close_seconds = auto_close_seconds
     door_ba.max_size = max_size
 
     ExitDoor.link_door_pair(door_ab, door_ba)
@@ -186,6 +190,7 @@ def connect_bidirectional_trapped_door_exit(
     lock_dc=15,
     key_tag=None,
     relock_seconds=0,
+    auto_close_seconds=300,
     trap_find_dc=15,
     trap_disarm_dc=15,
     trap_damage_dice="1d6",
@@ -248,6 +253,7 @@ def connect_bidirectional_trapped_door_exit(
     if key_tag:
         door_ab.key_tag = key_tag
     door_ab.relock_seconds = relock_seconds
+    door_ab.auto_close_seconds = auto_close_seconds
     door_ab.max_size = max_size
 
     door_ba = create_object(SafeClass, key=key, location=room_b, destination=room_a)
@@ -263,6 +269,7 @@ def connect_bidirectional_trapped_door_exit(
     if key_tag:
         door_ba.key_tag = key_tag
     door_ba.relock_seconds = relock_seconds
+    door_ba.auto_close_seconds = auto_close_seconds
     door_ba.max_size = max_size
 
     ExitDoor.link_door_pair(door_ab, door_ba)

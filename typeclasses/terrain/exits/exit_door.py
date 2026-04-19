@@ -51,6 +51,9 @@ class ExitDoor(
     # Doors start closed
     is_open = AttributeProperty(False)
 
+    # Doors auto-close after 5 minutes by default
+    auto_close_seconds = AttributeProperty(300)
+
     # Findable name — players can type "open door" (or "open gate", etc.)
     door_name = AttributeProperty("door")
 
