@@ -1,20 +1,20 @@
 """
-Identify command — use bardic LORE to identify items.
+Recognise command — use bardic LORE to identify creatures and actors.
 
 Class skill (LORE) — bard. No mana cost (knowledge-based, not arcane).
-Reuses the Identify spell's template builder for consistent output.
+Reuses the Augur spell's template builder for consistent output.
 
-For creature/actor identification, see ``recognise``.
+For item identification, see ``identify``.
 
 LORE mastery maps directly to identification tier:
-    BASIC(1):       basic items
-    SKILLED(2):     uncommon items
-    EXPERT(3):      rare items
-    MASTER(4):      legendary items
-    GRANDMASTER(5): all items
+    BASIC(1):       actors levels 1-5
+    SKILLED(2):     actors levels 6-15
+    EXPERT(3):      actors levels 16-25
+    MASTER(4):      actors levels 26-35
+    GRANDMASTER(5): actors levels 36+
 
 Usage:
-    identify <target>
+    recognise <target>
 """
 
 from enums.mastery_level import MasteryLevel
@@ -24,26 +24,25 @@ from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 
-class CmdIdentify(CmdSkillBase):
+class CmdRecognise(CmdSkillBase):
     """
-    Identify an item using your lore knowledge.
+    Identify a creature or character using your lore knowledge.
 
     Usage:
-        identify <target>
+        recognise <target>
 
-    Uses your LORE skill mastery to reveal properties of items.
-    Higher mastery reveals more powerful items. For identifying
-    creatures, use |wrecognise|n.
+    Uses your LORE skill mastery to reveal stats and abilities
+    of creatures. Higher mastery reveals more powerful creatures.
+    For identifying items, use |widentify|n.
     """
 
-    key = "identify"
+    key = "recognise"
     aliases = []
     skill = skills.LORE.value
     help_category = "Performance"
-    allow_while_sleeping = True
 
     def func(self):
-        """Override base dispatch — identify works the same at all mastery levels."""
+        """Override base dispatch — recognise works the same at all mastery levels."""
         caller = self.caller
 
         # Get LORE mastery tier from class skills
@@ -60,33 +59,41 @@ class CmdIdentify(CmdSkillBase):
             tier = 0
 
         if tier < MasteryLevel.BASIC.value:
-            caller.msg("You don't have enough lore knowledge to identify anything.")
+            caller.msg("You don't have enough lore knowledge to recognise anything.")
             return
 
         if not self.args:
-            caller.msg("Identify what? Usage: identify <target>")
+            caller.msg("Recognise what? Usage: recognise <target>")
             return
 
         room = caller.location
         if not room:
             return
 
-        # Darkness — can't see what you're identifying
+        # Darkness — can't see what you're studying
         if hasattr(room, "is_dark") and room.is_dark(caller):
             caller.msg("It's too dark to see anything.")
             return
 
         target, _ = resolve_target(
-            caller, self.args.strip(), "items_inventory_then_room_all",
+            caller, self.args.strip(), "actor_hostile",
             extra_predicates=(p_can_see,),
         )
         if not target:
-            caller.msg(f"You don't see '{self.args.strip()}' here.")
-            return
+            return  # actor resolver already messaged
 
-        from utils.inspection_templates import inspect_item
+        # PvP room check for other players
+        from typeclasses.actors.character import FCMCharacter
+        if isinstance(target, FCMCharacter) and target != caller:
+            if not getattr(room, "allow_pvp", False):
+                caller.msg(
+                    "You can only recognise other players in PvP areas."
+                )
+                return
 
-        success, result = inspect_item(caller, target, tier)
+        from utils.inspection_templates import inspect_actor
+
+        success, result = inspect_actor(caller, target, tier)
 
         # Display result
         if isinstance(result, str):
