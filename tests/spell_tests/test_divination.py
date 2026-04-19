@@ -407,7 +407,7 @@ class TestIdentify(EvenniaTest):
 # ================================================================== #
 
 class TestTrueSight(EvenniaTest):
-    """Test True Sight spell — tiered progression: hidden→traps→invisible."""
+    """Test True Sight spell — single-purpose: see HIDDEN things."""
 
     def create_script(self):
         pass
@@ -424,73 +424,18 @@ class TestTrueSight(EvenniaTest):
         self.assertTrue(success)
         self.assertTrue(self.char1.has_effect("true_sight"))
 
-    def test_true_sight_tier_stored(self):
-        """Caster tier should be stored in db.true_sight_tier on cast."""
-        self.spell.cast(self.char1, self.char1)
-        self.assertEqual(self.char1.db.true_sight_tier, 2)
-
-    def test_true_sight_tier_stored_expert(self):
-        """EXPERT tier should store tier 3."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 3}
-        self.spell.cast(self.char1, self.char1)
-        self.assertEqual(self.char1.db.true_sight_tier, 3)
-
-    # ── DETECT_INVIS tiering ──
-
-    def test_skilled_no_detect_invis(self):
-        """SKILLED True Sight should NOT grant DETECT_INVIS."""
-        self.spell.cast(self.char1, self.char1)
-        self.assertFalse(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_expert_no_detect_invis(self):
-        """EXPERT True Sight should NOT grant DETECT_INVIS."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 3}
-        self.spell.cast(self.char1, self.char1)
-        self.assertFalse(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_master_grants_detect_invis(self):
-        """MASTER True Sight SHOULD grant DETECT_INVIS."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 4}
-        self.spell.cast(self.char1, self.char1)
-        self.assertTrue(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_gm_grants_detect_invis(self):
-        """GM True Sight SHOULD grant DETECT_INVIS."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 5}
-        self.spell.cast(self.char1, self.char1)
-        self.assertTrue(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    def test_remove_clears_detect_invis(self):
-        """Removing MASTER True Sight should remove DETECT_INVIS."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 4}
-        self.spell.cast(self.char1, self.char1)
-        self.assertTrue(self.char1.has_condition(Condition.DETECT_INVIS))
-        self.char1.remove_named_effect("true_sight")
-        self.assertFalse(self.char1.has_condition(Condition.DETECT_INVIS))
-
-    # ── Trap detection tiering ──
-
-    def test_skilled_no_trap_detection(self):
-        """SKILLED True Sight should NOT call _detect_traps_in_room."""
-        with patch.object(self.spell, "_detect_traps_in_room") as mock_detect:
+    def test_no_detect_invis_at_any_tier(self):
+        """True Sight should NOT grant DETECT_INVIS at any tier."""
+        for tier in (2, 3, 4, 5):
+            if self.char1.has_effect("true_sight"):
+                self.char1.remove_named_effect("true_sight")
+            self.char1.db.class_skill_mastery_levels = {"divination": tier}
+            self.char1.mana = 100
             self.spell.cast(self.char1, self.char1)
-            mock_detect.assert_not_called()
-
-    def test_expert_auto_detects_traps_on_cast(self):
-        """EXPERT True Sight should call _detect_traps_in_room on cast."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 3}
-        with patch.object(self.spell, "_detect_traps_in_room") as mock_detect:
-            self.spell.cast(self.char1, self.char1)
-            mock_detect.assert_called_once_with(self.char1)
-
-    def test_master_auto_detects_traps_on_cast(self):
-        """MASTER True Sight should also call _detect_traps_in_room."""
-        self.char1.db.class_skill_mastery_levels = {"divination": 4}
-        with patch.object(self.spell, "_detect_traps_in_room") as mock_detect:
-            self.spell.cast(self.char1, self.char1)
-            mock_detect.assert_called_once_with(self.char1)
-
-    # ── Standard tests ──
+            self.assertFalse(
+                self.char1.has_condition(Condition.DETECT_INVIS),
+                f"Tier {tier} should NOT grant DETECT_INVIS",
+            )
 
     def test_anti_stacking_refunds_mana(self):
         """Recasting while active should fail and refund mana."""
@@ -501,8 +446,8 @@ class TestTrueSight(EvenniaTest):
         self.assertEqual(self.char1.mana, mana_after_first)
 
     def test_duration_scales_with_tier(self):
-        """Duration should scale: SKILLED=5min, EXPERT=10min, MASTER=30min, GM=60min."""
-        expected_minutes = {2: 5, 3: 10, 4: 30, 5: 60}
+        """Duration should scale: SKILLED=30, EXPERT=60, MASTER=90, GM=120."""
+        expected_minutes = {2: 30, 3: 60, 4: 90, 5: 120}
         for tier, minutes in expected_minutes.items():
             if self.char1.has_effect("true_sight"):
                 self.char1.remove_named_effect("true_sight")
@@ -514,8 +459,8 @@ class TestTrueSight(EvenniaTest):
                           f"Tier {tier} message should mention {minutes}")
 
     def test_mana_cost_scales_with_tier(self):
-        """Mana cost: SKILLED=15, EXPERT=25, MASTER=40, GM=40."""
-        expected = {2: 15, 3: 25, 4: 40, 5: 40}
+        """Mana cost: SKILLED=5, EXPERT=10, MASTER=15, GM=20."""
+        expected = {2: 5, 3: 10, 4: 15, 5: 20}
         for tier, cost in expected.items():
             if self.char1.has_effect("true_sight"):
                 self.char1.remove_named_effect("true_sight")
@@ -540,7 +485,7 @@ class TestTrueSight(EvenniaTest):
 
     def test_not_enough_mana(self):
         """Should fail with insufficient mana."""
-        self.char1.mana = 14
+        self.char1.mana = 4
         success, msg = self.spell.cast(self.char1, self.char1)
         self.assertFalse(success)
         self.assertIn("mana", msg.lower())
@@ -554,26 +499,20 @@ class TestTrueSight(EvenniaTest):
         self.assertIsNone(result["second"])
         self.assertIn("third", result)
 
-    def test_message_reflects_tier_capabilities(self):
-        """Cast message should describe what this tier reveals."""
-        # SKILLED — hidden things only
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertIn("hidden things", result["first"])
-        self.assertNotIn("traps", result["first"])
-
-        # EXPERT — hidden things and traps
-        self.char1.remove_named_effect("true_sight")
-        self.char1.db.class_skill_mastery_levels = {"divination": 3}
-        self.char1.mana = 100
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertIn("traps", result["first"])
-
-        # MASTER — hidden things, traps, and invisible
-        self.char1.remove_named_effect("true_sight")
-        self.char1.db.class_skill_mastery_levels = {"divination": 4}
-        self.char1.mana = 100
-        success, result = self.spell.cast(self.char1, self.char1)
-        self.assertIn("invisible", result["first"])
+    def test_message_says_hidden_things(self):
+        """Cast message should say 'hidden things' at all tiers."""
+        for tier in (2, 3, 4, 5):
+            if self.char1.has_effect("true_sight"):
+                self.char1.remove_named_effect("true_sight")
+            self.char1.db.class_skill_mastery_levels = {"divination": tier}
+            self.char1.mana = 100
+            success, result = self.spell.cast(self.char1, self.char1)
+            self.assertIn("hidden things", result["first"],
+                          f"Tier {tier} message should mention hidden things")
+            self.assertNotIn("traps", result["first"],
+                             f"Tier {tier} should NOT mention traps")
+            self.assertNotIn("invisible", result["first"],
+                             f"Tier {tier} should NOT mention invisible")
 
     def test_hidden_character_visible_with_true_sight(self):
         """A character with true_sight should see HIDDEN characters in room display."""

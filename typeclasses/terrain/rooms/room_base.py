@@ -20,19 +20,12 @@ from utils.targeting.predicates import p_height_visible_to
 def _can_see_hidden(entity):
     """Check if entity can see HIDDEN actors/objects.
 
-    True Sight: HIDDEN at all tiers (SKILLED+).
-    Holy Sight: HIDDEN at MASTER+ (tier 4) only.
+    True Sight is the single-purpose effect that pierces physical
+    concealment (HIDDEN condition). Nothing else grants this.
     """
     if not hasattr(entity, "has_effect"):
         return False
-    if entity.has_effect("true_sight"):
-        return True
-    if (
-        entity.has_effect("holy_sight")
-        and (getattr(entity.db, "holy_sight_tier", 0) or 0) >= 4
-    ):
-        return True
-    return False
+    return entity.has_effect("true_sight")
 
 
 class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
