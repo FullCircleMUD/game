@@ -42,6 +42,13 @@ class ConditionalDungeonExit(ProceduralDungeonMixin, ConditionalRoutingExit):
         Condition met → enter_dungeon() (procedural instance).
         Condition NOT met → ConditionalRoutingExit routes to alternate.
         """
+        if getattr(traversing_object, "is_pet", False):
+            if self.location:
+                self.location.msg_contents(
+                    f"An invisible barrier stops {traversing_object.key} "
+                    f"from entering."
+                )
+            return
         if self._check_condition(traversing_object):
             self.enter_dungeon(traversing_object)
         else:

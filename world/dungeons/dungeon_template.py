@@ -73,11 +73,6 @@ class DungeonTemplate:
     defeat_destination_key: Optional[str] = None
     """Room key for defeat respawn. If None, uses the dungeon entrance."""
 
-    persistent_until_empty: bool = False
-    """If True, the instance ignores instance_lifetime_seconds and only
-    collapses when the last character leaves. Useful for small dungeons
-    where the player should take as long as they need."""
-
     empty_collapse_delay: int = 0
     """Seconds to keep an instance alive after all players leave.
     0 = collapse on next tick (default). Useful for shared mode to allow

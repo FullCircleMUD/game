@@ -125,7 +125,6 @@ RAT_CELLAR = DungeonTemplate(
     allow_pvp=False,
     allow_death=False,
     defeat_destination_key="The Harvest Moon",
-    persistent_until_empty=True,  # player walks out when ready
     terrain_type="underground",
     always_lit=True,  # torchlit cellar
 )

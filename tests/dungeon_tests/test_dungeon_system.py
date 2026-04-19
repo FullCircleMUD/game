@@ -31,6 +31,20 @@ from world.dungeons.dungeon_template import DungeonTemplate
 #  Test templates
 # ------------------------------------------------------------------ #
 
+def _make_mule(room, owner):
+    """Create a mule pet in a room, owned by a character."""
+    from evennia.utils import create as ev_create
+
+    mule = ev_create.create_object(
+        "typeclasses.actors.pets.mule.Mule",
+        key="a mule",
+        location=room,
+    )
+    mule.owner_key = owner.key
+    mule.start_following(owner)
+    return mule
+
+
 def _test_room_generator(instance, depth, coords):
     """Generate a simple test room."""
     from typeclasses.terrain.rooms.dungeon.dungeon_room import DungeonRoom
@@ -93,6 +107,19 @@ TEST_SHARED_TEMPLATE = DungeonTemplate(
     room_generator=_test_room_generator,
     boss_generator=_test_boss_generator,
     empty_collapse_delay=120,
+)
+
+TEST_SOLO_TEMPLATE = DungeonTemplate(
+    template_id="test_solo",
+    name="Test Solo Dungeon",
+    dungeon_type="instance",
+    instance_mode="solo",
+    boss_depth=2,
+    max_unexplored_exits=2,
+    max_new_exits_per_room=2,
+    instance_lifetime_seconds=7200,
+    room_generator=_test_room_generator,
+    boss_generator=_test_boss_generator,
 )
 
 
@@ -913,3 +940,334 @@ class TestConditionalDungeonExitNoAlternate(EvenniaCommandTest):
         """Condition not met, no alternate — player stays put."""
         self.trigger.at_traverse(self.char1, self.room1)
         self.assertEqual(self.char1.location, self.room1)
+
+
+# ------------------------------------------------------------------ #
+#  Pet handling tests
+# ------------------------------------------------------------------ #
+
+class TestDungeonPetHandling(EvenniaCommandTest):
+    """Test pet behaviour across all dungeon instance modes."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        DUNGEON_REGISTRY.clear()
+        register_dungeon(TEST_TEMPLATE)
+        register_dungeon(TEST_SOLO_TEMPLATE)
+        register_dungeon(TEST_SHARED_TEMPLATE)
+
+    def tearDown(self):
+        _cleanup_instances()
+        # Clean up any pets left in any room
+        from evennia import ObjectDB
+
+        for obj in ObjectDB.objects.filter(
+            db_typeclass_path__contains="pets."
+        ):
+            try:
+                obj.delete()
+            except Exception:
+                pass
+        super().tearDown()
+
+    # ── Solo mode guards ──────────────────────────────────────────────
+
+    def test_solo_blocks_followers(self):
+        """Solo dungeon blocks entry when the player has followers."""
+        self.char2.following = self.char1
+        trigger = create_object(
+            ProceduralDungeonExit,
+            key="solo entrance",
+            location=self.room1,
+            destination=self.room1,
+        )
+        trigger.dungeon_template_id = "test_solo"
+
+        trigger.at_traverse(self.char1, self.room1)
+        self.assertEqual(self.char1.location, self.room1)
+
+    def test_solo_blocks_pets(self):
+        """Solo dungeon blocks entry when the player has a pet."""
+        pet = _make_mule(self.room1, self.char1)
+        trigger = create_object(
+            ProceduralDungeonExit,
+            key="solo entrance",
+            location=self.room1,
+            destination=self.room1,
+        )
+        trigger.dungeon_template_id = "test_solo"
+
+        trigger.at_traverse(self.char1, self.room1)
+        self.assertEqual(self.char1.location, self.room1)
+
+    def test_pet_blocked_independently_at_entrance(self):
+        """A pet traversing a dungeon entry exit is stopped by a barrier."""
+        pet = _make_mule(self.room1, self.char1)
+        trigger = create_object(
+            ProceduralDungeonExit,
+            key="group entrance",
+            location=self.room1,
+            destination=self.room1,
+        )
+        trigger.dungeon_template_id = "test_dungeon"
+
+        trigger.at_traverse(pet, self.room1)
+        # Pet should still be in room1 — not moved, no instance created
+        self.assertEqual(pet.location, self.room1)
+
+    # ── Shared mode pet collection ────────────────────────────────────
+
+    def test_shared_mode_collects_pets(self):
+        """Shared dungeon tags pets as dungeon_character alongside owner."""
+        pet = _make_mule(self.room1, self.char1)
+        trigger = create_object(
+            ProceduralDungeonExit,
+            key="shared entrance",
+            location=self.room1,
+            destination=self.room1,
+        )
+        trigger.dungeon_template_id = "test_shared"
+
+        trigger.at_traverse(self.char1, self.room1)
+
+        # Both character and pet should be tagged
+        self.assertIsNotNone(
+            self.char1.tags.get(category="dungeon_character")
+        )
+        self.assertIsNotNone(
+            pet.tags.get(category="dungeon_character")
+        )
+        # Pet should be in the dungeon room with the character
+        self.assertEqual(pet.location, self.char1.location)
+
+    # ── Group mode pet collection ─────────────────────────────────────
+
+    def test_group_mode_pets_tagged(self):
+        """Group dungeon tags pets as dungeon_character alongside leader."""
+        pet = _make_mule(self.room1, self.char1)
+        trigger = create_object(
+            ProceduralDungeonExit,
+            key="group entrance",
+            location=self.room1,
+            destination=self.room1,
+        )
+        trigger.dungeon_template_id = "test_dungeon"
+
+        trigger.at_traverse(self.char1, self.room1)
+
+        self.assertIsNotNone(
+            pet.tags.get(category="dungeon_character")
+        )
+        self.assertEqual(pet.location, self.char1.location)
+
+    # ── Collapse evacuation ───────────────────────────────────────────
+
+    def test_collapse_evacuates_pets(self):
+        """Collapse teleports tagged pets to entrance and removes tags."""
+        pet = _make_mule(self.room1, self.char1)
+        instance = create.create_script(
+            DungeonInstanceScript,
+            key="test_pet_collapse",
+            autostart=False,
+        )
+        instance.template_id = "test_dungeon"
+        instance.instance_key = "test_pet_collapse"
+        instance.entrance_room_id = self.room1.id
+        instance.start()
+        instance.start_dungeon([self.char1, pet])
+
+        # Both should be in the dungeon
+        self.assertNotEqual(self.char1.location, self.room1)
+
+        instance.collapse_instance()
+
+        # Both should be back at entrance, untagged
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertEqual(pet.location, self.room1)
+        self.assertIsNone(
+            self.char1.tags.get(category="dungeon_character")
+        )
+        self.assertIsNone(
+            pet.tags.get(category="dungeon_character")
+        )
+
+    def test_pet_on_stay_still_evacuated(self):
+        """Pet told to stay keeps its dungeon tag and is evacuated on collapse."""
+        pet = _make_mule(self.room1, self.char1)
+        instance = create.create_script(
+            DungeonInstanceScript,
+            key="test_pet_stay",
+            autostart=False,
+        )
+        instance.template_id = "test_dungeon"
+        instance.instance_key = "test_pet_stay"
+        instance.entrance_room_id = self.room1.id
+        instance.start()
+        instance.start_dungeon([self.char1, pet])
+
+        # Pet told to stay
+        pet.stop_following()
+        self.assertEqual(pet.pet_state, "waiting")
+
+        # Tag should still be present
+        self.assertIsNotNone(
+            pet.tags.get(category="dungeon_character")
+        )
+
+        instance.collapse_instance()
+
+        # Pet should still be evacuated
+        self.assertEqual(pet.location, self.room1)
+        self.assertIsNone(
+            pet.tags.get(category="dungeon_character")
+        )
+
+    # ── Exit command pet evacuation ───────────────────────────────────
+
+    def test_exit_command_evacuates_owned_pets(self):
+        """exit dungeon command also evacuates the caller's pets."""
+        pet = _make_mule(self.room1, self.char1)
+        instance = create.create_script(
+            DungeonInstanceScript,
+            key="test_pet_exit",
+            autostart=False,
+        )
+        instance.template_id = "test_dungeon"
+        instance.instance_key = "test_pet_exit"
+        instance.entrance_room_id = self.room1.id
+        instance.start()
+        instance.start_dungeon([self.char1, pet])
+
+        self.call(CmdExitDungeon(), "", caller=self.char1)
+
+        # Both at entrance, both untagged
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertEqual(pet.location, self.room1)
+        self.assertIsNone(
+            self.char1.tags.get(category="dungeon_character")
+        )
+        self.assertIsNone(
+            pet.tags.get(category="dungeon_character")
+        )
+
+
+# ------------------------------------------------------------------ #
+#  Never-collapse-while-occupied tests
+# ------------------------------------------------------------------ #
+
+class TestDungeonNeverCollapseWhileOccupied(EvenniaCommandTest):
+    """Dungeon instances never collapse while any character or pet is inside."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        DUNGEON_REGISTRY.clear()
+        register_dungeon(TEST_TEMPLATE)
+
+    def tearDown(self):
+        _cleanup_instances()
+        from evennia import ObjectDB
+
+        for obj in ObjectDB.objects.filter(
+            db_typeclass_path__contains="pets."
+        ):
+            try:
+                obj.delete()
+            except Exception:
+                pass
+        super().tearDown()
+
+    def test_no_collapse_while_player_inside(self):
+        """Instance does not collapse while a player character is present."""
+        instance = create.create_script(
+            DungeonInstanceScript,
+            key="test_no_collapse",
+            autostart=False,
+        )
+        instance.template_id = "test_dungeon"
+        instance.instance_key = "test_no_collapse"
+        instance.entrance_room_id = self.room1.id
+        instance.start()
+        instance.start_dungeon([self.char1])
+
+        from evennia import ScriptDB
+
+        instance_id = instance.id
+
+        # Tick — should NOT collapse
+        instance.at_repeat()
+        self.assertTrue(
+            ScriptDB.objects.filter(id=instance_id).exists()
+        )
+
+    def test_no_collapse_while_pet_inside(self):
+        """Instance stays alive while a tagged pet remains, even after player leaves."""
+        pet = _make_mule(self.room1, self.char1)
+        instance = create.create_script(
+            DungeonInstanceScript,
+            key="test_pet_keeps_alive",
+            autostart=False,
+        )
+        instance.template_id = "test_dungeon"
+        instance.instance_key = "test_pet_keeps_alive"
+        instance.entrance_room_id = self.room1.id
+        instance.start()
+        instance.start_dungeon([self.char1, pet])
+
+        from evennia import ScriptDB
+
+        instance_id = instance.id
+
+        # Player leaves, pet stays (on stay)
+        pet.stop_following()
+        instance.remove_character(self.char1)
+        self.char1.move_to(self.room1, quiet=True, move_type="teleport")
+
+        # Tick — should NOT collapse (pet still tagged)
+        instance.at_repeat()
+        self.assertTrue(
+            ScriptDB.objects.filter(id=instance_id).exists()
+        )
+
+    def test_collapse_after_all_leave(self):
+        """Instance collapses when all characters and pets have left."""
+        pet = _make_mule(self.room1, self.char1)
+        instance = create.create_script(
+            DungeonInstanceScript,
+            key="test_all_leave",
+            autostart=False,
+        )
+        instance.template_id = "test_dungeon"
+        instance.instance_key = "test_all_leave"
+        instance.entrance_room_id = self.room1.id
+        instance.start()
+        instance.start_dungeon([self.char1, pet])
+
+        from evennia import ScriptDB
+
+        instance_id = instance.id
+
+        # Both leave
+        instance.remove_character(self.char1)
+        self.char1.move_to(self.room1, quiet=True, move_type="teleport")
+        instance.remove_character(pet)
+        pet.move_to(self.room1, quiet=True, move_type="teleport")
+
+        # Tick — should collapse
+        instance.at_repeat()
+        self.assertFalse(
+            ScriptDB.objects.filter(id=instance_id).exists()
+        )
