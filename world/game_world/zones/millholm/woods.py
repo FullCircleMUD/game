@@ -630,6 +630,7 @@ def build_millholm_woods(town_rooms):
             ("recipes", [
                 {"inputs": {8: 1}, "output": 9, "amount": 1, "cost": 1},
                 {"inputs": {42: 1}, "output": 43, "amount": 1, "cost": 4},
+                {"inputs": {45: 1}, "output": 46, "amount": 1, "cost": 1},  # Animal Fat → Oil
             ]),
             ("desc",
              "A rough-hewn hut stands among the trees, pelts stretched "

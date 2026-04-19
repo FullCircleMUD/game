@@ -5,11 +5,9 @@ Usage:
     refuel <item>
     refill <item>
 
-Consumes 1 wheat (oil substitute) from the player's fungible inventory
-and resets the light source's fuel to maximum. Fails if the lantern is
-already full or the player has no wheat.
-
-When oil is added as a resource, swap FUEL_RESOURCE_ID to the oil ID.
+Consumes 1 oil from the player's fungible inventory and resets the
+light source's fuel to maximum. Fails if the lantern is already full
+or the player has no oil. Oil is processed from Animal Fat at a tannery.
 """
 
 from evennia import Command
@@ -19,10 +17,8 @@ from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
 
 
-# Resource ID for fuel. Currently wheat (ID 1) as an oil placeholder.
-# Swap to oil resource ID when it exists.
-FUEL_RESOURCE_ID = 1
-FUEL_RESOURCE_NAME = "wheat"
+FUEL_RESOURCE_ID = 46  # Oil (processed from Animal Fat at tannery)
+FUEL_RESOURCE_NAME = "oil"
 FUEL_COST = 1  # units consumed per refuel
 
 
@@ -34,7 +30,7 @@ class CmdRefuel(FCMCommandMixin, Command):
         refuel <item>
         refill <item>
 
-    Consumes 1 wheat to refuel a lantern to full capacity.
+    Consumes 1 oil to refuel a lantern to full capacity.
     """
 
     key = "refuel"
