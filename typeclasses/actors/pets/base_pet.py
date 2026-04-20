@@ -25,6 +25,7 @@ import time
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.npc import BaseNPC
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.nft_pet_mirror import NFTPetMirrorMixin
@@ -52,9 +53,6 @@ class BasePet(NFTPetMirrorMixin, FollowableMixin, BaseNPC):
     # owner_key is provided by NFTPetMirrorMixin
     pet_state = AttributeProperty("waiting")  # "following" / "waiting"
     fed_until = AttributeProperty(0)          # timestamp when food runs out
-
-    # ── Size (override in subclasses) ──
-    size = AttributeProperty("medium")
 
     # ── Room description ──
     room_description = AttributeProperty("stands here.")

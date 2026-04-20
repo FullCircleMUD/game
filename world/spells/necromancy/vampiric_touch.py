@@ -105,8 +105,8 @@ class VampiricTouch(Spell):
     # Mana cost is dynamic — base class mana_cost set to 0 so cast()
     # deducts nothing; we handle mana in our override.
     mana_cost = {2: 0, 3: 0, 4: 0, 5: 0}
-    target_type = "hostile"
-    spell_range = "melee"
+    target_type = "actor_hostile"
+    range = "melee"
     cooldown = 0
     description = "Drains life through touch, raising your HP beyond its maximum."
     mechanics = (

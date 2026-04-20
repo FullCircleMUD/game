@@ -1,13 +1,14 @@
 """
 Tutorial 3 Builder — Growth & Social.
 
-Creates a per-player instance of Tutorial 3 with 7 rooms. All objects
+Creates a per-player instance of Tutorial 3 with 8 rooms. All objects
 are tagged with the instance key for cleanup.
 
 Room layout:
-    Hub → [1] Hall of Records → [2] Speaking Chamber → [3] Hall of Skills
-    → [4] Training Grounds → [5] Guild Hall → [6] Companion Room
-    → [7] Complete → Hub
+    Hub → [1] Shortcut Workshop → [2] Hall of Records
+    → [3] Speaking Chamber → [4] Hall of Skills
+    → [5] Training Grounds → [6] Guild Hall → [7] Companion Room
+    → [8] Complete → Hub
 
 Usage:
     Called by TutorialInstanceScript.start_tutorial(character, chunk_num=3).
@@ -19,10 +20,26 @@ from evennia.utils import create
 
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
 from typeclasses.actors.npc import BaseNPC
+from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.world_objects.base_fixture import WorldFixture
+from typeclasses.world_objects.fountain_fixture import FountainFixture
 from utils.exit_helpers import connect_bidirectional_exit
+
+
+def _spawn_nft_item(item_type_name, location, instance_tag):
+    """
+    Spawn a real NFT-backed item and tag it for tutorial cleanup.
+
+    Uses the standard NFT lifecycle: assign_to_blank_token → spawn_into.
+    On tutorial collapse, item.delete() returns the token to RESERVE.
+    """
+    token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
+    obj = BaseNFTItem.spawn_into(token_id, location)
+    obj.db.tutorial_item = True
+    obj.tags.add(instance_tag, category="tutorial_item")
+    return obj
 
 
 class FollowableNPC(FollowableMixin, BaseNPC):
@@ -115,7 +132,105 @@ def build_tutorial_3(instance):
         char.account.db.tutorial_3_entered = True
 
     # ================================================================== #
-    #  ROOM 1: Hall of Records — Score, Stats, Conditions
+    #  ROOM 1: Shortcut Workshop — Aliases / Nicks
+    # ================================================================== #
+
+    rooms["aliases"] = _room(
+        "The Shortcut Workshop",
+        "A cozy workshop filled with scrolls and parchment. A large "
+        "slate board dominates one wall, covered in examples of command "
+        "shortcuts. A stone fountain bubbles quietly in the corner, "
+        "and a practice dummy stands near the door.",
+        "|wTutorial: Creating Shortcuts|n\n\n"
+        "You can create personal shortcuts for any command using "
+        "|walias|n.\n\n"
+        "|wSimple shortcut:|n\n"
+        "  |walias sc score|n — now typing |wsc|n runs |wscore|n.\n\n"
+        "|wShortcut with a target:|n\n"
+        "  |walias di diagnose $1|n — |wdi dummy|n runs "
+        "|wdiagnose dummy|n.\n"
+        "  |w$1|n is replaced by whatever you type after the shortcut.\n\n"
+        "|wMulti-command shortcut:|n (the real power!)\n"
+        "  |walias dc get canteen from backpack;drink canteen;"
+        "put canteen in backpack|n\n"
+        "  Now |wdc|n does all three actions at once!\n\n"
+        "|wManage your shortcuts:|n\n"
+        "  |walias/list|n — see all your shortcuts\n"
+        "  |walias/delete <name>|n — remove a shortcut\n\n"
+        "|yPractice:|n\n"
+        "  Pick up the |wbackpack|n and |wcanteen|n from the room.\n"
+        "  Try creating and using each shortcut above.\n"
+        "  Move |weast|n when ready.",
+        guide_context=(
+            "Teach the alias/nick system. The |walias|n command lets "
+            "players create personal shortcuts. Simple: |walias sc score|n. "
+            "With args: |walias di diagnose $1|n where $1 is replaced by "
+            "whatever they type after. Multi-command with semicolons: "
+            "|walias dc get canteen from backpack;drink canteen;"
+            "put canteen in backpack|n chains three actions into one. "
+            "|walias/list|n shows all aliases, |walias/delete <name>|n "
+            "removes one. There's a backpack, canteen, fountain, and "
+            "practice dummy in the room for them to experiment with. "
+            "Encourage them to try all three patterns."
+        ),
+    )
+
+    _spawn_pip(rooms["aliases"])
+
+    # Slate board fixture with examples
+    board = _fixture(
+        "a slate board", rooms["aliases"],
+        "The slate board is covered in example shortcuts:\n\n"
+        "  |walias sc score|n — simple shortcut\n"
+        "  |walias di diagnose $1|n — shortcut with a target\n"
+        "  |walias dc get canteen from backpack;drink canteen;"
+        "put canteen in backpack|n — multi-command\n"
+        "  |walias fc get canteen from backpack;refill canteen;"
+        "put canteen in backpack|n — refill version\n\n"
+        "  |walias/list|n — view your shortcuts\n"
+        "  |walias/delete <name>|n — remove one",
+    )
+    board.aliases.add("board")
+    board.aliases.add("slate board")
+    board.aliases.add("slate")
+
+    # Fountain for refill practice
+    fountain = create_object(
+        FountainFixture,
+        key="a stone fountain",
+        location=rooms["aliases"],
+        attributes=[
+            ("desc",
+             "A small stone fountain bubbles with clear water. You "
+             "could refill a water container here with |wrefill canteen from fountain|n."),
+        ],
+    )
+    fountain.db.tutorial_item = True
+    fountain.tags.add(tag, category="tutorial_item")
+    fountain.aliases.add("fountain")
+
+    # Practice dummy for diagnose
+    dummy = create_object(
+        BaseNPC,
+        key="a practice dummy",
+        location=rooms["aliases"],
+        attributes=[
+            ("desc",
+             "A straw-stuffed practice dummy. Try |wdiagnose dummy|n "
+             "to inspect it, or create a shortcut: |walias di diagnose $1|n "
+             "then use |wdi dummy|n."),
+        ],
+    )
+    dummy.tags.add(tag, category="tutorial_mob")
+    dummy.aliases.add("dummy")
+    dummy.aliases.add("practice dummy")
+
+    # Backpack and canteen for multi-command practice
+    _spawn_nft_item("Backpack", rooms["aliases"], tag)
+    _spawn_nft_item("Canteen", rooms["aliases"], tag)
+
+    # ================================================================== #
+    #  ROOM 2: Hall of Records — Score, Stats, Conditions
     # ================================================================== #
 
     rooms["records"] = _room(
@@ -154,8 +269,10 @@ def build_tutorial_3(instance):
     )
     mirror.aliases.add("mirror")
 
+    _connect_bidirectional_exit(rooms["aliases"], rooms["records"], "east")
+
     # ================================================================== #
-    #  ROOM 2: Speaking Chamber — Communication
+    #  ROOM 3: Speaking Chamber — Communication
     # ================================================================== #
 
     rooms["speaking"] = _room(
@@ -198,7 +315,7 @@ def build_tutorial_3(instance):
     board.aliases.add("message board")
 
     # ================================================================== #
-    #  ROOM 3: Hall of Skills — Skill system
+    #  ROOM 4: Hall of Skills — Skill system
     # ================================================================== #
 
     rooms["skills"] = _room(
@@ -243,7 +360,7 @@ def build_tutorial_3(instance):
     tome.aliases.add("skill tome")
 
     # ================================================================== #
-    #  ROOM 4: Training Grounds — Training skills
+    #  ROOM 5: Training Grounds — Training skills
     # ================================================================== #
 
     rooms["training"] = _room(
@@ -296,7 +413,7 @@ def build_tutorial_3(instance):
     trainer.tags.add(tag, category="tutorial_mob")
 
     # ================================================================== #
-    #  ROOM 5: Guild Hall — Guilds and advancement
+    #  ROOM 6: Guild Hall — Guilds and advancement
     # ================================================================== #
 
     rooms["guild"] = _room(
@@ -345,7 +462,7 @@ def build_tutorial_3(instance):
     guildmaster.tags.add(tag, category="tutorial_mob")
 
     # ================================================================== #
-    #  ROOM 6: Companion Room — Following and groups
+    #  ROOM 7: Companion Room — Following and groups
     # ================================================================== #
 
     rooms["companion"] = _room(
@@ -391,7 +508,7 @@ def build_tutorial_3(instance):
     companion.tags.add(tag, category="tutorial_mob")
 
     # ================================================================== #
-    #  ROOM 7: Tutorial Complete
+    #  ROOM 8: Tutorial Complete
     # ================================================================== #
 
     rooms["complete"] = _room(
@@ -401,6 +518,7 @@ def build_tutorial_3(instance):
         "skills you've learned.",
         "|wTutorial 3 Complete!|n\n\n"
         "You've learned about growth and social systems:\n\n"
+        "  |wAliases:|n        alias (personal shortcuts, multi-command)\n"
         "  |wCharacter Info:|n  score, stats, conditions\n"
         "  |wCommunication:|n  say, whisper, shout, languages\n"
         "  |wSkills:|n         skills (3 pools, mastery levels)\n"
@@ -413,7 +531,7 @@ def build_tutorial_3(instance):
         "|yMove |weast|y to return to the Tutorial Hub and "
         "receive your graduation reward!|n",
         guide_context=(
-            "Congratulate the player! They've learned character info, "
+            "Congratulate the player! They've learned aliases, character info, "
             "communication, skills, training, guilds, and groups. They're "
             "ready for the real world. Tell them |weast|n takes them to "
             "the hub for their reward. Wish them well!"
@@ -442,4 +560,4 @@ def build_tutorial_3(instance):
         exit_to_hub.set_direction("east")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
-    return rooms["records"]
+    return rooms["aliases"]

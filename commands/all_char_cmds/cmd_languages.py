@@ -21,7 +21,7 @@ class CmdLanguages(FCMCommandMixin, Command):
     """
 
     key = "languages"
-    aliases = ["lang"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Character"
     arg_regex = r"\s|$"

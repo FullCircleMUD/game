@@ -7,6 +7,8 @@ per combat tick. Retreats to the wolves den to heal when below 50% health.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.mob_behaviours.tactical_dodge_mixin import TacticalDodgeMixin
 
@@ -15,7 +17,8 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
     """A massive dire wolf that attacks players on sight."""
 
     # ── Size ──
-    size = AttributeProperty("large")
+    base_size = AttributeProperty(Size.LARGE.value)
+    size = AttributeProperty(Size.LARGE.value)
 
     # ── Stats — tougher than a regular wolf ──
     hp = AttributeProperty(30)
@@ -34,6 +37,7 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(1)
     damage_dice = AttributeProperty("2d6")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("savagely bites")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)

@@ -17,6 +17,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.dice_roller import dice
+from utils.targeting.predicates import p_can_see
 
 
 class CmdClimb(FCMCommandMixin, Command):
@@ -72,10 +73,16 @@ class CmdClimb(FCMCommandMixin, Command):
         if not room:
             return
 
+        # Darkness — can't climb what you can't see
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # ── Find climbable fixtures ──
         climbables = [
             obj for obj in room.contents
             if getattr(obj, "climbable_heights", None)
+            and p_can_see(obj, caller)
         ]
         if not climbables:
             caller.msg("There's nothing climbable here.")
@@ -94,6 +101,11 @@ class CmdClimb(FCMCommandMixin, Command):
             # caller.search returns a list in quiet mode
             if isinstance(target, list):
                 target = target[0]
+            if not p_can_see(target, caller):
+                caller.msg(
+                    f"You don't see '{self.target_name}' here."
+                )
+                return
             if not getattr(target, "climbable_heights", None):
                 caller.msg(f"You can't climb {target.key}.")
                 return

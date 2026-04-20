@@ -26,7 +26,7 @@ Entangle mechanic:
 from evennia.typeclasses.attributes import AttributeProperty
 
 from combat.combat_utils import get_actor_size
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 
@@ -35,7 +35,7 @@ from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
 
 # Sizes immune to bola entangle
-_ENTANGLE_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_ENTANGLE_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 # Max entangle duration (combat rounds) by mastery — safety valve
 _BOLA_MAX_ENTANGLE_ROUNDS = {
@@ -58,7 +58,7 @@ class BolaMixin:
     weapon_type_key = "bola"
     base_damage = AttributeProperty("d1")
     material = AttributeProperty("iron")
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     weight = AttributeProperty(1.0)
     is_finesse = AttributeProperty(True)

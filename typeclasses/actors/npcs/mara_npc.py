@@ -86,6 +86,11 @@ QUEST_ACTIVE_CONTEXT = (
     "moonpetal grows in the fields to the south — look for the pale, "
     "luminous flowers. Don't hover. You trust them or you wouldn't have "
     "asked.\n\n"
+    "IF THEY CLAIM TO HAVE THE MOONPETAL: If the player says they've "
+    "brought the moonpetal, have it, got it, etc., tell them to type "
+    "|wquest|n to hand it over — that's how the errand gets closed. "
+    "A measured 'thank you', quiet relief, perhaps a brief observation "
+    "about them, but make sure they know about the |wquest|n command.\n\n"
     f"{_COMMON_RULES}"
 )
 

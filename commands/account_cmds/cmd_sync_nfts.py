@@ -24,7 +24,7 @@ class CmdSyncNfts(Command):
     """
 
     key = "sync_nfts"
-    aliases = ["nftsync"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Economy"
 

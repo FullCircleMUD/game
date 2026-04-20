@@ -12,6 +12,7 @@ Usage:
 from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
 
+from enums.size import Size
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
 
@@ -26,6 +27,7 @@ class WorldItem(HeightAwareMixin, HiddenObjectMixin, DefaultObject):
         can_bank: Whether this item can be deposited in AccountBank.
     """
 
+    size = AttributeProperty(Size.TINY.value)
     can_export = AttributeProperty(False)
     can_bank = AttributeProperty(True)
 

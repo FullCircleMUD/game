@@ -7,6 +7,8 @@ and applies LIGHT_SPELL effect, illuminating any dark room it enters.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.combat_companion import CombatCompanionMixin
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
@@ -17,11 +19,13 @@ class FamiliarImp(FamiliarMixin, FlyingMixin, CombatCompanionMixin, BasePet):
     """A combat-capable, light-bearing imp familiar — GM conjuration."""
 
     pet_type = AttributeProperty("familiar")
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     preferred_height = AttributeProperty(0)
     room_description = AttributeProperty("hovers at its master's side, flickering with arcane light.")
 
     damage_dice = "1d6"
+    damage_type = DamageType.FIRE
     attack_message = "hurls a spark of fire at"
     attack_delay_min = 3
     attack_delay_max = 4

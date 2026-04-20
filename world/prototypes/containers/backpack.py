@@ -8,4 +8,5 @@ BACKPACK = {
     "max_durability": 0,
     "max_container_capacity_kg": 15.0,
     "transfer_weight": True,
+    "size": "small",
 }

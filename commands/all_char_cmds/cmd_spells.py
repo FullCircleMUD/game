@@ -25,7 +25,7 @@ class CmdSpells(FCMCommandMixin, Command):
     """
 
     key = "spells"
-    aliases = ["sp", "spe"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Magic"
     allow_while_sleeping = True
@@ -152,7 +152,7 @@ class CmdSpells(FCMCommandMixin, Command):
         # Stats
         lines.append(
             f"|wTarget:|n {spell.target_type}  "
-            f"|wRange:|n {spell.spell_range}  "
+            f"|wRange:|n {spell.range}  "
             f"|wCooldown:|n {spell.get_cooldown()} rounds"
         )
         lines.append(

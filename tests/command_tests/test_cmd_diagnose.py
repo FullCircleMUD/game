@@ -65,7 +65,7 @@ class TestCmdDiagnoseTarget(EvenniaCommandTest):
     def test_diagnose_missing_target(self):
         """Diagnose nonexistent target shows search failure."""
         result = self.call(CmdDiagnose(), "dragon")
-        self.assertIn("Could not find", result)
+        self.assertIn("no 'dragon' here", result.lower())
 
     def test_full_health_description(self):
         """Full health target shows excellent condition."""
@@ -80,7 +80,7 @@ class TestCmdDiagnoseTarget(EvenniaCommandTest):
         self.assertIn("awful condition", result)
 
     def test_diagnose_object_rejected(self):
-        """Diagnosing a non-character object is rejected."""
+        """Diagnosing a non-actor — actor_friendly doesn't find it."""
         create.create_object(
             "typeclasses.objects.Object",
             key="a rock",
@@ -88,4 +88,4 @@ class TestCmdDiagnoseTarget(EvenniaCommandTest):
             nohome=True,
         )
         result = self.call(CmdDiagnose(), "rock")
-        self.assertIn("can't diagnose", result)
+        self.assertIn("no 'rock' here", result.lower())

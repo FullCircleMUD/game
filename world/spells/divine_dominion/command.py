@@ -24,7 +24,7 @@ Cooldown: 0 (spammable).
 Combat-only. HUGE+ immune.
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from combat.combat_utils import force_drop_weapon, get_actor_size
@@ -33,7 +33,7 @@ from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
 
 _VALID_COMMANDS = {"halt", "grovel", "drop", "flee"}
-_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 # Duration scaling: tier → rounds
 _HALT_ROUNDS = {1: 1, 2: 2, 3: 2, 4: 3, 5: 3}
@@ -48,7 +48,7 @@ class Command(Spell):
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     has_spell_arg = True
     cooldown = 0
     description = "Issues a divine command that compels the target to obey."
@@ -59,11 +59,11 @@ class Command(Spell):
         "Combat-only. HUGE+ immune."
     )
 
-    def _execute(self, caster, target, spell_arg=None):
+    def _execute(self, caster, target, **kwargs):
         tier = self.get_caster_tier(caster)
 
         # --- Validate command word ---
-        command_word = spell_arg
+        command_word = kwargs.get("spell_arg")
         if not command_word or command_word not in _VALID_COMMANDS:
             caster.mana += self.mana_cost.get(tier, 0)
             valid = ", ".join(sorted(_VALID_COMMANDS))

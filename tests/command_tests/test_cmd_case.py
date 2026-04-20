@@ -38,13 +38,14 @@ class TestCaseGates(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.BASIC)
 
     def test_no_args(self):
         self.call(CmdCase(), "", "Case who?")
 
     def test_self_target(self):
-        self.call(CmdCase(), "Char", "You can't case yourself.")
+        self.call(CmdCase(), "me", "You can't case yourself.")
 
     def test_unskilled_blocked(self):
         _set_subterfuge(self.char1, MasteryLevel.UNSKILLED)
@@ -55,9 +56,17 @@ class TestCaseGates(EvenniaCommandTest):
         self.char1.scripts.add(CombatHandler, autostart=False)
         self.call(CmdCase(), "Char2", "You can't case someone while in combat!")
 
-    def test_hidden_target_blocked(self):
+    def test_hidden_target_not_found(self):
+        """HIDDEN targets filtered by p_can_see — not found."""
         self.char2.add_condition(Condition.HIDDEN)
-        self.call(CmdCase(), "Char2", "You can't see them well enough")
+        result = self.call(CmdCase(), "Char2")
+        self.assertIn("no 'Char2' here", result)
+
+    def test_darkness_blocks(self):
+        """Case in darkness should fail."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        self.call(CmdCase(), "Char2", "It's too dark")
 
 
 # ── Result Display ────────────────────────────────────────────────
@@ -73,6 +82,7 @@ class TestCaseResults(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.BASIC)
         self.char2.db.gold = 75
         self.char2.db.resources = {}
@@ -148,6 +158,7 @@ class TestCaseCache(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.BASIC)
         self.char2.db.gold = 100
         self.char2.db.resources = {}
@@ -194,6 +205,7 @@ class TestCaseHidden(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_subterfuge(self.char1, MasteryLevel.BASIC)
         self.char2.db.gold = 50
         self.char2.db.resources = {}

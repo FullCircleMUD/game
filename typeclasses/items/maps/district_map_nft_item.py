@@ -43,6 +43,45 @@ class DistrictMapNFTItem(BaseNFTItem):
             return self.db.surveyed_points
         return pts
 
+    def at_restore_from_metadata(self, metadata):
+        """
+        Convert surveyed_points from its JSON-friendly list form back into
+        a set after spawn_into() copies mirror metadata onto self.db. The
+        completion_pct key is derived and harmless to leave on db (the
+        @property shadows it when accessed).
+        """
+        raw = metadata.get("surveyed_points")
+        if raw is None:
+            return
+        if not isinstance(raw, set):
+            self.db.surveyed_points = set(raw)
+
+    def record_survey_points(self, keys):
+        """
+        Add one or more surveyed point_keys to this map and persist the new
+        state to the NFT mirror metadata (so completion_pct is visible on
+        external marketplaces and survives chain export/import cycles).
+
+        Args:
+            keys: iterable of point_key strings. Empty/all-duplicates iterables
+                  are a no-op — no mirror write.
+        """
+        if not keys:
+            return
+        points = self.surveyed_points  # resolves lazy init
+        added = False
+        for key in keys:
+            if key not in points:
+                points.add(key)
+                added = True
+        if not added:
+            return
+        self.db.surveyed_points = points  # trip Evennia attribute save
+        self.persist_metadata({
+            "surveyed_points": sorted(points),
+            "completion_pct": self.completion_pct,
+        })
+
     @property
     def completion_pct(self):
         """Return integer 0-100 completion percentage."""

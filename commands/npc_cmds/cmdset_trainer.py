@@ -168,7 +168,7 @@ class CmdTrain(FCMCommandMixin, Command):
     """
 
     key = "train"
-    aliases = ["tr"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Guild"
 

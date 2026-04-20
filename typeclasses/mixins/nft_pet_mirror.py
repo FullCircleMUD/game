@@ -22,7 +22,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
     Pet-specific NFT mirror tracking. Inherits NFTMirrorMixin and overrides
     dispatch logic for pet ownership model.
 
-    Inherited unchanged: token_id, _get_wallet, _get_character_key,
+    Inherited unchanged: token_id, _get_owner_wallet, _get_character_key,
     assign_to_blank_token, _load_from_mirror, get_nft_mirror,
     _log_error, _classify
     """
@@ -243,7 +243,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         self.owner_key = new_owner.key
 
         # Get new owner's wallet
-        new_wallet = self._get_wallet(new_owner)
+        new_wallet = self._get_owner_wallet(new_owner)
         new_key = self._get_character_key(new_owner)
 
         # Mirror update
@@ -283,7 +283,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         owner = self._get_owner_character()
         if owner is None:
             return None
-        return self._get_wallet(owner)
+        return self._get_owner_wallet(owner)
 
     def _classify_location(self, obj):
         """Classify a location for pet mirror dispatch.

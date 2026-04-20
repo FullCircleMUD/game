@@ -27,7 +27,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
 from combat.combat_utils import get_actor_size
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
@@ -44,7 +44,7 @@ _CROSSBOW_KNOCKBACK = {
 }
 
 # Sizes immune to knockback
-_KNOCKBACK_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_KNOCKBACK_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 
 class CrossbowMixin:
@@ -59,7 +59,7 @@ class CrossbowMixin:
     damage_type = AttributeProperty(DamageType.PIERCING)
     speed = AttributeProperty(0)
     weight = AttributeProperty(3.5)
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     range = AttributeProperty(1)
 
     # ================================================================== #
@@ -132,6 +132,8 @@ class CrossbowNFTItem(CrossbowMixin, WeaponNFTItem):
     """
     Crossbow weapons — missile, knockback mastery path. No extra attacks.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC,

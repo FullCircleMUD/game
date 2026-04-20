@@ -27,6 +27,10 @@ class CloseableMixin:
     # Default open — containers override to False, doors override to False
     is_open = AttributeProperty(True)
 
+    # Auto-close delay in seconds. 0 = disabled (default for generic closeables).
+    # ExitDoor overrides to 300 (5 minutes).
+    auto_close_seconds = AttributeProperty(0)
+
     def at_closeable_init(self):
         """
         Initialize closeable state. Call from at_object_creation().
@@ -54,6 +58,7 @@ class CloseableMixin:
 
         self.is_open = True
         self.at_open(opener)
+        self._start_auto_close_timer()
         return True, f"You open {self.key}."
 
     def close(self, closer):
@@ -70,6 +75,7 @@ class CloseableMixin:
             return False, f"{self.key} is already closed."
 
         self.is_open = False
+        self._cancel_auto_close_timer()
         self.at_close(closer)
         return True, f"You close {self.key}."
 
@@ -90,3 +96,22 @@ class CloseableMixin:
     def at_close(self, closer):
         """Hook called after successfully closing. Override for custom behaviour."""
         pass
+
+    def _start_auto_close_timer(self):
+        """Start an auto-close timer script if auto_close_seconds > 0."""
+        if self.auto_close_seconds and self.auto_close_seconds > 0:
+            from typeclasses.scripts.auto_close_timer import AutoCloseTimerScript
+
+            # Remove any existing auto-close timer
+            self.scripts.delete("auto_close_timer")
+
+            script = self.scripts.add(
+                AutoCloseTimerScript,
+                autostart=False,
+            )
+            script.interval = self.auto_close_seconds
+            script.start()
+
+    def _cancel_auto_close_timer(self):
+        """Cancel any running auto-close timer."""
+        self.scripts.delete("auto_close_timer")

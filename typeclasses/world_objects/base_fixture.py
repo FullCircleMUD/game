@@ -12,8 +12,10 @@ Usage:
         ...
 """
 
+from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
 
+from enums.size import Size
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
 from typeclasses.mixins.invisible_object import InvisibleObjectMixin
@@ -27,6 +29,8 @@ class WorldFixture(HeightAwareMixin, InvisibleObjectMixin, HiddenObjectMixin, De
     - Not blockchain-tracked — no token_id, no NFT service hooks
     - Supports hidden and invisible states via mixins
     """
+
+    size = AttributeProperty(Size.MEDIUM.value)
 
     def at_object_creation(self):
         super().at_object_creation()

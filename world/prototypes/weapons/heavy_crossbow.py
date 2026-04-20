@@ -7,4 +7,5 @@ HEAVY_CROSSBOW = {
     "desc": "A powerful crossbow built around a tempered steel prod. Punishing draw weight; punishing impact.",
     "material": "steel",
     "max_durability": 7200,
+    "size": "medium",
 }

@@ -70,6 +70,13 @@ QUEST_ACTIVE_CONTEXT = (
     "confused, remind them you need 3 Flour and that flour comes from "
     "the windmill at Goldwheat Farm (wheat ground into flour). "
     "Be grateful but not overbearing.\n\n"
+    "IF THEY CLAIM TO HAVE THE FLOUR: If the player says they've "
+    "brought the flour, have the flour, got the flour, etc., DO NOT "
+    "ask how many sacks and DO NOT repeat directions to the windmill. "
+    "They have the goods. Tell them to type |wquest|n to officially "
+    "hand it over — that's how the delivery gets completed in the "
+    "ledger. Congratulate them warmly but make sure they know about "
+    "the |wquest|n command.\n\n"
     f"{_COMMON_RULES}"
 )
 

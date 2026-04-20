@@ -411,7 +411,7 @@ class DungeonInstanceScript(DefaultScript):
     # ------------------------------------------------------------------ #
 
     def at_repeat(self):
-        """Check timers and collapse conditions."""
+        """Check collapse conditions. Never collapse while characters are present."""
         if self.state == "done":
             self.stop()
             return
@@ -419,14 +419,7 @@ class DungeonInstanceScript(DefaultScript):
         now = timezone.now()
         template = self.template
 
-        # Instance lifetime expired? (skipped if persistent_until_empty)
-        if not template.persistent_until_empty and self.created_at:
-            elapsed = (now - self.created_at).total_seconds()
-            if elapsed >= template.instance_lifetime_seconds:
-                self.collapse_instance()
-                return
-
-        # All characters left? Collapse (with optional delay).
+        # All characters/pets left? Collapse (with optional delay).
         if not self.get_characters():
             if template.empty_collapse_delay > 0:
                 if not self.emptied_at:

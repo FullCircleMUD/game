@@ -7,6 +7,7 @@ and similar ability checks. Stats set via spawn JSON attrs.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
 
@@ -15,6 +16,7 @@ class Skeleton(HumanoidWearslotsMixin, AggressiveMob):
     """An undead skeleton. Tagged for Turn Undead."""
 
     alignment_score = AttributeProperty(-1000)  # pure evil undead
+    damage_type = AttributeProperty(DamageType.SLASHING)  # claws
 
     def at_object_creation(self):
         super().at_object_creation()

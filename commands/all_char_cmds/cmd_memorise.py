@@ -39,7 +39,7 @@ class CmdMemorise(FCMCommandMixin, Command):
     """
 
     key = "memorise"
-    aliases = ["memorize", "mem"]
+    aliases = ["memorize"]
     locks = "cmd:all()"
     help_category = "Magic"
     allow_while_sleeping = True
@@ -155,7 +155,7 @@ class CmdForget(FCMCommandMixin, Command):
     """
 
     key = "forget"
-    aliases = ["for"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Magic"
     allow_while_sleeping = True

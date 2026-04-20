@@ -86,8 +86,9 @@ class LightBurnScript(DefaultScript):
             self.stop()
             obj.delete()
         else:
-            # Lantern: extinguish but keep
-            obj.is_lit = False
-            self.stop()
+            # Lantern: route through extinguish() so mirror metadata captures
+            # the final is_lit=False, fuel_remaining=0 snapshot consistently.
+            # extinguish() internally calls _stop_burn_script() which stops us.
+            obj.extinguish()
             if holder:
                 holder.msg(f"|y{obj.key} runs out of fuel and goes dark.|n")

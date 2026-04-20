@@ -2,6 +2,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
+from utils.targeting.predicates import p_height_visible_to
 
 
 # Canonical scan directions — only follow cardinal + vertical exits
@@ -21,17 +22,14 @@ _DISTANCE_LABELS = {1: "nearby", 2: "not far off", 3: "far off"}
 
 
 def _can_see_hidden(entity):
-    """Check if entity can see HIDDEN actors."""
+    """Check if entity can see HIDDEN actors.
+
+    Granted by the `true_sight` named effect, which both the True Sight
+    and Holy Sight spells apply.
+    """
     if not hasattr(entity, "has_effect"):
         return False
-    if entity.has_effect("true_sight"):
-        return True
-    if (
-        entity.has_effect("holy_sight")
-        and (getattr(entity.db, "holy_sight_tier", 0) or 0) >= 4
-    ):
-        return True
-    return False
+    return entity.has_effect("true_sight")
 
 
 def _get_visible_characters(room, looker):
@@ -59,6 +57,9 @@ def _get_visible_characters(room, looker):
                 continue
             if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
                 continue
+        # Height-gated visibility — canopy mobs invisible to ground-level lookers
+        if not p_height_visible_to(char, looker):
+            continue
         names.append(char.get_display_name(looker))
     return names
 

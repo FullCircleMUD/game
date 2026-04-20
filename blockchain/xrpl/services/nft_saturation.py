@@ -204,16 +204,25 @@ class NFTSaturationService:
 
     @staticmethod
     def get_knowledge_counts(active_character_keys):
-        """Count how many active players know each spell and recipe.
+        """Count how many active players know each spell and recipe
+        AND have the mastery to use it.
+
+        Characters who know a spell/recipe but lack the required mastery
+        (e.g. after remorting away from a caster class) are excluded.
+        This prevents inflating known_by relative to eligible_players,
+        which would cause the gap-based spawn algorithm to under-spawn.
 
         Args:
             active_character_keys: set of character db_key strings
 
         Returns:
             (spell_counts, recipe_counts) — both defaultdict(int)
-            mapping item_key to number of active players who know it.
+            mapping item_key to number of active players who know it
+            and have the mastery to cast/craft it.
         """
         from evennia.objects.models import ObjectDB
+        from world.recipes import RECIPES
+        from world.spells.registry import SPELL_REGISTRY
 
         spell_counts = defaultdict(int)
         recipe_counts = defaultdict(int)
@@ -227,21 +236,56 @@ class NFTSaturationService:
         )
 
         for char in characters:
-            # Learned spells (permanent)
+            class_levels = char.db.class_skill_mastery_levels or {}
+
+            # Learned spells (permanent) — only count if mastery sufficient
             spellbook = char.db.spellbook or {}
             for key in spellbook:
-                spell_counts[key] += 1
-
-            # Granted spells (class/quest abilities)
-            granted = char.db.granted_spells or {}
-            for key in granted:
-                if key not in spellbook:
+                spell = SPELL_REGISTRY.get(key)
+                if not spell:
+                    continue
+                entry = class_levels.get(spell.school_key, {})
+                char_mastery = (
+                    entry.get("mastery", 0) if hasattr(entry, "get") else int(entry)
+                )
+                if char_mastery >= spell.min_mastery.value:
                     spell_counts[key] += 1
 
-            # Recipes
+            # Granted spells (class/quest abilities) — same mastery filter
+            granted = char.db.granted_spells or {}
+            for key in granted:
+                if key in spellbook:
+                    continue
+                spell = SPELL_REGISTRY.get(key)
+                if not spell:
+                    continue
+                entry = class_levels.get(spell.school_key, {})
+                char_mastery = (
+                    entry.get("mastery", 0) if hasattr(entry, "get") else int(entry)
+                )
+                if char_mastery >= spell.min_mastery.value:
+                    spell_counts[key] += 1
+
+            # Recipes — only count if crafting mastery sufficient
+            general_levels = char.db.general_skill_mastery_levels or {}
             recipe_book = char.db.recipe_book or {}
             for key in recipe_book:
-                recipe_counts[key] += 1
+                recipe = RECIPES.get(key)
+                if not recipe:
+                    continue
+                skill_key = recipe["skill"].value
+                # Enchanting is a class skill; all others are general skills
+                if skill_key in class_levels:
+                    entry = class_levels.get(skill_key, {})
+                    char_mastery = (
+                        entry.get("mastery", 0)
+                        if hasattr(entry, "get")
+                        else int(entry)
+                    )
+                else:
+                    char_mastery = int(general_levels.get(skill_key, 0))
+                if char_mastery >= recipe["min_mastery"].value:
+                    recipe_counts[key] += 1
 
         return spell_counts, recipe_counts
 

@@ -34,7 +34,7 @@ class CmdUnconnectedConnect(COMMAND_DEFAULT_CLASS):
     """
 
     key = "connect"
-    aliases = ["conn", "con", "co"]
+    aliases = ["con"]
     locks = "cmd:all()"
     arg_regex = r"\s.*?|$"
 

@@ -9,5 +9,5 @@ RECIPE_LIFES_ESSENCE = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 14: 2},  # 1 Moonpetal Essence + 2 Bloodmoss
-    "output_prototype": "lifes_essence",
+    "mastery_tiered": True,
 }

@@ -235,3 +235,151 @@ class TestGetKnownRecipes(EvenniaTest):
         self.char1.db.recipe_book = {"deleted_recipe": True}
         known = self.char1.get_known_recipes()
         self.assertNotIn("deleted_recipe", known)
+
+
+# ── Dynamic wand recipe generation (Phase 2) ─────────────────────────
+
+
+class TestWandRecipeGeneration(EvenniaTest):
+    """Exercise _get_wand_enchant_recipes() across inventory and spell state.
+
+    Wand recipes are generated on-the-fly at get_known_recipes() call time
+    from (blank wands in inventory × spells in spellbook/granted) gated by
+    current class-skill mastery in each spell's school.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def _spawn_blank(self, prototype_key):
+        """Spawn a blank wand into char1's inventory (plain BaseNFTItem).
+
+        Tests only need the prototype_key attribute to be readable so the
+        wand-recipe generator can match it against _WAND_BLANK_TIERS.
+        """
+        from evennia.utils import create
+        obj = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key=prototype_key.replace("_", " ").title(),
+            location=self.char1,
+        )
+        obj.db.prototype_key = prototype_key
+        return obj
+
+    def _set_evocation_mastery(self, level):
+        """Set the character's evocation class-skill mastery."""
+        if not self.char1.db.class_skill_mastery_levels:
+            self.char1.db.class_skill_mastery_levels = {}
+        self.char1.db.class_skill_mastery_levels["evocation"] = {
+            "mastery": level,
+            "classes": ["mage"],
+        }
+
+    def _learn_spell(self, spell_key):
+        """Put a spell directly into the character's spellbook."""
+        if not self.char1.db.spellbook:
+            self.char1.db.spellbook = {}
+        self.char1.db.spellbook[spell_key] = True
+
+    def test_no_blanks_no_wand_recipes(self):
+        """Spellbook + mastery but no blanks → zero wand recipes."""
+        self._set_evocation_mastery(5)
+        self._learn_spell("magic_missile")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertEqual(recipes, {})
+
+    def test_blanks_but_no_spells_no_wand_recipes(self):
+        """Blanks in inventory but empty spellbook → zero wand recipes."""
+        self._spawn_blank("training_wand")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertEqual(recipes, {})
+
+    def test_matched_tier_produces_recipe(self):
+        """Training wand + magic_missile in spellbook + mastery → 1 recipe."""
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertIn("wand_magic_missile", recipes)
+        recipe = recipes["wand_magic_missile"]
+        self.assertEqual(recipe["name"], "Wand of Magic Missile")
+        self.assertEqual(recipe["skill"], skills.ENCHANTING)
+        self.assertEqual(recipe["min_mastery"], MasteryLevel.BASIC)
+        self.assertEqual(recipe["ingredients"], {16: 2})
+        self.assertEqual(recipe["nft_ingredients"], {"training_wand": 1})
+        self.assertEqual(recipe["_wand_spell_key"], "magic_missile")
+        self.assertEqual(recipe["_wand_charges"], 10)
+        self.assertEqual(recipe["output_item_type"], "Enchanted Wand")
+
+    def test_unmatched_tier_excluded(self):
+        """Training wand cannot hold fireball (EXPERT) — no recipe."""
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(3)
+        self._learn_spell("fireball")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertNotIn("wand_fireball", recipes)
+
+    def test_current_remort_mastery_check(self):
+        """Mage knows fireball but dropped to BASIC evocation — no recipe."""
+        self._spawn_blank("wizards_wand")
+        self._set_evocation_mastery(1)  # BASIC — but fireball is EXPERT
+        self._learn_spell("fireball")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertNotIn("wand_fireball", recipes)
+
+    def test_multiple_spells_at_matching_tier(self):
+        """Multiple BASIC spells + training_wand → one recipe per spell."""
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        self._learn_spell("frostbolt")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertIn("wand_magic_missile", recipes)
+        self.assertIn("wand_frostbolt", recipes)
+
+    def test_charges_scale_with_tier(self):
+        """Verify the fixed charge table across tiers: 10/8/6/4/2."""
+        # BASIC: 10 charges
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        recipes = self.char1._get_wand_enchant_recipes()
+        self.assertEqual(recipes["wand_magic_missile"]["_wand_charges"], 10)
+
+    def test_wand_recipes_appear_in_get_known_recipes(self):
+        """get_known_recipes() must merge in dynamic wand recipes."""
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        known = self.char1.get_known_recipes()
+        self.assertIn("wand_magic_missile", known)
+
+    def test_wand_recipes_filtered_by_crafting_type(self):
+        """Wand recipes should be in wizard's workshop filter."""
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        known = self.char1.get_known_recipes(
+            crafting_type=RoomCraftingType.WIZARDS_WORKSHOP,
+        )
+        self.assertIn("wand_magic_missile", known)
+
+        woodshop = self.char1.get_known_recipes(
+            crafting_type=RoomCraftingType.WOODSHOP,
+        )
+        self.assertNotIn("wand_magic_missile", woodshop)
+
+    def test_knows_recipe_dynamic_wand(self):
+        """knows_recipe should return True for a generated wand recipe."""
+        self._spawn_blank("training_wand")
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        self.assertTrue(self.char1.knows_recipe("wand_magic_missile"))
+
+    def test_knows_recipe_dynamic_wand_false_without_blank(self):
+        """No blank in inventory → knows_recipe returns False."""
+        self._set_evocation_mastery(1)
+        self._learn_spell("magic_missile")
+        self.assertFalse(self.char1.knows_recipe("wand_magic_missile"))

@@ -10,6 +10,9 @@ Override at_activate/at_deactivate in subclasses or set them
 dynamically in zone builders for custom effects.
 """
 
+from evennia import AttributeProperty
+
+from enums.size import Size
 from typeclasses.mixins.switch_mixin import SwitchMixin
 from typeclasses.world_objects.base_fixture import WorldFixture
 
@@ -17,4 +20,4 @@ from typeclasses.world_objects.base_fixture import WorldFixture
 class SwitchFixture(SwitchMixin, WorldFixture):
     """A WorldFixture that can be toggled on/off."""
 
-    pass
+    size = AttributeProperty(Size.TINY.value)

@@ -11,4 +11,5 @@ COARSE_ROBE = {
     "wear_effects": [{"type": "stat_bonus", "stat": "mana_max", "value": 10}],
     "weight": 1.5,
     "max_durability": 720,
+    "size": "small",
 }

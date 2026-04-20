@@ -11,4 +11,5 @@ BROWN_CORDUROY_PANTS = {
     "wear_effects": [{"type": "stat_bonus", "stat": "move_max", "value": 10}],
     "weight": 0.8,
     "max_durability": 720,
+    "size": "small",
 }

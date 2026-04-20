@@ -19,10 +19,15 @@ Usage:
                         out of combat: stumble awkwardly
 """
 
-from combat.combat_utils import enter_combat, get_sides
+from combat.combat_utils import enter_combat, get_actor_size, get_sides
 from enums.mastery_level import MasteryLevel
+from enums.size import size_value
 from enums.skills_enum import skills
 from utils.dice_roller import dice
+from utils.targeting.helpers import (
+    resolve_attack_target_in_combat,
+    resolve_attack_target_out_of_combat,
+)
 from .cmd_skill_base import CmdSkillBase
 
 BASH_COOLDOWNS = {
@@ -53,7 +58,7 @@ class CmdBash(CmdSkillBase):
     """
 
     key = "bash"
-    aliases = ["ba", "b"]
+    aliases = []
     skill = skills.BASH.value
     help_category = "Combat"
 
@@ -84,11 +89,14 @@ class CmdBash(CmdSkillBase):
         # ── Parse target ──
         target = None
         if self.args and self.args.strip():
-            results = caller.search(self.args.strip(), location=caller.location, quiet=True)
-            if not results:
-                caller.msg(f"You don't see '{self.args.strip()}' here.")
+            search_term = self.args.strip()
+            if in_combat:
+                target = resolve_attack_target_in_combat(caller, search_term)
+            else:
+                target = resolve_attack_target_out_of_combat(caller, search_term)
+            if target is None:
+                caller.msg(f"You don't see '{search_term}' here.")
                 return
-            target = results[0] if isinstance(results, list) else results
         elif in_combat:
             # Default to current attack target
             action = handler.action_dict
@@ -108,14 +116,6 @@ class CmdBash(CmdSkillBase):
         # ── Validate target ──
         if target == caller:
             caller.msg("You can't bash yourself.")
-            return
-
-        if not hasattr(target, "hp") or target.hp is None:
-            caller.msg("You can't bash that.")
-            return
-
-        if target.hp <= 0:
-            caller.msg(f"{target.key} is already dead.")
             return
 
         if target.location != caller.location:
@@ -163,6 +163,15 @@ class CmdBash(CmdSkillBase):
         _, enemies = get_sides(caller)
         if target not in enemies:
             caller.msg(f"{target.key} is not an enemy.")
+            return
+
+        # ── Size gate: can only bash targets up to 1 size larger ──
+        caller_size = get_actor_size(caller)
+        target_size = get_actor_size(target)
+        if size_value(target_size) > size_value(caller_size) + 1:
+            caller.msg(
+                f"|y{target.key} is too large for you to knock down!|n"
+            )
             return
 
         # ── Cooldown check ──

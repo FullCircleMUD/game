@@ -28,6 +28,7 @@ class TestCmdFollow(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.char1.following = None
         self.char1.nofollow = False
         self.char2.following = None
@@ -54,7 +55,7 @@ class TestCmdFollow(EvenniaCommandTest):
 
     def test_follow_self_rejected(self):
         """Can't follow yourself."""
-        result = self.call(CmdFollow(), self.char1.key)
+        result = self.call(CmdFollow(), "me")
         self.assertIn("can't follow yourself", result)
         self.assertIsNone(self.char1.following)
 
@@ -112,6 +113,7 @@ class TestCmdNofollow(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.char1.following = None
         self.char1.nofollow = False
         self.char2.following = None

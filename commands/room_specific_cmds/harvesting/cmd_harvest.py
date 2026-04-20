@@ -9,9 +9,9 @@ Usage:
     mine        — mine ore in a mine
     chop        — chop wood in a forest
     harvest     — harvest crops in a field
-    hunt        — hunt game in hunting grounds
-    fish        — fish in fishing spots
     forage      — forage for materials
+    gather      — gather resources
+    pick        — pick items
 
 Each action takes 3 seconds and yields 1 unit of the room's resource.
 Players don't know how many resources remain — they keep gathering until
@@ -29,22 +29,18 @@ from commands.command import FCMCommandMixin
 HARVEST_DELAY_SECONDS = 3
 
 _CANONICAL = {
-    "ha": "harvest", "har": "harvest", "harv": "harvest", "harvest": "harvest",
-    "mi": "mine", "min": "mine", "mine": "mine",
-    "ch": "chop", "cho": "chop", "chop": "chop",
-    "hu": "hunt", "hun": "hunt", "hunt": "hunt",
-    "fi": "fish", "fis": "fish", "fish": "fish",
-    "fo": "forage", "for": "forage", "fora": "forage", "forag": "forage", "forage": "forage",
-    "ga": "gather", "gat": "gather", "gath": "gather", "gather": "gather",
-    "pi": "pick", "pic": "pick", "pick": "pick",
+    "harvest": "harvest",
+    "mine": "mine",
+    "chop": "chop",
+    "forage": "forage",
+    "gather": "gather",
+    "pick": "pick",
 }
 
 _GERUNDS = {
     "harvest": "harvesting",
     "mine": "mining",
     "chop": "chopping",
-    "hunt": "hunting",
-    "fish": "fishing",
     "forage": "foraging",
     "gather": "gathering",
     "pick": "picking",
@@ -63,12 +59,7 @@ class CmdHarvest(FCMCommandMixin, Command):
     """
 
     key = "harvest"
-    aliases = [
-        "ha", "har", "mine", "mi", "min",
-        "chop", "ch", "cho", "hunt", "hu", "hun",
-        "fish", "fi", "fis", "forage", "fo", "for",
-        "fora", "forag", "gather", "ga", "gat", "gath",
-        "pick", "pi", "pic"]
+    aliases = ["chop", "mine", "forage", "gather", "pick"]
     
     locks = "cmd:all()"
     help_category = "Gathering"

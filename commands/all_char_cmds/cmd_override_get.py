@@ -41,6 +41,12 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import (
+    resolve_container,
+    resolve_item_in_source,
+    resolve_target,
+)
+from utils.targeting.predicates import p_passes_lock, p_same_height, p_visible_to
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -102,7 +108,9 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
         #  "get leather(resource) FROM backpack(container)".
         # ---------------------------------------------------------- #
         if " " in self.args.strip():
-            obj = caller.search(self.args.strip(), location=caller.location, quiet=True)
+            obj = resolve_item_in_source(
+                caller, caller.location, self.args.strip(), quiet=True
+            )
             if obj:
                 self._get_object(caller, self.args.strip())
                 return
@@ -145,7 +153,6 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
             if container:
                 self._get_from_container(caller, item_part, container.key)
             else:
-                # No match — run normal get which will show the error
                 self._get_object(caller, parsed.search_term)
 
     # ============================================================== #
@@ -162,18 +169,13 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
         if len(parts) < 2:
             return None, None
         item_part, container_word = parts
-        # Search for container quietly — no error messages
-        container = caller.search(container_word, location=caller, quiet=True)
-        if not container:
-            container = caller.search(
-                container_word, location=caller.location, quiet=True
-            )
-        if not container:
+        # Silent fallback probe — no error messages emitted.
+        container = resolve_container(caller, container_word)
+        if container is None:
             return None, None
-        if isinstance(container, list):
-            container = container[0]
-        if not getattr(container, "is_container", False):
-            return None, None
+        # Command-layer state check: a closed container here should
+        # behave like "no container found" so the caller falls through
+        # to non-container parsing.
         if hasattr(container, "is_open") and not container.is_open:
             return None, None
         return container, item_part.strip()
@@ -356,24 +358,27 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     def _get_object(self, caller, search_term):
         """Standard Evennia object pickup with fuzzy matching."""
-        objs = caller.search(search_term, location=caller.location, stacked=self.number)
+        # Broad room targeting — finds any visible non-exit object.
+        # Height, get-lock, and weight checks stay at command layer
+        # so we can emit specific error messages for each failure.
+        _get_lock = p_passes_lock("get")
+        _height_ok = p_same_height(caller)
+
+        objs, _ = resolve_target(
+            caller, search_term, "items_room_nonexit",
+            extra_predicates=(p_visible_to,),
+            stacked=self.number or 0,
+        )
         if not objs:
+            caller.msg(f"You don't see '{search_term}' here.")
             return
         objs = utils.make_iter(objs)
 
-        if len(objs) == 1 and caller == objs[0]:
-            self.msg("You can't get yourself.")
-            return
-
-        # Block picking up hidden objects the caller hasn't discovered
         for obj in objs:
-            if hasattr(obj, "is_hidden_visible_to"):
-                if not obj.is_hidden_visible_to(caller):
-                    self.msg(f"You don't see '{search_term}' here.")
-                    return
-
-        for obj in objs:
-            if not obj.access(caller, "get"):
+            if not _height_ok(obj, caller):
+                self.msg("That's out of reach.")
+                return
+            if not _get_lock(obj, caller):
                 if obj.db.get_err_msg:
                     self.msg(obj.db.get_err_msg)
                 else:
@@ -435,23 +440,29 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     def _find_container(self, caller, name):
         """Search for a container in caller's inventory and room."""
-        container = caller.search(name, location=caller, quiet=True)
-        if not container:
-            container = caller.search(
-                name, location=caller.location, quiet=True,
+        # resolve_container handles identification — finds a container
+        # by name in inventory first, then room. It does NOT check
+        # open/closed state; that's a command-layer policy decision
+        # and `get from <container>` specifically needs the container
+        # to be open, so the state check stays here.
+        container = resolve_container(caller, name)
+        if container is None:
+            # No container matched. Disambiguate the error by checking
+            # if there's any non-container with that name, so we can
+            # emit "X is not a container" instead of generic "not found".
+            fallback = (
+                resolve_item_in_source(caller, caller, name, quiet=True)
+                or resolve_item_in_source(caller, caller.location, name, quiet=True)
             )
-        if not container:
-            caller.msg(f"You don't see '{name}' here.")
+            if isinstance(fallback, list):
+                fallback = fallback[0] if fallback else None
+            if fallback is not None:
+                caller.msg(f"{fallback.key} is not a container.")
+            else:
+                caller.msg(f"You don't see '{name}' here.")
             return None
 
-        if isinstance(container, list):
-            container = container[0]
-
-        if not getattr(container, "is_container", False):
-            caller.msg(f"{container.key} is not a container.")
-            return None
-
-        # Gate on open/closed state (chests, etc.)
+        # Container found — now the command-layer state check.
         if hasattr(container, "is_open") and not container.is_open:
             caller.msg(f"{container.key} is closed.")
             return None
@@ -478,9 +489,8 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
     def _get_object_from_container(self, caller, container, search_term):
         """Take an NFT by name from a container."""
-        obj = caller.search(
-            search_term,
-            location=container,
+        obj = resolve_item_in_source(
+            caller, container, search_term,
             nofound_string=(
                 f"{container.key} doesn't contain '{search_term}'."
             ),

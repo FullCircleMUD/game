@@ -5,6 +5,7 @@ from evennia import DefaultCharacter
 from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.condition import Condition
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from typeclasses.mixins.effects_manager import EffectsManagerMixin
@@ -13,6 +14,14 @@ from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 
 
 class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
+
+    # ── Size — unified across all actors ──
+    # Stored as string for Evennia serialization (dbserialize can't handle
+    # str enums). PCs get base_size set from race.size in at_taking_race();
+    # mobs/pets override via their own AttributeProperty.
+    # size is the active value, rebuilt from base_size by _recalculate_stats().
+    base_size = AttributeProperty(Size.MEDIUM.value)
+    size = AttributeProperty(Size.MEDIUM.value)
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -271,7 +280,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         self.mana_max = self.base_mana_max
         self.move_max = self.base_move_max
 
-        # 3. Reset bonus stats to zero/defaults
+        # 3. Reset size to base
+        self.size = self.base_size
+
+        # 4. Reset bonus stats to zero/defaults
         self.armor_class = self.base_armor_class
         self.total_hit_bonus = 0
         self.save_bonus = 0
@@ -320,6 +332,8 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
 
         # 5. Post-recalculate checks
         self._check_encumbrance_consequences()
+        if hasattr(self, '_check_equipment_restrictions'):
+            self._check_equipment_restrictions()
 
     def _accumulate_effect(self, effect):
         """
@@ -427,10 +441,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         from combat.combat_utils import get_weapon
         weapon = get_weapon(self)
 
-        # Ability score: finesse = max(STR, DEX), missile = DEX, melee = STR
+        # Ability score: finesse = max(STR, DEX), ranged = DEX, melee = STR
         if weapon and getattr(weapon, "is_finesse", False):
             attr_score = max(self.strength, self.dexterity)
-        elif weapon and getattr(weapon, "weapon_type", "melee") == "missile":
+        elif weapon and getattr(weapon, "weapon_type", "melee") == "ranged":
             attr_score = self.dexterity
         else:
             attr_score = self.strength
@@ -470,10 +484,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         from combat.combat_utils import get_weapon
         weapon = get_weapon(self)
 
-        # Ability score: finesse = max(STR, DEX), missile = DEX, melee = STR
+        # Ability score: finesse = max(STR, DEX), ranged = DEX, melee = STR
         if weapon and getattr(weapon, "is_finesse", False):
             attr_score = max(self.strength, self.dexterity)
-        elif weapon and getattr(weapon, "weapon_type", "melee") == "missile":
+        elif weapon and getattr(weapon, "weapon_type", "melee") == "ranged":
             attr_score = self.dexterity
         else:
             attr_score = self.strength

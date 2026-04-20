@@ -72,6 +72,32 @@ class ShipNFTItem(WorldAnchoredNFTItem):
                     break
             self.set_world_location(dock or crafting_room)
 
+    def at_restore_from_metadata(self, metadata):
+        """
+        Re-hydrate db.world_location from the flattened mirror metadata after
+        spawn_into() copies JSON fields onto self.db. The mirror stores the
+        room as world_location_dbref (int) + world_location_name (str);
+        resolve the dbref back to a live room object and stash it on
+        db.world_location, then clean up the now-redundant flat keys.
+
+        No-op if the metadata has no location fields (e.g. a freshly built
+        ship that hasn't been persisted yet).
+        """
+        dbref = metadata.get("world_location_dbref")
+        if dbref is None:
+            return
+        from evennia.objects.models import ObjectDB
+        try:
+            room = ObjectDB.objects.get(id=dbref)
+        except ObjectDB.DoesNotExist:
+            room = None
+        self.db.world_location = room
+        # The flat keys were auto-copied onto self.db by spawn_into. They're
+        # no longer needed — set_world_location() will re-emit fresh ones on
+        # the next sail. Drop them so the instance has a single source of truth.
+        self.attributes.remove("world_location_dbref")
+        self.attributes.remove("world_location_name")
+
     def arrive_at_dock(self, dock_room):
         """
         Called when a successful voyage completes. Updates world_location to

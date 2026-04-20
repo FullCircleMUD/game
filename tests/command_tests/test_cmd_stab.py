@@ -29,6 +29,7 @@ class TestStabGates(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
@@ -70,7 +71,7 @@ class TestStabGates(EvenniaCommandTest):
         """Can't stab with a ranged finesse weapon."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
-        self.dagger.weapon_type = "missile"
+        self.dagger.weapon_type = "ranged"
         result = self.call(CmdStab(), self.char2.key)
         self.assertIn("ranged weapon", result)
         self.dagger.weapon_type = "melee"  # restore
@@ -85,7 +86,7 @@ class TestStabGates(EvenniaCommandTest):
         """Can't stab yourself."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
-        result = self.call(CmdStab(), self.char1.key)
+        result = self.call(CmdStab(), "me")
         self.assertIn("can't stab yourself", result)
 
     def test_unskilled_blocked(self):
@@ -101,13 +102,13 @@ class TestStabGates(EvenniaCommandTest):
         result = self.call(CmdStab(), self.char2.key)
         self.assertIn("don't know", result)
 
-    def test_target_dead(self):
-        """Can't stab a dead target."""
+    def test_target_dead_not_found(self):
+        """Dead targets filtered by actor resolver — not found."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
         self.char2.hp = 0
         result = self.call(CmdStab(), self.char2.key)
-        self.assertIn("already dead", result)
+        self.assertIn("no 'Char2' here", result)
 
     def test_no_combat_room(self):
         """Can't stab in a non-combat room."""
@@ -157,6 +158,7 @@ class TestStabOpener(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
@@ -304,6 +306,7 @@ class TestStabMidCombat(EvenniaCommandTest):
 
         result = self.call(CmdStab(), self.char2.key)
 
+        handler = self.char1.scripts.get("combat_handler")[0]
         self.assertEqual(handler.bonus_attack_dice, "8d6")
         self.assertGreater(handler.skill_cooldown, 0)
         self.assertIn("+8d6", result)
@@ -321,6 +324,7 @@ class TestStabMidCombat(EvenniaCommandTest):
 
         result = self.call(CmdStab(), "")
 
+        handler = self.char1.scripts.get("combat_handler")[0]
         self.assertEqual(handler.bonus_attack_dice, "2d6")
         self.assertGreater(handler.skill_cooldown, 0)
 
@@ -352,6 +356,7 @@ class TestStabMidCombat(EvenniaCommandTest):
         result = self.call(CmdStab(), self.char2.key)
 
         self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+        handler = self.char1.scripts.get("combat_handler")[0]
         self.assertEqual(handler.bonus_attack_dice, "4d6")
         self.assertGreater(handler.skill_cooldown, 0)
 

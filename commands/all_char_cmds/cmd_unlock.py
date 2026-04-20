@@ -3,6 +3,8 @@ Unlock command — unlock a locked object using a key from inventory.
 
 Usage:
     unlock <target>
+    unlock <target> <direction>
+    unlock <direction>
 
 Searches the character's inventory for a KeyItem whose key_tag
 matches the target's key_tag. If found, consumes the key and unlocks.
@@ -13,7 +15,11 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.world_objects.key_item import KeyItem
-from utils.find_exit_target import find_exit_target
+from utils.direction_parser import parse_direction
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import (
+    p_can_see, p_is_lockable, p_is_locked, p_same_height,
+)
 
 
 class CmdUnlock(FCMCommandMixin, Command):
@@ -22,6 +28,8 @@ class CmdUnlock(FCMCommandMixin, Command):
 
     Usage:
         unlock <target>
+        unlock <direction>
+        unlock <target> <direction>
 
     You must have the correct key in your inventory.
     To pick a lock without a key, use 'picklock'.
@@ -38,17 +46,36 @@ class CmdUnlock(FCMCommandMixin, Command):
             caller.msg("Unlock what?")
             return
 
-        target_name = self.args.strip()
-
-        target = find_exit_target(caller, target_name)
-        if not target:
+        # Darkness
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        if not hasattr(target, "unlock") or not hasattr(target, "is_locked"):
+        target_str = self.args.strip()
+        parsed_name, direction = parse_direction(target_str)
+
+        if direction:
+            target, _ = resolve_target(
+                caller, parsed_name, "items_room_exit_by_direction",
+                extra_predicates=(p_can_see,), direction=direction,
+            )
+        else:
+            target, _ = resolve_target(
+                caller, target_str, "items_room_all_then_inventory",
+                extra_predicates=(p_can_see,),
+            )
+
+        if not target:
+            caller.msg(f"You don't see '{target_str}' here.")
+            return
+        if target.location != caller and not p_same_height(caller)(target, caller):
+            caller.msg(f"{target.key} is out of reach.")
+            return
+        if not p_is_lockable(target, caller):
             caller.msg("You can't unlock that.")
             return
-
-        if not target.is_locked:
+        if not p_is_locked(target, caller):
             caller.msg(f"{target.key} is not locked.")
             return
 

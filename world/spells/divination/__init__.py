@@ -1,3 +1,4 @@
+from world.spells.divination.augur import *  # noqa: F401,F403
 from world.spells.divination.identify import *  # noqa: F401,F403
 from world.spells.divination.infravision import *  # noqa: F401,F403
 from world.spells.divination.detect_traps import *  # noqa: F401,F403

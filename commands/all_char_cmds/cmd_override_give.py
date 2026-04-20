@@ -26,9 +26,13 @@ from evennia.utils import utils
 
 from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
-from typeclasses.actors.character import FCMCharacter
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import (
+    resolve_character_in_room,
+    resolve_target,
+)
+from utils.targeting.predicates import p_can_see, p_same_height
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -76,17 +80,25 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                 caller.msg("Usage: give <item> to <target>")
                 return
 
+        # Darkness — can't identify items or people without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # ---------------------------------------------------------- #
-        #  Find and validate the target
+        #  Find and validate the target character
         # ---------------------------------------------------------- #
-        target = caller.search(self.rhs)
+        target = resolve_character_in_room(caller, self.rhs)
         if not target:
+            caller.msg(f"You don't see a character called '{self.rhs}' here.")
             return
-
-        if not isinstance(target, FCMCharacter):
-            caller.msg("You can only give things to other characters.")
+        if not p_can_see(target, caller):
+            caller.msg(f"You don't see a character called '{self.rhs}' here.")
             return
-
+        if not p_same_height(caller)(target, caller):
+            caller.msg("They're out of reach.")
+            return
         if target == caller:
             caller.msg("You can't give things to yourself.")
             return
@@ -374,15 +386,21 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
 
     def _give_object(self, caller, target, search_term):
         """Standard Evennia object give with fuzzy matching."""
-        to_give = caller.search(
-            search_term,
-            location=caller,
-            nofound_string=f"You aren't carrying {search_term}.",
-            multimatch_string=f"You carry more than one {search_term}:",
-            stacked=self.number,
-            exclude_worn=True,
+        to_give, _ = resolve_target(
+            caller, search_term, "items_inventory",
+            extra_predicates=(p_can_see,),
+            stacked=self.number or 0,
         )
+
         if not to_give:
+            # Secondary lookup against worn items — gives a useful
+            # "remove first" message instead of "not carrying" when the
+            # only match is currently equipped.
+            worn, _ = resolve_target(caller, search_term, "items_equipped")
+            if worn:
+                caller.msg(f"You'll have to remove {worn.key} first.")
+                return
+            caller.msg(f"You aren't carrying '{search_term}'.")
             return
 
         to_give = utils.make_iter(to_give)

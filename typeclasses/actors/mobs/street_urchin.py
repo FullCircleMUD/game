@@ -12,6 +12,10 @@ roll: d20 + DEX mod + SUBTERFUGE bonus vs 10 + target perception.
 
 Success: steals 1 gold, taunting message.
 Failure: caught message, player can attack.
+
+Sleeping targets are easier marks — the urchin rolls with advantage,
+skips the 20-gold minimum check, and steals 1d6 gold instead of 1.
+Messages are vague dream-like hints rather than explicit alerts.
 """
 
 import random
@@ -20,6 +24,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 from utils.dice_roller import dice
 
@@ -31,6 +36,8 @@ _SUBTERFUGE_BONUS = MasteryLevel.SKILLED.bonus
 class StreetUrchin(CombatMob):
     """A street urchin with quick fingers."""
 
+    base_size = AttributeProperty(Size.SMALL.value)
+    size = AttributeProperty(Size.SMALL.value)
     room_description = AttributeProperty("loiters here, eyes darting to every coin pouch.")
 
     # ── Combat ──
@@ -91,7 +98,7 @@ class StreetUrchin(CombatMob):
         delay(self._pickpocket_delay, self._try_pickpocket, arriving_obj)
 
     def _try_pickpocket(self, target):
-        """Attempt to steal 1 gold from a player."""
+        """Attempt to steal gold from a player."""
         # Safety checks — things may have changed in 10 seconds
         if not self.is_alive or not self.location:
             return
@@ -104,51 +111,88 @@ class StreetUrchin(CombatMob):
         if self.scripts.get("combat_handler"):
             return  # got into a fight in the meantime
 
+        target_sleeping = getattr(target, "position", "standing") == "sleeping"
+
         # Not stupid enough to steal in front of the watch
         from typeclasses.actors.mobs.city_watch import CityWatch
         for obj in self.location.contents:
             if isinstance(obj, CityWatch) and getattr(obj, "is_alive", False):
                 return
 
-        # Check target has gold
+        # Check target has gold — sleeping targets are always worth a try
         gold = target.get_gold() if hasattr(target, "get_gold") else 0
-        if gold <= 20:
+        if not target_sleeping and gold <= 20:
             return  # not worth the risk
 
+        if gold <= 0:
+            return  # nothing to take
+
         # Contested roll: d20 + DEX mod + subterfuge vs 10 + perception
+        # Sleeping targets grant advantage (roll twice, take higher)
         dex_mod = self.get_attribute_bonus(self.dexterity)
-        urchin_roll = dice.roll("1d20") + dex_mod + _SUBTERFUGE_BONUS
+        if target_sleeping:
+            roll1 = dice.roll("1d20")
+            roll2 = dice.roll("1d20")
+            urchin_roll = max(roll1, roll2) + dex_mod + _SUBTERFUGE_BONUS
+        else:
+            urchin_roll = dice.roll("1d20") + dex_mod + _SUBTERFUGE_BONUS
         target_dc = 10 + getattr(target, "effective_perception_bonus", 0)
 
         if urchin_roll >= target_dc:
-            self._steal_success(target)
+            self._steal_success(target, target_sleeping)
         else:
-            self._steal_failure(target)
+            self._steal_failure(target, target_sleeping)
 
-    def _steal_success(self, target):
-        """Successfully pocket 1 gold."""
+    def _steal_success(self, target, sleeping=False):
+        """Successfully pocket gold."""
         if not hasattr(target, "transfer_gold_to"):
             return
-        target.transfer_gold_to(self, 1)
 
-        target.msg(
-            f"|yYou feel a light tug at your belt... "
-            f"{self.key} has stolen 1 gold from you!|n"
-        )
+        # Sleeping targets lose more — 1d6 gold instead of 1
+        if sleeping:
+            amount = min(dice.roll("1d6"), target.get_gold())
+        else:
+            amount = 1
+
+        if amount <= 0:
+            return
+
+        target.transfer_gold_to(self, amount)
+
+        if sleeping:
+            # Vague dream-like hint — don't reveal the thief or amount
+            target.msg(
+                "|xIn your sleep you half-dream of small hands "
+                "rummaging through your things...|n"
+            )
+        else:
+            target.msg(
+                f"|yYou feel a light tug at your belt... "
+                f"{self.key} has stolen {amount} gold from you!|n"
+            )
         if self.location:
             self.location.msg_contents(
                 f"|y{self.key} deftly lifts a coin from {target.key}'s belt!|n",
                 exclude=[target],
+                from_obj=self,
             )
 
-    def _steal_failure(self, target):
+    def _steal_failure(self, target, sleeping=False):
         """Caught! Alert the player."""
-        target.msg(
-            f"|r{self.key} tries to slip a hand into your coin pouch "
-            f"but you catch them in the act!|n"
-        )
+        if sleeping:
+            # Still asleep — only a faint sense of something
+            target.msg(
+                "|xSomething stirs at the edge of your dreams... "
+                "a whisper of movement nearby.|n"
+            )
+        else:
+            target.msg(
+                f"|r{self.key} tries to slip a hand into your coin pouch "
+                f"but you catch them in the act!|n"
+            )
         if self.location:
             self.location.msg_contents(
                 f"|r{self.key} is caught trying to pickpocket {target.key}!|n",
                 exclude=[target],
+                from_obj=self,
             )

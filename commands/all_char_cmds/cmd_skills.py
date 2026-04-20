@@ -108,7 +108,7 @@ def display_weapon_skills(caller, skills, pts_available):
 
 class CmdSkills(FCMCommandMixin, Command):
     key = "skills"
-    aliases = ["sk"]
+    aliases = []
     locks = "cmd:all()" # anyone can execute the command"
     help_category = "Character"
     allow_while_sleeping = True

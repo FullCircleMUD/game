@@ -11,4 +11,5 @@ LEATHER_PANTS = {
     "wear_effects": [],
     "weight": 1.5,
     "max_durability": 1440,
+    "size": "small",
 }

@@ -35,7 +35,7 @@ Usage:
         school = skills.EVOCATION
         min_mastery = MasteryLevel.BASIC
         mana_cost = {1: 5, 2: 8, 3: 12, 4: 16, 5: 20}
-        target_type = "hostile"
+        target_type = "actor_hostile"
 
         def _execute(self, caster, target):
             ...
@@ -67,11 +67,34 @@ class Spell:
         school      — skills enum member (e.g. skills.EVOCATION) or string
         min_mastery — minimum MasteryLevel to learn/cast
         mana_cost   — dict {mastery_tier_int: mana_cost}
-        target_type — "hostile", "friendly", "self", or "none"
-        spell_range — "self", "melee", or "ranged" (height gating)
+        target_type — see below
+        range — "self", "melee", or "ranged" (height gating)
         cooldown    — rounds of cooldown after casting (None = use default)
         description — short flavour text shown in spellbook/spellinfo
         mechanics   — multi-line rules/scaling text for spellinfo
+
+    target_type values:
+        Actor targets (resolved via caller.search() in cmd_cast / cmd_zap):
+            "actor_hostile"  — an enemy in the room (target required)
+            "actor_friendly" — an ally in the room (defaults to self if blank)
+            "self"     — the caster, always
+            "none"     — no target needed
+            "actor_any" — any actor in the room
+
+        Item targets (resolved via spell_utils.resolve_target):
+            "items_inventory"
+                Inventory only (e.g. Create Water — fill a container).
+            "items_room_all_then_inventory"
+                Room (objects + exits) first, inventory fallback
+                (e.g. Knock — unlock a door or chest).
+            "items_inventory_then_room_all"
+                Inventory first, room (objects + exits) fallback
+                (e.g. Identify — inspect a looted item or a door).
+
+        Item-target spells receive the resolved item as ``target`` in
+        ``_execute()`` and dispatch on it via duck-typing rather than
+        isinstance. The caller never sees the resolution failure
+        message — the helper sends it directly.
     """
 
     key = ""
@@ -80,10 +103,15 @@ class Spell:
     school = ""
     min_mastery = MasteryLevel.BASIC
     mana_cost = {}
-    target_type = "hostile"
-    spell_range = "ranged"  # "self", "melee", or "ranged"
-    cooldown = None  # None = use default based on min_mastery tier
-    has_spell_arg = False  # True = cmd_cast pops first word as spell_arg
+    target_type = "actor_hostile"
+    range = "ranged"        # "self", "melee", "ranged", or "ranged_only"
+    aoe = None              # None / "unsafe" / "unsafe_self" / "safe" / "allies"
+    medium = "air"          # "air" / "water" / "any"
+    requires_sight = True   # False for detect/sense spells that work without line of sight
+    out_of_reach_message = "That's out of reach."
+    too_close_message = "You're too close for that spell."
+    cooldown = None         # None = use default based on min_mastery tier
+    has_spell_arg = False   # True = cmd_cast pops first word as spell_arg
     description = ""
     mechanics = ""
 
@@ -109,7 +137,16 @@ class Spell:
 
         Checks class_skill_mastery_levels (mage/cleric schools are class skills).
         Returns int (MasteryLevel.value): 0=UNSKILLED through 5=GRANDMASTER.
+
+        Wand zap override: if ``caster.ndb._wand_caster_tier_override`` is set
+        (an int), return that instead. This lets the zap command force wands
+        to always cast at the spell's base min_mastery regardless of who holds
+        them, without threading an override parameter through all 60+ spell
+        subclasses.
         """
+        override = getattr(caster.ndb, "_wand_caster_tier_override", None)
+        if override is not None:
+            return int(override)
         entry = (caster.db.class_skill_mastery_levels or {}).get(self.school_key)
         if not entry:
             return 0
@@ -136,7 +173,7 @@ class Spell:
         cooldowns[self.key] = cd
         caster.db.spell_cooldowns = cooldowns
 
-    def cast(self, caster, target=None, spell_arg=None):
+    def cast(self, caster, target=None, spell_arg=None, secondaries=None):
         """
         Validate mastery, cooldown, and mana, then dispatch to _execute.
 
@@ -144,11 +181,16 @@ class Spell:
             caster: the actor casting the spell
             target: resolved target (or None)
             spell_arg: optional spell argument (e.g. element for Resist)
+            secondaries: list of AoE secondary targets (default []).
+                Populated by resolve_target when spell.aoe is set.
+                Non-AoE spells receive []. Passed to _execute via kwargs.
 
         Returns:
             (bool, str) on validation failure — caster-only error message
             (bool, dict) on spell execution — multi-perspective messages
         """
+        if secondaries is None:
+            secondaries = []
         tier = self.get_caster_tier(caster)
         if tier < self.min_mastery.value:
             return (False, "Your mastery is too low to cast this spell.")
@@ -162,8 +204,11 @@ class Spell:
                 f"{self.name} is on cooldown ({remaining} round{s} remaining).",
             )
 
-        # Height check for melee-range spells
-        if self.spell_range == "melee" and target:
+        # Height filtering for melee spells is primarily enforced at
+        # resolution time in resolve_target via p_same_height.
+        # This belt-and-suspenders check catches direct cast() callers
+        # (AI, scripts, tests) that bypass resolve_target.
+        if self.range == "melee" and target:
             caster_height = getattr(caster, "room_vertical_position", 0)
             target_height = getattr(target, "room_vertical_position", 0)
             if caster_height != target_height:
@@ -173,6 +218,11 @@ class Spell:
                 )
 
         cost = self.mana_cost.get(tier, 0)
+
+        # Wand zap bypass: mana was pre-paid at enchant time.
+        if getattr(caster.ndb, "_wand_free_cast", False):
+            cost = 0
+
         if caster.mana < cost:
             return (
                 False,
@@ -180,10 +230,15 @@ class Spell:
             )
 
         caster.mana -= cost
+        # Build kwargs for _execute. Only pass secondaries and spell_arg
+        # when set, so spells with simple (self, caster, target) signatures
+        # don't need **kwargs just to ignore them.
+        exec_kwargs = {}
         if self.has_spell_arg:
-            result = self._execute(caster, target, spell_arg=spell_arg)
-        else:
-            result = self._execute(caster, target)
+            exec_kwargs["spell_arg"] = spell_arg
+        if secondaries:
+            exec_kwargs["secondaries"] = secondaries
+        result = self._execute(caster, target, **exec_kwargs)
 
         # Apply cooldown on successful cast
         if result[0]:
@@ -191,7 +246,7 @@ class Spell:
 
         return result
 
-    def _execute(self, caster, target, spell_arg=None):
+    def _execute(self, caster, target, **kwargs):
         """
         Execute the spell.
 
@@ -199,10 +254,13 @@ class Spell:
         contains keys: "first" (caster), "second" (target), "third" (room).
         Set "second" to None for self-targeted spells.
 
-        Args:
+        Kwargs passed by cast():
             spell_arg: optional argument parsed from cast command
                        (e.g. element for Resist). Only set when
                        has_spell_arg = True.
+            secondaries: list of AoE secondary targets (default []).
+                       AoE spells access via kwargs.get("secondaries", []).
+                       Non-AoE spells ignore this kwarg.
         """
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _execute()"

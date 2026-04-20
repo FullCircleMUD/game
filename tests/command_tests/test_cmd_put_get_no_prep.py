@@ -1,8 +1,7 @@
 """
-Tests for optional prepositions in put/get container commands.
+Tests for put/get container commands with prepositions.
 
-Verifies that ``put sword backpack`` works the same as ``put sword in backpack``
-and ``get sword backpack`` works the same as ``get sword from backpack``.
+Put requires 'in' preposition. Get supports optional 'from' preposition.
 """
 
 from unittest.mock import patch
@@ -50,34 +49,37 @@ class PutGetNoPrepositionBase(EvenniaCommandTest):
 # ------------------------------------------------------------------ #
 
 
-class TestCmdPutNoPreposition(PutGetNoPrepositionBase):
+class TestCmdPutPreposition(PutGetNoPrepositionBase):
 
-    def test_put_without_preposition(self):
-        """'put sword backpack' works like 'put sword in backpack'."""
-        sword = self._make_item(key="iron sword", location=self.char1)
-        self.call(CmdPut(), "iron sword backpack", "You put iron sword in leather backpack.")
-        self.assertEqual(sword.location, self.backpack)
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
 
-    def test_put_with_preposition_still_works(self):
-        """'put sword in backpack' still works (no regression)."""
+    def test_put_with_preposition(self):
+        """'put sword in backpack' works."""
         sword = self._make_item(key="iron sword", location=self.char1)
         self.call(CmdPut(), "iron sword in backpack", "You put iron sword in leather backpack.")
         self.assertEqual(sword.location, self.backpack)
 
-    def test_put_single_word_no_container(self):
-        """'put sword' with no container match gives usage error."""
+    def test_put_without_preposition_shows_usage(self):
+        """'put sword backpack' without 'in' shows usage error."""
         self._make_item(key="iron sword", location=self.char1)
-        self.call(CmdPut(), "sword", "Usage: put <item> [in] <container>")
+        self.call(CmdPut(), "iron sword backpack", "Usage: put <item> in <container>")
+
+    def test_put_single_word_shows_usage(self):
+        """'put sword' with no container gives usage error."""
+        self._make_item(key="iron sword", location=self.char1)
+        self.call(CmdPut(), "sword", "Usage: put <item> in <container>")
 
     def test_put_no_args(self):
         """'put' with no args gives error."""
         self.call(CmdPut(), "", "Put what where?")
 
-    def test_put_without_preposition_room_container(self):
-        """'put sword chest' works with container in room."""
+    def test_put_room_container(self):
+        """'put sword in backpack' works with container in room."""
         self.backpack.move_to(self.room1, quiet=True)
         sword = self._make_item(key="iron sword", location=self.char1)
-        self.call(CmdPut(), "iron sword backpack", "You put iron sword in leather backpack.")
+        self.call(CmdPut(), "iron sword in backpack", "You put iron sword in leather backpack.")
         self.assertEqual(sword.location, self.backpack)
 
 

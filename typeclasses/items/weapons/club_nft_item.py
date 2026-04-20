@@ -27,6 +27,7 @@ from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
 
@@ -126,6 +127,8 @@ class ClubNFTItem(ClubMixin, WeaponNFTItem):
     """
     Club weapons — melee, bludgeoning, light stagger mastery.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     excluded_classes = AttributeProperty([CharacterClass.MAGE])
 

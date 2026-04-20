@@ -16,14 +16,14 @@ and registers them at import time.
 1. Create a new file: `typeclasses/actors/races/my_race.py`
 2. Define a `RaceBase` instance with a unique `key`:
    ```python
-   from enums.actor_size import ActorSize
+   from enums.size import Size
    from typeclasses.actors.races.race_base import RaceBase
 
    MY_RACE = RaceBase(
        key="my_race",
        display_name="My Race",
        description="...",
-       size=ActorSize.MEDIUM,
+       size=Size.MEDIUM,
        base_hp=10,
        base_mana=10,
        base_move=50,

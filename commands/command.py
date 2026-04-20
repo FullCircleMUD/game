@@ -1,11 +1,11 @@
 """
-FCMCommandMixin — prompt refresh after every command.
+FCMCommandMixin — inline command echo + OOB vitals refresh.
 
 This is a cooperative mixin, not a standalone base class. It adds an
-at_post_cmd() hook that refreshes the player's text prompt and OOB
-vitals after every command. It calls super().at_post_cmd() first so
-any parent class logic (Evennia's Command, MuxCommand, ExitCommand,
-etc.) is preserved.
+at_pre_cmd() hook that echoes the typed command back to the player
+inline (DikuMUD style) and an at_post_cmd() hook that refreshes the
+OOB vitals panel. The trailing scrollback prompt is handled by
+FCMCharacter.msg() so unsolicited output gets one too.
 
 Usage — add as the FIRST parent so MRO calls our at_post_cmd before
 the Evennia base:
@@ -52,15 +52,27 @@ class FCMCommandMixin:
                 "In your dreams or what? Try |wstand|n or |wwake|n."
             )
             return True  # abort command
+        from twisted.internet import reactor
+
+        caller = self.caller
+        raw = (self.raw_string or "").rstrip("\r\n")
+        if (
+            reactor.running
+            and raw
+            and hasattr(caller, "get_prompt")
+            and getattr(caller, "prompt_active", True)
+        ):
+            # Echo typed command inline. Flag the debounce so the msg()
+            # override doesn't queue a bare prompt for this echo line —
+            # the next real output from the command will re-queue.
+            caller.ndb._prompt_scheduled = True
+            caller.msg(f"{caller.get_prompt()}> {raw}")
+            caller.ndb._prompt_scheduled = False
         return super().at_pre_cmd()
 
     def at_post_cmd(self):
-        """Chain to parent at_post_cmd, then refresh prompt."""
+        """Chain to parent at_post_cmd, then refresh OOB vitals panel."""
         super().at_post_cmd()
         caller = self.caller
-        if not hasattr(caller, "get_prompt"):
-            return
         if hasattr(caller, "send_vitals_update"):
             caller.send_vitals_update()
-        if getattr(caller, "prompt_active", True):
-            caller.msg(prompt=caller.get_prompt())

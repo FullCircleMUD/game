@@ -55,7 +55,7 @@ class CmdInset(FCMCommandMixin, Command):
     """
 
     key = "inset"
-    aliases = ["ins"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
 

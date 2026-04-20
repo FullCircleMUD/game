@@ -272,3 +272,31 @@ class TestCombatSides(EvenniaCommandTest):
         enter_combat(mob, self.char2)
 
         self.assertEqual(_get_combat_side(self.char2), 1)
+
+    # ── Edge cases: early returns from get_sides ──────────────────────
+
+    def test_get_sides_no_location_returns_empty(self):
+        """A combatant with no location returns ([], [])."""
+        from combat.combat_utils import get_sides
+
+        # Evennia's .location property: set to None to simulate an
+        # actor that has been removed from the world.
+        original = self.char1.location
+        try:
+            self.char1.location = None
+            allies, enemies = get_sides(self.char1)
+            self.assertEqual(allies, [])
+            self.assertEqual(enemies, [])
+        finally:
+            self.char1.location = original
+
+    def test_get_sides_not_in_combat_returns_empty(self):
+        """A combatant not in combat (no combat_handler) returns ([], [])."""
+        from combat.combat_utils import get_sides
+
+        # char1 is in the room but has never entered combat — no
+        # combat_handler script is attached, so _get_combat_side
+        # returns 0 and the non-PvP branch returns ([], []).
+        allies, enemies = get_sides(self.char1)
+        self.assertEqual(allies, [])
+        self.assertEqual(enemies, [])

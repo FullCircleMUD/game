@@ -24,6 +24,8 @@ from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -269,15 +271,27 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
 
     def _drop_object(self, caller, search_term):
         """Standard Evennia object drop with fuzzy matching."""
-        objs = caller.search(
-            search_term,
-            location=caller,
-            nofound_string=f"You aren't carrying {search_term}.",
-            multimatch_string=f"You carry more than one {search_term}:",
-            stacked=self.number,
-            exclude_worn=True,
+        # Darkness — can't identify items without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        objs, _ = resolve_target(
+            caller, search_term, "items_inventory",
+            extra_predicates=(p_can_see,),
+            stacked=self.number or 0,
         )
+
         if not objs:
+            # Secondary lookup against worn items — gives a useful
+            # "remove first" message instead of "not carrying" when the
+            # only match is currently equipped.
+            worn, _ = resolve_target(caller, search_term, "items_equipped")
+            if worn:
+                caller.msg(f"You'll have to remove {worn.key} first.")
+                return
+            caller.msg(f"You aren't carrying '{search_term}'.")
             return
         objs = utils.make_iter(objs)
 

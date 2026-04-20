@@ -54,7 +54,7 @@ class CmdHide(CmdSkillBase):
     """
 
     key = "hide"
-    aliases = ["hi"]
+    aliases = []
     skill = skills.STEALTH.value
     help_category = "Stealth"
 

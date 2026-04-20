@@ -6,6 +6,7 @@ Place in a room and players can use `press button` to gain XP.
 
 from evennia import AttributeProperty, CmdSet, Command
 
+from enums.size import Size
 from typeclasses.world_objects.base_fixture import WorldFixture
 
 
@@ -53,6 +54,7 @@ class XPButton(WorldFixture):
     A big red button that awards XP when pressed. Dev/test only.
     """
 
+    size = AttributeProperty(Size.TINY.value)
     xp_amount = AttributeProperty(1000)
 
     def at_object_creation(self):

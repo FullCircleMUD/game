@@ -21,7 +21,7 @@ Damage always applies regardless of contest result.
 HUGE+ immune to pull (damage still applies).
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from enums.named_effect import NamedEffect
@@ -32,7 +32,7 @@ from world.spells.registry import register_spell
 from world.spells.spell_utils import apply_spell_damage
 
 
-_IMMUNE_SIZES = frozenset({ActorSize.HUGE, ActorSize.GARGANTUAN})
+_IMMUNE_SIZES = frozenset({Size.HUGE, Size.GARGANTUAN})
 
 
 @register_spell
@@ -43,7 +43,7 @@ class ThornWhip(Spell):
     school = skills.NATURE_MAGIC
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 3, 2: 5, 3: 7, 4: 9, 5: 12}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Lashes a target with a thorny vine, pulling them to your level."
     mechanics = (
@@ -63,8 +63,8 @@ class ThornWhip(Spell):
         actual_damage = apply_spell_damage(target, raw_damage, DamageType.PIERCING)
 
         # Size gate for pull
-        target_size = getattr(target, "size", None)
-        size_immune = target_size and target_size in _IMMUNE_SIZES
+        target_size = getattr(target, "size", Size.MEDIUM)
+        size_immune = target_size in _IMMUNE_SIZES
 
         pulled = False
         hold_rounds = tier

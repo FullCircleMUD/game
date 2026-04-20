@@ -37,7 +37,7 @@ class TestBaseNFTItemPostMove(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        # Set up wallet addresses on accounts so _get_wallet works
+        # Set up wallet addresses on accounts so _get_owner_wallet works
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account2.attributes.add("wallet_address", WALLET_B)
 
@@ -282,6 +282,108 @@ class TestBaseNFTItemDelete(EvenniaTest):
         )
         nft.delete()
         mock_despawn.assert_not_called()
+
+
+class TestGetOwnerWallet(EvenniaTest):
+    """Test the _get_owner_wallet staticmethod on NFTMirrorMixin."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+
+    def test_returns_wallet_for_character_with_account(self):
+        from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+        self.assertEqual(
+            NFTMirrorMixin._get_owner_wallet(self.char1), WALLET_A,
+        )
+
+    def test_returns_none_for_character_without_wallet(self):
+        from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+        self.account.attributes.remove("wallet_address")
+        self.assertIsNone(NFTMirrorMixin._get_owner_wallet(self.char1))
+
+    def test_returns_none_for_none(self):
+        from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+        self.assertIsNone(NFTMirrorMixin._get_owner_wallet(None))
+
+    def test_returns_none_for_character_without_account(self):
+        """An NPC-like object with no account should return None."""
+        from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+        from evennia.utils import create
+        npc = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="NPC",
+            nohome=True,
+        )
+        npc.account = None
+        self.assertIsNone(NFTMirrorMixin._get_owner_wallet(npc))
+        npc.delete()
+
+
+class TestContainerNFTItemPostMove(EvenniaTest):
+    """
+    Test that ContainerNFTItem (which mixes FungibleInventoryMixin and
+    NFTMirrorMixin) correctly dispatches mirror transitions.
+
+    Regression test: FungibleInventoryMixin._get_wallet (no-arg instance
+    method) previously shadowed NFTMirrorMixin._get_wallet (staticmethod
+    taking a character arg) due to MRO, causing a TypeError on pickup.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account2.attributes.add("wallet_address", WALLET_B)
+
+    def _make_container_raw(self, location):
+        """Place a ContainerNFTItem at location without triggering hooks."""
+        from evennia.utils import create
+        container = create.create_object(
+            "typeclasses.items.containers.container_nft_item.ContainerNFTItem",
+            key="Backpack",
+            nohome=True,
+        )
+        container.token_id = TOKEN_ID
+        container.db_location = location
+        container.save(update_fields=["db_location"])
+        return container
+
+    @patch("blockchain.xrpl.services.nft.NFTService.pickup")
+    def test_container_room_to_character_calls_pickup(self, mock_pickup):
+        """Picking up a container should call NFTService.pickup without TypeError."""
+        container = self._make_container_raw(self.room1)
+        result = container.move_to(self.char1, move_type="get")
+        self.assertTrue(result)
+        mock_pickup.assert_called_once_with(
+            TOKEN_ID, WALLET_A, self.char1.key,
+        )
+
+    @patch("blockchain.xrpl.services.nft.NFTService.drop")
+    def test_container_character_to_room_calls_drop(self, mock_drop):
+        """Dropping a container should call NFTService.drop."""
+        container = self._make_container_raw(self.char1)
+        result = container.move_to(self.room1, move_type="drop")
+        self.assertTrue(result)
+        mock_drop.assert_called_once_with(TOKEN_ID, VAULT)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_container_character_to_character_calls_transfer(self, mock_transfer):
+        """Giving a container between characters should call NFTService.transfer."""
+        container = self._make_container_raw(self.char1)
+        result = container.move_to(self.char2, move_type="give")
+        self.assertTrue(result)
+        mock_transfer.assert_called_once_with(
+            TOKEN_ID, WALLET_A, self.char1.key,
+            WALLET_B, self.char2.key,
+        )
 
 
 class TestBaseNFTItemClassify(EvenniaTest):

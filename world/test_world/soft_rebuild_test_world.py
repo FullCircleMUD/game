@@ -88,7 +88,7 @@ def soft_reset():
       - Player accounts and characters
       - Items/gold/resources in character inventories or account banks
       - System rooms (Limbo, Purgatory, Cemetery, RecycleBin)
-      - Global scripts (regeneration_service, hunger_service)
+      - Global scripts (regeneration_service, survival_service)
     """
     limbo = _get_limbo()
     print("=== SOFT RESET — preserving players and system rooms ===\n")

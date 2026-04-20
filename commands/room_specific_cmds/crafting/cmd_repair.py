@@ -65,7 +65,7 @@ class CmdRepair(FCMCommandMixin, Command):
     """
 
     key = "repair"
-    aliases = ["rep", "repa", "repai"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
 

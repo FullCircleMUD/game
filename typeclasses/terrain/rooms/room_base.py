@@ -14,24 +14,18 @@ from enums.condition import Condition
 from enums.terrain_type import TerrainType
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.quest_tag import QuestTagMixin
+from utils.targeting.predicates import p_height_visible_to
 
 
 def _can_see_hidden(entity):
     """Check if entity can see HIDDEN actors/objects.
 
-    True Sight: HIDDEN at all tiers (SKILLED+).
-    Holy Sight: HIDDEN at MASTER+ (tier 4) only.
+    True Sight is the single-purpose effect that pierces physical
+    concealment (HIDDEN condition). Nothing else grants this.
     """
     if not hasattr(entity, "has_effect"):
         return False
-    if entity.has_effect("true_sight"):
-        return True
-    if (
-        entity.has_effect("holy_sight")
-        and (getattr(entity.db, "holy_sight_tier", 0) or 0) >= 4
-    ):
-        return True
-    return False
+    return entity.has_effect("true_sight")
 
 
 class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
@@ -45,6 +39,12 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
     max_height = AttributeProperty(1)
     # this room does not go underwater (must be negative)
     max_depth = AttributeProperty(0)
+
+    # Height visibility barriers — tuple of (barrier_height, max_concealed_size)
+    # or None. Objects small enough are hidden from observers on the other side.
+    # See HeightAwareMixin.is_height_visible_to() for the check algorithm.
+    visibility_up_barrier = AttributeProperty(None, autocreate=False)
+    visibility_down_barrier = AttributeProperty(None, autocreate=False)
 
     # Lightweight examinable descriptions: {"keyword": "description", ...}
     details = AttributeProperty(default=dict)
@@ -114,6 +114,17 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
     def get_terrain(self):
         """Return this room's terrain type, or None."""
         return self.tags.get(category="terrain")
+
+    # --- Sleep policy helpers ---
+
+    def set_sleep_policy(self, policy):
+        """Set sleep policy: 'none' or 'super'. Clear to restore default."""
+        self.tags.clear(category="sleep_policy")
+        self.tags.add(policy, category="sleep_policy")
+
+    def get_sleep_policy(self):
+        """Return sleep policy tag, or None (default = normal sleep)."""
+        return self.tags.get(category="sleep_policy")
 
     # --- Lighting helpers ---
 
@@ -613,8 +624,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # Filter by height-gated visibility
         visible = [
             char for char in visible
-            if not hasattr(char, "is_height_visible_to")
-            or char.is_height_visible_to(looker)
+            if p_height_visible_to(char, looker)
         ]
 
         if not visible:
@@ -642,6 +652,14 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                     line = f"|Y(Good)|n {line}"
                 else:
                     line = f"|w(Neutral)|n {line}"
+            # Append height tags
+            char_height = getattr(char, "room_vertical_position", 0)
+            if char_height > 0:
+                line += " (Flying)"
+            elif char_height < 0:
+                line += " (Underwater)"
+            elif self.max_depth < 0:
+                line += " (Swimming)"
             # Append visibility tags
             if hasattr(char, "has_condition"):
                 if char.has_condition(Condition.INVISIBLE):
@@ -674,8 +692,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # Filter by height-gated visibility
         things = [
             thing for thing in things
-            if not hasattr(thing, "is_height_visible_to")
-            or thing.is_height_visible_to(looker)
+            if p_height_visible_to(thing, looker)
         ]
 
         # Separate items with ground descriptions (full sentences) from

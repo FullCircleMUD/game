@@ -1,5 +1,5 @@
 from enums.abilities_enum import Ability
-from enums.actor_size import ActorSize
+from enums.size import Size
 from typeclasses.actors.races.race_base import RaceBase
 
 AASIMAR = RaceBase(
@@ -11,7 +11,7 @@ AASIMAR = RaceBase(
         "the forces of darkness and a natural affinity for divine magic. They are "
         "often drawn to lives of purpose, serving as champions of the light."
     ),
-    size=ActorSize.MEDIUM,
+    size=Size.MEDIUM,
     base_hp=12,
     base_mana=14,
     base_move=100,

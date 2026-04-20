@@ -9,5 +9,5 @@ RECIPE_THE_BULL = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 17: 2},  # 1 Moonpetal Essence + 2 Ogre's Cap
-    "output_prototype": "the_bull",
+    "mastery_tiered": True,
 }

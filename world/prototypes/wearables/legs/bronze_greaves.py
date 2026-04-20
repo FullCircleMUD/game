@@ -11,4 +11,5 @@ BRONZE_GREAVES = {
     "wear_effects": [],
     "weight": 2.0,
     "max_durability": 3600,
+    "size": "small",
 }

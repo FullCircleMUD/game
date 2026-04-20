@@ -7,6 +7,7 @@ The entry-level scout.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
 
@@ -15,7 +16,8 @@ class FamiliarRat(FamiliarMixin, BasePet):
     """A small rat familiar — BASIC conjuration."""
 
     pet_type = AttributeProperty("familiar")
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     room_description = AttributeProperty("scurries along at its master's heels.")
 
     def at_object_creation(self):

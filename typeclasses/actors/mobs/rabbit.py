@@ -13,11 +13,15 @@ import random
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 
 
 class Rabbit(CombatMob):
     """A small rabbit that wanders and flees from threats."""
+
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
 
     # ── Stats — tiny and fragile ──
     hp = AttributeProperty(3)

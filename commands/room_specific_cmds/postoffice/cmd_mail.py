@@ -36,7 +36,7 @@ class CmdMail(FCMCommandMixin, Command):
     """
 
     key = "mail"
-    aliases = ["@mail"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Communication"
     # Use = as separator for send/reply syntax

@@ -18,7 +18,9 @@ cannot tell them apart:
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
@@ -30,7 +32,8 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
     """A small, cowardly kobold. Fights in packs, flees when alone."""
 
     alignment_score = AttributeProperty(-60)  # evil (hostile raider)
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.SMALL.value)
+    size = AttributeProperty(Size.SMALL.value)
     default_weapon_masteries = {"dagger": MasteryLevel.BASIC.value}
 
     # ── Stats ──
@@ -50,6 +53,7 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
     # ── Combat ──
     initiative_speed = AttributeProperty(2)
     damage_dice = AttributeProperty("1d4")
+    damage_type = AttributeProperty(DamageType.PIERCING)  # dagger fallback
     attack_message = AttributeProperty("stabs at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)

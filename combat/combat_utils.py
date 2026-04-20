@@ -9,7 +9,7 @@ get_sides()       — ally/enemy detection from a combatant's perspective
 import random
 
 from combat.height_utils import can_reach_target, get_height_hit_modifier
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
@@ -35,22 +35,16 @@ INTERCEPT_CHANCE = {
 # ================================================================== #
 
 def get_actor_size(actor):
-    """Get an actor's size as ActorSize enum.
-    Checks race.size for PCs, .size for mobs (stored as string)."""
-    # PC path: character.race.size (already ActorSize enum)
-    race = getattr(actor, "race", None)
-    if race and hasattr(race, "size"):
-        return race.size
-    # Mob path: direct .size attribute (stored as string)
+    """Get an actor's size as Size enum.
+    All actors store size as a string AttributeProperty on BaseActor.
+    PCs get it set from race.size during chargen/remort."""
     size = getattr(actor, "size", None)
     if size:
-        if isinstance(size, ActorSize):
-            return size
         try:
-            return ActorSize(size)
+            return Size(size)
         except ValueError:
-            return ActorSize.MEDIUM
-    return ActorSize.MEDIUM
+            return Size.MEDIUM
+    return Size.MEDIUM
 
 
 # ================================================================== #
@@ -410,6 +404,9 @@ def execute_attack(attacker, target, _is_riposte=False,
     dmg_type = DamageType.BLUDGEONING
     if weapon:
         dmg_type = weapon.damage_type
+    elif hasattr(attacker, "damage_type"):
+        raw = attacker.damage_type
+        dmg_type = DamageType(raw) if isinstance(raw, str) else raw
 
     hit = (total_hit >= total_ac) or is_crit
     damage_dealt = 0
@@ -555,16 +552,20 @@ def execute_attack(attacker, target, _is_riposte=False,
                     exclude=[attacker, target],
                 )
             else:
-                # Animal mob natural attack — use attack_message as-is
-                atk_msg = getattr(attacker, "attack_message", "attacks")
+                # Natural attack — use damage descriptor system
+                second_verb, third_verb = get_descriptor(
+                    dmg_type, damage_dealt,
+                    getattr(target, "effective_hp_max", 1),
+                )
+                punct = "!" if second_verb[0].isupper() else "."
                 attacker.msg(
-                    f"|r{crit_prefix}You {atk_msg} {target_key}!|n"
+                    f"|r{crit_prefix}You {second_verb} {target_key}{punct}|n"
                 )
                 target.msg(
-                    f"|r{crit_prefix}{attacker.key} {atk_msg} you!|n"
+                    f"|r{crit_prefix}{attacker.key} {third_verb} you{punct}|n"
                 )
                 attacker.location.msg_contents(
-                    f"|r{crit_prefix}{attacker.key} {atk_msg} {target_key}!|n",
+                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key}{punct}|n",
                     exclude=[attacker, target],
                 )
 
@@ -930,32 +931,69 @@ def get_sides(combatant):
     """
     Returns (allies, enemies) from combatant's perspective.
 
+    Single-pass implementation via the targeting library's
+    ``bucket_contents`` primitive. A local ``classify`` closure
+    reads each candidate's ``combat_handler`` exactly once per
+    object and uses the already-fetched handler reference for both
+    the in-combat existence check and the ``combat_side`` read —
+    eliminating the double script-handler lookup that the previous
+    three-loop implementation did in its enemy comprehension.
+
+    Loops: 1 (bucket_contents walks room.contents once, and classify
+    runs inline per object as the filter and dispatch). Down from 3
+    loops in the pre-rewrite implementation and 2 loops in the
+    walk_contents + bucket loop intermediate.
+
+    Script-handler lookups: R + C (one hp check per room object via
+    p_living, one script.get per living object inside classify).
+    Down from R + 3C in the pre-rewrite implementation.
+
     Sides are assigned dynamically at combat entry time based on
     who attacked who and group membership. Each combatant's handler
     stores a combat_side (1 or 2).
 
     In PvP rooms: everyone is an enemy except the combatant themselves.
     """
+    from utils.targeting.helpers import bucket_contents
+    from utils.targeting.predicates import p_living
+
     room = combatant.location
     if not room:
         return [], []
 
-    # Everyone in the room who is in combat and alive
-    in_combat = [
-        obj for obj in room.contents
-        if getattr(obj, "hp", None) is not None
-        and obj.hp > 0
-        and obj.scripts.get("combat_handler")
-    ]
+    pvp = getattr(room, "allow_pvp", False)
+    my_side = _get_combat_side(combatant) if not pvp else 0
 
-    if getattr(room, "allow_pvp", False):
-        return [combatant], [c for c in in_combat if c != combatant]
-
-    # Read combatant's side from their handler
-    my_side = _get_combat_side(combatant)
-    if not my_side:
+    if not pvp and not my_side:
+        # Combatant has no side assigned and no PvP fallback —
+        # nothing to return.
         return [], []
 
-    allies = [c for c in in_combat if _get_combat_side(c) == my_side]
-    enemies = [c for c in in_combat if _get_combat_side(c) != my_side and _get_combat_side(c) != 0]
-    return allies, enemies
+    def classify(obj, _caller):
+        # Read the combat_handler ONCE and reuse for both the
+        # in-combat check and the side read. Previously the
+        # enemy comprehension called _get_combat_side twice per
+        # object (once for != my_side, once for != 0), doubling
+        # the script-handler lookups on that pass. Reading
+        # handlers[0].combat_side directly here eliminates the
+        # redundancy.
+        handlers = obj.scripts.get("combat_handler")
+        if not handlers:
+            return None
+        if pvp:
+            # PvP short-circuit: caller is their own ally, everyone
+            # else in combat is an enemy. Side values are ignored.
+            return "allies" if obj is combatant else "enemies"
+        side = handlers[0].combat_side
+        if side == my_side:
+            return "allies"
+        if side != 0:
+            return "enemies"
+        # Side-zero combatants (handler attached but no side
+        # assigned — a weird edge state) fall through both
+        # branches and are excluded from both lists, matching
+        # the previous implementation.
+        return None
+
+    buckets = bucket_contents(combatant, room, classify, p_living)
+    return buckets.get("allies", []), buckets.get("enemies", [])

@@ -11,13 +11,16 @@ removed, unblocking forward exits for players to proceed.
 from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.search import search_tag
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 
 
 class CellarRat(AggressiveMob):
     """A large cellar rat. Aggressive but weak."""
 
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
 
     # ── Stats — level 1, fragile ──
     hp = AttributeProperty(2)
@@ -36,6 +39,7 @@ class CellarRat(AggressiveMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("1d2")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("bites")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)

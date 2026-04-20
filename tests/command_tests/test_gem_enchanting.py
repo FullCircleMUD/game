@@ -43,9 +43,9 @@ def _give_gold(char, amount):
 
 
 def _give_enchanting_skill(char, mastery=MasteryLevel.BASIC):
-    if not char.db.general_skill_mastery_levels:
-        char.db.general_skill_mastery_levels = {}
-    char.db.general_skill_mastery_levels[skills.ENCHANTING.value] = mastery.value
+    if not char.db.class_skill_mastery_levels:
+        char.db.class_skill_mastery_levels = {}
+    char.db.class_skill_mastery_levels[skills.ENCHANTING.value] = {"mastery": mastery.value}
 
 
 def _learn_enchant_ruby(char):
@@ -403,7 +403,7 @@ class TestCmdCraftEnchantRuby(EvenniaCommandTest):
                                             mock_roll, mock_delay):
         """Success message should use 'enchant' verb."""
         mock_assign.return_value = TOKEN_ID
-        mock_spawn.return_value = MagicMock()
+        mock_spawn.return_value = MagicMock(key="Enchanted Ruby")
         mock_roll.side_effect = [_RUBY_BASIC_EFFECTS[0], "none"]
 
         result = self.call(CmdCraft(), "enchanted ruby", inputs=["y"])
@@ -514,7 +514,7 @@ class TestCmdCraftEnchantValidation(EvenniaCommandTest):
 
     def test_no_enchanting_skill(self):
         """Should fail if character lacks enchanting skill mastery."""
-        self.char1.db.general_skill_mastery_levels = {}  # clear skills
+        self.char1.db.class_skill_mastery_levels = {}  # clear skills
         _give_resources(self.char1, {16: 5, 33: 3})
         _give_gold(self.char1, 50)
         result = self.call(CmdCraft(), "enchanted ruby")
@@ -552,7 +552,7 @@ class TestCmdCraftEnchantAlias(EvenniaCommandTest):
                                   mock_roll, mock_delay):
         """'enchant ruby' should work via the enchant alias."""
         mock_assign.return_value = TOKEN_ID
-        mock_spawn.return_value = MagicMock()
+        mock_spawn.return_value = MagicMock(key="Enchanted Ruby")
         mock_roll.side_effect = [_RUBY_BASIC_EFFECTS[0], "none"]
 
         result = self.call(CmdCraft(), "enchanted ruby", cmdstring="enchant",

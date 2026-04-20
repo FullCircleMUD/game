@@ -1,6 +1,6 @@
 """
 Tests for ItemRestrictionMixin — item usage restrictions based on class,
-race, alignment, level, attributes, mastery, and remorts.
+race, alignment, level, attributes, mastery, size, and remorts.
 
 Tests cover can_use() logic, is_restricted property, multiclass edge cases,
 and wear() integration.
@@ -14,6 +14,7 @@ from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
 from typeclasses.actors.races import Race
+from enums.size import Size
 from enums.wearslot import HumanoidWearSlot
 
 
@@ -509,3 +510,84 @@ class TestWearIntegration(EvenniaTest):
         )
         success, _ = self.char1.wear(item)
         self.assertTrue(success)
+
+
+# ── Size Restrictions ────────────────────────────────────────────────────
+
+class TestMinSize(EvenniaTest):
+    """Test min_size restriction on items."""
+
+    def create_script(self):
+        pass
+
+    def test_medium_char_passes_medium_min(self):
+        """Medium character can use item requiring medium."""
+        self.char1.size = Size.MEDIUM.value
+        item = _make_item("Greatsword", min_size=Size.MEDIUM.value)
+        allowed, reason = item.can_use(self.char1)
+        self.assertTrue(allowed)
+
+    def test_small_char_fails_medium_min(self):
+        """Small character cannot use item requiring medium."""
+        self.char1.size = Size.SMALL.value
+        item = _make_item("Greatsword", min_size=Size.MEDIUM.value)
+        allowed, reason = item.can_use(self.char1)
+        self.assertFalse(allowed)
+        self.assertIn("too small", reason)
+
+    def test_large_char_passes_medium_min(self):
+        """Large character can use item requiring medium."""
+        self.char1.size = Size.LARGE.value
+        item = _make_item("Greatsword", min_size=Size.MEDIUM.value)
+        allowed, reason = item.can_use(self.char1)
+        self.assertTrue(allowed)
+
+    def test_no_min_size_unrestricted(self):
+        """Item with no min_size should pass for any size."""
+        self.char1.size = Size.TINY.value
+        item = _make_item("Dagger")
+        allowed, reason = item.can_use(self.char1)
+        self.assertTrue(allowed)
+
+    def test_is_restricted_with_min_size(self):
+        """is_restricted should be True when min_size is set."""
+        item = _make_item("Greatsword", min_size=Size.MEDIUM.value)
+        self.assertTrue(item.is_restricted)
+
+
+class TestMinSizeWearIntegration(EvenniaTest):
+    """Test min_size enforcement through wear() and equipment revalidation."""
+
+    def create_script(self):
+        pass
+
+    def test_small_char_cannot_wear_medium_weapon(self):
+        """wear() should reject weapon when character is too small."""
+        self.char1.size = Size.SMALL.value
+        item = _make_item(
+            "Greatsword",
+            location=self.char1,
+            min_size=Size.MEDIUM.value,
+        )
+        success, reason = self.char1.wear(item)
+        self.assertFalse(success)
+        self.assertIn("too small", reason)
+
+    def test_enlarged_char_can_wear_then_loses_on_shrink(self):
+        """Character enlarged to medium can equip, then loses it on shrink."""
+        # Start medium — equip succeeds
+        self.char1.size = Size.MEDIUM.value
+        item = _make_item(
+            "Greatsword",
+            location=self.char1,
+            min_size=Size.MEDIUM.value,
+        )
+        success, _ = self.char1.wear(item)
+        self.assertTrue(success)
+
+        # Shrink to small — revalidation should force-remove
+        self.char1.size = Size.SMALL.value
+        self.char1._check_equipment_restrictions()
+        worn = self.char1.get_all_worn()
+        wielded = worn.get("wield")
+        self.assertIsNone(wielded)

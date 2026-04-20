@@ -29,7 +29,7 @@ class GreaterInvisibility(Spell):
     school = skills.ILLUSION
     min_mastery = MasteryLevel.MASTER
     mana_cost = {4: 56, 5: 64}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     cooldown = 0
     description = "Renders you or an ally invisible — persists even while attacking."
     mechanics = (

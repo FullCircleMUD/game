@@ -815,17 +815,15 @@ class EffectsManagerMixin:
         )
 
     def apply_true_sight(self, duration_seconds, detect_invis=False):
-        """Apply True Sight for N seconds. detect_invis adds DETECT_INVIS condition."""
+        """Apply True Sight for N seconds. detect_invis adds DETECT_INVIS condition.
+
+        Shared by both the True Sight (Divination) and Holy Sight (Divine
+        Revelation) spells — they're functionally identical and apply the
+        same named effect.
+        """
         condition = Condition.DETECT_INVIS if detect_invis else None
         return self.apply_named_effect(
             NamedEffect.TRUE_SIGHT, condition=condition, duration=duration_seconds,
-        )
-
-    def apply_holy_sight(self, duration_seconds, detect_invis=False):
-        """Apply Holy Sight for N seconds. detect_invis adds DETECT_INVIS condition."""
-        condition = Condition.DETECT_INVIS if detect_invis else None
-        return self.apply_named_effect(
-            NamedEffect.HOLY_SIGHT, condition=condition, duration=duration_seconds,
         )
 
     def apply_resist_element(self, element, resistance_pct, duration_seconds, source=None):

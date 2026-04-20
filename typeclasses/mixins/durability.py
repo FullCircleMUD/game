@@ -56,6 +56,7 @@ class DurabilityMixin:
             self.at_durability_init()
         old_durability = self.durability
         self.durability = max(0, self.durability - amount)
+        self._persist_durability()
 
         if self.durability <= 0:
             self.at_break()
@@ -127,6 +128,23 @@ class DurabilityMixin:
         if self.max_durability == 0:
             return
         self.durability = self.max_durability
+        self._persist_durability()
+
+    def _persist_durability(self):
+        """
+        Propagate current durability to the NFT mirror metadata so external
+        marketplaces (and chain re-imports) see the live condition.
+
+        Silently no-ops on non-NFT users of this mixin (doors, chests) that
+        don't have the NFTMirrorMixin.persist_metadata() helper.
+        """
+        persist = getattr(self, "persist_metadata", None)
+        if persist is None:
+            return
+        persist({
+            "durability": self.durability,
+            "max_durability": self.max_durability,
+        })
 
     def at_break(self):
         """

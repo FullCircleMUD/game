@@ -19,6 +19,8 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.flying_mixin import FlyingMixin
 from typeclasses.mixins.mob_behaviours.pack_courage_mixin import PackCourageMixin
@@ -28,7 +30,8 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     """A black crow. Attacks in packs, flees when alone."""
 
     alignment_score = AttributeProperty(-30)  # slightly evil (aggressive pest)
-    size = AttributeProperty("tiny")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
 
     # ── Flight ──
     preferred_height = AttributeProperty(1)
@@ -50,6 +53,7 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("1d2")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("pecks at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)

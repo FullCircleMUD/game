@@ -29,7 +29,7 @@ Stun/Knockdown (SKILLED+):
 from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from combat.combat_utils import get_actor_size
@@ -55,7 +55,7 @@ _NUNCHAKU_STUN_CHECKS = {
 }
 
 # Sizes immune to nunchaku stun/knockdown
-_STUN_IMMUNE_SIZES = {ActorSize.GARGANTUAN}
+_STUN_IMMUNE_SIZES = {Size.GARGANTUAN}
 
 
 class NunchakuMixin:

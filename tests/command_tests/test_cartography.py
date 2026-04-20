@@ -559,6 +559,87 @@ class TestDistrictMapNFTItem(_RoomBaseMixin, EvenniaTest):
         result = item.get_display_name(looker=self.char1)
         self.assertIn("%", result)
 
+    # ── record_survey_points — mirror metadata persistence ───────────────
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_persists_to_mirror(self, mock_update):
+        item = self._make()
+        item.token_id = 9101
+        mock_update.reset_mock()
+
+        item.record_survey_points(["room_a", "room_b"])
+
+        self.assertIn("room_a", item.surveyed_points)
+        self.assertIn("room_b", item.surveyed_points)
+        mock_update.assert_called_once()
+        args = mock_update.call_args[0]
+        self.assertEqual(args[0], 9101)
+        # Points persisted as a sorted list (sets aren't JSON-serializable)
+        self.assertEqual(args[1]["surveyed_points"], ["room_a", "room_b"])
+        # completion_pct derived from FAKE_MAP_DEF (4 cells) — 2 surveyed = 50
+        self.assertEqual(args[1]["completion_pct"], 50)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_duplicate_is_noop(self, mock_update):
+        item = self._make(surveyed={"room_a"})
+        item.token_id = 9102
+        mock_update.reset_mock()
+
+        item.record_survey_points(["room_a"])  # already surveyed
+
+        mock_update.assert_not_called()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_empty_iterable_is_noop(self, mock_update):
+        item = self._make()
+        item.token_id = 9103
+        mock_update.reset_mock()
+
+        item.record_survey_points([])
+
+        mock_update.assert_not_called()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_record_survey_points_mixed_new_and_duplicate_persists(self, mock_update):
+        item = self._make(surveyed={"room_a"})
+        item.token_id = 9104
+        mock_update.reset_mock()
+
+        item.record_survey_points(["room_a", "room_b"])  # one new
+
+        mock_update.assert_called_once()
+        self.assertIn("room_b", item.surveyed_points)
+
+    # ── at_restore_from_metadata — round-trip from mirror ────────────────
+
+    def test_restore_from_metadata_converts_list_to_set(self):
+        """
+        On re-import, spawn_into copies metadata into db.surveyed_points as a
+        JSON list. at_restore_from_metadata must convert it back to a set so
+        subsequent .add() calls work.
+        """
+        item = self._make()
+        # Simulate what spawn_into does — raw list assigned from JSON
+        item.db.surveyed_points = ["room_a", "room_b"]
+
+        item.at_restore_from_metadata({
+            "surveyed_points": ["room_a", "room_b"],
+            "completion_pct": 50,
+        })
+
+        # Evennia wraps sets in _SaverSet, so assert MutableSet behaviour
+        # rather than exact `set` identity.
+        self.assertIsInstance(item.db.surveyed_points, MutableSet)
+        self.assertEqual(set(item.db.surveyed_points), {"room_a", "room_b"})
+        # And the set is live-mutable for further surveying
+        item.surveyed_points.add("room_c")
+        self.assertIn("room_c", item.surveyed_points)
+
+    def test_restore_from_metadata_empty_is_noop(self):
+        item = self._make(surveyed={"room_a"})
+        item.at_restore_from_metadata({})
+        self.assertEqual(item.db.surveyed_points, {"room_a"})
+
 
 # ══════════════════════════════════════════════════════════════════════════
 #  5. CmdSurvey — Gate Checks

@@ -11,6 +11,9 @@ Builders create them with:
 The room's is_dark() check detects these via is_light_source + is_lit.
 """
 
+from evennia import AttributeProperty
+
+from enums.size import Size
 from typeclasses.mixins.light_source import LightSourceMixin
 from typeclasses.world_objects.base_fixture import WorldFixture
 
@@ -19,6 +22,8 @@ class LitFixture(LightSourceMixin, WorldFixture):
     """
     Permanent world light source. Always lit, infinite fuel.
     """
+
+    size = AttributeProperty(Size.LARGE.value)
 
     def at_object_creation(self):
         super().at_object_creation()

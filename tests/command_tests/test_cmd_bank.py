@@ -102,3 +102,63 @@ class TestCmdBankContents(EvenniaCommandTest):
         self.bank.db.gold = 10
         result = self.call(CmdBank(), "", caller=self.account)
         self.assertIn("export", result)
+
+
+class TestCmdBankShips(EvenniaCommandTest):
+    """
+    OOC bank command must show ships under their own |wShips:|n heading
+    using get_owned_display() (which includes the berth location), and
+    must NOT leak ships into the |wItems:|n section.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.bank = create.create_object(
+            "typeclasses.accounts.account_bank.AccountBank",
+            key=f"bank-{self.account.key}",
+            nohome=True,
+        )
+        self.bank.wallet_address = WALLET_A
+        self.account.db.bank = self.bank
+
+        # Real ship in the bank (bypass NFT mirror via db_location set).
+        from unittest.mock import patch
+        with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"):
+            self.ship = create.create_object(
+                "typeclasses.items.untakeables.ship_nft_item.ShipNFTItem",
+                key="The Grey Widow",
+                nohome=True,
+            )
+            self.ship.token_id = 555
+            self.ship.db.ship_tier = 1  # Cog
+            self.ship.set_world_location(self.room1)
+        self.ship.db_location = self.bank
+        self.ship.save(update_fields=["db_location"])
+
+    def test_bank_shows_ship_under_ships_heading(self):
+        result = self.call(CmdBank(), "", caller=self.account)
+        self.assertIn("Ships", result)
+        self.assertIn("The Grey Widow", result)
+
+    def test_bank_ship_includes_berth_location(self):
+        """get_owned_display() emits 'berthed at <room>' inline."""
+        result = self.call(CmdBank(), "", caller=self.account)
+        self.assertIn("berthed at", result)
+        self.assertIn(self.room1.key, result)
+
+    def test_bank_ship_does_not_appear_in_items_section(self):
+        """
+        Latent bug fix: BaseNFTItem filter previously included WorldAnchored
+        subclasses, so a banked ship leaked into the Items section AND the
+        Ships placeholder rendered empty. Verify ships only appear once.
+        """
+        result = self.call(CmdBank(), "", caller=self.account)
+        # The ship name should appear exactly once (in the Ships section)
+        self.assertEqual(result.count("The Grey Widow"), 1)

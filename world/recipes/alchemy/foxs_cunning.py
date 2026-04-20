@@ -9,5 +9,5 @@ RECIPE_FOXS_CUNNING = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 20: 2},  # 1 Moonpetal Essence + 2 Mindcap
-    "output_prototype": "foxs_cunning",
+    "mastery_tiered": True,
 }

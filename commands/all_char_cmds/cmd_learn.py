@@ -30,7 +30,7 @@ class CmdLearn(FCMCommandMixin, Command):
     """
 
     key = "learn"
-    aliases =["le", "lea", "lear"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
     allow_while_sleeping = True

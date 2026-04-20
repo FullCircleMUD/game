@@ -9,7 +9,7 @@ Builds rooms and exits for the town district including:
 - Crafting/processing shops (bakery, smithy, leathershop, tailor, woodshop, apothecary)
 - Guild halls (warriors, mages, temple) with back rooms
 - Bank, general store, stables, post office, distillery
-- The Broken Crown tavern, Gaol, Beggar's Alley
+- The Broken Crown tavern (with upstairs bunkroom), Gaol, Beggar's Alley
 - Residential houses
 - Cemetery (north road, dead end)
 - South Gate (town boundary, connects to Southern District)
@@ -22,6 +22,7 @@ Usage:
 
 from evennia import create_object, ObjectDB
 
+from enums.size import Size
 from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_bank import RoomBank
@@ -31,6 +32,7 @@ from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
 from typeclasses.terrain.rooms.room_stable import RoomStable
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from typeclasses.world_objects.fountain_fixture import FountainFixture
 from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 
 
@@ -451,6 +453,14 @@ def build_millholm_town(one_way_limbo=False):
                 ),
             }),
         ],
+    )
+
+    # Real water source — the `refill` command picks this up via is_water_source.
+    create_object(
+        FountainFixture,
+        key="a stone fountain",
+        aliases=["fountain", "water"],
+        location=rooms["sq_ne"],
     )
 
     rooms["sq_w"] = create_object(
@@ -1136,6 +1146,36 @@ def build_millholm_town(one_way_limbo=False):
         ),
     }
 
+    rooms["bunkroom"] = create_object(
+        RoomBase,
+        key="Bunkroom",
+        attributes=[
+            ("max_height", 0),
+            ("max_depth", 0),
+            ("desc",
+             "A cramped room above the tavern, lined with rough wooden "
+             "bunks stacked three high. The air is thick with the smell "
+             "of stale beer and unwashed blankets. Half the bunks are "
+             "occupied by snoring figures in various states of inebriation "
+             "— one still clutching an empty tankard, another with a boot "
+             "on the wrong foot. The floorboards creak with every step, "
+             "though nothing short of a siege engine seems likely to wake "
+             "the current residents."),
+        ],
+    )
+    rooms["bunkroom"].details = {
+        "bunks": (
+            "Rough-hewn wooden frames with straw mattresses that have "
+            "seen better decades. Each bunk has a thin woollen blanket "
+            "and a nail in the wall for hanging a pack."
+        ),
+        "drunks": (
+            "A colourful assortment of unconscious patrons. One mutters "
+            "about 'the big fish' between snores. Another has somehow "
+            "managed to fall asleep upside down."
+        ),
+    }
+
     rooms["gaol"] = create_object(
         RoomBase,
         key="Millholm Gaol",
@@ -1552,7 +1592,7 @@ def build_millholm_town(one_way_limbo=False):
         RoomCrafting,
         key="Arcane Study",
         attributes=[
-            ("crafting_type", "enchanting"),
+            ("crafting_type", "wizards_workshop"),
             ("mastery_level", 1),
             ("craft_cost", 2),
             ("max_height", 0),
@@ -2095,6 +2135,7 @@ def build_millholm_town(one_way_limbo=False):
         open_ab="The open stable doors reveal stalls of horses within.",
         closed_ba="Large double doors lead south to the market square.",
         open_ba="The market square is visible through the open doors.",
+        max_size=Size.LARGE.value,
     )
     exit_count += 2
 
@@ -2438,6 +2479,12 @@ def build_millholm_town(one_way_limbo=False):
             desc_ab="a bedroom", desc_ba="the hallway")
     exit_count += 12  # was 14, minus 2 for cellar door (moved to build_game_world)
 
+    # ── Broken Crown bunkroom ────────────────────────────────────────
+    connect_bidirectional_exit(rooms["broken_crown"], rooms["bunkroom"], "up",
+            desc_ab="a rickety staircase leading up",
+            desc_ba="the tavern below")
+    exit_count += 2
+
     # ── Guild back rooms ─────────────────────────────────────────────
     connect_bidirectional_exit(rooms["shrine"], rooms["priest_quarters"], "up",
             desc_ab="the priest's quarters", desc_ba="the shrine")
@@ -2558,8 +2605,8 @@ def build_millholm_town(one_way_limbo=False):
         rooms["inn"], rooms["bakery"], rooms["smithy"],
         rooms["leathershop"], rooms["textiles"], rooms["jeweller"],
         rooms["apothecary"], rooms["woodshop"], rooms["bank"],
-        rooms["post_office"], rooms["broken_crown"], rooms["gaol"],
-        rooms["gaol_cell"],
+        rooms["post_office"], rooms["broken_crown"], rooms["bunkroom"],
+        rooms["gaol"], rooms["gaol_cell"],
         rooms["weapons_shop"], rooms["armorer"], rooms["clothing_shop"],
         rooms["magical_supplies"], rooms["jewellers_showroom"],
         rooms["library_desk"], rooms["library_children"],
@@ -2590,6 +2637,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["shrine"],            # Shrine of the First Harvest
         rooms["priest_quarters"],   # attached to shrine
         rooms["stables"],           # Millholm Stables
+        rooms["bunkroom"],          # upstairs from Broken Crown
         rooms["beggars_alley"],     # quest NPC Old Silas lives here
         rooms["general_store"],     # shop
         rooms["vacant_w1"],         # empty workshop
@@ -2649,7 +2697,7 @@ def build_millholm_town(one_way_limbo=False):
         rooms["textiles"], rooms["leathershop"], rooms["bank"],
         rooms["general_store"], rooms["mages_guild"],
         rooms["warriors_guild"], rooms["gaol"], rooms["gaol_cell"],
-        rooms["broken_crown"], rooms["distillery"],
+        rooms["broken_crown"], rooms["bunkroom"], rooms["distillery"],
         rooms["post_office"],
         rooms["jeweller"], rooms["shrine"],
         rooms["priest_quarters"],
@@ -2675,6 +2723,44 @@ def build_millholm_town(one_way_limbo=False):
     ]
     for room in inn_interior:
         room.always_lit = True
+
+    # ── Sleep policy ─────────────────────────────────────────────────
+    # Super sleep (5x regen) — inn interiors where guests sleep
+    super_sleep_rooms = [
+        rooms["bedroom_east"], rooms["bedroom_west"],
+        rooms["hallway"], rooms["first_floor_stairwell"],
+        rooms["stairwell"],
+        rooms["bunkroom"],
+    ]
+    for room in super_sleep_rooms:
+        room.set_sleep_policy("super")
+
+    # No sleep — commercial, civic, and private buildings
+    no_sleep_rooms = [
+        # Shops
+        rooms["weapons_shop"], rooms["armorer"], rooms["clothing_shop"],
+        rooms["magical_supplies"], rooms["jewellers_showroom"],
+        rooms["general_store"],
+        # Crafting
+        rooms["smithy"], rooms["leathershop"], rooms["textiles"],
+        rooms["bakery"], rooms["distillery"], rooms["jeweller"],
+        rooms["apothecary"], rooms["woodshop"], rooms["arcane_study"],
+        # Civic
+        rooms["bank"], rooms["post_office"],
+        # Library
+        rooms["library_desk"], rooms["library_children"],
+        rooms["library_fiction"], rooms["library_nonfiction"],
+        # Residences
+        rooms["hendricks_house"], rooms["gareth_house"],
+        rooms["gareth_bedroom"], rooms["mara_house"],
+        rooms["elena_house"],
+        # Guilds, shrine, barracks, stables
+        rooms["mages_guild"], rooms["warriors_guild"],
+        rooms["shrine"], rooms["priest_quarters"],
+        rooms["barracks"], rooms["stables"],
+    ]
+    for room in no_sleep_rooms:
+        room.set_sleep_policy("none")
 
     print("  Set permanent lighting on town streets, shops, and inn.")
 
@@ -2774,6 +2860,7 @@ def build_millholm_town(one_way_limbo=False):
         "woodshop":            "millholm_town:woodshop",
         # ── Row 12-13: far south road ──
         "broken_crown":        "millholm_town:broken_crown",
+        "bunkroom":            "millholm_town:broken_crown",
         "far_south_road":      "millholm_town:far_south_road",
         "gaol_cell":           "millholm_town:gaol_cell",
         "south_gate":          "millholm_town:south_gate",
@@ -2802,7 +2889,7 @@ def build_millholm_town(one_way_limbo=False):
                 "library_children", "library_fiction", "library_nonfiction"]:
         rooms[key].tags.add(f"{_rt}:town_e", category="map_cell")
     # Bottom row: town_sw, town_s (includes Artisan's Way), town_se
-    for key in ["beggars_alley", "broken_crown",
+    for key in ["beggars_alley", "broken_crown", "bunkroom",
                 "artisans_way_w1", "artisans_way_w2", "artisans_way_w3",
                 "smithy", "leathershop", "jeweller", "woodshop",
                 "elena_house"]:

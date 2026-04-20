@@ -42,7 +42,7 @@ class BoltOfJudgement(Spell):
     school = skills.DIVINE_JUDGEMENT
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 3, 2: 5, 3: 7, 4: 9, 5: 12}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Hurls a bolt of radiant judgement that punishes the wicked."
     mechanics = (

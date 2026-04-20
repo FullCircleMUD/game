@@ -1,10 +1,12 @@
 """
 Tests for CmdBalance — verifies bank balance display for gold, resources,
-takeable NFT items, and untakeable NFT items.
+items, ships (world-anchored), and that pets stay hidden.
 
 Uses EvenniaCommandTest which provides self.call() for testing commands.
 Note: self.call() strips ANSI codes and uses startswith() for msg matching.
 """
+
+from unittest.mock import patch
 
 from django.conf import settings
 
@@ -133,8 +135,13 @@ class TestCmdBalanceNFTItems(EvenniaCommandTest):
         self.assertIn(f"#{self.sword.id}", result)
 
 
-class TestCmdBalanceUntakeableItems(EvenniaCommandTest):
-    """Test balance display for untakeable NFT items."""
+class TestCmdBalanceWorldAnchoredItems(EvenniaCommandTest):
+    """
+    Test balance display for world-anchored items (ships, future property).
+
+    These are now shown by default in their own |wShips:|n subsection,
+    using get_owned_display() to render the berth location inline.
+    """
 
     room_typeclass = "typeclasses.terrain.rooms.room_bank.RoomBank"
     databases = "__all__"
@@ -153,35 +160,96 @@ class TestCmdBalanceUntakeableItems(EvenniaCommandTest):
         self.bank.wallet_address = WALLET_A
         self.account.db.bank = self.bank
 
-        # Create an untakeable NFT in the bank (bypass hooks)
-        self.horse = create.create_object(
-            "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
-            key="Horse",
+        # Create a real ship in the bank (bypass NFT hooks via db_location).
+        # Patch update_metadata so set_world_location doesn't try to write
+        # to a non-existent mirror row.
+        with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"):
+            self.ship = create.create_object(
+                "typeclasses.items.untakeables.ship_nft_item.ShipNFTItem",
+                key="The Grey Widow",
+                nohome=True,
+            )
+            self.ship.token_id = 99
+            self.ship.db.ship_tier = 1  # Cog
+            self.ship.set_world_location(self.room1)
+        self.ship.db_location = self.bank
+        self.ship.save(update_fields=["db_location"])
+
+    def test_balance_shows_ship_by_default(self):
+        """Ships are now shown in the default balance listing."""
+        result = self.call(CmdBalance(), "")
+        self.assertIn("The Grey Widow", result)
+
+    def test_balance_shows_ships_section_heading(self):
+        """Ships render under the |wShips:|n subsection."""
+        result = self.call(CmdBalance(), "")
+        self.assertIn("Ships", result)
+
+    def test_balance_uses_get_owned_display_for_berth(self):
+        """The ship's berth location should appear via get_owned_display()."""
+        result = self.call(CmdBalance(), "")
+        # ShipNFTItem.get_owned_display includes 'berthed at <room name>'
+        self.assertIn("berthed at", result)
+        self.assertIn(self.room1.key, result)
+
+    def test_balance_does_not_show_cannot_be_withdrawn_label(self):
+        """The old 'cannot be withdrawn' wording should be gone."""
+        result = self.call(CmdBalance(), "")
+        self.assertNotIn("cannot be withdrawn", result)
+
+    def test_balance_does_not_hint_at_balance_all(self):
+        """The 'use balance all to see' hint is gone — ships show by default."""
+        result = self.call(CmdBalance(), "")
+        self.assertNotIn("balance all", result)
+
+
+class TestCmdBalanceHidesPets(EvenniaCommandTest):
+    """
+    Pets are managed from stable rooms, not bank rooms. They live in
+    account_bank.contents while stabled but must NEVER show in `balance`.
+
+    This guards the BaseNFTItem filter — if anyone widens it later, this
+    test fails loudly.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_bank.RoomBank"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.bank = create.create_object(
+            "typeclasses.accounts.account_bank.AccountBank",
+            key=f"bank-{self.account.key}",
             nohome=True,
         )
-        self.horse.token_id = 99
-        self.horse.db_location = self.bank
-        self.horse.save(update_fields=["db_location"])
+        self.bank.wallet_address = WALLET_A
+        self.account.db.bank = self.bank
 
-    def test_balance_hides_untakeable_by_default(self):
-        """balance should not show untakeable items in the main listing."""
-        result = self.call(CmdBalance(), "")
-        self.assertNotIn("Horse", result)
-
-    def test_balance_hints_at_untakeables(self):
-        """balance should hint that other items exist."""
-        result = self.call(CmdBalance(), "")
-        self.assertIn("other item", result)
-
-    def test_balance_all_shows_untakeable(self):
-        """balance all should show untakeable items."""
-        result = self.call(CmdBalance(), "all")
-        self.assertIn("Horse", result)
-
-    def test_balance_all_shows_cannot_withdraw_label(self):
-        """balance all should label untakeables as not withdrawable here."""
-        result = self.call(CmdBalance(), "all")
-        self.assertIn("cannot be withdrawn", result)
+    def test_balance_hides_stabled_pet(self):
+        """A pet object in bank.contents should not appear in `balance`."""
+        from unittest.mock import MagicMock
+        # Use a lightweight stand-in rather than a full BasePet — the
+        # filter check is `isinstance(obj, BaseNFTItem)`, so anything not
+        # inheriting BaseNFTItem is invisible. A MagicMock with is_pet=True
+        # exercises the contract without spinning up actor machinery.
+        fake_pet = MagicMock()
+        fake_pet.is_pet = True
+        fake_pet.key = "Fluffy"
+        # Inject directly into bank.contents via the underlying queryset is
+        # tricky; instead, monkeypatch bank.contents to include our fake.
+        original_contents = list(self.bank.contents)
+        type(self.bank).contents = property(
+            lambda s: original_contents + [fake_pet]
+        )
+        try:
+            result = self.call(CmdBalance(), "")
+        finally:
+            del type(self.bank).contents
+        self.assertNotIn("Fluffy", result)
 
 
 class TestCmdBalanceEnsureBank(EvenniaCommandTest):

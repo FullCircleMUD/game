@@ -28,7 +28,7 @@ class CmdAMMCheck(Command):
     """
 
     key = "amm_check"
-    aliases = ["ammcheck"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Economy"
 

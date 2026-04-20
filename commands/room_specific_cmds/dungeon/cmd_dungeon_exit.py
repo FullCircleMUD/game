@@ -50,6 +50,13 @@ class CmdExitDungeon(FCMCommandMixin, Command):
             caller.msg("The dungeon entrance has been lost.")
             return
 
+        # Find pets owned by caller that are tagged with this instance
+        pets_to_evacuate = [
+            char for char in instance.get_characters()
+            if getattr(char, "is_pet", False)
+            and getattr(char, "owner_key", None) == caller.key
+        ]
+
         # Remove from instance and teleport out
         instance.remove_character(caller)
         caller.msg("|yYou flee the dungeon!|n")
@@ -60,3 +67,9 @@ class CmdExitDungeon(FCMCommandMixin, Command):
         )
         caller.move_to(entrance, quiet=True, move_type="teleport")
         caller.msg(entrance.db.desc or "You emerge from the dungeon.")
+
+        # Evacuate owned pets
+        for pet in pets_to_evacuate:
+            instance.remove_character(pet)
+            pet.move_to(entrance, quiet=True, move_type="teleport")
+            caller.msg(f"{pet.key} follows you out of the dungeon.")

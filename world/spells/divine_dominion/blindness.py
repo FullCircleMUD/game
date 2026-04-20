@@ -15,7 +15,7 @@ Contested WIS (caster) vs CON (target). HUGE+ immune.
 Save-each-round (CON) to break early.
 """
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.dice_roller import dice
@@ -26,7 +26,7 @@ from world.spells.registry import register_spell
 _DURATION_ROUNDS = {1: 3, 2: 4, 3: 5, 4: 6, 5: 8}
 
 # HUGE and larger are immune
-_IMMUNE_SIZES = frozenset({ActorSize.HUGE, ActorSize.GARGANTUAN})
+_IMMUNE_SIZES = frozenset({Size.HUGE, Size.GARGANTUAN})
 
 
 @register_spell
@@ -37,7 +37,7 @@ class Blindness(Spell):
     school = skills.DIVINE_DOMINION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 7, 3: 9, 4: 12, 5: 15}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Strikes a creature blind with divine authority."
     mechanics = (
@@ -52,8 +52,8 @@ class Blindness(Spell):
         tier = self.get_caster_tier(caster)
 
         # Size gate
-        target_size = getattr(target, "size", None)
-        if target_size and target_size in _IMMUNE_SIZES:
+        target_size = getattr(target, "size", Size.MEDIUM)
+        if target_size in _IMMUNE_SIZES:
             return (True, {
                 "first": (
                     f"|W{target.key} is too large to be affected by "

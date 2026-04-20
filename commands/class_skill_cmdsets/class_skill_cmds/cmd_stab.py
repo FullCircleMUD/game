@@ -21,6 +21,8 @@ from combat.combat_utils import enter_combat, get_weapon
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 STAB_COOLDOWNS = {
@@ -56,7 +58,7 @@ class CmdStab(CmdSkillBase):
     """
 
     key = "stab"
-    aliases = ["bs"]
+    aliases = []
     skill = skills.STAB.value
     help_category = "Combat"
 
@@ -82,13 +84,20 @@ class CmdStab(CmdSkillBase):
         if handlers:
             handler = handlers[0]
 
+        # Darkness — can't aim for vitals you can't see
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         target = None
         if self.args and self.args.strip():
-            results = caller.search(self.args.strip(), location=caller.location, quiet=True)
-            if not results:
-                caller.msg(f"You don't see '{self.args.strip()}' here.")
-                return
-            target = results[0] if isinstance(results, list) else results
+            target, _ = resolve_target(
+                caller, self.args.strip(), "actor_hostile",
+                extra_predicates=(p_can_see,),
+            )
+            if not target:
+                return  # actor resolver already messaged
         elif handler:
             # Default to current attack target
             action = handler.action_dict
@@ -106,20 +115,7 @@ class CmdStab(CmdSkillBase):
             caller.msg("You can't stab yourself.")
             return
 
-        if not hasattr(target, "hp") or target.hp is None:
-            caller.msg("You can't stab that.")
-            return
-
-        if target.hp <= 0:
-            caller.msg(f"{target.key} is already dead.")
-            return
-
-        if target.location != caller.location:
-            caller.msg("They're not here.")
-            return
-
         # ── Room must allow combat ──
-        room = caller.location
         if not getattr(room, "allow_combat", False):
             caller.msg("Combat is not allowed here.")
             return

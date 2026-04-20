@@ -51,6 +51,7 @@ from commands.all_char_cmds.cmd_roomdesc import CmdRoomDesc
 from commands.all_char_cmds.cmd_exits import CmdExits
 from commands.all_char_cmds.cmd_posture import CmdSit, CmdRest, CmdSleep, CmdStand, CmdWake
 from commands.all_char_cmds.cmd_recalc import CmdRecalc
+from commands.all_char_cmds.cmd_override_nomatch import CmdNoMatch
 
 # world object interaction commands
 from commands.all_char_cmds.cmd_open import CmdOpen
@@ -63,12 +64,15 @@ from commands.all_char_cmds.cmd_read import CmdRead
 from commands.all_char_cmds.cmd_recall import CmdRecall
 from commands.all_char_cmds.cmd_light import CmdLight, CmdExtinguish
 from commands.all_char_cmds.cmd_refuel import CmdRefuel
+from commands.all_char_cmds.cmd_drink import CmdDrink
+from commands.all_char_cmds.cmd_refill import CmdRefill
 
 # magic commands
 from commands.all_char_cmds.cmd_cast import CmdCast
 from commands.all_char_cmds.cmd_transcribe import CmdTranscribe
 from commands.all_char_cmds.cmd_memorise import CmdMemorise, CmdForget
 from commands.all_char_cmds.cmd_spells import CmdSpells
+from commands.all_char_cmds.cmd_zap import CmdZap
 
 # equipment commands
 from commands.all_char_cmds.cmd_wear import CmdWear
@@ -214,6 +218,10 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdExtinguish())
         self.add(CmdRefuel())
 
+        # water/thirst commands
+        self.add(CmdDrink())
+        self.add(CmdRefill())
+
         # crafting commands
         self.add(CmdLearn())
         self.add(CmdRecipes())
@@ -225,6 +233,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdMemorise())
         self.add(CmdForget())
         self.add(CmdSpells())
+        self.add(CmdZap())
 
         # tutorial
         self.add(CmdEnterTutorial())
@@ -232,3 +241,6 @@ class CmdSetCharacterCustom(CmdSet):
 
         # admin
         self.add(CmdRecalc())
+
+        # syscommand overrides
+        self.add(CmdNoMatch())

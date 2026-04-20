@@ -12,6 +12,8 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.potion_nft_item import PotionNFTItem
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdQuaff(FCMCommandMixin, Command):
@@ -31,7 +33,7 @@ class CmdQuaff(FCMCommandMixin, Command):
     """
 
     key = "quaff"
-    aliases = ["qu", "drink", "dr"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Items"
 
@@ -42,28 +44,24 @@ class CmdQuaff(FCMCommandMixin, Command):
             caller.msg("Quaff what? Usage: quaff <potion>")
             return
 
-        candidates = [
-            obj for obj in caller.contents
-            if isinstance(obj, PotionNFTItem)
-        ]
-
-        if not candidates:
-            caller.msg("You aren't carrying any potions.")
+        # Darkness — can't identify items without sight
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        item = caller.search(
-            self.args.strip(),
-            candidates=candidates,
-            quiet=True,
+        item, _ = resolve_target(
+            caller, self.args.strip(), "items_inventory",
+            extra_predicates=(p_can_see,),
         )
-
         if not item:
-            caller.msg("You don't have a potion by that name.")
+            caller.msg(f"You aren't carrying '{self.args.strip()}'.")
             return
 
-        # handle list vs single result — just use the first match
-        if isinstance(item, list):
-            item = item[0]
+        # Type check — must be a potion
+        if not isinstance(item, PotionNFTItem):
+            caller.msg(f"{item.key} is not a potion.")
+            return
 
         success, msg = item.consume(caller)
         caller.msg(msg)

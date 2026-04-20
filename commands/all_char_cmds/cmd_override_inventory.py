@@ -14,6 +14,7 @@ from collections import OrderedDict
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.predicates import p_visible_to
 
 
 class CmdInventory(FCMCommandMixin, Command):
@@ -34,7 +35,7 @@ class CmdInventory(FCMCommandMixin, Command):
     """
 
     key = "inventory"
-    aliases = ["inv", "i"]
+    aliases = ["inv"]
     locks = "cmd:all()"
     help_category = "Items"
     allow_while_sleeping = True
@@ -45,6 +46,10 @@ class CmdInventory(FCMCommandMixin, Command):
         lines = []
         item_lines = []
 
+        # Darkness — can't identify items without sight
+        room = caller.location
+        is_dark = room and hasattr(room, "is_dark") and room.is_dark(caller)
+
         # --- Carried items (excluding worn/wielded/held) ---
         if hasattr(caller, "get_carried"):
             items = caller.get_carried()
@@ -52,44 +57,57 @@ class CmdInventory(FCMCommandMixin, Command):
             items = caller.contents
 
         if items:
-            # Separate items into stackable (no durability) and individual (has durability)
-            stackable = OrderedDict()  # key -> list of objects
-            individual = []
+            if is_dark:
+                # Can feel items but not identify them
+                for _obj in items:
+                    item_lines.append("  Something")
+            else:
+                # Separate into stackable (no durability) and individual (has durability)
+                stackable = OrderedDict()  # key -> [visible objects]
+                individual = []
+                hidden_count = 0
 
-            for obj in items:
-                has_durability = getattr(obj, "max_durability", 0) > 0
-                if has_durability:
-                    individual.append(obj)
-                else:
-                    stackable.setdefault(obj.key, []).append(obj)
+                for obj in items:
+                    if not p_visible_to(obj, caller):
+                        hidden_count += 1
+                        continue
+                    has_durability = getattr(obj, "max_durability", 0) > 0
+                    if has_durability:
+                        individual.append(obj)
+                    else:
+                        stackable.setdefault(obj.key, []).append(obj)
 
-            # Render stacked items first
-            for name, group in stackable.items():
-                count = len(group)
-                label = f"  {name} ({count})" if count > 1 else f"  {name}"
-                if show_ids:
-                    item_ids = [
-                        obj.id for obj in group
-                        if getattr(obj, "token_id", None) is not None
-                    ]
-                    if item_ids:
-                        ids_str = ", ".join(f"#{iid}" for iid in item_ids)
-                        label = f"{label}  |w[{ids_str}]|n"
-                item_lines.append(label)
+                # Render stacked items first
+                for name, group in stackable.items():
+                    count = len(group)
+                    label = f"  {name} ({count})" if count > 1 else f"  {name}"
+                    if show_ids:
+                        item_ids = [
+                            obj.id for obj in group
+                            if getattr(obj, "token_id", None) is not None
+                        ]
+                        if item_ids:
+                            ids_str = ", ".join(f"#{iid}" for iid in item_ids)
+                            label = f"{label}  |w[{ids_str}]|n"
+                    item_lines.append(label)
 
-            # Render individual items (with durability)
-            for obj in individual:
-                label = f"  {obj.key}"
-                condition = (
-                    obj.get_condition_label()
-                    if hasattr(obj, "get_condition_label")
-                    else ""
-                )
-                if condition:
-                    label = f"{label}  ({condition})"
-                if show_ids and getattr(obj, "token_id", None) is not None:
-                    label = f"{label}  |w[#{obj.id}]|n"
-                item_lines.append(label)
+                # Render individual items (with durability)
+                for obj in individual:
+                    label = f"  {obj.key}"
+                    condition = (
+                        obj.get_condition_label()
+                        if hasattr(obj, "get_condition_label")
+                        else ""
+                    )
+                    if condition:
+                        label = f"{label}  ({condition})"
+                    if show_ids and getattr(obj, "token_id", None) is not None:
+                        label = f"{label}  |w[#{obj.id}]|n"
+                    item_lines.append(label)
+
+                # Invisible/hidden items — can feel but not identify
+                for _ in range(hidden_count):
+                    item_lines.append("  Something")
 
         # --- Resources (inline with items) ---
         if hasattr(caller, "get_all_resources"):
@@ -100,14 +118,17 @@ class CmdInventory(FCMCommandMixin, Command):
                 if amount > 0:
                     rt = get_resource_type(res_id)
                     if rt:
-                        label = (
-                            f"  {rt['name']} ({amount})"
-                            if amount > 1
-                            else f"  {rt['name']}"
-                        )
-                        if show_ids:
-                            label = f"{label}  |w[Resource #{res_id}]|n"
-                        item_lines.append(label)
+                        if is_dark:
+                            item_lines.append("  Something")
+                        else:
+                            label = (
+                                f"  {rt['name']} ({amount})"
+                                if amount > 1
+                                else f"  {rt['name']}"
+                            )
+                            if show_ids:
+                                label = f"{label}  |w[Resource #{res_id}]|n"
+                            item_lines.append(label)
 
         if item_lines:
             lines.append("\n|wInventory:|n\n")
@@ -119,7 +140,10 @@ class CmdInventory(FCMCommandMixin, Command):
         if hasattr(caller, "get_gold"):
             gold = caller.get_gold()
             if gold > 0:
-                lines.append(f"\n|wGold:|n {gold}\n")
+                if is_dark:
+                    lines.append("\n|wGold:|n hard to see\n")
+                else:
+                    lines.append(f"\n|wGold:|n {gold}\n")
 
         # --- Encumbrance ---
         if hasattr(caller, "get_encumbrance_display"):

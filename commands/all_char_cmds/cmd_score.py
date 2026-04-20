@@ -87,7 +87,7 @@ class CmdScore(FCMCommandMixin, Command):
     """
 
     key = "score"
-    aliases = ["sc", "sco"]
+    aliases = ["sc"]
     locks = "cmd:all()"
     help_category = "Character"
     allow_while_sleeping = True

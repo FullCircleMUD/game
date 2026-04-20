@@ -106,7 +106,18 @@ class ProceduralDungeonMixin:
 
         Returns list of characters, or None if validation fails.
         """
-        if template.instance_mode == "group":
+        if template.instance_mode == "solo":
+            # Solo — no followers or pets allowed
+            followers = traversing_object.get_followers(same_room=True)
+            if followers:
+                traversing_object.msg(
+                    "You can only enter here alone, ungroup and leave "
+                    "your pets outside."
+                )
+                return None
+            return [traversing_object]
+
+        elif template.instance_mode == "group":
             leader = traversing_object.get_group_leader()
             if leader != traversing_object and leader.location == self.location:
                 traversing_object.msg(
@@ -117,9 +128,13 @@ class ProceduralDungeonMixin:
             followers = traversing_object.get_followers(same_room=True)
             characters.extend(followers)
             return characters
+
         else:
-            # Solo and shared — single character
-            return [traversing_object]
+            # Shared — collect followers (including pets) like group mode
+            characters = [traversing_object]
+            followers = traversing_object.get_followers(same_room=True)
+            characters.extend(followers)
+            return characters
 
     # ── Instance resolution ───────────────────────────────────────────
 

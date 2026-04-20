@@ -8,6 +8,7 @@ not a fighter.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 
 
@@ -15,7 +16,8 @@ class Mule(BasePet):
     """A sturdy mule. Medium-sized pack animal."""
 
     pet_type = AttributeProperty("mule")
-    size = AttributeProperty("medium")
+    base_size = AttributeProperty(Size.MEDIUM.value)
+    size = AttributeProperty(Size.MEDIUM.value)
 
     # ── Stats — hardy but not a fighter ──
     level = AttributeProperty(1)

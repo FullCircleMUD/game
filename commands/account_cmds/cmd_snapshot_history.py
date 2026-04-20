@@ -47,7 +47,7 @@ class CmdSnapshotHistory(Command):
     """
 
     key = "snapshot_history"
-    aliases = ["snapshots"]
+    aliases = []
     locks = "cmd:id(1)"
     help_category = "Economy"
 

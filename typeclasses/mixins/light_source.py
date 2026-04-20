@@ -69,6 +69,7 @@ class LightSourceMixin:
 
         self.is_lit = True
         self._start_burn_script()
+        self._persist_light_state()
         return True, f"{self.key} flickers to life."
 
     def extinguish(self, extinguisher=None):
@@ -86,6 +87,7 @@ class LightSourceMixin:
 
         self.is_lit = False
         self._stop_burn_script()
+        self._persist_light_state()
         return True, f"{self.key} goes dark."
 
     def refuel(self, amount=None):
@@ -105,7 +107,23 @@ class LightSourceMixin:
             return False, f"{self.key} is already full."
 
         self.fuel_remaining = self.max_fuel
+        self._persist_light_state()
         return True, f"{self.key} is refueled."
+
+    def _persist_light_state(self):
+        """
+        Propagate lit state + fuel to the NFT mirror metadata. Silently no-ops
+        on non-NFT consumers (e.g. world fixture lamps) that lack
+        NFTMirrorMixin.persist_metadata.
+        """
+        persist = getattr(self, "persist_metadata", None)
+        if persist is None:
+            return
+        persist({
+            "is_lit": bool(self.is_lit),
+            "fuel_remaining": self.fuel_remaining,
+            "max_fuel": self.max_fuel,
+        })
 
     def get_fuel_display(self):
         """Return a human-readable fuel string for display."""

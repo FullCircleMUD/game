@@ -12,4 +12,5 @@ STUDDED_LEATHER_ARMOR = {
     "excluded_classes": ["mage"],
     "weight": 6.0,
     "max_durability": 1440,
+    "size": "small",
 }

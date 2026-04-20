@@ -23,6 +23,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
+from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 
 _SHORTSWORD_PARRIES = {
@@ -88,6 +89,8 @@ class ShortswordNFTItem(ShortswordMixin, WeaponNFTItem):
     """
     Shortsword weapons — melee, dual-wield specialist with light parry.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC,

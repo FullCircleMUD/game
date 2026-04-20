@@ -62,8 +62,8 @@ class TestInnateRangedReach(EvenniaTest):
         self.assertTrue(can_reach_target(self.dragon, self.char1, None))
 
     def test_mob_weapon_type_set(self):
-        """InnateRangedMixin sets mob_weapon_type to missile."""
-        self.assertEqual(self.dragon.mob_weapon_type, "missile")
+        """InnateRangedMixin sets mob_weapon_type to ranged."""
+        self.assertEqual(self.dragon.mob_weapon_type, "ranged")
 
     def test_hit_modifier_at_distance(self):
         """No penalty for innate ranged at different height."""

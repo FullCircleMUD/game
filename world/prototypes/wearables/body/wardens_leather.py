@@ -15,4 +15,5 @@ WARDENS_LEATHER = {
     "excluded_classes": ["mage"],
     "weight": 5.0,
     "max_durability": 1440,
+    "size": "small",
 }

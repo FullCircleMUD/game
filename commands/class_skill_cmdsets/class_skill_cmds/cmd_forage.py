@@ -1,17 +1,25 @@
 """
-Forage command — search for food in the wilderness using SURVIVALIST skill.
+Forage command — search for food and water in the wilderness using SURVIVALIST.
 
-Druid/Ranger class skill. Removes hunger levels directly (does NOT produce
-bread — maintaining the farming→milling→baking economy). Scaling by mastery:
+Druid/Ranger class skill. Two parallel restoration paths:
+
+Hunger: removes hunger levels directly (does NOT produce bread —
+maintaining the farming→milling→baking economy). Scaling by mastery:
 BASIC=1, SKILLED=2, EXPERT=3, MASTER=4, GM=5 hunger levels restored.
+Solo: auto-applies all points to self. Party: interactive prompt.
 
-Solo: auto-applies all points to self (capped at FULL).
-Party: interactive prompt to allocate hunger points across group members.
+Water: tops up any water containers in the FORAGER's inventory by N
+drinks (same scaling as hunger). Most-empty container filled first,
+spilling into others if any drinks remain. If the forager has no water
+container, no water credit. Water credit is forager-only — it does NOT
+participate in the party allocation prompt. Other party members can
+forage their own.
 
 Restrictions:
 - Must be in forageable terrain (rural, forest, mountain, etc.)
-- 15-minute cooldown (matches hunger service interval)
+- 15-minute cooldown (matches survival service interval)
 - Does NOT grant hunger_free_pass_tick (bread retains economic advantage)
+- Water tops up containers, never bypasses them (canteen/cask economy)
 
 Usage:
     forage
@@ -53,7 +61,7 @@ FORAGE_COOLDOWN = 900  # 15 minutes in seconds
 
 class CmdForage(CmdSkillBase):
     key = "forage"
-    aliases = ["scavenge"]
+    aliases = []
     skill = skills.SURVIVALIST.value
     help_category = "Nature"
 
@@ -116,7 +124,7 @@ class CmdForage(CmdSkillBase):
             yield from self._apply_forage_party(caller, group, hunger_points)
 
     def _apply_forage_solo(self, caller, points):
-        """Apply foraged hunger points to the caller."""
+        """Apply foraged hunger points + water credit to the caller."""
         current = caller.hunger_level
         new_value = min(current.value + points, HungerLevel.FULL.value)
         new_level = HungerLevel(new_value)
@@ -137,12 +145,50 @@ class CmdForage(CmdSkillBase):
 
         caller.msg(new_level.get_hunger_message())
 
+        # Water credit — top up the forager's containers
+        self._distribute_water_to_forager(caller, points)
+
         # Room message
         if caller.location:
             caller.location.msg_contents(
                 "$You() $conj(forage) for food in the surroundings.",
                 from_obj=caller, exclude=[caller],
             )
+
+    @staticmethod
+    def _distribute_water_to_forager(caller, drinks):
+        """
+        Top up the caller's water containers by `drinks` total drinks with
+        a forage-flavoured summary message. Delegates the actual fill logic
+        to `distribute_water_to_containers` so forage and spell callers
+        share the same most-empty-first semantics.
+
+        No-op (silent) if the caller carries no water containers — keeps
+        the forage output uncluttered for non-water-carriers.
+        """
+        from typeclasses.mixins.water_container import (
+            distribute_water_to_containers,
+        )
+
+        drinks_added, topped_up = distribute_water_to_containers(caller, drinks)
+
+        if drinks_added > 0:
+            if len(topped_up) == 1:
+                container, added = topped_up[0]
+                caller.msg(
+                    f"You spot a clear stream and top up {container.key} "
+                    f"({added} drink{'s' if added != 1 else ''})."
+                )
+            else:
+                summary = ", ".join(
+                    f"{c.key} (+{added})" for c, added in topped_up
+                )
+                caller.msg(
+                    f"You spot a clear stream and top up your water "
+                    f"containers: {summary}."
+                )
+
+        return drinks_added
 
     def _apply_forage_party(self, caller, group, total_points):
         """Interactive prompt to allocate hunger points across the group."""
@@ -216,6 +262,10 @@ class CmdForage(CmdSkillBase):
                 else:
                     caller.msg(f"{member.key} is already full.")
 
+        # Water credit — only the forager's own containers are topped up.
+        # Other party members must forage their own water.
+        self._distribute_water_to_forager(caller, total_points)
+
         # Room message
         if caller.location:
             caller.location.msg_contents(
@@ -258,6 +308,9 @@ class CmdForage(CmdSkillBase):
                         f"level{'s' if restored != 1 else ''}."
                     )
                     member.msg(new_level.get_hunger_message())
+
+        # Water credit — forager's containers only.
+        self._distribute_water_to_forager(caller, total_points)
 
         if caller.location:
             caller.location.msg_contents(

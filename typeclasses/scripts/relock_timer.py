@@ -29,11 +29,17 @@ class RelockTimerScript(DefaultScript):
             return
 
         if hasattr(obj, "is_locked") and not obj.is_locked:
-            obj.is_locked = True
-            if hasattr(obj, "is_open") and obj.is_open:
+            was_open = hasattr(obj, "is_open") and obj.is_open
+            if was_open:
                 obj.is_open = False
+            obj.is_locked = True
 
             if obj.location:
-                obj.location.msg_contents(
-                    f"|y{obj.key} clicks shut and locks itself.|n"
-                )
+                if was_open:
+                    obj.location.msg_contents(
+                        f"|y{obj.key} clicks shut and locks itself.|n"
+                    )
+                else:
+                    obj.location.msg_contents(
+                        f"|y{obj.key} clicks locked.|n"
+                    )

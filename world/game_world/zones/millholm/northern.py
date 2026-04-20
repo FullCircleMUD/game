@@ -675,9 +675,10 @@ def build_millholm_northern():
     wreck.is_open = True  # no need to open — just take from it
     wreck.loot_gold_max = 5
     wreck.room_vertical_position = -2
-    wreck.visible_max_height = -1  # only visible at depth -1 or below
     wreck.tags.add(ZONE, category="zone")
     wreck.tags.add(DISTRICT, category="district")
+    # Depth barrier — wreck at -2 hidden from surface observers
+    rooms["deep_dock"].visibility_down_barrier = (-1, "small")
 
     print(f"  Created {len(rooms)} northern rooms.")
 

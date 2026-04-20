@@ -22,6 +22,7 @@ Usage (build script)::
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.world_objects.base_fixture import WorldFixture
 
 
@@ -33,6 +34,8 @@ class LibraryBook(WorldFixture):
     hidden/invisible states. The ``read`` command finds these objects
     by checking for the ``book_destination`` attribute.
     """
+
+    size = AttributeProperty(Size.TINY.value)
 
     book_description = AttributeProperty("")
     """Flavour text shown when the player reads the book, before transport."""

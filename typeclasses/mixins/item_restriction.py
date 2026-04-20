@@ -18,11 +18,14 @@ Restriction logic:
     max_alignment_score — character.alignment_score <= value
     min_total_level    — character.total_level >= value
     min_remorts        — character.num_remorts >= value
+    min_size           — character.size must be >= value (size_value order)
     min_attributes     — ALL: each ability score must be >= value
     min_mastery        — ALL: each skill must be at >= mastery level
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+
+from enums.size import Size
 
 
 class ItemRestrictionMixin:
@@ -51,6 +54,9 @@ class ItemRestrictionMixin:
     # ── Skill mastery minimums ──
     min_mastery = AttributeProperty(default=dict)
 
+    # ── Size gate ──
+    min_size = AttributeProperty(None)  # e.g. Size.MEDIUM.value
+
     @property
     def is_restricted(self):
         """True if any restriction field is set to a non-default value."""
@@ -62,6 +68,7 @@ class ItemRestrictionMixin:
             or self.max_alignment_score is not None
             or self.min_total_level or self.min_remorts
             or self.min_attributes or self.min_mastery
+            or self.min_size is not None
         )
 
     def can_use(self, character):
@@ -168,6 +175,17 @@ class ItemRestrictionMixin:
                     False,
                     f"You need {self.min_remorts} remort(s) to use "
                     f"{item_name}.",
+                )
+
+        # ── Size check ──
+        if self.min_size is not None:
+            from enums.size import size_value
+            char_size = size_value(getattr(character, "size", Size.MEDIUM.value))
+            req_size = size_value(self.min_size)
+            if char_size < req_size:
+                return (
+                    False,
+                    f"You are too small to wield {item_name}.",
                 )
 
         # ── Ability score checks ──

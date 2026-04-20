@@ -7,6 +7,7 @@ the caster to scout rooms at different heights via remote control.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
 from typeclasses.mixins.flying_mixin import FlyingMixin
@@ -16,7 +17,8 @@ class FamiliarOwl(FamiliarMixin, FlyingMixin, BasePet):
     """A flying owl familiar — EXPERT conjuration."""
 
     pet_type = AttributeProperty("familiar")
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     preferred_height = AttributeProperty(0)  # starts on ground with owner
     room_description = AttributeProperty("perches on its master's shoulder.")
 

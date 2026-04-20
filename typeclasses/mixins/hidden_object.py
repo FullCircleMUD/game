@@ -71,8 +71,8 @@ class HiddenObjectMixin(CharacterKeyMixin):
         Visible if:
             - Not hidden at all, OR
             - Character has previously discovered it, OR
-            - Character has true_sight effect active, OR
-            - Character has holy_sight at MASTER+ (tier 4)
+            - Character has the true_sight effect active (granted by either
+              the True Sight or Holy Sight spell — both apply the same effect).
         """
         if not self.is_hidden:
             return True
@@ -81,13 +81,7 @@ class HiddenObjectMixin(CharacterKeyMixin):
         if char_key and char_key in self.discovered_by:
             return True
 
-        if hasattr(character, "has_effect"):
-            if character.has_effect("true_sight"):
-                return True
-            if (
-                character.has_effect("holy_sight")
-                and (getattr(character.db, "holy_sight_tier", 0) or 0) >= 4
-            ):
-                return True
+        if hasattr(character, "has_effect") and character.has_effect("true_sight"):
+            return True
 
         return False

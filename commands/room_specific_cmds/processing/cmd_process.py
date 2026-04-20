@@ -100,7 +100,7 @@ class CmdProcess(FCMCommandMixin, Command):
     """
 
     key = "process"
-    aliases = ("pro", "proc", "mill", "bake", "smelt", "saw", "tan", "weave", "distill", "distil", "di", "dis", "dist")
+    aliases = ("mill", "bake", "smelt", "saw", "tan", "weave", "distill")
     locks = "cmd:all()"
     help_category = "Crafting"
 

@@ -27,6 +27,8 @@ from evennia.commands.command import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.actors.character import FCMCharacter
+from utils.targeting.helpers import resolve_character_in_room, resolve_target
+from utils.targeting.predicates import p_can_see
 from utils.weight_check import check_can_carry, get_item_weight, get_gold_weight
 
 GOLD = settings.GOLD_DISPLAY
@@ -206,7 +208,7 @@ class CmdTrade(FCMCommandMixin, Command):
     """
 
     key = "trade"
-    aliases = ["barter"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Items"
     arg_regex = r"\s|$"
@@ -236,21 +238,25 @@ class CmdTrade(FCMCommandMixin, Command):
             caller.msg("You can't trade while in combat!")
             return
 
-        # Find target
-        target = caller.search(self.target_name)
-        if not target:
+        room = caller.location
+        if not room:
             return
 
-        if not isinstance(target, FCMCharacter):
-            caller.msg("You can only trade with other players.")
+        # Darkness — can't see who you're trading with
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        # Find target
+        target = resolve_character_in_room(caller, self.target_name)
+        if not target:
+            caller.msg(
+                f"You don't see a character called '{self.target_name}' here."
+            )
             return
 
         if target == caller:
             caller.msg("You can't trade with yourself.")
-            return
-
-        if target.location != caller.location:
-            caller.msg("They're not in the same room as you.")
             return
 
         # ── Accept invitation ──
@@ -361,6 +367,12 @@ class CmdOffer(CmdTradeBase):
             caller.msg("Offer what? Usage: offer <item> [and <amount> gold]")
             return
 
+        # Darkness — can't see what you're offering
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
         # ── Parse gold clause ──
         gold = 0
         item_part = self.args
@@ -388,11 +400,12 @@ class CmdOffer(CmdTradeBase):
         if item_part:
             item_names = [n.strip() for n in item_part.split(",") if n.strip()]
             for name in item_names:
-                obj = caller.search(
-                    name, location=caller,
-                    nofound_string=f"You aren't carrying '{name}'.",
+                obj, _ = resolve_target(
+                    caller, name, "items_inventory",
+                    extra_predicates=(p_can_see,),
                 )
                 if not obj:
+                    caller.msg(f"You aren't carrying '{name}'.")
                     return
                 if caller.is_worn(obj):
                     caller.msg(f"You must remove {obj.key} first.")
@@ -434,7 +447,7 @@ class CmdTradeAccept(CmdTradeBase):
     """
 
     key = "accept"
-    aliases = ["agree"]
+    aliases = []
 
     def func(self):
         if not self._guard():
@@ -495,7 +508,7 @@ class CmdTradeStatus(CmdTradeBase):
     """
 
     key = "status"
-    aliases = ["offers", "deal"]
+    aliases = []
 
     def func(self):
         if not self._guard():
@@ -532,7 +545,7 @@ class CmdEndTrade(CmdTradeBase):
     """
 
     key = "end trade"
-    aliases = ["finish trade", "cancel trade"]
+    aliases = []
 
     def func(self):
         if not self._guard():

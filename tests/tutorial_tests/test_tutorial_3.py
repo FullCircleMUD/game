@@ -2,7 +2,8 @@
 Tests for Tutorial 3: Growth & Social.
 
 Tests:
-    - All 7 rooms are created with correct names
+    - All 8 rooms are created with correct names
+    - Shortcut Workshop has backpack, canteen, fountain, dummy
     - TrainerNPC present with correct trainable_skills and trainer_masteries
     - GuildmasterNPC present with correct guild_class
     - Companion NPC present
@@ -15,7 +16,7 @@ evennia test --settings settings tests.tutorial_tests.test_tutorial_3
 
 from unittest.mock import patch, MagicMock
 
-from evennia.utils.create import create_script
+from evennia.utils.create import create_object, create_script
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils.search import search_tag
 
@@ -36,6 +37,21 @@ _TEST_CURRENCIES = {
     7: {"name": "Timber", "unit": "planks", "currency_code": "FCMTimber",
         "description": "", "weight_per_unit_kg": 1.5, "is_gold": False, "resource_id": 7},
 }
+
+
+_NFT_ITEM_MAP = {
+    "Backpack": "typeclasses.items.containers.container_nft_item.ContainerNFTItem",
+    "Canteen": "typeclasses.items.water_containers.canteen_nft_item.CanteenNFTItem",
+}
+
+
+def _mock_spawn_nft(item_type_name, location, instance_tag):
+    """Test replacement for _spawn_nft_item: create without blank tokens."""
+    typeclass = _NFT_ITEM_MAP[item_type_name]
+    obj = create_object(typeclass, key=item_type_name, location=location)
+    obj.db.tutorial_item = True
+    obj.tags.add(instance_tag, category="tutorial_item")
+    return obj
 
 
 def _start_blockchain_mocks(test_case):
@@ -69,6 +85,14 @@ class TestTutorial3Rooms(EvenniaTest):
     def setUp(self):
         _start_blockchain_mocks(self)
         super().setUp()
+        # Mock _spawn_nft_item to avoid needing blank RESERVE tokens in test DB
+        patcher = patch(
+            "world.tutorial.tutorial_3_builder._spawn_nft_item",
+            side_effect=_mock_spawn_nft,
+        )
+        self.mock_spawn_nft = patcher.start()
+        self.addCleanup(patcher.stop)
+
         from world.tutorial.tutorial_hub_builder import build_tutorial_hub
 
         self.hub = build_tutorial_hub()
@@ -94,6 +118,39 @@ class TestTutorial3Rooms(EvenniaTest):
             self.script.collapse_instance()
         _stop_blockchain_mocks(self)
         super().tearDown()
+
+    def test_shortcut_workshop_exists(self):
+        self.assertIn("The Shortcut Workshop", self.rooms)
+
+    def test_shortcut_workshop_has_fountain(self):
+        """Shortcut Workshop should have a fountain fixture."""
+        room = self.rooms["The Shortcut Workshop"]
+        fountains = [obj for obj in room.contents if "fountain" in obj.key.lower()]
+        self.assertEqual(len(fountains), 1)
+
+    def test_shortcut_workshop_has_dummy(self):
+        """Shortcut Workshop should have a practice dummy."""
+        room = self.rooms["The Shortcut Workshop"]
+        dummies = [obj for obj in room.contents if "dummy" in obj.key.lower()]
+        self.assertEqual(len(dummies), 1)
+
+    def test_shortcut_workshop_has_backpack(self):
+        """Shortcut Workshop should have a backpack."""
+        room = self.rooms["The Shortcut Workshop"]
+        backpacks = [obj for obj in room.contents if "backpack" in obj.key.lower()]
+        self.assertEqual(len(backpacks), 1)
+
+    def test_shortcut_workshop_has_canteen(self):
+        """Shortcut Workshop should have a canteen."""
+        room = self.rooms["The Shortcut Workshop"]
+        canteens = [obj for obj in room.contents if "canteen" in obj.key.lower()]
+        self.assertEqual(len(canteens), 1)
+
+    def test_shortcut_workshop_has_slate_board(self):
+        """Shortcut Workshop should have a slate board."""
+        room = self.rooms["The Shortcut Workshop"]
+        boards = [obj for obj in room.contents if "slate" in obj.key.lower()]
+        self.assertEqual(len(boards), 1)
 
     def test_hall_of_records_exists(self):
         self.assertIn("Hall of Records", self.rooms)
@@ -162,6 +219,13 @@ class TestTutorial3NPCs(EvenniaTest):
     def setUp(self):
         _start_blockchain_mocks(self)
         super().setUp()
+        patcher = patch(
+            "world.tutorial.tutorial_3_builder._spawn_nft_item",
+            side_effect=_mock_spawn_nft,
+        )
+        self.mock_spawn_nft = patcher.start()
+        self.addCleanup(patcher.stop)
+
         from world.tutorial.tutorial_hub_builder import build_tutorial_hub
 
         self.hub = build_tutorial_hub()
@@ -274,6 +338,13 @@ class TestTutorial3FirstRunGating(EvenniaTest):
     def setUp(self):
         _start_blockchain_mocks(self)
         super().setUp()
+        patcher = patch(
+            "world.tutorial.tutorial_3_builder._spawn_nft_item",
+            side_effect=_mock_spawn_nft,
+        )
+        self.mock_spawn_nft = patcher.start()
+        self.addCleanup(patcher.stop)
+
         from world.tutorial.tutorial_hub_builder import build_tutorial_hub
 
         self.hub = build_tutorial_hub()

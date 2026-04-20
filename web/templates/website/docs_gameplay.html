@@ -43,7 +43,7 @@
       <div class="col-md-4 mb-2">
         <ul class="list-unstyled">
           <li><a href="#economy">The Economy</a></li>
-          <li><a href="#hunger">Hunger &amp; Food</a></li>
+          <li><a href="#survival">Hunger, Thirst &amp; Survival</a></li>
           <li><a href="#death">Death &amp; Respawn</a></li>
           <li><a href="#dungeons">Dungeons</a></li>
           <li><a href="#quests">Quests</a></li>
@@ -656,6 +656,7 @@
     <h5 class="mt-3">Example Supply Chains</h5>
     <ul>
       <li><strong>Food:</strong> Harvest Wheat &rarr; Mill into Flour &rarr; Bake into Bread &rarr; Eat to restore hunger</li>
+      <li><strong>Water:</strong> Craft a Canteen (Leatherworker) or Cask (Carpenter) &rarr; Refill at a fountain &rarr; Drink to restore thirst</li>
       <li><strong>Metal weapons:</strong> Mine Iron Ore &rarr; Smelt into Iron Ingot &rarr; Forge into sword/armour (NFT)</li>
       <li><strong>Leather armour:</strong> Hunt for Hide &rarr; Tan into Leather &rarr; Craft into leather gear (NFT)</li>
       <li><strong>Potions:</strong> Forage Moonpetal &rarr; Distill into Essence &rarr; Brew into potion (NFT)</li>
@@ -729,13 +730,19 @@
   </div>
 </div>
 
-{# ── Hunger & Food ── #}
-<div class="card mb-4" id="hunger">
+{# ── Hunger, Thirst & Survival ── #}
+<div class="card mb-4" id="survival">
   <div class="card-body">
-    <h2 class="card-title">Hunger &amp; Food</h2>
+    <h2 class="card-title">Hunger, Thirst &amp; Survival</h2>
     <hr/>
     <p>
-      Characters get hungry over time. Your hunger level degrades naturally through six stages:
+      Characters must manage both hunger and thirst to stay alive. If <em>either</em> meter
+      drops too low, regeneration halts &mdash; and if neglected further, you will die.
+    </p>
+
+    <h5 class="mt-3">Hunger</h5>
+    <p>
+      Your hunger level degrades naturally through eight stages:
     </p>
     <table class="table table-sm">
       <thead>
@@ -744,6 +751,8 @@
       <tbody>
         <tr><td><strong>Full</strong></td><td>Well-fed, normal regeneration</td></tr>
         <tr><td><strong>Satisfied</strong></td><td>Content, normal regeneration</td></tr>
+        <tr><td><strong>Nourished</strong></td><td>Comfortable, no penalty</td></tr>
+        <tr><td><strong>Content</strong></td><td>No thoughts of food, no penalty</td></tr>
         <tr><td><strong>Peckish</strong></td><td>Slightly hungry, no penalty yet</td></tr>
         <tr><td><strong>Hungry</strong></td><td>Regeneration stops</td></tr>
         <tr><td><strong>Famished</strong></td><td>Losing HP over time</td></tr>
@@ -753,6 +762,53 @@
     <p>
       Eat <strong>Bread</strong> (crafted from Flour + Wood at a bakery) or drink a potion to
       restore hunger. Rangers and druids can <code>forage</code> for food in the wilderness.
+    </p>
+
+    <h5 class="mt-3">Thirst</h5>
+    <p>
+      Your thirst level degrades in parallel with hunger, through twelve stages &mdash;
+      a wider range so that a full canteen lasts proportionally longer:
+    </p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Level</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Refreshed</strong></td><td>Well-hydrated, normal regeneration</td></tr>
+        <tr><td><strong>Hydrated</strong></td><td>Pleasantly hydrated, no penalty</td></tr>
+        <tr><td><strong>Quenched</strong></td><td>Thirst quenched, no penalty</td></tr>
+        <tr><td><strong>Slaked</strong></td><td>Comfortable, no penalty</td></tr>
+        <tr><td><strong>Comfortable</strong></td><td>No thoughts of water, no penalty</td></tr>
+        <tr><td><strong>Aware</strong></td><td>Slight dryness &mdash; no penalty yet</td></tr>
+        <tr><td><strong>Dry</strong></td><td>Regeneration stops</td></tr>
+        <tr><td><strong>Thirsty</strong></td><td>Losing HP over time</td></tr>
+        <tr><td><strong>Very Thirsty</strong></td><td>Losing HP over time</td></tr>
+        <tr><td><strong>Parched</strong></td><td>Losing HP over time</td></tr>
+        <tr><td><strong>Dehydrated</strong></td><td>Faster HP loss</td></tr>
+        <tr><td><strong>Critical</strong></td><td>Rapid HP loss &mdash; death if not addressed</td></tr>
+      </tbody>
+    </table>
+
+    <h5 class="mt-3">Water Containers</h5>
+    <p>
+      Carry water in reusable containers. Each <code>drink</code> consumes one charge and
+      restores one thirst stage.
+    </p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Container</th><th>Capacity</th><th>Crafted By</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Canteen</strong></td><td>5 drinks</td><td>Leatherworker</td></tr>
+        <tr><td><strong>Cask</strong></td><td>10 drinks</td><td>Carpenter</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Use <code>drink</code> to drink from a container in your inventory, or
+      <code>drink &lt;container&gt;</code> to target a specific one.
+      Refill at fountains and water sources with <code>refill</code>.
+      Rangers and druids can <code>forage</code> for water in the wilderness,
+      and mages can cast <strong>Create Water</strong> to conjure drinks directly into a container.
     </p>
   </div>
 </div>

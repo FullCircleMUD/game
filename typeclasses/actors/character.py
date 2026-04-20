@@ -5,6 +5,8 @@ from evennia.utils.utils import delay
 from enums.condition import Condition
 from enums.death_cause import DeathCause
 from enums.hunger_level import HungerLevel
+from enums.size import Size, size_value
+from enums.thirst_level import ThirstLevel
 from enums.alignment import Alignment
 from typeclasses.actors.races import Race
 from typeclasses.actors.base_actor import BaseActor
@@ -73,32 +75,37 @@ class FCMCharacter(
         Items the character no longer qualifies for are forcibly removed.
         """
         self.alignment_score = max(-1000, min(1000, self.alignment_score + amount))
-        self._check_alignment_equipment()
+        self._check_equipment_restrictions()
 
-    def _check_alignment_equipment(self):
+    def _check_equipment_restrictions(self):
         """Remove any equipped items the character no longer qualifies for."""
+        if getattr(self, "_checking_equipment", False):
+            return  # prevent recursion from remove → recalculate → check
         if not hasattr(self, "get_all_worn"):
             return
-        for slot, item in list(self.get_all_worn().items()):
-            if item is None:
-                continue
-            if not hasattr(item, "can_use"):
-                continue
-            allowed, _ = item.can_use(self)
-            if not allowed:
-                self.remove(item)
-                self.msg(
-                    f"|rYou are zapped by {item.key} and instantly let go of it!|n"
-                )
-                if self.location:
-                    self.location.msg_contents(
-                        f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
-                        exclude=[self],
+        self._checking_equipment = True
+        try:
+            for slot, item in list(self.get_all_worn().items()):
+                if item is None:
+                    continue
+                if not hasattr(item, "can_use"):
+                    continue
+                allowed, _ = item.can_use(self)
+                if not allowed:
+                    self.remove(item)
+                    self.msg(
+                        f"|rYou are zapped by {item.key} and instantly let go of it!|n"
                     )
+                    if self.location:
+                        self.location.msg_contents(
+                            f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
+                            exclude=[self],
+                        )
+        finally:
+            self._checking_equipment = False
 
     # Size thresholds for room access — large+ can't enter indoor rooms
-    _SIZE_ORDER = {"tiny": 0, "small": 1, "medium": 2, "large": 3, "huge": 4, "gargantuan": 5}
-    _INDOOR_MAX_SIZE = 2  # medium — large and above are blocked
+    _INDOOR_MAX_SIZE = size_value(Size.MEDIUM)  # large and above are blocked
 
     def _check_pet_room_access(self, destination):
         """Check if any following pet is too large for the destination room.
@@ -119,9 +126,8 @@ class FCMCharacter(
         for f in followers:
             if not getattr(f, "is_pet", False):
                 continue
-            pet_size = getattr(f, "size", "medium")
-            size_val = self._SIZE_ORDER.get(pet_size, 2)
-            if size_val > self._INDOOR_MAX_SIZE:
+            pet_size = getattr(f, "size", Size.MEDIUM)
+            if size_value(pet_size) > self._INDOOR_MAX_SIZE:
                 return f
         return None
 
@@ -151,6 +157,12 @@ class FCMCharacter(
     # and from then on all hunger processing is normal
     hunger_free_pass_tick: bool = False
 
+    # Thirst meter — sister to hunger, ticked by SurvivalService on the same
+    # interval. 12 stages from REFRESHED down to CRITICAL (twice the range
+    # of hunger so a full canteen lasts proportionally longer).
+    thirst_level = AttributeProperty(ThirstLevel.REFRESHED)
+    thirst_free_pass_tick: bool = False
+
     # need to think through how banks will work
     # bank_contents: Optional[BankContents] = Field(default=None, exclude=True)
 
@@ -158,11 +170,6 @@ class FCMCharacter(
     # class specific skill points are tracked within the class data
     general_skill_pts_available = AttributeProperty(0)
     weapon_skill_pts_available = AttributeProperty(0)
-
-    # holds an instance of NFTPet
-    active_pet = AttributeProperty(None)
-    #holds an instance of NFTMount
-    active_mount = AttributeProperty(None)
 
     # ── Group / Follow system ──
     # following, nofollow, get_group_leader(), get_followers() from FollowableMixin
@@ -213,6 +220,9 @@ class FCMCharacter(
         if pos not in ("standing", "fighting"):
             self.msg("You need to stand up first!")
             return False
+        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
+            self.msg("Thorny vines hold you in place — you can't move!")
+            return False
         if self.scripts.get("combat_handler") and move_type != "flee":
             self.msg("You can't leave while in combat! Use |wflee|n to escape.")
             return False
@@ -223,17 +233,27 @@ class FCMCharacter(
                     self.msg(msg)
                 return False
         # Movement point cost — normal moves, follows, and exit traversals
-        if move_type in ("move", "follow", "traverse") and self.move < 1:
-            self.msg("You are too exhausted to move.")
-            return False
+        exit_obj = kwargs.get("exit_obj")
+        cost = getattr(exit_obj, "traversal_movement_cost", 1) if exit_obj else 1
+        if move_type in ("move", "follow", "traverse"):
+            mount = self.db.mounted_on
+            if mount and getattr(mount, "is_mounted", False):
+                if mount.move < cost:
+                    self.msg(
+                        f"Your {mount.key} is too exhausted to continue. "
+                        f"Dismount or let it rest (|wpet dismount|n)."
+                    )
+                    return False
+            elif self.move < cost:
+                self.msg("You are too exhausted to move.")
+                return False
         # Mounted restriction — can't enter indoor rooms while mounted on large+ pet
         mount = self.db.mounted_on
         if mount and move_type not in ("teleport", "flee") and destination:
             max_height = getattr(destination, "max_height", None)
             if max_height is not None and max_height <= 0:
-                pet_size = getattr(mount, "size", "medium")
-                size_val = self._SIZE_ORDER.get(pet_size, 2)
-                if size_val > self._INDOOR_MAX_SIZE:
+                pet_size = getattr(mount, "size", Size.MEDIUM)
+                if size_value(pet_size) > self._INDOOR_MAX_SIZE:
                     self.msg(
                         f"You cannot enter here while mounted on {mount.key}. "
                         f"Dismount first (|wpet dismount|n)."
@@ -254,19 +274,15 @@ class FCMCharacter(
         """Deduct movement and auto-move followers when this character moves."""
         super().at_post_move(source_location, move_type=move_type, **kwargs)
 
-        # Deduct movement points — reduced when mounted
+        # Deduct movement points — from mount when mounted, from self otherwise
+        exit_obj = kwargs.get("exit_obj")
+        cost = getattr(exit_obj, "traversal_movement_cost", 1) if exit_obj else 1
         if move_type in ("move", "follow", "traverse"):
             mount = self.db.mounted_on
-            if mount and hasattr(mount, "mount_movement_bonus"):
-                bonus = mount.mount_movement_bonus or 1
-                # Only deduct every Nth move (e.g. bonus=3 means 1 in 3 moves costs a point)
-                mount_steps = getattr(self.ndb, "_mount_steps", 0) + 1
-                if mount_steps >= bonus:
-                    self.move = max(0, self.move - 1)
-                    mount_steps = 0
-                self.ndb._mount_steps = mount_steps
+            if mount and getattr(mount, "is_mounted", False):
+                mount.move = max(0, mount.move - cost)
             else:
-                self.move = max(0, self.move - 1)
+                self.move = max(0, self.move - cost)
 
         # Breath timer — start if we moved into underwater without one
         if self.room_vertical_position < 0:
@@ -377,20 +393,9 @@ class FCMCharacter(
         Checks all objects, exits, and the room itself for armed,
         undetected traps. If passive perception (10 + bonus) meets
         or exceeds the trap's find_dc, the trap is auto-detected.
-
-        True Sight at EXPERT+ tier auto-detects all traps regardless
-        of perception (magical sight pierces all concealment).
         """
         room = self.location
         passive_dc = 10 + self.effective_perception_bonus
-
-        # True Sight EXPERT+ or Holy Sight SKILLED+ auto-detects traps
-        true_sight_detects_traps = (
-            (self.has_effect("true_sight")
-             and (self.db.true_sight_tier or 0) >= 3)  # True Sight EXPERT+
-            or (self.has_effect("holy_sight")
-                and (self.db.holy_sight_tier or 0) >= 2)  # Holy Sight SKILLED+
-        )
 
         # Check objects and exits in the room
         for obj in list(room.contents) + list(room.exits):
@@ -401,7 +406,7 @@ class FCMCharacter(
                 and obj.trap_armed
                 and hasattr(obj, "trap_detected")
                 and not obj.trap_detected
-                and (true_sight_detects_traps or passive_dc >= obj.trap_find_dc)
+                and passive_dc >= obj.trap_find_dc
             ):
                 obj.detect_trap(self)
 
@@ -413,7 +418,7 @@ class FCMCharacter(
             and room.trap_armed
             and hasattr(room, "trap_detected")
             and not room.trap_detected
-            and (true_sight_detects_traps or passive_dc >= room.trap_find_dc)
+            and passive_dc >= room.trap_find_dc
         ):
             room.detect_trap(self)
 
@@ -835,9 +840,11 @@ class FCMCharacter(
             if amt > 0:
                 self.transfer_resource_to(corpse, rid, amt)
 
-        # 8. Reset hunger to full with free tick (prevent immediate re-starvation)
+        # 8. Reset hunger and thirst to full with free tick (prevent immediate re-death)
         self.hunger_level = HungerLevel.FULL
         self.hunger_free_pass_tick = True
+        self.thirst_level = ThirstLevel.REFRESHED
+        self.thirst_free_pass_tick = True
 
         # 9. XP penalty — lose 5% of total experience (no level loss)
         xp_penalty = int(self.experience_points * self.DEATH_XP_PENALTY)
@@ -1169,16 +1176,73 @@ class FCMCharacter(
     # ── Prompt ──────────────────────────────────────────────────────
 
     _PROMPT_TOKENS = {
-        "%h": lambda s: str(s.hp),
+        # Vitals (longest-prefix first so %H doesn't clobber %h etc.)
         "%H": lambda s: str(s.effective_hp_max),
-        "%m": lambda s: str(s.mana),
         "%M": lambda s: str(s.mana_max),
-        "%v": lambda s: str(s.move),
         "%V": lambda s: str(s.move_max),
+        "%h": lambda s: str(s.hp),
+        "%m": lambda s: str(s.mana),
+        "%v": lambda s: str(s.move),
+        # Autowarn (colour-forced)
+        "%i": lambda s: s._autowarn_colour(s.hp, s.effective_hp_max),
+        "%n": lambda s: s._autowarn_colour(s.mana, s.mana_max),
+        "%w": lambda s: s._autowarn_colour(s.move, s.move_max),
+        "%s": lambda s: s._prompt_self_status(),
+        # World / character
+        "%A": lambda s: s._prompt_alignment(),
+        "%a": lambda s: str(s.effective_ac),
+        "%C": lambda s: (s.position or "standing").capitalize(),
+        "%T": lambda s: s._prompt_time_of_day(),
         "%g": lambda s: str(s.get_gold()),
         "%x": lambda s: str(getattr(s.db, "xp", 0) or 0),
         "%l": lambda s: str(s.get_level()),
+        "%r": lambda s: "\n",
+        # Battle-only (empty string outside combat)
+        "%f": lambda s: s._prompt_target_name(),
+        "%c": lambda s: s._prompt_target_condition(),
     }
+
+    def _autowarn_colour(self, current, maximum):
+        """Wrap a numeric vital in forced |g/|y/|r based on ratio."""
+        if maximum <= 0:
+            return str(current)
+        ratio = current / maximum
+        if ratio >= 0.66:
+            return f"|g{current}|n"
+        if ratio >= 0.33:
+            return f"|y{current}|n"
+        return f"|r{current}|n"
+
+    def _prompt_self_status(self):
+        from utils.health_desc import health_description
+        return health_description(self.hp, self.effective_hp_max)
+
+    def _prompt_alignment(self):
+        alignment = getattr(self, "alignment", None)
+        if alignment is None:
+            return "Neutral"
+        return getattr(alignment, "value", str(alignment))
+
+    def _prompt_time_of_day(self):
+        from typeclasses.scripts.day_night_service import get_time_of_day
+        return get_time_of_day().value.capitalize()
+
+    def _prompt_current_target(self):
+        target = getattr(self.ndb, "combat_target", None)
+        if target and getattr(target, "hp", 0) > 0:
+            return target
+        return None
+
+    def _prompt_target_name(self):
+        target = self._prompt_current_target()
+        return target.key if target else ""
+
+    def _prompt_target_condition(self):
+        target = self._prompt_current_target()
+        if not target:
+            return ""
+        from utils.health_desc import health_description
+        return health_description(target.hp, target.effective_hp_max)
 
     def get_prompt(self):
         """Build the text prompt string from the player's format template."""
@@ -1187,6 +1251,43 @@ class FCMCharacter(
             if token in fmt:
                 fmt = fmt.replace(token, resolver(self))
         return fmt
+
+    def msg(self, text=None, from_obj=None, session=None, options=None, **kwargs):
+        """DikuMUD-style inline prompt: any text output schedules a bare
+        prompt line to be appended after the current reactor tick.
+        Debounced via ndb flag + reactor.callLater(0, ...) so a burst of
+        msg() calls in the same synchronous path yields exactly one
+        trailing prompt.
+        """
+        super().msg(
+            text=text,
+            from_obj=from_obj,
+            session=session,
+            options=options,
+            **kwargs,
+        )
+        if text is None:
+            return
+        if getattr(self.ndb, "_prompt_scheduled", False):
+            return
+        if not getattr(self, "prompt_active", True):
+            return
+        if self.sessions.count() == 0:
+            return
+        from twisted.internet import reactor
+
+        if not reactor.running:
+            return  # test harness — no reactor loop, don't schedule
+        self.ndb._prompt_scheduled = True
+        reactor.callLater(0, self._emit_inline_prompt)
+
+    def _emit_inline_prompt(self):
+        """Deferred-tick hook: flush one bare prompt line to scrollback."""
+        self.ndb._prompt_scheduled = False
+        if self.sessions.count() == 0:
+            return
+        # Bypass our own msg() override to avoid re-scheduling.
+        super().msg(text=self.get_prompt())
 
     # ── OOB Vitals ─────────────────────────────────────────────────
 

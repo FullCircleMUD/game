@@ -9,8 +9,9 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
-from combat.height_utils import can_reach_target
 from enums.condition import Condition
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import check_range
 
 
 class CmdAttack(FCMCommandMixin, Command):
@@ -26,7 +27,7 @@ class CmdAttack(FCMCommandMixin, Command):
     """
 
     key = "attack"
-    aliases = ["kill", "att", "k"]
+    aliases = ["kill"]
     help_category = "Combat"
 
     def func(self):
@@ -36,37 +37,27 @@ class CmdAttack(FCMCommandMixin, Command):
             caller.msg("Attack what?")
             return
 
-        # Search room contents only — quiet=True takes first match instead
-        # of showing a disambiguation prompt (MUD convention: attack the
-        # first matching mob, use 2.rat for the second).
-        results = caller.search(
-            self.args.strip(), location=caller.location, quiet=True
+        search_term = self.args.strip()
+
+        weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
+        attack_range = (
+            getattr(weapon, "weapon_type", "melee")
+            if weapon
+            else getattr(caller, "mob_weapon_type", "melee")
         )
-        if not results:
-            caller.msg(f"You don't see '{self.args.strip()}' here.")
+
+        target, _ = resolve_target(caller, search_term, "actor_hostile")
+
+        if target is None:
+            # resolve_target already sent the error message
             return
-        target = results[0] if isinstance(results, list) else results
 
         if target == caller:
             caller.msg("You can't attack yourself.")
             return
 
-        if not hasattr(target, "hp") or target.hp is None:
-            caller.msg("You can't attack that.")
-            return
-
-        if target.hp <= 0:
-            caller.msg(f"{target.key} is already dead.")
-            return
-
-        # Height reachability check — melee requires same height
-        weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
-        if not can_reach_target(caller, target, weapon):
-            caller.msg(
-                "They are out of melee range. "
-                "You need a ranged weapon or to match their height."
-            )
-            return
+        if not check_range(caller, target, attack_range, source=weapon):
+            return  # check_range already messaged
 
         # Attack from hide — break hidden, grant advantage on free attack
         attacking_from_hide = (

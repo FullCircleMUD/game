@@ -11,6 +11,8 @@ but annoying if you're not expecting them.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.mixins.flying_mixin import FlyingMixin
 
@@ -18,7 +20,8 @@ from typeclasses.mixins.flying_mixin import FlyingMixin
 class BeeSwarm(FlyingMixin, AggressiveMob):
     """A swarm of angry bees. Attacks anyone who flies up to their tree."""
 
-    size = AttributeProperty("tiny")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     room_description = AttributeProperty("buzzes angrily around the branches.")
 
     # ── Flight ──
@@ -41,6 +44,7 @@ class BeeSwarm(FlyingMixin, AggressiveMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(4)
     damage_dice = AttributeProperty("1d2")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("stings")
     attack_delay_min = AttributeProperty(1)
     attack_delay_max = AttributeProperty(3)

@@ -7,6 +7,7 @@ it ideal for scouting dangerous areas safely.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
 
@@ -15,7 +16,8 @@ class FamiliarCat(FamiliarMixin, BasePet):
     """A stealthy cat familiar — SKILLED conjuration."""
 
     pet_type = AttributeProperty("familiar")
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     room_description = AttributeProperty("pads silently alongside its master.")
 
     def at_object_creation(self):

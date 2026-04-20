@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from enums.mastery_level import MasteryLevel
 
 
@@ -39,8 +39,8 @@ def _set_mastery(char, level_int):
     char.db.weapon_skill_mastery_levels = {"lance": level_int}
 
 
-def _mock_target(size=ActorSize.MEDIUM):
-    """Create a mock target with specific ActorSize."""
+def _mock_target(size=Size.MEDIUM):
+    """Create a mock target with specific Size."""
     target = MagicMock()
     target.key = "Target"
     target.hp = 100
@@ -99,7 +99,7 @@ class TestLanceUnmounted(EvenniaTest):
     def test_no_crit_bonus_unmounted(self):
         """All mastery tiers: 0 crit threshold modifier when unmounted."""
         lance = _make_lance()
-        self.char1.db.active_mount = None
+        self.char1.db.mounted_on = None
         for level in range(6):
             _set_mastery(self.char1, level)
             self.assertEqual(
@@ -110,7 +110,7 @@ class TestLanceUnmounted(EvenniaTest):
     def test_no_extra_attacks_unmounted(self):
         """All mastery tiers: 0 extra attacks when unmounted."""
         lance = _make_lance()
-        self.char1.db.active_mount = None
+        self.char1.db.mounted_on = None
         for level in range(6):
             _set_mastery(self.char1, level)
             self.assertEqual(
@@ -131,7 +131,7 @@ class TestLanceMountedCrit(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.active_mount = 1  # truthy = mounted
+        self.char1.db.mounted_on = 1  # truthy = mounted
 
     def test_no_crit_unskilled(self):
         lance = _make_lance()
@@ -176,7 +176,7 @@ class TestLanceMountedExtraAttacks(EvenniaTest):
 
     def setUp(self):
         super().setUp()
-        self.char1.db.active_mount = 1  # truthy = mounted
+        self.char1.db.mounted_on = 1  # truthy = mounted
 
     def test_no_extra_attacks_low_mastery(self):
         lance = _make_lance()
@@ -200,7 +200,7 @@ class TestLanceMountedExtraAttacks(EvenniaTest):
 # ================================================================== #
 
 def _patch_actor_size(target_size):
-    """Return a get_actor_size replacement that returns the given ActorSize."""
+    """Return a get_actor_size replacement that returns the given Size."""
     def _get_actor_size(actor):
         return getattr(actor, "_test_size", target_size)
     return _get_actor_size
@@ -215,12 +215,12 @@ class TestLanceProne(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.lance = _make_lance()
-        self.char1.db.active_mount = 1  # truthy = mounted
+        self.char1.db.mounted_on = 1  # truthy = mounted
         self.char1.ndb.lance_prone_used = False
 
     def test_no_prone_unmounted(self):
         """Unmounted: at_hit should NOT attempt prone."""
-        self.char1.db.active_mount = None
+        self.char1.db.mounted_on = None
         _set_mastery(self.char1, 5)  # GM
         target = _mock_target()
 
@@ -249,9 +249,9 @@ class TestLanceProne(EvenniaTest):
     def test_prone_skilled_medium_target(self, mock_get_size, mock_dice):
         """SKILLED: 15% chance, medium target should prone on low roll."""
         mock_dice.roll.return_value = 10  # under 15% threshold
-        mock_get_size.side_effect = _patch_actor_size(ActorSize.MEDIUM)
+        mock_get_size.side_effect = _patch_actor_size(Size.MEDIUM)
         _set_mastery(self.char1, 2)
-        target = _mock_target(size=ActorSize.MEDIUM)
+        target = _mock_target(size=Size.MEDIUM)
 
         self.lance.at_hit(self.char1, target, 10, "piercing")
         target.apply_prone.assert_called_once()
@@ -262,9 +262,9 @@ class TestLanceProne(EvenniaTest):
     def test_no_prone_skilled_huge_target(self, mock_get_size, mock_dice):
         """SKILLED: max size LARGE — HUGE target immune."""
         mock_dice.roll.return_value = 1
-        mock_get_size.side_effect = _patch_actor_size(ActorSize.HUGE)
+        mock_get_size.side_effect = _patch_actor_size(Size.HUGE)
         _set_mastery(self.char1, 2)
-        target = _mock_target(size=ActorSize.HUGE)
+        target = _mock_target(size=Size.HUGE)
 
         self.lance.at_hit(self.char1, target, 10, "piercing")
         target.apply_prone.assert_not_called()
@@ -274,9 +274,9 @@ class TestLanceProne(EvenniaTest):
     def test_prone_expert_huge_target(self, mock_get_size, mock_dice):
         """EXPERT: max size HUGE — can prone HUGE targets."""
         mock_dice.roll.return_value = 10  # under 20% threshold
-        mock_get_size.side_effect = _patch_actor_size(ActorSize.HUGE)
+        mock_get_size.side_effect = _patch_actor_size(Size.HUGE)
         _set_mastery(self.char1, 3)
-        target = _mock_target(size=ActorSize.HUGE)
+        target = _mock_target(size=Size.HUGE)
 
         self.lance.at_hit(self.char1, target, 10, "piercing")
         target.apply_prone.assert_called_once()
@@ -286,9 +286,9 @@ class TestLanceProne(EvenniaTest):
     def test_no_prone_gargantuan(self, mock_get_size, mock_dice):
         """GARGANTUAN always immune, even at GM."""
         mock_dice.roll.return_value = 1
-        mock_get_size.side_effect = _patch_actor_size(ActorSize.GARGANTUAN)
+        mock_get_size.side_effect = _patch_actor_size(Size.GARGANTUAN)
         _set_mastery(self.char1, 5)
-        target = _mock_target(size=ActorSize.GARGANTUAN)
+        target = _mock_target(size=Size.GARGANTUAN)
 
         self.lance.at_hit(self.char1, target, 10, "piercing")
         target.apply_prone.assert_not_called()
@@ -309,7 +309,7 @@ class TestLanceProne(EvenniaTest):
     def test_no_prone_already_prone(self, mock_get_size, mock_dice):
         """Can't re-prone already prone target."""
         mock_dice.roll.return_value = 1
-        mock_get_size.side_effect = _patch_actor_size(ActorSize.MEDIUM)
+        mock_get_size.side_effect = _patch_actor_size(Size.MEDIUM)
         _set_mastery(self.char1, 5)
         target = _mock_target()
         target.has_effect = MagicMock(return_value=True)  # already prone

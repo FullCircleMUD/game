@@ -43,7 +43,7 @@ class DrainLife(Spell):
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Drains the life force from a target, healing yourself."
     mechanics = (

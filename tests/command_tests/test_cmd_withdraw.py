@@ -165,19 +165,24 @@ class TestCmdWithdrawNFT(EvenniaCommandTest):
         """withdraw nonexistent token ID should show error."""
         self.call(CmdWithdraw(), "999", "No item with ID #999")
 
-    def test_withdraw_untakeable_nft(self):
-        """withdraw an WorldAnchoredNFTItem should be blocked."""
-        horse = create.create_object(
+    @patch("blockchain.xrpl.services.nft.NFTService.unbank")
+    def test_withdraw_world_anchored_nft_succeeds(self, mock_unbank):
+        """
+        WorldAnchoredNFTItem (ships, future property) is now withdrawable.
+        The previous hard-block was removed once mirror metadata persistence
+        could carry world_location through the bank cycle.
+        """
+        ship = create.create_object(
             "typeclasses.items.untakeables.world_anchored_nft_item.WorldAnchoredNFTItem",
             key="Horse",
             nohome=True,
         )
-        horse.token_id = 99
-        horse.db_location = self.bank
-        horse.save(update_fields=["db_location"])
+        ship.token_id = 99
+        ship.db_location = self.bank
+        ship.save(update_fields=["db_location"])
 
-        self.call(CmdWithdraw(), str(horse.id), "That item cannot be withdrawn")
-        self.assertEqual(horse.location, self.bank)
+        self.call(CmdWithdraw(), str(ship.id), "You withdraw Horse")
+        self.assertEqual(ship.location, self.char1)
 
     def test_withdraw_unknown_arg(self):
         """withdraw with unrecognized argument tries item search."""

@@ -10,6 +10,7 @@ Usage:
     recipes <skill>           — detailed list for one skill
     recipes blacksmith
     recipes enchanting
+    recipes wands
 """
 
 from collections import Counter
@@ -19,6 +20,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_resource_type
 from enums.mastery_level import MasteryLevel
+from enums.skills_enum import skills
 
 
 class CmdRecipes(FCMCommandMixin, Command):
@@ -33,15 +35,17 @@ class CmdRecipes(FCMCommandMixin, Command):
         recipes
         recipes blacksmith
         recipes enchanting
+        recipes wands
 
     With no arguments, shows a compact summary of how many recipes
     you know per skill and tier. Specify a skill name to see full
-    recipe details with ingredients.
+    recipe details with ingredients. Wand recipes are listed
+    separately from enchanting — use 'recipes wands' to view them.
     In a crafting room, use 'available' to see what you can craft here.
     """
 
     key = "recipes"
-    aliases = ["re", "rec", "reci", "recip"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
     allow_while_sleeping = True
@@ -61,8 +65,24 @@ class CmdRecipes(FCMCommandMixin, Command):
             skill = recipe["skill"]
             by_skill.setdefault(skill, []).append(recipe)
 
+        # Split wand recipes out of enchanting into their own group
+        if skills.ENCHANTING in by_skill:
+            enchanting_recipes = by_skill[skills.ENCHANTING]
+            wand_recipes = [r for r in enchanting_recipes if r["recipe_key"].startswith("wand_")]
+            non_wand = [r for r in enchanting_recipes if not r["recipe_key"].startswith("wand_")]
+            if non_wand:
+                by_skill[skills.ENCHANTING] = non_wand
+            else:
+                del by_skill[skills.ENCHANTING]
+            if wand_recipes:
+                by_skill["_wands"] = wand_recipes
+
         if self.args and self.args.strip():
-            self._show_skill_detail(caller, by_skill, self.args.strip())
+            skill_arg = self.args.strip()
+            if skill_arg.lower() in ("wand", "wands"):
+                self._show_wands_detail(caller, by_skill.get("_wands", []))
+            else:
+                self._show_skill_detail(caller, by_skill, skill_arg)
         else:
             self._show_summary(caller, by_skill)
 
@@ -73,7 +93,9 @@ class CmdRecipes(FCMCommandMixin, Command):
 
         lines = ["\n|c--- Recipe Book ---|n"]
 
-        for skill in sorted(by_skill.keys(), key=lambda s: s.value):
+        # Sort real skills (skip the "_wands" sentinel)
+        real_skills = [s for s in by_skill if s != "_wands"]
+        for skill in sorted(real_skills, key=lambda s: s.value):
             recipes = by_skill[skill]
             # Check general skills first, then class skills (enchanting)
             current_level = general_levels.get(skill.value, 0)
@@ -105,6 +127,23 @@ class CmdRecipes(FCMCommandMixin, Command):
                 if count > 0:
                     lines.append(f"    {tier.name:<14} {count}")
 
+        # Wand recipes section (separate from enchanting)
+        if "_wands" in by_skill:
+            wand_recipes = by_skill["_wands"]
+            tier_counts = Counter(
+                r["min_mastery"].name for r in wand_recipes
+            )
+            lines.append(
+                f"\n  |wWands|n"
+                f" — use |wrecipes wands|n to view"
+            )
+            for tier in MasteryLevel:
+                if tier == MasteryLevel.UNSKILLED:
+                    continue
+                count = tier_counts.get(tier.name, 0)
+                if count > 0:
+                    lines.append(f"    {tier.name:<14} {count}")
+
         lines.append(f"\n|c--- End of Recipe Book ---|n")
         caller.msg("\n".join(lines))
 
@@ -113,6 +152,8 @@ class CmdRecipes(FCMCommandMixin, Command):
         skill_lower = skill_arg.lower().replace(" ", "_")
         matched_skill = None
         for skill in by_skill:
+            if skill == "_wands":
+                continue
             if skill.value == skill_lower or skill.value.startswith(skill_lower):
                 matched_skill = skill
                 break
@@ -171,4 +212,45 @@ class CmdRecipes(FCMCommandMixin, Command):
             )
 
         lines.append(f"\n|c--- End of {skill_label} Recipes ---|n")
+        caller.msg("\n".join(lines))
+
+    def _show_wands_detail(self, caller, wand_recipes):
+        """Show full recipe details for wand recipes."""
+        if not wand_recipes:
+            caller.msg(
+                "You don't have any wand recipes. You need a wand blank "
+                "in your inventory and matching spells in your spellbook."
+            )
+            return
+
+        lines = ["\n|c--- Wand Recipes ---|n"]
+
+        for recipe in sorted(wand_recipes, key=lambda r: r["min_mastery"].value):
+            name = recipe["name"]
+            min_mastery = recipe["min_mastery"]
+            charges = recipe.get("_wand_charges", "?")
+
+            # Ingredient summary
+            ingredients = recipe.get("ingredients", {})
+            parts = []
+            for res_id, needed in ingredients.items():
+                rt = get_resource_type(res_id)
+                res_name = rt["name"] if rt else f"Resource #{res_id}"
+                parts.append(f"{needed} {res_name}")
+
+            # NFT ingredient summary
+            nft_ingredients = recipe.get("nft_ingredients", {})
+            for proto_key, needed in nft_ingredients.items():
+                display_name = proto_key.replace("_", " ").title()
+                parts.append(f"{needed} {display_name}")
+
+            ingredient_str = ", ".join(parts) if parts else "none"
+
+            lines.append(
+                f"  |w{name}|n [{min_mastery.name}] "
+                f"({charges} charges)"
+                f"\n    {ingredient_str}"
+            )
+
+        lines.append(f"\n|c--- End of Wand Recipes ---|n")
         caller.msg("\n".join(lines))

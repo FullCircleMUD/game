@@ -33,6 +33,7 @@ _NFT_ITEM_MAP = {
     "Wooden Shield": "typeclasses.items.holdables.holdable_nft_item.HoldableNFTItem",
     "Skydancer's Ring": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
     "Aquatic N95": "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+    "Canteen": "typeclasses.items.water_containers.canteen_nft_item.CanteenNFTItem",
 }
 
 

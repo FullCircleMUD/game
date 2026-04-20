@@ -4,4 +4,5 @@ GALLEON = {
     "key": "Galleon",
     "aliases": ["galleon"],
     "desc": "A massive multi-decked ship, the pinnacle of naval architecture.",
+    "size": "gargantuan",
 }

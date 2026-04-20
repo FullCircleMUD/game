@@ -46,7 +46,7 @@ class ResistElements(Spell):
     school = skills.ABJURATION
     min_mastery = MasteryLevel.SKILLED
     mana_cost = {2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     has_spell_arg = True
     cooldown = 0
     description = "Grants resistance to a single damage type for a short duration."
@@ -68,9 +68,9 @@ class ResistElements(Spell):
         5: 60,
     }
 
-    def _execute(self, caster, target, spell_arg=None):
+    def _execute(self, caster, target, **kwargs):
         tier = self.get_caster_tier(caster)
-        element = spell_arg
+        element = kwargs.get("spell_arg")
 
         # --- Validate element ---
         if not element or element not in _VALID_ELEMENTS:

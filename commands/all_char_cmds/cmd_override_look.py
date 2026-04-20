@@ -21,6 +21,10 @@ from evennia.commands.default.general import CmdLook as _EvenniaCmdLook
 
 from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import (
+    p_can_see, p_is_container, p_is_open, p_is_openable, p_same_height,
+)
 
 # Build set of all direction strings (abbreviations + full names)
 _DIRECTION_STRINGS = set()
@@ -45,7 +49,7 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
     Use 'look in' to view the contents of a container.
     """
 
-    aliases = ["l", "ls", "examine", "exam"]
+    aliases = ["l"]
     help_category = "General"
     allow_while_sleeping = False
 
@@ -99,14 +103,12 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             if found:
                 if not isinstance(found, list):
                     found = [found]
-                # Filter out the room itself and hidden/invisible objects
+                # Filter out the room itself and non-perceivable objects.
+                # p_can_see is the targeting library's composite
+                # visibility gate — stealth + height in one check.
                 found = [
                     obj for obj in found
-                    if obj != caller.location
-                    and (
-                        not hasattr(obj, "is_visible_to")
-                        or obj.is_visible_to(caller)
-                    )
+                    if obj != caller.location and p_can_see(obj, caller)
                 ]
             if found:
                 # Show the first visible match directly (bypass super's
@@ -141,18 +143,13 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                 # Filter out room and hidden/invisible objects
                 visible = [
                     obj for obj in found
-                    if obj != caller.location
-                    and (
-                        not hasattr(obj, "is_visible_to")
-                        or obj.is_visible_to(caller)
-                    )
+                    if obj != caller.location and p_can_see(obj, caller)
                 ]
                 if not visible and found:
                     # All matches were room or hidden — check if any were
                     # hidden (no period hint) vs just the room (with period)
                     has_hidden = any(
-                        hasattr(obj, "is_visible_to")
-                        and not obj.is_visible_to(caller)
+                        not p_can_see(obj, caller)
                         for obj in found
                         if obj != caller.location
                     )
@@ -211,37 +208,30 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
         """Display contents of a container."""
         room = caller.location
 
-        # Darkness check — can only inspect containers in inventory when dark
+        # Darkness — can't inspect containers without sight
         if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            container = caller.search(
-                container_name, location=caller, quiet=True
-            )
-            if not container:
-                caller.msg("It's too dark to see anything.")
-                return
-            if isinstance(container, list):
-                container = container[0]
-        else:
-            # Search inventory first, then room
-            container = caller.search(
-                container_name, location=caller, quiet=True
-            )
-            if not container:
-                container = caller.search(
-                    container_name, location=caller.location, quiet=True
-                )
-            if not container:
-                caller.msg(f"You don't see '{container_name}' here.")
-                return
-            if isinstance(container, list):
-                container = container[0]
-
-        if not getattr(container, "is_container", False):
-            caller.msg(f"{container.key} is not a container.")
+            caller.msg("It's too dark to see anything.")
             return
 
-        # Closed container check (chests, etc.)
-        if hasattr(container, "is_open") and not container.is_open:
+        # Broad targeting — find whatever the player named, then
+        # check container/height/open at command layer (design principle #7).
+        # p_can_see filters hidden and height-barrier-gated objects.
+        container, _ = resolve_target(
+            caller, container_name,
+            "items_inventory_then_room_nonexit",
+            extra_predicates=(p_can_see,),
+        )
+        if not container:
+            caller.msg(f"You don't see '{container_name}' here.")
+            return
+        # Height check — only for room objects, not inventory
+        if container.location != caller and not p_same_height(caller)(container, caller):
+            caller.msg(f"{container.key} is out of reach.")
+            return
+        if not p_is_container(container, caller):
+            caller.msg(f"{container.key} is not a container.")
+            return
+        if p_is_openable(container, caller) and not p_is_open(container, caller):
             caller.msg(f"{container.key} is closed.")
             return
 

@@ -82,6 +82,12 @@ QUEST_ACTIVE_CONTEXT = (
     "wedding is this weekend after all. Cotton can be woven into cloth "
     "at the loom in Millholm Textiles. Don't be pushy — well, maybe a "
     "little pushy. You really need that cloth.\n\n"
+    "IF THEY CLAIM TO HAVE THE CLOTH: If the player says they've "
+    "brought the cloth, have the cloth, got it, etc., tell them to "
+    "type |wquest|n to hand it over — that's how it officially gets "
+    "logged. React with delighted relief, flutter about, but MAKE "
+    "SURE they know about the |wquest|n command — in your panic you "
+    "might otherwise forget to mention it.\n\n"
     f"{_COMMON_RULES}"
 )
 

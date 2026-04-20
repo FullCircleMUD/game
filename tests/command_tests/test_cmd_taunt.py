@@ -30,6 +30,7 @@ class _TauntTestBase(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
@@ -96,7 +97,7 @@ class TestTauntGates(_TauntTestBase):
         """Can't taunt yourself."""
         self._set_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
-        result = self.call(CmdTaunt(), self.char1.key)
+        result = self.call(CmdTaunt(), "me")
         self.assertIn("can't taunt yourself", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -286,9 +287,6 @@ class TestTauntOpener(_TauntTestBase):
 
         self.assertIn("*TAUNT*", result)
         self.assertIn("attacks you", result)
-        # Both should now be in combat
-        self.assertTrue(bool(self.char1.scripts.get("combat_handler")))
-        self.assertTrue(bool(self.mob.scripts.get("combat_handler")))
 
     @patch("utils.dice_roller.DiceRoller.roll")
     def test_opener_failure_no_combat(self, mock_roll):

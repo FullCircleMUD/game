@@ -167,6 +167,27 @@ class TestCmdWear(EvenniaCommandTest):
         self.char1.wear(ear1)
         self.call(CmdWear(), "earring", "You must remove Copper Earring first.")
 
+    def test_wear_item_not_in_inventory(self):
+        """Wearing a non-existent item should emit the nofound_string
+        from the targeting helper.
+
+        Regression test for the migration to resolve_item_in_source.
+        Pre-migration, the bare caller.search emitted Evennia's
+        generic "Could not find 'X'" default. Post-migration, the
+        command passes its own nofound_string via the helper and
+        the error wording is specific ("You aren't carrying 'X'.")
+        and consistent with cmd_drop / cmd_give / cmd_hold.
+
+        Uses an empty inventory to additionally exercise the path
+        where walk_contents returns no candidates — locks in the
+        recent helper fix that stopped short-circuiting on empty
+        candidate lists.
+        """
+        self.call(
+            CmdWear(), "nonexistent",
+            "You aren't carrying 'nonexistent'.",
+        )
+
 
 # ================================================================== #
 #  Wield Command Tests
@@ -243,6 +264,25 @@ class TestCmdHold(EvenniaCommandTest):
         """Hold with no arguments should show error."""
         self.call(CmdHold(), "", "Hold what?")
 
+    def test_hold_item_not_in_inventory(self):
+        """Hold a non-existent item should show command-layer error.
+
+        Locks in the error wording introduced when cmd_hold migrated
+        to resolve_item_in_source. Pre-migration, the bare
+        caller.search emitted Evennia's generic "You don't see 'X'
+        here" as a side effect. Post-migration, the command owns the
+        error wording and emits "You aren't carrying 'X'" whether
+        the inventory is empty or the name just doesn't match.
+
+        Critical regression test: if the command's explicit error
+        message is ever removed (e.g. someone reverting to the old
+        silent-return pattern), this test catches it.
+        """
+        self.call(
+            CmdHold(), "nonexistent",
+            "You aren't carrying 'nonexistent'.",
+        )
+
 
 # ================================================================== #
 #  Remove Command Tests
@@ -269,7 +309,7 @@ class TestCmdRemove(EvenniaCommandTest):
     def test_remove_not_worn(self):
         """Removing an item that isn't worn should fail."""
         _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
-        self.call(CmdRemove(), "Iron Helmet", "You are not wearing that.")
+        self.call(CmdRemove(), "Iron Helmet", "You aren't wearing 'Iron Helmet'.")
 
     def test_remove_weapon(self):
         """Removing a wielded weapon should work."""
@@ -294,11 +334,32 @@ class TestCmdRemove(EvenniaCommandTest):
     def test_remove_no_worn_match(self):
         """Removing an item when no worn match exists should fail."""
         _make_wearable("Copper Earring", HumanoidWearSlot.LEFT_EAR.value, self.char1)
-        self.call(CmdRemove(), "earring", "You are not wearing that.")
+        self.call(CmdRemove(), "earring", "You aren't wearing 'earring'.")
 
     def test_remove_no_args(self):
         """Remove with no arguments should show error."""
         self.call(CmdRemove(), "", "Remove what?")
+
+    def test_remove_item_not_found(self):
+        """Removing a non-existent item should emit the nofound_string
+        from the targeting helper.
+
+        Distinct from test_remove_not_worn (which tests an item
+        that IS in inventory but not currently worn — that case
+        hits FCMCharacter.search's only_worn handling and emits
+        "You are not wearing that."). This test covers the other
+        error path: the name doesn't match ANY item at all.
+
+        Post-migration, the command passes its own nofound_string
+        via the helper which emits "You aren't wearing 'X'." for
+        the no-match case. Semantically correct — the player's
+        complaint on `remove banana` with no banana is "I'm not
+        wearing that", not "I'm not carrying that".
+        """
+        self.call(
+            CmdRemove(), "nonexistent",
+            "You aren't wearing 'nonexistent'.",
+        )
 
 
 # ================================================================== #

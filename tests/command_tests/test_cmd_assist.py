@@ -28,6 +28,7 @@ class _AssistTestBase(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.room1.allow_combat = True
         self.char1.hp = 20
         self.char1.hp_max = 20
@@ -76,11 +77,18 @@ class TestAssistGates(_AssistTestBase):
         self.assertIn("battle skills", result.lower())
 
     def test_target_not_found(self):
-        """Assist a nonexistent target → standard Evennia 'not found'."""
+        """Assist a nonexistent target → 'not here'."""
         self._set_battleskills_mastery(self.char1, MasteryLevel.BASIC)
         result = self.call(CmdAssist(), "nobody_here")
-        # Evennia search failure message
-        self.assertIn("Could not find", result)
+        self.assertIn("no 'nobody_here' here", result)
+
+    def test_darkness_blocks(self):
+        """Assist in darkness should fail."""
+        self._set_battleskills_mastery(self.char1, MasteryLevel.BASIC)
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        result = self.call(CmdAssist(), self.char2.key)
+        self.assertIn("too dark", result)
 
 
 # ================================================================== #

@@ -38,7 +38,7 @@ class Bless(Spell):
     school = skills.DIVINE_PROTECTION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 4, 2: 5, 3: 6, 4: 7, 5: 8}
-    target_type = "friendly"
+    target_type = "actor_friendly"
     cooldown = 0
     description = "Blesses a target with divine favour, improving their combat prowess."
     mechanics = (

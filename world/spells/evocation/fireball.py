@@ -1,8 +1,14 @@
 """
 Fireball — evocation spell, available from EXPERT mastery.
 
-Hurls a massive ball of fire that explodes, hitting everything in the room
-at the same level. Unsafe AoE — damages enemies, allies, AND the caster.
+Hurls a massive ball of fire that explodes, hitting everything at the
+primary target's height. Unsafe AoE — damages enemies, allies, AND the
+caster if they're at the same height as the target.
+
+The primary target is resolved by name ("cast fireball goblin"). The AoE
+framework builds the secondaries list — all living visible actors at the
+primary target's room_vertical_position. A caster flying above can fireball
+ground targets without catching themselves in the blast.
 
 Each target gets a DEX save for half damage. Save DC = caster d20 + INT
 bonus + mastery bonus.
@@ -21,7 +27,7 @@ from enums.skills_enum import skills
 from utils.dice_roller import dice
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
-from world.spells.spell_utils import apply_spell_damage, get_room_all
+from world.spells.spell_utils import apply_spell_damage
 
 
 @register_spell
@@ -32,12 +38,13 @@ class Fireball(Spell):
     school = skills.EVOCATION
     min_mastery = MasteryLevel.EXPERT
     mana_cost = {3: 28, 4: 39, 5: 49}
-    target_type = "none"
+    target_type = "actor_hostile"
+    aoe = "unsafe"
     description = "Hurls a massive ball of fire that explodes, engulfing everything in flames."
     mechanics = (
-        "Unsafe AoE — hits EVERYTHING in the room including you and your allies.\n"
+        "Unsafe AoE — hits EVERYTHING at the target's height including you and your allies.\n"
         "DEX save for half damage (DC = caster d20 + INT + mastery).\n"
-        "Safe to cast at range (flying vs ground, or across area rooms).\n"
+        "Cast from a different height (flying) to avoid the blast.\n"
         "Damage: 8d6 (Expert), 11d6 (Master), 14d6 (Grandmaster) fire.\n"
         "Fire resistance reduces damage; vulnerability increases it.\n"
         "1 round cooldown."
@@ -46,7 +53,8 @@ class Fireball(Spell):
     # Dice per tier: base 8d6 at EXPERT, +3d6 per tier above
     _DICE = {3: 8, 4: 11, 5: 14}
 
-    def _execute(self, caster, target):
+    def _execute(self, caster, target, **kwargs):
+        secondaries = kwargs.get("secondaries", [])
         tier = self.get_caster_tier(caster)
         num_dice = self._DICE.get(tier, 8)
         raw_damage = dice.roll(f"{num_dice}d6")
@@ -57,17 +65,12 @@ class Fireball(Spell):
         mastery_bonus = MasteryLevel(tier).bonus
         save_dc = save_dc_roll + caster_int + mastery_bonus
 
-        targets = get_room_all(caster)
-        if not targets:
-            return (True, {
-                "first": "You hurl a fireball but there's nothing to hit!",
-                "second": None,
-                "third": "A fireball explodes harmlessly!",
-            })
+        # All targets = primary + secondaries
+        all_targets = [target] + secondaries
 
-        # Apply damage to every entity in the room (including caster)
+        # Apply damage to every target (including caster if in secondaries)
         damage_results = []
-        for entity in targets:
+        for entity in all_targets:
             # DEX save for half damage
             save_roll = dice.roll("1d20")
             dex_bonus = entity.get_attribute_bonus(entity.dexterity)

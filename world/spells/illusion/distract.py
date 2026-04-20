@@ -33,7 +33,7 @@ class Distract(Spell):
     school = skills.ILLUSION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 3, 2: 4, 3: 6, 4: 8, 5: 10}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Creates an illusory distraction, giving allies an opening."
     mechanics = (

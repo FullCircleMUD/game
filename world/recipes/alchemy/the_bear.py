@@ -9,5 +9,5 @@ RECIPE_THE_BEAR = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 19: 2},  # 1 Moonpetal Essence + 2 Ironbark
-    "output_prototype": "the_bear",
+    "mastery_tiered": True,
 }

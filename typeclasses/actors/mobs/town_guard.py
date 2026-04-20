@@ -26,6 +26,7 @@ Abilities composed via BashAbility + WeaponMasteryMixin.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mob import LLMCombatMob
 from typeclasses.items.mob_items.mob_item import MobItem
@@ -104,6 +105,7 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, LLM
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("2d6")
+    damage_type = AttributeProperty(DamageType.SLASHING)  # greatsword fallback
     attack_message = AttributeProperty("swings at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)
@@ -172,6 +174,7 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWe
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")
+    damage_type = AttributeProperty(DamageType.SLASHING)  # shortsword fallback
     attack_message = AttributeProperty("swings at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(5)
@@ -235,6 +238,7 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidW
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d6")
+    damage_type = AttributeProperty(DamageType.PIERCING)  # bow fallback
     attack_message = AttributeProperty("fires at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(5)

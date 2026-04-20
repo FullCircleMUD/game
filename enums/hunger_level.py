@@ -2,15 +2,17 @@ from enum import Enum
 
 # USED IN THE HUNGER SUB SYSTEM
 class HungerLevel(Enum):
-    FULL = 6        # WHEN CHARACTER EATS TO FULL 
-    # - SOMEHOW GIVE THEM A DOUBLE BANGER SO THEY DON'T DROP TO SATISFIED A SECOND LATER 
+    FULL = 8         # WHEN CHARACTER EATS TO FULL
+    # - SOMEHOW GIVE THEM A DOUBLE BANGER SO THEY DON'T DROP TO SATISFIED A SECOND LATER
     #   IF THEY HAVE BAD LUCK WITH TIMING THE CYCLE PROCESSING
     #   OTHER WISE DROP ONE LEVEL PER HUNGER CYCLE
-    SATISFIED = 5    # WHEN CHARACTER EATS TO SATISFIED
-    PECKISH = 4      # WHEN CHARACTER EATS TO PECKISH
+    SATISFIED = 7    # WHEN CHARACTER EATS TO SATISFIED
+    NOURISHED = 6    # NO PENALTY — wider runway before the damage zone
+    CONTENT = 5      # NO PENALTY — wider runway before the damage zone
+    PECKISH = 4      # WHEN CHARACTER EATS TO PECKISH (last no-penalty stage)
     HUNGRY = 3       # CHARACTER NO LONGER REGENERATES
-    FAMISHED = 2    # CHARACTER LOSES HEALTH, MANA & MOVEMENT SPEED 30 REGEN CYCLES TO DEATH CALCULATION
-    STARVING = 1    # CHARACTER LOSES HEALTH, MANA & MOVEMENT SPEED 10 REGEN CYCLES TO DEATH CALCULATION
+    FAMISHED = 2     # CHARACTER LOSES HEALTH, MANA & MOVEMENT SPEED 30 REGEN CYCLES TO DEATH CALCULATION
+    STARVING = 1     # CHARACTER LOSES HEALTH, MANA & MOVEMENT SPEED 10 REGEN CYCLES TO DEATH CALCULATION
     # DEAD IS NOT A HUNGER LEVEL, IT IS A CONDITION THAT IS HANDLED BY THE REGENERATION SYSTEM
     # WHICH PROGESSIVELY TAKES HP, MANA AND MOVEMENT SPEED OFF CHARACTERS WHO ARE STARVING UNTIL THEY DIE AT 0 HP
     # CONCEIVABLY THEY COULD BURN A LOT HEALING POTIONS OR SPELLS TO KEEP THEM ALIVE UNTIL THEY CAN GET SOME FOOD
@@ -48,6 +50,8 @@ class HungerLevel(Enum):
 _HUNGER_MESSAGES = {
     HungerLevel.FULL: "You feel completely satisfied and full of energy!",
     HungerLevel.SATISFIED: "You feel well-fed and content.",
+    HungerLevel.NOURISHED: "You feel comfortably nourished.",
+    HungerLevel.CONTENT: "Your appetite is settled — no thoughts of food just now.",
     HungerLevel.PECKISH: "You're starting to feel a bit peckish.",
     HungerLevel.HUNGRY: "Your stomach is growling - you're getting quite hungry.",
     HungerLevel.FAMISHED: "You're famished! Your hunger is affecting your strength.",
@@ -58,6 +62,8 @@ _HUNGER_MESSAGES = {
 _HUNGER_MESSAGES_THIRD_PERSON = {
     HungerLevel.FULL: "{name} looks satisfied and energetic, with a contented expression.",
     HungerLevel.SATISFIED: "{name} appears well-fed and comfortable.",
+    HungerLevel.NOURISHED: "{name} looks comfortably fed.",
+    HungerLevel.CONTENT: "{name} looks fine — no sign of hunger.",
     HungerLevel.PECKISH: "{name} occasionally glances around, perhaps looking for food.",
     HungerLevel.HUNGRY: "{name}'s stomach makes audible growling sounds.",
     HungerLevel.FAMISHED: "{name} looks noticeably weaker and keeps clutching their stomach.",
@@ -71,8 +77,10 @@ _HUNGER_REVERSE_LOOKUP = {
     2: HungerLevel.FAMISHED,
     3: HungerLevel.HUNGRY,
     4: HungerLevel.PECKISH,
-    5: HungerLevel.SATISFIED,
-    6: HungerLevel.FULL
+    5: HungerLevel.CONTENT,
+    6: HungerLevel.NOURISHED,
+    7: HungerLevel.SATISFIED,
+    8: HungerLevel.FULL,
 }
 
 
@@ -83,8 +91,10 @@ _HUNGER_NAME_LOOKUP = {
     2: "FAMISHED",
     3: "HUNGRY",
     4: "PECKISH",
-    5: "SATISFIED",
-    6: "FULL"
+    5: "CONTENT",
+    6: "NOURISHED",
+    7: "SATISFIED",
+    8: "FULL",
 }
 
 

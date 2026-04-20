@@ -34,7 +34,7 @@ class PhantasmalKiller(Spell):
     school = skills.ILLUSION
     min_mastery = MasteryLevel.GRANDMASTER
     mana_cost = {5: 100}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     cooldown = 0
     description = "Conjures a phantasm of the target's deepest fear that can kill outright."
     mechanics = (

@@ -26,6 +26,7 @@ class TestCmdClimbBasic(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
         self.char1.room_vertical_position = 0
         self.fixture = create.create_object(
             "typeclasses.world_objects.climbable_fixture.ClimbableFixture",
@@ -137,6 +138,7 @@ class TestCmdClimbSkillCheck(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
         self.char1.room_vertical_position = 0
         self.char1.dexterity = 10  # +0 modifier
         self.fixture = create.create_object(

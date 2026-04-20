@@ -32,7 +32,7 @@ class CmdSurvey(FCMCommandMixin, Command):
     """
 
     key = "survey"
-    aliases = ["sur", "surv"]
+    aliases = []
     help_category = "Exploration"
 
     def func(self):
@@ -135,12 +135,23 @@ def _finish_survey(caller, targets, room_id):
 
     from world.cartography.map_registry import get_map, get_map_keys_for_room
 
-    # Add current room's points
+    # Batch point_keys per map object so we record (and persist to the NFT
+    # mirror) once per map instead of once per point.
+    batches = {}  # id(map_nft) -> [map_nft, [point_keys...]]
+
+    def _add(map_nft, point_key):
+        entry = batches.get(id(map_nft))
+        if entry is None:
+            entry = [map_nft, []]
+            batches[id(map_nft)] = entry
+        entry[1].append(point_key)
+
+    map_nfts_by_key = {}
     for map_nft, point_key in targets:
-        map_nft.surveyed_points.add(point_key)
+        _add(map_nft, point_key)
+        map_nfts_by_key[map_nft.map_key] = map_nft
 
     # Reveal adjacent rooms — district-scale maps only
-    map_nfts_by_key = {map_nft.map_key: map_nft for map_nft, _ in targets}
     for exit_obj in caller.location.exits:
         dest = exit_obj.destination
         if not dest:
@@ -152,16 +163,12 @@ def _finish_survey(caller, targets, room_id):
             adj_map_def = get_map(adj_map_key)
             if adj_map_def and adj_map_def.get("scale") == "region":
                 continue
-            map_nft.surveyed_points.add(adj_point_key)
+            _add(map_nft, adj_point_key)
 
-    # Persist and report
+    # Record (which also persists to mirror metadata) and report.
     updated = []
-    seen_maps = set()
-    for map_nft, _ in targets:
-        if map_nft.map_key in seen_maps:
-            continue
-        seen_maps.add(map_nft.map_key)
-        map_nft.db.surveyed_points = map_nft.surveyed_points  # persist
+    for map_nft, point_keys in batches.values():
+        map_nft.record_survey_points(point_keys)
         map_def = get_map(map_nft.map_key)
         name = map_def["display_name"] if map_def else map_nft.map_key
         pct = map_nft.completion_pct

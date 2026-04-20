@@ -20,6 +20,10 @@ class TestCmdConsider(EvenniaCommandTest):
     def create_script(self):
         pass
 
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+
     def test_no_args(self):
         """No args shows error."""
         result = self.call(CmdConsider(), "", caller=self.char1)
@@ -28,7 +32,7 @@ class TestCmdConsider(EvenniaCommandTest):
     def test_target_not_found(self):
         """Invalid target name shows search failure."""
         result = self.call(CmdConsider(), "nonexistent", caller=self.char1)
-        self.assertIn("Could not find", result)
+        self.assertIn("no 'nonexistent' here", result.lower())
 
     def test_same_stats_shows_about_the_same(self):
         """Equal stats should produce 'About the same' assessments."""
@@ -45,14 +49,15 @@ class TestCmdConsider(EvenniaCommandTest):
         self.assertIn("damage", result.lower())
 
     def test_non_actor(self):
-        """Considering a non-actor object shows error."""
+        """Considering a non-actor object — actor_hostile doesn't find it."""
         obj = create.create_object(
             "evennia.objects.objects.DefaultObject",
             key="rock",
             location=self.room1,
         )
         result = self.call(CmdConsider(), "rock", caller=self.char1)
-        self.assertIn("can't consider", result.lower())
+        # actor_hostile only finds actors — rock is not found
+        self.assertIn("no 'rock' here", result.lower())
         obj.delete()
 
 

@@ -93,6 +93,58 @@ class TestReduceDurability(DurabilityTestBase):
         self.assertEqual(obj.durability, 100)
 
 
+# ── Mirror Metadata Persistence ──────────────────────────────────────────
+
+class TestDurabilityPersistsToMirror(DurabilityTestBase):
+    """
+    Verify reduce_durability and repair_to_full patch NFTGameState.metadata
+    via NFTMirrorMixin.persist_metadata(), so durability is visible on the
+    nft_api HTTP endpoint and survives export/import cycles.
+    """
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_reduce_durability_persists_to_mirror(self, mock_update):
+        item = _make_wearable("Helm", self.char1, max_dur=100)
+        item.token_id = 9001
+        mock_update.reset_mock()
+
+        item.reduce_durability(1)
+
+        mock_update.assert_called_once_with(
+            9001,
+            {"durability": 99, "max_durability": 100},
+        )
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_repair_persists_to_mirror(self, mock_update):
+        item = _make_wearable("Helm", self.char1, max_dur=100)
+        item.token_id = 9002
+        item.durability = 40
+        mock_update.reset_mock()
+
+        item.repair_to_full()
+
+        mock_update.assert_called_once_with(
+            9002,
+            {"durability": 100, "max_durability": 100},
+        )
+
+    @patch("blockchain.xrpl.services.nft.NFTService.update_metadata")
+    def test_no_persist_before_token_assigned(self, mock_update):
+        """
+        Items without a token_id (e.g. during creation, or non-NFT users
+        of the mixin) must not call update_metadata. The guard lives in
+        NFTMirrorMixin.persist_metadata.
+        """
+        item = _make_wearable("Helm", self.char1, max_dur=100)
+        # token_id left as default (None)
+        mock_update.reset_mock()
+
+        item.reduce_durability(1)
+
+        mock_update.assert_not_called()
+
+
 # ── Progressive Warning Tests ────────────────────────────────────────────
 
 class TestDurabilityWarnings(DurabilityTestBase):

@@ -113,6 +113,7 @@ class TestCmdDropObject(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.sword = create.create_object(
             "evennia.objects.objects.DefaultObject",
             key="sword",
@@ -126,7 +127,22 @@ class TestCmdDropObject(EvenniaCommandTest):
 
     def test_drop_object_not_found(self):
         """drop item you don't have should show error."""
-        self.call(CmdDrop(), "banana", "You aren't carrying banana.")
+        self.call(CmdDrop(), "banana", "You aren't carrying 'banana'.")
+
+    def test_drop_object_empty_inventory(self):
+        """drop X when inventory is empty should still show the error.
+
+        Regression test for the resolve_item_in_source short-circuit
+        bug: the helper used to return None without calling
+        caller.search when walk_contents produced an empty candidate
+        list, which silently suppressed nofound_string and left the
+        player with no error message. This test locks in the fix by
+        forcing the empty-candidates path (delete the sword fixture
+        first so inventory contains nothing) and asserting that the
+        nofound_string still fires.
+        """
+        self.sword.delete()
+        self.call(CmdDrop(), "banana", "You aren't carrying 'banana'.")
 
     def test_drop_world_anchored_nft_item(self):
         """drop should refuse to drop an WorldAnchoredNFTItem."""

@@ -107,7 +107,9 @@ class TestCmdGetResource(EvenniaCommandTest):
 class TestCmdGetObject(EvenniaCommandTest):
     """Test picking up NFT objects (standard Evennia get)."""
 
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
 
     def create_script(self):
         pass
@@ -127,7 +129,22 @@ class TestCmdGetObject(EvenniaCommandTest):
 
     def test_get_object_not_found(self):
         """get nonexistent object should show not found."""
-        self.call(CmdGet(), "banana", "Could not find 'banana'.")
+        self.call(CmdGet(), "banana", "You don't see 'banana' here.")
+
+    def test_get_object_same_height(self):
+        """get should work when item is at the same height as caller."""
+        self.char1.room_vertical_position = 0
+        self.sword.room_vertical_position = 0
+        self.call(CmdGet(), "sword")
+        self.assertIn(self.sword, self.char1.contents)
+
+    def test_get_object_different_height_fails(self):
+        """get should fail when item is at a different height."""
+        self.char1.room_vertical_position = 0
+        self.sword.room_vertical_position = 2
+        self.call(CmdGet(), "sword", "That's out of reach.")
+        # Sword should still be in the room, not picked up
+        self.assertNotIn(self.sword, self.char1.contents)
 
     def test_get_world_anchored_nft_item(self):
         """get should refuse to pick up an WorldAnchoredNFTItem."""

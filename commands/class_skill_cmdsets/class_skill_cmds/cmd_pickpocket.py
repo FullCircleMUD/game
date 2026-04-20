@@ -24,6 +24,8 @@ from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.dice_roller import dice
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 # Cooldown per target in seconds
@@ -46,7 +48,7 @@ class CmdPickpocket(CmdSkillBase):
     """
 
     key = "pickpocket"
-    aliases = ["pp"]
+    aliases = []
     skill = skills.SUBTERFUGE.value
     help_category = "Stealth"
 
@@ -67,18 +69,22 @@ class CmdPickpocket(CmdSkillBase):
         thing_name = parts[0].strip()
         target_name = parts[1].strip()
 
-        # ── Find target ──
-        target = caller.search(target_name)
-        if not target:
+        # Darkness — can't see whose pockets to pick
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
+
+        # ── Find target ──
+        target, _ = resolve_target(
+            caller, target_name, "actor_hostile",
+            extra_predicates=(p_can_see,),
+        )
+        if not target:
+            return  # actor resolver already messaged
 
         # ── Gate checks ──
         if target == caller:
             caller.msg("You can't pickpocket yourself.")
-            return
-
-        if not hasattr(target, "hp"):
-            caller.msg("You can't pickpocket that.")
             return
 
         if caller.scripts.get("combat_handler"):

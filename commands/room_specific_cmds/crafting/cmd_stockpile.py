@@ -54,7 +54,7 @@ class CmdStockpile(FCMCommandMixin, Command):
     """
 
     key = "stockpile"
-    aliases = ["stock"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
 

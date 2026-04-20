@@ -76,10 +76,16 @@ class SpellbookMixin:
         if self.knows_spell(spell_key):
             return (False, f"You already know {spell.name}.")
 
-        # Check school mastery in class_skill_mastery_levels
-        current_mastery = (self.db.class_skill_mastery_levels or {}).get(
+        # Check school mastery in class_skill_mastery_levels.
+        # Entries can be either a bare int (legacy) or a dict with a
+        # "mastery" key (current format). Handle both defensively.
+        entry = (self.db.class_skill_mastery_levels or {}).get(
             spell.school_key, 0
         )
+        if hasattr(entry, "get"):
+            current_mastery = entry.get("mastery", 0)
+        else:
+            current_mastery = int(entry or 0)
         if current_mastery < spell.min_mastery.value:
             return (
                 False,

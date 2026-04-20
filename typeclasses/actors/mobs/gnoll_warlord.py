@@ -13,6 +13,7 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.gnoll import Gnoll
 from typeclasses.items.mob_items.mob_item import MobItem
@@ -44,6 +45,7 @@ class GnollWarlord(Gnoll):
 
     # ── Combat ──
     damage_dice = AttributeProperty("2d6")  # +3 from STR 16
+    damage_type = AttributeProperty(DamageType.SLASHING)  # battleaxe fallback
     attack_message = AttributeProperty("cleaves at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)

@@ -7,6 +7,8 @@ medium-sized (goes anywhere), decent HP for a pet.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.combat_companion import CombatCompanionMixin
 
@@ -15,10 +17,12 @@ class WarDog(CombatCompanionMixin, BasePet):
     """A trained war dog. Medium-sized combat companion."""
 
     pet_type = AttributeProperty("dog")
-    size = AttributeProperty("medium")
+    base_size = AttributeProperty(Size.MEDIUM.value)
+    size = AttributeProperty(Size.MEDIUM.value)
 
     # ── Combat ──
     damage_dice = AttributeProperty("1d6")
+    damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("bites at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(4)

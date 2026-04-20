@@ -17,6 +17,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
+from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 
 # Custom hit bonuses — lower at MASTER/GM to offset extra attacks and parries
@@ -81,6 +82,8 @@ class LongswordNFTItem(LongswordMixin, WeaponNFTItem):
     """
     Longsword weapons — melee, parry-focused mastery path.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     excluded_classes = AttributeProperty([
         CharacterClass.MAGE, CharacterClass.CLERIC,

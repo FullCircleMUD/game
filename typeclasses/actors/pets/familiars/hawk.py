@@ -7,6 +7,8 @@ and also join combat alongside the caster.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.pets.base_pet import BasePet
 from typeclasses.mixins.combat_companion import CombatCompanionMixin
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
@@ -17,11 +19,13 @@ class FamiliarHawk(FamiliarMixin, FlyingMixin, CombatCompanionMixin, BasePet):
     """A combat-capable hawk familiar — MASTER conjuration."""
 
     pet_type = AttributeProperty("familiar")
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.TINY.value)
+    size = AttributeProperty(Size.TINY.value)
     preferred_height = AttributeProperty(0)
     room_description = AttributeProperty("circles watchfully above its master.")
 
     damage_dice = "1d4"
+    damage_type = DamageType.SLASHING
     attack_message = "dives and rakes at"
     attack_delay_min = 3
     attack_delay_max = 5

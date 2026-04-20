@@ -11,4 +11,5 @@ RUSTLERS_CHAPS = {
     "wear_effects": [{"type": "stat_bonus", "stat": "move_max", "value": 15}],
     "weight": 1.5,
     "max_durability": 1440,
+    "size": "small",
 }

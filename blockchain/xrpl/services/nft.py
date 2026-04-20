@@ -70,6 +70,36 @@ class NFTService:
     # ================================================================== #
 
     @staticmethod
+    def update_metadata(token_id, patch):
+        """
+        Merge `patch` dict into NFTGameState.metadata for this token.
+        Last-write-wins on key conflicts. Pass value=None to delete a key.
+
+        The on-chain NFT URI is a stable pointer to our off-chain nft_api
+        HTTP endpoint, which serves NFTGameState.metadata live as XLS-24d
+        attributes. Writing here is how per-item mutable state (ship
+        world_location, weapon durability, consumable charges, etc.)
+        becomes visible to external marketplaces and survives chain
+        export/import cycles.
+
+        Raises DoesNotExist if the token row is missing.
+        """
+        if not patch:
+            return
+        with transaction.atomic():
+            nft = NFTGameState.objects.select_for_update().get(
+                nftoken_id=str(token_id),
+            )
+            merged = dict(nft.metadata or {})
+            for key, value in patch.items():
+                if value is None:
+                    merged.pop(key, None)
+                else:
+                    merged[key] = value
+            nft.metadata = merged
+            nft.save(update_fields=["metadata", "updated_at"])
+
+    @staticmethod
     def assign_item_type(item_type_name):
         item_type = NFTItemType.objects.get(name=item_type_name)
 

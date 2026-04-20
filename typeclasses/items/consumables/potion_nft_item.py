@@ -29,6 +29,7 @@ class PotionNFTItem(ConsumableNFTItem):
     potion_effects = AttributeProperty(default=list)
     duration = AttributeProperty(default=0)  # 0 = instant, >0 = seconds
     named_effect_key = AttributeProperty(default="")
+    mastery_tier = AttributeProperty(default=1)  # PotionQuality enum value
 
     def at_object_creation(self):
         super().at_object_creation()

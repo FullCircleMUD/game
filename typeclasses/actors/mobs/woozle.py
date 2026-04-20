@@ -9,12 +9,16 @@ Wanders the main wood area, stays out of character houses.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
+from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 
 
 class Woozle(CombatMob):
     """A Woozle trying to look scary."""
 
+    base_size = AttributeProperty(Size.SMALL.value)
+    size = AttributeProperty(Size.SMALL.value)
     room_description = AttributeProperty("is here trying to look scary.")
 
     # ── Stats (L5, slightly weaker than Jagular, sneakier) ──
@@ -34,6 +38,7 @@ class Woozle(CombatMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("1d6+1")
+    damage_type = AttributeProperty(DamageType.SLASHING)
     attack_message = AttributeProperty("swipes at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)

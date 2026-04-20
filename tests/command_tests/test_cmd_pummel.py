@@ -12,6 +12,7 @@ from evennia.utils import create
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_pummel import CmdPummel, PUMMEL_COOLDOWNS
 from combat.combat_utils import enter_combat
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from enums.skills_enum import skills
 
 
@@ -90,10 +91,15 @@ class TestPummelGates(_PummelTestBase):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_pummel_self_blocked(self, mock_ticker):
-        """Can't pummel yourself."""
+        """Can't pummel yourself.
+
+        Uses 'me' to exercise the self-targeting path via Evennia's
+        direct-match shortcut, caught by _is_self_keyword at the top
+        of the resolver.
+        """
         self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
         enter_combat(self.char1, self.mob)
-        result = self.call(CmdPummel(), self.char1.key)
+        result = self.call(CmdPummel(), "me")
         self.assertIn("can't pummel yourself", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
@@ -294,6 +300,47 @@ class TestPummelCombat(_PummelTestBase):
         # Should have entered combat
         self.assertTrue(bool(self.char1.scripts.get("combat_handler")))
         # Should have pummeled
+        self.assertTrue(self.mob.has_effect("stunned"))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_pummel_blocked_target_too_large(self, mock_roll, mock_ticker):
+        """Can't pummel a target more than 1 size larger."""
+        self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
+        # Char1 is MEDIUM (default), make mob HUGE (2 up) — should be blocked
+        self.mob.size = Size.HUGE.value
+        enter_combat(self.char1, self.mob)
+
+        result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
+        self.assertIn("too large", result)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_pummel_allowed_one_size_larger(self, mock_roll, mock_ticker):
+        """Can pummel a target exactly 1 size larger."""
+        self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
+        # Char1 is MEDIUM, mob is LARGE (1 up) — allowed
+        self.mob.size = Size.LARGE.value
+        enter_combat(self.char1, self.mob)
+
+        mock_roll.side_effect = [18, 5]
+        result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
+        self.assertIn("*PUMMEL*", result)
+        self.assertTrue(self.mob.has_effect("stunned"))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_pummel_size_gate_respects_caller_size(self, mock_roll, mock_ticker):
+        """Enlarged caller can pummel larger targets."""
+        self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
+        # Make caller LARGE, mob HUGE — 1 size up, should work
+        self.char1.size = Size.LARGE.value
+        self.mob.size = Size.HUGE.value
+        enter_combat(self.char1, self.mob)
+
+        mock_roll.side_effect = [18, 5]
+        result = self.call(CmdPummel(), self.mob.key, caller=self.char1)
+        self.assertIn("*PUMMEL*", result)
         self.assertTrue(self.mob.has_effect("stunned"))
 
     def test_combat_not_allowed_in_room(self):

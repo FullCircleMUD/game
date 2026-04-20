@@ -23,7 +23,7 @@ class MagicMissile(Spell):
     school = skills.EVOCATION
     min_mastery = MasteryLevel.BASIC
     mana_cost = {1: 5, 2: 8, 3: 10, 4: 14, 5: 16}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     description = "Fires glowing darts of magical force that unerringly strike the target."
     mechanics = (
         "Auto-hit — no attack roll needed.\n"

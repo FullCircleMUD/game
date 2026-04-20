@@ -14,6 +14,7 @@ import random
 from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
@@ -27,7 +28,8 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
     """
 
     is_unique = AttributeProperty(True)
-    size = AttributeProperty("small")
+    base_size = AttributeProperty(Size.SMALL.value)
+    size = AttributeProperty(Size.SMALL.value)
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
 
     # ── Stats ──

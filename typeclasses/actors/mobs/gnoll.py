@@ -20,6 +20,7 @@ players cannot tell them apart:
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.items.mob_items.mob_item import MobItem
@@ -55,6 +56,7 @@ class Gnoll(RampageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressive
     # ── Combat ──
     initiative_speed = AttributeProperty(0)
     damage_dice = AttributeProperty("1d6")  # +2 from STR 14 via effective_damage_bonus
+    damage_type = AttributeProperty(DamageType.PIERCING)  # spear fallback
     attack_message = AttributeProperty("slashes at")
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(6)

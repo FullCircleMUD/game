@@ -53,11 +53,11 @@ _UNARMED_EXTRA_ATTACKS = {
     MasteryLevel.GRANDMASTER: 1,
 }
 
-from enums.actor_size import ActorSize
+from enums.size import Size
 from combat.combat_utils import get_actor_size
 
 # Sizes immune to unarmed stun/knockdown
-_STUN_IMMUNE_SIZES = {ActorSize.HUGE, ActorSize.GARGANTUAN}
+_STUN_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 
 class UnarmedWeapon:

@@ -60,7 +60,7 @@ class CmdDefence(CmdSkillBase):
     """
 
     key = "defence"
-    aliases = ["defense"]
+    aliases = []
     skill = skills.STRATEGY.value
     help_category = "Group Combat"
 

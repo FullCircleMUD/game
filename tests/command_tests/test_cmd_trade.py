@@ -33,6 +33,10 @@ class TestTradeInitiation(EvenniaCommandTest):
     def create_script(self):
         pass
 
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+
     def test_initiate_trade(self):
         """Initiating a trade stores a handler on the caller."""
         self.call(CmdTrade(), self.char2.key, "You invite")
@@ -103,6 +107,7 @@ class TestTradeOffers(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         # Start a trade between char1 and char2
         self.call(CmdTrade(), self.char2.key, caller=self.char1)
         self.call(CmdTrade(), f"{self.char1.key} accept", caller=self.char2)
@@ -177,6 +182,7 @@ class TestTradeCompletion(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.call(CmdTrade(), self.char2.key, caller=self.char1)
         self.call(CmdTrade(), f"{self.char1.key} accept", caller=self.char2)
 
@@ -253,6 +259,7 @@ class TestTradeStatus(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.call(CmdTrade(), self.char2.key, caller=self.char1)
         self.call(CmdTrade(), f"{self.char1.key} accept", caller=self.char2)
 
@@ -268,3 +275,37 @@ class TestTradeStatus(EvenniaCommandTest):
         # Just verify it runs without error and handler is still intact
         self.call(CmdTradeStatus(), "", caller=self.char1)
         self.assertIsNotNone(self.char1.ndb.tradehandler)
+
+
+class TestTradeDarkness(EvenniaCommandTest):
+    """Darkness blocks trade initiation and offers."""
+
+    room_typeclass = _ROOM
+    character_typeclass = _CHAR
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_trade_initiation_blocked_in_dark(self):
+        """Cannot initiate a trade in darkness."""
+        self.call(CmdTrade(), self.char2.key, "It's too dark", caller=self.char1)
+
+    def test_offer_blocked_in_dark(self):
+        """Cannot make an offer in darkness."""
+        # Set up trade in the light, then go dark
+        self.room1.always_lit = True
+        self.call(CmdTrade(), self.char2.key, caller=self.char1)
+        self.call(CmdTrade(), f"{self.char1.key} accept", caller=self.char2)
+        self.room1.always_lit = False
+        from evennia.utils.create import create_object
+        sword = create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="sword", location=self.char1,
+        )
+        self.call(CmdOffer(), "sword", "It's too dark", caller=self.char1)

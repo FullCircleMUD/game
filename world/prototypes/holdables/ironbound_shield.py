@@ -8,4 +8,5 @@ IRONBOUND_SHIELD = {
     "wear_effects": [{"type": "stat_bonus", "stat": "armor_class", "value": 2}],
     "weight": 4.0,
     "max_durability": 5400,
+    "size": "small",
 }

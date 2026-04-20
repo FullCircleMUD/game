@@ -47,7 +47,7 @@ class DeathMark(Spell):
     school = skills.NECROMANCY
     min_mastery = MasteryLevel.GRANDMASTER
     mana_cost = {5: 100}
-    target_type = "hostile"
+    target_type = "actor_hostile"
     description = "Brands the target with a death mark — all damage heals the attacker."
     mechanics = (
         "Marks a single target for 1 combat round.\n"

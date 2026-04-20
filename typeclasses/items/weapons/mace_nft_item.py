@@ -34,6 +34,7 @@ from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 
 # Anti-armor crush bonus cap by mastery
@@ -133,6 +134,8 @@ class MaceNFTItem(MaceMixin, WeaponNFTItem):
     """
     Mace weapons — melee, bludgeoning, anti-armor crush mastery.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     excluded_classes = AttributeProperty([CharacterClass.MAGE])
 

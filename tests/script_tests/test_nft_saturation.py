@@ -129,6 +129,11 @@ class TestGetKnowledgeCounts(EvenniaTest):
         self.char1.db.spellbook = {"magic_missile": True, "shield": True}
         self.char1.db.granted_spells = {}
         self.char1.db.recipe_book = {}
+        # magic_missile=evocation/BASIC, shield=abjuration/BASIC
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+            "abjuration": {"mastery": 1, "classes": ["mage"]},
+        }
 
         spell_counts, recipe_counts = NFTSaturationService.get_knowledge_counts(
             {self.char1.key}
@@ -140,19 +145,25 @@ class TestGetKnowledgeCounts(EvenniaTest):
     def test_character_with_recipes(self):
         self.char1.db.spellbook = {}
         self.char1.db.granted_spells = {}
-        self.char1.db.recipe_book = {"iron_sword": True, "bread": True}
+        self.char1.db.recipe_book = {"training_longsword": True}
+        # training_longsword=carpenter/BASIC
+        self.char1.db.general_skill_mastery_levels = {"carpenter": 1}
 
         spell_counts, recipe_counts = NFTSaturationService.get_knowledge_counts(
             {self.char1.key}
         )
         self.assertEqual(len(spell_counts), 0)
-        self.assertEqual(recipe_counts["iron_sword"], 1)
-        self.assertEqual(recipe_counts["bread"], 1)
+        self.assertEqual(recipe_counts["training_longsword"], 1)
 
     def test_granted_spells_counted(self):
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.granted_spells = {"cure_wounds": True}
         self.char1.db.recipe_book = {}
+        # magic_missile=evocation/BASIC, cure_wounds=divine_healing/BASIC
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+            "divine_healing": {"mastery": 1, "classes": ["cleric"]},
+        }
 
         spell_counts, _ = NFTSaturationService.get_knowledge_counts(
             {self.char1.key}
@@ -165,6 +176,9 @@ class TestGetKnowledgeCounts(EvenniaTest):
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.granted_spells = {"magic_missile": True}
         self.char1.db.recipe_book = {}
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+        }
 
         spell_counts, _ = NFTSaturationService.get_knowledge_counts(
             {self.char1.key}
@@ -175,9 +189,16 @@ class TestGetKnowledgeCounts(EvenniaTest):
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.granted_spells = {}
         self.char1.db.recipe_book = {}
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+        }
         self.char2.db.spellbook = {"magic_missile": True, "fireball": True}
         self.char2.db.granted_spells = {}
         self.char2.db.recipe_book = {}
+        # fireball=evocation/EXPERT (3), so char2 needs mastery >= 3
+        self.char2.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 3, "classes": ["mage"]},
+        }
 
         spell_counts, _ = NFTSaturationService.get_knowledge_counts(
             {self.char1.key, self.char2.key}
@@ -192,6 +213,78 @@ class TestGetKnowledgeCounts(EvenniaTest):
         )
         self.assertEqual(len(spell_counts), 0)
         self.assertEqual(len(recipe_counts), 0)
+
+    def test_spell_not_counted_without_mastery(self):
+        """Character with spell in spellbook but no school mastery (e.g. remorted
+        to warrior) should not be counted in known_by."""
+        self.char1.db.spellbook = {"magic_missile": True}
+        self.char1.db.granted_spells = {}
+        self.char1.db.recipe_book = {}
+        # No class_skill_mastery_levels — remorted away from mage
+        self.char1.db.class_skill_mastery_levels = {}
+
+        spell_counts, _ = NFTSaturationService.get_knowledge_counts(
+            {self.char1.key}
+        )
+        self.assertEqual(spell_counts.get("magic_missile", 0), 0)
+
+    def test_spell_not_counted_with_insufficient_mastery(self):
+        """Character with mastery below spell requirement is not counted.
+        fireball requires EXPERT (3) — BASIC (1) is not enough."""
+        self.char1.db.spellbook = {"fireball": True}
+        self.char1.db.granted_spells = {}
+        self.char1.db.recipe_book = {}
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+        }
+
+        spell_counts, _ = NFTSaturationService.get_knowledge_counts(
+            {self.char1.key}
+        )
+        self.assertEqual(spell_counts.get("fireball", 0), 0)
+
+    def test_granted_spell_not_counted_without_mastery(self):
+        """Granted spells also require mastery to be counted."""
+        self.char1.db.spellbook = {}
+        self.char1.db.granted_spells = {"cure_wounds": True}
+        self.char1.db.recipe_book = {}
+        # No divine_healing mastery
+        self.char1.db.class_skill_mastery_levels = {}
+
+        spell_counts, _ = NFTSaturationService.get_knowledge_counts(
+            {self.char1.key}
+        )
+        self.assertEqual(spell_counts.get("cure_wounds", 0), 0)
+
+    def test_recipe_not_counted_without_mastery(self):
+        """Character with recipe in book but no crafting mastery is not counted."""
+        self.char1.db.spellbook = {}
+        self.char1.db.granted_spells = {}
+        self.char1.db.recipe_book = {"training_longsword": True}
+        # No carpenter mastery
+        self.char1.db.general_skill_mastery_levels = {}
+
+        _, recipe_counts = NFTSaturationService.get_knowledge_counts(
+            {self.char1.key}
+        )
+        self.assertEqual(recipe_counts.get("training_longsword", 0), 0)
+
+    def test_remorted_character_mixed_mastery(self):
+        """Character knows spells from two schools but only has mastery in one.
+        Only the spell they have mastery for should be counted."""
+        self.char1.db.spellbook = {"magic_missile": True, "shield": True}
+        self.char1.db.granted_spells = {}
+        self.char1.db.recipe_book = {}
+        # Has evocation but not abjuration (remorted to a class without abjuration)
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+        }
+
+        spell_counts, _ = NFTSaturationService.get_knowledge_counts(
+            {self.char1.key}
+        )
+        self.assertEqual(spell_counts["magic_missile"], 1)
+        self.assertEqual(spell_counts.get("shield", 0), 0)
 
 
 # ─── Unlearned Copy Counts ──────────────────────────────────────────

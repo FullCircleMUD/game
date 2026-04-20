@@ -23,6 +23,7 @@ class TestCmdShow(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
 
     def _make_hidden_fixture(self, key="hidden crevice", find_dc=10):
@@ -60,7 +61,7 @@ class TestCmdShow(EvenniaCommandTest):
         self._make_hidden_fixture()
         self.call(
             CmdShow(), "hidden crevice to Char2",
-            "Could not find 'hidden crevice'.",
+            "You don't see 'hidden crevice' here.",
             caller=self.char1,
         )
 
@@ -128,5 +129,17 @@ class TestCmdShow(EvenniaCommandTest):
         self.call(
             CmdShow(), "hidden crevice to Char",
             "You already know about that.",
+            caller=self.char1,
+        )
+
+    # ── Darkness ───────────────────────────────────────────────
+
+    def test_show_in_darkness(self):
+        """Show in darkness should fail."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        self.call(
+            CmdShow(), "hidden crevice to Char2",
+            "It's too dark to see anything.",
             caller=self.char1,
         )

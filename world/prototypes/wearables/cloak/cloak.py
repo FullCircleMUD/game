@@ -11,4 +11,5 @@ CLOAK = {
     "wear_effects": [],
     "weight": 1.5,
     "max_durability": 720,
+    "size": "small",
 }

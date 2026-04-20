@@ -25,7 +25,7 @@ class CmdSmite(FCMCommandMixin, Command):
     """
 
     key = "smite"
-    aliases = ["smi"]
+    aliases = []
     help_category = "Combat"
     locks = "cmd:all()"
 

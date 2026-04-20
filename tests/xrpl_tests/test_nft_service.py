@@ -100,6 +100,50 @@ class TestNFTServiceSpawnDespawn(TestCase):
             NFTService.despawn(TOKEN_A)
 
 
+class TestNFTServiceUpdateMetadata(TestCase):
+    databases = {"default", "xrpl"}
+
+    def test_merges_into_existing_metadata(self):
+        nft = _nft(TOKEN_A)
+        nft.metadata = {"keep_me": "present", "overwrite_me": 1}
+        nft.save(update_fields=["metadata"])
+
+        NFTService.update_metadata(TOKEN_A, {"overwrite_me": 2, "new_key": "x"})
+
+        nft.refresh_from_db()
+        self.assertEqual(nft.metadata["keep_me"], "present")
+        self.assertEqual(nft.metadata["overwrite_me"], 2)
+        self.assertEqual(nft.metadata["new_key"], "x")
+
+    def test_none_value_deletes_key(self):
+        nft = _nft(TOKEN_A)
+        nft.metadata = {"doomed": "bye", "surviving": "hi"}
+        nft.save(update_fields=["metadata"])
+
+        NFTService.update_metadata(TOKEN_A, {"doomed": None})
+
+        nft.refresh_from_db()
+        self.assertNotIn("doomed", nft.metadata)
+        self.assertEqual(nft.metadata["surviving"], "hi")
+
+    def test_none_delete_on_missing_key_is_noop(self):
+        _nft(TOKEN_A)
+        # Should not raise even though "never_existed" isn't in metadata
+        NFTService.update_metadata(TOKEN_A, {"never_existed": None})
+        nft = NFTGameState.objects.get(nftoken_id=TOKEN_A)
+        self.assertEqual(nft.metadata, {})
+
+    def test_missing_token_raises(self):
+        with self.assertRaises(NFTGameState.DoesNotExist):
+            NFTService.update_metadata("NONEXISTENT" + "0" * 54, {"k": "v"})
+
+    def test_empty_patch_is_noop(self):
+        _nft(TOKEN_A)
+        # Should not touch the DB at all — no DoesNotExist even on a row
+        # that exists, because the early return fires before the query.
+        NFTService.update_metadata(TOKEN_A, {})
+        NFTService.update_metadata(TOKEN_A, None)
+
 class TestNFTServicePickupDrop(TestCase):
     databases = {"default", "xrpl"}
 

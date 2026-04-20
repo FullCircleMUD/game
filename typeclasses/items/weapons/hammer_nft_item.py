@@ -30,6 +30,7 @@ from enums.unused_for_reference.damage_type import DamageType
 
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 
 # Crit damage multiplier by mastery (applied to already-doubled crit damage)
@@ -103,6 +104,8 @@ class HammerNFTItem(HammerMixin, WeaponNFTItem):
     """
     Hammer weapons — melee, bludgeoning, devastating blow crit mastery.
     """
+
+    size = AttributeProperty(Size.SMALL.value)
 
     excluded_classes = AttributeProperty([CharacterClass.MAGE])
 

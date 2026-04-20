@@ -26,7 +26,7 @@ class CmdRebuildWorld(Command):
     """
 
     key = "rebuild_world"
-    aliases = ["rebuildworld"]
+    aliases = []
     locks = "cmd:id(1) and is_ooc()"
     help_category = "Admin"
 

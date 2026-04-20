@@ -1,40 +1,43 @@
 """
-Identify command — use bardic LORE to identify items and creatures.
+Identify command — use bardic LORE to identify items.
 
 Class skill (LORE) — bard. No mana cost (knowledge-based, not arcane).
-Reuses the Identify spell's template builders for consistent output.
+Reuses the Identify spell's template builder for consistent output.
+
+For creature/actor identification, see ``recognise``.
 
 LORE mastery maps directly to identification tier:
-    BASIC(1):       actors levels 1-5, basic items
-    SKILLED(2):     actors levels 6-15
-    EXPERT(3):      actors levels 16-25
-    MASTER(4):      actors levels 26-35
-    GRANDMASTER(5): actors levels 36+
+    BASIC(1):       basic items
+    SKILLED(2):     uncommon items
+    EXPERT(3):      rare items
+    MASTER(4):      legendary items
+    GRANDMASTER(5): all items
 
 Usage:
     identify <target>
-    id <target>
 """
 
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 
 class CmdIdentify(CmdSkillBase):
     """
-    Identify an item or creature using your lore knowledge.
+    Identify an item using your lore knowledge.
 
     Usage:
         identify <target>
-        id <target>
 
-    Uses your LORE skill mastery to reveal properties of items
-    and creatures. Higher mastery reveals more powerful targets.
+    Uses your LORE skill mastery to reveal properties of items.
+    Higher mastery reveals more powerful items. For identifying
+    creatures, use |wrecognise|n.
     """
 
     key = "identify"
-    aliases = ["id"]
+    aliases = []
     skill = skills.LORE.value
     help_category = "Performance"
     allow_while_sleeping = True
@@ -64,43 +67,26 @@ class CmdIdentify(CmdSkillBase):
             caller.msg("Identify what? Usage: identify <target>")
             return
 
-        target = caller.search(self.args.strip())
-        if not target:
-            return  # caller.search already sent error message
-
-        # Classify and identify — reuse Identify spell's template builders
-        from typeclasses.actors.base_actor import BaseActor
-        from typeclasses.items.base_nft_item import BaseNFTItem
-        from world.spells.divination.identify import Identify
-
-        spell = Identify()
-
-        if isinstance(target, BaseActor):
-            # PvP room check for other players
-            from typeclasses.actors.character import FCMCharacter
-            if isinstance(target, FCMCharacter) and target != caller:
-                room = caller.location
-                if not getattr(room, "allow_pvp", False):
-                    caller.msg(
-                        "You can only identify other players in PvP areas."
-                    )
-                    return
-
-            success, result = spell._identify_actor(caller, target, tier)
-        elif isinstance(target, BaseNFTItem):
-            success, result = spell._identify_item(caller, target, tier)
-        else:
-            # Mundane object — sassy one-liner
-            caller.msg(
-                f"|cYou study {target.key} intently... "
-                f"{target.key} is {target.key}. 'Nuf said.|n"
-            )
-            if caller.location:
-                caller.location.msg_contents(
-                    f"|c$You() $conj(study) {target.key} intently.|n",
-                    from_obj=caller, exclude=[caller],
-                )
+        room = caller.location
+        if not room:
             return
+
+        # Darkness — can't see what you're identifying
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
+            return
+
+        target, _ = resolve_target(
+            caller, self.args.strip(), "items_inventory_then_room_all",
+            extra_predicates=(p_can_see,),
+        )
+        if not target:
+            caller.msg(f"You don't see '{self.args.strip()}' here.")
+            return
+
+        from utils.inspection_templates import inspect_item
+
+        success, result = inspect_item(caller, target, tier)
 
         # Display result
         if isinstance(result, str):

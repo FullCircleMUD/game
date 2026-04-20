@@ -36,7 +36,7 @@ class CmdSearch(FCMCommandMixin, Command):
     """
 
     key = "search"
-    aliases = ("sea", "sear")
+    aliases = ()
     locks = "cmd:all()"
     arg_regex = r"\s|$"
 
@@ -46,6 +46,11 @@ class CmdSearch(FCMCommandMixin, Command):
 
         if not room:
             caller.msg("You have nowhere to search.")
+            return
+
+        # Darkness — can't search what you can't see
+        if hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
         # Cooldown after failed searches — same message to avoid leaking info

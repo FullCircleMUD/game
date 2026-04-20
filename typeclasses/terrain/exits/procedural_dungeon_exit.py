@@ -34,4 +34,11 @@ class ProceduralDungeonExit(ProceduralDungeonMixin, ExitVerticalAware):
 
     def at_traverse(self, traversing_object, target_location, **kwargs):
         """Enter the procedural dungeon. Does not call super()."""
+        if getattr(traversing_object, "is_pet", False):
+            if self.location:
+                self.location.msg_contents(
+                    f"An invisible barrier stops {traversing_object.key} "
+                    f"from entering."
+                )
+            return
         self.enter_dungeon(traversing_object)

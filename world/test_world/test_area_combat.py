@@ -47,7 +47,7 @@ def test_area_combat():
     # --- A spear by the beast cages (Northeast) ---
     ne = _find_room("The Arena (Northeast)")
     if ne:
-        spawn_nft_item("Spear", ne)
+        spawn_nft_item("Training Spear", ne)
     else:
         print("  ! Arena Northeast not found")
 

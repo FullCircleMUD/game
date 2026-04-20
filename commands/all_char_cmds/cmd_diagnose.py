@@ -1,29 +1,9 @@
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-
-
-def _health_description(current, maximum):
-    """Return a descriptive string for HP percentage."""
-    if maximum <= 0:
-        return "|xin an unknown state|n"
-    if current <= 0:
-        return "|Rincapacitated|n"
-    ratio = current / maximum
-    if ratio >= 1.0:
-        return "|gin excellent condition|n"
-    elif ratio >= 0.9:
-        return "|ghas a few scratches|n"
-    elif ratio >= 0.75:
-        return "|ghas some small wounds and bruises|n"
-    elif ratio >= 0.50:
-        return "|yhas quite a few wounds|n"
-    elif ratio >= 0.30:
-        return "|yhas some big nasty wounds and scratches|n"
-    elif ratio >= 0.15:
-        return "|rlooks pretty hurt|n"
-    else:
-        return "|ris in awful condition|n"
+from utils.health_desc import health_description as _health_description
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 
 
 class CmdDiagnose(FCMCommandMixin, Command):
@@ -38,7 +18,7 @@ class CmdDiagnose(FCMCommandMixin, Command):
     """
 
     key = "diagnose"
-    aliases = ["diag"]
+    aliases = []
     help_category = "General"
     locks = "cmd:all()"
     allow_while_sleeping = True
@@ -49,9 +29,18 @@ class CmdDiagnose(FCMCommandMixin, Command):
         if not self.args or not self.args.strip():
             target = caller
         else:
-            target = caller.search(self.args.strip())
-            if not target:
+            # Darkness — can't assess what you can't see
+            room = caller.location
+            if room and hasattr(room, "is_dark") and room.is_dark(caller):
+                caller.msg("It's too dark to see anything.")
                 return
+
+            target, _ = resolve_target(
+                caller, self.args.strip(), "actor_friendly",
+                extra_predicates=(p_can_see,),
+            )
+            if not target:
+                return  # actor resolver already messaged
 
         if not hasattr(target, "hp"):
             caller.msg("You can't diagnose that.")

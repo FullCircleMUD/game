@@ -8,6 +8,7 @@ Wanders the main wood area, stays out of character houses.
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from enums.damage_type import DamageType
 from typeclasses.actors.mob import CombatMob
 
 
@@ -33,6 +34,7 @@ class Jagular(CombatMob):
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
     damage_dice = AttributeProperty("2d4")
+    damage_type = AttributeProperty(DamageType.SLASHING)
     attack_message = AttributeProperty("claws at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)

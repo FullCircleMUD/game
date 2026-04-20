@@ -19,6 +19,7 @@ Usage:
 from evennia import create_object
 
 from typeclasses.world_objects.base_fixture import WorldFixture
+from typeclasses.world_objects.fountain_fixture import FountainFixture
 from typeclasses.world_objects.jobs_board import JobsBoard
 from typeclasses.world_objects.sign import WorldSign
 
@@ -179,6 +180,24 @@ def place_millholm_fixtures(
     )
     count += 1
 
+    # Brightwater Farm — well water source
+    bw_well_fixture = create_object(
+        FountainFixture,
+        key="a stone well",
+        aliases=["well", "water"],
+        location=farm_rooms["bw_well"],
+        nohome=True,
+    )
+    bw_well_fixture.db.desc = (
+        "A deep stone well built from neatly fitted fieldstone, about "
+        "three feet high with a sturdy wooden crossbeam and iron winch. "
+        "The rope is thick hemp, recently replaced, and the bucket comes "
+        "up brimming with crystal-clear water — ice cold from the "
+        "underground spring that feeds it. You could refill a water "
+        "container here."
+    )
+    count += 1
+
     # Abandoned farmyard — rusted plough
     plough = create_object(
         WorldFixture,
@@ -198,6 +217,22 @@ def place_millholm_fixtures(
     # ══════════════════════════════════════════════════════════════════
     # WOODS — Fixtures
     # ══════════════════════════════════════════════════════════════════
+
+    # Creekside Crossing — stream water source
+    creek = create_object(
+        FountainFixture,
+        key="a babbling creek",
+        aliases=["creek", "stream", "water"],
+        location=woods_rooms["creekside_crossing"],
+        nohome=True,
+    )
+    creek.db.desc = (
+        "A shallow creek flows over smooth, flat stones, the water clear "
+        "and cold from the hills to the east. The current is gentle here "
+        "where the path crosses — easy enough to kneel and cup your hands, "
+        "or refill a water container."
+    )
+    count += 1
 
     # Sawmill — the great saw
     saw = create_object(

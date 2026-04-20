@@ -24,6 +24,7 @@ class TestCmdJoin(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.room1.allow_combat = True
         self.room1.allow_pvp = True
         self.char1.hp = 50

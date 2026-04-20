@@ -9,5 +9,5 @@ RECIPE_THE_ZEPHYR = {
     "min_mastery": MasteryLevel.BASIC,
     "crafting_type": RoomCraftingType.APOTHECARY,
     "ingredients": {13: 1, 15: 2},  # 1 Moonpetal Essence + 2 Windroot
-    "output_prototype": "the_zephyr",
+    "mastery_tiered": True,
 }

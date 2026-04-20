@@ -21,7 +21,7 @@ class CmdWeight(FCMCommandMixin, Command):
     """
 
     key = "weight"
-    aliases = ("we", "wei", "weig", "encumbrance")
+    aliases = ()
     locks = "cmd:all()"
     help_category = "Character"
     allow_while_sleeping = True

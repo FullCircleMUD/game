@@ -7,6 +7,7 @@ from commands.class_skill_cmdsets.class_skill_cmds.cmd_divert import CmdDivert
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_disguise import CmdDisguise
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_conceal import CmdConceal
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_identify import CmdIdentify
+from commands.class_skill_cmdsets.class_skill_cmds.cmd_recognise import CmdRecognise
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_case import CmdCase
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_stash import CmdStash
 from commands.class_skill_cmdsets.class_skill_cmds.cmd_picklock import CmdPicklock
@@ -26,6 +27,7 @@ class CmdSetBard(CmdSetBaseCharClass):
         CmdDisguise,
         CmdConceal,
         CmdIdentify,
+        CmdRecognise,
         CmdCase,
         CmdStash,
         CmdPicklock,

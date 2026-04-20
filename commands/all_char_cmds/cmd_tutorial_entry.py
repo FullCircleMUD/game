@@ -24,7 +24,7 @@ class CmdEnterTutorial(FCMCommandMixin, Command):
     """
 
     key = "tutorial"
-    aliases = ["tute"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Tutorial"
     arg_regex = r"\s|$"
@@ -80,7 +80,7 @@ class CmdLeaveTutorial(FCMCommandMixin, Command):
     """
 
     key = "leave tutorial"
-    aliases = ["exit tutorial"]
+    aliases = []
     locks = "cmd:all()"
     help_category = "Tutorial"
     arg_regex = r"\s|$"

@@ -17,6 +17,8 @@ Usage:
 from combat.combat_utils import get_sides, INTERCEPT_CHANCE
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 
@@ -36,7 +38,7 @@ class CmdProtect(CmdSkillBase):
     """
 
     key = "protect"
-    aliases = ["rescue", "prot", "resc"]
+    aliases = ["rescue"]
     skill = skills.PROTECT.value
     help_category = "Combat"
 
@@ -85,26 +87,22 @@ class CmdProtect(CmdSkillBase):
                 caller.msg("You aren't protecting anyone.")
             return
 
-        # ── Parse target ──
-        target = caller.search(self.args.strip())
-        if not target:
+        # Darkness — can't see who you're protecting
+        room = caller.location
+        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            caller.msg("It's too dark to see anything.")
             return
 
-        # ── Validation ──
+        # ── Find target ──
+        target, _ = resolve_target(
+            caller, self.args.strip(), "actor_friendly",
+            extra_predicates=(p_can_see,),
+        )
+        if not target:
+            return  # actor resolver already messaged
+
         if target == caller:
             caller.msg("You can't protect yourself.")
-            return
-
-        if not hasattr(target, "hp") or target.hp is None:
-            caller.msg("You can't protect that.")
-            return
-
-        if target.hp <= 0:
-            caller.msg(f"{target.key} is already dead.")
-            return
-
-        if target.location != caller.location:
-            caller.msg("They're not here.")
             return
 
         # ── Must be an ally ──

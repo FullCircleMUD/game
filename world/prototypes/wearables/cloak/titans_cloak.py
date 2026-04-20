@@ -11,4 +11,5 @@ TITANS_CLOAK = {
     "wear_effects": [{"type": "stat_bonus", "stat": "strength", "value": 1}],
     "weight": 1.5,
     "max_durability": 720,
+    "size": "small",
 }
