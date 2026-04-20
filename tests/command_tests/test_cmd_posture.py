@@ -54,11 +54,11 @@ class TestPostureCommands(EvenniaCommandTest):
         self.assertEqual(self.char1.position, "standing")
 
     def test_wake(self):
-        """wake command sets position to standing from sleeping."""
+        """wake command sets position to resting from sleeping."""
         self.char1.position = "sleeping"
         result = self.call(CmdWake(), "")
         self.assertIn("wake up", result)
-        self.assertEqual(self.char1.position, "standing")
+        self.assertEqual(self.char1.position, "resting")
 
     # ── Guards ────────────────────────────────────────────────────────
 

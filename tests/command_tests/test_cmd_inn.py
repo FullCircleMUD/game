@@ -14,6 +14,7 @@ from django.conf import settings
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from enums.hunger_level import HungerLevel
+from enums.thirst_level import ThirstLevel
 from commands.room_specific_cmds.inn.cmd_stew import CmdStew, FALLBACK_PRICE
 from commands.room_specific_cmds.inn.cmd_ale import CmdAle
 from commands.room_specific_cmds.inn.cmd_menu import CmdMenu
@@ -97,6 +98,9 @@ class TestCmdAle(EvenniaCommandTest):
         )
         self.char1.db.gold = 10
         self.char1.db.resources = {}
+        # Default thirst is REFRESHED, which the ale command blocks on
+        # with "You are not thirsty." Drop it so the purchase path runs.
+        self.char1.thirst_level = ThirstLevel.THIRSTY
 
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_ale_success(self, mock_sink):
