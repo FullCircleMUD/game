@@ -45,11 +45,26 @@ def _hunger_color(hunger_level):
     return "|r"
 
 
+def _thirst_color(thirst_level):
+    """Return color code for thirst severity."""
+    val = thirst_level.value if hasattr(thirst_level, "value") else thirst_level
+    if val >= 7:
+        return "|g"
+    elif val >= 5:
+        return "|y"
+    return "|r"
+
+
+def _pretty(name):
+    """Format an enum name (e.g. VERY_THIRSTY) for display (Very Thirsty)."""
+    return name.replace("_", " ").title()
+
+
 # Column widths (visual characters, excluding border pipes)
-_C1 = 17   # Vitals
+_C1 = 20   # Vitals (widened from 17 to fit "Thirst: Very Thirsty")
 _C2 = 15   # Abilities
 _C3 = 12   # Combat
-_C4 = 30   # Resistances / Vulnerabilities
+_C4 = 27   # Resistances / Vulnerabilities (narrowed from 30)
 
 
 _PIPE = "|c|||n"  # cyan literal pipe then reset: |c (cyan) + || (escaped pipe) + |n (reset)
@@ -82,8 +97,8 @@ class CmdScore(FCMCommandMixin, Command):
         score
 
     Shows identity, vitals, ability scores, combat modifiers,
-    resistances, vulnerabilities, conditions, hunger, and encumbrance
-    in a single screen.
+    resistances, vulnerabilities, conditions, hunger, thirst, and
+    encumbrance in a single screen.
     """
 
     key = "score"
@@ -157,10 +172,10 @@ class CmdScore(FCMCommandMixin, Command):
             right.extend(f" {v}" for v in vul_items)
         else:
             right.append("   None")
-        while len(right) < 6:
+        while len(right) < 7:
             right.append("")
-        # Cap at 6 — overflow goes to the conditions/stats command
-        right = right[:6]
+        # Cap at 7 — overflow goes to the conditions/stats command
+        right = right[:7]
 
         # Conditions
         conditions = getattr(caller, "conditions", {})
@@ -170,8 +185,13 @@ class CmdScore(FCMCommandMixin, Command):
 
         # Hunger
         hunger = caller.hunger_level
-        hunger_name = hunger.get_name(hunger.value)
+        hunger_name = _pretty(hunger.get_name(hunger.value))
         h_color = _hunger_color(hunger)
+
+        # Thirst
+        thirst = caller.thirst_level
+        thirst_name = _pretty(thirst.name)
+        t_color = _thirst_color(thirst)
 
         # Carry
         weight = caller.current_weight_carried
@@ -241,16 +261,22 @@ class CmdScore(FCMCommandMixin, Command):
             right[3],
         ))
         lines.append(_row(
-            f" {h_color}{hunger_name}|n",
+            f" {h_color}Hunger: {hunger_name}|n",
             _ab(4),
             "",
             right[4],
         ))
         lines.append(_row(
-            f" {weight:.0f}/{max_cap:.0f} kg",
+            f" {t_color}Thirst: {thirst_name}|n",
             _ab(5),
             "",
             right[5],
+        ))
+        lines.append(_row(
+            f" {weight:.0f}/{max_cap:.0f} kg",
+            "",
+            "",
+            right[6],
         ))
 
         lines.append(border)

@@ -248,6 +248,7 @@ def build_tutorial_3(instance):
         "  |wscore|n — Your character summary: class, level, XP.\n"
         "  |wstats|n — Detailed statistics: HP, abilities, AC, combat.\n"
         "  |whunger|n — Check how hungry you are.\n"
+        "  |wthirst|n — Check how thirsty you are.\n"
         "  |wweight|n — Carrying capacity and encumbrance.\n"
         "  |wwhere|n — See where you are in the world.\n"
         "  |wquests|n — View your active and completed quests.\n"
