@@ -46,6 +46,10 @@ class CmdAle(FCMCommandMixin, Command):
             )
             return
 
+        if hasattr(caller, "thirst_level") and caller.thirst_level == ThirstLevel.REFRESHED:
+            caller.msg("You are not thirsty.")
+            return
+
         if not caller.has_gold(ALE_PRICE):
             caller.msg(f"You can't afford that. Ale costs {ALE_PRICE} gold.")
             return

@@ -45,10 +45,14 @@ class TestCmdAleThirst(EvenniaCommandTest):
 
     @patch("typeclasses.actors.character.FCMCharacter.return_gold_to_sink")
     @patch("typeclasses.actors.character.FCMCharacter.has_gold", return_value=True)
-    def test_ale_at_refreshed_does_not_overflow(self, _has_gold, _sink):
+    def test_ale_at_refreshed_refuses_without_charging(self, _has_gold, sink):
+        # Mirror of `stew`'s 'already full' refusal: ale at REFRESHED must
+        # refuse early, before any gold is spent.
         self.char1.thirst_level = ThirstLevel.REFRESHED
-        self.call(CmdAle(), "")
+        result = self.call(CmdAle(), "")
+        self.assertIn("not thirsty", result.lower())
         self.assertEqual(self.char1.thirst_level, ThirstLevel.REFRESHED)
+        sink.assert_not_called()
 
     @patch("typeclasses.actors.character.FCMCharacter.return_gold_to_sink")
     @patch("typeclasses.actors.character.FCMCharacter.has_gold", return_value=True)
