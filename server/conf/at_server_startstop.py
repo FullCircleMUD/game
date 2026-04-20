@@ -43,18 +43,17 @@ def at_server_start():
 #  Global script management
 # ================================================================== #
 
-# The hourly telemetry pipeline. All three scripts run at the same
-# 3600s interval; the staggered offsets that establish their pipeline
-# order (telemetry → saturation → spawn) are set here, once, by
-# delaying the *creation* of saturation and spawn relative to
-# telemetry. Once created, each script's repeating timer fires
-# exactly 3600s from its own creation moment, so the offset is
-# preserved indefinitely with zero drift.
+# The hourly telemetry pipeline. Each script ticks every 60s and fires its
+# snapshot once per hour at its designated wall-clock slot (telemetry HH:00,
+# saturation HH:05, spawn HH:10). Wall-clock alignment is enforced inside
+# each script's at_repeat; the third tuple field is retained for backwards
+# compatibility with existing `(key, path, _)` unpacking in cmd_services.py
+# but is otherwise unused.
 _PIPELINE_SCRIPTS = [
-    # (key, typeclass_path, creation_offset_seconds)
+    # (key, typeclass_path, _unused)
     ("telemetry_aggregator_service", "typeclasses.scripts.telemetry_service.TelemetryAggregatorScript", 0),
-    ("nft_saturation_service",       "typeclasses.scripts.nft_saturation_service.NFTSaturationScript",  60),
-    ("unified_spawn_service",        "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",   120),
+    ("nft_saturation_service",       "typeclasses.scripts.nft_saturation_service.NFTSaturationScript",  0),
+    ("unified_spawn_service",        "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",    0),
 ]
 
 # Other global service scripts. Each entry is (key, typeclass_path).
@@ -106,8 +105,10 @@ def _ensure_global_scripts():
     independent of which world (test/game) is built. GLOBAL_SCRIPTS
     lookup returns None for missing scripts, so duplicates are impossible.
 
-    Pipeline scripts (telemetry/saturation/spawn) are created via
-    _create_pipeline_scripts() which staggers their creation moments.
+    Pipeline scripts (telemetry/saturation/spawn) are wall-clock aligned —
+    see _create_pipeline_scripts(). We also sweep any duplicate rows left
+    behind by earlier versions that used evennia.utils.delay() to stagger
+    creation (that scheme could race reload windows and create extras).
     """
     from evennia import GLOBAL_SCRIPTS, create_script, logger
 
@@ -117,44 +118,61 @@ def _ensure_global_scripts():
             create_script(typeclass_path, key=key, obj=None)
             logger.log_info(f"Global scripts: started {key}")
 
+    _dedupe_pipeline_scripts()
     _create_pipeline_scripts(skip_existing=True)
+
+
+def _dedupe_pipeline_scripts():
+    """
+    Delete duplicate ScriptDB rows for pipeline keys, keeping the oldest.
+
+    Earlier versions staggered pipeline script creation via
+    evennia.utils.delay() whose callbacks did not survive reload, which
+    could leave duplicate rows behind when reloads happened inside the
+    stagger window. This sweep is a no-op when there are no duplicates.
+    """
+    from evennia import ScriptDB, logger
+
+    for key, _, _ in _PIPELINE_SCRIPTS:
+        rows = list(ScriptDB.objects.filter(db_key=key).order_by("id"))
+        if len(rows) <= 1:
+            continue
+        keeper = rows[0]
+        for row in rows[1:]:
+            try:
+                row.stop()
+            except Exception:
+                pass
+            row.delete()
+            logger.log_info(
+                f"Pipeline dedupe: deleted duplicate {key} id={row.id}, "
+                f"kept id={keeper.id}"
+            )
 
 
 def _create_pipeline_scripts(skip_existing=False):
     """
-    Create the telemetry/saturation/spawn pipeline scripts with their
-    staggered creation offsets.
+    Create the telemetry/saturation/spawn pipeline scripts.
 
-    Each pipeline script in _PIPELINE_SCRIPTS has a creation_offset
-    expressed in seconds. The first (telemetry) is created immediately;
-    the others are scheduled via evennia.utils.delay() so their first
-    fire happens at offset+interval seconds from now, and every fire
-    thereafter is exactly interval seconds later — preserving the
-    stagger forever.
+    All three scripts tick every 60s and self-align to wall-clock minute
+    slots (telemetry HH:00, saturation HH:05, spawn HH:10), so there is
+    no creation-time stagger to preserve — just create them immediately.
 
     Args:
-        skip_existing: If True, only create pipeline scripts that
-            don't already exist. Used by the boot path
-            (_ensure_global_scripts) so reload doesn't recreate
-            running pipeline scripts. The reset_scripts moderator
-            command passes False because it has already deleted the
-            existing scripts.
+        skip_existing: If True, only create pipeline scripts that don't
+            already exist. Used by the boot path (_ensure_global_scripts)
+            so reload doesn't recreate running pipeline scripts. The
+            services reset command passes False because it has already
+            deleted the existing scripts.
     """
     from evennia import GLOBAL_SCRIPTS, create_script, logger
-    from evennia.utils import delay
 
-    def _make(key, typeclass_path):
+    for key, typeclass_path, _ in _PIPELINE_SCRIPTS:
         existing = getattr(GLOBAL_SCRIPTS, key, None)
         if existing and skip_existing:
-            return
+            continue
         create_script(typeclass_path, key=key, obj=None)
         logger.log_info(f"Pipeline scripts: started {key}")
-
-    for key, typeclass_path, offset in _PIPELINE_SCRIPTS:
-        if offset == 0:
-            _make(key, typeclass_path)
-        else:
-            delay(offset, _make, key, typeclass_path)
 
 
 def at_server_stop():

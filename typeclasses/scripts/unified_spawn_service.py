@@ -1,22 +1,23 @@
 """
 UnifiedSpawnScript — global script that drives the unified spawn system.
 
-Ticks every hour and delegates to SpawnService.run_hourly_cycle()
-which runs all calculators and distributors for every SPAWN_CONFIG entry.
+Ticks every minute and fires SpawnService.run_hourly_cycle() once per hour
+at the designated wall-clock slot (HH:10). The 10-minute offset behind
+telemetry (and 5 min behind saturation) lets both predecessor snapshots
+finish before spawn reads their data.
+
+The hour bucket is recorded on self.db.last_run_hour to prevent double-fire
+within a single hour.
 """
+
+from datetime import datetime, timezone
 
 from evennia import DefaultScript
 from twisted.internet import threads
 
 
-# How often (real seconds) the spawn service runs.
-# Runs last in the hourly pipeline: telemetry → saturation → spawn.
-# All three pipeline scripts use the same 3600s interval. The 120-second
-# offset behind telemetry is established once at cold boot by staggering
-# the script creation moments — see at_server_startstop.py
-# _ensure_pipeline_scripts(). Once created the offset is preserved
-# indefinitely, with zero drift.
-TICK_INTERVAL_SECONDS = 3600  # 1 hour
+TICK_INTERVAL_SECONDS = 60
+SLOT_MINUTE = 10  # fires at HH:10
 
 
 class UnifiedSpawnScript(DefaultScript):
@@ -28,11 +29,11 @@ class UnifiedSpawnScript(DefaultScript):
 
     def at_script_creation(self):
         self.key = "unified_spawn_service"
-        self.desc = "Unified hourly spawn system for resources, gold, and NFTs"
+        self.desc = "Unified hourly spawn system at HH:10 for resources, gold, and NFTs"
         self.interval = TICK_INTERVAL_SECONDS
         self.persistent = True
-        self.start_delay = True
-        self.repeats = 0  # repeat forever
+        self.start_delay = False
+        self.repeats = 0
 
     def at_start(self, **kwargs):
         """Register the SpawnService singleton when the script starts."""
@@ -43,6 +44,14 @@ class UnifiedSpawnScript(DefaultScript):
         set_spawn_service(self._service)
 
     def at_repeat(self):
-        """Run the full hourly spawn cycle in a background thread."""
-        if hasattr(self, "_service"):
-            threads.deferToThread(self._service.run_hourly_cycle)
+        now = datetime.now(timezone.utc)
+        if now.minute != SLOT_MINUTE:
+            return
+        hour_bucket = now.replace(minute=0, second=0, microsecond=0)
+        if self.db.last_run_hour == hour_bucket:
+            return
+        if not hasattr(self, "_service"):
+            return
+        self.db.last_run_hour = hour_bucket
+
+        threads.deferToThread(self._service.run_hourly_cycle)

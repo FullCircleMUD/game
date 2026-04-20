@@ -138,15 +138,69 @@ class TestUnifiedSpawnScript(EvenniaTest):
         # Cleanup
         script.delete()
 
+    @patch("typeclasses.scripts.unified_spawn_service.datetime")
     @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
-    def test_at_repeat_calls_service(self, mock_defer):
-        """at_repeat() should defer SpawnService.run_hourly_cycle() to a thread."""
+    def test_at_repeat_fires_on_slot_minute(self, mock_defer, mock_datetime):
+        """at_repeat() should defer run_hourly_cycle() when the slot minute hits."""
+        from datetime import datetime as real_datetime, timezone
+        from typeclasses.scripts.unified_spawn_service import SLOT_MINUTE
+
+        # Freeze time at HH:SLOT — the script should fire.
+        mock_datetime.now.return_value = real_datetime(
+            2026, 4, 21, 14, SLOT_MINUTE, 0, tzinfo=timezone.utc
+        )
+
         script = create.create_script(
             "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",
             key="unified_spawn_service",
         )
         script.at_repeat()
         mock_defer.assert_called_once_with(script._service.run_hourly_cycle)
+
+        # Cleanup
+        script.delete()
+
+    @patch("typeclasses.scripts.unified_spawn_service.datetime")
+    @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
+    def test_at_repeat_skips_outside_slot_minute(self, mock_defer, mock_datetime):
+        """at_repeat() should no-op when the current minute is not the slot minute."""
+        from datetime import datetime as real_datetime, timezone
+        from typeclasses.scripts.unified_spawn_service import SLOT_MINUTE
+
+        # Freeze time one minute off from the slot — must not fire.
+        off_minute = (SLOT_MINUTE + 1) % 60
+        mock_datetime.now.return_value = real_datetime(
+            2026, 4, 21, 14, off_minute, 0, tzinfo=timezone.utc
+        )
+
+        script = create.create_script(
+            "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",
+            key="unified_spawn_service",
+        )
+        script.at_repeat()
+        mock_defer.assert_not_called()
+
+        # Cleanup
+        script.delete()
+
+    @patch("typeclasses.scripts.unified_spawn_service.datetime")
+    @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
+    def test_at_repeat_double_fire_guard(self, mock_defer, mock_datetime):
+        """Second at_repeat() within the same hour must not double-fire."""
+        from datetime import datetime as real_datetime, timezone
+        from typeclasses.scripts.unified_spawn_service import SLOT_MINUTE
+
+        mock_datetime.now.return_value = real_datetime(
+            2026, 4, 21, 14, SLOT_MINUTE, 0, tzinfo=timezone.utc
+        )
+
+        script = create.create_script(
+            "typeclasses.scripts.unified_spawn_service.UnifiedSpawnScript",
+            key="unified_spawn_service",
+        )
+        script.at_repeat()
+        script.at_repeat()  # same hour, same slot — should be skipped
+        self.assertEqual(mock_defer.call_count, 1)
 
         # Cleanup
         script.delete()
