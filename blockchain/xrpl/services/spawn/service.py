@@ -224,7 +224,6 @@ class SpawnService:
 
         now = timezone.now()
         bucket = now.replace(minute=0, second=0, microsecond=0)
-        today = now.date()
 
         for (item_type, type_key), bs in self.budget_states.items():
             if item_type == "resource":
@@ -250,7 +249,7 @@ class SpawnService:
                 )
             elif item_type == "knowledge":
                 SaturationSnapshot.objects.filter(
-                    day=today, item_key=type_key,
+                    hour=bucket, item_key=type_key,
                 ).update(
                     spawn_budget=bs.total,
                     spawn_quest_debt=bs.quest_debt,

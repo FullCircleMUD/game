@@ -152,7 +152,6 @@ class CmdPickpocket(CmdSkillBase):
         roll = dice.roll_with_advantage_or_disadvantage(advantage=has_adv, disadvantage=has_dis)
         caller.db.non_combat_advantage = False
         caller.db.non_combat_disadvantage = False
-        roll_detail = f"{roll}(adv)" if (has_adv and not has_dis) else str(roll)
 
         total = roll + total_bonus
         dc = 10 + target.effective_perception_bonus
@@ -170,12 +169,9 @@ class CmdPickpocket(CmdSkillBase):
         if total >= dc:
             self._apply_steal(
                 caller, target, steal_type, steal_target, mastery_bonus,
-                roll_detail, total_bonus, total, dc,
             )
         else:
-            self._handle_failure(
-                caller, target, roll_detail, total_bonus, total, dc
-            )
+            self._handle_failure(caller, target)
 
     def _resolve_thing(self, caller, target, thing_name, case_entry):
         """
@@ -227,7 +223,7 @@ class CmdPickpocket(CmdSkillBase):
         return None, None
 
     def _apply_steal(self, caller, target, steal_type, steal_target,
-                     mastery_bonus, roll_detail, total_bonus, total, dc):
+                     mastery_bonus):
         """Apply a successful steal."""
         target_name = target.get_display_name(caller)
 
@@ -236,8 +232,7 @@ class CmdPickpocket(CmdSkillBase):
             amount = min(amount, target.get_gold())
             target.transfer_gold_to(caller, amount)
             caller.msg(
-                f"|gYou deftly lift {amount} gold from {target_name}.|n "
-                f"(Pickpocket: {roll_detail} + {total_bonus} = {total} vs DC {dc})"
+                f"|gYou deftly lift {amount} gold from {target_name}.|n"
             )
 
         elif steal_type == "resource":
@@ -248,8 +243,7 @@ class CmdPickpocket(CmdSkillBase):
             res_name = rt.get("name", f"resource #{rid}").lower()
             target.transfer_resource_to(caller, rid, amount)
             caller.msg(
-                f"|gYou deftly lift {amount} {res_name} from {target_name}.|n "
-                f"(Pickpocket: {roll_detail} + {total_bonus} = {total} vs DC {dc})"
+                f"|gYou deftly lift {amount} {res_name} from {target_name}.|n"
             )
 
         elif steal_type == "item":
@@ -257,18 +251,15 @@ class CmdPickpocket(CmdSkillBase):
             item_name = item.get_display_name(caller)
             item.move_to(caller, quiet=True)
             caller.msg(
-                f"|gYou deftly lift {item_name} from {target_name}.|n "
-                f"(Pickpocket: {roll_detail} + {total_bonus} = {total} vs DC {dc})"
+                f"|gYou deftly lift {item_name} from {target_name}.|n"
             )
 
-    def _handle_failure(self, caller, target, roll_detail, total_bonus,
-                        total, dc):
+    def _handle_failure(self, caller, target):
         """Handle a failed pickpocket attempt."""
         target_name = target.get_display_name(caller)
         caller.msg(
             f"|rYour hand slips and you fail to steal anything from "
-            f"{target_name}.|n "
-            f"(Pickpocket: {roll_detail} + {total_bonus} = {total} vs DC {dc})"
+            f"{target_name}.|n"
         )
 
         # Alert target

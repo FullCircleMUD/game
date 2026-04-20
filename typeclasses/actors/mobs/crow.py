@@ -32,6 +32,9 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     alignment_score = AttributeProperty(-30)  # slightly evil (aggressive pest)
     base_size = AttributeProperty(Size.TINY.value)
     size = AttributeProperty(Size.TINY.value)
+    room_description = AttributeProperty(
+        "wheels overhead on ragged black wings, beady eyes fixed on the ground below."
+    )
 
     # ── Flight ──
     preferred_height = AttributeProperty(1)

@@ -1,5 +1,5 @@
 """
-NFT Saturation Service — daily data collection for saturation-based
+NFT Saturation Service — hourly data collection for saturation-based
 NFT item spawning.
 
 Collects three inputs:
@@ -7,8 +7,8 @@ Collects three inputs:
 2. Knowledge counts — per spell/recipe, how many active players know it
 3. NFT circulation counts — per item type, how many in player hands / world
 
-Writes SaturationSnapshot rows (one per tracked item per day). The loot
-selection algorithm (future) reads these snapshots to weight drops toward
+Writes SaturationSnapshot rows (one per tracked item per hour). The loot
+selection algorithm reads these snapshots to weight drops toward
 undersaturated items.
 """
 
@@ -58,11 +58,11 @@ def _players_at_or_above(distribution, min_level):
 
 
 class NFTSaturationService:
-    """Stateless service — all methods are static, called daily."""
+    """Stateless service — all methods are static, called hourly."""
 
     @staticmethod
-    def take_daily_snapshot():
-        """Main entry point. Called daily by NFTSaturationScript.
+    def take_snapshot():
+        """Main entry point. Called hourly by NFTSaturationScript.
 
         Collects active player count, mastery distributions, knowledge
         counts, unlearned copy counts, and NFT circulation counts. Writes
@@ -71,7 +71,7 @@ class NFTSaturationService:
         Saturation for knowledge items (spells/recipes) uses mastery-aware
         denominators — only players who could learn the spell/recipe count.
         """
-        today = timezone.now().date()
+        hour = timezone.now().replace(minute=0, second=0, microsecond=0)
 
         # 1. Active players
         active_count, active_char_keys = NFTSaturationService.get_active_player_count_7d()
@@ -115,7 +115,7 @@ class NFTSaturationService:
             sat = (known_by + unlearned) / eligible if eligible > 0 else 0.0
             # Prefixed key matches spawn config type_key (scroll_X)
             SaturationSnapshot.objects.update_or_create(
-                day=today,
+                hour=hour,
                 item_key=f"scroll_{spell_key}",
                 category=SaturationSnapshot.CATEGORY_SPELL,
                 defaults={
@@ -141,7 +141,7 @@ class NFTSaturationService:
             sat = (known_by + unlearned) / eligible if eligible > 0 else 0.0
             # Prefixed key matches spawn config type_key (recipe_X)
             SaturationSnapshot.objects.update_or_create(
-                day=today,
+                hour=hour,
                 item_key=f"recipe_{recipe_key}",
                 category=SaturationSnapshot.CATEGORY_RECIPE,
                 defaults={
@@ -158,7 +158,7 @@ class NFTSaturationService:
         # 6c. NFT item types in circulation (non-scroll, non-recipe)
         for item_name, count in circulation_counts.items():
             SaturationSnapshot.objects.update_or_create(
-                day=today,
+                hour=hour,
                 item_key=item_name,
                 category=SaturationSnapshot.CATEGORY_ITEM,
                 defaults={
@@ -173,7 +173,7 @@ class NFTSaturationService:
             rows_written += 1
 
         logger.info(
-            f"NFTSaturation: snapshot for {today} — "
+            f"NFTSaturation: snapshot for {hour} — "
             f"{active_count} active players, "
             f"{len(spell_counts)} spells known, "
             f"{len(recipe_counts)} recipes known, "

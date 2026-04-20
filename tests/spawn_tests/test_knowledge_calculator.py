@@ -137,22 +137,23 @@ class TestGetSnapshotDB(EvenniaTest):
     def create_script(self):
         pass
 
-    def test_returns_latest_day(self):
-        """_get_snapshot returns the most recent day's snapshot."""
-        from datetime import date, timedelta
+    def test_returns_latest_hour(self):
+        """_get_snapshot returns the most recent hour's snapshot."""
+        from datetime import timedelta
+        from django.utils import timezone
         from blockchain.xrpl.models import SaturationSnapshot
 
-        today = date.today()
-        yesterday = today - timedelta(days=1)
+        now = timezone.now().replace(minute=0, second=0, microsecond=0)
+        prev_hour = now - timedelta(hours=1)
 
         SaturationSnapshot.objects.create(
-            day=yesterday, item_key="scroll_magic_missile",
+            hour=prev_hour, item_key="scroll_magic_missile",
             category="spell", active_players_7d=10,
             eligible_players=5, known_by=2, unlearned_copies=1,
             saturation=0.6,
         )
         SaturationSnapshot.objects.create(
-            day=today, item_key="scroll_magic_missile",
+            hour=now, item_key="scroll_magic_missile",
             category="spell", active_players_7d=12,
             eligible_players=8, known_by=3, unlearned_copies=2,
             saturation=0.625,
@@ -160,7 +161,7 @@ class TestGetSnapshotDB(EvenniaTest):
 
         snap = KnowledgeCalculator._get_snapshot("scroll_magic_missile")
         self.assertIsNotNone(snap)
-        self.assertEqual(snap.day, today)
+        self.assertEqual(snap.hour, now)
         self.assertEqual(snap.eligible_players, 8)
 
     def test_returns_none_when_no_snapshots(self):
@@ -170,11 +171,12 @@ class TestGetSnapshotDB(EvenniaTest):
 
     def test_returns_none_when_zero_eligible(self):
         """_get_snapshot returns None when eligible_players is 0."""
-        from datetime import date
+        from django.utils import timezone
         from blockchain.xrpl.models import SaturationSnapshot
 
+        hour = timezone.now().replace(minute=0, second=0, microsecond=0)
         SaturationSnapshot.objects.create(
-            day=date.today(), item_key="scroll_magic_missile",
+            hour=hour, item_key="scroll_magic_missile",
             category="spell", active_players_7d=10,
             eligible_players=0, known_by=0, unlearned_copies=0,
             saturation=0.0,
@@ -185,11 +187,12 @@ class TestGetSnapshotDB(EvenniaTest):
 
     def test_end_to_end_budget_from_db(self):
         """Full path: DB snapshot → _get_snapshot → calculate → correct gap."""
-        from datetime import date
+        from django.utils import timezone
         from blockchain.xrpl.models import SaturationSnapshot
 
+        hour = timezone.now().replace(minute=0, second=0, microsecond=0)
         SaturationSnapshot.objects.create(
-            day=date.today(), item_key="scroll_magic_missile",
+            hour=hour, item_key="scroll_magic_missile",
             category="spell", active_players_7d=50,
             eligible_players=20, known_by=12, unlearned_copies=3,
             saturation=0.75,

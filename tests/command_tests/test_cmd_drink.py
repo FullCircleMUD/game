@@ -74,3 +74,25 @@ class TestCmdDrinkEmpty(CmdDrinkTestBase):
         # Only one container, and it's empty — should report nothing to drink
         result = self.call(CmdDrink(), "")
         self.assertIn("nothing to drink", result.lower())
+
+
+class TestCmdDrinkAtRefreshed(CmdDrinkTestBase):
+    """Mirror of `eat`'s 'already full' refusal: drink at REFRESHED should
+    refuse with a message and NOT consume a drink from the container."""
+
+    def test_drink_at_refreshed_refuses(self):
+        canteen = self._make_canteen()
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        starting_current = canteen.current
+        result = self.call(CmdDrink(), "")
+        self.assertIn("not thirsty", result.lower())
+        self.assertEqual(canteen.current, starting_current)
+        self.assertEqual(self.char1.thirst_level, ThirstLevel.REFRESHED)
+
+    def test_drink_named_canteen_at_refreshed_refuses(self):
+        canteen = self._make_canteen()
+        self.char1.thirst_level = ThirstLevel.REFRESHED
+        starting_current = canteen.current
+        result = self.call(CmdDrink(), "canteen")
+        self.assertIn("not thirsty", result.lower())
+        self.assertEqual(canteen.current, starting_current)

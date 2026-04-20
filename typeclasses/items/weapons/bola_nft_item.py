@@ -111,12 +111,10 @@ class BolaMixin:
         if attacker_roll <= defender_roll:
             # Target dodges the bola
             wielder.msg(
-                f"|y{target.key} dodges the bola! "
-                f"({attacker_roll} vs {defender_roll})|n"
+                f"|y{target.key} dodges the bola!|n"
             )
             target.msg(
-                f"|gYou dodge {wielder.key}'s bola! "
-                f"({defender_roll} vs {attacker_roll})|n"
+                f"|gYou dodge {wielder.key}'s bola!|n"
             )
             return damage
 
@@ -127,10 +125,8 @@ class BolaMixin:
             max_rounds, source=wielder,
             save_dc=attacker_roll,
             save_messages={
-                "success": "|gYou strain against the bola and tear free! "
-                           "(rolled {roll} vs DC {dc})|n",
-                "fail": "|rYou struggle against the bola but cannot break free! "
-                        "(rolled {roll} vs DC {dc})|n",
+                "success": "|gYou strain against the bola and tear free!|n",
+                "fail": "|rYou struggle against the bola but cannot break free!|n",
                 "success_third": "{name} strains against the bola and tears free!",
                 "fail_third": "{name} struggles against the bola but cannot break free!",
             },
@@ -142,13 +138,13 @@ class BolaMixin:
         # Advantage granting now handled automatically by on-apply callback
 
         # Combat messages
+        s = "s" if max_rounds != 1 else ""
         wielder.msg(
             f"|g*ENTANGLE* Your bola wraps around {target.key}! "
-            f"(escape DC {attacker_roll}, max {max_rounds} rounds)|n"
+            f"(up to {max_rounds} round{s})|n"
         )
         target.msg(
-            f"|r*ENTANGLE* {wielder.key}'s bola wraps around your legs! "
-            f"(escape DC {attacker_roll})|n"
+            f"|r*ENTANGLE* {wielder.key}'s bola wraps around your legs!|n"
         )
 
         return damage

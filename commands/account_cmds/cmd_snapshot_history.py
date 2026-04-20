@@ -8,7 +8,7 @@ of a specific snapshot.
 Usage:
     snapshot_history                — summary of last 3 per type
     snapshot_history economy [N]   — full detail of Nth most recent economy snapshot
-    snapshot_history saturation [N] — all rows for Nth most recent saturation day
+    snapshot_history saturation [N] — all rows for Nth most recent saturation hour
     snapshot_history resources [N] — all rows for Nth most recent resource hour
 """
 
@@ -37,7 +37,7 @@ class CmdSnapshotHistory(Command):
     Usage:
         snapshot_history                 — summary of last 3 per type
         snapshot_history economy [N]     — Nth most recent economy snapshot
-        snapshot_history saturation [N]  — Nth most recent saturation day
+        snapshot_history saturation [N]  — Nth most recent saturation hour
         snapshot_history resources [N]   — Nth most recent resource hour
 
     N defaults to 1 (most recent). Supports partial names:
@@ -102,23 +102,23 @@ class CmdSnapshotHistory(Command):
 
         self.msg("")
 
-        # Saturation snapshots — group by day
-        sat_days = (
+        # Saturation snapshots — group by hour
+        sat_hours = (
             SaturationSnapshot.objects
-            .values_list("day", flat=True)
+            .values_list("hour", flat=True)
             .distinct()
-            .order_by("-day")[:3]
+            .order_by("-hour")[:3]
         )
-        if sat_days:
-            self.msg("|wSaturation Snapshots|n (daily):")
-            for day in sat_days:
-                rows = SaturationSnapshot.objects.filter(day=day)
+        if sat_hours:
+            self.msg("|wSaturation Snapshots|n (hourly):")
+            for hour in sat_hours:
+                rows = SaturationSnapshot.objects.filter(hour=hour)
                 active = rows.first().active_players_7d if rows.exists() else 0
                 spells = rows.filter(category="spell").count()
                 recipes = rows.filter(category="recipe").count()
                 items = rows.filter(category="item").count()
                 self.msg(
-                    f"  {day}  |  "
+                    f"  {hour:%Y-%m-%d %H:%M} UTC  |  "
                     f"{active} active 7d  |  "
                     f"{spells} spells  |  "
                     f"{recipes} recipes  |  "
@@ -181,27 +181,27 @@ class CmdSnapshotHistory(Command):
     # ── Saturation detail ─────────────────────────────────────────
 
     def _show_saturation_detail(self, index):
-        days = (
+        hours = (
             SaturationSnapshot.objects
-            .values_list("day", flat=True)
+            .values_list("hour", flat=True)
             .distinct()
-            .order_by("-day")
+            .order_by("-hour")
         )
-        count = days.count()
+        count = hours.count()
         if not count:
             self.msg("No saturation snapshots found.")
             return
         if index > count:
-            self.msg(f"Only {count} saturation day(s) available.")
+            self.msg(f"Only {count} saturation hour(s) available.")
             return
 
-        day = days[index - 1]
-        rows = SaturationSnapshot.objects.filter(day=day).order_by(
+        hour = hours[index - 1]
+        rows = SaturationSnapshot.objects.filter(hour=hour).order_by(
             "category", "item_key"
         )
         active = rows.first().active_players_7d if rows.exists() else 0
 
-        self.msg(f"|w=== Saturation Snapshot #{index} — {day} ===|n")
+        self.msg(f"|w=== Saturation Snapshot #{index} — {hour:%Y-%m-%d %H:%M} UTC ===|n")
         self.msg(f"|wActive Players (7d):|n {active}\n")
 
         current_cat = None

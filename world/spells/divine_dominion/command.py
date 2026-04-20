@@ -112,19 +112,12 @@ class Command(Spell):
         target_wis = target.get_attribute_bonus(target.wisdom)
         target_total = target_roll + target_wis
 
-        caster_bonus_display = caster_wis + mastery_bonus
-        contest_detail = (
-            f"(Will: {caster_roll} + {caster_bonus_display} = "
-            f"{caster_total} vs {target_total})"
-        )
-
         # --- Contested check failed ---
         if caster_total <= target_total:
             return (True, {
                 "first": (
                     f"|YYou command {target.key} to {command_word}, "
-                    f"but they resist your divine authority!\n"
-                    f"{contest_detail}|n"
+                    f"but they resist your divine authority!|n"
                 ),
                 "second": (
                     f"|Y{caster.key} commands you to {command_word}, "
@@ -138,23 +131,23 @@ class Command(Spell):
 
         # --- Apply command effect ---
         effect_msg = self._apply_command(
-            caster, target, command_word, tier, contest_detail,
+            caster, target, command_word, tier,
         )
 
         return (True, effect_msg)
 
-    def _apply_command(self, caster, target, word, tier, contest_detail):
+    def _apply_command(self, caster, target, word, tier):
         """Dispatch to the correct mechanic for the command word."""
         if word == "halt":
-            return self._cmd_halt(caster, target, tier, contest_detail)
+            return self._cmd_halt(caster, target, tier)
         elif word == "grovel":
-            return self._cmd_grovel(caster, target, tier, contest_detail)
+            return self._cmd_grovel(caster, target, tier)
         elif word == "drop":
-            return self._cmd_drop(caster, target, contest_detail)
+            return self._cmd_drop(caster, target)
         elif word == "flee":
-            return self._cmd_flee(caster, target, contest_detail)
+            return self._cmd_flee(caster, target)
 
-    def _cmd_halt(self, caster, target, tier, contest_detail):
+    def _cmd_halt(self, caster, target, tier):
         """HALT — apply STUNNED (action denial)."""
         rounds = _HALT_ROUNDS.get(tier, 1)
         applied = target.apply_stunned(rounds, source=caster)
@@ -164,13 +157,12 @@ class Command(Spell):
             first = (
                 f"|Y*COMMAND: HALT* You speak with divine authority and "
                 f"{target.key} freezes in place!\n"
-                f"*STUNNED* ({rounds} round{s})\n"
-                f"{contest_detail}|n"
+                f"*STUNNED* ({rounds} round{s})|n"
             )
         else:
             first = (
                 f"|YYou command {target.key} to halt, but they are "
-                f"already stunned!\n{contest_detail}|n"
+                f"already stunned!|n"
             )
 
         return {
@@ -185,7 +177,7 @@ class Command(Spell):
             ),
         }
 
-    def _cmd_grovel(self, caster, target, tier, contest_detail):
+    def _cmd_grovel(self, caster, target, tier):
         """GROVEL — apply PRONE (action denial + advantage to enemies)."""
         rounds = _GROVEL_ROUNDS.get(tier, 1)
         applied = target.apply_prone(rounds, source=caster)
@@ -195,13 +187,12 @@ class Command(Spell):
             first = (
                 f"|Y*COMMAND: GROVEL* You speak with divine authority and "
                 f"{target.key} collapses to the ground!\n"
-                f"*PRONE* ({rounds} round{s})\n"
-                f"{contest_detail}|n"
+                f"*PRONE* ({rounds} round{s})|n"
             )
         else:
             first = (
                 f"|YYou command {target.key} to grovel, but they are "
-                f"already on the ground!\n{contest_detail}|n"
+                f"already on the ground!|n"
             )
 
         return {
@@ -216,15 +207,14 @@ class Command(Spell):
             ),
         }
 
-    def _cmd_drop(self, caster, target, contest_detail):
+    def _cmd_drop(self, caster, target):
         """DROP — force-drop wielded weapon."""
         dropped, weapon_name = force_drop_weapon(target)
 
         if dropped:
             first = (
                 f"|Y*COMMAND: DROP* You speak with divine authority and "
-                f"{target.key} drops their {weapon_name}!\n"
-                f"{contest_detail}|n"
+                f"{target.key} drops their {weapon_name}!|n"
             )
             second = (
                 f"|Y{caster.key} speaks with divine authority — "
@@ -238,8 +228,7 @@ class Command(Spell):
         else:
             first = (
                 f"|YYou command {target.key} to drop their weapon, "
-                f"but they have nothing to drop!\n"
-                f"{contest_detail}|n"
+                f"but they have nothing to drop!|n"
             )
             second = (
                 f"|Y{caster.key} speaks with divine authority — "
@@ -252,15 +241,14 @@ class Command(Spell):
 
         return {"first": first, "second": second, "third": third}
 
-    def _cmd_flee(self, caster, target, contest_detail):
+    def _cmd_flee(self, caster, target):
         """FLEE — force target to execute the flee command."""
         target.execute_cmd("flee")
 
         return {
             "first": (
                 f"|Y*COMMAND: FLEE* You speak with divine authority and "
-                f"{target.key} turns and runs!\n"
-                f"{contest_detail}|n"
+                f"{target.key} turns and runs!|n"
             ),
             "second": (
                 f"|Y{caster.key} speaks with divine authority — "

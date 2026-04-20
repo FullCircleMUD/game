@@ -33,6 +33,10 @@ class WaterContainerTestBase(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        # Default thirst is REFRESHED, which now refuses drinks. Drop a stage
+        # so the standard drink_from / persistence paths exercise their normal
+        # flow; tests that need REFRESHED set it explicitly.
+        self.char1.thirst_level = ThirstLevel.THIRSTY
 
     def _make_canteen(self, token_id=8101):
         with patch("blockchain.xrpl.services.nft.NFTService.update_metadata"), \
@@ -108,11 +112,15 @@ class TestDrinkFrom(WaterContainerTestBase):
         self.assertFalse(ok)
         self.assertIn("empty", msg.lower())
 
-    def test_drink_from_caps_at_refreshed(self):
+    def test_drink_from_at_refreshed_refuses(self):
         canteen = self._make_canteen()
         self.char1.thirst_level = ThirstLevel.REFRESHED
-        canteen.drink_from(self.char1)
-        # Already at top — stays REFRESHED, doesn't overflow
+        starting = canteen.current
+        ok, msg = canteen.drink_from(self.char1)
+        # Mirrors `eat`'s 'already full' refusal — no drink consumed.
+        self.assertFalse(ok)
+        self.assertIn("not thirsty", msg.lower())
+        self.assertEqual(canteen.current, starting)
         self.assertEqual(self.char1.thirst_level, ThirstLevel.REFRESHED)
 
     def test_drink_to_refreshed_sets_free_pass(self):

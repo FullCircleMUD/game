@@ -131,6 +131,9 @@ class WaterContainerMixin:
         if not isinstance(thirst_level, ThirstLevel):
             return False, f"You can't drink from {self.key} right now."
 
+        if thirst_level == ThirstLevel.REFRESHED:
+            return False, "You are not thirsty."
+
         # Step thirst up one stage (capped at REFRESHED).
         new_value = min(thirst_level.value + 1, ThirstLevel.REFRESHED.value)
         character.thirst_level = ThirstLevel(new_value)

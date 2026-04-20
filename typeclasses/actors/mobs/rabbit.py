@@ -22,6 +22,9 @@ class Rabbit(CombatMob):
 
     base_size = AttributeProperty(Size.TINY.value)
     size = AttributeProperty(Size.TINY.value)
+    room_description = AttributeProperty(
+        "nibbles warily at the grass, long ears twitching at every sound."
+    )
 
     # ── Stats — tiny and fragile ──
     hp = AttributeProperty(3)

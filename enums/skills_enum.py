@@ -274,9 +274,9 @@ _SKILL_DESCRIPTIONS = {
         "vs target level. The ultimate high-risk, high-reward ability."
     ),
     skills.MAGICAL_SECRETS: (
-        "Recite spell scrolls without being a spellcaster. Mastery "
-        "determines the maximum spell level you can use — higher mastery "
-        "unlocks more powerful scrolls. Distinct from the mage cast command."
+        "Channel enchanted wands without being a spellcaster. Mastery "
+        "determines the maximum spell tier you can unleash — higher mastery "
+        "unlocks more powerful wands. Distinct from the mage cast command."
     ),
     # ── Bard ──
     skills.PERFORMANCE: (

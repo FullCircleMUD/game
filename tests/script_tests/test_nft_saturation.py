@@ -6,7 +6,7 @@ Covers:
     - get_knowledge_counts() spell/recipe knowledge aggregation
     - get_unlearned_copy_counts() NFT scroll/recipe copies
     - get_nft_circulation_counts() NFT circulation by type
-    - take_daily_snapshot() integration
+    - take_snapshot() integration
 """
 
 from datetime import timedelta
@@ -446,7 +446,7 @@ class TestGetNftCirculationCounts(EvenniaTest):
         self.assertEqual(counts["Test Shield ZZZ"], 1)
 
 
-# ─── Integration: take_daily_snapshot ────────────────────────────────
+# ─── Integration: take_snapshot ────────────────────────────────
 
 
 class TestTakeDailySnapshot(EvenniaTest):
@@ -458,7 +458,7 @@ class TestTakeDailySnapshot(EvenniaTest):
 
     def test_no_active_players_skips(self):
         """No active players → no snapshot rows written."""
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
         self.assertEqual(SaturationSnapshot.objects.count(), 0)
 
     def test_writes_spell_snapshot_rows(self):
@@ -472,7 +472,7 @@ class TestTakeDailySnapshot(EvenniaTest):
             "evocation": {"mastery": 1, "classes": ["mage"]},
         }
 
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
 
         spell_rows = SaturationSnapshot.objects.filter(
             category=SaturationSnapshot.CATEGORY_SPELL
@@ -493,7 +493,7 @@ class TestTakeDailySnapshot(EvenniaTest):
         # training_longsword is carpenter/BASIC — set mastery for denominator
         self.char1.db.general_skill_mastery_levels = {"carpenter": 1}
 
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
 
         recipe_rows = SaturationSnapshot.objects.filter(
             category=SaturationSnapshot.CATEGORY_RECIPE
@@ -515,7 +515,7 @@ class TestTakeDailySnapshot(EvenniaTest):
         _create_nft(sword_type, NFTGameState.LOCATION_CHARACTER, "token_300", char_key="Alice")
         _create_nft(sword_type, NFTGameState.LOCATION_CHARACTER, "token_301", char_key="Bob")
 
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
 
         item_row = SaturationSnapshot.objects.filter(
             category=SaturationSnapshot.CATEGORY_ITEM,
@@ -525,18 +525,18 @@ class TestTakeDailySnapshot(EvenniaTest):
         self.assertEqual(item_row.in_circulation, 2)
 
     def test_second_call_updates_existing(self):
-        """Running twice on the same day updates rows (upsert)."""
+        """Running twice in the same hour updates rows (upsert)."""
         _create_session(self.char1.key, hours_ago_start=2, hours_ago_end=1)
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.granted_spells = {}
         self.char1.db.recipe_book = {}
 
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
         first_count = SaturationSnapshot.objects.count()
 
         # Add another spell and re-run
         self.char1.db.spellbook = {"magic_missile": True, "shield": True}
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
 
         # Row count should not double — update_or_create handles upsert
         self.assertEqual(SaturationSnapshot.objects.count(), first_count)
@@ -560,7 +560,7 @@ class TestTakeDailySnapshot(EvenniaTest):
             scroll_type = _create_item_type(first_spell_key, SCROLL_TYPECLASS)
             _create_nft(scroll_type, NFTGameState.LOCATION_CHARACTER, "token_302", char_key="Alice")
 
-            NFTSaturationService.take_daily_snapshot()
+            NFTSaturationService.take_snapshot()
 
             row = SaturationSnapshot.objects.filter(
                 category=SaturationSnapshot.CATEGORY_SPELL,
@@ -580,7 +580,7 @@ class TestTakeDailySnapshot(EvenniaTest):
         self.char1.db.recipe_book = {}
         # No mastery set — char is not eligible for any spells
 
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
 
         # All spell rows should have eligible_players=0, saturation=0.0
         mm_row = SaturationSnapshot.objects.filter(
@@ -607,7 +607,7 @@ class TestTakeDailySnapshot(EvenniaTest):
         self.char2.db.granted_spells = {}
         self.char2.db.recipe_book = {}
 
-        NFTSaturationService.take_daily_snapshot()
+        NFTSaturationService.take_snapshot()
 
         mm_row = SaturationSnapshot.objects.filter(
             category=SaturationSnapshot.CATEGORY_SPELL,

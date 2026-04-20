@@ -30,6 +30,9 @@ class Footpad(StabAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressiv
 
     alignment_score = AttributeProperty(-100)  # slightly evil (petty criminal)
     default_weapon_masteries = {"dagger": MasteryLevel.SKILLED.value}
+    room_description = AttributeProperty(
+        "lurks in the shadows, fingers hovering near a sheathed dagger."
+    )
 
     # ── Combat fallbacks ──
     damage_dice = AttributeProperty("1d4")

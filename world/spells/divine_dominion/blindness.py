@@ -81,12 +81,6 @@ class Blindness(Spell):
         )
         target_total = target_roll + target_con
 
-        caster_bonus_display = caster_wis + mastery_bonus
-        contest_detail = (
-            f"(WIS: {caster_roll} + {caster_bonus_display} = "
-            f"{caster_total} vs CON: {target_total})"
-        )
-
         rounds = _DURATION_ROUNDS.get(tier, 3)
         blinded = False
 
@@ -95,12 +89,10 @@ class Blindness(Spell):
                 rounds, source=caster, save_dc=caster_total,
                 save_messages={
                     "save_success": (
-                        "You blink hard and your vision clears! "
-                        "(CON save: {{roll}} vs DC {{dc}})"
+                        "You blink hard and your vision clears!"
                     ),
                     "save_fail": (
-                        "You struggle to see but the darkness holds! "
-                        "(CON save: {{roll}} vs DC {{dc}})"
+                        "You struggle to see but the darkness holds!"
                     ),
                     "save_success_third": (
                         "{{name}} blinks hard and their vision clears!"
@@ -131,14 +123,12 @@ class Blindness(Spell):
             first_msg = (
                 f"|WYou invoke divine authority upon {target.key}! "
                 f"Darkness fills their eyes!\n"
-                f"*BLINDED* ({rounds} round{s})\n"
-                f"{contest_detail}|n"
+                f"*BLINDED* ({rounds} round{s})|n"
             )
         else:
             first_msg = (
                 f"|WYou invoke divine authority upon {target.key}, "
-                f"but they resist the blindness!\n"
-                f"{contest_detail}|n"
+                f"but they resist the blindness!|n"
             )
 
         second_msg = (

@@ -62,7 +62,7 @@ class CmdGuild(FCMCommandMixin, Command):
             req_strs = []
             for ability, min_score in char_class.multi_class_requirements.items():
                 req_strs.append(f"{ability.name}: {min_score}")
-            lines.append(f"|wAbility Requirements:|n {', '.join(req_strs)}")
+            lines.append(f"|wMulticlass Ability Requirements:|n {', '.join(req_strs)}")
 
         # Alignment restrictions (score-based range)
         min_a = char_class.min_alignment_score

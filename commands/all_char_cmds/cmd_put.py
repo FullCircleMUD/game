@@ -95,7 +95,7 @@ class CmdPut(FCMCommandMixin, Command):
         #  Dispatch
         # ---------------------------------------------------------- #
         if parsed.type == "all":
-            yield from self._put_all(caller, container)
+            self._put_all(caller, container)
         elif parsed.type == "gold":
             self._put_fungible_gold(caller, container, parsed.amount)
         elif parsed.type == "resource":
@@ -306,47 +306,11 @@ class CmdPut(FCMCommandMixin, Command):
                 caller.transfer_resource_to(container, resource_id, amount)
 
     # ============================================================== #
-    #  "put all in <container>" — with confirmation
+    #  "put all in <container>"
     # ============================================================== #
 
     def _put_all(self, caller, container):
-        """Put all items and fungibles into container. Requires confirmation."""
-        summary_lines = []
-        items = [
-            obj for obj in caller.contents
-            if obj != container and obj != caller
-            and not (hasattr(caller, "is_worn") and caller.is_worn(obj))
-            and not getattr(obj, "is_container", False)
-        ]
-        if items:
-            summary_lines.append(f"  {len(items)} item(s)")
-        if hasattr(caller, "get_gold") and caller.get_gold() > 0:
-            summary_lines.append(
-                f"  {caller.get_gold()} {GOLD['unit']} of {GOLD['name']}"
-            )
-        if hasattr(caller, "get_all_resources"):
-            for rid, amt in caller.get_all_resources().items():
-                if amt > 0:
-                    info = get_all_resource_types().get(rid)
-                    if info:
-                        summary_lines.append(
-                            f"  {amt} {info['unit']} of {info['name']}"
-                        )
-
-        if not summary_lines:
-            caller.msg("You have nothing to put in there.")
-            return
-
-        answer = yield (
-            f"\nYou are about to put everything into {container.key}:"
-            f"\n" + "\n".join(summary_lines)
-            + f"\n\nAre you sure? Y/[N]"
-        )
-
-        if answer.lower() not in ("y", "yes"):
-            caller.msg("Cancelled.")
-            return
-
+        """Put all items and fungibles into container."""
         put_anything = False
 
         # --- NFT items ---

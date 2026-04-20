@@ -167,6 +167,82 @@ class TestCmdWear(EvenniaCommandTest):
         self.char1.wear(ear1)
         self.call(CmdWear(), "earring", "You must remove Copper Earring first.")
 
+    # ---------------- wear all ---------------- #
+
+    def test_wear_all_empty_inventory(self):
+        """`wear all` with no equippables should report friendly empty."""
+        self.call(CmdWear(), "all", "You have nothing wearable to put on.")
+
+    def test_wear_all_skips_plain_items(self):
+        """`wear all` should ignore non-wearable items entirely."""
+        _make_plain_item("Glass Bauble", self.char1)
+        # Plain item only — no equippables — should still report empty
+        self.call(CmdWear(), "all", "You have nothing wearable to put on.")
+
+    def test_wear_all_mixed_inventory(self):
+        """`wear all` should equip armour, weapons, and holdables in one pass."""
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        _make_weapon("Iron Longsword", self.char1)
+        _make_holdable("Iron Shield", self.char1)
+        _make_plain_item("Glass Bauble", self.char1)
+        result = self.call(CmdWear(), "all")
+        # All three equippables should appear in the summary
+        self.assertIn("Iron Helmet", result)
+        self.assertIn("Iron Longsword", result)
+        self.assertIn("Iron Shield", result)
+        # Plain item should be silently skipped
+        self.assertNotIn("Glass Bauble", result)
+
+    def test_wear_all_skips_already_worn(self):
+        """`wear all` should not retry items the character already has on."""
+        helmet = _make_wearable(
+            "Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1
+        )
+        self.char1.wear(helmet)
+        _make_wearable("Iron Boots", HumanoidWearSlot.FEET.value, self.char1)
+        result = self.call(CmdWear(), "all")
+        self.assertIn("Iron Boots", result)
+        # Already-worn helmet should not appear in the summary line
+        self.assertNotIn("You wear: Iron Helmet", result)
+
+    def test_wear_all_two_rings_first_fit(self):
+        """Two rings should fill both finger slots via first-fit."""
+        _make_wearable(
+            "Copper Ring",
+            [HumanoidWearSlot.LEFT_RING_FINGER.value,
+             HumanoidWearSlot.RIGHT_RING_FINGER.value],
+            self.char1,
+        )
+        _make_wearable(
+            "Silver Ring",
+            [HumanoidWearSlot.LEFT_RING_FINGER.value,
+             HumanoidWearSlot.RIGHT_RING_FINGER.value],
+            self.char1,
+        )
+        self.call(CmdWear(), "all")
+        self.assertEqual(
+            self.char1.get_slot(HumanoidWearSlot.LEFT_RING_FINGER.value).key,
+            "Copper Ring",
+        )
+        self.assertEqual(
+            self.char1.get_slot(HumanoidWearSlot.RIGHT_RING_FINGER.value).key,
+            "Silver Ring",
+        )
+
+    def test_wear_all_slot_conflict_reports_skip(self):
+        """A second item competing for a filled slot should be reported skipped."""
+        helmet1 = _make_wearable(
+            "Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1
+        )
+        self.char1.wear(helmet1)
+        _make_wearable(
+            "Steel Helmet", HumanoidWearSlot.HEAD.value, self.char1
+        )
+        result = self.call(CmdWear(), "all")
+        # The unworn helmet should appear in the per-item skipped lines
+        self.assertIn("Steel Helmet", result)
+        self.assertIn("Head", result)  # slot name appears in rejection msg
+
     def test_wear_item_not_in_inventory(self):
         """Wearing a non-existent item should emit the nofound_string
         from the targeting helper.

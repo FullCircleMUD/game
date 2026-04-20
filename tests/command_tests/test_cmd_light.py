@@ -126,6 +126,7 @@ class TestCmdRefuel(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.lantern = create.create_object(
             "typeclasses.items.holdables.lantern_nft_item.LanternNFTItem",
             key="lantern",

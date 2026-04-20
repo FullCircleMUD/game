@@ -111,13 +111,10 @@ class CmdHide(CmdSkillBase):
 
         if total >= dc:
             caller.add_condition(Condition.HIDDEN)
-            caller.msg(
-                f"|g(Stealth: {roll} + {stealth_bonus} = {total} vs DC {dc})|n"
-            )
+            caller.msg("|gYou slip into the shadows, unseen.|n")
         else:
             caller.msg(
-                f"You look for a place to hide but can't find adequate cover. "
-                f"(Stealth: {roll} + {stealth_bonus} = {total} vs DC {dc})"
+                "You look for a place to hide but can't find adequate cover."
             )
 
     # Mastery stubs — not used (func overridden)

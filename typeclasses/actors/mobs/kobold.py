@@ -35,6 +35,9 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
     base_size = AttributeProperty(Size.SMALL.value)
     size = AttributeProperty(Size.SMALL.value)
     default_weapon_masteries = {"dagger": MasteryLevel.BASIC.value}
+    room_description = AttributeProperty(
+        "skulks near the walls, clutching a rusted dagger in scaled claws."
+    )
 
     # ── Stats ──
     hp = AttributeProperty(14)

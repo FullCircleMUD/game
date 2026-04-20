@@ -31,6 +31,7 @@ class TestCmdSearchTraps(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         self.account.attributes.add("wallet_address", WALLET_A)
 
     # ── Trap detection on objects ──
@@ -134,6 +135,7 @@ class TestCmdSearchTraps(EvenniaCommandTest):
             key="narrow passage",
             nohome=True,
         )
+        plate_room.always_lit = True
         plate_room.is_trapped = True
         plate_room.trap_armed = True
         plate_room.trap_detected = False

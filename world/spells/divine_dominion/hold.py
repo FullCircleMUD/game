@@ -88,19 +88,12 @@ class Hold(Spell):
         target_wis = target.get_attribute_bonus(target.wisdom)
         target_total = target_roll + target_wis
 
-        caster_bonus_display = caster_wis + mastery_bonus
-        contest_detail = (
-            f"(Will: {caster_roll} + {caster_bonus_display} = "
-            f"{caster_total} vs {target_total})"
-        )
-
         # --- Contested check failed ---
         if caster_total <= target_total:
             return (True, {
                 "first": (
                     f"|YYou attempt to bind {target.key} in divine chains, "
-                    f"but they resist your authority!\n"
-                    f"{contest_detail}|n"
+                    f"but they resist your authority!|n"
                 ),
                 "second": (
                     f"|Y{caster.key} attempts to bind you in divine chains, "
@@ -120,12 +113,11 @@ class Hold(Spell):
             save_stat="wisdom",
             save_messages={
                 "success": (
-                    "|gYou strain against the divine chains and break free! "
-                    "(rolled {roll} vs DC {dc})|n"
+                    "|gYou strain against the divine chains and break free!|n"
                 ),
                 "fail": (
                     "|rYou struggle against the divine chains but cannot "
-                    "break free! (rolled {roll} vs DC {dc})|n"
+                    "break free!|n"
                 ),
                 "success_third": (
                     "{name} strains against the divine chains and breaks free!"
@@ -157,14 +149,12 @@ class Hold(Spell):
             first = (
                 f"|Y*HOLD* You bind {target.key} in glowing divine chains! "
                 f"They cannot move!\n"
-                f"*PARALYSED* ({rounds} round{s}, save DC {caster_total})\n"
-                f"{contest_detail}|n"
+                f"*PARALYSED* ({rounds} round{s})|n"
             )
         else:
             first = (
                 f"|YYou attempt to bind {target.key} in divine chains, "
-                f"but they are already paralysed!\n"
-                f"{contest_detail}|n"
+                f"but they are already paralysed!|n"
             )
 
         return (True, {

@@ -17,6 +17,9 @@ class Skeleton(HumanoidWearslotsMixin, AggressiveMob):
 
     alignment_score = AttributeProperty(-1000)  # pure evil undead
     damage_type = AttributeProperty(DamageType.SLASHING)  # claws
+    room_description = AttributeProperty(
+        "clacks its yellowed teeth, empty eye sockets turning to follow any movement."
+    )
 
     def at_object_creation(self):
         super().at_object_creation()

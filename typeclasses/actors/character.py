@@ -368,16 +368,10 @@ class FCMCharacter(
         total = roll + stealth
 
         if total >= best_dc:
-            self.msg(
-                f"|gYou slip in unnoticed.|n "
-                f"(Stealth: {roll} + {stealth} = {total} vs DC {best_dc})"
-            )
+            self.msg("|gYou slip in unnoticed.|n")
         else:
             self.remove_condition(Condition.HIDDEN)
-            self.msg(
-                f"|rYou are spotted!|n "
-                f"(Stealth: {roll} + {stealth} = {total} vs DC {best_dc})"
-            )
+            self.msg("|rYou are spotted!|n")
             room.msg_contents(
                 f"{self.key} slips into the room but is spotted!",
                 exclude=[self],

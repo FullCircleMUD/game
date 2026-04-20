@@ -1622,7 +1622,7 @@ def _spawn_grik():
         "Training Mace", "Training Hammer",
         "Training Bow", "Training Crossbow", "Training Sling",
         "Club", "Quarterstaff",
-        "Haft", "Shaft",
+        "Haft", "Shaft", "Stock",
         "Wooden Torch",
     ]
     npc.shop_name = "Grik's Blades & Blunts"

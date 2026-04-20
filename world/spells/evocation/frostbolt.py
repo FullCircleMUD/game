@@ -75,12 +75,6 @@ class Frostbolt(Spell):
         target_con = target.get_attribute_bonus(target.constitution)
         target_total = target_roll + target_con
 
-        caster_bonus_display = caster_int + mastery_bonus
-        contest_detail = (
-            f"(Frost: {caster_roll} + {caster_bonus_display} = "
-            f"{caster_total} vs {target_total})"
-        )
-
         slowed = False
         rounds = self._SLOW_ROUNDS.get(tier, 1)
         if caster_total > target_total:
@@ -94,15 +88,13 @@ class Frostbolt(Spell):
                 f"|CYou hurl a frostbolt at {target.key}, dealing "
                 f"{actual_damage} cold damage!\n"
                 f"*SLOWED* The cold seeps into their limbs! "
-                f"({rounds} round{s})\n"
-                f"{contest_detail}|n"
+                f"({rounds} round{s})|n"
             )
         else:
             first_msg = (
                 f"|CYou hurl a frostbolt at {target.key}, dealing "
                 f"{actual_damage} cold damage!\n"
-                f"{target.key} resists the slowing cold.\n"
-                f"{contest_detail}|n"
+                f"{target.key} resists the slowing cold.|n"
             )
 
         second_msg = (

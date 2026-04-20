@@ -2,7 +2,7 @@
 NFTSaturationScript — global script that takes hourly NFT saturation snapshots.
 
 Ticks every hour (aligned with the spawn cycle). Delegates to
-NFTSaturationService.take_daily_snapshot() which collects active player
+NFTSaturationService.take_snapshot() which collects active player
 counts, knowledge saturation (spells/recipes), and NFT circulation data
 for the knowledge spawn calculator.
 
@@ -44,4 +44,4 @@ class NFTSaturationScript(DefaultScript):
         """Take saturation snapshot in a background thread."""
         from blockchain.xrpl.services.nft_saturation import NFTSaturationService
 
-        threads.deferToThread(NFTSaturationService.take_daily_snapshot)
+        threads.deferToThread(NFTSaturationService.take_snapshot)

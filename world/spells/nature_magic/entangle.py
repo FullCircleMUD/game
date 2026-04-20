@@ -65,12 +65,6 @@ class Entangle(Spell):
         target_str = target.get_attribute_bonus(target.strength)
         target_total = target_roll + target_str
 
-        caster_bonus_display = caster_wis + mastery_bonus
-        contest_detail = (
-            f"(Vines: {caster_roll} + {caster_bonus_display} = "
-            f"{caster_total} vs {target_total})"
-        )
-
         entangled = False
         rounds = self._ENTANGLE_ROUNDS.get(tier, 1)
         if caster_total > target_total:
@@ -100,14 +94,12 @@ class Entangle(Spell):
             first_msg = (
                 f"|GYou call upon nature's wrath! Grasping vines erupt "
                 f"from the ground and bind {target.key}!\n"
-                f"*ENTANGLED* ({rounds} round{s})\n"
-                f"{contest_detail}|n"
+                f"*ENTANGLED* ({rounds} round{s})|n"
             )
         else:
             first_msg = (
                 f"|GYou call upon nature's wrath, but {target.key} "
-                f"tears free of the grasping vines!\n"
-                f"{contest_detail}|n"
+                f"tears free of the grasping vines!|n"
             )
 
         second_msg = (

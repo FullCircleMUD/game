@@ -210,14 +210,10 @@ class CmdBash(CmdSkillBase):
 
             if applied:
                 caller.msg(
-                    f"|g*BASH* You slam into {target.key}, knocking them to the ground!|n "
-                    f"(Bash: {attacker_roll} + {attacker_str + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|g*BASH* You slam into {target.key}, knocking them to the ground!|n"
                 )
                 target.msg(
-                    f"|r*BASH* {caller.key} slams into you, knocking you to the ground!|n "
-                    f"({defender_roll} + {defender_str} = {defender_total} "
-                    f"vs {attacker_total})"
+                    f"|r*BASH* {caller.key} slams into you, knocking you to the ground!|n"
                 )
                 if caller.location:
                     caller.location.msg_contents(
@@ -227,16 +223,12 @@ class CmdBash(CmdSkillBase):
             else:
                 # Target already prone (anti-stacking)
                 caller.msg(
-                    f"|yYou bash {target.key} but they're already on the ground.|n "
-                    f"(Bash: {attacker_roll} + {attacker_str + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|yYou bash {target.key} but they're already on the ground.|n"
                 )
         else:
             # ── Failure: DEX save or fall prone ──
             caller.msg(
-                f"|rYou try to bash {target.key} but miss!|n "
-                f"(Bash: {attacker_roll} + {attacker_str + mastery.bonus} = {attacker_total} "
-                f"vs {defender_total})"
+                f"|rYou try to bash {target.key} but miss!|n"
             )
 
             # DEX save: DC 10, add DEX mod + mastery bonus
@@ -252,9 +244,7 @@ class CmdBash(CmdSkillBase):
                     duration=1, duration_type="combat_rounds",
                 )
                 caller.msg(
-                    f"|r*BASH FAIL* You overextend and fall prone!|n "
-                    f"(DEX save: {dex_roll} + {dex_mod + mastery.bonus} = {dex_total} "
-                    f"vs DC {dex_dc})"
+                    f"|r*BASH FAIL* You overextend and fall prone!|n"
                 )
                 target.msg(
                     f"|g{caller.key} overextends trying to bash you and falls prone!|n"

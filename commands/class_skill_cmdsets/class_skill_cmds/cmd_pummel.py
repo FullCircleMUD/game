@@ -208,14 +208,10 @@ class CmdPummel(CmdSkillBase):
 
             if applied:
                 caller.msg(
-                    f"|g*PUMMEL* You pummel {target.key}, stunning them!|n "
-                    f"(Pummel: {attacker_roll} + {attacker_str + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|g*PUMMEL* You pummel {target.key}, stunning them!|n"
                 )
                 target.msg(
-                    f"|r*PUMMEL* {caller.key} pummels you, leaving you stunned!|n "
-                    f"({defender_roll} + {defender_dex} = {defender_total} "
-                    f"vs {attacker_total})"
+                    f"|r*PUMMEL* {caller.key} pummels you, leaving you stunned!|n"
                 )
                 if caller.location:
                     caller.location.msg_contents(
@@ -225,16 +221,12 @@ class CmdPummel(CmdSkillBase):
             else:
                 # Target already stunned (anti-stacking)
                 caller.msg(
-                    f"|yYou pummel {target.key} but they're already stunned.|n "
-                    f"(Pummel: {attacker_roll} + {attacker_str + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|yYou pummel {target.key} but they're already stunned.|n"
                 )
         else:
             # ── Failure: nothing happens ──
             caller.msg(
-                f"|rYour pummel misses {target.key}.|n "
-                f"(Pummel: {attacker_roll} + {attacker_str + mastery.bonus} = {attacker_total} "
-                f"vs {defender_total})"
+                f"|rYour pummel misses {target.key}.|n"
             )
 
     # ── Mob fallback ──

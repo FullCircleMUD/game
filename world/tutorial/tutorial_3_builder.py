@@ -72,6 +72,8 @@ def build_tutorial_3(instance):
 
         room = create_object(RoomBase, key=key, attributes=attrs)
         room.tags.add(tag, category="tutorial_room")
+        room.tags.add("tutorial", category="zone")
+        room.tags.add("tutorial_3", category="district")
         room.cmdset.add(CmdSetTutorial, persistent=True)
         room.always_lit = True
         room.allow_combat = False
@@ -143,15 +145,17 @@ def build_tutorial_3(instance):
         "and a practice dummy stands near the door.",
         "|wTutorial: Creating Shortcuts|n\n\n"
         "You can create personal shortcuts for any command using "
-        "|walias|n.\n\n"
+        "|walias|n or |wnick|n (short for nickname) — they're the "
+        "same command and work identically.\n\n"
         "|wSimple shortcut:|n\n"
-        "  |walias sc score|n — now typing |wsc|n runs |wscore|n.\n\n"
+        "  |walias sc = score|n — now typing |wsc|n runs |wscore|n.\n\n"
         "|wShortcut with a target:|n\n"
-        "  |walias di diagnose $1|n — |wdi dummy|n runs "
+        "  |walias di $1 = diagnose $1|n — |wdi dummy|n runs "
         "|wdiagnose dummy|n.\n"
-        "  |w$1|n is replaced by whatever you type after the shortcut.\n\n"
+        "  |w$1|n must appear on both sides of the |w=|n; it's replaced "
+        "by whatever you type after the shortcut.\n\n"
         "|wMulti-command shortcut:|n (the real power!)\n"
-        "  |walias dc get canteen from backpack;drink canteen;"
+        "  |walias dc = get canteen from backpack;drink canteen;"
         "put canteen in backpack|n\n"
         "  Now |wdc|n does all three actions at once!\n\n"
         "|wManage your shortcuts:|n\n"
@@ -162,11 +166,14 @@ def build_tutorial_3(instance):
         "  Try creating and using each shortcut above.\n"
         "  Move |weast|n when ready.",
         guide_context=(
-            "Teach the alias/nick system. The |walias|n command lets "
-            "players create personal shortcuts. Simple: |walias sc score|n. "
-            "With args: |walias di diagnose $1|n where $1 is replaced by "
-            "whatever they type after. Multi-command with semicolons: "
-            "|walias dc get canteen from backpack;drink canteen;"
+            "Teach the alias/nick system. |walias|n and |wnick|n (short "
+            "for nickname) are the same command — both let players create "
+            "personal shortcuts, and syntax always uses |w=|n. "
+            "Simple: |walias sc = score|n. "
+            "With args: |walias di $1 = diagnose $1|n — |w$1|n must appear "
+            "on both sides of the |w=|n and is replaced by whatever they "
+            "type after. Multi-command with semicolons: "
+            "|walias dc = get canteen from backpack;drink canteen;"
             "put canteen in backpack|n chains three actions into one. "
             "|walias/list|n shows all aliases, |walias/delete <name>|n "
             "removes one. There's a backpack, canteen, fountain, and "
@@ -180,12 +187,13 @@ def build_tutorial_3(instance):
     # Slate board fixture with examples
     board = _fixture(
         "a slate board", rooms["aliases"],
-        "The slate board is covered in example shortcuts:\n\n"
-        "  |walias sc score|n — simple shortcut\n"
-        "  |walias di diagnose $1|n — shortcut with a target\n"
-        "  |walias dc get canteen from backpack;drink canteen;"
+        "The slate board is covered in example shortcuts.\n"
+        "|walias|n and |wnick|n (short for nickname) work identically:\n\n"
+        "  |walias sc = score|n — simple shortcut\n"
+        "  |walias di $1 = diagnose $1|n — shortcut with a target\n"
+        "  |walias dc = get canteen from backpack;drink canteen;"
         "put canteen in backpack|n — multi-command\n"
-        "  |walias fc get canteen from backpack;refill canteen;"
+        "  |walias fc = get canteen from backpack;refill canteen;"
         "put canteen in backpack|n — refill version\n\n"
         "  |walias/list|n — view your shortcuts\n"
         "  |walias/delete <name>|n — remove one",
@@ -217,8 +225,8 @@ def build_tutorial_3(instance):
         attributes=[
             ("desc",
              "A straw-stuffed practice dummy. Try |wdiagnose dummy|n "
-             "to inspect it, or create a shortcut: |walias di diagnose $1|n "
-             "then use |wdi dummy|n."),
+             "to inspect it, or create a shortcut: "
+             "|walias di $1 = diagnose $1|n then use |wdi dummy|n."),
         ],
     )
     dummy.tags.add(tag, category="tutorial_mob")
@@ -242,6 +250,7 @@ def build_tutorial_3(instance):
         "  |wscore|n — Your character summary: class, level, XP.\n"
         "  |wstats|n — Detailed statistics: HP, abilities, AC, combat.\n"
         "  |whunger|n — Check how hungry you are.\n"
+        "  |wthirst|n — Check how thirsty you are.\n"
         "  |wweight|n — Carrying capacity and encumbrance.\n"
         "  |wwhere|n — See where you are in the world.\n"
         "  |wquests|n — View your active and completed quests.\n"
@@ -518,7 +527,7 @@ def build_tutorial_3(instance):
         "skills you've learned.",
         "|wTutorial 3 Complete!|n\n\n"
         "You've learned about growth and social systems:\n\n"
-        "  |wAliases:|n        alias (personal shortcuts, multi-command)\n"
+        "  |wAliases:|n        alias / nick (personal shortcuts, multi-command)\n"
         "  |wCharacter Info:|n  score, stats, conditions\n"
         "  |wCommunication:|n  say, whisper, shout, languages\n"
         "  |wSkills:|n         skills (3 pools, mastery levels)\n"

@@ -67,6 +67,8 @@ def build_tutorial_1(instance):
 
         room = create_object(RoomBase, key=key, attributes=attrs)
         room.tags.add(tag, category="tutorial_room")
+        room.tags.add("tutorial", category="zone")
+        room.tags.add("tutorial_1", category="district")
         room.cmdset.add(CmdSetTutorial, persistent=True)
         room.always_lit = True
         room.allow_combat = extra_attrs.get("allow_combat", False)
@@ -637,7 +639,7 @@ def build_tutorial_1(instance):
         "You've learned the survival basics:\n\n"
         "  |wMovement:|n     n/s/e/w/u/d, fly up/down, swim up/down\n"
         "  |wLooking:|n      look, look <thing>, examine <thing>\n"
-        "  |wInventory:|n    get, drop, inventory (i), weight\n"
+        "  |wInventory:|n    get, drop, inventory (inv), weight\n"
         "  |wEquipment:|n    wear, wield, hold, remove, equipment (eq)\n"
         "  |wFlying:|n       fly up/down (needs FLY condition)\n"
         "  |wSwimming:|n     swim up/down (WATER_BREATHING prevents drowning)\n"

@@ -137,9 +137,7 @@ class CmdRetreat(CmdSkillBase):
         if total >= RETREAT_DC:
             # ── Success — everyone retreats ──
             caller.msg(
-                f"|g*RETREAT* You lead the group in an orderly withdrawal {direction_name}!|n "
-                f"(Retreat: {roll} + {int_mod + cha_mod + mastery.bonus} = {total} "
-                f"vs DC {RETREAT_DC})"
+                f"|g*RETREAT* You lead the group in an orderly withdrawal {direction_name}!|n"
             )
             if caller.location:
                 caller.location.msg_contents(
@@ -171,9 +169,7 @@ class CmdRetreat(CmdSkillBase):
                     enemy_handler[0].set_advantage(caller, rounds=1)
 
             caller.msg(
-                f"|r*RETREAT FAILED* You try to organise a retreat but can't disengage!|n "
-                f"(Retreat: {roll} + {int_mod + cha_mod + mastery.bonus} = {total} "
-                f"vs DC {RETREAT_DC})"
+                f"|r*RETREAT FAILED* You try to organise a retreat but can't disengage!|n"
             )
             if caller.location:
                 caller.location.msg_contents(

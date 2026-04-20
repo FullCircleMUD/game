@@ -191,9 +191,7 @@ class CmdTaunt(CmdSkillBase):
                     })
 
                 caller.msg(
-                    f"|g*TAUNT* You goad {target.key} into attacking you!|n "
-                    f"(Taunt: {attacker_roll} + {cha_mod + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|g*TAUNT* You goad {target.key} into attacking you!|n"
                 )
                 target.msg(
                     f"|r{caller.key} taunts you, drawing your attention!|n"
@@ -206,9 +204,7 @@ class CmdTaunt(CmdSkillBase):
             else:
                 # Failure
                 caller.msg(
-                    f"|rYou try to taunt {target.key} but it ignores you.|n "
-                    f"(Taunt: {attacker_roll} + {cha_mod + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|rYou try to taunt {target.key} but it ignores you.|n"
                 )
         else:
             # ── OPENER PATH ──
@@ -234,9 +230,7 @@ class CmdTaunt(CmdSkillBase):
                     handler.skill_cooldown = TAUNT_COOLDOWNS[mastery]
 
                 caller.msg(
-                    f"|g*TAUNT* You provoke {target.key} into attacking!|n "
-                    f"(Taunt: {attacker_roll} + {cha_mod + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|g*TAUNT* You provoke {target.key} into attacking!|n"
                 )
                 caller.msg(f"|r{target.key} attacks you!|n")
                 if caller.location:
@@ -248,9 +242,7 @@ class CmdTaunt(CmdSkillBase):
                 # Failure — mob ignores, 5-minute cooldown
                 caller.db.taunt_cooldown_until = time.time() + TAUNT_OOC_FAIL_COOLDOWN
                 caller.msg(
-                    f"|r{target.key} ignores your taunts.|n "
-                    f"(Taunt: {attacker_roll} + {cha_mod + mastery.bonus} = {attacker_total} "
-                    f"vs {defender_total})"
+                    f"|r{target.key} ignores your taunts.|n"
                 )
 
     # ── Mob fallback ──

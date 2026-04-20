@@ -33,16 +33,16 @@ class CmdRunSaturation(Command):
 
         def _run():
             from blockchain.xrpl.services.nft_saturation import NFTSaturationService
-            NFTSaturationService.take_daily_snapshot()
+            NFTSaturationService.take_snapshot()
             from blockchain.xrpl.models import SaturationSnapshot
-            days = SaturationSnapshot.objects.values("day").distinct().count()
+            hours = SaturationSnapshot.objects.values("hour").distinct().count()
             rows = SaturationSnapshot.objects.count()
-            return days, rows
+            return hours, rows
 
         def _done(result):
-            days, rows = result
+            hours, rows = result
             self.msg("|gSaturation snapshot complete.|n")
-            self.msg(f"Snapshot data: {rows} items tracked across {days} day(s).")
+            self.msg(f"Snapshot data: {rows} items tracked across {hours} hour(s).")
 
         d = threads.deferToThread(_run)
         d.addCallback(_done)

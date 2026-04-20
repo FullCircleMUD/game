@@ -38,6 +38,9 @@ class Gnoll(RampageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressive
 
     alignment_score = AttributeProperty(-60)  # evil (savage raider)
     default_weapon_masteries = {"spear": MasteryLevel.BASIC.value}
+    room_description = AttributeProperty(
+        "paces restlessly, a crude spear gripped in hyena-like paws."
+    )
 
     # ── Stats ──
     hp = AttributeProperty(40)
