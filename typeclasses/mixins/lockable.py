@@ -130,13 +130,11 @@ class LockableMixin:
             self.at_unlock(character)
             self._start_relock_timer()
             return True, (
-                f"You deftly pick the lock on {self.key}. "
-                f"(Roll: {roll} + {skill_bonus} = {total} vs DC {self.lock_dc})"
+                f"You deftly pick the lock on {self.key}."
             )
         else:
             return False, (
-                f"You fail to pick the lock on {self.key}. "
-                f"(Roll: {roll} + {skill_bonus} = {total} vs DC {self.lock_dc})"
+                f"You fail to pick the lock on {self.key}."
             )
 
     def lock(self, character):

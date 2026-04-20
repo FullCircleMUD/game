@@ -355,16 +355,6 @@ class TestCommand(EvenniaTest):
         self.assertIn("second", result)
         self.assertIn("third", result)
 
-    @patch("world.spells.divine_dominion.command.dice")
-    def test_contest_detail_shown(self, mock_dice):
-        """Contest detail should appear in caster's message."""
-        mock_dice.roll.side_effect = [15, 5]
-        success, result = self.spell.cast(
-            self.char1, self.char2, spell_arg="halt",
-        )
-        self.assertIn("Will:", result["first"])
-
-
 class TestHold(EvenniaTest):
     """Test Hold spell execution — divine dominion EXPERT."""
 
@@ -574,9 +564,3 @@ class TestHold(EvenniaTest):
         self.assertIn("PARALYSED", result["first"])
         self.assertIn("HOLD", result["first"])
 
-    @patch("world.spells.divine_dominion.hold.dice")
-    def test_contest_detail_shown(self, mock_dice):
-        """Contest detail should appear in caster's message."""
-        mock_dice.roll.side_effect = [15, 5]
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertIn("Will:", result["first"])

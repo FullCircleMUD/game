@@ -221,8 +221,7 @@ class VampiricTouch(Spell):
         if total_hit < target_ac:
             return (True, {
                 "first": (
-                    f"|rYour vampiric touch misses {target.key}! "
-                    f"(rolled {total_hit} vs AC {target_ac})|n"
+                    f"|rYour vampiric touch misses {target.key}!|n"
                 ),
                 "second": (
                     f"|r{caster.key} reaches toward you with dark energy "

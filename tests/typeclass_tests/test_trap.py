@@ -294,20 +294,6 @@ class TestTrapDisarm(TrapTestBase):
             chest.disarm_trap(self.char1)
         self.assertFalse(self.char1.db.non_combat_advantage)
 
-    def test_disarm_roll_includes_dex_mod(self):
-        """Verify skill bonus includes DEX modifier in the message."""
-        chest = self._make_trapped_chest(disarm_dc=5)
-        chest.trap_detected = True
-        self._give_subterfuge(self.char1, MasteryLevel.BASIC)
-        # Set DEX on the character
-        self.char1.db.dexterity = 16  # +3 mod
-        with patch("utils.dice_roller.DiceRoller.roll", return_value=10):
-            success, msg = chest.disarm_trap(self.char1)
-        self.assertTrue(success)
-        # Message should contain the roll details
-        self.assertIn("Roll:", msg)
-
-
 # ====================================================================== #
 #  Reset timer tests
 # ====================================================================== #

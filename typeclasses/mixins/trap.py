@@ -255,17 +255,13 @@ class TrapMixin:
             self.trap_armed = False
             self.at_trap_disarm(character)
             return True, (
-                f"You carefully disarm {self.trap_description}. "
-                f"(Roll: {roll} + {skill_bonus} = {total} "
-                f"vs DC {self.trap_disarm_dc})"
+                f"You carefully disarm {self.trap_description}."
             )
         else:
             # Failed disarm triggers the trap
             self.trigger_trap(character)
             return False, (
-                f"You fumble the disarm and trigger {self.trap_description}! "
-                f"(Roll: {roll} + {skill_bonus} = {total} "
-                f"vs DC {self.trap_disarm_dc})"
+                f"You fumble the disarm and trigger {self.trap_description}!"
             )
 
     def at_trap_disarm(self, character):

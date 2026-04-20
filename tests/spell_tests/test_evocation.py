@@ -638,9 +638,3 @@ class TestFrostbolt(EvenniaTest):
         success, msg = self.spell.cast(self.char1, self.char2)
         self.assertFalse(success)
 
-    @patch("world.spells.evocation.frostbolt.dice")
-    def test_message_includes_roll_details(self, mock_dice):
-        """Output should include contested roll detail."""
-        mock_dice.roll.side_effect = [3, 15, 5]
-        success, result = self.spell.cast(self.char1, self.char2)
-        self.assertIn("Frost:", result["first"])

@@ -57,18 +57,12 @@ class FireBolt(Spell):
         total_hit = d20 + int_mod + mastery_bonus
         target_ac = target.effective_ac
 
-        hit_bonus_display = int_mod + mastery_bonus
-        roll_detail = (
-            f"(Roll: {d20} + {hit_bonus_display} = {total_hit} vs AC {target_ac})"
-        )
-
         if total_hit < target_ac and not is_crit:
             # Miss
             return (True, {
                 "first": (
                     f"You hurl a bolt of fire at {target.key}, "
-                    f"but it streaks past harmlessly!\n"
-                    f"{roll_detail}"
+                    f"but it streaks past harmlessly!"
                 ),
                 "second": (
                     f"{caster.key} hurls a bolt of fire at you, "
@@ -89,8 +83,7 @@ class FireBolt(Spell):
         return (True, {
             "first": (
                 f"You hurl a bolt of fire at {target.key}!{crit_str} "
-                f"|r{actual_damage}|n fire damage!\n"
-                f"{roll_detail}"
+                f"|r{actual_damage}|n fire damage!"
             ),
             "second": (
                 f"{caster.key} hurls a bolt of fire at you!{crit_str} "

@@ -81,12 +81,6 @@ class Fear(Spell):
         )
         target_total = target_roll + target_wis
 
-        caster_bonus_display = caster_int + mastery_bonus
-        contest_detail = (
-            f"(INT: {caster_roll} + {caster_bonus_display} = "
-            f"{caster_total} vs WIS: {target_total})"
-        )
-
         rounds = _DURATION_ROUNDS.get(tier, 1)
         frightened = False
 
@@ -95,12 +89,10 @@ class Fear(Spell):
                 rounds, source=caster, save_dc=caster_total,
                 save_messages={
                     "success": (
-                        "You steel your nerves and shake off the terror! "
-                        "(WIS save: {roll} vs DC {dc})"
+                        "You steel your nerves and shake off the terror!"
                     ),
                     "fail": (
-                        "You try to resist but the terror holds you! "
-                        "(WIS save: {roll} vs DC {dc})"
+                        "You try to resist but the terror holds you!"
                     ),
                     "success_third": (
                         "{name} steels their nerves and shakes off the terror!"
@@ -134,14 +126,12 @@ class Fear(Spell):
             first_msg = (
                 f"|rYou channel dark energy at {target.key}! "
                 f"Supernatural terror grips them!\n"
-                f"*FRIGHTENED* ({rounds} round{s})\n"
-                f"{contest_detail}|n"
+                f"*FRIGHTENED* ({rounds} round{s})|n"
             )
         else:
             first_msg = (
                 f"|rYou channel dark energy at {target.key}, "
-                f"but they resist the terror!\n"
-                f"{contest_detail}|n"
+                f"but they resist the terror!|n"
             )
 
         second_msg = (

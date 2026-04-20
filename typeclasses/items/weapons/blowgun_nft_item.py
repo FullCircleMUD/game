@@ -196,12 +196,10 @@ class BlowgunMixin:
         if save_roll >= dc:
             # Saved — no paralysis
             wielder.msg(
-                f"|y{target.key} resists the paralysis! "
-                f"(rolled {save_roll} vs DC {dc})|n"
+                f"|y{target.key} resists the paralysis!|n"
             )
             target.msg(
-                f"|gYou resist the paralytic poison! "
-                f"(rolled {save_roll} vs DC {dc})|n"
+                f"|gYou resist the paralytic poison!|n"
             )
             return
 
@@ -215,12 +213,10 @@ class BlowgunMixin:
         # Combat messages
         s = "s" if rounds > 1 else ""
         wielder.msg(
-            f"|g*PARALYSIS* {target.key} is paralysed for {rounds} round{s}! "
-            f"(rolled {save_roll} vs DC {dc})|n"
+            f"|g*PARALYSIS* {target.key} is paralysed for {rounds} round{s}!|n"
         )
         target.msg(
-            f"|r*PARALYSIS* You are paralysed for {rounds} round{s}! "
-            f"(rolled {save_roll} vs DC {dc})|n"
+            f"|r*PARALYSIS* You are paralysed for {rounds} round{s}!|n"
         )
 
 
