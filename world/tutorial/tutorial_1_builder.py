@@ -637,7 +637,7 @@ def build_tutorial_1(instance):
         "You've learned the survival basics:\n\n"
         "  |wMovement:|n     n/s/e/w/u/d, fly up/down, swim up/down\n"
         "  |wLooking:|n      look, look <thing>, examine <thing>\n"
-        "  |wInventory:|n    get, drop, inventory (i), weight\n"
+        "  |wInventory:|n    get, drop, inventory (inv), weight\n"
         "  |wEquipment:|n    wear, wield, hold, remove, equipment (eq)\n"
         "  |wFlying:|n       fly up/down (needs FLY condition)\n"
         "  |wSwimming:|n     swim up/down (WATER_BREATHING prevents drowning)\n"
