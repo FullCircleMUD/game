@@ -129,7 +129,7 @@ class CmdWake(FCMCommandMixin, Command):
     Usage:
         wake
 
-    Wakes you up and puts you in a standing position.
+    Wakes you up into a resting position. Use `stand` to rise before moving.
     """
     key = "wake"
     aliases = []
@@ -142,11 +142,11 @@ class CmdWake(FCMCommandMixin, Command):
         if caller.position != "sleeping":
             caller.msg("You aren't asleep.")
             return
-        caller.position = "standing"
-        caller.msg("You wake up and stand.")
+        caller.position = "resting"
+        caller.msg("You wake up and sit up to rest.")
         if caller.location:
             caller.location.msg_contents(
-                f"{caller.key} wakes up and stands.",
+                f"{caller.key} wakes up and sits up to rest.",
                 exclude=[caller],
                 from_obj=caller,
             )
