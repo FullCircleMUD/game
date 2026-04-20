@@ -100,6 +100,14 @@ if not _DATABASE_URL:
 # On Railway, set SECRET_KEY env var. Locally, override in secret_settings.py.
 SECRET_KEY = os.environ.get("SECRET_KEY", "changeme-set-in-secret-settings")
 
+# Host header allowlist — '*' in dev, comma-separated list in prod
+# (e.g. ALLOWED_HOSTS="game.fcmud.world,fcmud.up.railway.app").
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "*").split(",") if h.strip()]
+
+# In-game traceback display — on in dev for visibility, off in prod to
+# avoid leaking internals to players. Set IN_GAME_ERRORS=false on Railway.
+IN_GAME_ERRORS = os.environ.get("IN_GAME_ERRORS", "true").lower() in ("true", "1", "yes")
+
 ######################################################################
 # Evennia base server config
 ######################################################################
