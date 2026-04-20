@@ -27,7 +27,7 @@ class CmdAttack(FCMCommandMixin, Command):
     """
 
     key = "attack"
-    aliases = ["kill"]
+    aliases = ["kill", "k", "att"]
     help_category = "Combat"
 
     def func(self):

@@ -23,7 +23,7 @@ class CmdEquipment(FCMCommandMixin, Command):
     """
 
     key = "equipment"
-    aliases = []
+    aliases = ["eq"]
     locks = "cmd:all()"
     help_category = "Items"
     allow_while_sleeping = True
