@@ -516,10 +516,10 @@ class TestBolaAttributes(EvenniaTest):
         bola = _make_bola()
         self.assertEqual(bola.weapon_type_key, "bola")
 
-    def test_weapon_type_missile(self):
-        """weapon_type should be 'missile'."""
+    def test_weapon_type_ranged(self):
+        """weapon_type should be 'ranged'."""
         bola = _make_bola()
-        self.assertEqual(bola.weapon_type, "missile")
+        self.assertEqual(bola.weapon_type, "ranged")
 
     def test_damage_type_bludgeoning(self):
         """damage_type should be BLUDGEONING."""

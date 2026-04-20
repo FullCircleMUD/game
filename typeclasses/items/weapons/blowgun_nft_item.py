@@ -82,7 +82,7 @@ class BlowgunMixin:
     weapon_type_key = "blowgun"
     base_damage = AttributeProperty("d1")
     material = AttributeProperty("iron")
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     damage_type = AttributeProperty(DamageType.PIERCING)
     weight = AttributeProperty(0.5)
     is_finesse = AttributeProperty(True)

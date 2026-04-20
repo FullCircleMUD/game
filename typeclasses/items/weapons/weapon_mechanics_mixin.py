@@ -29,7 +29,7 @@ class WeaponMechanicsMixin:
         material       — material tier ("wood", "bronze", "iron", "steel", "adamantine")
         damage         — legacy dict override (used by special weapons that bypass the table)
         damage_type    — from DamageType enum (slashing, piercing, etc.)
-        weapon_type    — "melee" or "missile"
+        weapon_type    — "melee", "ranged", or "ranged_only" (matches Spell.range)
         speed          — initiative modifier (higher = acts first)
         two_handed     — if True, blocks use of the HOLD slot while wielded
         is_finesse     — if True, use max(STR, DEX) for hit/damage
@@ -48,6 +48,18 @@ class WeaponMechanicsMixin:
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     weapon_type = AttributeProperty("melee")
     speed = AttributeProperty(1)
+
+    # Range-failure messages — subclasses override for flavour. Parallel
+    # to Spell.out_of_reach_message / Spell.too_close_message. Read by
+    # utils.targeting.predicates.check_range() when the wielder tries
+    # to attack a target out of range for this weapon.
+    out_of_reach_message = (
+        "They are out of reach. You need a ranged weapon "
+        "or to match their height."
+    )
+    too_close_message = (
+        "They are too close — you can't bring this weapon to bear."
+    )
     two_handed = AttributeProperty(False)
     is_finesse = AttributeProperty(False)
     can_dual_wield = AttributeProperty(False)

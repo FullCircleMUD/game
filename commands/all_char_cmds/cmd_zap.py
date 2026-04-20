@@ -38,7 +38,7 @@ from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.wand_nft_item import WandNFTItem
 from world.spells.registry import SPELL_REGISTRY
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see, p_different_height, p_same_height
+from utils.targeting.predicates import check_range, p_can_see
 
 
 class CmdZap(FCMCommandMixin, Command):
@@ -100,14 +100,8 @@ class CmdZap(FCMCommandMixin, Command):
 
         # Range/height check — uses spell's overridable messages
         if target and target is not caller:
-            if spell.range == "melee":
-                if not p_same_height(caller)(target, caller):
-                    caller.msg(spell.out_of_reach_message)
-                    return
-            elif spell.range == "ranged_only":
-                if not p_different_height(caller)(target, caller):
-                    caller.msg(spell.too_close_message)
-                    return
+            if not check_range(caller, target, spell.range, source=spell):
+                return
 
         # ── 4. Cast via the bound spell, with wand overrides ─
         # Force the caster tier to the spell's base min_mastery, and

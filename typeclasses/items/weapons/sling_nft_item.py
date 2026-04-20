@@ -55,7 +55,7 @@ class SlingMixin:
     base_damage = AttributeProperty("d6")
     speed = AttributeProperty(2)
     weight = AttributeProperty(0.3)
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     range = AttributeProperty(1)
 
     # ================================================================== #

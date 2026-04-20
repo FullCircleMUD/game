@@ -9,9 +9,9 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat
-from combat.height_utils import can_reach_target
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import check_range
 
 
 class CmdAttack(FCMCommandMixin, Command):
@@ -39,21 +39,14 @@ class CmdAttack(FCMCommandMixin, Command):
 
         search_term = self.args.strip()
 
-        # Determine weapon range for height filtering.
-        # TODO: temporary call-site mapping for POC. When weapons gain
-        # a universal `range` attribute (matching spells), this mapping
-        # goes away and we pass weapon.range directly.
         weapon = caller.get_slot("WIELD") if hasattr(caller, "get_slot") else None
-        if weapon and getattr(weapon, "weapon_type", "melee") == "missile":
-            attack_range = "ranged"
-        elif getattr(caller, "mob_weapon_type", None) == "missile":
-            attack_range = "ranged"
-        else:
-            attack_range = "melee"
-
-        target, _ = resolve_target(
-            caller, search_term, "actor_hostile", range=attack_range,
+        attack_range = (
+            getattr(weapon, "weapon_type", "melee")
+            if weapon
+            else getattr(caller, "mob_weapon_type", "melee")
         )
+
+        target, _ = resolve_target(caller, search_term, "actor_hostile")
 
         if target is None:
             # resolve_target already sent the error message
@@ -63,16 +56,8 @@ class CmdAttack(FCMCommandMixin, Command):
             caller.msg("You can't attack yourself.")
             return
 
-        # Belt-and-suspenders height check — resolve_target already
-        # filters by height via the range parameter, but this catches
-        # edge cases like innate ranged with limited range that the
-        # simple melee/ranged binary doesn't express.
-        if not can_reach_target(caller, target, weapon):
-            caller.msg(
-                "They are out of melee range. "
-                "You need a ranged weapon or to match their height."
-            )
-            return
+        if not check_range(caller, target, attack_range, source=weapon):
+            return  # check_range already messaged
 
         # Attack from hide — break hidden, grant advantage on free attack
         attacking_from_hide = (

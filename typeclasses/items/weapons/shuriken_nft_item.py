@@ -66,7 +66,7 @@ class ShurikenMixin:
     damage_type = AttributeProperty(DamageType.PIERCING)
     speed = AttributeProperty(3)
     weight = AttributeProperty(0.1)
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     is_finesse = AttributeProperty(True)
     range = AttributeProperty(1)
 

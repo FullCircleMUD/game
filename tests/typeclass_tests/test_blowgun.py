@@ -492,10 +492,10 @@ class TestBlowgunAttributes(EvenniaTest):
         blowgun = _make_blowgun()
         self.assertEqual(blowgun.weapon_type_key, "blowgun")
 
-    def test_weapon_type_missile(self):
-        """weapon_type should be 'missile'."""
+    def test_weapon_type_ranged(self):
+        """weapon_type should be 'ranged'."""
         blowgun = _make_blowgun()
-        self.assertEqual(blowgun.weapon_type, "missile")
+        self.assertEqual(blowgun.weapon_type, "ranged")
 
     def test_is_finesse(self):
         """Blowgun should be finesse."""

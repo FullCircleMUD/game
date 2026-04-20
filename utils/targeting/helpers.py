@@ -736,11 +736,10 @@ def resolve_target(caller, target_str, target_type, aoe=None,
     ``secondaries`` is always ``[]``. On failure, returns ``(None, [])``
     with an error message already sent to the caller.
 
-    ``range`` controls height filtering for actor target_types:
-        ``"melee"``      — only actors at the caller's height
-        ``"ranged"``     — any height (default)
-        ``"ranged_only"``— only actors at a different height
-        ``"self"``       — no target resolution (ignored)
+    Range/height filtering is a command-layer concern, not a resolution
+    concern — see ``utils.targeting.predicates.check_range()``. Both
+    cmd_cast and cmd_attack apply range checks AFTER resolution so they
+    can emit context-specific failure messages from the spell or weapon.
 
     Target types — actors:
 

@@ -441,10 +441,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         from combat.combat_utils import get_weapon
         weapon = get_weapon(self)
 
-        # Ability score: finesse = max(STR, DEX), missile = DEX, melee = STR
+        # Ability score: finesse = max(STR, DEX), ranged = DEX, melee = STR
         if weapon and getattr(weapon, "is_finesse", False):
             attr_score = max(self.strength, self.dexterity)
-        elif weapon and getattr(weapon, "weapon_type", "melee") == "missile":
+        elif weapon and getattr(weapon, "weapon_type", "melee") == "ranged":
             attr_score = self.dexterity
         else:
             attr_score = self.strength
@@ -484,10 +484,10 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         from combat.combat_utils import get_weapon
         weapon = get_weapon(self)
 
-        # Ability score: finesse = max(STR, DEX), missile = DEX, melee = STR
+        # Ability score: finesse = max(STR, DEX), ranged = DEX, melee = STR
         if weapon and getattr(weapon, "is_finesse", False):
             attr_score = max(self.strength, self.dexterity)
-        elif weapon and getattr(weapon, "weapon_type", "melee") == "missile":
+        elif weapon and getattr(weapon, "weapon_type", "melee") == "ranged":
             attr_score = self.dexterity
         else:
             attr_score = self.strength

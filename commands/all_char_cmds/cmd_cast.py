@@ -15,7 +15,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see, p_different_height, p_same_height
+from utils.targeting.predicates import check_range, p_can_see
 from world.spells.registry import SPELL_REGISTRY
 
 
@@ -118,14 +118,8 @@ class CmdCast(FCMCommandMixin, Command):
 
         # Range/height check — universal, uses spell's overridable messages
         if target and target is not caller:
-            if spell_match.range == "melee":
-                if not p_same_height(caller)(target, caller):
-                    caller.msg(spell_match.out_of_reach_message)
-                    return
-            elif spell_match.range == "ranged_only":
-                if not p_different_height(caller)(target, caller):
-                    caller.msg(spell_match.too_close_message)
-                    return
+            if not check_range(caller, target, spell_match.range, source=spell_match):
+                return
 
         # Self-targeting rejection for hostile/any_actor spells
         if spell_match.target_type in ("actor_hostile", "actor_any") and target is caller:

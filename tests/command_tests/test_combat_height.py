@@ -69,7 +69,7 @@ class TestCombatHeight(EvenniaCommandTest):
         """Missile weapon can reach target at different height."""
         from combat.height_utils import can_reach_target
         weapon = MagicMock()
-        weapon.weapon_type = "missile"
+        weapon.weapon_type = "ranged"
         self.char1.room_vertical_position = 0
         self.char2.room_vertical_position = 3
         self.assertTrue(can_reach_target(self.char1, self.char2, weapon))
@@ -78,7 +78,7 @@ class TestCombatHeight(EvenniaCommandTest):
         """Missile weapon can reach target at same height."""
         from combat.height_utils import can_reach_target
         weapon = MagicMock()
-        weapon.weapon_type = "missile"
+        weapon.weapon_type = "ranged"
         self.char1.room_vertical_position = 0
         self.char2.room_vertical_position = 0
         self.assertTrue(can_reach_target(self.char1, self.char2, weapon))
@@ -94,7 +94,7 @@ class TestCombatHeight(EvenniaCommandTest):
         """Missile weapon at same height gets -4 penalty."""
         from combat.height_utils import get_height_hit_modifier
         weapon = MagicMock()
-        weapon.weapon_type = "missile"
+        weapon.weapon_type = "ranged"
         self.char1.room_vertical_position = 0
         self.char2.room_vertical_position = 0
         self.assertEqual(
@@ -105,7 +105,7 @@ class TestCombatHeight(EvenniaCommandTest):
         """Missile weapon at different height gets no penalty."""
         from combat.height_utils import get_height_hit_modifier
         weapon = MagicMock()
-        weapon.weapon_type = "missile"
+        weapon.weapon_type = "ranged"
         self.char1.room_vertical_position = 0
         self.char2.room_vertical_position = 2
         self.assertEqual(
@@ -130,15 +130,14 @@ class TestCombatHeight(EvenniaCommandTest):
     def test_attack_blocked_melee_different_height(self):
         """Attack command blocks melee against target at different height.
 
-        Height filtering now happens at resolution time via p_same_height
-        in resolve_target (range="melee"). The target at a different height
-        is not found by the resolver — "There's no 'X' here" rather than
-        the old post-resolution "out of melee range" message.
+        Range filtering happens post-resolution via check_range (parallel
+        to how cmd_cast handles spell.range). The target IS found by the
+        resolver, then check_range emits the weapon's out_of_reach_message.
         """
         self.char1.room_vertical_position = 0
         self.char2.room_vertical_position = 2
         result = self.call(CmdAttack(), self.char2.key)
-        self.assertIn("There's no", result)
+        self.assertIn("out of reach", result)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_attack_allowed_missile_different_height(self, mock_ticker):
@@ -149,7 +148,7 @@ class TestCombatHeight(EvenniaCommandTest):
             key="a shortbow",
             location=self.char1,
             attributes=[
-                ("weapon_type", "missile"),
+                ("weapon_type", "ranged"),
                 ("weapon_type_key", "bow"),
                 ("speed", 1.0),
                 ("damage_dice", "1d6"),
@@ -192,7 +191,7 @@ class TestCombatHeight(EvenniaCommandTest):
             key="a shortbow",
             location=self.char1,
             attributes=[
-                ("weapon_type", "missile"),
+                ("weapon_type", "ranged"),
                 ("weapon_type_key", "bow"),
                 ("speed", 1.0),
                 ("damage_dice", "1d6"),
@@ -516,7 +515,7 @@ class TestFleeHeight(EvenniaCommandTest):
             key="a shortbow",
             location=self.char2,
             attributes=[
-                ("weapon_type", "missile"),
+                ("weapon_type", "ranged"),
                 ("weapon_type_key", "bow"),
                 ("speed", 1.0),
                 ("damage_dice", "1d6"),

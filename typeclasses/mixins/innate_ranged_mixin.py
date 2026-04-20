@@ -6,7 +6,7 @@ Three-tier weapon model:
   2. Non-humanoid mobs default to melee (bite, claw) → no mixin needed
   3. Non-humanoid mobs with innate ranged (dragon breath, venom spit) → this mixin
 
-Sets mob_weapon_type = "missile" so height_utils.can_reach_target() allows
+Sets mob_weapon_type = "ranged" so height_utils.can_reach_target() allows
 cross-height attacks. Combined with FlyingMixin, enables attack from the
 air without descending.
 
@@ -23,7 +23,7 @@ class InnateRangedMixin:
     """Mixin providing innate ranged attack for non-humanoid mobs."""
 
     # Flag checked by height_utils.can_reach_target()
-    mob_weapon_type = AttributeProperty("missile")
+    mob_weapon_type = AttributeProperty("ranged")
 
     # Flavor text for attack messages (e.g. "breathes fire at", "spits venom at")
     innate_ranged_message = AttributeProperty("attacks")

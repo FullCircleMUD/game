@@ -58,7 +58,7 @@ class BolaMixin:
     weapon_type_key = "bola"
     base_damage = AttributeProperty("d1")
     material = AttributeProperty("iron")
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     weight = AttributeProperty(1.0)
     is_finesse = AttributeProperty(True)

@@ -59,7 +59,7 @@ class CrossbowMixin:
     damage_type = AttributeProperty(DamageType.PIERCING)
     speed = AttributeProperty(0)
     weight = AttributeProperty(3.5)
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     range = AttributeProperty(1)
 
     # ================================================================== #

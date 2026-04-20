@@ -413,6 +413,42 @@ def p_different_height(caller):
     return _pred
 
 
+def check_range(caller, target, range_value, source=None):
+    """Apply a range constraint to an already-resolved target.
+
+    Single source of truth for the spell/weapon range vocabulary
+    (``"melee"`` | ``"ranged"`` | ``"ranged_only"`` | ``"self"`` | None).
+    Emits a context-specific error message and returns ``False`` on
+    fail; returns ``True`` when the constraint passes or when no
+    constraint applies (``"ranged"`` / ``"self"`` / ``None``).
+
+    ``source`` is the spell or weapon producing the attack — when
+    present, its ``out_of_reach_message`` / ``too_close_message``
+    attributes are used for failure flavour. Falls back to generic
+    strings when ``source`` is ``None`` or has no override (e.g.
+    unarmed attacks, innate mob attacks without flavour text).
+    """
+    if range_value == "melee":
+        if not p_same_height(caller)(target, caller):
+            caller.msg(_range_msg(
+                source, "out_of_reach_message",
+                "They are out of reach.",
+            ))
+            return False
+    elif range_value == "ranged_only":
+        if not p_different_height(caller)(target, caller):
+            caller.msg(_range_msg(
+                source, "too_close_message",
+                "They are too close to use that effectively.",
+            ))
+            return False
+    return True
+
+
+def _range_msg(source, attr, default):
+    return getattr(source, attr, None) or default
+
+
 def p_same_height_value(height):
     """Factory — returns a predicate matching actors at an explicit height.
 

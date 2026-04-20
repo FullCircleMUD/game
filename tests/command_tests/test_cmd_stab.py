@@ -71,7 +71,7 @@ class TestStabGates(EvenniaCommandTest):
         """Can't stab with a ranged finesse weapon."""
         self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
         self.char1.add_condition(Condition.HIDDEN)
-        self.dagger.weapon_type = "missile"
+        self.dagger.weapon_type = "ranged"
         result = self.call(CmdStab(), self.char2.key)
         self.assertIn("ranged weapon", result)
         self.dagger.weapon_type = "melee"  # restore

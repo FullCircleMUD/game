@@ -63,7 +63,7 @@ class BowMixin:
     base_damage = AttributeProperty("d8")
     damage_type = AttributeProperty(DamageType.PIERCING)
     weight = AttributeProperty(1.5)
-    weapon_type = AttributeProperty("missile")
+    weapon_type = AttributeProperty("ranged")
     range = AttributeProperty(1)
 
     # ================================================================== #
