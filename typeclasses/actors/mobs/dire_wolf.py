@@ -19,6 +19,9 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
     # ── Size ──
     base_size = AttributeProperty(Size.LARGE.value)
     size = AttributeProperty(Size.LARGE.value)
+    room_description = AttributeProperty(
+        "prowls on massive paws, yellow eyes burning with hunger."
+    )
 
     # ── Stats — tougher than a regular wolf ──
     hp = AttributeProperty(30)

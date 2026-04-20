@@ -22,6 +22,10 @@ from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 class Wolf(AggressiveMob):
     """A grey wolf — hunts rabbits and attacks players."""
 
+    room_description = AttributeProperty(
+        "watches the trail with ears pricked, lips curling back from white fangs."
+    )
+
     # ── Stats ──
     hp = AttributeProperty(12)
     base_hp_max = AttributeProperty(12)

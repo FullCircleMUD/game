@@ -31,6 +31,9 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
     base_size = AttributeProperty(Size.SMALL.value)
     size = AttributeProperty(Size.SMALL.value)
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
+    room_description = AttributeProperty(
+        "squats atop a heap of bones, tapping a heavy club against a battered shield."
+    )
 
     # ── Stats ──
     hp = AttributeProperty(28)

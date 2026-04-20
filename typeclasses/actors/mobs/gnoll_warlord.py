@@ -28,6 +28,9 @@ class GnollWarlord(Gnoll):
 
     is_unique = AttributeProperty(True)
     default_weapon_masteries = {"battleaxe": MasteryLevel.SKILLED.value}
+    room_description = AttributeProperty(
+        "looms over the camp, a notched battleaxe slung across its massive shoulders."
+    )
 
     # ── Stats ──
     hp = AttributeProperty(75)

@@ -13,6 +13,10 @@ from typeclasses.actors.mob import CombatMob
 class TrainingDummy(CombatMob):
     """A straw-stuffed training dummy that fights back weakly."""
 
+    room_description = AttributeProperty(
+        "stands upright on a battered post, straw bristling from canvas patched with countless practice cuts."
+    )
+
     # ── Stats ──
     hp = AttributeProperty(20)
     base_hp_max = AttributeProperty(20)
