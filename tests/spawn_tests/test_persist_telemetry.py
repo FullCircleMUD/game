@@ -153,10 +153,10 @@ class TestPersistSpawnTelemetryKnowledge(EvenniaTest):
 
     def test_knowledge_budget_written_to_saturation_snapshot(self):
         """Knowledge BudgetState counters update SaturationSnapshot."""
-        today = timezone.now().date()
+        bucket = timezone.now().replace(minute=0, second=0, microsecond=0)
 
         SaturationSnapshot.objects.create(
-            day=today,
+            hour=bucket,
             item_key="scroll_magic_missile",
             category="spell",
             active_players_7d=100,
@@ -177,7 +177,7 @@ class TestPersistSpawnTelemetryKnowledge(EvenniaTest):
         svc._persist_spawn_telemetry()
 
         snap = SaturationSnapshot.objects.get(
-            day=today, item_key="scroll_magic_missile",
+            hour=bucket, item_key="scroll_magic_missile",
         )
         self.assertEqual(snap.spawn_budget, 15)
         self.assertEqual(snap.spawn_quest_debt, 2)

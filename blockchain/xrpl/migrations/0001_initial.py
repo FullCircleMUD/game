@@ -1081,12 +1081,12 @@ class Migration(migrations.Migration):
             model_name="bulletinlisting",
             index=models.Index(fields=["expires_at"], name="xrpl_bulletinli_expires_idx"),
         ),
-        # ── SaturationSnapshot (daily NFT item saturation) ──
+        # ── SaturationSnapshot (hourly NFT item saturation) ──
         migrations.CreateModel(
             name="SaturationSnapshot",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("day", models.DateField()),
+                ("hour", models.DateTimeField()),
                 ("item_key", models.CharField(max_length=80)),
                 ("category", models.CharField(choices=[("spell", "Spell"), ("recipe", "Recipe"), ("item", "Item")], max_length=10)),
                 ("active_players_7d", models.IntegerField()),
@@ -1101,12 +1101,12 @@ class Migration(migrations.Migration):
                 ("spawn_dropped", models.IntegerField(default=0, help_text="Surplus dropped (no targets with headroom)")),
             ],
             options={
-                "ordering": ["-day"],
+                "ordering": ["-hour"],
             },
         ),
         migrations.AddConstraint(
             model_name="saturationsnapshot",
-            constraint=models.UniqueConstraint(fields=["day", "item_key", "category"], name="xrpl_unique_saturation_day_item"),
+            constraint=models.UniqueConstraint(fields=["hour", "item_key", "category"], name="xrpl_unique_saturation_hour_item"),
         ),
         # ── Seed data ──
         migrations.RunPython(seed_currency_types, remove_currency_types),

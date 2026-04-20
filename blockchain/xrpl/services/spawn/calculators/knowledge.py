@@ -65,7 +65,7 @@ class KnowledgeCalculator(BaseCalculator):
 
         snapshot = (
             SaturationSnapshot.objects.filter(item_key=item_key)
-            .order_by("-day")
+            .order_by("-hour")
             .first()
         )
         if not snapshot:

@@ -581,12 +581,12 @@ class BulletinListing(models.Model):
         return f"BulletinListing({self.listing_type}: {self.character_name})"
 
 
-# ─── Saturation Snapshot (daily NFT item saturation) ─────────────────
+# ─── Saturation Snapshot (hourly NFT item saturation) ────────────────
 
 class SaturationSnapshot(models.Model):
-    """Daily saturation metrics for NFT item spawning.
+    """Hourly saturation metrics for NFT item spawning.
 
-    One row per tracked item per day. Knowledge items (spells, recipes)
+    One row per tracked item per hour. Knowledge items (spells, recipes)
     track how many active players know the spell/recipe plus unlearned
     copies in player hands. Physical items track circulation count.
     """
@@ -600,7 +600,7 @@ class SaturationSnapshot(models.Model):
         (CATEGORY_ITEM, "Item"),
     ]
 
-    day = models.DateField()
+    hour = models.DateTimeField()
     item_key = models.CharField(max_length=80)
     category = models.CharField(max_length=10, choices=CATEGORY_CHOICES)
     active_players_7d = models.IntegerField()
@@ -626,13 +626,13 @@ class SaturationSnapshot(models.Model):
 
     class Meta:
         app_label = "xrpl"
-        ordering = ["-day"]
+        ordering = ["-hour"]
         constraints = [
             models.UniqueConstraint(
-                fields=["day", "item_key", "category"],
-                name="xrpl_unique_saturation_day_item",
+                fields=["hour", "item_key", "category"],
+                name="xrpl_unique_saturation_hour_item",
             ),
         ]
 
     def __str__(self):
-        return f"SaturationSnapshot({self.day}: {self.category}/{self.item_key} sat={self.saturation:.2f})"
+        return f"SaturationSnapshot({self.hour}: {self.category}/{self.item_key} sat={self.saturation:.2f})"
