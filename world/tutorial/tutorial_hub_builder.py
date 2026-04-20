@@ -88,6 +88,10 @@ def build_tutorial_hub():
     # Tag so we can find it
     hub.tags.add(TUTORIAL_HUB_TAG, category="tutorial_hub")
 
+    # Zone/district tags (for the `where` command)
+    hub.tags.add("tutorial", category="zone")
+    hub.tags.add("tutorial_hub", category="district")
+
     # Add the tutorial CmdSet (for `tutorial` room command)
     from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
     hub.cmdset.add(CmdSetTutorial, persistent=True)

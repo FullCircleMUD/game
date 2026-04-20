@@ -72,6 +72,8 @@ def build_tutorial_3(instance):
 
         room = create_object(RoomBase, key=key, attributes=attrs)
         room.tags.add(tag, category="tutorial_room")
+        room.tags.add("tutorial", category="zone")
+        room.tags.add("tutorial_3", category="district")
         room.cmdset.add(CmdSetTutorial, persistent=True)
         room.always_lit = True
         room.allow_combat = False
