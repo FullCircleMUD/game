@@ -162,6 +162,29 @@ class TestZoneSpawnScript(EvenniaTest):
         count = self.script._count_living(self.rule)
         self.assertEqual(count, 3)
 
+    def test_populate_stamps_last_spawn_times(self):
+        """populate() records a timestamp per rule it actually seeds.
+
+        Operator tooling (e.g. the `services` command) uses last_spawn_times
+        to tell a freshly-populated zone from a stalled one. Without this
+        stamp, every just-reset zone would incorrectly look stalled.
+        """
+        before = time.time()
+        self.script.populate()
+        after = time.time()
+
+        rule_id = self.script._rule_id(self.rule)
+        self.assertIn(rule_id, self.script.db.last_spawn_times)
+        self.assertGreaterEqual(self.script.db.last_spawn_times[rule_id], before)
+        self.assertLessEqual(self.script.db.last_spawn_times[rule_id], after)
+
+    def test_populate_skips_stamp_when_no_rooms(self):
+        """Rules with no matching rooms remain unstamped — correctly stalled."""
+        rule = dict(self.rule, area_tag="nonexistent_area")
+        self.script.db.spawn_table = [rule]
+        self.script.populate()
+        self.assertEqual(self.script.db.last_spawn_times, {})
+
     # ── Room selection ───────────────────────────────────────────────
 
     def test_pick_spawn_room_returns_tagged_room(self):

@@ -211,21 +211,37 @@ class ZoneSpawnScript(DefaultScript):
         """
         Initial population — spawn all mobs up to target immediately,
         bypassing respawn cooldowns.
+
+        Stamps last_spawn_times for every rule that successfully placed
+        at least one mob so operator tooling (e.g. `services`) can tell
+        a freshly-seeded zone from one whose at_repeat() loop has never
+        fired. Rules that couldn't place anything (no matching rooms)
+        are left unstamped and correctly appear as stalled.
         """
         spawn_table = self.db.spawn_table
         if not spawn_table:
             return
 
+        now = time.time()
+        last_spawn_times = dict(self.db.last_spawn_times or {})
+
         for rule in spawn_table:
             target = rule.get("target", 0)
             living = self._count_living(rule)
             needed = target - living
+            placed = 0
 
             for _ in range(needed):
                 room = self._pick_spawn_room(rule)
                 if not room:
                     break
                 self._spawn_mob(rule, room)
+                placed += 1
+
+            if placed > 0:
+                last_spawn_times[self._rule_id(rule)] = now
+
+        self.db.last_spawn_times = last_spawn_times
 
     # ================================================================== #
     #  Factory
