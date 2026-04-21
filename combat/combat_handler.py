@@ -111,7 +111,7 @@ class CombatHandler(DefaultScript):
         self._stop_ticker()
         self.obj.position = "standing"
         self.obj.ndb.combat_target = None
-        self.obj.msg("|gCombat has ended.|n")
+        # self.obj.msg("|gCombat has ended.|n")
         self.delete()
 
     # ================================================================== #
