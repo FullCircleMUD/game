@@ -288,6 +288,7 @@ class TestCmdScoreStructure(EvenniaCommandTest):
     def test_has_hunger(self):
         """Output should show hunger status."""
         result = self.call(CmdScore(), "")
+        self.assertIn("Hunger:", result)
         self.assertIn("Full", result)
 
     def test_resist_vulner_headers_always_shown(self):

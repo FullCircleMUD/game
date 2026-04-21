@@ -197,7 +197,7 @@ class TestPickpocketSuccess(EvenniaCommandTest):
 
         result = self.call(CmdPickpocket(), "dagger from Char2")
         self.assertIn("deftly lift", result)
-        self.assertIn("(adv)", result)
+        self.assertTrue(mock_roll.call_args.kwargs.get("advantage"))
 
     @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
     def test_hidden_broken_on_success(self, mock_roll):
