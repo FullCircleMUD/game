@@ -377,9 +377,9 @@ class TestFlameBurst(EvenniaTest):
         self.assertIn("first", result)
         self.assertIn("third", result)
 
-    def test_no_cooldown(self):
-        """Flame Burst should have no cooldown (SKILLED default)."""
-        self.assertEqual(self.spell.get_cooldown(), 0)
+    def test_skilled_tier_cooldown(self):
+        """Flame Burst inherits the SKILLED tier default cooldown (2 rounds)."""
+        self.assertEqual(self.spell.get_cooldown(), 2)
 
     def test_fire_resistance_reduces_damage(self):
         """Fire resistance should reduce flame burst damage on primary."""
@@ -523,9 +523,9 @@ class TestPowerWordDeath(EvenniaTest):
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
 
-    def test_cooldown_3_rounds(self):
-        """PWD should have 3 round cooldown."""
-        self.assertEqual(self.spell.get_cooldown(), 3)
+    def test_grandmaster_tier_cooldown(self):
+        """PWD inherits the GRANDMASTER tier default cooldown (5 rounds)."""
+        self.assertEqual(self.spell.get_cooldown(), 5)
 
 
 class TestFrostbolt(EvenniaTest):

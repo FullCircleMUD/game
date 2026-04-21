@@ -21,10 +21,25 @@ multi-perspective messages:
 cast() returns (False, str) on validation failure (caster-only message).
 
 Cooldown system:
-    Spells have a cooldown in combat rounds after casting. Default
-    cooldowns are tier-based: BASIC/SKILLED=0, EXPERT=1, MASTER=2,
-    GM=3. Override `cooldown` on a spell class to customise.
-    Set to None to use the default tier-based value.
+    A successful cast writes its cooldown to the shared
+    ``CombatHandler.skill_cooldown`` counter — the same counter used by
+    bash/pummel/stab. While it's non-zero the caster cannot cast another
+    spell OR use another combat special; auto-attacks tick independently.
+
+    Default cooldown is the spell's ``min_mastery.value`` (BASIC=1,
+    SKILLED=2, EXPERT=3, MASTER=4, GRANDMASTER=5). Override ``cooldown``
+    on the class for bespoke behaviour — set to 0 for reactive/buff spells
+    that should never block other actions (Smite, Shield, Mage Armor, …).
+
+    Out of combat there is no handler, so ``is_on_cooldown`` is always
+    False and utility spells cast freely. The first hostile cast calls
+    ``enter_combat``, creates the handler, then the cooldown applies.
+
+Combat entry:
+    After a successful cast, ``should_enter_combat(caster, target, result)``
+    decides whether each affected target is pulled into combat. Default:
+    only ``target_type == "actor_hostile"`` spells aggro. Override per
+    spell for conditional logic (e.g. charm only aggros on resist).
 
 Usage:
     @register_spell
@@ -44,16 +59,6 @@ Usage:
 from enum import Enum
 
 from enums.mastery_level import MasteryLevel
-
-# Default cooldowns by minimum mastery tier.
-# BASIC/SKILLED = 0 rounds, EXPERT = 1, MASTER = 2, GM = 3.
-_DEFAULT_COOLDOWNS = {
-    MasteryLevel.BASIC: 0,
-    MasteryLevel.SKILLED: 0,
-    MasteryLevel.EXPERT: 1,
-    MasteryLevel.MASTER: 2,
-    MasteryLevel.GRANDMASTER: 3,
-}
 
 
 class Spell:
@@ -124,12 +129,13 @@ class Spell:
         """
         Return the cooldown in combat rounds for this spell.
 
-        If cooldown is explicitly set on the class, use that.
-        Otherwise, derive from min_mastery tier using defaults.
+        Explicit per-spell `cooldown = N` (including 0) wins.
+        Otherwise default is the min_mastery tier value (BASIC=1 .. GRANDMASTER=5),
+        with a floor of 1 so a default-configured spell always paces.
         """
         if self.cooldown is not None:
             return self.cooldown
-        return _DEFAULT_COOLDOWNS.get(self.min_mastery, 0)
+        return max(self.min_mastery.value, 1)
 
     def get_caster_tier(self, caster):
         """
@@ -156,22 +162,70 @@ class Spell:
 
     def is_on_cooldown(self, caster):
         """
-        Check if this spell is on cooldown for the caster.
+        Check if the caster is blocked from casting by the shared combat
+        cooldown. Returns (bool, int) — on cooldown, rounds remaining.
 
-        Returns (bool, int) — is on cooldown, rounds remaining.
+        Out of combat (no handler) a caster is never on cooldown. The first
+        hostile cast enters combat, which creates the handler; subsequent
+        casts and combat-skill specials then share the same counter.
         """
-        cooldowns = caster.db.spell_cooldowns or {}
-        remaining = cooldowns.get(self.key, 0)
+        handlers = caster.scripts.get("combat_handler")
+        if not handlers:
+            return False, 0
+        remaining = handlers[0].skill_cooldown
         return remaining > 0, remaining
 
     def apply_cooldown(self, caster):
-        """Set this spell's cooldown on the caster."""
-        cd = self.get_cooldown()
-        if cd <= 0:
+        """Write this spell's cooldown to the shared combat counter."""
+        handlers = caster.scripts.get("combat_handler")
+        if not handlers:
             return
-        cooldowns = dict(caster.db.spell_cooldowns or {})
-        cooldowns[self.key] = cd
-        caster.db.spell_cooldowns = cooldowns
+        cd = self.get_cooldown()
+        if cd > 0:
+            handlers[0].skill_cooldown = cd
+
+    def should_enter_combat(self, caster, target, result):
+        """
+        Decide whether casting this spell on ``target`` should aggro them into
+        combat with ``caster``. Called once per affected target (primary +
+        each AoE secondary) after a successful ``_execute``.
+
+        Default: only target_type == "actor_hostile" spells aggro, regardless
+        of outcome. Override per spell for conditional logic (e.g. charm only
+        aggros when the target resisted the effect).
+
+        Args:
+            caster: the actor who cast the spell
+            target: one affected actor (primary or secondary)
+            result: the dict returned from ``_execute`` — spells that want
+                conditional behaviour should stash outcome signals here
+                (e.g. ``{"resisted": True}``) and read them in their override.
+        """
+        return self.target_type == "actor_hostile"
+
+    def _maybe_enter_combat(self, caster, target, secondaries, result):
+        """Invoke enter_combat for each affected target per should_enter_combat."""
+        if getattr(caster, "hp", 0) <= 0:
+            return
+
+        result_dict = result[1] if isinstance(result[1], dict) else {}
+
+        candidates = []
+        if target is not None and target is not caster:
+            candidates.append(target)
+        for sec in secondaries or []:
+            if sec is not None and sec is not caster and sec not in candidates:
+                candidates.append(sec)
+
+        for t in candidates:
+            if getattr(t, "hp", None) is None or t.hp <= 0:
+                continue
+            if getattr(t, "location", None) is not caster.location:
+                continue
+            if not self.should_enter_combat(caster, t, result_dict):
+                continue
+            from combat.combat_utils import enter_combat
+            enter_combat(caster, t)
 
     def cast(self, caster, target=None, spell_arg=None, secondaries=None):
         """
@@ -240,8 +294,10 @@ class Spell:
             exec_kwargs["secondaries"] = secondaries
         result = self._execute(caster, target, **exec_kwargs)
 
-        # Apply cooldown on successful cast
         if result[0]:
+            # enter_combat first so the handler exists before we write the
+            # shared skill_cooldown onto it.
+            self._maybe_enter_combat(caster, target, secondaries, result)
             self.apply_cooldown(caster)
 
         return result

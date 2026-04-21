@@ -178,65 +178,9 @@ class TestSpellCast(EvenniaTest):
         self.assertEqual(self.spell.get_caster_tier(self.char1), 0)
 
 
-# ================================================================== #
-#  Cooldown Tests
-# ================================================================== #
-
-class TestSpellCooldown(EvenniaTest):
-    """Test spell cooldown system."""
-
-    def create_script(self):
-        pass
-
-    def setUp(self):
-        super().setUp()
-        self.spell = get_spell("fireball")
-        self.char1.db.class_skill_mastery_levels = {"evocation": 3}
-        self.char1.mana = 500
-        self.char1.db.spell_cooldowns = {}
-        self.char2.hp = 200
-        self.char2.hp_max = 200
-
-    def test_default_cooldown_expert(self):
-        """EXPERT spell should have default cooldown of 1."""
-        self.assertEqual(self.spell.get_cooldown(), 1)
-
-    def test_default_cooldown_master(self):
-        """MASTER spell should have default cooldown of 2."""
-        coc = get_spell("cone_of_cold")
-        self.assertEqual(coc.get_cooldown(), 2)
-
-    def test_default_cooldown_gm(self):
-        """GM spell should have default cooldown of 3."""
-        pwd = get_spell("power_word_death")
-        self.assertEqual(pwd.get_cooldown(), 3)
-
-    def test_default_cooldown_basic(self):
-        """BASIC spell should have default cooldown of 0."""
-        mm = get_spell("magic_missile")
-        self.assertEqual(mm.get_cooldown(), 0)
-
-    def test_cooldown_applied_after_cast(self):
-        """Casting should set cooldown on caster."""
-        self.spell.cast(self.char1, self.char2)
-        on_cd, remaining = self.spell.is_on_cooldown(self.char1)
-        self.assertTrue(on_cd)
-        self.assertEqual(remaining, 1)
-
-    def test_cooldown_blocks_recast(self):
-        """Spell on cooldown should not be castable."""
-        self.spell.cast(self.char1, self.char2)
-        success, msg = self.spell.cast(self.char1, self.char2)
-        self.assertFalse(success)
-        self.assertIn("cooldown", msg.lower())
-
-    def test_no_cooldown_no_block(self):
-        """BASIC spell with 0 cooldown should be recastable."""
-        mm = get_spell("magic_missile")
-        self.char2.hp = 200
-        mm.cast(self.char1, self.char2)
-        success, result = mm.cast(self.char1, self.char2)
-        self.assertTrue(success)
+# Cooldown tests moved to tests.spell_tests.test_spell_combat_integration —
+# cooldowns are now tracked on the shared CombatHandler.skill_cooldown counter
+# rather than a per-spell dict, and require a combat-enabled room to exercise.
 
 
 # ================================================================== #
