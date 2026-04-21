@@ -8,12 +8,15 @@ Room layout:
     Hub → [1] Harvest Field → [2] Woodlot → [3] Windmill
     → [4] Bakery → [5] Vault → [6] Complete → Hub
 
-Usage:
-    Called by TutorialInstanceScript.start_tutorial(character, chunk_num=2).
-    Returns the first room object.
+Two entry points:
+    build_tutorial_2(instance) — synchronous (tests, fallback).
+    build_tutorial_2_chunked(instance, character, on_complete) —
+        async chain via evennia.utils.delay so the Twisted reactor
+        stays responsive for every connected player during spin-up.
 """
 
 from evennia import create_object
+from evennia.utils import delay
 
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
 from typeclasses.terrain.rooms.room_base import RoomBase
@@ -23,22 +26,34 @@ from typeclasses.terrain.rooms.room_bank import RoomBank
 from utils.exit_helpers import connect_bidirectional_exit
 
 
-def build_tutorial_2(instance):
-    """
-    Build all Tutorial 2 rooms, exits, and items.
+# ====================================================================== #
+#  State + helpers shared by all phases
+# ====================================================================== #
 
-    Args:
-        instance: TutorialInstanceScript managing this tutorial.
 
-    Returns:
-        The first room (Harvest Field).
-    """
-    tag = instance.instance_key
-    rooms = {}
+def _init_state(instance):
+    """Build the shared state dict used by all phases."""
+    char = instance.get_character()
+    first_run = (
+        char and char.account
+        and not getattr(char.account.db, "tutorial_2_entered", False)
+    )
+    if first_run and char.account:
+        char.account.db.tutorial_2_entered = True
+        # Starter gold for processing costs (restored by snapshot on exit)
+        char.receive_gold_from_reserve(20)
+    return {
+        "instance": instance,
+        "tag": instance.instance_key,
+        "rooms": {},
+        "char": char,
+        "first_run": first_run,
+    }
 
-    # ================================================================== #
-    #  Helpers
-    # ================================================================== #
+
+def _make_helpers(state):
+    """Return closures over state['tag'] for tagging rooms/exits/pip."""
+    tag = state["tag"]
 
     def _room(key, desc, tutorial_text, guide_context=None,
               typeclass=RoomBase, **extra_attrs):
@@ -58,15 +73,13 @@ def build_tutorial_2(instance):
         room.allow_death = False
         return room
 
-    def _connect_bidirectional_exit(room_a, room_b, direction, **kwargs):
-        """Create tagged bidirectional exits."""
+    def _connect_bidi(room_a, room_b, direction, **kwargs):
         exit_ab, exit_ba = connect_bidirectional_exit(room_a, room_b, direction, **kwargs)
         exit_ab.tags.add(tag, category="tutorial_exit")
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
 
     def _spawn_pip(room):
-        """Spawn a tutorial guide NPC in this room."""
         guide_context = getattr(room.db, "guide_context", "") or ""
         tutorial_text = getattr(room.db, "tutorial_text", "") or ""
         pip = create_object(
@@ -91,22 +104,20 @@ def build_tutorial_2(instance):
         )
         return pip
 
-    # Check first-run status
-    char = instance.get_character()
-    first_run = (
-        char and char.account
-        and not getattr(char.account.db, "tutorial_2_entered", False)
-    )
+    return _room, _connect_bidi, _spawn_pip
 
-    if first_run and char.account:
-        char.account.db.tutorial_2_entered = True
-        # Give starter gold for processing costs (restored by snapshot on exit)
-        char.receive_gold_from_reserve(20)
 
-    # ================================================================== #
-    #  ROOM 1: Harvest Field — Harvesting wheat
-    # ================================================================== #
+# ====================================================================== #
+#  Phase 1 — rooms 1–2 (harvest field, woodlot)
+# ====================================================================== #
 
+
+def _phase_1(state):
+    _room, _connect, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    first_run = state["first_run"]
+
+    # ----- ROOM 1: Harvest Field -----
     rooms["harvest"] = _room(
         "The Harvest Field",
         "Golden stalks of wheat sway gently in the breeze across a "
@@ -147,10 +158,7 @@ def build_tutorial_2(instance):
     )
     _spawn_pip(rooms["harvest"])
 
-    # ================================================================== #
-    #  ROOM 2: Woodlot — Chopping wood
-    # ================================================================== #
-
+    # ----- ROOM 2: Woodlot -----
     rooms["woodlot"] = _room(
         "The Woodlot",
         "A small stand of timber surrounds a clearing littered with "
@@ -191,13 +199,20 @@ def build_tutorial_2(instance):
     rooms["woodlot"].desc_depleted = (
         "The woodlot has been cleared. No trees remain."
     )
-    _connect_bidirectional_exit(rooms["harvest"], rooms["woodlot"], "east")
+    _connect(rooms["harvest"], rooms["woodlot"], "east")
     _spawn_pip(rooms["woodlot"])
 
-    # ================================================================== #
-    #  ROOM 3: Windmill — Processing wheat to flour
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 2 — rooms 3–4 (windmill, bakery)
+# ====================================================================== #
+
+
+def _phase_2(state):
+    _room, _connect, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+
+    # ----- ROOM 3: Windmill -----
     rooms["windmill"] = _room(
         "The Windmill",
         "A wooden windmill creaks and groans as its great sails turn "
@@ -223,13 +238,10 @@ def build_tutorial_2(instance):
     rooms["windmill"].recipes = [
         {"inputs": {1: 1}, "output": 2, "amount": 1, "cost": 1},
     ]
-    _connect_bidirectional_exit(rooms["woodlot"], rooms["windmill"], "east")
+    _connect(rooms["woodlot"], rooms["windmill"], "east")
     _spawn_pip(rooms["windmill"])
 
-    # ================================================================== #
-    #  ROOM 4: Bakery — Processing flour+wood to bread
-    # ================================================================== #
-
+    # ----- ROOM 4: Bakery -----
     rooms["bakery"] = _room(
         "The Bakery",
         "A brick oven dominates this cozy workshop, radiating heat. "
@@ -257,13 +269,22 @@ def build_tutorial_2(instance):
     rooms["bakery"].recipes = [
         {"inputs": {2: 1, 6: 1}, "output": 3, "amount": 1, "cost": 1},
     ]
-    _connect_bidirectional_exit(rooms["windmill"], rooms["bakery"], "east")
+    _connect(rooms["windmill"], rooms["bakery"], "east")
     _spawn_pip(rooms["bakery"])
 
-    # ================================================================== #
-    #  ROOM 5: Vault — Banking
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 3 — rooms 5–6 (vault, complete) + completion exit
+# ====================================================================== #
+
+
+def _phase_3(state):
+    _room, _connect, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+    instance = state["instance"]
+
+    # ----- ROOM 5: Vault -----
     rooms["vault"] = _room(
         "The Vault",
         "A heavy iron door opens into a stone vault lined with locked "
@@ -290,13 +311,10 @@ def build_tutorial_2(instance):
         ),
         typeclass=RoomBank,
     )
-    _connect_bidirectional_exit(rooms["bakery"], rooms["vault"], "east")
+    _connect(rooms["bakery"], rooms["vault"], "east")
     _spawn_pip(rooms["vault"])
 
-    # ================================================================== #
-    #  ROOM 6: Tutorial Complete
-    # ================================================================== #
-
+    # ----- ROOM 6: Tutorial Complete -----
     rooms["complete"] = _room(
         "Tutorial Complete",
         "A bright archway glows at the end of this final chamber. "
@@ -319,13 +337,10 @@ def build_tutorial_2(instance):
             "|weast|n takes them to the hub for their reward."
         ),
     )
-    _connect_bidirectional_exit(rooms["vault"], rooms["complete"], "east")
+    _connect(rooms["vault"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
-    # ================================================================== #
-    #  Completion exit back to hub
-    # ================================================================== #
-
+    # Completion exit back to hub
     hub = instance.hub_room
     if hub:
         from world.tutorial.tutorial_exit import TutorialCompletionExit
@@ -342,4 +357,49 @@ def build_tutorial_2(instance):
         exit_to_hub.set_direction("east")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
-    return rooms["harvest"]
+
+# ====================================================================== #
+#  Public entry points
+# ====================================================================== #
+
+
+_PHASES = [
+    ("  Building rooms...",  _phase_1),
+    ("  Building rooms...",  _phase_2),
+    ("  Wiring exits...",    _phase_3),
+]
+
+
+def build_tutorial_2(instance):
+    """Build all Tutorial 2 rooms synchronously (tests / fallback)."""
+    state = _init_state(instance)
+    for _msg, fn in _PHASES:
+        fn(state)
+    return state["rooms"]["harvest"]
+
+
+def build_tutorial_2_chunked(instance, character, on_complete):
+    """
+    Build all Tutorial 2 rooms across multiple reactor ticks.
+
+    Args:
+        instance: TutorialInstanceScript managing this tutorial.
+        character: The player to send progress messages to.
+        on_complete: Callable invoked with the first room when done.
+    """
+    state = _init_state(instance)
+
+    def _run(i):
+        if i >= len(_PHASES):
+            on_complete(state["rooms"]["harvest"])
+            return
+        msg, fn = _PHASES[i]
+        if character.pk is not None:
+            character.msg(f"|y{msg}|n")
+        fn(state)
+        # 0.1s between phases — makes progress messages visible as
+        # discrete frames and gives the reactor room to flush I/O
+        # between bursts of build work.
+        delay(0.1, _run, i + 1)
+
+    _run(0)

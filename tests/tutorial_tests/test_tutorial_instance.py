@@ -120,7 +120,7 @@ class TestTutorialInstanceScript(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         # Character should be in a tutorial room
         self.assertIsNotNone(self.char1.location)
@@ -131,7 +131,7 @@ class TestTutorialInstanceScript(EvenniaTest):
         self.assertGreater(len(rooms), 0)
 
         # Cleanup
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
     def test_instance_collapse_strips_items(self):
         """Collapsing should remove tutorial items from character."""
@@ -142,7 +142,7 @@ class TestTutorialInstanceScript(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         # Give the character a tutorial item
         item = create_object(
@@ -153,7 +153,7 @@ class TestTutorialInstanceScript(EvenniaTest):
         )
 
         # Collapse
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         # Item should be deleted
         self.assertFalse(item.pk)  # deleted objects have no pk
@@ -169,14 +169,14 @@ class TestTutorialInstanceScript(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         # Give the character some bread (resource 3)
         self.char1.receive_resource_from_reserve(3, 5)
         self.assertEqual(self.char1.get_resource(3), 5)
 
         # Collapse
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         # Bread should be gone
         self.assertEqual(self.char1.get_resource(3), 0)
@@ -190,14 +190,14 @@ class TestTutorialInstanceScript(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         instance_key = script.instance_key
         rooms_before = list(search_tag(instance_key, category="tutorial_room"))
         self.assertGreater(len(rooms_before), 0)
 
         # Collapse
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         # No tagged rooms should remain
         rooms_after = list(search_tag(instance_key, category="tutorial_room"))
@@ -212,9 +212,9 @@ class TestTutorialInstanceScript(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         self.assertEqual(self.char1.location, self.hub)
 
@@ -250,10 +250,10 @@ class TestGraduationReward(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         # Collapse WITH reward
-        script.collapse_instance(give_reward=True)
+        script.collapse_instance(give_reward=True, immediate=True)
 
         # Should have 2 bread and 10 gold
         self.assertEqual(self.char1.get_resource(3), 2)
@@ -272,8 +272,8 @@ class TestGraduationReward(EvenniaTest):
         script1.instance_key = script1.key
         script1.hub_room_id = self.hub.id
         script1.start()
-        script1.start_tutorial(self.char1, chunk_num=1)
-        script1.collapse_instance(give_reward=True)
+        script1.start_tutorial(self.char1, chunk_num=1, immediate=True)
+        script1.collapse_instance(give_reward=True, immediate=True)
 
         gold_after_first = self.char1.get_gold()
 
@@ -285,8 +285,8 @@ class TestGraduationReward(EvenniaTest):
         script2.instance_key = script2.key
         script2.hub_room_id = self.hub.id
         script2.start()
-        script2.start_tutorial(self.char1, chunk_num=1)
-        script2.collapse_instance(give_reward=True)
+        script2.start_tutorial(self.char1, chunk_num=1, immediate=True)
+        script2.collapse_instance(give_reward=True, immediate=True)
 
         self.assertEqual(self.char1.get_gold(), gold_after_first)
 
@@ -299,9 +299,9 @@ class TestGraduationReward(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
-        script.collapse_instance(give_reward=False)
+        script.collapse_instance(give_reward=False, immediate=True)
 
         self.assertEqual(self.char1.get_gold(), 0)
         self.assertEqual(self.char1.get_resource(3), 0)
@@ -331,7 +331,7 @@ class TestCollapseUnequipsItems(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(self.char1, chunk_num=1)
+        script.start_tutorial(self.char1, chunk_num=1, immediate=True)
         return script
 
     def _equip_tutorial_item(self, slot, wear_effects=None):
@@ -363,7 +363,7 @@ class TestCollapseUnequipsItems(EvenniaTest):
         self.assertTrue(self.char1.has_condition("water_breathing"))
         self.assertTrue(self.char1.is_worn(item))
 
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         # Condition should be gone and item deleted
         self.assertFalse(self.char1.has_condition("water_breathing"))
@@ -379,7 +379,7 @@ class TestCollapseUnequipsItems(EvenniaTest):
 
         self.assertTrue(self.char1.has_condition("fly"))
 
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         self.assertFalse(self.char1.has_condition("fly"))
 
@@ -394,7 +394,7 @@ class TestCollapseUnequipsItems(EvenniaTest):
 
         self.assertEqual(self.char1.strength, base_str + 4)
 
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         self.assertEqual(self.char1.strength, base_str)
 
@@ -409,7 +409,7 @@ class TestCollapseUnequipsItems(EvenniaTest):
             attributes=[("tutorial_item", True)],
         )
 
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         self.assertFalse(item.pk)
 
@@ -424,7 +424,7 @@ class TestCollapseUnequipsItems(EvenniaTest):
         wearslots = self.char1.db.wearslots or {}
         self.assertIsNotNone(wearslots.get("LEFT_RING_FINGER"))
 
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
         wearslots = self.char1.db.wearslots or {}
         self.assertIsNone(wearslots.get("LEFT_RING_FINGER"))

@@ -10,13 +10,15 @@ Room layout:
     → [5] Training Grounds → [6] Guild Hall → [7] Companion Room
     → [8] Complete → Hub
 
-Usage:
-    Called by TutorialInstanceScript.start_tutorial(character, chunk_num=3).
-    Returns the first room object.
+Two entry points:
+    build_tutorial_3(instance) — synchronous (tests, fallback).
+    build_tutorial_3_chunked(instance, character, on_complete) —
+        async chain via evennia.utils.delay so the Twisted reactor
+        stays responsive for every connected player during spin-up.
 """
 
 from evennia import create_object
-from evennia.utils import create
+from evennia.utils import create, delay
 
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
 from typeclasses.actors.npc import BaseNPC
@@ -29,12 +31,7 @@ from utils.exit_helpers import connect_bidirectional_exit
 
 
 def _spawn_nft_item(item_type_name, location, instance_tag):
-    """
-    Spawn a real NFT-backed item and tag it for tutorial cleanup.
-
-    Uses the standard NFT lifecycle: assign_to_blank_token → spawn_into.
-    On tutorial collapse, item.delete() returns the token to RESERVE.
-    """
+    """Spawn a real NFT-backed item and tag it for tutorial cleanup."""
     token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
     obj = BaseNFTItem.spawn_into(token_id, location)
     obj.db.tutorial_item = True
@@ -47,22 +44,32 @@ class FollowableNPC(FollowableMixin, BaseNPC):
     pass
 
 
-def build_tutorial_3(instance):
-    """
-    Build all Tutorial 3 rooms, exits, NPCs, and fixtures.
+# ====================================================================== #
+#  State + helpers shared by all phases
+# ====================================================================== #
 
-    Args:
-        instance: TutorialInstanceScript managing this tutorial.
 
-    Returns:
-        The first room (Hall of Records).
-    """
-    tag = instance.instance_key
-    rooms = {}
+def _init_state(instance):
+    """Build the shared state dict used by all phases."""
+    char = instance.get_character()
+    first_run = (
+        char and char.account
+        and not getattr(char.account.db, "tutorial_3_entered", False)
+    )
+    if first_run and char.account:
+        char.account.db.tutorial_3_entered = True
+    return {
+        "instance": instance,
+        "tag": instance.instance_key,
+        "rooms": {},
+        "char": char,
+        "first_run": first_run,
+    }
 
-    # ================================================================== #
-    #  Helpers
-    # ================================================================== #
+
+def _make_helpers(state):
+    """Return closures over state['tag'] for tagging rooms/exits/fixtures/pip."""
+    tag = state["tag"]
 
     def _room(key, desc, tutorial_text, guide_context=None, **extra_attrs):
         attrs = [("desc", desc), ("tutorial_text", tutorial_text)]
@@ -81,15 +88,13 @@ def build_tutorial_3(instance):
         room.allow_death = False
         return room
 
-    def _connect_bidirectional_exit(room_a, room_b, direction, **kwargs):
-        """Create tagged bidirectional exits."""
+    def _connect_bidi(room_a, room_b, direction, **kwargs):
         exit_ab, exit_ba = connect_bidirectional_exit(room_a, room_b, direction, **kwargs)
         exit_ab.tags.add(tag, category="tutorial_exit")
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
 
     def _fixture(key, location, desc):
-        """Create a tagged fixture object."""
         obj = create_object(
             WorldFixture, key=key, location=location,
             attributes=[("desc", desc), ("tutorial_item", True)],
@@ -98,7 +103,6 @@ def build_tutorial_3(instance):
         return obj
 
     def _spawn_pip(room):
-        """Spawn a tutorial guide NPC in this room."""
         guide_context = getattr(room.db, "guide_context", "") or ""
         tutorial_text = getattr(room.db, "tutorial_text", "") or ""
         pip = create_object(
@@ -123,20 +127,20 @@ def build_tutorial_3(instance):
         )
         return pip
 
-    # Check first-run status
-    char = instance.get_character()
-    first_run = (
-        char and char.account
-        and not getattr(char.account.db, "tutorial_3_entered", False)
-    )
+    return _room, _connect_bidi, _fixture, _spawn_pip
 
-    if first_run and char.account:
-        char.account.db.tutorial_3_entered = True
 
-    # ================================================================== #
-    #  ROOM 1: Shortcut Workshop — Aliases / Nicks
-    # ================================================================== #
+# ====================================================================== #
+#  Phase 1 — rooms 1–2 (aliases, records)
+# ====================================================================== #
 
+
+def _phase_1(state):
+    _room, _connect, _fixture, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+
+    # ----- ROOM 1: Shortcut Workshop -----
     rooms["aliases"] = _room(
         "The Shortcut Workshop",
         "A cozy workshop filled with scrolls and parchment. A large "
@@ -184,7 +188,6 @@ def build_tutorial_3(instance):
 
     _spawn_pip(rooms["aliases"])
 
-    # Slate board fixture with examples
     board = _fixture(
         "a slate board", rooms["aliases"],
         "The slate board is covered in example shortcuts.\n"
@@ -202,7 +205,6 @@ def build_tutorial_3(instance):
     board.aliases.add("slate board")
     board.aliases.add("slate")
 
-    # Fountain for refill practice
     fountain = create_object(
         FountainFixture,
         key="a stone fountain",
@@ -217,7 +219,6 @@ def build_tutorial_3(instance):
     fountain.tags.add(tag, category="tutorial_item")
     fountain.aliases.add("fountain")
 
-    # Practice dummy for diagnose
     dummy = create_object(
         BaseNPC,
         key="a practice dummy",
@@ -233,14 +234,10 @@ def build_tutorial_3(instance):
     dummy.aliases.add("dummy")
     dummy.aliases.add("practice dummy")
 
-    # Backpack and canteen for multi-command practice
     _spawn_nft_item("Backpack", rooms["aliases"], tag)
     _spawn_nft_item("Canteen", rooms["aliases"], tag)
 
-    # ================================================================== #
-    #  ROOM 2: Hall of Records — Score, Stats, Conditions
-    # ================================================================== #
-
+    # ----- ROOM 2: Hall of Records -----
     rooms["records"] = _room(
         "Hall of Records",
         "Tall bookshelves line the walls of this grand hall, filled "
@@ -269,7 +266,6 @@ def build_tutorial_3(instance):
 
     _spawn_pip(rooms["records"])
 
-    # Mirror fixture
     mirror = _fixture(
         "a large ornate mirror", rooms["records"],
         "You gaze into the mirror and see your reflection staring back. "
@@ -278,12 +274,19 @@ def build_tutorial_3(instance):
     )
     mirror.aliases.add("mirror")
 
-    _connect_bidirectional_exit(rooms["aliases"], rooms["records"], "east")
+    _connect(rooms["aliases"], rooms["records"], "east")
 
-    # ================================================================== #
-    #  ROOM 3: Speaking Chamber — Communication
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 2 — rooms 3–4 (speaking chamber, hall of skills)
+# ====================================================================== #
+
+
+def _phase_2(state):
+    _room, _connect, _fixture, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+
+    # ----- ROOM 3: Speaking Chamber -----
     rooms["speaking"] = _room(
         "The Speaking Chamber",
         "An acoustically perfect chamber with curved stone walls. "
@@ -307,11 +310,10 @@ def build_tutorial_3(instance):
             "language hear garbled text."
         ),
     )
-    _connect_bidirectional_exit(rooms["records"], rooms["speaking"], "east")
+    _connect(rooms["records"], rooms["speaking"], "east")
 
     _spawn_pip(rooms["speaking"])
 
-    # Message board fixture
     board = _fixture(
         "a message board", rooms["speaking"],
         "The board lists communication commands:\n\n"
@@ -323,10 +325,7 @@ def build_tutorial_3(instance):
     board.aliases.add("board")
     board.aliases.add("message board")
 
-    # ================================================================== #
-    #  ROOM 4: Hall of Skills — Skill system
-    # ================================================================== #
-
+    # ----- ROOM 4: Hall of Skills -----
     rooms["skills"] = _room(
         "Hall of Skills",
         "Display cases line the walls, each showcasing a different "
@@ -352,11 +351,10 @@ def build_tutorial_3(instance):
             "up and spent at trainers."
         ),
     )
-    _connect_bidirectional_exit(rooms["speaking"], rooms["skills"], "east")
+    _connect(rooms["speaking"], rooms["skills"], "east")
 
     _spawn_pip(rooms["skills"])
 
-    # Skill tome fixture
     tome = _fixture(
         "a thick skill tome", rooms["skills"],
         "The tome is open to a chapter titled 'The Path of Mastery':\n\n"
@@ -368,10 +366,18 @@ def build_tutorial_3(instance):
     tome.aliases.add("tome")
     tome.aliases.add("skill tome")
 
-    # ================================================================== #
-    #  ROOM 5: Training Grounds — Training skills
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 3 — rooms 5–6 (training grounds, guild hall)
+# ====================================================================== #
+
+
+def _phase_3(state):
+    _room, _connect, _fixture, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+
+    # ----- ROOM 5: Training Grounds -----
     rooms["training"] = _room(
         "The Training Grounds",
         "A practice yard with padded training dummies and weapon racks. "
@@ -396,11 +402,10 @@ def build_tutorial_3(instance):
             "point and gold for this. Suggest trying |wtrain blacksmith|n."
         ),
     )
-    _connect_bidirectional_exit(rooms["skills"], rooms["training"], "east")
+    _connect(rooms["skills"], rooms["training"], "east")
 
     _spawn_pip(rooms["training"])
 
-    # Trainer NPC
     trainer = create.create_object(
         "typeclasses.actors.npcs.trainer.TrainerNPC",
         key="Instructor Bren",
@@ -408,11 +413,11 @@ def build_tutorial_3(instance):
     )
     trainer.trainable_skills = ["blacksmith", "carpenter", "alchemist"]
     trainer.trainable_weapons = []
-    trainer.trainer_class = None  # General skills — any class can train
+    trainer.trainer_class = None
     trainer.trainer_masteries = {
-        "blacksmith": 3,   # EXPERT
-        "carpenter": 3,    # EXPERT
-        "alchemist": 3,    # EXPERT
+        "blacksmith": 3,
+        "carpenter": 3,
+        "alchemist": 3,
     }
     trainer.db.desc = (
         "Instructor Bren is a stocky veteran with calloused hands and "
@@ -421,10 +426,7 @@ def build_tutorial_3(instance):
     )
     trainer.tags.add(tag, category="tutorial_mob")
 
-    # ================================================================== #
-    #  ROOM 6: Guild Hall — Guilds and advancement
-    # ================================================================== #
-
+    # ----- ROOM 6: Guild Hall -----
     rooms["guild"] = _room(
         "The Guild Hall",
         "Banners bearing the emblems of the great guilds hang from the "
@@ -450,11 +452,10 @@ def build_tutorial_3(instance):
             "character creation."
         ),
     )
-    _connect_bidirectional_exit(rooms["training"], rooms["guild"], "east")
+    _connect(rooms["training"], rooms["guild"], "east")
 
     _spawn_pip(rooms["guild"])
 
-    # Guildmaster NPC
     guildmaster = create.create_object(
         "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
         key="Guild Warden Aldric",
@@ -470,10 +471,19 @@ def build_tutorial_3(instance):
     )
     guildmaster.tags.add(tag, category="tutorial_mob")
 
-    # ================================================================== #
-    #  ROOM 7: Companion Room — Following and groups
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 4 — rooms 7–8 (companion, complete) + completion exit
+# ====================================================================== #
+
+
+def _phase_4(state):
+    _room, _connect, _fixture, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+    instance = state["instance"]
+
+    # ----- ROOM 7: Companion Room -----
     rooms["companion"] = _room(
         "The Companion Room",
         "A comfortable waiting area with padded benches and a practice "
@@ -499,11 +509,10 @@ def build_tutorial_3(instance):
             "|wfollow Finn|n and then |wgroup|n to see the display."
         ),
     )
-    _connect_bidirectional_exit(rooms["guild"], rooms["companion"], "east")
+    _connect(rooms["guild"], rooms["companion"], "east")
 
     _spawn_pip(rooms["companion"])
 
-    # Companion NPC — followable mob for follow practice
     companion = create.create_object(
         FollowableNPC,
         key="Squire Finn",
@@ -516,10 +525,7 @@ def build_tutorial_3(instance):
     )
     companion.tags.add(tag, category="tutorial_mob")
 
-    # ================================================================== #
-    #  ROOM 8: Tutorial Complete
-    # ================================================================== #
-
+    # ----- ROOM 8: Tutorial Complete -----
     rooms["complete"] = _room(
         "Tutorial Complete",
         "A bright archway glows at the end of this final chamber. "
@@ -546,13 +552,10 @@ def build_tutorial_3(instance):
             "the hub for their reward. Wish them well!"
         ),
     )
-    _connect_bidirectional_exit(rooms["companion"], rooms["complete"], "east")
+    _connect(rooms["companion"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
-    # ================================================================== #
-    #  Completion exit back to hub
-    # ================================================================== #
-
+    # Completion exit back to hub
     hub = instance.hub_room
     if hub:
         from world.tutorial.tutorial_exit import TutorialCompletionExit
@@ -569,4 +572,50 @@ def build_tutorial_3(instance):
         exit_to_hub.set_direction("east")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
-    return rooms["aliases"]
+
+# ====================================================================== #
+#  Public entry points
+# ====================================================================== #
+
+
+_PHASES = [
+    ("  Building rooms...",  _phase_1),
+    ("  Building rooms...",  _phase_2),
+    ("  Placing guides...",  _phase_3),
+    ("  Wiring exits...",    _phase_4),
+]
+
+
+def build_tutorial_3(instance):
+    """Build all Tutorial 3 rooms synchronously (tests / fallback)."""
+    state = _init_state(instance)
+    for _msg, fn in _PHASES:
+        fn(state)
+    return state["rooms"]["aliases"]
+
+
+def build_tutorial_3_chunked(instance, character, on_complete):
+    """
+    Build all Tutorial 3 rooms across multiple reactor ticks.
+
+    Args:
+        instance: TutorialInstanceScript managing this tutorial.
+        character: The player to send progress messages to.
+        on_complete: Callable invoked with the first room when done.
+    """
+    state = _init_state(instance)
+
+    def _run(i):
+        if i >= len(_PHASES):
+            on_complete(state["rooms"]["aliases"])
+            return
+        msg, fn = _PHASES[i]
+        if character.pk is not None:
+            character.msg(f"|y{msg}|n")
+        fn(state)
+        # 0.1s between phases — makes progress messages visible as
+        # discrete frames and gives the reactor room to flush I/O
+        # between bursts of build work.
+        delay(0.1, _run, i + 1)
+
+    _run(0)

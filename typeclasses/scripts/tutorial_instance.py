@@ -6,12 +6,22 @@ via tags, and cleans up everything when the player exits.
 
 Unlike DungeonInstanceScript, tutorial rooms are pre-built (not procedural)
 and there is no time pressure — the player can take as long as they want.
+
+Spin-up and tear-down are chunked across multiple reactor ticks via
+`evennia.utils.delay` so a single tutorial entry/exit cannot freeze the
+reactor for every connected player. Tests and any non-interactive caller
+can force the synchronous path with `immediate=True`.
 """
 
 import uuid
 
 from evennia import AttributeProperty, DefaultScript, create_object
+from evennia.utils import delay
 from evennia.utils.search import search_tag
+
+
+# Number of objects to delete per reactor tick during teardown.
+_COLLAPSE_BATCH_SIZE = 8
 
 
 class TutorialInstanceScript(DefaultScript):
@@ -70,9 +80,24 @@ class TutorialInstanceScript(DefaultScript):
     #  Start tutorial
     # ------------------------------------------------------------------ #
 
-    def start_tutorial(self, character, chunk_num=1):
+    _TITLES = {
+        1: "Tutorial 1: Survival Basics",
+        2: "Tutorial 2: The Economic Loop",
+        3: "Tutorial 3: Growth & Social",
+    }
+
+    def start_tutorial(self, character, chunk_num=1, immediate=False):
         """
         Build all rooms for the given tutorial chunk and move the player in.
+
+        Args:
+            character: The character entering the tutorial.
+            chunk_num: Which tutorial to start (1, 2, or 3).
+            immediate: If True, build synchronously and teleport in one
+                tick (used by tests and any non-interactive caller).
+                If False (default), chunk the build across multiple
+                reactor ticks with progress messages so the reactor
+                stays responsive for every connected player.
         """
         self.character_id = character.id
         self.chunk_num = chunk_num
@@ -84,25 +109,58 @@ class TutorialInstanceScript(DefaultScript):
         # is economically neutral (graduation rewards added after restore).
         self._snapshot_fungibles(character)
 
-        # Build the rooms
-        if chunk_num == 1:
-            from world.tutorial.tutorial_1_builder import build_tutorial_1
-            first_room = build_tutorial_1(self)
-            title = "Tutorial 1: Survival Basics"
-        elif chunk_num == 2:
-            from world.tutorial.tutorial_2_builder import build_tutorial_2
-            first_room = build_tutorial_2(self)
-            title = "Tutorial 2: The Economic Loop"
-        elif chunk_num == 3:
-            from world.tutorial.tutorial_3_builder import build_tutorial_3
-            first_room = build_tutorial_3(self)
-            title = "Tutorial 3: Growth & Social"
-        else:
+        title = self._TITLES.get(chunk_num)
+        if not title:
             character.msg(f"|rTutorial {chunk_num} is not yet available.|n")
             return
 
-        # Move character into first room
-        # (each room has its own Pip spawned by the builder)
+        if immediate:
+            first_room = self._build_sync(chunk_num)
+            self._on_tutorial_ready(character, first_room, title)
+            return
+
+        # Async chunked build — the entering player gets friendly progress
+        # feedback while the reactor services other players between phases.
+        character.ndb.tutorial_building = True
+        character.msg(
+            "|cSpinning up your very own tutorial instance — one moment...|n"
+        )
+
+        def _on_complete(first_room):
+            character.ndb.tutorial_building = False
+            self._on_tutorial_ready(character, first_room, title)
+
+        self._build_chunked(chunk_num, character, _on_complete)
+
+    def _build_sync(self, chunk_num):
+        """Synchronous build — returns the first room."""
+        if chunk_num == 1:
+            from world.tutorial.tutorial_1_builder import build_tutorial_1
+            return build_tutorial_1(self)
+        if chunk_num == 2:
+            from world.tutorial.tutorial_2_builder import build_tutorial_2
+            return build_tutorial_2(self)
+        if chunk_num == 3:
+            from world.tutorial.tutorial_3_builder import build_tutorial_3
+            return build_tutorial_3(self)
+        return None
+
+    def _build_chunked(self, chunk_num, character, on_complete):
+        """Kick off the async chunked builder for this chunk_num."""
+        if chunk_num == 1:
+            from world.tutorial.tutorial_1_builder import build_tutorial_1_chunked
+            build_tutorial_1_chunked(self, character, on_complete)
+        elif chunk_num == 2:
+            from world.tutorial.tutorial_2_builder import build_tutorial_2_chunked
+            build_tutorial_2_chunked(self, character, on_complete)
+        elif chunk_num == 3:
+            from world.tutorial.tutorial_3_builder import build_tutorial_3_chunked
+            build_tutorial_3_chunked(self, character, on_complete)
+
+    def _on_tutorial_ready(self, character, first_room, title):
+        """Finalise spin-up: teleport the player and show the room."""
+        if character.pk is None or first_room is None:
+            return
         character.move_to(first_room, quiet=True, move_type="teleport")
         character.msg(f"|c=== {title} ===|n")
         character.msg(first_room.db.desc or "")
@@ -111,15 +169,19 @@ class TutorialInstanceScript(DefaultScript):
     #  Collapse / cleanup
     # ------------------------------------------------------------------ #
 
-    def collapse_instance(self, give_reward=False):
+    def collapse_instance(self, give_reward=False, immediate=False):
         """
         Strip tutorial items from the player, delete all instance objects,
         and return the player to the hub.
 
         Args:
             give_reward: If True, give the graduation starter kit.
+            immediate: If True, delete all tagged objects synchronously
+                in one tick (tests / fallback). If False (default),
+                chunk deletions across multiple reactor ticks so the
+                reactor stays responsive.
         """
-        if self.state == "done":
+        if self.state == "done" or self.state == "collapsing":
             return
 
         self.state = "collapsing"
@@ -150,13 +212,15 @@ class TutorialInstanceScript(DefaultScript):
             if give_reward and char.account:
                 self._give_graduation_reward(char)
 
-            # Move to hub
+            # Move to hub (player sees themselves back in the hub
+            # immediately even while the rest of cleanup is chunked).
             hub = self.hub_room
             if hub:
                 char.move_to(hub, quiet=True, move_type="teleport")
                 char.msg("|cYou return to the Tutorial Hub.|n")
 
-        # Delete all tagged objects (mobs first, then items, exits, rooms)
+        # Collect objects to delete (mobs → items → exits → rooms)
+        targets = []
         for category in [
             "tutorial_mob",
             "tutorial_item",
@@ -164,8 +228,36 @@ class TutorialInstanceScript(DefaultScript):
             "tutorial_room",
         ]:
             for obj in search_tag(self.instance_key, category=category):
-                obj.delete()
+                targets.append(obj)
 
+        if immediate or not targets:
+            for obj in targets:
+                obj.delete()
+            self._finish_collapse()
+            return
+
+        if char:
+            char.msg("|xPacking up your tutorial instance...|n")
+
+        self._delete_in_batches(targets, 0)
+
+    def _delete_in_batches(self, targets, index):
+        """Delete tagged objects in batches, yielding to the reactor."""
+        end = min(index + _COLLAPSE_BATCH_SIZE, len(targets))
+        for i in range(index, end):
+            try:
+                targets[i].delete()
+            except Exception:
+                # An object may already be gone (e.g. cascade delete
+                # from a room). Continue — tag lookup was a snapshot.
+                pass
+        if end >= len(targets):
+            self._finish_collapse()
+            return
+        delay(0, self._delete_in_batches, targets, end)
+
+    def _finish_collapse(self):
+        """Final step: mark done and remove the managing script."""
         self.state = "done"
         self.stop()
         self.delete()
@@ -336,14 +428,20 @@ class TutorialInstanceScript(DefaultScript):
 
     def at_repeat(self):
         """Check if the player has disconnected or left the tutorial."""
-        if self.state == "done":
-            self.stop()
+        if self.state in ("done", "collapsing"):
+            if self.state == "done":
+                self.stop()
             return
 
         char = self.get_character()
         if not char:
             # Character deleted — clean up
             self.collapse_instance()
+            return
+
+        # If the character is still in the middle of an async build,
+        # don't treat "no tutorial room yet" as an orphan.
+        if getattr(char.ndb, "tutorial_building", False):
             return
 
         # Check if character is still in a tutorial room

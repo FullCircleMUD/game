@@ -77,7 +77,7 @@ class TestTutorial1Rooms(EvenniaTest):
         self.script.instance_key = self.script.key
         self.script.hub_room_id = self.hub.id
         self.script.start()
-        self.script.start_tutorial(self.char1, chunk_num=1)
+        self.script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         # Collect all tagged rooms
         self.rooms = {
@@ -87,7 +87,7 @@ class TestTutorial1Rooms(EvenniaTest):
 
     def tearDown(self):
         if self.script.state != "done":
-            self.script.collapse_instance()
+            self.script.collapse_instance(immediate=True)
         super().tearDown()
 
     def test_welcome_hall_exists(self):
@@ -190,7 +190,7 @@ class TestTutorial1Items(EvenniaTest):
         self.script.instance_key = self.script.key
         self.script.hub_room_id = self.hub.id
         self.script.start()
-        self.script.start_tutorial(self.char1, chunk_num=1)
+        self.script.start_tutorial(self.char1, chunk_num=1, immediate=True)
 
         self.rooms = {
             r.key: r
@@ -199,7 +199,7 @@ class TestTutorial1Items(EvenniaTest):
 
     def tearDown(self):
         if self.script.state != "done":
-            self.script.collapse_instance()
+            self.script.collapse_instance(immediate=True)
         super().tearDown()
 
     def test_observation_has_fixture_sword(self):

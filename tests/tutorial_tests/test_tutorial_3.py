@@ -105,7 +105,7 @@ class TestTutorial3Rooms(EvenniaTest):
         self.script.instance_key = self.script.key
         self.script.hub_room_id = self.hub.id
         self.script.start()
-        self.script.start_tutorial(self.char1, chunk_num=3)
+        self.script.start_tutorial(self.char1, chunk_num=3, immediate=True)
 
         # Collect all tagged rooms
         self.rooms = {
@@ -115,7 +115,7 @@ class TestTutorial3Rooms(EvenniaTest):
 
     def tearDown(self):
         if self.script.state != "done":
-            self.script.collapse_instance()
+            self.script.collapse_instance(immediate=True)
         _stop_blockchain_mocks(self)
         super().tearDown()
 
@@ -238,7 +238,7 @@ class TestTutorial3NPCs(EvenniaTest):
         self.script.instance_key = self.script.key
         self.script.hub_room_id = self.hub.id
         self.script.start()
-        self.script.start_tutorial(self.char1, chunk_num=3)
+        self.script.start_tutorial(self.char1, chunk_num=3, immediate=True)
 
         self.rooms = {
             r.key: r
@@ -247,7 +247,7 @@ class TestTutorial3NPCs(EvenniaTest):
 
     def tearDown(self):
         if self.script.state != "done":
-            self.script.collapse_instance()
+            self.script.collapse_instance(immediate=True)
         _stop_blockchain_mocks(self)
         super().tearDown()
 
@@ -362,7 +362,7 @@ class TestTutorial3FirstRunGating(EvenniaTest):
         script.instance_key = script.key
         script.hub_room_id = self.hub.id
         script.start()
-        script.start_tutorial(char, chunk_num=3)
+        script.start_tutorial(char, chunk_num=3, immediate=True)
         return script
 
     def test_first_run_no_gold(self):
@@ -371,13 +371,13 @@ class TestTutorial3FirstRunGating(EvenniaTest):
         script = self._run_tutorial(self.char1, "first")
         gold_after = self.char1.get_gold()
         self.assertEqual(gold_after, gold_before)
-        script.collapse_instance()
+        script.collapse_instance(immediate=True)
 
     def test_graduation_reward_gives_gold(self):
         """Graduation should give 20 gold."""
         gold_before = self.char1.get_gold()
         script = self._run_tutorial(self.char1, "grad")
-        script.collapse_instance(give_reward=True)
+        script.collapse_instance(give_reward=True, immediate=True)
         gold_after = self.char1.get_gold()
         # Snapshot restore is a no-op (no first-run bonus), graduation adds 20
         self.assertEqual(gold_after - gold_before, 20)
@@ -385,10 +385,10 @@ class TestTutorial3FirstRunGating(EvenniaTest):
     def test_graduation_reward_once_per_account(self):
         """Graduation reward should only be given once per account."""
         script1 = self._run_tutorial(self.char1, "grad1")
-        script1.collapse_instance(give_reward=True)
+        script1.collapse_instance(give_reward=True, immediate=True)
 
         script2 = self._run_tutorial(self.char1, "grad2")
         gold_before = self.char1.get_gold()
-        script2.collapse_instance(give_reward=True)
+        script2.collapse_instance(give_reward=True, immediate=True)
         gold_after = self.char1.get_gold()
         self.assertEqual(gold_after, gold_before)
