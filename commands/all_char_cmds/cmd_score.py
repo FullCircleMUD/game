@@ -183,6 +183,29 @@ class CmdScore(FCMCommandMixin, Command):
             n.replace("_", " ").capitalize() for n in conditions.keys()
         ) if conditions else []
 
+        # Active named effects (timed buffs/debuffs)
+        active_effects = getattr(caller, "active_effects", {}) or {}
+        effect_entries = []
+        for key, rec in active_effects.items():
+            rec = rec or {}
+            display = key.replace("_", " ").title()
+            dtype = rec.get("duration_type")
+            suffix = ""
+            if dtype == "combat_rounds":
+                dur = rec.get("duration")
+                if dur:
+                    suffix = f" ({dur}r)"
+            elif dtype == "seconds":
+                getter = getattr(caller, "get_effect_remaining_seconds", None)
+                remaining = getter(key) if callable(getter) else None
+                if remaining:
+                    if remaining >= 60:
+                        suffix = f" ({int(remaining // 60)}m)"
+                    else:
+                        suffix = f" ({int(remaining)}s)"
+            effect_entries.append(f"{display}{suffix}")
+        effect_entries.sort()
+
         # Hunger
         hunger = caller.hunger_level
         hunger_name = _pretty(hunger.get_name(hunger.value))
@@ -289,6 +312,14 @@ class CmdScore(FCMCommandMixin, Command):
         else:
             cond_str = "|wConditions:|n None"
         lines.append(f"{_PIPE} {_pad(cond_str, 74)} {_PIPE}")
+
+        if effect_entries:
+            eff_str = "|wActive Effects:|n " + ", ".join(effect_entries)
+            if _visible_len(eff_str) > 74:
+                eff_str = eff_str[:71] + "..."
+        else:
+            eff_str = "|wActive Effects:|n None"
+        lines.append(f"{_PIPE} {_pad(eff_str, 74)} {_PIPE}")
 
         if levels_to_spend > 0:
             s = "s" if levels_to_spend > 1 else ""
