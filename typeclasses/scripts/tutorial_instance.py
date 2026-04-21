@@ -184,8 +184,11 @@ class TutorialInstanceScript(DefaultScript):
         if self.state == "done" or self.state == "collapsing":
             return
 
-        self.state = "collapsing"
         char = self.get_character()
+        if char:
+            char.msg("|cWrapping up your tutorial — one moment...|n")
+
+        self.state = "collapsing"
 
         if char:
             # Remove tutorial tag
@@ -258,6 +261,10 @@ class TutorialInstanceScript(DefaultScript):
 
     def _finish_collapse(self):
         """Final step: mark done and remove the managing script."""
+        char = self.get_character()
+        if char and char.sessions.count() > 0:
+            char.msg("|xTutorial instance released.|n")
+
         self.state = "done"
         self.stop()
         self.delete()
