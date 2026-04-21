@@ -384,22 +384,26 @@ def _phase_3(state):
         "Instructor Bren stands in the center, arms crossed, watching "
         "newcomers with an evaluating eye.",
         "|wTutorial: Training|n\n\n"
-        "  |wtrain|n — See what this trainer can teach and costs.\n"
-        "  |wtrain <skill>|n — Attempt to train a specific skill.\n\n"
-        "Training costs gold and a skill point. Success depends on "
-        "the gap between your current mastery and the trainer's. "
-        "Higher-mastery trainers give better success rates.\n\n"
-        "If training fails, there's a brief cooldown before retrying.\n\n"
+        "  |wtrain|n — See what this trainer can teach and the costs.\n"
+        "  |wtrain <skill>|n — Train a specific skill.\n\n"
+        "Training costs gold and skill points.\n\n"
+        "A trainer can only teach you up to their own mastery level, "
+        "so for higher ranks you'll need to seek out a more "
+        "experienced trainer. Higher Charisma also reduces the gold "
+        "cost.\n\n"
         "|yPractice:|n\n"
         "  Type |wtrain|n to see available skills.\n"
         "  Try |wtrain blacksmith|n to learn basic blacksmithing.\n"
         "  Move |weast|n when ready.",
         guide_context=(
             "Teach training. |wtrain|n shows what the trainer offers "
-            "and costs. |wtrain <skill>|n spends a skill point + gold "
-            "to learn. Success rate depends on mastery gap — higher "
-            "mastery trainers give better odds. They got a free skill "
-            "point and gold for this. Suggest trying |wtrain blacksmith|n."
+            "and the costs. |wtrain <skill>|n spends gold + a skill "
+            "point to advance one mastery rank — it is fully "
+            "deterministic (no random failure), and the player "
+            "confirms before paying. A trainer can only teach up to "
+            "their own mastery level. They got a free skill "
+            "point and gold for this. Suggest trying "
+            "|wtrain blacksmith|n."
         ),
     )
     _connect(rooms["skills"], rooms["training"], "east")
