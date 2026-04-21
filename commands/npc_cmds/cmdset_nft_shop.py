@@ -105,8 +105,10 @@ def _find_inventory_item(caller, item_name, tradeable_types):
         caller.msg(f"This shop doesn't trade in {item_type.name}.")
         return None, None
 
-    max_dur = getattr(item, "max_durability", 0)
-    cur_dur = getattr(item, "durability", 0)
+    max_dur = getattr(item, "max_durability", 0) or 0
+    cur_dur = getattr(item, "durability", None)
+    if cur_dur is None:
+        cur_dur = max_dur
     if max_dur > 0 and cur_dur < max_dur:
         caller.msg(
             f"I don't buy damaged goods. Repair your "
