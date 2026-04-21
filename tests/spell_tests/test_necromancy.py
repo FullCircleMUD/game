@@ -192,6 +192,34 @@ class TestDrainLife(EvenniaTest):
                 self.spell.cast(self.char1, self.char2)
                 mock_die.assert_called_once_with("spell", killer=None)
 
+    def test_drain_life_target_deleted_during_cast(self):
+        """
+        Regression: one-shot killing a common mob calls self.delete() inside
+        _execute (via die()), leaving the target with pk=None. The post-execute
+        _maybe_enter_combat pass must not crash when it iterates a deleted
+        target — touching AttributeProperty fields on a dead row raises from
+        inside the descriptor.
+        """
+        from world.spells.necromancy import drain_life as drain_life_mod
+
+        original_apply = drain_life_mod.apply_spell_damage
+
+        def damage_then_delete(target, raw, dtype):
+            actual = original_apply(target, raw, dtype)
+            target.delete()
+            return actual
+
+        with patch.object(
+            drain_life_mod, "apply_spell_damage",
+            side_effect=damage_then_delete,
+        ):
+            with patch("world.spells.necromancy.drain_life.dice") as mock_dice:
+                mock_dice.roll.return_value = 10
+                success, result = self.spell.cast(self.char1, self.char2)
+
+        self.assertTrue(success)
+        self.assertIsNone(self.char2.pk)
+
 
 # ================================================================== #
 #  Soul Harvest Execution Tests

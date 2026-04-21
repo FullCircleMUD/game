@@ -218,6 +218,12 @@ class Spell:
                 candidates.append(sec)
 
         for t in candidates:
+            # Target may have been deleted during _execute (e.g. one-shot kill
+            # on a common mob, which calls self.delete() in die()). Touching
+            # AttributeProperty fields on a deleted row raises from inside the
+            # descriptor, so guard on pk before reading hp.
+            if not t.pk:
+                continue
             if getattr(t, "hp", None) is None or t.hp <= 0:
                 continue
             if getattr(t, "location", None) is not caster.location:
