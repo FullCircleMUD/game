@@ -42,6 +42,15 @@ class DurabilityMixin:
         if self.durability is None and self.max_durability > 0:
             self.durability = self.max_durability
 
+    def at_object_post_creation(self):
+        # Re-run durability init after Evennia applies _createdict
+        # attributes (prototype, `attributes=` kwarg). The subclass's
+        # at_object_creation fires before those land — max_durability is
+        # still the AttributeProperty default (0) at that point, so
+        # at_durability_init would no-op. at_durability_init is idempotent.
+        super().at_object_post_creation()
+        self.at_durability_init()
+
     def reduce_durability(self, amount=1):
         """
         Reduce durability by amount. At 0, calls at_break().

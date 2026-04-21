@@ -92,6 +92,23 @@ class TestReduceDurability(DurabilityTestBase):
         obj.at_durability_init()
         self.assertEqual(obj.durability, 100)
 
+    def test_durability_initialised_when_max_set_via_attributes_kwarg(self):
+        """
+        Regression — crafted items were ending up with durability=None
+        because at_object_creation fires before Evennia applies the
+        `attributes=` kwarg, so at_durability_init saw max_durability=0
+        and no-op'd. DurabilityMixin.at_object_post_creation must re-run
+        the init after attrs land.
+        """
+        obj = create.create_object(
+            "typeclasses.items.wearables.wearable_nft_item.WearableNFTItem",
+            key="Crafted Gambeson",
+            nohome=True,
+            attributes=[("max_durability", 100)],
+        )
+        self.assertEqual(obj.max_durability, 100)
+        self.assertEqual(obj.durability, 100)
+
 
 # ── Mirror Metadata Persistence ──────────────────────────────────────────
 
