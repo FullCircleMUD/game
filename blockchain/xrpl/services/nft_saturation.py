@@ -300,9 +300,15 @@ class NFTSaturationService:
         cycle on scrolls it already dropped last cycle, flooding the
         world with duplicates before any player picks one up.
 
+        Returned dicts are keyed by the spell/recipe registry key (e.g.
+        "acid_arrow", "bronze_lantern") — NOT NFTItemType.name — so the
+        caller can look them up directly with spell_key / recipe_key.
+        Prototype keys follow the deterministic pattern set in
+        spawn/config.py: "{spell_key}_scroll" / "{recipe_key}_recipe".
+
         Returns:
             (scroll_counts, recipe_counts) — both defaultdict(int)
-            mapping item_key to count of unlearned copies.
+            mapping registry_key to count of unlearned copies.
         """
         scroll_counts = defaultdict(int)
         recipe_counts = defaultdict(int)
@@ -323,11 +329,14 @@ class NFTSaturationService:
                     location__in=reachable_locations,
                     item_type__in=scroll_types,
                 )
-                .values("item_type__name")
+                .values("item_type__prototype_key")
                 .annotate(count=Count("id"))
             )
             for row in scroll_nfts:
-                scroll_counts[row["item_type__name"]] += row["count"]
+                proto = row["item_type__prototype_key"] or ""
+                if proto.endswith("_scroll"):
+                    spell_key = proto[: -len("_scroll")]
+                    scroll_counts[spell_key] += row["count"]
 
         # Recipe NFTs reachable to players
         recipe_types = NFTItemType.objects.filter(
@@ -339,11 +348,14 @@ class NFTSaturationService:
                     location__in=reachable_locations,
                     item_type__in=recipe_types,
                 )
-                .values("item_type__name")
+                .values("item_type__prototype_key")
                 .annotate(count=Count("id"))
             )
             for row in recipe_nfts:
-                recipe_counts[row["item_type__name"]] += row["count"]
+                proto = row["item_type__prototype_key"] or ""
+                if proto.endswith("_recipe"):
+                    recipe_key = proto[: -len("_recipe")]
+                    recipe_counts[recipe_key] += row["count"]
 
         return scroll_counts, recipe_counts
 

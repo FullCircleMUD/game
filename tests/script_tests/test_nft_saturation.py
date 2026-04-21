@@ -42,11 +42,12 @@ def _create_session(char_key, hours_ago_start, hours_ago_end=None, account_id=1)
     )
 
 
-def _create_item_type(name, typeclass="typeclasses.items.weapons.longsword.LongswordNFTItem"):
+def _create_item_type(name, typeclass="typeclasses.items.weapons.longsword.LongswordNFTItem", prototype_key=None):
     """Helper to create an NFTItemType."""
     return NFTItemType.objects.create(
         name=name,
         typeclass=typeclass,
+        prototype_key=prototype_key,
         description=f"Test {name}",
     )
 
@@ -303,19 +304,23 @@ class TestGetUnlearnedCopyCounts(EvenniaTest):
         self.assertEqual(len(recipe_counts), 0)
 
     def test_scroll_in_character_hands_counted(self):
-        scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
+        scroll_type = _create_item_type(
+            "Test Fire Scroll ZZZ", SCROLL_TYPECLASS, prototype_key="test_fire_scroll"
+        )
         _create_nft(scroll_type, NFTGameState.LOCATION_CHARACTER, "token_100", char_key="Alice")
         _create_nft(scroll_type, NFTGameState.LOCATION_CHARACTER, "token_101", char_key="Bob")
 
         scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
-        self.assertEqual(scroll_counts["Test Fire Scroll ZZZ"], 2)
+        self.assertEqual(scroll_counts["test_fire"], 2)
 
     def test_scroll_in_account_counted(self):
-        scroll_type = _create_item_type("Test Ice Scroll ZZZ", SCROLL_TYPECLASS)
+        scroll_type = _create_item_type(
+            "Test Ice Scroll ZZZ", SCROLL_TYPECLASS, prototype_key="test_ice_scroll"
+        )
         _create_nft(scroll_type, NFTGameState.LOCATION_ACCOUNT, "token_102")
 
         scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
-        self.assertEqual(scroll_counts["Test Ice Scroll ZZZ"], 1)
+        self.assertEqual(scroll_counts["test_ice"], 1)
 
     def test_scroll_spawned_in_world_counted(self):
         """Scrolls sitting in rooms must count as unlearned copies.
@@ -324,41 +329,65 @@ class TestGetUnlearnedCopyCounts(EvenniaTest):
         scrolls it already dropped last cycle, flooding the world until
         a player finally picks one up.
         """
-        scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
+        scroll_type = _create_item_type(
+            "Test Fire Scroll ZZZ", SCROLL_TYPECLASS, prototype_key="test_fire_scroll"
+        )
         _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_spawn_1")
         _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_spawn_2")
 
         scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
-        self.assertEqual(scroll_counts["Test Fire Scroll ZZZ"], 2)
+        self.assertEqual(scroll_counts["test_fire"], 2)
 
     def test_recipe_spawned_in_world_counted(self):
         """Recipes sitting in rooms must count as unlearned copies."""
-        recipe_type = _create_item_type("Test Recipe ZZZ", RECIPE_TYPECLASS)
+        recipe_type = _create_item_type(
+            "Test Recipe ZZZ", RECIPE_TYPECLASS, prototype_key="test_recipe"
+        )
         _create_nft(recipe_type, NFTGameState.LOCATION_SPAWNED, "token_spawn_3")
 
         _, recipe_counts = NFTSaturationService.get_unlearned_copy_counts()
-        self.assertEqual(recipe_counts["Test Recipe ZZZ"], 1)
+        self.assertEqual(recipe_counts["test"], 1)
 
     def test_scroll_in_reserve_excluded(self):
-        scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
+        scroll_type = _create_item_type(
+            "Test Fire Scroll ZZZ", SCROLL_TYPECLASS, prototype_key="test_fire_scroll"
+        )
         _create_nft(scroll_type, NFTGameState.LOCATION_RESERVE, "token_103")
 
         scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
         self.assertEqual(len(scroll_counts), 0)
 
     def test_scroll_onchain_excluded(self):
-        scroll_type = _create_item_type("Test Fire Scroll ZZZ", SCROLL_TYPECLASS)
+        scroll_type = _create_item_type(
+            "Test Fire Scroll ZZZ", SCROLL_TYPECLASS, prototype_key="test_fire_scroll"
+        )
         _create_nft(scroll_type, NFTGameState.LOCATION_ONCHAIN, "token_104")
 
         scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
         self.assertEqual(len(scroll_counts), 0)
 
     def test_recipe_in_character_hands_counted(self):
-        recipe_type = _create_item_type("Test Recipe ZZZ", RECIPE_TYPECLASS)
+        recipe_type = _create_item_type(
+            "Test Recipe ZZZ", RECIPE_TYPECLASS, prototype_key="test_recipe"
+        )
         _create_nft(recipe_type, NFTGameState.LOCATION_CHARACTER, "token_105", char_key="Alice")
 
         _, recipe_counts = NFTSaturationService.get_unlearned_copy_counts()
-        self.assertEqual(recipe_counts["Test Recipe ZZZ"], 1)
+        self.assertEqual(recipe_counts["test"], 1)
+
+    def test_scroll_without_prototype_key_ignored(self):
+        """Scroll NFTItemType with no prototype_key should be skipped.
+
+        Defensive: legacy/malformed rows without the "{key}_scroll" suffix
+        are silently ignored instead of polluting the counter.
+        """
+        scroll_type = _create_item_type(
+            "Legacy Scroll", SCROLL_TYPECLASS, prototype_key=None
+        )
+        _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_legacy")
+
+        scroll_counts, _ = NFTSaturationService.get_unlearned_copy_counts()
+        self.assertEqual(len(scroll_counts), 0)
 
 
 # ─── NFT Circulation Counts ─────────────────────────────────────────
@@ -542,35 +571,80 @@ class TestTakeDailySnapshot(EvenniaTest):
         self.assertEqual(SaturationSnapshot.objects.count(), first_count)
 
     def test_unlearned_copies_included_in_saturation(self):
-        """Unlearned scroll copies add to saturation score."""
+        """Unlearned scroll copies add to saturation score.
+
+        Regression: the snapshot's unlearned_copies must reflect real
+        spawned/held NFTs. Without this, the gap-based spawn calculator
+        fires full demand every hour, duplicating scrolls in the world.
+        """
         _create_session(self.char1.key, hours_ago_start=2, hours_ago_end=1)
         self.char1.db.spellbook = {}
         self.char1.db.granted_spells = {}
         self.char1.db.recipe_book = {}
 
-        # Create a scroll NFT type matching a registered spell
         from world.spells.registry import SPELL_REGISTRY
-        if SPELL_REGISTRY:
-            first_spell_key = next(iter(SPELL_REGISTRY))
-            spell = SPELL_REGISTRY[first_spell_key]
-            # Set mastery so this char is eligible for the spell
-            self.char1.db.class_skill_mastery_levels = {
-                spell.school_key: {"mastery": spell.min_mastery.value, "classes": ["mage"]},
-            }
-            scroll_type = _create_item_type(first_spell_key, SCROLL_TYPECLASS)
-            _create_nft(scroll_type, NFTGameState.LOCATION_CHARACTER, "token_302", char_key="Alice")
+        self.assertTrue(SPELL_REGISTRY, "SPELL_REGISTRY must not be empty for this test")
 
-            NFTSaturationService.take_snapshot()
+        first_spell_key = next(iter(SPELL_REGISTRY))
+        spell = SPELL_REGISTRY[first_spell_key]
+        # Set mastery so this char is eligible for the spell
+        self.char1.db.class_skill_mastery_levels = {
+            spell.school_key: {"mastery": spell.min_mastery.value, "classes": ["mage"]},
+        }
+        scroll_type = _create_item_type(
+            f"Scroll of {first_spell_key}",
+            SCROLL_TYPECLASS,
+            prototype_key=f"{first_spell_key}_scroll",
+        )
+        _create_nft(scroll_type, NFTGameState.LOCATION_CHARACTER, "token_302", char_key="Alice")
 
-            row = SaturationSnapshot.objects.filter(
-                category=SaturationSnapshot.CATEGORY_SPELL,
-                item_key=first_spell_key,
-            ).first()
-            if row:
-                self.assertEqual(row.known_by, 0)
-                self.assertEqual(row.unlearned_copies, 1)
-                self.assertEqual(row.eligible_players, 1)
-                self.assertAlmostEqual(row.saturation, 1.0)
+        NFTSaturationService.take_snapshot()
+
+        row = SaturationSnapshot.objects.get(
+            category=SaturationSnapshot.CATEGORY_SPELL,
+            item_key=f"scroll_{first_spell_key}",
+        )
+        self.assertEqual(row.known_by, 0)
+        self.assertEqual(row.unlearned_copies, 1)
+        self.assertEqual(row.eligible_players, 1)
+        self.assertAlmostEqual(row.saturation, 1.0)
+
+    def test_spawned_scroll_reduces_gap_next_snapshot(self):
+        """A scroll at LOCATION_SPAWNED must count toward unlearned_copies.
+
+        This is the exact scenario that was silently broken: the snapshot
+        must see scrolls sitting in the world (not just in player hands)
+        so the next spawn tick's gap = eligible - known - unlearned = 0.
+        """
+        _create_session(self.char1.key, hours_ago_start=2, hours_ago_end=1)
+        self.char1.db.spellbook = {}
+        self.char1.db.granted_spells = {}
+        self.char1.db.recipe_book = {}
+
+        from world.spells.registry import SPELL_REGISTRY
+        self.assertTrue(SPELL_REGISTRY, "SPELL_REGISTRY must not be empty for this test")
+
+        first_spell_key = next(iter(SPELL_REGISTRY))
+        spell = SPELL_REGISTRY[first_spell_key]
+        self.char1.db.class_skill_mastery_levels = {
+            spell.school_key: {"mastery": spell.min_mastery.value, "classes": ["mage"]},
+        }
+        scroll_type = _create_item_type(
+            f"Scroll of {first_spell_key}",
+            SCROLL_TYPECLASS,
+            prototype_key=f"{first_spell_key}_scroll",
+        )
+        # Two scrolls sitting in the world, nobody holding them yet
+        _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_spawned_1")
+        _create_nft(scroll_type, NFTGameState.LOCATION_SPAWNED, "token_spawned_2")
+
+        NFTSaturationService.take_snapshot()
+
+        row = SaturationSnapshot.objects.get(
+            category=SaturationSnapshot.CATEGORY_SPELL,
+            item_key=f"scroll_{first_spell_key}",
+        )
+        self.assertEqual(row.unlearned_copies, 2)
 
     def test_no_eligible_players_saturation_zero(self):
         """Spell with no eligible players → saturation 0.0."""
