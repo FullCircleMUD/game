@@ -39,6 +39,11 @@ def _find_recipe(recipes, query):
     """
     Match a query string against recipe **output** resource names.
 
+    Fuzzy (substring) match first; if that returns multiple recipes, fall
+    back to an exact match among them as a tiebreaker. This lets short
+    queries like 'iron' resolve uniquely to 'Iron Ingot' while still
+    letting 'timber' pick 'Timber' over 'Ironwood Timber'.
+
     Returns (recipe, None) on unique match, or (None, error_message) on
     zero or ambiguous matches.
     """
@@ -56,7 +61,15 @@ def _find_recipe(recipes, query):
     if not matches:
         return None, f"No recipe found matching '{query}'. Type 'rates' to see available recipes."
 
-    # Ambiguous — list the matches
+    # Multiple fuzzy matches — try exact match as tiebreaker
+    exact = [
+        r for r in matches
+        if _get_resource_name(r["output"]).lower() == query_lower
+    ]
+    if len(exact) == 1:
+        return exact[0], None
+
+    # Still ambiguous — list the fuzzy matches
     lines = [f"Multiple recipes match '{query}':"]
     for m in matches:
         out_name = _get_resource_name(m["output"])

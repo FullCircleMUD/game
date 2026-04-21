@@ -452,3 +452,58 @@ class TestProcessXP(ProcessingTestBase):
         self.assertIn("Copper Ore", result)
         self.assertIn("Copper Ingot", result)
         self.assertIn("Bronze Ingot", result)
+
+
+# ── Substring Disambiguation (Sawmill) ──────────────────────────────
+
+class TestSubstringDisambiguation(ProcessingTestBase):
+    """
+    Sawmill has Wood → Timber and Ironwood → Ironwood Timber. The query
+    'timber' is a substring of both outputs; exact match must win as a
+    tiebreaker so 'saw timber' routes to the Wood recipe rather than
+    silently picking Ironwood Timber.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.room1.db.processing_type = "sawmill"
+        self.room1.db.recipes = [
+            {"inputs": {6: 1}, "output": 7, "amount": 1, "cost": 1},     # Wood → Timber
+            {"inputs": {40: 1}, "output": 41, "amount": 1, "cost": 3},   # Ironwood → Ironwood Timber
+        ]
+
+    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+           side_effect=_instant_delay)
+    def test_saw_timber_picks_plain_timber(self, mock_delay):
+        """'saw timber' must hit the Wood → Timber recipe, not Ironwood Timber."""
+        _give_resources(self.char1, {6: 2, 40: 2})
+        _give_gold(self.char1, 10)
+        result = self.call(CmdProcess(), "timber")
+        self.assertIn("1 Wood", result)
+        self.assertIn("Timber", result)
+        self.assertNotIn("Ironwood", result)
+        self.assertEqual(self.char1.get_resource(6), 1)   # wood consumed
+        self.assertEqual(self.char1.get_resource(7), 1)   # timber produced
+        self.assertEqual(self.char1.get_resource(40), 2)  # ironwood untouched
+        self.assertEqual(self.char1.get_resource(41), 0)  # no ironwood timber
+
+    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+           side_effect=_instant_delay)
+    def test_saw_ironwood_picks_ironwood(self, mock_delay):
+        """'saw ironwood' should resolve uniquely to the Ironwood recipe."""
+        _give_resources(self.char1, {40: 2})
+        _give_gold(self.char1, 10)
+        result = self.call(CmdProcess(), "ironwood")
+        self.assertIn("Ironwood Timber", result)
+        self.assertEqual(self.char1.get_resource(40), 1)
+        self.assertEqual(self.char1.get_resource(41), 1)
+
+    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+           side_effect=_instant_delay)
+    def test_saw_ironwood_timber_picks_ironwood(self, mock_delay):
+        """Full name 'ironwood timber' is an exact match for the ironwood recipe."""
+        _give_resources(self.char1, {40: 2})
+        _give_gold(self.char1, 10)
+        result = self.call(CmdProcess(), "ironwood timber")
+        self.assertIn("Ironwood Timber", result)
+        self.assertEqual(self.char1.get_resource(41), 1)
