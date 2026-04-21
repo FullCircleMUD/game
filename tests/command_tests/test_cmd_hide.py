@@ -207,6 +207,7 @@ class TestSearchFindsHidden(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _set_alertness(self.char1, MasteryLevel.BASIC)
         _set_stealth(self.char2, MasteryLevel.BASIC)
         self.char2.add_condition(Condition.HIDDEN)
