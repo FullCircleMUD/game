@@ -11,10 +11,15 @@ scripts (telemetry/saturation/spawn) are always reset as a group.
 Usage:
     services                              — show all services and status
     services reset <name>                 — reset one (Y/N prompt)
-    services reset all                    — reset all (Y/N prompt)
-    services reset <name> force           — reset one, no prompt
-    services reset all force              — reset all, no prompt
+    services reset all                    — reset pipeline + global (prompt)
+    services reset zone <zone_key>        — reset one zone script (prompt)
+    services reset zones all              — reset all zone scripts (prompt)
+    services reset <...> force            — skip prompt
 """
+
+import glob
+import os
+import time
 
 from evennia import Command, GLOBAL_SCRIPTS, create_script, logger
 from evennia.utils.evmenu import get_input
@@ -34,6 +39,68 @@ from typeclasses.scripts.telemetry_service import (
 from typeclasses.scripts.unified_spawn_service import (
     SLOT_MINUTE as _SPAWN_SLOT,
 )
+from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
+
+
+# ----------------------------------------------------------------- #
+# Zone spawn script discovery
+# ----------------------------------------------------------------- #
+
+_SPAWNS_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "world", "spawns")
+)
+
+
+def _discover_zone_keys():
+    """Enumerate zone_keys from world/spawns/*.json filenames."""
+    return sorted(
+        os.path.splitext(os.path.basename(p))[0]
+        for p in glob.glob(os.path.join(_SPAWNS_DIR, "*.json"))
+    )
+
+
+def _get_zone_script(zone_key):
+    """Look up a ZoneSpawnScript by zone_key, or return None."""
+    return ZoneSpawnScript.objects.filter(db_key=f"zone_spawn_{zone_key}").first()
+
+
+def _running_zone_keys():
+    """Return zone_keys for every ZoneSpawnScript currently in the DB."""
+    keys = []
+    for script in ZoneSpawnScript.objects.all():
+        key = script.key or ""
+        if key.startswith("zone_spawn_"):
+            keys.append(key[len("zone_spawn_"):])
+    return keys
+
+
+def _format_age(seconds):
+    """Render an elapsed-time span in a compact form."""
+    if seconds is None:
+        return "never"
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds}s ago"
+    if seconds < 3600:
+        return f"{seconds // 60}m ago"
+    if seconds < 86400:
+        return f"{seconds // 3600}h ago"
+    return f"{seconds // 86400}d ago"
+
+
+def _reset_zone(zone_key):
+    """Stop, delete, and recreate a single zone spawn script."""
+    script = _get_zone_script(zone_key)
+    if script:
+        try:
+            script.stop()
+        except Exception as exc:
+            logger.log_err(f"services: stop(zone_spawn_{zone_key}) failed: {exc}")
+        try:
+            script.delete()
+        except Exception as exc:
+            logger.log_err(f"services: delete(zone_spawn_{zone_key}) failed: {exc}")
+    ZoneSpawnScript.create_for_zone(zone_key)
 
 
 # Wall-clock slot minute for each pipeline script. Used to render the
@@ -166,9 +233,10 @@ class CmdServices(Command):
     Usage:
         services                              — list all services
         services reset <name>                 — reset one (with prompt)
-        services reset all                    — reset all (with prompt)
-        services reset <name> force           — reset one, no prompt
-        services reset all force              — reset all, no prompt
+        services reset all                    — reset pipeline + global (prompt)
+        services reset zone <zone_key>        — reset one zone script (prompt)
+        services reset zones all              — reset all zone scripts (prompt)
+        services reset <...> force            — skip prompt
 
     Service names support partial matching:
         services reset spawn       → unified_spawn_service
@@ -188,17 +256,21 @@ class CmdServices(Command):
             return
 
         if args[0].lower() != "reset":
-            self.msg("Usage: services [reset [<name> | all] [force]]")
+            self.msg("Usage: services [reset [<name> | all | zone <key> | zones all] [force]]")
             return
 
         tokens = args[1:]
-        force = False
-        target = None
+        force = any(t.lower() == "force" for t in tokens)
+        non_force = [t for t in tokens if t.lower() != "force"]
 
-        for token in tokens:
-            if token.lower() == "force":
-                force = True
-            elif token.lower() == "all":
+        # Zone-script arms: `reset zone <key>` or `reset zones all`
+        if non_force and non_force[0].lower() in ("zone", "zones"):
+            self._handle_zone_reset(non_force, force)
+            return
+
+        target = None
+        for token in non_force:
+            if token.lower() == "all":
                 target = "all"
             else:
                 resolved = _resolve_name(token)
@@ -212,13 +284,121 @@ class CmdServices(Command):
                 target = resolved
 
         if not target:
-            self.msg("Usage: services reset [<name> | all] [force]")
+            self.msg("Usage: services reset [<name> | all | zone <key> | zones all] [force]")
             return
 
         if target == "all":
             self._reset_all(force)
         else:
             self._reset_targeted(target, force)
+
+    # ─────────────────────────────────────────────────────────────── #
+    # Zone-script reset
+    # ─────────────────────────────────────────────────────────────── #
+
+    def _handle_zone_reset(self, tokens, force):
+        """Parse and dispatch `reset zone <key>` or `reset zones all`."""
+        head = tokens[0].lower()
+        zone_keys = _discover_zone_keys()
+
+        if head == "zones":
+            if len(tokens) < 2 or tokens[1].lower() != "all":
+                self.msg("Usage: services reset zones all [force]")
+                return
+            self._reset_zones_all(zone_keys, force)
+            return
+
+        # head == "zone"
+        if len(tokens) < 2:
+            self.msg(
+                "Usage: services reset zone <zone_key> [force]\n"
+                "Available zones:\n  " + "\n  ".join(zone_keys)
+            )
+            return
+
+        requested = tokens[1]
+        if requested in zone_keys:
+            zone_key = requested
+        else:
+            matches = [z for z in zone_keys if requested in z]
+            if len(matches) == 1:
+                zone_key = matches[0]
+            else:
+                self.msg(
+                    f"|rUnknown zone: {requested}|n\n"
+                    "Available zones:\n  " + "\n  ".join(zone_keys)
+                )
+                return
+
+        self._reset_zone_targeted(zone_key, force)
+
+    def _reset_zone_targeted(self, zone_key, force):
+        script = _get_zone_script(zone_key)
+        status = "|gRUNNING|n" if script else "|rMISSING|n"
+        self.msg(f"|c--- zone_spawn_{zone_key} ---|n\n  {status}")
+
+        if force:
+            self.msg("|y(force — no confirmation)|n")
+            self._do_reset_zone(zone_key)
+            return
+
+        def _on_confirm(caller, _, result):
+            answer = (result or "").strip().lower()
+            if answer in ("n", "no"):
+                caller.msg("Reset cancelled.")
+                return False
+            self._do_reset_zone(zone_key)
+            return False
+
+        get_input(
+            self.account if hasattr(self, "account") else self.caller,
+            f"\nReset zone_spawn_{zone_key}? [Y]/N? ",
+            _on_confirm,
+        )
+
+    def _do_reset_zone(self, zone_key):
+        d = threads.deferToThread(_reset_zone, zone_key)
+        d.addCallback(lambda _: self.msg(f"|gzone_spawn_{zone_key} reset.|n"))
+        d.addErrback(
+            lambda f: self.msg(f"|rReset failed: {f.getErrorMessage()}|n")
+        )
+
+    def _reset_zones_all(self, zone_keys, force):
+        self.msg(
+            f"|yResetting all {len(zone_keys)} zone spawn scripts:|n "
+            + ", ".join(zone_keys)
+        )
+
+        if force:
+            self.msg("|y(force — no confirmation)|n")
+            self._do_reset_zones_all(zone_keys)
+            return
+
+        def _on_confirm(caller, _, result):
+            answer = (result or "").strip().lower()
+            if answer in ("n", "no"):
+                caller.msg("Reset cancelled.")
+                return False
+            self._do_reset_zones_all(zone_keys)
+            return False
+
+        get_input(
+            self.account if hasattr(self, "account") else self.caller,
+            f"\nReset all {len(zone_keys)} zone spawn scripts? [Y]/N? ",
+            _on_confirm,
+        )
+
+    def _do_reset_zones_all(self, zone_keys):
+        def _worker():
+            for zone_key in zone_keys:
+                _reset_zone(zone_key)
+            return True
+
+        d = threads.deferToThread(_worker)
+        d.addCallback(lambda _: self.msg(f"|g{len(zone_keys)} zone scripts reset.|n"))
+        d.addErrback(
+            lambda f: self.msg(f"|rReset failed: {f.getErrorMessage()}|n")
+        )
 
     # ─────────────────────────────────────────────────────────────── #
     # Status report
@@ -262,6 +442,72 @@ class CmdServices(Command):
             )
         else:
             lines.append(f"|wAll {total} services running.|n")
+
+        # ── Zone spawn scripts ──
+        lines.append("")
+        lines.append("|w=== Zone Spawn Scripts ===|n")
+        lines.append("")
+
+        zone_keys = _discover_zone_keys()
+        zone_found = 0
+        zone_missing = 0
+        zone_stalled = 0
+        now = time.time()
+        name_width = max((len(z) for z in zone_keys), default=20)
+
+        for zone_key in zone_keys:
+            script = _get_zone_script(zone_key)
+            if not script:
+                zone_missing += 1
+                lines.append(f"  |rMISSING|n  {zone_key:{name_width}s}")
+                continue
+
+            zone_found += 1
+            interval = getattr(script, "interval", None)
+            last_times = dict(script.db.last_spawn_times or {})
+            if last_times:
+                last = max(last_times.values())
+                age_str = _format_age(now - last)
+                stall_tag = ""
+            else:
+                age_str = "never"
+                stall_tag = " |y[STALLED?]|n"
+                zone_stalled += 1
+            lines.append(
+                f"  |gRUNNING|n  {zone_key:{name_width}s} "
+                f"({_format_interval(interval)} tick)  "
+                f"last spawn: {age_str:>10s}{stall_tag}"
+            )
+
+        # Orphan scripts — DB rows with no matching JSON
+        orphans = [k for k in _running_zone_keys() if k not in zone_keys]
+        for orphan in sorted(orphans):
+            lines.append(
+                f"  |yORPHAN |n  {orphan:{name_width}s} "
+                f"(no matching world/spawns/{orphan}.json)"
+            )
+
+        zone_total = len(zone_keys)
+        summary_parts = [f"|w{zone_found}/{zone_total}|n zone scripts running"]
+        if zone_missing:
+            summary_parts.append(f"|r{zone_missing} missing|n")
+        if zone_stalled:
+            summary_parts.append(f"|y{zone_stalled} stalled|n")
+        if orphans:
+            summary_parts.append(f"|y{len(orphans)} orphan|n")
+        lines.append("")
+        lines.append(", ".join(summary_parts) + ".")
+
+        if zone_missing or zone_stalled or orphans:
+            lines.append(
+                "Use |wservices reset zone <zone_key>|n or "
+                "|wservices reset zones all|n to recreate."
+            )
+        if zone_stalled:
+            lines.append(
+                "|yStalled scripts (never spawned) often indicate rooms are "
+                "missing `mob_area` tags — investigate before reset.|n"
+            )
 
         self.msg("\n".join(lines))
 
