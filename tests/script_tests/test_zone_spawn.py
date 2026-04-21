@@ -185,6 +185,20 @@ class TestZoneSpawnScript(EvenniaTest):
         self.script.populate()
         self.assertEqual(self.script.db.last_spawn_times, {})
 
+    def test_populate_stamps_when_already_at_target(self):
+        """Re-populate on a zone already at target should still stamp.
+
+        Without this, a reset whose populations were preserved at target
+        would leave the zone perpetually flagged as stalled in the
+        services report, even though it's perfectly healthy.
+        """
+        self.script.populate()                       # bring to target
+        self.script.db.last_spawn_times = {}         # clear the stamp
+        self.script.populate()                       # no-op populate
+
+        rule_id = self.script._rule_id(self.rule)
+        self.assertIn(rule_id, self.script.db.last_spawn_times)
+
     # ── Room selection ───────────────────────────────────────────────
 
     def test_pick_spawn_room_returns_tagged_room(self):

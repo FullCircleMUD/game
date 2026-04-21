@@ -212,11 +212,13 @@ class ZoneSpawnScript(DefaultScript):
         Initial population — spawn all mobs up to target immediately,
         bypassing respawn cooldowns.
 
-        Stamps last_spawn_times for every rule that successfully placed
-        at least one mob so operator tooling (e.g. `services`) can tell
-        a freshly-seeded zone from one whose at_repeat() loop has never
-        fired. Rules that couldn't place anything (no matching rooms)
-        are left unstamped and correctly appear as stalled.
+        Stamps last_spawn_times so operator tooling (e.g. `services`) can
+        tell a freshly-seeded zone from a genuinely stalled one. A rule is
+        stamped if it is at target (either already satisfied or brought to
+        target by this call). The only case left unstamped is
+        `needed > 0 and placed == 0` — the script tried to spawn but no
+        matching room exists, which is the exact failure mode the STALLED
+        flag is meant to surface.
         """
         spawn_table = self.db.spawn_table
         if not spawn_table:
@@ -238,7 +240,8 @@ class ZoneSpawnScript(DefaultScript):
                 self._spawn_mob(rule, room)
                 placed += 1
 
-            if placed > 0:
+            # Stamp unless we tried to spawn and failed (genuinely stalled)
+            if not (needed > 0 and placed == 0):
                 last_spawn_times[self._rule_id(rule)] = now
 
         self.db.last_spawn_times = last_spawn_times
