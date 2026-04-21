@@ -7,8 +7,8 @@ are tagged with the instance key for cleanup.
 Room layout:
     Hub → [1] Welcome → [2] Look → [3] Inventory → [4] Armoury
     → [5] Courtyard (fly/swim within room) → [6] Dark Passage
-    → [7] Combat Arena → [8] Pantry → [9] Wellspring
-    → [10] Complete → Hub
+    → [7] Combat Arena → [8] Resting Grove → [9] Pantry
+    → [10] Wellspring → [11] Complete → Hub
 
 Two entry points:
     build_tutorial_1(instance) — synchronous (tests, fallback).
@@ -506,7 +506,7 @@ def _phase_3(state):
 
 
 # ====================================================================== #
-#  Phase 4 — rooms 8–9 (pantry, wellspring)
+#  Phase 4 — rooms 8–10 (resting grove, pantry, wellspring)
 # ====================================================================== #
 
 
@@ -517,7 +517,53 @@ def _phase_4(state):
     char = state["char"]
     first_run = state["first_run"]
 
-    # ----- ROOM 8: The Pantry -----
+    # ----- ROOM 8: Resting Grove -----
+    rooms["rest"] = _room(
+        "A Quiet Clearing",
+        "A small grassy clearing opens in the middle of the passage. "
+        "Sunlight filters through a leafy canopy, and a patch of soft "
+        "moss makes an inviting spot to lie down. The only sounds are "
+        "birdsong and the distant trickle of water.",
+        "|wTutorial: Posture & Rest|n\n\n"
+        "Your character can adopt different postures, which affect how "
+        "quickly you recover HP, mana, and movement each tick:\n\n"
+        "  |wstand|n — Stand up (the default; normal regen).\n"
+        "  |wsit|n   — Sit down (normal regen — mostly flavour).\n"
+        "  |wrest|n  — Rest (|g2x regen|n).\n"
+        "  |wsleep|n — Go to sleep (|g3x regen|n — but vulnerable).\n"
+        "  |wwake|n  — Wake from sleeping back to resting.\n\n"
+        "You cannot change posture while in combat.\n\n"
+        "|yWhere you sleep matters:|n\n"
+        "  |gWilderness|n is safe — rest or sleep freely.\n"
+        "  |gInn bedrooms|n boost sleeping regen to |g5x|n. Rent a "
+        "room at an inn when you need a quick recovery.\n"
+        "  |rTown streets|n are risky. A street urchin may pickpocket "
+        "you while you sleep — and they have an easier time of it, and "
+        "take more gold, from a sleeping target.\n"
+        "  |rShops, guilds, and civic buildings|n won't let you sleep "
+        "at all.\n\n"
+        "|yPractice:|n\n"
+        "  Try |wrest|n to catch your breath.\n"
+        "  Try |wsleep|n to lie down fully.\n"
+        "  Type |wstand|n to get back on your feet.\n"
+        "  Move |weast|n when ready.",
+        guide_context=(
+            "Teach posture and rest. |wstand|n is the default (normal "
+            "regen), |wsit|n is normal regen and mostly flavour, "
+            "|wrest|n gives 2x regen, |wsleep|n gives 3x regen, "
+            "|wwake|n wakes to resting. No posture changes during "
+            "combat. Where you sleep matters: wilderness safe, inn "
+            "bedrooms boost sleeping to 5x, town streets are risky "
+            "(street urchins get advantage on pickpocket attempts and "
+            "take more from sleeping victims), and shops/guilds/civic "
+            "buildings block sleep entirely. Suggest they try |wrest|n, "
+            "|wsleep|n, then |wstand|n."
+        ),
+    )
+    _connect(rooms["combat"], rooms["rest"], "east")
+    _spawn_pip(rooms["rest"])
+
+    # ----- ROOM 9: The Pantry -----
     rooms["pantry"] = _room(
         "The Pantry",
         "A cozy pantry lined with wooden shelves. The smell of freshly "
@@ -549,7 +595,7 @@ def _phase_4(state):
             "covers the economics."
         ),
     )
-    _connect(rooms["combat"], rooms["pantry"], "east")
+    _connect(rooms["rest"], rooms["pantry"], "east")
     _spawn_pip(rooms["pantry"])
 
     if first_run:
@@ -561,7 +607,7 @@ def _phase_4(state):
             "on your first run through the tutorial.|n"
         )
 
-    # ----- ROOM 9: The Wellspring -----
+    # ----- ROOM 10: The Wellspring -----
     rooms["wellspring"] = _room(
         "The Wellspring",
         "A cool stone chamber where a natural spring feeds a stone "
@@ -620,7 +666,7 @@ def _phase_4(state):
 
 
 # ====================================================================== #
-#  Phase 5 — room 10 (complete) + completion exit
+#  Phase 5 — room 11 (complete) + completion exit
 # ====================================================================== #
 
 
@@ -630,7 +676,7 @@ def _phase_5(state):
     tag = state["tag"]
     instance = state["instance"]
 
-    # ----- ROOM 10: Tutorial Complete -----
+    # ----- ROOM 11: Tutorial Complete -----
     rooms["complete"] = _room(
         "Tutorial Complete",
         "A bright archway glows at the end of this final chamber. "
@@ -646,6 +692,7 @@ def _phase_5(state):
         "  |wSwimming:|n     swim up/down (WATER_BREATHING prevents drowning)\n"
         "  |wLight:|n        light <torch>, extinguish <torch>\n"
         "  |wCombat:|n       attack, dodge, flee, score, stats\n"
+        "  |wResting:|n      stand, sit, rest, sleep, wake (regen)\n"
         "  |wEating:|n       eat <food>, hunger\n"
         "  |wDrinking:|n     drink, refill, score (thirst level)\n\n"
         "For more info on any topic, use |whelp <topic>|n.\n"
@@ -655,7 +702,8 @@ def _phase_5(state):
         guide_context=(
             "Congratulate the player! They've learned the survival basics: "
             "movement, looking, inventory, equipment, flying, swimming, "
-            "light, combat, eating, and drinking. Mention |whelp <topic>|n "
+            "light, combat, resting/posture, eating, and drinking. "
+            "Mention |whelp <topic>|n "
             "for more info. Tell them to head |weast|n for their graduation "
             "reward. Mention Tutorials 2 (economics) and 3 (growth & social) "
             "are available from the hub."
