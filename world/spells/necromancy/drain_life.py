@@ -77,7 +77,7 @@ class DrainLife(Spell):
         raw_damage = sum(dice.roll("1d4+1") for _ in range(tier))
 
         # Apply damage (with resistance check)
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.COLD)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.COLD, caster=caster)
 
         # Heal caster for 100% of actual damage dealt, capped at max HP.
         # Use effective_hp_max so the CON-modifier portion of max HP isn't

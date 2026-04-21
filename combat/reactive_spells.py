@@ -111,7 +111,7 @@ def check_reactive_smite(attacker, target):
     bonus_damage = dice.roll(f"{num_dice}d6")
 
     # Apply as radiant damage (respects resistance/vulnerability)
-    actual = apply_spell_damage(target, bonus_damage, DamageType.RADIANT)
+    actual = apply_spell_damage(target, bonus_damage, DamageType.RADIANT, caster=attacker)
 
     # Deduct mana
     attacker.mana -= cost

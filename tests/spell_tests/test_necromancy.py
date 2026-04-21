@@ -215,7 +215,29 @@ class TestDrainLife(EvenniaTest):
             mock_dice.roll.return_value = 10
             with patch.object(self.char2, "die") as mock_die:
                 self.spell.cast(self.char1, self.char2)
-                mock_die.assert_called_once_with("spell", killer=None)
+                mock_die.assert_called_once_with("spell", killer=self.char1)
+
+    def test_drain_life_kill_awards_xp_to_caster(self):
+        """
+        Regression: spell kills must route XP to the caster. Fix threads
+        caster through apply_spell_damage -> take_damage(killer=) -> die()
+        so mob.die() finds the killer and fires at_gain_experience_points.
+        """
+        from evennia.utils import create
+        from typeclasses.actors.mobs.rabbit import Rabbit
+
+        rabbit = create.create_object(
+            Rabbit,
+            key="test_rabbit",
+            location=self.char1.location,
+        )
+        rabbit.hp = 1
+        rabbit.hp_max = 1
+        rabbit.level = 1
+
+        xp_before = self.char1.experience_points
+        self.spell.cast(self.char1, rabbit)
+        self.assertGreater(self.char1.experience_points, xp_before)
 
     def test_drain_life_target_deleted_during_cast(self):
         """
@@ -229,8 +251,8 @@ class TestDrainLife(EvenniaTest):
 
         original_apply = drain_life_mod.apply_spell_damage
 
-        def damage_then_delete(target, raw, dtype):
-            actual = original_apply(target, raw, dtype)
+        def damage_then_delete(target, raw, dtype, caster=None):
+            actual = original_apply(target, raw, dtype, caster=caster)
             target.delete()
             return actual
 

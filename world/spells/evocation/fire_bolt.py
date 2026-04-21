@@ -77,7 +77,7 @@ class FireBolt(Spell):
         # Hit — roll damage
         num_dice = tier * 2 if is_crit else tier
         raw_damage = dice.roll(f"{num_dice}d8")
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.FIRE)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.FIRE, caster=caster)
 
         crit_str = " |r*CRITICAL*|n" if is_crit else ""
         return (True, {

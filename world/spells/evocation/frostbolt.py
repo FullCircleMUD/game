@@ -63,7 +63,7 @@ class Frostbolt(Spell):
 
         # --- 1d6 cold + one per tier above BASIC (0/1/2/3/4) ---
         raw_damage = dice.roll("1d6") + (tier - 1)
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.COLD)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.COLD, caster=caster)
 
         # --- Contested check for SLOWED ---
         caster_roll = dice.roll("1d20")

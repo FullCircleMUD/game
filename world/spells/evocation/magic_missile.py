@@ -40,7 +40,7 @@ class MagicMissile(Spell):
         for _ in range(missiles):
             total_damage += dice.roll("1d4+2")
 
-        total_damage = apply_spell_damage(target, total_damage, DamageType.FORCE)
+        total_damage = apply_spell_damage(target, total_damage, DamageType.FORCE, caster=caster)
 
         s = "s" if missiles > 1 else ""
         return (True, {

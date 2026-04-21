@@ -107,7 +107,7 @@ class SoulHarvest(Spell):
                 )
             else:
                 actual = apply_spell_damage(
-                    entity, raw_damage, DamageType.NECROTIC,
+                    entity, raw_damage, DamageType.NECROTIC, caster=caster,
                 )
                 total_drained += actual
                 damage_results.append((entity, actual))
