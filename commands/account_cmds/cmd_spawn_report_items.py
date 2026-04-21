@@ -8,19 +8,19 @@ grouped by item type and typeclass (scroll vs recipe vs other).
 from evennia import Command
 
 
-class CmdSpawnReport(Command):
+class CmdSpawnReportItems(Command):
     """
     Show all spawned NFTs in the game world.
 
     Usage:
-        spawn_report
+        spawn_report_items
 
     Displays counts of all NFT items currently spawned (on mobs,
     in rooms, in chests) grouped by type. Useful for checking
     whether the spawn system is distributing knowledge NFTs.
     """
 
-    key = "spawn_report"
+    key = "spawn_report_items"
     locks = "cmd:id(1)"
     help_category = "Economy"
 
