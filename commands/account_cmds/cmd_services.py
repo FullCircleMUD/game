@@ -6,8 +6,7 @@ and ``reset_scripts`` (stop/delete/recreate) into a single command.
 
 Reset on a running service stops, deletes, and recreates it so it picks
 up current code. Reset on a missing service simply creates it. Pipeline
-scripts (telemetry/saturation/spawn) are always reset as a group to
-preserve their staggered creation offsets.
+scripts (telemetry/saturation/spawn) are always reset as a group.
 
 Usage:
     services                              — show all services and status
@@ -26,6 +25,24 @@ from server.conf.at_server_startstop import (
     _PIPELINE_SCRIPTS,
     _create_pipeline_scripts,
 )
+from typeclasses.scripts.nft_saturation_service import (
+    SLOT_MINUTE as _SATURATION_SLOT,
+)
+from typeclasses.scripts.telemetry_service import (
+    SLOT_MINUTE as _TELEMETRY_SLOT,
+)
+from typeclasses.scripts.unified_spawn_service import (
+    SLOT_MINUTE as _SPAWN_SLOT,
+)
+
+
+# Wall-clock slot minute for each pipeline script. Used to render the
+# "fires HH:MM" suffix in the status report.
+PIPELINE_SLOT_MINUTES = {
+    "telemetry_aggregator_service": _TELEMETRY_SLOT,
+    "nft_saturation_service": _SATURATION_SLOT,
+    "unified_spawn_service": _SPAWN_SLOT,
+}
 
 
 # ----------------------------------------------------------------- #
@@ -217,10 +234,15 @@ class CmdServices(Command):
             if script:
                 found += 1
                 interval = getattr(script, "interval", None)
-                tag = " |y[PIPELINE]|n" if is_pipeline else ""
+                if is_pipeline:
+                    slot = PIPELINE_SLOT_MINUTES.get(key)
+                    detail = f"({_format_interval(interval)} tick, fires HH:{slot:02d})"
+                    tag = " |y[PIPELINE]|n"
+                else:
+                    detail = f"({_format_interval(interval)})"
+                    tag = ""
                 lines.append(
-                    f"  |gRUNNING|n  {key:36s} "
-                    f"({_format_interval(interval)}){tag}"
+                    f"  |gRUNNING|n  {key:36s} {detail}{tag}"
                 )
             else:
                 missing += 1
@@ -250,9 +272,10 @@ class CmdServices(Command):
     def _reset_all(self, force):
         self._show_report()
         self.msg(
-            "\n|yPipeline scripts will be recreated as a group with "
-            "staggered offsets: telemetry @+0s, saturation @+60s, "
-            "spawn @+120s.|n"
+            "\n|yPipeline scripts will be recreated as a group. "
+            f"Wall-clock slots: telemetry HH:{_TELEMETRY_SLOT:02d}, "
+            f"saturation HH:{_SATURATION_SLOT:02d}, "
+            f"spawn HH:{_SPAWN_SLOT:02d}.|n"
         )
 
         if force:
@@ -303,7 +326,7 @@ class CmdServices(Command):
         if is_pipeline:
             self.msg(
                 f"|y{key} is a pipeline script. Resetting all 3 pipeline "
-                "scripts to preserve staggered offsets:|n"
+                "scripts as a group:|n"
             )
             for pkey in sorted(_PIPELINE_KEYS):
                 script = _get_script(pkey)

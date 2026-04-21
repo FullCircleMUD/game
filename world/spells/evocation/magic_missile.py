@@ -3,7 +3,7 @@ Magic Missile — evocation spell, available from BASIC mastery.
 
 Fires glowing darts of force that auto-hit the target.
 Scales with mastery tier: 1 missile at BASIC, up to 5 at GRANDMASTER.
-Each missile deals 1d4+1 force damage.
+Each missile deals 1d4+2 force damage.
 """
 
 from utils.dice_roller import dice
@@ -28,7 +28,7 @@ class MagicMissile(Spell):
     mechanics = (
         "Auto-hit — no attack roll needed.\n"
         "Fires one missile per mastery tier (1 at Basic, 5 at Grandmaster).\n"
-        "Each missile deals 1d4+1 force damage.\n"
+        "Each missile deals 1d4+2 force damage.\n"
         "Works at melee and ranged distance.\n"
         "No cooldown."
     )
@@ -38,9 +38,9 @@ class MagicMissile(Spell):
         missiles = tier  # 1 at BASIC(1), 2 at SKILLED(2), ... 5 at GM(5)
         total_damage = 0
         for _ in range(missiles):
-            total_damage += dice.roll("1d4+1")
+            total_damage += dice.roll("1d4+2")
 
-        total_damage = apply_spell_damage(target, total_damage, DamageType.FORCE)
+        total_damage = apply_spell_damage(target, total_damage, DamageType.FORCE, caster=caster)
 
         s = "s" if missiles > 1 else ""
         return (True, {

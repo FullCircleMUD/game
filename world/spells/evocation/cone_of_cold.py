@@ -83,7 +83,7 @@ class ConeOfCold(Spell):
         hit_targets = []
         missed_targets = []
 
-        actual = apply_spell_damage(target, raw_damage, DamageType.COLD)
+        actual = apply_spell_damage(target, raw_damage, DamageType.COLD, caster=caster)
         hit_targets.append((target, actual))
         target.apply_slowed(rounds, source=caster)
         target.msg(
@@ -96,7 +96,7 @@ class ConeOfCold(Spell):
             chance = _get_secondary_hit_chance(i)
             roll = dice.roll("1d100")
             if roll <= chance:
-                actual = apply_spell_damage(enemy, raw_damage, DamageType.COLD)
+                actual = apply_spell_damage(enemy, raw_damage, DamageType.COLD, caster=caster)
                 hit_targets.append((enemy, actual))
                 enemy.apply_slowed(rounds, source=caster)
                 enemy.msg(

@@ -43,14 +43,14 @@ class TestMagicMissile(EvenniaTest):
         self.assertLess(self.char2.hp, 50)
 
     def test_tier1_one_missile(self):
-        """At tier 1, fires 1 missile (1d4+1 damage, so 2-5)."""
+        """At tier 1, fires 1 missile (1d4+2 damage, so 3-6)."""
         self.char2.hp = 100
         self.char2.hp_max = 100
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         damage = 100 - self.char2.hp
-        self.assertGreaterEqual(damage, 2)
-        self.assertLessEqual(damage, 5)
+        self.assertGreaterEqual(damage, 3)
+        self.assertLessEqual(damage, 6)
         self.assertIn("1 glowing missile", result["first"])
 
     def test_first_person_message(self):
@@ -76,27 +76,27 @@ class TestMagicMissile(EvenniaTest):
         self.assertIn(self.char2.key, result["third"])
 
     def test_tier3_three_missiles(self):
-        """At tier 3, fires 3 missiles (3d4+3 damage, so 6-15)."""
+        """At tier 3, fires 3 missiles (3d4+6 damage, so 9-18)."""
         self.char1.db.class_skill_mastery_levels = {"evocation": 3}
         self.char2.hp = 100
         self.char2.hp_max = 100
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         damage = 100 - self.char2.hp
-        self.assertGreaterEqual(damage, 6)
-        self.assertLessEqual(damage, 15)
+        self.assertGreaterEqual(damage, 9)
+        self.assertLessEqual(damage, 18)
         self.assertIn("3 glowing missiles", result["first"])
 
     def test_tier5_five_missiles(self):
-        """At tier 5 (GRANDMASTER), fires 5 missiles (5d4+5 damage, so 10-25)."""
+        """At tier 5 (GRANDMASTER), fires 5 missiles (5d4+10 damage, so 15-30)."""
         self.char1.db.class_skill_mastery_levels = {"evocation": 5}
         self.char2.hp = 100
         self.char2.hp_max = 100
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
         damage = 100 - self.char2.hp
-        self.assertGreaterEqual(damage, 10)
-        self.assertLessEqual(damage, 25)
+        self.assertGreaterEqual(damage, 15)
+        self.assertLessEqual(damage, 30)
         self.assertIn("5 glowing missiles", result["first"])
 
     def test_hp_floors_at_zero(self):
@@ -377,9 +377,9 @@ class TestFlameBurst(EvenniaTest):
         self.assertIn("first", result)
         self.assertIn("third", result)
 
-    def test_no_cooldown(self):
-        """Flame Burst should have no cooldown (SKILLED default)."""
-        self.assertEqual(self.spell.get_cooldown(), 0)
+    def test_skilled_tier_cooldown(self):
+        """Flame Burst inherits the SKILLED tier default cooldown (2 rounds)."""
+        self.assertEqual(self.spell.get_cooldown(), 2)
 
     def test_fire_resistance_reduces_damage(self):
         """Fire resistance should reduce flame burst damage on primary."""
@@ -523,9 +523,9 @@ class TestPowerWordDeath(EvenniaTest):
         self.assertIsInstance(result, dict)
         self.assertIn("first", result)
 
-    def test_cooldown_3_rounds(self):
-        """PWD should have 3 round cooldown."""
-        self.assertEqual(self.spell.get_cooldown(), 3)
+    def test_grandmaster_tier_cooldown(self):
+        """PWD inherits the GRANDMASTER tier default cooldown (5 rounds)."""
+        self.assertEqual(self.spell.get_cooldown(), 5)
 
 
 class TestFrostbolt(EvenniaTest):
@@ -598,22 +598,23 @@ class TestFrostbolt(EvenniaTest):
         self.assertEqual(effect["duration"], 3)
 
     @patch("world.spells.evocation.frostbolt.dice")
-    def test_damage_flat_across_tiers(self, mock_dice):
-        """Damage should be 1d6 regardless of tier."""
-        # At tier 1: damage=4, then contest rolls
+    def test_damage_scales_per_tier_above_basic(self, mock_dice):
+        """Damage is 1d6 + (tier-1): +0 at BASIC, +4 at GM."""
+        # Tier 1: 1d6=4, +0 → 4 damage. Then contest rolls.
         mock_dice.roll.side_effect = [4, 2, 18]
         self.char2.hp = 200
         self.spell.cast(self.char1, self.char2)
         tier1_damage = 200 - self.char2.hp
 
-        # At tier 5: same damage=4
+        # Tier 5: 1d6=4, +4 → 8 damage.
         self.char1.db.class_skill_mastery_levels = {"evocation": 5}
         self.char2.hp = 200
         mock_dice.roll.side_effect = [4, 2, 18]
         self.spell.cast(self.char1, self.char2)
         tier5_damage = 200 - self.char2.hp
 
-        self.assertEqual(tier1_damage, tier5_damage)
+        self.assertEqual(tier1_damage, 4)
+        self.assertEqual(tier5_damage, 8)
 
     def test_cold_resistance_reduces_damage(self):
         """Cold resistance should reduce frostbolt damage."""

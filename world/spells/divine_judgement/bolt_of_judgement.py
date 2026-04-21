@@ -71,7 +71,7 @@ class BoltOfJudgement(Spell):
         multiplier = self._get_evil_multiplier(target)
         raw_damage = base_damage * multiplier
 
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.RADIANT)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.RADIANT, caster=caster)
 
         # Build messages
         bolt_s = "bolt" if tier == 1 else "bolts"

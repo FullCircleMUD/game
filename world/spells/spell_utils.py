@@ -11,7 +11,7 @@ get_room_enemies() and get_room_all() provide AoE targeting helpers.
 from enums.damage_type import DamageType
 
 
-def apply_spell_damage(target, raw_damage, damage_type):
+def apply_spell_damage(target, raw_damage, damage_type, caster=None):
     """
     Apply spell damage to target via the central take_damage() pipeline.
 
@@ -19,12 +19,19 @@ def apply_spell_damage(target, raw_damage, damage_type):
         target: The entity taking damage.
         raw_damage: Pre-resistance damage amount.
         damage_type: DamageType enum member.
+        caster: The actor casting the spell. Forwarded as ``killer`` to
+            ``take_damage`` so spell kills route XP to the caster via
+            ``Mob.die``. Leave as None only for sourceless spell damage
+            (e.g. environmental effects) — anonymous kills award no XP.
 
     Returns:
         int: Actual damage dealt after resistance.
     """
     return target.take_damage(
-        raw_damage, damage_type=damage_type.value, cause="spell"
+        raw_damage,
+        damage_type=damage_type.value,
+        cause="spell",
+        killer=caster,
     )
 
 

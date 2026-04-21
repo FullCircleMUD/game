@@ -236,7 +236,7 @@ class VampiricTouch(Spell):
         # --- Damage ---
         num_dice = self._DICE.get(tier, 4)
         raw_damage = dice.roll(f"{num_dice}d6")
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.NECROTIC)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.NECROTIC, caster=caster)
 
         # --- Heal caster (no max HP cap) ---
         hp_before = caster.hp

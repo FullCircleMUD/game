@@ -78,7 +78,7 @@ class Fireball(Spell):
             saved = save_total >= save_dc
 
             damage = raw_damage // 2 if saved else raw_damage
-            actual = apply_spell_damage(entity, damage, DamageType.FIRE)
+            actual = apply_spell_damage(entity, damage, DamageType.FIRE, caster=caster)
             damage_results.append((entity, actual, saved))
             # Send individual damage message to each target (except caster)
             if entity != caster:

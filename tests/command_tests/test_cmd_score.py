@@ -193,6 +193,80 @@ class TestCmdScoreFooter(EvenniaCommandTest):
         self.assertIn("Conditions:", result)
         self.assertIn("None", result)
 
+    def test_active_effects_none_shows_none(self):
+        """Footer should show 'Active Effects: None' when no effects active."""
+        result = self.call(CmdScore(), "")
+        self.assertIn("Active Effects:", result)
+        idx = result.find("Active Effects:")
+        self.assertIn("None", result[idx:idx + 40])
+
+    def test_active_effects_combat_rounds(self):
+        """Footer should render round-based effects as 'Name (Nr)'."""
+        self.char1.active_effects = {
+            "stunned": {
+                "duration": 3,
+                "duration_type": "combat_rounds",
+                "effects": [],
+                "messages": {},
+            }
+        }
+        result = self.call(CmdScore(), "")
+        self.assertIn("Stunned (3r)", result)
+
+    def test_active_effects_permanent(self):
+        """Footer should render permanent (duration_type=None) effects without suffix."""
+        self.char1.active_effects = {
+            "darkvision": {
+                "duration": None,
+                "duration_type": None,
+                "effects": [],
+                "messages": {},
+            }
+        }
+        result = self.call(CmdScore(), "")
+        idx = result.find("Active Effects:")
+        self.assertGreaterEqual(idx, 0)
+        self.assertIn("Darkvision", result[idx:idx + 60])
+        self.assertNotIn("Darkvision (", result)
+
+    def test_active_effects_seconds(self):
+        """Seconds-based effects should render remaining duration in minutes."""
+        self.char1.active_effects = {
+            "mage_armor": {
+                "duration": 3600,
+                "duration_type": "seconds",
+                "effects": [],
+                "messages": {},
+            }
+        }
+        # Stub the remaining-seconds helper so we don't depend on real timer scripts.
+        self.char1.get_effect_remaining_seconds = lambda key: 3540
+        result = self.call(CmdScore(), "")
+        self.assertIn("Mage Armor (59m)", result)
+
+    def test_active_effects_multiple_sorted(self):
+        """Multiple effects should be sorted alphabetically."""
+        self.char1.active_effects = {
+            "shield": {
+                "duration": 2,
+                "duration_type": "combat_rounds",
+                "effects": [],
+                "messages": {},
+            },
+            "barkskin": {
+                "duration": 5,
+                "duration_type": "combat_rounds",
+                "effects": [],
+                "messages": {},
+            },
+        }
+        result = self.call(CmdScore(), "")
+        bark_idx = result.find("Barkskin")
+        shield_idx = result.find("Shield")
+        self.assertGreaterEqual(bark_idx, 0)
+        self.assertGreaterEqual(shield_idx, 0)
+        self.assertLess(bark_idx, shield_idx)
+
 
 class TestCmdScoreStructure(EvenniaCommandTest):
     """Test overall visual structure."""

@@ -2,8 +2,8 @@
 Frostbolt — evocation spell, available from BASIC mastery.
 
 Single-target cold debuff spell. The value is in the SLOWED effect,
-not the damage. Damage is flat 1d6 cold at all tiers. SLOWED duration
-scales with mastery (1–5 rounds).
+not the damage. Damage scales slowly (1d6 + one per tier above BASIC);
+SLOWED duration scales with mastery (1–5 rounds).
 
 SLOWED requires a contested check:
     Caster: d20 + INT modifier + mastery bonus
@@ -15,12 +15,12 @@ SLOWED mechanic (enforced in combat_handler):
     - Blocks off-hand attacks entirely
     - Per-round sluggish message
 
-Duration scaling:
-    BASIC(1):   1 round,  mana 5
-    SKILLED(2): 2 rounds, mana 8
-    EXPERT(3):  3 rounds, mana 10
-    MASTER(4):  4 rounds, mana 14
-    GM(5):      5 rounds, mana 16
+Per-tier (damage / SLOWED duration / mana):
+    BASIC(1):   1d6+0 cold, 1 round,  mana 5
+    SKILLED(2): 1d6+1 cold, 2 rounds, mana 8
+    EXPERT(3):  1d6+2 cold, 3 rounds, mana 10
+    MASTER(4):  1d6+3 cold, 4 rounds, mana 14
+    GM(5):      1d6+4 cold, 5 rounds, mana 16
 
 Cooldown: 0 (spammable workhorse, same tier as Magic Missile).
 """
@@ -47,7 +47,7 @@ class Frostbolt(Spell):
     description = "Hurls a bolt of searing cold that slows the target."
     mechanics = (
         "Single-target cold spell — value is in the debuff.\n"
-        "Damage: 1d6 cold (flat, all tiers).\n"
+        "Damage: 1d6 cold +1 per tier above Basic (1d6+0 to 1d6+4).\n"
         "Contested check to apply SLOWED:\n"
         "  Caster d20 + INT mod + mastery bonus vs Target d20 + CON mod.\n"
         "Duration: 1 round (Basic) to 5 rounds (Grandmaster).\n"
@@ -61,9 +61,9 @@ class Frostbolt(Spell):
     def _execute(self, caster, target):
         tier = self.get_caster_tier(caster)
 
-        # --- Flat 1d6 cold damage ---
-        raw_damage = dice.roll("1d6")
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.COLD)
+        # --- 1d6 cold + one per tier above BASIC (0/1/2/3/4) ---
+        raw_damage = dice.roll("1d6") + (tier - 1)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.COLD, caster=caster)
 
         # --- Contested check for SLOWED ---
         caster_roll = dice.roll("1d20")

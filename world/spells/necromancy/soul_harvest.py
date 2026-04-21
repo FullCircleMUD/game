@@ -107,7 +107,7 @@ class SoulHarvest(Spell):
                 )
             else:
                 actual = apply_spell_damage(
-                    entity, raw_damage, DamageType.NECROTIC,
+                    entity, raw_damage, DamageType.NECROTIC, caster=caster,
                 )
                 total_drained += actual
                 damage_results.append((entity, actual))
@@ -116,9 +116,12 @@ class SoulHarvest(Spell):
                     f"{actual} necrotic damage!|n"
                 )
 
-        # Heal caster for total drained, capped at max HP
-        heal_amount = min(total_drained, caster.hp_max - caster.hp)
-        caster.hp = min(caster.hp_max, caster.hp + total_drained)
+        # Heal caster for total drained, capped at max HP.
+        # Use effective_hp_max so the CON-modifier portion of max HP isn't
+        # clipped off (hp_max is pre-CON; a full-HP caster can sit above it).
+        hp_max = caster.effective_hp_max
+        heal_amount = min(total_drained, hp_max - caster.hp)
+        caster.hp = min(hp_max, caster.hp + total_drained)
 
         # Build caster summary
         parts = [f"{e.key} ({d})" for e, d in damage_results]

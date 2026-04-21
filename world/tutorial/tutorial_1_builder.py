@@ -10,16 +10,18 @@ Room layout:
     → [7] Combat Arena → [8] Pantry → [9] Wellspring
     → [10] Complete → Hub
 
-Usage:
-    Called by TutorialInstanceScript.start_tutorial(character, chunk_num=1).
-    Returns the first room object.
+Two entry points:
+    build_tutorial_1(instance) — synchronous (tests, fallback).
+    build_tutorial_1_chunked(instance, character, on_complete) —
+        async chain via evennia.utils.delay so the Twisted reactor
+        stays responsive for every connected player during spin-up.
 """
 
 from evennia import create_object
+from evennia.utils import delay
 
 from commands.room_specific_cmds.tutorial.cmdset_tutorial import CmdSetTutorial
 from typeclasses.terrain.rooms.room_base import RoomBase
-from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from typeclasses.world_objects.fountain_fixture import FountainFixture
 from utils.exit_helpers import connect_bidirectional_exit
 
@@ -42,22 +44,29 @@ def _spawn_nft_item(item_type_name, location, instance_tag):
     return obj
 
 
-def build_tutorial_1(instance):
-    """
-    Build all Tutorial 1 rooms, exits, items and mobs.
+# ====================================================================== #
+#  State + helpers shared by all phases
+# ====================================================================== #
 
-    Args:
-        instance: TutorialInstanceScript managing this tutorial.
 
-    Returns:
-        The first room (Welcome Hall).
-    """
-    tag = instance.instance_key
-    rooms = {}
+def _init_state(instance):
+    """Build the shared state dict used by all phases."""
+    char = instance.get_character()
+    return {
+        "instance": instance,
+        "tag": instance.instance_key,
+        "rooms": {},
+        "char": char,
+        "first_run": (
+            char and char.account
+            and not getattr(char.account.db, "tutorial_1_entered", False)
+        ),
+    }
 
-    # ================================================================== #
-    #  Helper: create a tagged room with tutorial CmdSet
-    # ================================================================== #
+
+def _make_helpers(state):
+    """Return closures over state['tag'] for tagging rooms/items/exits/pip."""
+    tag = state["tag"]
 
     def _room(key, desc, tutorial_text, guide_context=None, **extra_attrs):
         attrs = [("desc", desc), ("tutorial_text", tutorial_text)]
@@ -86,15 +95,13 @@ def build_tutorial_1(instance):
             room.vert_descriptions = extra_attrs["vert_descriptions"]
         return room
 
-    def _connect_bidirectional_exit(room_a, room_b, direction, **kwargs):
-        """Create tagged bidirectional exits."""
+    def _connect_bidi(room_a, room_b, direction, **kwargs):
         exit_ab, exit_ba = connect_bidirectional_exit(room_a, room_b, direction, **kwargs)
         exit_ab.tags.add(tag, category="tutorial_exit")
         exit_ba.tags.add(tag, category="tutorial_exit")
         return exit_ab, exit_ba
 
     def _item(typeclass, key, location, desc, **extra_attrs):
-        """Create a tagged tutorial item."""
         attrs = [("desc", desc), ("tutorial_item", True)]
         attrs.extend(extra_attrs.get("attributes", []))
         obj = create_object(typeclass, key=key, location=location, attributes=attrs)
@@ -102,7 +109,6 @@ def build_tutorial_1(instance):
         return obj
 
     def _spawn_pip(room):
-        """Spawn a tutorial guide NPC in this room."""
         guide_context = getattr(room.db, "guide_context", "") or ""
         tutorial_text = getattr(room.db, "tutorial_text", "") or ""
         pip = create_object(
@@ -127,10 +133,20 @@ def build_tutorial_1(instance):
         )
         return pip
 
-    # ================================================================== #
-    #  ROOM 1: Welcome Hall — Movement
-    # ================================================================== #
+    return _room, _connect_bidi, _item, _spawn_pip
 
+
+# ====================================================================== #
+#  Phase 1 — rooms 1–3 (welcome, look, inventory)
+# ====================================================================== #
+
+
+def _phase_1(state):
+    _room, _connect, _item, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+
+    # ----- ROOM 1: Welcome Hall -----
     rooms["welcome"] = _room(
         "Welcome Hall",
         "You stand in a spacious stone hall with high arched ceilings. "
@@ -152,13 +168,9 @@ def build_tutorial_1(instance):
             "to continue."
         ),
     )
-
     _spawn_pip(rooms["welcome"])
 
-    # ================================================================== #
-    #  ROOM 2: Observation Chamber — Looking at Things
-    # ================================================================== #
-
+    # ----- ROOM 2: Observation Chamber -----
     rooms["look"] = _room(
         "Observation Chamber",
         "A quiet chamber lined with curiosities. An ornate sword rests "
@@ -178,11 +190,9 @@ def build_tutorial_1(instance):
             "Also mention |wlook self|n and |wlook <player>|n."
         ),
     )
-    _connect_bidirectional_exit(rooms["welcome"], rooms["look"], "east")
-
+    _connect(rooms["welcome"], rooms["look"], "east")
     _spawn_pip(rooms["look"])
 
-    # Display sword (fixture — can't be picked up)
     from typeclasses.world_objects.base_fixture import WorldFixture
 
     sword_fixture = create_object(
@@ -218,16 +228,12 @@ def build_tutorial_1(instance):
     sign_fixture.tags.add(tag, category="tutorial_item")
     sign_fixture.aliases.add("sign")
 
-    # Room details for objects mentioned in the description
     rooms["look"].details = {
         "plaque": "A small brass plaque reads: 'For display only — do not touch.'",
         "torches": "Iron sconces hold flickering torches that cast dancing shadows.",
     }
 
-    # ================================================================== #
-    #  ROOM 3: Supply Room — Inventory (get/drop)
-    # ================================================================== #
-
+    # ----- ROOM 3: Supply Room (inventory) -----
     rooms["inventory"] = _room(
         "Supply Room",
         "Wooden shelves line this small storeroom, most of them empty. "
@@ -259,36 +265,33 @@ def build_tutorial_1(instance):
             "capacity."
         ),
     )
-    _connect_bidirectional_exit(rooms["look"], rooms["inventory"], "east")
+    _connect(rooms["look"], rooms["inventory"], "east")
 
     rooms["inventory"].details = {
         "shelves": "Wooden shelves line the walls, mostly bare. A few items sit on a table.",
         "table": "A sturdy wooden table with a few items laid out for you to take.",
     }
-
     _spawn_pip(rooms["inventory"])
 
-    # Backpack (real NFT container item)
     _spawn_nft_item("Backpack", rooms["inventory"], tag)
-
-    # Wooden Shield (real NFT holdable item)
     _spawn_nft_item("Wooden Shield", rooms["inventory"], tag)
 
-    # Check if this is the player's first tutorial run
-    char = instance.get_character()
-    first_run = (
-        char and char.account
-        and not getattr(char.account.db, "tutorial_1_entered", False)
-    )
-
     # Gold on the floor (first run only — prevents gold farming)
-    if first_run:
+    if state["first_run"]:
         rooms["inventory"].receive_gold_from_reserve(5)
 
-    # ================================================================== #
-    #  ROOM 4: Armoury — Equipment (wear/wield/remove)
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 2 — rooms 4–5 (armoury, courtyard)
+# ====================================================================== #
+
+
+def _phase_2(state):
+    _room, _connect, _item, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+
+    # ----- ROOM 4: The Armoury -----
     rooms["armoury"] = _room(
         "The Armoury",
         "Weapon racks and armour stands fill this room. On a velvet "
@@ -318,26 +321,15 @@ def build_tutorial_1(instance):
             "they'll need both in the next room."
         ),
     )
-    _connect_bidirectional_exit(rooms["inventory"], rooms["armoury"], "east")
-
+    _connect(rooms["inventory"], rooms["armoury"], "east")
     _spawn_pip(rooms["armoury"])
 
-    # Skydancer's Ring (real NFT item — grants FLY condition)
     _spawn_nft_item("Skydancer's Ring", rooms["armoury"], tag)
-
-    # Aquatic N95 (real NFT item — grants WATER_BREATHING condition)
     _spawn_nft_item("Aquatic N95", rooms["armoury"], tag)
-
-    # Quarterstaff (real NFT item — usable by almost all classes)
     _spawn_nft_item("Quarterstaff", rooms["armoury"], tag)
-
-    # Leather cap (real NFT item)
     _spawn_nft_item("Leather Cap", rooms["armoury"], tag)
 
-    # ================================================================== #
-    #  ROOM 5: Open Courtyard — Flying & Swimming hub
-    # ================================================================== #
-
+    # ----- ROOM 5: Open Courtyard -----
     rooms["courtyard"] = _room(
         "Open Courtyard",
         "A wide courtyard open to the sky above. Puffy clouds drift "
@@ -400,16 +392,23 @@ def build_tutorial_1(instance):
             ),
         },
     )
-    _connect_bidirectional_exit(rooms["armoury"], rooms["courtyard"], "east")
+    _connect(rooms["armoury"], rooms["courtyard"], "east")
     _spawn_pip(rooms["courtyard"])
-    # Barriers hide ground-level NPCs from flyers and swimmers
     rooms["courtyard"].visibility_up_barrier = (1, "medium")
     rooms["courtyard"].visibility_down_barrier = (-1, "medium")
 
-    # ================================================================== #
-    #  ROOM 6: The Dim Passage — Light & Darkness
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 3 — rooms 6–7 (dark passage, combat arena)
+# ====================================================================== #
+
+
+def _phase_3(state):
+    _room, _connect, _item, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+
+    # ----- ROOM 6: The Dim Passage -----
     rooms["dark"] = _room(
         "The Dim Passage",
         "A narrow stone passage stretches before you. Without a light "
@@ -444,17 +443,11 @@ def build_tutorial_1(instance):
         natural_light=False,
         sheltered=True,
     )
-    _connect_bidirectional_exit(rooms["courtyard"], rooms["dark"], "east")
-
+    _connect(rooms["courtyard"], rooms["dark"], "east")
     _spawn_pip(rooms["dark"])
-
-    # Wooden torch (real NFT item)
     _spawn_nft_item("Wooden Torch", rooms["dark"], tag)
 
-    # ================================================================== #
-    #  ROOM 7: Training Arena — Combat
-    # ================================================================== #
-
+    # ----- ROOM 7: Training Arena -----
     rooms["combat"] = _room(
         "Training Arena",
         "A circular arena with sand-covered floors and padded walls. "
@@ -487,11 +480,9 @@ def build_tutorial_1(instance):
         allow_death=False,
         natural_light=True,
     )
-    _connect_bidirectional_exit(rooms["dark"], rooms["combat"], "east")
-
+    _connect(rooms["dark"], rooms["combat"], "east")
     _spawn_pip(rooms["combat"])
 
-    # Training Dummy
     from typeclasses.actors.mobs.training_dummy import TrainingDummy
 
     dummy = create_object(
@@ -510,14 +501,23 @@ def build_tutorial_1(instance):
     dummy.tags.add(tag, category="tutorial_mob")
     dummy.aliases.add("dummy")
     dummy.aliases.add("training dummy")
-    # Set spawn room so it respawns here
     dummy.spawn_room_id = rooms["combat"].id
     dummy.start_ai()
 
-    # ================================================================== #
-    #  ROOM 8: The Pantry — Eating & Hunger
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 4 — rooms 8–9 (pantry, wellspring)
+# ====================================================================== #
+
+
+def _phase_4(state):
+    _room, _connect, _item, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+    char = state["char"]
+    first_run = state["first_run"]
+
+    # ----- ROOM 8: The Pantry -----
     rooms["pantry"] = _room(
         "The Pantry",
         "A cozy pantry lined with wooden shelves. The smell of freshly "
@@ -549,11 +549,9 @@ def build_tutorial_1(instance):
             "covers the economics."
         ),
     )
-    _connect_bidirectional_exit(rooms["combat"], rooms["pantry"], "east")
-
+    _connect(rooms["combat"], rooms["pantry"], "east")
     _spawn_pip(rooms["pantry"])
 
-    # Place bread only for first-time players (prevents tutorial bread farming)
     if first_run:
         char.account.db.tutorial_1_entered = True
         rooms["pantry"].receive_resource_from_reserve(3, 3)
@@ -563,10 +561,7 @@ def build_tutorial_1(instance):
             "on your first run through the tutorial.|n"
         )
 
-    # ================================================================== #
-    #  ROOM 9: The Wellspring — Drinking & Thirst
-    # ================================================================== #
-
+    # ----- ROOM 9: The Wellspring -----
     rooms["wellspring"] = _room(
         "The Wellspring",
         "A cool stone chamber where a natural spring feeds a stone "
@@ -603,11 +598,9 @@ def build_tutorial_1(instance):
             "drink, and check score."
         ),
     )
-    _connect_bidirectional_exit(rooms["pantry"], rooms["wellspring"], "east")
-
+    _connect(rooms["pantry"], rooms["wellspring"], "east")
     _spawn_pip(rooms["wellspring"])
 
-    # Fountain for refilling
     fountain = create_object(
         FountainFixture,
         key="a stone fountain",
@@ -623,13 +616,21 @@ def build_tutorial_1(instance):
     fountain.tags.add(tag, category="tutorial_item")
     fountain.aliases.add("fountain")
 
-    # Empty canteen for practice
     _spawn_nft_item("Canteen", rooms["wellspring"], tag)
 
-    # ================================================================== #
-    #  ROOM 10: Tutorial Complete — Help & Exit
-    # ================================================================== #
 
+# ====================================================================== #
+#  Phase 5 — room 10 (complete) + completion exit
+# ====================================================================== #
+
+
+def _phase_5(state):
+    _room, _connect, _item, _spawn_pip = _make_helpers(state)
+    rooms = state["rooms"]
+    tag = state["tag"]
+    instance = state["instance"]
+
+    # ----- ROOM 10: Tutorial Complete -----
     rooms["complete"] = _room(
         "Tutorial Complete",
         "A bright archway glows at the end of this final chamber. "
@@ -660,15 +661,10 @@ def build_tutorial_1(instance):
             "are available from the hub."
         ),
     )
-    _connect_bidirectional_exit(rooms["wellspring"], rooms["complete"], "east")
+    _connect(rooms["wellspring"], rooms["complete"], "east")
     _spawn_pip(rooms["complete"])
 
-    # ================================================================== #
-    #  Exit from Tutorial Complete back to Hub — special handling
-    # ================================================================== #
-
-    # The east exit from Room 10 goes to the hub and triggers completion.
-    # This is handled by the TutorialCompletionExit.
+    # Completion exit back to hub
     hub = instance.hub_room
     if hub:
         from world.tutorial.tutorial_exit import TutorialCompletionExit
@@ -685,4 +681,57 @@ def build_tutorial_1(instance):
         exit_to_hub.set_direction("east")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
-    return rooms["welcome"]
+
+# ====================================================================== #
+#  Public entry points
+# ====================================================================== #
+
+
+_PHASES = [
+    ("  Building rooms...",  _phase_1),
+    ("  Building rooms...",  _phase_2),
+    ("  Building rooms...",  _phase_3),
+    ("  Preparing items...", _phase_4),
+    ("  Wiring exits...",    _phase_5),
+]
+
+
+def build_tutorial_1(instance):
+    """
+    Build all Tutorial 1 rooms synchronously (tests / fallback).
+
+    Returns the first room (Welcome Hall).
+    """
+    state = _init_state(instance)
+    for _msg, fn in _PHASES:
+        fn(state)
+    return state["rooms"]["welcome"]
+
+
+def build_tutorial_1_chunked(instance, character, on_complete):
+    """
+    Build all Tutorial 1 rooms across multiple reactor ticks so the
+    Twisted reactor stays responsive for every connected player.
+
+    Args:
+        instance: TutorialInstanceScript managing this tutorial.
+        character: The player to send progress messages to.
+        on_complete: Callable invoked with the first room when done.
+    """
+    state = _init_state(instance)
+
+    def _run(i):
+        if i >= len(_PHASES):
+            on_complete(state["rooms"]["welcome"])
+            return
+        msg, fn = _PHASES[i]
+        if character.pk is not None:
+            character.msg(f"|y{msg}|n")
+        fn(state)
+        # Small delay between phases so progress messages render as
+        # discrete frames on fast machines (dev), and — more importantly
+        # on prod — so the reactor fully flushes I/O for other players
+        # between bursts of build work.
+        delay(0.1, _run, i + 1)
+
+    _run(0)

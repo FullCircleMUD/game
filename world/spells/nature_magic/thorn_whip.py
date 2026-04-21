@@ -60,7 +60,7 @@ class ThornWhip(Spell):
 
         # Damage always applies
         raw_damage = dice.roll(f"{tier}d6")
-        actual_damage = apply_spell_damage(target, raw_damage, DamageType.PIERCING)
+        actual_damage = apply_spell_damage(target, raw_damage, DamageType.PIERCING, caster=caster)
 
         # Size gate for pull
         target_size = getattr(target, "size", Size.MEDIUM)

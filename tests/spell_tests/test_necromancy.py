@@ -12,7 +12,7 @@ Tests:
 evennia test --settings settings tests.spell_tests.test_necromancy
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 
 from evennia.utils.test_resources import EvenniaTest
 
@@ -129,11 +129,34 @@ class TestDrainLife(EvenniaTest):
         self.assertGreater(self.char1.hp, hp_before)
 
     def test_drain_life_heal_capped_at_max(self):
-        """Healing should not exceed max HP."""
-        self.char1.hp = 100  # Already at max
+        """Healing should not exceed effective max HP."""
+        cap = self.char1.effective_hp_max
+        self.char1.hp = cap  # Already at max
         success, result = self.spell.cast(self.char1, self.char2)
         self.assertTrue(success)
-        self.assertEqual(self.char1.hp, 100)
+        self.assertEqual(self.char1.hp, cap)
+
+    def test_drain_life_full_hp_no_loss(self):
+        """
+        Regression: a caster at full effective HP must not lose HP from
+        drain_life's own heal clamp. hp_max is the pre-CON raw cap; the
+        true ceiling is effective_hp_max = hp_max + CON_mod * level. When
+        a full-HP caster sits above raw hp_max, using hp_max as the clamp
+        drags their HP down. Heal math must use effective_hp_max.
+        """
+        # Raw hp_max lower than effective max — char is at full effective.
+        self.char1.hp_max = 10
+        with patch.object(
+            type(self.char1), "effective_hp_max",
+            new_callable=PropertyMock, return_value=13,
+        ):
+            self.char1.hp = 13  # full, sitting above raw hp_max
+            hp_before = self.char1.hp
+            with patch("world.spells.necromancy.drain_life.dice") as mock_dice:
+                mock_dice.roll.return_value = 7
+                success, result = self.spell.cast(self.char1, self.char2)
+            self.assertTrue(success)
+            self.assertEqual(self.char1.hp, hp_before)
 
     def test_drain_life_deducts_mana(self):
         """Should deduct mana cost (5 at tier 1)."""
@@ -157,19 +180,21 @@ class TestDrainLife(EvenniaTest):
         self.assertIn("third", result)
 
     def test_drain_life_damage_scaling_tier1(self):
-        """At tier 1, should roll 2d6 (2-12 damage)."""
+        """At tier 1, should roll one 1d4+1 (2-5 damage)."""
         with patch("world.spells.necromancy.drain_life.dice") as mock_dice:
-            mock_dice.roll.return_value = 7  # fixed roll
+            mock_dice.roll.return_value = 4  # fixed roll
             success, result = self.spell.cast(self.char1, self.char2)
-            mock_dice.roll.assert_called_with("2d6")
+            mock_dice.roll.assert_called_with("1d4+1")
+            self.assertEqual(mock_dice.roll.call_count, 1)
 
     def test_drain_life_damage_scaling_tier5(self):
-        """At tier 5 (GM), should roll 6d6."""
+        """At tier 5 (GM), should roll five 1d4+1 (5-25 damage)."""
         self.char1.db.class_skill_mastery_levels = {"necromancy": 5}
         with patch("world.spells.necromancy.drain_life.dice") as mock_dice:
-            mock_dice.roll.return_value = 21  # fixed roll
+            mock_dice.roll.return_value = 4  # fixed roll
             success, result = self.spell.cast(self.char1, self.char2)
-            mock_dice.roll.assert_called_with("6d6")
+            mock_dice.roll.assert_called_with("1d4+1")
+            self.assertEqual(mock_dice.roll.call_count, 5)
 
     def test_drain_life_cold_resistance_reduces_both(self):
         """Cold resistance should reduce both damage AND healing."""
@@ -190,7 +215,57 @@ class TestDrainLife(EvenniaTest):
             mock_dice.roll.return_value = 10
             with patch.object(self.char2, "die") as mock_die:
                 self.spell.cast(self.char1, self.char2)
-                mock_die.assert_called_once_with("spell", killer=None)
+                mock_die.assert_called_once_with("spell", killer=self.char1)
+
+    def test_drain_life_kill_awards_xp_to_caster(self):
+        """
+        Regression: spell kills must route XP to the caster. Fix threads
+        caster through apply_spell_damage -> take_damage(killer=) -> die()
+        so mob.die() finds the killer and fires at_gain_experience_points.
+        """
+        from evennia.utils import create
+        from typeclasses.actors.mobs.rabbit import Rabbit
+
+        rabbit = create.create_object(
+            Rabbit,
+            key="test_rabbit",
+            location=self.char1.location,
+        )
+        rabbit.hp = 1
+        rabbit.hp_max = 1
+        rabbit.level = 1
+
+        xp_before = self.char1.experience_points
+        self.spell.cast(self.char1, rabbit)
+        self.assertGreater(self.char1.experience_points, xp_before)
+
+    def test_drain_life_target_deleted_during_cast(self):
+        """
+        Regression: one-shot killing a common mob calls self.delete() inside
+        _execute (via die()), leaving the target with pk=None. The post-execute
+        _maybe_enter_combat pass must not crash when it iterates a deleted
+        target — touching AttributeProperty fields on a dead row raises from
+        inside the descriptor.
+        """
+        from world.spells.necromancy import drain_life as drain_life_mod
+
+        original_apply = drain_life_mod.apply_spell_damage
+
+        def damage_then_delete(target, raw, dtype, caster=None):
+            actual = original_apply(target, raw, dtype, caster=caster)
+            target.delete()
+            return actual
+
+        with patch.object(
+            drain_life_mod, "apply_spell_damage",
+            side_effect=damage_then_delete,
+        ):
+            with patch("world.spells.necromancy.drain_life.dice") as mock_dice:
+                mock_dice.roll.return_value = 10
+                success, result = self.spell.cast(self.char1, self.char2)
+
+        self.assertTrue(success)
+        self.assertIsNone(self.char2.pk)
 
 
 # ================================================================== #
@@ -247,12 +322,13 @@ class TestSoulHarvest(EvenniaTest):
 
     @patch("world.spells.necromancy.soul_harvest.dice")
     def test_soul_harvest_heal_capped_at_max(self, mock_dice):
-        """Caster heal from Soul Harvest capped at max HP."""
-        self.char1.hp = 100  # Already full
+        """Caster heal from Soul Harvest capped at effective max HP."""
+        cap = self.char1.effective_hp_max
+        self.char1.hp = cap  # Already full
         mock_dice.roll.side_effect = [28, 20, 1]
         self.char2.constitution = 10
         self.spell.cast(self.char1, self.char2)
-        self.assertEqual(self.char1.hp, 100)
+        self.assertEqual(self.char1.hp, cap)
 
     def test_soul_harvest_deducts_mana(self):
         """Should deduct 28 mana at tier 3."""
