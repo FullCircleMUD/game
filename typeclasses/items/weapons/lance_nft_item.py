@@ -14,24 +14,26 @@ UNMOUNTED (all tiers):
 MOUNTED mastery progression:
     UNSKILLED:  no crit bonus, 1 attack, no prone
     BASIC:      no crit bonus, 1 attack, no prone
-    SKILLED:   -1 crit threshold, 1 attack, 15% prone (up to LARGE)
-    EXPERT:    -2 crit threshold, 1 attack, 20% prone (up to HUGE)
-    MASTER:    -2 crit threshold, 2 attacks, 20% prone (up to HUGE)
-    GM:        -3 crit threshold, 2 attacks, 25% prone (up to HUGE)
+    SKILLED:   -1 crit threshold, 1 attack, 15% prone
+    EXPERT:    -2 crit threshold, 1 attack, 20% prone
+    MASTER:    -2 crit threshold, 2 attacks, 20% prone
+    GM:        -3 crit threshold, 2 attacks, 25% prone
 
 Prone mechanic (mounted only):
     On first successful hit each round → roll d100 vs mastery-scaled chance.
     Success → target is knocked PRONE (action denial + advantage for attackers).
-    Size-gated: SKILLED can prone up to LARGE, EXPERT+ up to HUGE.
-    GARGANTUAN always immune. Can't re-prone already prone targets.
+    Size-gated: target more than 1 size larger than the MOUNT is immune.
+    A rider on a dragon can prone another dragon; a rider on a horse cannot.
+    Can't re-prone already prone targets.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
-from enums.size import Size
+from enums.size import Size, size_value
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
+from combat.combat_utils import get_actor_size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
 
@@ -55,22 +57,25 @@ _LANCE_MOUNTED_EXTRA_ATTACKS = {
     MasteryLevel.GRANDMASTER: 1,
 }
 
-# Mounted prone chance (%) and immune sizes by mastery
-# SKILLED: can prone up to LARGE (HUGE+ immune)
-# EXPERT+: can prone up to HUGE (GARGANTUAN immune)
-_LANCE_PRONE = {
-    MasteryLevel.UNSKILLED: (0, set()),
-    MasteryLevel.BASIC: (0, set()),
-    MasteryLevel.SKILLED: (15, {Size.HUGE, Size.GARGANTUAN}),
-    MasteryLevel.EXPERT: (20, {Size.GARGANTUAN}),
-    MasteryLevel.MASTER: (20, {Size.GARGANTUAN}),
-    MasteryLevel.GRANDMASTER: (25, {Size.GARGANTUAN}),
+# Mounted prone chance (%) by mastery. Size gating is relative to mount size.
+_LANCE_PRONE_CHANCE = {
+    MasteryLevel.UNSKILLED: 0,
+    MasteryLevel.BASIC: 0,
+    MasteryLevel.SKILLED: 15,
+    MasteryLevel.EXPERT: 20,
+    MasteryLevel.MASTER: 20,
+    MasteryLevel.GRANDMASTER: 25,
 }
+
+
+def _get_mount(wielder):
+    """Return the mount object the wielder is riding, or None if on foot."""
+    return getattr(wielder.db, "mounted_on", None)
 
 
 def _is_mounted(wielder):
     """Check if wielder is mounted (has a mount via MountMixin)."""
-    return getattr(wielder.db, "mounted_on", None) is not None
+    return _get_mount(wielder) is not None
 
 
 class LanceMixin:
@@ -131,8 +136,9 @@ class LanceMixin:
         Attempt to knock the target prone with a mounted lance strike.
 
         Fires on first successful hit each round (tracked via combat handler
-        lance_prone_used flag). Size-gated by mastery tier.
-        GARGANTUAN always immune. Can't re-prone already prone targets.
+        lance_prone_used flag). Size gate is relative to the MOUNT's size —
+        target more than 1 size larger than the mount is immune. Can't
+        re-prone already prone targets.
         """
         # Only first hit per round (tracked on wielder.ndb, reset by combat handler)
         if getattr(wielder.ndb, "lance_prone_used", False):
@@ -140,14 +146,16 @@ class LanceMixin:
         wielder.ndb.lance_prone_used = True
 
         mastery = self.get_wielder_mastery(wielder)
-        chance, immune_sizes = _LANCE_PRONE.get(mastery, (0, set()))
+        chance = _LANCE_PRONE_CHANCE.get(mastery, 0)
         if chance <= 0:
             return
 
-        # Size check
-        from combat.combat_utils import get_actor_size
+        # Size gate — target more than 1 size larger than mount is immune.
+        # The mount's mass drives the charge, not the rider's.
+        mount = _get_mount(wielder)
+        mount_size = get_actor_size(mount) if mount else get_actor_size(wielder)
         target_size = get_actor_size(target)
-        if target_size in immune_sizes:
+        if size_value(target_size) > size_value(mount_size) + 1:
             return
 
         # Already prone — skip

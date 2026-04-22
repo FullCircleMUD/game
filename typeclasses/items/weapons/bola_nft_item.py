@@ -19,23 +19,20 @@ Entangle mechanic:
     Attacker wins → target ENTANGLED. Attacker's total roll = escape DC.
     Each round: target rolls d20 + STR bonus vs escape DC to break free.
     Max duration cap prevents infinite lockdowns even on nat 20.
-    HUGE+ targets are immune.
+    Targets more than 1 size larger than the wielder are immune (damage still applies).
     All enemies get advantage while target is entangled.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
 
 from combat.combat_utils import get_actor_size
-from enums.size import Size
+from enums.size import size_value
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 
 from enums.unused_for_reference.damage_type import DamageType
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
-
-# Sizes immune to bola entangle
-_ENTANGLE_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 # Max entangle duration (combat rounds) by mastery — safety valve
 _BOLA_MAX_ENTANGLE_ROUNDS = {
@@ -87,18 +84,19 @@ class BolaMixin:
         """
         On-hit entangle check via contested DEX roll.
 
-        1. Size gate: HUGE+ immune
+        1. Size gate: target more than 1 size larger than wielder is immune
         2. Contested roll: d20 + DEX + mastery vs d20 + DEX
         3. Attacker wins → ENTANGLED with save-each-round (STR vs attacker roll)
         4. Grant advantage to all enemies
         """
         mastery = self.get_wielder_mastery(wielder)
 
-        # Size gate
+        # Size gate — target more than 1 size larger than wielder is immune
+        wielder_size = get_actor_size(wielder)
         target_size = get_actor_size(target)
-        if target_size in _ENTANGLE_IMMUNE_SIZES:
+        if size_value(target_size) > size_value(wielder_size) + 1:
             wielder.msg(
-                f"|y{target.key} is too large to be entangled by a bola!|n"
+                f"|y{target.key} is too large for you to entangle with a bola!|n"
             )
             return damage
 

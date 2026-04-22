@@ -291,8 +291,8 @@ class TestNunchakuStun(EvenniaTest):
         self.assertEqual(kwargs["source"], self.char1)
 
     @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
-    def test_not_immune_huge(self, mock_dice):
-        """HUGE targets are now vulnerable to nunchaku stun."""
+    def test_immune_huge_target(self, mock_dice):
+        """MEDIUM wielder vs HUGE target (2 sizes larger) — immune."""
         _set_mastery(self.char1, 5)
         self.char1.dexterity = 10
         self.char1.get_attribute_bonus = lambda x: 0
@@ -300,17 +300,14 @@ class TestNunchakuStun(EvenniaTest):
         handler = _mock_handler(stun_checks=2)
         self.char1.scripts.get = lambda key: [handler] if key == "combat_handler" else []
 
-        # Attacker: 15 + 0 + 8 = 23, Defender: 10 + 0 = 10, gap = 13
-        mock_dice.roll.side_effect = [15, 10]
-
         self.nunchaku.at_hit(self.char1, target, 5, "bludgeoning")
 
-        # Stun roll should have been attempted (not skipped)
-        mock_dice.roll.assert_called()
+        # Stun should be refused at the size gate
+        mock_dice.roll.assert_not_called()
 
     @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
-    def test_immune_gargantuan(self, mock_dice):
-        """GARGANTUAN targets should be immune to nunchaku stun."""
+    def test_immune_gargantuan_target(self, mock_dice):
+        """MEDIUM wielder vs GARGANTUAN target (3 sizes larger) — immune."""
         _set_mastery(self.char1, 5)
         target = _mock_target(size="gargantuan")
         handler = _mock_handler(stun_checks=2)
@@ -319,6 +316,40 @@ class TestNunchakuStun(EvenniaTest):
         self.nunchaku.at_hit(self.char1, target, 5, "bludgeoning")
 
         mock_dice.roll.assert_not_called()
+
+    @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
+    def test_not_immune_large_target(self, mock_dice):
+        """MEDIUM wielder vs LARGE target (1 size larger) — not immune."""
+        _set_mastery(self.char1, 5)
+        self.char1.dexterity = 10
+        self.char1.get_attribute_bonus = lambda x: 0
+        target = _mock_target(size="large")
+        handler = _mock_handler(stun_checks=2)
+        self.char1.scripts.get = lambda key: [handler] if key == "combat_handler" else []
+
+        mock_dice.roll.side_effect = [15, 10]
+
+        self.nunchaku.at_hit(self.char1, target, 5, "bludgeoning")
+
+        # Stun roll attempted
+        mock_dice.roll.assert_called()
+
+    @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
+    def test_large_wielder_vs_huge_target(self, mock_dice):
+        """LARGE wielder can stun HUGE target — enlarge-spell synergy."""
+        _set_mastery(self.char1, 5)
+        self.char1.dexterity = 10
+        self.char1.get_attribute_bonus = lambda x: 0
+        self.char1.size = "large"
+        target = _mock_target(size="huge")
+        handler = _mock_handler(stun_checks=2)
+        self.char1.scripts.get = lambda key: [handler] if key == "combat_handler" else []
+
+        mock_dice.roll.side_effect = [15, 10]
+
+        self.nunchaku.at_hit(self.char1, target, 5, "bludgeoning")
+
+        mock_dice.roll.assert_called()
 
     @patch("typeclasses.items.weapons.nunchaku_nft_item.dice")
     def test_skip_already_stunned(self, mock_dice):

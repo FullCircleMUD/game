@@ -18,10 +18,11 @@ Scaling:
 
 Contested WIS (caster) vs STR (target) for the pull.
 Damage always applies regardless of contest result.
-HUGE+ immune to pull (damage still applies).
+Target more than 1 size larger than caster is immune to pull (damage still applies).
 """
 
-from enums.size import Size
+from combat.combat_utils import get_actor_size
+from enums.size import size_value
 from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from enums.named_effect import NamedEffect
@@ -30,9 +31,6 @@ from utils.dice_roller import dice
 from world.spells.base_spell import Spell
 from world.spells.registry import register_spell
 from world.spells.spell_utils import apply_spell_damage
-
-
-_IMMUNE_SIZES = frozenset({Size.HUGE, Size.GARGANTUAN})
 
 
 @register_spell
@@ -51,7 +49,7 @@ class ThornWhip(Spell):
         "Contested WIS vs STR — on win, pulls target to caster's height.\n"
         "Target held at that height for 1-5 rounds (mastery-scaled).\n"
         "On hold expiry: fall damage if airborne without FLY, drowning if underwater.\n"
-        "HUGE+ immune to pull. Damage always applies.\n"
+        "Target more than 1 size larger than caster is immune to pull. Damage always applies.\n"
         "No cooldown."
     )
 
@@ -62,9 +60,10 @@ class ThornWhip(Spell):
         raw_damage = dice.roll(f"{tier}d6")
         actual_damage = apply_spell_damage(target, raw_damage, DamageType.PIERCING, caster=caster)
 
-        # Size gate for pull
-        target_size = getattr(target, "size", Size.MEDIUM)
-        size_immune = target_size in _IMMUNE_SIZES
+        # Size gate for pull — target more than 1 size larger than caster is immune
+        caster_size = get_actor_size(caster)
+        target_size = get_actor_size(target)
+        size_immune = size_value(target_size) > size_value(caster_size) + 1
 
         pulled = False
         hold_rounds = tier
@@ -122,7 +121,7 @@ class ThornWhip(Spell):
             )
         else:
             if size_immune:
-                extra = f" {target.key} is too large to pull!"
+                extra = f" {target.key} is too large for you to pull!"
             elif caster_height == target_height:
                 extra = ""
             else:

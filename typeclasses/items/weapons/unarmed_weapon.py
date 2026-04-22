@@ -20,7 +20,8 @@ Mastery progression:
 Stun/Knockdown (SKILLED+):
     On the first successful hit per round (first 2 at GM), make a
     contested roll: attacker d20 + STR bonus + mastery bonus VS
-    defender d20 + CON bonus. Size-gated: HUGE+ enemies are immune.
+    defender d20 + CON bonus. Size-gated: target more than 1 size larger
+    than the attacker is immune.
 
     SKILLED/EXPERT: attacker wins → target STUNNED 1 round (lose action)
     MASTER: attacker wins by <5 → STUNNED 1 round
@@ -53,11 +54,8 @@ _UNARMED_EXTRA_ATTACKS = {
     MasteryLevel.GRANDMASTER: 1,
 }
 
-from enums.size import Size
+from enums.size import size_value
 from combat.combat_utils import get_actor_size
-
-# Sizes immune to unarmed stun/knockdown
-_STUN_IMMUNE_SIZES = {Size.HUGE, Size.GARGANTUAN}
 
 
 class UnarmedWeapon:
@@ -145,15 +143,16 @@ class UnarmedWeapon:
         On-hit stun/knockdown check (SKILLED+).
 
         Uses combat_handler.stun_checks_remaining to limit checks per round.
-        Size-gated: HUGE+ enemies are immune.
+        Size-gated: target more than 1 size larger than the attacker is immune.
         """
         mastery = self.get_wielder_mastery(wielder)
         if mastery.value < MasteryLevel.SKILLED.value:
             return damage
 
-        # Check size immunity
+        # Size gate — target more than 1 size larger than attacker is immune
+        wielder_size = get_actor_size(wielder)
         target_size = get_actor_size(target)
-        if target_size in _STUN_IMMUNE_SIZES:
+        if size_value(target_size) > size_value(wielder_size) + 1:
             return damage
 
         # Check if we have stun checks remaining this round

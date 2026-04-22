@@ -202,7 +202,7 @@ class TestBolaEntangle(EvenniaTest):
 # ================================================================== #
 
 class TestBolaEntangleSizeGate(EvenniaTest):
-    """Test that HUGE+ targets are immune to entangle."""
+    """Test that targets more than 1 size larger than the wielder are immune to entangle."""
 
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
 
@@ -219,11 +219,11 @@ class TestBolaEntangleSizeGate(EvenniaTest):
 
     @patch("typeclasses.items.weapons.bola_nft_item.get_actor_size")
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
-    def test_huge_immune(self, mock_dice, mock_size):
-        """HUGE targets should be immune to entangle."""
+    def test_medium_wielder_vs_huge_target_immune(self, mock_dice, mock_size):
+        """MEDIUM wielder cannot entangle HUGE target (2 sizes larger)."""
         from enums.size import Size
-        mock_size.return_value = Size.HUGE
-        mock_dice.roll.side_effect = [20, 1]  # would entangle on MEDIUM
+        mock_size.side_effect = [Size.MEDIUM, Size.HUGE]  # wielder, target
+        mock_dice.roll.side_effect = [20, 1]  # would entangle if gate passed
         _set_mastery(self.char1, 1)
 
         self.bola.at_hit(self.char1, self.char2, 1, "bludgeoning")
@@ -232,16 +232,42 @@ class TestBolaEntangleSizeGate(EvenniaTest):
 
     @patch("typeclasses.items.weapons.bola_nft_item.get_actor_size")
     @patch("typeclasses.items.weapons.bola_nft_item.dice")
-    def test_gargantuan_immune(self, mock_dice, mock_size):
-        """GARGANTUAN targets should be immune to entangle."""
+    def test_medium_wielder_vs_gargantuan_target_immune(self, mock_dice, mock_size):
+        """MEDIUM wielder cannot entangle GARGANTUAN target (3 sizes larger)."""
         from enums.size import Size
-        mock_size.return_value = Size.GARGANTUAN
+        mock_size.side_effect = [Size.MEDIUM, Size.GARGANTUAN]
         mock_dice.roll.side_effect = [20, 1]
         _set_mastery(self.char1, 1)
 
         self.bola.at_hit(self.char1, self.char2, 1, "bludgeoning")
 
         self.assertFalse(self.char2.has_effect("entangled"))
+
+    @patch("typeclasses.items.weapons.bola_nft_item.get_actor_size")
+    @patch("typeclasses.items.weapons.bola_nft_item.dice")
+    def test_medium_wielder_vs_large_target_allowed(self, mock_dice, mock_size):
+        """MEDIUM wielder can still entangle LARGE target (only 1 size larger)."""
+        from enums.size import Size
+        mock_size.side_effect = [Size.MEDIUM, Size.LARGE]
+        mock_dice.roll.side_effect = [20, 1]  # attacker wins contest
+        _set_mastery(self.char1, 1)
+
+        self.bola.at_hit(self.char1, self.char2, 1, "bludgeoning")
+
+        self.assertTrue(self.char2.has_effect("entangled"))
+
+    @patch("typeclasses.items.weapons.bola_nft_item.get_actor_size")
+    @patch("typeclasses.items.weapons.bola_nft_item.dice")
+    def test_large_wielder_can_entangle_huge_target(self, mock_dice, mock_size):
+        """LARGE wielder (e.g. enlarged) can entangle HUGE target — only 1 size larger."""
+        from enums.size import Size
+        mock_size.side_effect = [Size.LARGE, Size.HUGE]
+        mock_dice.roll.side_effect = [20, 1]  # attacker wins contest
+        _set_mastery(self.char1, 1)
+
+        self.bola.at_hit(self.char1, self.char2, 1, "bludgeoning")
+
+        self.assertTrue(self.char2.has_effect("entangled"))
 
 
 # ================================================================== #

@@ -51,6 +51,8 @@ def _mock_target(size=Size.MEDIUM):
     return target
 
 
+
+
 # ================================================================== #
 #  Basic Properties
 # ================================================================== #
@@ -199,10 +201,14 @@ class TestLanceMountedExtraAttacks(EvenniaTest):
 #  Prone Mechanic Tests
 # ================================================================== #
 
-def _patch_actor_size(target_size):
-    """Return a get_actor_size replacement that returns the given Size."""
+def _patch_actor_size(default_size=Size.MEDIUM):
+    """Return a get_actor_size replacement.
+
+    Uses actor._test_size if set, otherwise falls back to default_size.
+    Mock mounts and targets should set _test_size explicitly.
+    """
     def _get_actor_size(actor):
-        return getattr(actor, "_test_size", target_size)
+        return getattr(actor, "_test_size", default_size)
     return _get_actor_size
 
 
@@ -245,11 +251,12 @@ class TestLanceProne(EvenniaTest):
         target.apply_prone.assert_not_called()
 
     @patch("typeclasses.items.weapons.lance_nft_item.dice")
-    @patch("combat.combat_utils.get_actor_size")
-    def test_prone_skilled_medium_target(self, mock_get_size, mock_dice):
-        """SKILLED: 15% chance, medium target should prone on low roll."""
+    @patch("typeclasses.items.weapons.lance_nft_item.get_actor_size")
+    def test_prone_medium_mount_vs_medium_target(self, mock_get_size, mock_dice):
+        """MEDIUM mount vs MEDIUM target — passes size gate, prone on low roll."""
         mock_dice.roll.return_value = 10  # under 15% threshold
-        mock_get_size.side_effect = _patch_actor_size(Size.MEDIUM)
+        # Call order inside _try_prone: get_actor_size(mount), get_actor_size(target)
+        mock_get_size.side_effect = [Size.MEDIUM, Size.MEDIUM]
         _set_mastery(self.char1, 2)
         target = _mock_target(size=Size.MEDIUM)
 
@@ -258,35 +265,47 @@ class TestLanceProne(EvenniaTest):
         self.assertTrue(self.char1.ndb.lance_prone_used)
 
     @patch("typeclasses.items.weapons.lance_nft_item.dice")
-    @patch("combat.combat_utils.get_actor_size")
-    def test_no_prone_skilled_huge_target(self, mock_get_size, mock_dice):
-        """SKILLED: max size LARGE — HUGE target immune."""
+    @patch("typeclasses.items.weapons.lance_nft_item.get_actor_size")
+    def test_no_prone_medium_mount_vs_huge_target(self, mock_get_size, mock_dice):
+        """MEDIUM mount cannot prone HUGE target (2 sizes larger)."""
         mock_dice.roll.return_value = 1
-        mock_get_size.side_effect = _patch_actor_size(Size.HUGE)
-        _set_mastery(self.char1, 2)
+        mock_get_size.side_effect = [Size.MEDIUM, Size.HUGE]
+        _set_mastery(self.char1, 5)  # GM — chance doesn't help, size-gated
         target = _mock_target(size=Size.HUGE)
 
         self.lance.at_hit(self.char1, target, 10, "piercing")
         target.apply_prone.assert_not_called()
 
     @patch("typeclasses.items.weapons.lance_nft_item.dice")
-    @patch("combat.combat_utils.get_actor_size")
-    def test_prone_expert_huge_target(self, mock_get_size, mock_dice):
-        """EXPERT: max size HUGE — can prone HUGE targets."""
-        mock_dice.roll.return_value = 10  # under 20% threshold
-        mock_get_size.side_effect = _patch_actor_size(Size.HUGE)
-        _set_mastery(self.char1, 3)
+    @patch("typeclasses.items.weapons.lance_nft_item.get_actor_size")
+    def test_prone_large_mount_vs_huge_target(self, mock_get_size, mock_dice):
+        """LARGE mount (e.g. warhorse) CAN prone HUGE target (1 size larger)."""
+        mock_dice.roll.return_value = 10  # under chance
+        mock_get_size.side_effect = [Size.LARGE, Size.HUGE]
+        _set_mastery(self.char1, 3)  # EXPERT
         target = _mock_target(size=Size.HUGE)
 
         self.lance.at_hit(self.char1, target, 10, "piercing")
         target.apply_prone.assert_called_once()
 
     @patch("typeclasses.items.weapons.lance_nft_item.dice")
-    @patch("combat.combat_utils.get_actor_size")
-    def test_no_prone_gargantuan(self, mock_get_size, mock_dice):
-        """GARGANTUAN always immune, even at GM."""
+    @patch("typeclasses.items.weapons.lance_nft_item.get_actor_size")
+    def test_prone_huge_mount_vs_gargantuan_target(self, mock_get_size, mock_dice):
+        """HUGE mount (e.g. dragon) CAN prone GARGANTUAN target — the whole point."""
+        mock_dice.roll.return_value = 10
+        mock_get_size.side_effect = [Size.HUGE, Size.GARGANTUAN]
+        _set_mastery(self.char1, 5)  # GM
+        target = _mock_target(size=Size.GARGANTUAN)
+
+        self.lance.at_hit(self.char1, target, 10, "piercing")
+        target.apply_prone.assert_called_once()
+
+    @patch("typeclasses.items.weapons.lance_nft_item.dice")
+    @patch("typeclasses.items.weapons.lance_nft_item.get_actor_size")
+    def test_no_prone_medium_mount_vs_gargantuan(self, mock_get_size, mock_dice):
+        """MEDIUM mount vs GARGANTUAN (3 sizes larger) — immune even at GM."""
         mock_dice.roll.return_value = 1
-        mock_get_size.side_effect = _patch_actor_size(Size.GARGANTUAN)
+        mock_get_size.side_effect = [Size.MEDIUM, Size.GARGANTUAN]
         _set_mastery(self.char1, 5)
         target = _mock_target(size=Size.GARGANTUAN)
 
@@ -305,7 +324,7 @@ class TestLanceProne(EvenniaTest):
         target.apply_prone.assert_not_called()
 
     @patch("typeclasses.items.weapons.lance_nft_item.dice")
-    @patch("combat.combat_utils.get_actor_size")
+    @patch("typeclasses.items.weapons.lance_nft_item.get_actor_size")
     def test_no_prone_already_prone(self, mock_get_size, mock_dice):
         """Can't re-prone already prone target."""
         mock_dice.roll.return_value = 1

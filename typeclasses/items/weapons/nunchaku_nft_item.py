@@ -15,11 +15,13 @@ Mastery progression:
     MASTER:    +6 hit, 3 attacks, 1 stun check/round (PRONE on win by >=5)
     GM:        +8 hit, 3 attacks, 2 stun checks/round (PRONE on win by >=5, 2 rounds)
 
-Two-handed, no dual-wield. GARGANTUAN only immune to stun.
+Two-handed, no dual-wield. Target more than 1 size larger than the wielder
+is immune to stun.
 
 Stun/Knockdown (SKILLED+):
     Contested DEX roll: attacker d20 + DEX bonus + mastery bonus VS
-    defender d20 + CON bonus. Size-gated: GARGANTUAN immune.
+    defender d20 + CON bonus. Size-gated: target more than 1 size larger
+    than the attacker is immune.
 
     SKILLED/EXPERT: attacker wins → target STUNNED 1 round
     MASTER: win by <5 → STUNNED 1 round, win by >=5 → PRONE 1 round
@@ -29,7 +31,7 @@ Stun/Knockdown (SKILLED+):
 from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
-from enums.size import Size
+from enums.size import size_value
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from combat.combat_utils import get_actor_size
@@ -53,9 +55,6 @@ _NUNCHAKU_STUN_CHECKS = {
     MasteryLevel.MASTER: 1,
     MasteryLevel.GRANDMASTER: 2,
 }
-
-# Sizes immune to nunchaku stun/knockdown
-_STUN_IMMUNE_SIZES = {Size.GARGANTUAN}
 
 
 class NunchakuMixin:
@@ -102,9 +101,10 @@ class NunchakuMixin:
         if mastery.value < MasteryLevel.SKILLED.value:
             return
 
-        # Size gate
+        # Size gate — target more than 1 size larger than wielder is immune
+        wielder_size = get_actor_size(wielder)
         target_size = get_actor_size(target)
-        if target_size in _STUN_IMMUNE_SIZES:
+        if size_value(target_size) > size_value(wielder_size) + 1:
             return
 
         # Anti-stacking

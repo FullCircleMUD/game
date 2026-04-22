@@ -372,7 +372,7 @@ class TestUnarmedCombat(EvenniaCommandTest):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_unarmed_stun_immune_huge_target(self, mock_ticker):
-        """HUGE targets are immune to unarmed stun."""
+        """MEDIUM attacker vs HUGE target (2 sizes larger) — immune."""
         from enums.mastery_level import MasteryLevel
         from enums.condition import Condition
         from enums.size import Size
@@ -411,7 +411,7 @@ class TestUnarmedCombat(EvenniaCommandTest):
 
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_unarmed_stun_works_on_large_target(self, mock_ticker):
-        """LARGE targets CAN be stunned by unarmed (only HUGE+ immune)."""
+        """MEDIUM attacker vs LARGE target (1 size larger) — not immune."""
         from enums.mastery_level import MasteryLevel
         from enums.condition import Condition
         from enums.size import Size
@@ -427,6 +427,45 @@ class TestUnarmedCombat(EvenniaCommandTest):
         mob.hp = 50
         mob.hp_max = 50
         mob.size = "large"
+        try:
+            enter_combat(self.char1, mob)
+            handler1 = self.char1.scripts.get("combat_handler")[0]
+            handler1.stun_checks_remaining = 1
+
+            with patch("combat.combat_utils.dice") as mock_dice, \
+                 patch("typeclasses.items.weapons.unarmed_weapon.dice") as mock_unarmed_dice:
+                mock_dice.roll_with_advantage_or_disadvantage.return_value = 20
+                mock_dice.roll.return_value = 1
+                mock_unarmed_dice.roll.side_effect = [20, 1]
+
+                execute_attack(self.char1, mob)
+
+            self.assertTrue(mob.has_effect("stunned"))
+        finally:
+            handlers = mob.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+            mob.delete()
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_unarmed_stun_gargantuan_vs_gargantuan(self, mock_ticker):
+        """GARGANTUAN attacker vs GARGANTUAN target — boxing match, not immune."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import enter_combat, execute_attack
+
+        self.char1.db.weapon_skill_mastery_levels = {"unarmed": MasteryLevel.SKILLED.value}
+        self.char1.size = "gargantuan"
+
+        mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="gargantuan titan",
+            location=self.room1,
+        )
+        mob.hp = 200
+        mob.hp_max = 200
+        mob.size = "gargantuan"
         try:
             enter_combat(self.char1, mob)
             handler1 = self.char1.scripts.get("combat_handler")[0]

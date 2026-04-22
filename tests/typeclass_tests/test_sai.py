@@ -192,10 +192,11 @@ class TestSaiDisarm(EvenniaTest):
     @patch("typeclasses.items.weapons.sai_nft_item.get_weapon")
     @patch("typeclasses.items.weapons.sai_nft_item.get_actor_size")
     @patch("typeclasses.items.weapons.sai_nft_item.dice")
-    def test_gargantuan_immune(self, mock_dice, mock_gas, mock_get_weapon, mock_fdw):
-        """GARGANTUAN target is immune to disarm."""
+    def test_attacker_two_sizes_larger_immune(self, mock_dice, mock_gas, mock_get_weapon, mock_fdw):
+        """Attacker more than 1 size larger than sai wielder is immune to disarm."""
         from enums.size import Size
-        mock_gas.return_value = Size.GARGANTUAN
+        # wielder MEDIUM, attacker GARGANTUAN (3 sizes larger)
+        mock_gas.side_effect = [Size.MEDIUM, Size.GARGANTUAN]
 
         self.sai._try_disarm(self.char1, self.char2)
 
@@ -203,6 +204,26 @@ class TestSaiDisarm(EvenniaTest):
         mock_fdw.assert_not_called()
         # Check did NOT consume — size gate fires before check consumption
         self.assertEqual(self.handler.disarm_checks_remaining, 1)
+
+    @patch("typeclasses.items.weapons.sai_nft_item.force_drop_weapon")
+    @patch("typeclasses.items.weapons.sai_nft_item.get_weapon")
+    @patch("typeclasses.items.weapons.sai_nft_item.get_actor_size")
+    @patch("typeclasses.items.weapons.sai_nft_item.dice")
+    def test_attacker_one_size_larger_allowed(self, mock_dice, mock_gas, mock_get_weapon, mock_fdw):
+        """Attacker exactly 1 size larger than sai wielder — disarm allowed."""
+        from enums.size import Size
+        mock_gas.side_effect = [Size.MEDIUM, Size.LARGE]
+        # Make the contest succeed so we can confirm the gate didn't block it
+        mock_dice.roll.side_effect = [20, 1]
+        weapon = MagicMock()
+        weapon.weapon_type_key = "sword"
+        mock_get_weapon.return_value = weapon
+        mock_fdw.return_value = (True, "sword")
+
+        self.sai._try_disarm(self.char1, self.char2)
+
+        # Disarm was attempted and succeeded
+        mock_fdw.assert_called_once()
 
     @patch("typeclasses.items.weapons.sai_nft_item.force_drop_weapon")
     @patch("typeclasses.items.weapons.sai_nft_item.get_weapon")

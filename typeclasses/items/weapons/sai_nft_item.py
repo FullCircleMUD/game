@@ -18,8 +18,9 @@ Mastery progression:
 
 Disarm-on-parry (SKILLED+):
     Contested DEX roll: wielder d20 + DEX bonus + mastery bonus VS
-    attacker d20 + STR bonus. GARGANTUAN immune.
-    On success, attacker's weapon is unequipped to their inventory.
+    attacker d20 + STR bonus. Attacker more than 1 size larger than the
+    sai wielder is immune. On success, attacker's weapon is unequipped
+    to their inventory.
 
 No extra attacks, no off-hand, no parry advantage, no riposte.
 Dual-wieldable. Ninja only.
@@ -30,7 +31,7 @@ import logging
 from evennia.typeclasses.attributes import AttributeProperty
 from enums.unused_for_reference.damage_type import DamageType
 
-from enums.size import Size
+from enums.size import size_value
 from enums.character_class import CharacterClass
 from enums.mastery_level import MasteryLevel
 from combat.combat_utils import get_actor_size, force_drop_weapon, get_weapon
@@ -56,9 +57,6 @@ _SAI_DISARM_CHECKS = {
     MasteryLevel.MASTER: 1,
     MasteryLevel.GRANDMASTER: 2,
 }
-
-# Sizes immune to sai disarm
-_DISARM_IMMUNE_SIZES = {Size.GARGANTUAN}
 
 
 class SaiMixin:
@@ -108,9 +106,10 @@ class SaiMixin:
         if mastery.value < MasteryLevel.SKILLED.value:
             return
 
-        # Size gate
-        target_size = get_actor_size(attacker)
-        if target_size in _DISARM_IMMUNE_SIZES:
+        # Size gate — attacker more than 1 size larger than wielder is immune
+        wielder_size = get_actor_size(wielder)
+        attacker_size = get_actor_size(attacker)
+        if size_value(attacker_size) > size_value(wielder_size) + 1:
             return
 
         # Check attacker has a real weapon (don't waste a check on unarmed)
