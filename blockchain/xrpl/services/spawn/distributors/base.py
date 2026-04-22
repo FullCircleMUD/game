@@ -229,8 +229,6 @@ class BaseDistributor:
         return list(
             ObjectDB.objects.filter(
                 db_tags__db_key=self.tag_name,
-            ).exclude(
-                db_location__isnull=True,  # exclude dead/limbo objects
             )
         )
 
