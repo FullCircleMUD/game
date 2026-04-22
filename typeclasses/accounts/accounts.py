@@ -595,6 +595,9 @@ Leave Character / Game      |gquit|n
         """Called after login. Backfills wallet + bank for the superuser."""
         super().at_post_login(session=session, **kwargs)
 
+        from blockchain.xrpl.cosigner_ping import warm_cosigner
+        warm_cosigner()
+
         if self.is_superuser and not self.wallet_address:
             self.wallet_address = settings.SUPERUSER_XRPL_WALLET_ADDRESS
             self.msg(f"|y[Dev] Superuser wallet set to: {settings.SUPERUSER_XRPL_WALLET_ADDRESS}|n")

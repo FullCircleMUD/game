@@ -67,6 +67,7 @@ _GLOBAL_SCRIPTS = [
     ("weather_service",          "typeclasses.scripts.weather_service.WeatherService"),
     ("reallocation_service",     "typeclasses.scripts.reallocation_service.ReallocationServiceScript"),
     ("durability_decay_service", "typeclasses.scripts.durability_decay_service.DurabilityDecayService"),
+    ("cosigner_keepalive_service", "typeclasses.scripts.cosigner_keepalive_service.CosignerKeepAliveScript"),
 ]
 
 
