@@ -358,18 +358,20 @@ def _spawn_warrior_trainer():
         "battleskills", "alertness",               # general combat skills
     ]
     npc.trainable_weapons = [
-        "long_sword", "handaxe", "spear", "hammer", "crossbow",  # SKILLED
-        "great_sword", "battleaxe", "lance",                      # BASIC
+        "long_sword", "handaxe", "spear", "hammer",
+        "great_sword", "battleaxe", "lance",
+        "bow", "unarmed",
     ]
     npc.trainer_masteries = {
         "long_sword": 2,    # SKILLED
         "handaxe": 2,       # SKILLED
         "spear": 2,         # SKILLED
         "hammer": 2,        # SKILLED
-        "crossbow": 2,      # SKILLED
-        "great_sword": 1,   # BASIC
-        "battleaxe": 1,     # BASIC
-        "lance": 1,         # BASIC
+        "great_sword": 2,   # SKILLED
+        "battleaxe": 2,     # SKILLED
+        "lance": 2,         # SKILLED
+        "bow": 2,           # SKILLED
+        "unarmed": 2,       # SKILLED
         "bash": 2,          # SKILLED
         "pummel": 2,        # SKILLED
         "protect": 2,       # SKILLED
@@ -554,14 +556,14 @@ def _spawn_thief_trainer():
         "battleskills", "alertness",               # general combat skills
     ]
     npc.trainable_weapons = [
-        "dagger", "short_sword",                   # SKILLED
-        "rapier", "crossbow",                      # BASIC
+        "dagger", "short_sword", "rapier", "crossbow", "blowgun",
     ]
     npc.trainer_masteries = {
         "dagger": 2,        # SKILLED
         "short_sword": 2,   # SKILLED
-        "rapier": 1,        # BASIC
-        "crossbow": 1,      # BASIC
+        "rapier": 2,        # SKILLED
+        "crossbow": 2,      # SKILLED
+        "blowgun": 2,       # SKILLED
         "stealth": 2,       # SKILLED
         "subterfuge": 2,    # SKILLED
         "stab": 2,          # SKILLED
@@ -640,8 +642,8 @@ def _spawn_mage_trainer():
         "necromancy": 1,    # BASIC
         "illusion": 1,      # BASIC
         "enchanting": 1,    # BASIC
-        "staff": 1,         # BASIC
-        "dagger": 1,        # BASIC
+        "staff": 2,         # SKILLED
+        "dagger": 2,        # SKILLED
     }
     npc.db.desc = (
         "A young woman in a plain grey robe stands at the binding plinth, "
@@ -706,8 +708,8 @@ def _spawn_cleric_trainer():
         "battleskills", "alertness",                 # general combat skills
     ]
     npc.trainable_weapons = [
-        "mace", "staff",                             # SKILLED
-        "hammer", "club",                            # BASIC
+        "mace", "staff", "club",
+        "greatclub", "sling", "bola",
     ]
     npc.trainer_masteries = {
         "divine_healing": 2,     # SKILLED
@@ -718,8 +720,10 @@ def _spawn_cleric_trainer():
         "turn_undead": 2,        # SKILLED
         "mace": 2,               # SKILLED
         "staff": 2,              # SKILLED
-        "hammer": 1,             # BASIC
-        "club": 1,               # BASIC
+        "club": 2,               # SKILLED
+        "greatclub": 2,          # SKILLED
+        "sling": 2,              # SKILLED
+        "bola": 2,               # SKILLED
         "battleskills": 2,       # SKILLED
         "alertness": 2,          # SKILLED
     }
