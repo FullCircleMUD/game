@@ -59,4 +59,5 @@ class CmdRent(FCMCommandMixin, Command):
                 session=account.sessions.get()[0],
             )
         )
+        account.mark_graceful_logout()
         account.unpuppet_object(session)

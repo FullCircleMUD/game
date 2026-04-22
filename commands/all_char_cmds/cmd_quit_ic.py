@@ -78,6 +78,7 @@ class CmdQuitIC(FCMCommandMixin, Command):
                 session=account.sessions.get()[0],
             )
         )
+        account.mark_graceful_logout()
         account.unpuppet_object(session)
 
     def _create_quit_drop(self, caller, room):

@@ -1046,6 +1046,13 @@ class FCMCharacter(
         super().at_post_puppet(**kwargs)
         # Safety net: clear double-death guard on login
         self._dying = False
+        # Reconnect-to-state: record this as the account's active puppet
+        # so a linkdead reconnect or server restart auto-resumes here.
+        # Graceful logout paths (ooc/quit/rent/chardelete/ToS-kick) call
+        # account.mark_graceful_logout() before unpuppet to clear this.
+        if self.account:
+            self.account.db.active_puppet_id = self.id
+            self.account.attributes.remove("graceful_logout")
         # Telemetry: record session start
         if self.account:
             from blockchain.xrpl.services.telemetry import TelemetryService

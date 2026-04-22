@@ -139,6 +139,9 @@ class CmdCharDelete(DefaultCmdCharDelete):
                         delobj.transfer_resource_to(bank, rid, amt)
 
             # 5. Delete character
+            # Clear reconnect pointer if we're deleting the remembered puppet
+            if caller.db.active_puppet_id == delobj.id:
+                caller.attributes.remove("active_puppet_id")
             caller.characters.remove(delobj)
             deleted = delobj.delete()
 

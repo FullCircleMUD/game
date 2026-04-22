@@ -658,6 +658,75 @@ Leave Character / Game      |gquit|n
             accepted_tos = self.db.tos_version
             if current_tos and accepted_tos != current_tos:
                 _prompt_tos_reaccept(self, session, current_tos)
+                return
+
+        # ── Auto-resume previous IC session on reconnect ───────────
+        self._try_reconnect_puppet(session)
+
+    # ------------------------------------------------------------------
+    # Reconnect-to-state: graceful logout tracking
+    # ------------------------------------------------------------------
+
+    def mark_graceful_logout(self):
+        """Call before unpuppet in ooc/quit/rent/chardelete paths.
+
+        Sets the one-shot ``graceful_logout`` flag (consumed on next
+        login) and clears ``active_puppet_id`` so the next connection
+        falls through to the OOC menu instead of auto-resuming.
+        """
+        self.db.graceful_logout = True
+        self.attributes.remove("active_puppet_id")
+
+    def _try_reconnect_puppet(self, session):
+        """Auto-repuppet the last active character on linkdead/restart reconnect.
+
+        Fresh connects and graceful logouts fall through to the OOC menu.
+        Reconnects (linkdead or server restart while puppeted) resume the
+        character in place.
+        """
+        if session is None or self.is_superuser or isinstance(self, Guest):
+            return
+
+        if self.db.graceful_logout:
+            self.attributes.remove("graceful_logout")
+            return
+
+        puppet_id = self.db.active_puppet_id
+        if not puppet_id:
+            return
+
+        try:
+            char = ObjectDB.objects.get(pk=puppet_id)
+        except ObjectDB.DoesNotExist:
+            self.attributes.remove("active_puppet_id")
+            return
+
+        if char not in make_iter(self.characters):
+            self.attributes.remove("active_puppet_id")
+            return
+
+        from subscriptions.utils import is_subscribed
+
+        if not is_subscribed(self):
+            self.attributes.remove("active_puppet_id")
+            self.msg(
+                "|yYour subscription has expired — use |wsubscribe|y to renew.|n"
+            )
+            return
+
+        try:
+            self.puppet_object(session, char)
+        except RuntimeError as exc:
+            logger.log_trace(f"Auto-resume failed for {self}: {exc}")
+            self.attributes.remove("active_puppet_id")
+            self.msg(
+                "|rCould not auto-resume your last character. "
+                "Use |wic <name>|r to play.|n"
+            )
+            return
+
+        self.msg(f"|gResuming as {char.key}...|n")
+        char.execute_cmd("look")
 
 
 def _prompt_tos_reaccept(account, session, current_tos):
@@ -694,6 +763,7 @@ def _handle_tos_reaccept(caller, prompt, result, session=None, tos_version=None)
         )
         if session:
             from evennia.server.sessionhandler import SESSIONS
+            account.mark_graceful_logout()
             SESSIONS.disconnect(session, reason="ToS not accepted.")
         return False
 
