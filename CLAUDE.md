@@ -229,8 +229,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 | Inventory, equipment, wearslots, weight, NFT ownership model, durability | [INVENTORY_EQUIPMENT.md](../../design/INVENTORY_EQUIPMENT.md) |
 | Economy, pricing, markets, spawn algorithms, SINK, reallocation | [ECONOMY.md](../../design/ECONOMY.md) |
 | Unified spawn system (resources / gold / rare NFTs / knowledge) | [UNIFIED_ITEM_SPAWN_SYSTEM.md](../../design/UNIFIED_ITEM_SPAWN_SYSTEM.md) |
-| Commodity mob spawning | [SPAWN_COMMODITY_MOBS.md](../../design/SPAWN_COMMODITY_MOBS.md) |
-| Boss / rare mob spawning (refactor pending) | [SPAWN_BOSS_MOBS.md](../../design/SPAWN_BOSS_MOBS.md) |
+| Mob spawning (population, respawn, area tags, hooks) | [SPAWN_MOBS.md](../../design/SPAWN_MOBS.md) |
 | Economy telemetry, snapshots, velocity categories | [TELEMETRY.md](../../design/TELEMETRY.md) |
 | Treasury, fiscal discipline, vault architecture | [TREASURY.md](../../design/TREASURY.md) |
 | Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../design/SUBSCRIPTIONS.md) |
