@@ -141,3 +141,19 @@ class WolfHideAndFatLoad(Wolf):
     """Wolf variant — drops both hide and animal fat."""
 
     loot_resources = AttributeProperty({8: 1, 45: 1})
+
+
+class WolfRecipeLoad(Wolf):
+    """Wolf variant — drops only a basic-tier recipe (no gold, hide, or fat)."""
+
+    loot_resources = AttributeProperty({})
+    loot_gold_max = AttributeProperty(0)
+    spawn_recipes_max = AttributeProperty({"basic": 1})
+
+
+class WolfScrollLoad(Wolf):
+    """Wolf variant — drops only a basic-tier scroll (no gold, hide, or fat)."""
+
+    loot_resources = AttributeProperty({})
+    loot_gold_max = AttributeProperty(0)
+    spawn_scrolls_max = AttributeProperty({"basic": 1})

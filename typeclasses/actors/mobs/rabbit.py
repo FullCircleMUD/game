@@ -1,11 +1,14 @@
 """
-Rabbit — timid animal mob that flees from everything.
+Rabbit — skittish prey that flees on sight but fights when cornered.
 
-Wanders the woods at random intervals. When a character, wolf, or dire
-wolf enters the room, the rabbit flees 4-5 seconds later. If the new
-room also has threats, it flees again.
+Behavioural opposite of Mouse: when a character/wolf/dire-wolf enters
+the room, the rabbit flees 4-5 seconds later. If caught and attacked,
+it stands and fights for its 7 HP rather than fleeing combat.
 
-No combat abilities — purely prey.
+Three indistinguishable variants share the same key/desc:
+- Rabbit — carries 1 gold
+- RabbitRich — carries 2 gold
+- RabbitFat — carries 1 animal fat, no gold
 """
 
 import random
@@ -26,25 +29,30 @@ class Rabbit(CombatMob):
         "nibbles warily at the grass, long ears twitching at every sound."
     )
 
-    # ── Stats — tiny and fragile ──
-    hp = AttributeProperty(3)
-    base_hp_max = AttributeProperty(3)
-    hp_max = AttributeProperty(3)
-    base_strength = AttributeProperty(3)
-    strength = AttributeProperty(3)
+    # ── Stats — small but bites back when cornered ──
+    hp = AttributeProperty(7)
+    base_hp_max = AttributeProperty(7)
+    hp_max = AttributeProperty(7)
+    base_strength = AttributeProperty(4)
+    strength = AttributeProperty(4)
     base_dexterity = AttributeProperty(14)
     dexterity = AttributeProperty(14)
-    base_constitution = AttributeProperty(3)
-    constitution = AttributeProperty(3)
+    base_constitution = AttributeProperty(5)
+    constitution = AttributeProperty(5)
     base_armor_class = AttributeProperty(12)
     armor_class = AttributeProperty(12)
-    level = AttributeProperty(1)
-
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(1)
+    level = AttributeProperty(2)
 
     # ── Combat ──
     initiative_speed = AttributeProperty(3)
+    damage_dice = AttributeProperty("1d2")
+    attack_message = AttributeProperty("nips at")
+
+    # ── Loot — base variant carries 1 gold ──
+    loot_gold_max = AttributeProperty(1)
+
+    # ── XP override ──
+    xp_award = AttributeProperty(15)
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
@@ -95,13 +103,12 @@ class Rabbit(CombatMob):
     # ── AI States ──
 
     def ai_wander(self):
-        """Wander slowly through the woods. Flee if in combat."""
+        """Wander slowly through the fields. Stand and fight if in combat."""
         if not self.location:
             return
 
-        # In combat — always try to flee
+        # In combat — let the combat handler drive (rabbit fights back, doesn't flee)
         if self.scripts.get("combat_handler"):
-            self.execute_cmd("flee")
             return
 
         # Check for threats — if any, schedule flee
@@ -119,3 +126,16 @@ class Rabbit(CombatMob):
         # Random movement
         if random.random() < 0.2:
             self.wander()
+
+
+class RabbitRich(Rabbit):
+    """Rabbit variant — carries 2 gold."""
+
+    loot_gold_max = AttributeProperty(2)
+
+
+class RabbitFat(Rabbit):
+    """Rabbit variant — carries 1 animal fat instead of gold."""
+
+    loot_gold_max = AttributeProperty(0)
+    loot_resources = AttributeProperty({45: 1})  # 1 animal fat

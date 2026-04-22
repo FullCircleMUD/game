@@ -143,6 +143,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     spawn_scrolls_max = AttributeProperty({})
     spawn_recipes_max = AttributeProperty({})
 
+    # ── XP override ──
+    # Optional per-mob XP award. When None, _die uses level * 10 (default
+    # progression). Set on subclasses where a flat level-based award
+    # doesn't fit — e.g. tier-1 filler mobs that should award less than
+    # the formula, or bosses that should award more.
+    xp_award = AttributeProperty(None)
+
     def at_object_creation(self):
         super().at_object_creation()  # CombatMixin adds CmdSetMobCombat + call:false()
         # FungibleInventoryMixin and HumanoidWearslotsMixin init handled
@@ -377,7 +384,7 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
                 # Fallback if handler already cleaned up
                 recipients = [killer] if hasattr(killer, "at_gain_experience_points") else []
             if recipients:
-                total_xp = self.level * 10
+                total_xp = self.xp_award if self.xp_award is not None else self.level * 10
                 xp_each = max(1, total_xp // len(recipients))
                 for ally in recipients:
                     ally.at_gain_experience_points(xp_each)

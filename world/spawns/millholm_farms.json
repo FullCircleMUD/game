@@ -1,5 +1,23 @@
 [
     {
+        "typeclass": "typeclasses.actors.mobs.mouse.Mouse",
+        "key": "a mouse",
+        "area_tag": "abandoned_farm",
+        "target": 5,
+        "max_per_room": 2,
+        "respawn_seconds": 30,
+        "desc": "A small grey mouse darts between cracks in the broken floorboards, whiskers twitching."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.mouse.MouseGold",
+        "key": "a mouse",
+        "area_tag": "abandoned_farm",
+        "target": 3,
+        "max_per_room": 2,
+        "respawn_seconds": 30,
+        "desc": "A small grey mouse darts between cracks in the broken floorboards, whiskers twitching."
+    },
+    {
         "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
         "key": "a rabbit",
         "area_tag": "abandoned_farm",
@@ -9,19 +27,109 @@
         "desc": "A small brown rabbit nibbles at the weeds pushing through the untended soil. Its ears swivel at every sound, ready to bolt at the first sign of danger."
     },
     {
-        "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
+        "typeclass": "typeclasses.actors.mobs.rabbit.RabbitRich",
         "key": "a rabbit",
+        "area_tag": "abandoned_farm",
+        "target": 2,
+        "max_per_room": 2,
+        "respawn_seconds": 30,
+        "desc": "A small brown rabbit nibbles at the weeds pushing through the untended soil. Its ears swivel at every sound, ready to bolt at the first sign of danger."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.RabbitFat",
+        "key": "a rabbit",
+        "area_tag": "abandoned_farm",
+        "target": 2,
+        "max_per_room": 2,
+        "respawn_seconds": 30,
+        "desc": "A small brown rabbit nibbles at the weeds pushing through the untended soil. Its ears swivel at every sound, ready to bolt at the first sign of danger."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.mouse.Mouse",
+        "key": "a mouse",
         "area_tag": "wheat_farm",
         "target": 3,
         "max_per_room": 1,
         "respawn_seconds": 30,
+        "desc": "A small grey mouse scampers between the wheat stalks, nose to the ground in search of fallen grain."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.mouse.MouseGold",
+        "key": "a mouse",
+        "area_tag": "wheat_farm",
+        "target": 2,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A small grey mouse scampers between the wheat stalks, nose to the ground in search of fallen grain."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
+        "key": "a rabbit",
+        "area_tag": "wheat_farm",
+        "target": 4,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
         "desc": "A small rabbit crouches between the rows of golden wheat, nibbling on fallen grain. It watches you with bright, wary eyes."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.RabbitRich",
+        "key": "a rabbit",
+        "area_tag": "wheat_farm",
+        "target": 2,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A small rabbit crouches between the rows of golden wheat, nibbling on fallen grain. It watches you with bright, wary eyes."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.RabbitFat",
+        "key": "a rabbit",
+        "area_tag": "wheat_farm",
+        "target": 2,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A small rabbit crouches between the rows of golden wheat, nibbling on fallen grain. It watches you with bright, wary eyes."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.mouse.Mouse",
+        "key": "a mouse",
+        "area_tag": "cotton_farm",
+        "target": 2,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A small grey mouse skitters across the dusty earth between the cotton plants, pausing now and then to listen."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.mouse.MouseGold",
+        "key": "a mouse",
+        "area_tag": "cotton_farm",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A small grey mouse skitters across the dusty earth between the cotton plants, pausing now and then to listen."
     },
     {
         "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
         "key": "a rabbit",
         "area_tag": "cotton_farm",
         "target": 3,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A rabbit sits among the cotton plants, its brown fur dusted with white fibres. It twitches its nose at you before returning to nibbling on a leaf."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.RabbitRich",
+        "key": "a rabbit",
+        "area_tag": "cotton_farm",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 30,
+        "desc": "A rabbit sits among the cotton plants, its brown fur dusted with white fibres. It twitches its nose at you before returning to nibbling on a leaf."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.rabbit.RabbitFat",
+        "key": "a rabbit",
+        "area_tag": "cotton_farm",
+        "target": 1,
         "max_per_room": 1,
         "respawn_seconds": 30,
         "desc": "A rabbit sits among the cotton plants, its brown fur dusted with white fibres. It twitches its nose at you before returning to nibbling on a leaf."

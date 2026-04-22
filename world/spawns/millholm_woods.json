@@ -27,6 +27,24 @@
         "desc": "A grey wolf pads through the undergrowth, ears pricked and amber eyes watchful. Lean muscle ripples beneath a coarse pelt as it scans the woods for prey."
     },
     {
+        "typeclass": "typeclasses.actors.mobs.wolf.WolfRecipeLoad",
+        "key": "a grey wolf",
+        "area_tag": "woods_wolves",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 120,
+        "desc": "A grey wolf pads through the undergrowth, ears pricked and amber eyes watchful. Lean muscle ripples beneath a coarse pelt as it scans the woods for prey."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.wolf.WolfScrollLoad",
+        "key": "a grey wolf",
+        "area_tag": "woods_wolves",
+        "target": 1,
+        "max_per_room": 1,
+        "respawn_seconds": 120,
+        "desc": "A grey wolf pads through the undergrowth, ears pricked and amber eyes watchful. Lean muscle ripples beneath a coarse pelt as it scans the woods for prey."
+    },
+    {
         "typeclass": "typeclasses.actors.mobs.crow.Crow",
         "key": "a black crow",
         "area_tag": "woods_wolves",
