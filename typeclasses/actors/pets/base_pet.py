@@ -27,6 +27,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.size import Size
 from typeclasses.actors.npc import BaseNPC
+from typeclasses.mixins.animal_speaker_mixin import AnimalSpeakerMixin
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.nft_pet_mirror import NFTPetMirrorMixin
 
@@ -37,7 +38,7 @@ _STARVING_AFTER = 8 * 3600      # 8 hours after food runs out
 _DEATH_AFTER = 16 * 3600        # 16 hours after food runs out (24h total from last feed)
 
 
-class BasePet(NFTPetMirrorMixin, FollowableMixin, BaseNPC):
+class BasePet(NFTPetMirrorMixin, FollowableMixin, AnimalSpeakerMixin, BaseNPC):
     """
     Base class for all pets. Subclass for specific pet types.
 
@@ -66,6 +67,12 @@ class BasePet(NFTPetMirrorMixin, FollowableMixin, BaseNPC):
         self.at_followable_init()
         # Start fed — 8 hours of food
         self.fed_until = time.time() + (8 * 3600)
+        # Pets natively understand the animal language. Speakers don't need
+        # SPEAK_WITH_ANIMALS to be heard by their pet — the pet always hears
+        # them; SPEAK_WITH_ANIMALS only governs the *human* side of the link.
+        langs = set(self.db.languages or set())
+        langs.add("animal")
+        self.db.languages = langs
 
     # ================================================================== #
     #  Room Display

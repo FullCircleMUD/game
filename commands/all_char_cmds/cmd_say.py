@@ -16,6 +16,7 @@ from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from enums.languages import Languages
 from utils.garble import garble
+from utils.speech import caller_can_speak, listener_understands
 
 # Build switch-to-language mappings from the Languages enum.
 # Full names: say/dwarven   Short aliases: say/dw (first 2 chars)
@@ -91,8 +92,7 @@ class CmdSay(FCMCommandMixin, Command):
                 return
 
         # --- Check caller knows the language ---
-        caller_languages = set(caller.db.languages or set())
-        if language not in caller_languages:
+        if not caller_can_speak(caller, language):
             lang_display = language.capitalize()
             caller.msg(f"You don't know how to speak {lang_display}.")
             return
@@ -171,17 +171,19 @@ class CmdSay(FCMCommandMixin, Command):
                 speaker_name = caller.key
 
             # Determine if listener understands the language.
-            listener_languages = set(getattr(obj.db, "languages", None) or set())
-            has_comprehend = (
-                hasattr(obj, "has_condition")
-                and obj.has_condition(Condition.COMPREHEND_LANGUAGES)
-            )
-            understands = is_common or language in listener_languages or has_comprehend
+            understands = listener_understands(obj, language)
 
-            if understands:
-                heard = speech
-            else:
-                heard = garble(speech, language)
+            # Animal-language non-listeners hear no speech framing — they
+            # perceive only inarticulate animal noises. Preserves the no-tell
+            # principle: the listener can't tell from formatting that meaningful
+            # speech occurred, only that the speaker made animal sounds.
+            if language == "animal" and not understands:
+                obj.msg(
+                    f"{speaker_name} makes a series of guttural animal noises."
+                )
+                continue
+
+            heard = speech if understands else garble(speech, language)
 
             # Build the target display for this listener
             if say_target:

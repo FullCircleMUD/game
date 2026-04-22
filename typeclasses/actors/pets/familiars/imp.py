@@ -19,6 +19,7 @@ class FamiliarImp(FamiliarMixin, FlyingMixin, CombatCompanionMixin, BasePet):
     """A combat-capable, light-bearing imp familiar — GM conjuration."""
 
     pet_type = AttributeProperty("familiar")
+    species = AttributeProperty("imp")
     base_size = AttributeProperty(Size.TINY.value)
     size = AttributeProperty(Size.TINY.value)
     preferred_height = AttributeProperty(0)

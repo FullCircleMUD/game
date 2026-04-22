@@ -61,6 +61,11 @@ class Condition(Enum):
     # USED: cmd_say.py (has_condition check enables language comprehension),
     #   no command/spell applies it yet — test-only application
     COMPREHEND_LANGUAGES = "comprehend_languages"  # understand all spoken languages
+    # USED: cmd_say.py / cmd_whisper.py / cmd_shout.py — gates the ANIMAL language
+    #   for speakers and listeners. Granted ONLY by SPEAK_WITH_ANIMALS_BUFF named
+    #   effect (speak_with_animals spell or potion). Comprehend Languages does NOT
+    #   cover animal speech — animal is non-learnable and gated behind this flag.
+    SPEAK_WITH_ANIMALS = "speak_with_animals"
     # USED: combat_utils.py (downgrades crit to normal hit),
     #   no command/spell applies it yet — test-only application
     CRIT_IMMUNE = "crit_immune"
@@ -127,6 +132,7 @@ _CONDITION_START_MESSAGES = {
     # Ability / Spell Effects
     Condition.HASTED: "You start moving much faster than usual.",
     Condition.COMPREHEND_LANGUAGES: "You feel a surge of understanding. All languages become clear.",
+    Condition.SPEAK_WITH_ANIMALS: "You attune your senses to the speech of animals.",
     Condition.SANCTUARY: "A shimmering divine ward surrounds you, shielding you from harm.",
 
     # Dual-system
@@ -152,6 +158,7 @@ _CONDITION_END_MESSAGES = {
     # Ability / Spell Effects
     Condition.HASTED: "You slow back down to normal speed.",
     Condition.COMPREHEND_LANGUAGES: "The magical translation fades from your mind.",
+    Condition.SPEAK_WITH_ANIMALS: "The bond with the speech of animals fades.",
     Condition.SANCTUARY: "The divine sanctuary around you fades.",
 
     # Dual-system
@@ -177,6 +184,7 @@ _CONDITION_START_MESSAGES_THIRD_PERSON = {
     # Ability / Spell Effects
     Condition.HASTED: "{name} starts moving much faster than usual.",
     Condition.COMPREHEND_LANGUAGES: "{name}'s eyes widen with sudden understanding.",
+    Condition.SPEAK_WITH_ANIMALS: "{name}'s eyes gain a strange, focused gleam.",
     Condition.SANCTUARY: "A shimmering divine ward surrounds {name}.",
 
     # Dual-system
@@ -202,6 +210,7 @@ _CONDITION_END_MESSAGES_THIRD_PERSON = {
     # Ability / Spell Effects
     Condition.HASTED: "{name} slows back down to normal speed.",
     Condition.COMPREHEND_LANGUAGES: "The look of deep understanding fades from {name}'s eyes.",
+    Condition.SPEAK_WITH_ANIMALS: "The strange gleam fades from {name}'s eyes.",
     Condition.SANCTUARY: "The divine sanctuary around {name} fades.",
 
     # Dual-system

@@ -16,6 +16,7 @@ from enums.condition import Condition
 from enums.languages import Languages
 from utils.exit_helpers import OPPOSITES
 from utils.garble import garble
+from utils.speech import caller_can_speak, listener_understands
 
 # Build switch-to-language mappings from the Languages enum.
 _SWITCH_MAP = {}
@@ -90,8 +91,7 @@ class CmdShout(FCMCommandMixin, Command):
                 return
 
         # --- Check caller knows the language ---
-        caller_languages = set(caller.db.languages or set())
-        if language not in caller_languages:
+        if not caller_can_speak(caller, language):
             lang_display = language.capitalize()
             caller.msg(f"You don't know how to speak {lang_display}.")
             return
@@ -143,11 +143,15 @@ class CmdShout(FCMCommandMixin, Command):
                 speaker_name = caller.key
 
             # Language comprehension
-            listener_languages = set(getattr(obj.db, "languages", None) or set())
-            has_comprehend = hasattr(obj, "has_condition") and obj.has_condition(
-                Condition.COMPREHEND_LANGUAGES
-            )
-            understands = is_common or language in listener_languages or has_comprehend
+            understands = listener_understands(obj, language)
+
+            # Animal-language non-listeners hear no speech framing.
+            if language == "animal" and not understands:
+                obj.msg(
+                    f"{speaker_name} bellows a series of guttural animal noises."
+                )
+                continue
+
             heard = speech if understands else garble(speech, language)
 
             if is_common:
@@ -192,16 +196,15 @@ class CmdShout(FCMCommandMixin, Command):
                     continue
 
                 # Language comprehension for adjacent listeners
-                listener_languages = set(
-                    getattr(obj.db, "languages", None) or set()
-                )
-                has_comprehend = (
-                    hasattr(obj, "has_condition")
-                    and obj.has_condition(Condition.COMPREHEND_LANGUAGES)
-                )
-                understands = (
-                    is_common or language in listener_languages or has_comprehend
-                )
+                understands = listener_understands(obj, language)
+
+                # Animal-language non-listeners hear only sounds, not "shouting".
+                if language == "animal" and not understands:
+                    obj.msg(
+                        f"You hear a series of guttural animal noises {from_dir}."
+                    )
+                    continue
+
                 heard = muffled if understands else garble(muffled, language)
 
                 if is_common:

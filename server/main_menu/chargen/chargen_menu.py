@@ -1167,9 +1167,16 @@ def _get_auto_languages(race):
 
 
 def _get_choosable_languages(auto_languages):
-    """Get languages available for player choice."""
+    """Get languages available for player choice.
+
+    Excludes the ANIMAL language — it is non-learnable and gated behind the
+    SPEAK_WITH_ANIMALS condition (granted only by the speak_with_animals
+    spell or potion).
+    """
     items = []
     for lang in Languages:
+        if lang.value == Languages.ANIMAL.value:
+            continue
         if lang.value not in auto_languages:
             items.append((lang.value.capitalize(), lang.value))
     return sorted(items, key=lambda x: x[0])

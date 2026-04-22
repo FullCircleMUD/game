@@ -16,6 +16,7 @@ class FamiliarCat(FamiliarMixin, BasePet):
     """A stealthy cat familiar — SKILLED conjuration."""
 
     pet_type = AttributeProperty("familiar")
+    species = AttributeProperty("cat")
     base_size = AttributeProperty(Size.TINY.value)
     size = AttributeProperty(Size.TINY.value)
     room_description = AttributeProperty("pads silently alongside its master.")

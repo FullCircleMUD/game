@@ -14,6 +14,7 @@ from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from enums.languages import Languages
 from utils.garble import garble
+from utils.speech import caller_can_speak, listener_understands
 
 # Build switch-to-language mappings from the Languages enum.
 _SWITCH_MAP = {}
@@ -90,8 +91,7 @@ class CmdWhisper(FCMCommandMixin, Command):
                 return
 
         # --- Check caller knows the language ---
-        caller_languages = set(caller.db.languages or set())
-        if language not in caller_languages:
+        if not caller_can_speak(caller, language):
             lang_display = language.capitalize()
             caller.msg(f"You don't know how to speak {lang_display}.")
             return
@@ -165,11 +165,14 @@ class CmdWhisper(FCMCommandMixin, Command):
                 speaker_name = caller.key
 
             # Determine if receiver understands the language
-            recv_languages = set(getattr(recv.db, "languages", None) or set())
-            has_comprehend = hasattr(recv, "has_condition") and recv.has_condition(
-                Condition.COMPREHEND_LANGUAGES
-            )
-            understands = is_common or language in recv_languages or has_comprehend
+            understands = listener_understands(recv, language)
+
+            # Animal-language non-listeners hear no speech framing — just sounds.
+            if language == "animal" and not understands:
+                recv.msg(
+                    f"{speaker_name} whispers a series of guttural animal noises to you."
+                )
+                continue
 
             heard = speech if understands else garble(speech, language)
 

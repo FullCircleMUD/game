@@ -16,6 +16,7 @@ class FamiliarRat(FamiliarMixin, BasePet):
     """A small rat familiar — BASIC conjuration."""
 
     pet_type = AttributeProperty("familiar")
+    species = AttributeProperty("rat")
     base_size = AttributeProperty(Size.TINY.value)
     size = AttributeProperty(Size.TINY.value)
     room_description = AttributeProperty("scurries along at its master's heels.")

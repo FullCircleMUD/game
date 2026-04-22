@@ -115,3 +115,8 @@ from world.prototypes.consumables.potions.ascendant_comprehension import *  # no
 from world.prototypes.consumables.potions.standard_stoneskin import *      # noqa: F401,F403
 from world.prototypes.consumables.potions.potent_stoneskin import *        # noqa: F401,F403
 from world.prototypes.consumables.potions.ascendant_stoneskin import *     # noqa: F401,F403
+
+# ── Speak with Animals (BASIC spell, mid-tier potion — speak_with_animals condition) ──
+from world.prototypes.consumables.potions.standard_speak_with_animals import *   # noqa: F401,F403
+from world.prototypes.consumables.potions.potent_speak_with_animals import *     # noqa: F401,F403
+from world.prototypes.consumables.potions.ascendant_speak_with_animals import *  # noqa: F401,F403

@@ -178,6 +178,8 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{pet.key} begins following {caller.key}.",
                 exclude=[caller], from_obj=pet,
             )
+        if hasattr(pet, "vocalize"):
+            pet.vocalize("follow")
 
     def _cmd_stay(self, caller, pet):
         """Tell the pet to stay."""
@@ -191,6 +193,8 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{caller.key} tells {pet.key} to stay.",
                 exclude=[caller], from_obj=caller,
             )
+        if hasattr(pet, "vocalize"):
+            pet.vocalize("stay")
 
     def _cmd_feed(self, caller, pet):
         """Feed the pet."""
@@ -202,6 +206,8 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{caller.key} feeds {pet.key}.",
                 exclude=[caller], from_obj=caller,
             )
+        if hasattr(pet, "vocalize"):
+            pet.vocalize("feed")
 
     def _cmd_attack(self, caller, pet, target_str):
         """Command the pet to attack a target."""
@@ -251,6 +257,8 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{caller.key} mounts {pet.key}.",
                 exclude=[caller], from_obj=caller,
             )
+            if hasattr(pet, "vocalize"):
+                pet.vocalize("mount")
 
     def _cmd_name(self, caller, pet, new_name):
         """Rename the pet."""
@@ -268,6 +276,8 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{caller.key} names their {pet.pet_type or 'pet'} '{new_name}'.",
                 exclude=[caller], from_obj=caller,
             )
+        if hasattr(pet, "vocalize"):
+            pet.vocalize("name")
 
     def _cmd_dismount(self, caller, pet):
         """Dismount the pet."""
@@ -282,6 +292,8 @@ class CmdPet(FCMCommandMixin, Command):
                 f"{caller.key} dismounts {pet.key}.",
                 exclude=[caller], from_obj=caller,
             )
+            if hasattr(pet, "vocalize"):
+                pet.vocalize("dismount")
 
     # ================================================================== #
     #  Familiar Remote Control
@@ -319,6 +331,9 @@ class CmdPet(FCMCommandMixin, Command):
             return
 
         name = pet.key
+        # Vocalise BEFORE deletion — once delete() runs, pet.location is gone.
+        if hasattr(pet, "vocalize"):
+            pet.vocalize("dismiss")
         pet.delete()
         caller.msg(f"|C{name} vanishes in a shimmer of arcane energy.|n")
         if caller.location:

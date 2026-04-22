@@ -127,6 +127,13 @@ class NamedEffect(Enum):
     # Sets Condition.COMPREHEND_LANGUAGES for universal language understanding.
     COMPREHEND_LANGUAGES_BUFF = "comprehend_languages_buff"
 
+    # APPLIED: speak_with_animals spell (nature magic), speak with animals potion
+    # CHECKED: has_effect("speak_with_animals_buff") for anti-stacking
+    # DURATION: seconds-based timer (wall-clock). 5min–60min (mastery-scaled).
+    # Sets Condition.SPEAK_WITH_ANIMALS — gates the ANIMAL language for both
+    # speaker (say/animal) and listener (understand animal vocalisations).
+    SPEAK_WITH_ANIMALS_BUFF = "speak_with_animals_buff"
+
     # APPLIED: shadowcloak.py (_execute) — group stealth buff
     # CHECKED: has_effect("shadowcloaked") for anti-stacking
     # DURATION: 4-10 minutes (mastery-scaled: SKILLED 4min, EXPERT 6min,
@@ -412,6 +419,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.HASTED: "The world slows around you as you surge with unnatural speed.",
     NamedEffect.FLY_BUFF: "Your feet lift off the ground and you begin to fly.",
     NamedEffect.COMPREHEND_LANGUAGES_BUFF: "A surge of understanding washes over you. All languages become clear.",
+    NamedEffect.SPEAK_WITH_ANIMALS_BUFF: "You attune your senses to the speech of animals.",
     NamedEffect.SHADOWCLOAKED: "Shadows coil around you, muffling your presence.",
     NamedEffect.PARALYSED: "Your muscles seize up and you cannot move!",
     NamedEffect.POISONED: "You feel poison burning through your veins!",
@@ -455,6 +463,7 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.HASTED: "The unnatural speed drains away and the world returns to normal pace.",
     NamedEffect.FLY_BUFF: "You drift back to the ground as the power of flight leaves you.",
     NamedEffect.COMPREHEND_LANGUAGES_BUFF: "The magical translation fades from your mind.",
+    NamedEffect.SPEAK_WITH_ANIMALS_BUFF: "The bond with the speech of animals fades.",
     NamedEffect.SHADOWCLOAKED: "The cloak of shadows dissipates and you feel exposed once more.",
     NamedEffect.PARALYSED: "Your muscles relax and you can move again.",
     NamedEffect.POISONED: "The poison finally runs its course.",
@@ -498,6 +507,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.HASTED: "{name} surges with unnatural speed, their movements a blur.",
     NamedEffect.FLY_BUFF: "{name}'s feet lift off the ground as they begin to fly.",
     NamedEffect.COMPREHEND_LANGUAGES_BUFF: "{name}'s eyes widen with sudden understanding.",
+    NamedEffect.SPEAK_WITH_ANIMALS_BUFF: "{name}'s eyes gain a strange, focused gleam.",
     NamedEffect.SHADOWCLOAKED: "Shadows coil around {name}, muffling their presence.",
     NamedEffect.PARALYSED: "{name}'s muscles seize up and they freeze in place!",
     NamedEffect.POISONED: "{name} looks sickly as poison burns through their veins.",
@@ -541,6 +551,7 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.HASTED: "The unnatural speed drains from {name} as they slow to normal pace.",
     NamedEffect.FLY_BUFF: "{name} drifts back to the ground as the power of flight fades.",
     NamedEffect.COMPREHEND_LANGUAGES_BUFF: "The look of deep understanding fades from {name}'s eyes.",
+    NamedEffect.SPEAK_WITH_ANIMALS_BUFF: "The strange gleam fades from {name}'s eyes.",
     NamedEffect.SHADOWCLOAKED: "The cloak of shadows around {name} dissipates.",
     NamedEffect.PARALYSED: "{name}'s muscles relax and they can move again.",
     NamedEffect.POISONED: "{name} looks relieved as the poison fades.",
@@ -596,6 +607,7 @@ _EFFECT_CONDITIONS = {
     NamedEffect.HASTED: Condition.HASTED,
     NamedEffect.FLY_BUFF: Condition.FLY,
     NamedEffect.COMPREHEND_LANGUAGES_BUFF: Condition.COMPREHEND_LANGUAGES,
+    NamedEffect.SPEAK_WITH_ANIMALS_BUFF: Condition.SPEAK_WITH_ANIMALS,
     NamedEffect.SANCTUARY: Condition.SANCTUARY,
 }
 
@@ -631,6 +643,7 @@ _EFFECT_DURATION_TYPES = {
     NamedEffect.HASTED: "seconds",
     NamedEffect.FLY_BUFF: "seconds",
     NamedEffect.COMPREHEND_LANGUAGES_BUFF: "seconds",
+    NamedEffect.SPEAK_WITH_ANIMALS_BUFF: "seconds",
     NamedEffect.SHADOWCLOAKED: "seconds",
     NamedEffect.TRUE_SIGHT: "seconds",
     NamedEffect.DETECT_INVIS: "seconds",

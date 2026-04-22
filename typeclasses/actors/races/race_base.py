@@ -108,10 +108,15 @@ class RaceBase:
         for effect in self.racial_effects:
             character.apply_effect(effect)
 
-        # Languages — always includes Common
+        # Languages — always includes Common.
+        # The "animal" language is non-learnable and gated behind the
+        # SPEAK_WITH_ANIMALS condition; defensively skip it here in case a
+        # future race accidentally lists it.
         langs = set(character.db.languages or set())
         langs.add("common")
         for lang in self.racial_languages:
+            if lang == "animal":
+                continue
             langs.add(lang)
         character.db.languages = langs
 
