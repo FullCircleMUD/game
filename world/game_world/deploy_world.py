@@ -1081,7 +1081,9 @@ def seed_starting_resources():
         if not cfg:
             continue
         cap = max_dict.get(resource_id, 20)
-        amount = min(cfg["default_spawn_rate"], cap)
+        # Seed at ~1/3 of cap (min 1). Gives first-login players something
+        # to harvest without over-supplying; hourly spawn fills the rest.
+        amount = max(1, cap // 3)
         room.db.resource_count = amount
         seeded_count += 1
 
