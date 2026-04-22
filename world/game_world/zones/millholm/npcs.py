@@ -1471,7 +1471,7 @@ def _spawn_durga():
     npc.inventory = [
         "Bronze Helm", "Bronze Greaves", "Bronze Bracers",
         "Leather Armor", "Gambeson", "Wooden Shield",
-        "Canteen",
+        "Leather Straps", "Canteen",
     ]
     npc.shop_name = "Ironclad Outfitters"
     npc.db.desc = (
