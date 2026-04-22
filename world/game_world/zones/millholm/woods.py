@@ -620,7 +620,7 @@ def build_millholm_woods(town_rooms):
             )
 
     # ── Replace Trapper's Hut (row 2, col 3) with RoomProcessing ──
-    #    Hide (8) → Leather (9)
+    #    Hide + Animal Fat → Leather (9)
     grid[2][3].delete()
     grid[2][3] = create_object(
         RoomProcessing,
@@ -629,9 +629,9 @@ def build_millholm_woods(town_rooms):
             ("processing_type", "tannery"),
             ("process_cost", 1),
             ("recipes", [
-                {"inputs": {8: 1}, "output": 9, "amount": 1, "cost": 1},
-                {"inputs": {42: 1}, "output": 43, "amount": 1, "cost": 4},
-                {"inputs": {45: 1}, "output": 46, "amount": 1, "cost": 1},  # Animal Fat → Oil
+                {"inputs": {8: 1, 45: 1}, "output": 9, "amount": 1, "cost": 1},   # Hide + Animal Fat → Leather
+                {"inputs": {42: 1, 45: 1}, "output": 43, "amount": 1, "cost": 4},  # Wyvern Hide + Animal Fat → Wyvern Leather
+                {"inputs": {45: 1}, "output": 46, "amount": 1, "cost": 1},         # Animal Fat → Oil
             ]),
             ("desc",
              "A rough-hewn hut stands among the trees, pelts stretched "

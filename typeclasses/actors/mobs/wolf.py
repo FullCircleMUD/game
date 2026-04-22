@@ -129,3 +129,15 @@ class Wolf(AggressiveMob):
             return
 
         self.retreat_to_spawn()
+
+
+class WolfFatLoad(Wolf):
+    """Wolf variant — drops animal fat instead of hide."""
+
+    loot_resources = AttributeProperty({45: 1})  # 1 animal fat, no hide
+
+
+class WolfHideAndFatLoad(Wolf):
+    """Wolf variant — drops both hide and animal fat."""
+
+    loot_resources = AttributeProperty({8: 1, 45: 1})

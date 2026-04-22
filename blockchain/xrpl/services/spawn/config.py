@@ -52,6 +52,12 @@ SPAWN_CONFIG = {
         default_spawn_rate=10,
     ),
 
+    # Animal Fat
+    ("resource", 45): _res(
+        target_price_low=2, target_price_high=3,
+        default_spawn_rate=10,
+    ),
+
     # Copper Ore
     ("resource", 23): _res(
         target_price_low=2, target_price_high=3,
