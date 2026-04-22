@@ -571,7 +571,7 @@ def build_millholm_northern():
             ("max_depth", -1),
             ("resource_id", 14),       # Bloodmoss
             ("resource_count", 0),     # spawn script sets amount
-            ("abundance_threshold", 3),
+            ("abundance_threshold", 5),
             ("harvest_height", -1),    # must be underwater to harvest
             ("harvest_command", "gather"),
             ("desc_abundant",

@@ -409,7 +409,7 @@ def build_millholm_farms(town_rooms):
     _cotton_attrs = [
         ("resource_id", 10),
         ("resource_count", 0),
-        ("abundance_threshold", 4),
+        ("abundance_threshold", 5),
         ("harvest_height", 0),
         ("harvest_command", "pick"),
         ("desc_abundant",
@@ -622,7 +622,7 @@ def build_millholm_farms(town_rooms):
     _wheat_attrs = [
         ("resource_id", 1),
         ("resource_count", 0),
-        ("abundance_threshold", 4),
+        ("abundance_threshold", 5),
         ("harvest_height", 0),
         ("harvest_command", "harvest"),
         ("desc_abundant",
@@ -673,7 +673,7 @@ def build_millholm_farms(town_rooms):
              "separate the garden from the wheat fields to the south."),
             ("resource_id", 21),           # Sage Leaf
             ("resource_count", 0),         # spawn script sets amount
-            ("abundance_threshold", 3),
+            ("abundance_threshold", 5),
             ("harvest_height", 0),
             ("harvest_command", "gather"),
             ("desc_abundant",
@@ -841,7 +841,7 @@ def build_millholm_farms(town_rooms):
              "of the boundary wall."),
             ("resource_id", 18),           # Vipervine
             ("resource_count", 0),         # spawn script sets amount
-            ("abundance_threshold", 3),
+            ("abundance_threshold", 5),
             ("harvest_height", 0),
             ("harvest_command", "gather"),
             ("desc_abundant",

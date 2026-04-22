@@ -244,7 +244,7 @@ def build_millholm_sewers():
              "partially submerged, while the main passage continues south."),
             ("resource_id", 17),           # Ogre's Cap
             ("resource_count", 0),         # spawn script sets amount
-            ("abundance_threshold", 3),
+            ("abundance_threshold", 5),
             ("harvest_height", 0),
             ("harvest_command", "gather"),
             ("desc_abundant",

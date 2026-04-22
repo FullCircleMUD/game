@@ -204,7 +204,7 @@ def build_faerie_hollow():
              "a meadow."),
             ("resource_id", 16),
             ("resource_count", 0),
-            ("abundance_threshold", 3),
+            ("abundance_threshold", 5),
             ("harvest_height", 0),
             ("harvest_command", "gather"),
             ("desc_abundant",

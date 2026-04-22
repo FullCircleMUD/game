@@ -31,6 +31,11 @@ class RoomHarvesting(RoomBase):
     # Current available count (spawn system increments this hourly)
     resource_count = AttributeProperty(0)
 
+    # Per-room cap — how much of the resource this room can hold at once.
+    # Zone builders can override via attributes= kwarg (e.g. 5 for wood,
+    # which has many rooms and floods easily).
+    resource_count_max = AttributeProperty(10)
+
     # Count above which "abundant" description is shown
     abundance_threshold = AttributeProperty(5)
 
@@ -60,9 +65,19 @@ class RoomHarvesting(RoomBase):
     def at_object_creation(self):
         super().at_object_creation()
         self.cmdset.add(CmdSetHarvesting, persistent=True)
-        # Unified spawn system: tag for target pooling, max dict for headroom.
+        # Unified spawn system: tag for target pooling. The matching
+        # spawn_resources_max dict is built in at_object_post_creation,
+        # because at this point the attributes= kwarg from create_object()
+        # has not yet been applied — self.resource_id still returns the
+        # AttributeProperty default (1), not the zone-builder value.
         self.tags.add("spawn_resources", category="spawn_resources")
-        self.db.spawn_resources_max = {self.resource_id: 20}
+
+    def at_object_post_creation(self):
+        super().at_object_post_creation()
+        # Fires after the attributes= kwarg has been applied, so
+        # self.resource_id and self.resource_count_max hold the
+        # zone-builder-supplied values.
+        self.db.spawn_resources_max = {self.resource_id: self.resource_count_max}
 
     def get_display_desc(self, looker, **kwargs):
         """Return tier-appropriate description based on resource count."""

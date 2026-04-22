@@ -246,7 +246,7 @@ def build_hundred_acre_wood():
              "dark, metallic-sheened bark is unmistakable."),
             ("resource_id", 19),           # Ironbark
             ("resource_count", 0),         # spawn script sets amount
-            ("abundance_threshold", 3),
+            ("abundance_threshold", 5),
             ("harvest_height", 0),
             ("harvest_command", "strip"),
             ("desc_abundant",

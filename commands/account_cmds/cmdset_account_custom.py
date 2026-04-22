@@ -35,6 +35,7 @@ from commands.account_cmds.cmd_botreset import CmdBotReset
 from commands.account_cmds.cmd_wipe_spawns import CmdWipeSpawns
 from commands.account_cmds.cmd_spawn_report_items import CmdSpawnReportItems
 from commands.account_cmds.cmd_spawn_report_mobs import CmdSpawnReportMobs
+from commands.account_cmds.cmd_spawn_report_resources import CmdSpawnReportResources
 from commands.account_cmds.cmd_services import CmdServices
 from commands.account_cmds.cmd_svc_diag import CmdSvcDiag
 from commands.account_cmds.cmd_run_saturation import CmdRunSaturation
@@ -93,6 +94,7 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdWipeSpawns())
         self.add(CmdSpawnReportItems())
         self.add(CmdSpawnReportMobs())
+        self.add(CmdSpawnReportResources())
         self.add(CmdServices())
         self.add(CmdSvcDiag())
         self.add(CmdRunSaturation())

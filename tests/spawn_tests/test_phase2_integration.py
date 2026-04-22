@@ -31,8 +31,8 @@ class TestRoomHarvestingSpawnTags(EvenniaTest):
         """spawn_resources_max should map resource_id → capacity."""
         max_dict = self.room.db.spawn_resources_max
         self.assertIsNotNone(max_dict)
-        # Default resource_id=1, default capacity=20
-        self.assertEqual(max_dict, {1: 20})
+        # Default resource_id=1, default resource_count_max=10
+        self.assertEqual(max_dict, {1: 10})
 
     def test_spawn_resources_max_custom_values(self):
         """Custom spawn_resources_max can be set directly (e.g. by zone builder)."""
@@ -43,6 +43,24 @@ class TestRoomHarvestingSpawnTags(EvenniaTest):
         # Override spawn_resources_max directly (as zone builders will do)
         room.db.spawn_resources_max = {30: 10}
         self.assertEqual(room.db.spawn_resources_max, {30: 10})
+
+    def test_spawn_resources_max_respects_attributes_kwarg(self):
+        """spawn_resources_max must key off resource_id passed via create_object attributes= kwarg."""
+        room = create.create_object(
+            "typeclasses.terrain.rooms.room_harvesting.RoomHarvesting",
+            key="Wood Clearing",
+            attributes=[("resource_id", 10)],
+        )
+        self.assertEqual(room.db.spawn_resources_max, {10: 10})
+
+    def test_resource_count_max_override(self):
+        """resource_count_max can be overridden per-room via attributes= kwarg."""
+        room = create.create_object(
+            "typeclasses.terrain.rooms.room_harvesting.RoomHarvesting",
+            key="Small Woodlot",
+            attributes=[("resource_id", 6), ("resource_count_max", 5)],
+        )
+        self.assertEqual(room.db.spawn_resources_max, {6: 5})
 
 
 class TestCombatMobSpawnTags(EvenniaTest):
