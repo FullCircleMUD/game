@@ -757,111 +757,25 @@ def build_hundred_acre_wood():
     for key in main_wood_keys:
         rooms[key].tags.add("hundred_acre_wood_main", category="mob_area")
 
+    # Dedicated mob_area tags pinning each static mob spawn to exactly
+    # one room (see world/spawns/book_hundred_acre_wood.json).
+    rooms["r5c4"].tags.add("haw_bee_tree", category="mob_area")
+    rooms["owls_house"].tags.add("haw_owls_house", category="mob_area")
+    rooms["pooh_trap"].tags.add("haw_pooh_trap", category="mob_area")
+    rooms["rabbit_house"].tags.add("haw_rabbit_house", category="mob_area")
+    rooms["piglet_house"].tags.add("haw_piglet_house", category="mob_area")
+    rooms["kanga_house"].tags.add("haw_kanga_house", category="mob_area")
+    rooms["christopher_house"].tags.add("haw_christopher_house", category="mob_area")
+    rooms["r6c2"].tags.add("haw_sandy_pit", category="mob_area")
+
     print("  Tagged all rooms (zone, district, terrain, mob_area).")
 
     # ==================================================================
     #  MOBS
     # ==================================================================
-
-    from evennia.utils.create import create_object as spawn_mob
-
-    # Jagulars and Woozles are managed by the zone spawn script
-    # (see world/spawns/book_hundred_acre_wood.json)
-
-    # Bee Swarms — 3 at height 1 in the Bee Tree (r5c4)
-    for _ in range(3):
-        mob = spawn_mob(
-            "typeclasses.actors.mobs.bee_swarm.BeeSwarm",
-            key="a swarm of bees",
-            location=rooms["r5c4"],
-        )
-        mob.db.desc = (
-            "A furious cloud of bees swirling around the branches. "
-            "They do not appreciate visitors."
-        )
-
-    # Owls — 2 in Owl's House (treehouse above r2c5)
-    for _ in range(2):
-        mob = spawn_mob(
-            "typeclasses.actors.mobs.owl_bird.OwlBird",
-            key="an owl",
-            location=rooms["owls_house"],
-        )
-        mob.db.desc = (
-            "A plump brown owl perched on a branch, watching you with "
-            "large, solemn eyes. It looks mildly disapproving."
-        )
-
-    # Heffalump — 1 in Pooh's Trap (aggressive, stationary)
-    mob = spawn_mob(
-        "typeclasses.actors.mobs.heffalump.Heffalump",
-        key="the Heffalump",
-        location=rooms["pooh_trap"],
-    )
-    mob.db.desc = "How can you describe something that does not exist."
-
-    # ── House NPCs (stationary, non-aggressive, atmospheric) ──
-
-    def _spawn_house_npc(key, location, desc, room_desc, hp=55, damage="2d4+1",
-                         strength=17, dexterity=15, constitution=16, ac=15,
-                         gold=10, recipes=None):
-        """Spawn a stationary named house NPC (~25% tougher than Woozle/Jagular)."""
-        mob = spawn_mob("typeclasses.actors.mob.CombatMob", key=key, location=location)
-        mob.db.desc = desc
-        mob.room_description = room_desc
-        mob.damage_dice = damage
-        mob.level = 5
-        mob.base_hp_max = hp
-        mob.hp_max = hp
-        mob.hp = hp
-        mob.base_strength = strength
-        mob.strength = strength
-        mob.base_dexterity = dexterity
-        mob.dexterity = dexterity
-        mob.base_constitution = constitution
-        mob.constitution = constitution
-        mob.base_armor_class = ac
-        mob.armor_class = ac
-        mob.loot_gold_max = gold
-        if recipes:
-            mob.spawn_recipes_max = recipes
-        mob.ai.set_state("idle")  # stationary — don't wander
-        return mob
-
-    _spawn_house_npc(
-        "Rabbit", rooms["rabbit_house"],
-        "A fussy-looking rabbit with a permanent expression of mild irritation.",
-        "gives you a dirty look, you must have stepped in his garden.",
-        gold=10, recipes={"skilled": 1},
-    )
-    _spawn_house_npc(
-        "Piglet", rooms["piglet_house"],
-        "A very small animal with a nervous disposition.",
-        "is here, he sees you and says oh, D D D De De Dear.",
-        gold=15,
-    )
-    _spawn_house_npc(
-        "Kanga", rooms["kanga_house"],
-        "A motherly kangaroo looking slightly worried.",
-        "stands here looking for Roo.",
-        gold=10, recipes={"skilled": 1},
-    )
-    _spawn_house_npc(
-        "Christopher Robin", rooms["christopher_house"],
-        "A small boy in wellington boots and a raincoat.",
-        "is standing here.",
-        gold=10, recipes={"skilled": 1},
-    )
-
-    _spawn_house_npc(
-        "Roo", rooms["r6c2"],  # Sandy Pit
-        "A very small, very bouncy baby kangaroo.",
-        "is hiding from Kanga here.",
-        gold=15,
-    )
-
-    print("  Spawned 3 Bee Swarms, 2 Owls, 1 Heffalump, 5 house NPCs, Roo.")
-    print("  Jagulars and Woozles managed by zone spawn script.")
+    # All zone mobs — jagulars, woozles, wild mule, bees, owls, the
+    # Heffalump, and the 5 house NPCs — are managed by the zone spawn
+    # script via world/spawns/book_hundred_acre_wood.json.
 
     # ==================================================================
     #  LIBRARY BOOK

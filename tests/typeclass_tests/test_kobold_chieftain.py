@@ -37,10 +37,10 @@ class TestKoboldChieftainStats(EvenniaTest):
         self.assertEqual(self.boss.size, "small")
 
     def test_is_unique(self):
-        self.assertTrue(self.boss.is_unique)
-
-    def test_respawn_delay(self):
-        self.assertEqual(self.boss.respawn_delay, 600)
+        # Bosses are JSON-spawned now: is_unique=False so die() deletes
+        # and the ZoneSpawnScript respawns a fresh object after the
+        # rule's death_cooldown_seconds elapses.
+        self.assertFalse(self.boss.is_unique)
 
     def test_is_aggressive(self):
         self.assertTrue(self.boss.is_aggressive_to_players)
@@ -118,3 +118,10 @@ class TestKoboldChieftainBehavior(EvenniaTest):
         self.boss.hp = 5  # below 30%
         self.boss.ai_retreating()
         self.assertEqual(self.boss.location, self.room1)
+
+    def test_reset_chieftain_state_clears_rally_flag(self):
+        """The post-spawn hook resets has_rallied so a respawned chieftain can rally again."""
+        from typeclasses.actors.mobs.kobold_chieftain import reset_chieftain_state
+        self.boss.db.has_rallied = True
+        reset_chieftain_state(self.boss)
+        self.assertFalse(self.boss.db.has_rallied)

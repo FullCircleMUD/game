@@ -26,7 +26,7 @@ class GnollWarlord(Gnoll):
     20% sunder (-1 AC) and 20% cleave on kills.
     """
 
-    is_unique = AttributeProperty(True)
+    is_unique = AttributeProperty(False)
     default_weapon_masteries = {"battleaxe": MasteryLevel.SKILLED.value}
     room_description = AttributeProperty(
         "looms over the camp, a notched battleaxe slung across its massive shoulders."

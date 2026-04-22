@@ -68,8 +68,11 @@ class ZoneSpawnScript(DefaultScript):
         if living >= target:
             return
 
-        # Check respawn cooldown
-        respawn_seconds = rule.get("respawn_seconds", 60)
+        # Check respawn cooldown. A rule with `death_cooldown_seconds`
+        # measures the delay from kill time (stamp is refreshed by
+        # on_mob_death()); otherwise the legacy `respawn_seconds` cooldown
+        # from last spawn attempt applies.
+        respawn_seconds = rule.get("death_cooldown_seconds") or rule.get("respawn_seconds", 60)
         last_spawn = self.db.last_spawn_times.get(rule_id, 0)
         now = time.time()
         if now - last_spawn < respawn_seconds:
@@ -194,9 +197,28 @@ class ZoneSpawnScript(DefaultScript):
         # Tag for population tracking
         mob.tags.add(self.db.zone_key, category="spawn_zone")
 
+        # Stamp rule metadata so mob.die() can notify us to start the
+        # death cooldown clock (only relevant when the rule uses it).
+        if rule.get("death_cooldown_seconds"):
+            mob.db.spawn_rule_id = self._rule_id(rule)
+            mob.db.spawn_zone_key = self.db.zone_key
+
         # Start AI
         if hasattr(mob, "start_ai"):
             mob.start_ai()
+
+        # Optional post-spawn hook — module-level fn(mob) -> None.
+        # Used to reset per-spawn combat state that at_object_creation
+        # doesn't already handle (e.g. boss rally-cry flags).
+        hook_path = rule.get("post_spawn_hook")
+        if hook_path:
+            try:
+                from importlib import import_module
+                module_path, func_name = hook_path.rsplit(".", 1)
+                module = import_module(module_path)
+                getattr(module, func_name)(mob)
+            except (ImportError, AttributeError, ValueError) as e:
+                logger.log_err(f"post_spawn_hook failed ({hook_path}): {e}")
 
     # ================================================================== #
     #  Helpers
@@ -206,6 +228,18 @@ class ZoneSpawnScript(DefaultScript):
     def _rule_id(rule):
         """Derive a unique ID for a spawn rule."""
         return f"{rule['typeclass']}:{rule['area_tag']}"
+
+    def on_mob_death(self, rule_id):
+        """Called by mob.die() to start the death-cooldown clock.
+
+        For rules using `death_cooldown_seconds`, respawn is measured from
+        kill time — stamping `last_spawn_times` here (after the original
+        spawn-time stamp) makes the existing cooldown check in
+        `_check_rule` measure from death.
+        """
+        last_spawn_times = dict(self.db.last_spawn_times or {})
+        last_spawn_times[rule_id] = time.time()
+        self.db.last_spawn_times = last_spawn_times
 
     def populate(self):
         """

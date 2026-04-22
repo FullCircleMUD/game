@@ -394,6 +394,16 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         if room:
             self._create_corpse(room, cause)
 
+        # Notify the ZoneSpawnScript so rules using `death_cooldown_seconds`
+        # can start the clock from kill time rather than spawn time.
+        rule_id = self.db.spawn_rule_id
+        zone_key = self.db.spawn_zone_key
+        if rule_id and zone_key:
+            from evennia import ScriptDB
+            scripts = ScriptDB.objects.filter(db_key=f"zone_spawn_{zone_key}")
+            if scripts.exists():
+                scripts.first().on_mob_death(rule_id)
+
         if self.is_unique:
             # Unique/boss mobs: park in limbo and respawn the same object
             self.location = None

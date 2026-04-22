@@ -61,5 +61,140 @@
         "max_per_room": 1,
         "respawn_seconds": 300,
         "desc": "A strange, shadowy creature with beady eyes and a long snout. It tries very hard to look fierce and scary, with mixed results."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.bee_swarm.BeeSwarm",
+        "key": "a swarm of bees",
+        "area_tag": "haw_bee_tree",
+        "target": 3,
+        "max_per_room": 3,
+        "respawn_seconds": 120,
+        "desc": "A furious cloud of bees swirling around the branches. They do not appreciate visitors."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.owl_bird.OwlBird",
+        "key": "an owl",
+        "area_tag": "haw_owls_house",
+        "target": 2,
+        "max_per_room": 2,
+        "respawn_seconds": 120,
+        "desc": "A plump brown owl perched on a branch, watching you with large, solemn eyes. It looks mildly disapproving."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.heffalump.Heffalump",
+        "key": "the Heffalump",
+        "area_tag": "haw_pooh_trap",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 600,
+        "desc": "How can you describe something that does not exist."
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "Rabbit",
+        "area_tag": "haw_rabbit_house",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A fussy-looking rabbit with a permanent expression of mild irritation.",
+        "attrs": {
+            "room_description": "gives you a dirty look, you must have stepped in his garden.",
+            "damage_dice": "2d4+1",
+            "level": 5,
+            "base_hp_max": 55, "hp_max": 55, "hp": 55,
+            "base_strength": 17, "strength": 17,
+            "base_dexterity": 15, "dexterity": 15,
+            "base_constitution": 16, "constitution": 16,
+            "base_armor_class": 15, "armor_class": 15,
+            "loot_gold_max": 10,
+            "spawn_recipes_max": {"skilled": 1}
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "Piglet",
+        "area_tag": "haw_piglet_house",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A very small animal with a nervous disposition.",
+        "attrs": {
+            "room_description": "is here, he sees you and says oh, D D D De De Dear.",
+            "damage_dice": "2d4+1",
+            "level": 5,
+            "base_hp_max": 55, "hp_max": 55, "hp": 55,
+            "base_strength": 17, "strength": 17,
+            "base_dexterity": 15, "dexterity": 15,
+            "base_constitution": 16, "constitution": 16,
+            "base_armor_class": 15, "armor_class": 15,
+            "loot_gold_max": 15
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "Kanga",
+        "area_tag": "haw_kanga_house",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A motherly kangaroo looking slightly worried.",
+        "attrs": {
+            "room_description": "stands here looking for Roo.",
+            "damage_dice": "2d4+1",
+            "level": 5,
+            "base_hp_max": 55, "hp_max": 55, "hp": 55,
+            "base_strength": 17, "strength": 17,
+            "base_dexterity": 15, "dexterity": 15,
+            "base_constitution": 16, "constitution": 16,
+            "base_armor_class": 15, "armor_class": 15,
+            "loot_gold_max": 10,
+            "spawn_recipes_max": {"skilled": 1}
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "Christopher Robin",
+        "area_tag": "haw_christopher_house",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A small boy in wellington boots and a raincoat.",
+        "attrs": {
+            "room_description": "is standing here.",
+            "damage_dice": "2d4+1",
+            "level": 5,
+            "base_hp_max": 55, "hp_max": 55, "hp": 55,
+            "base_strength": 17, "strength": 17,
+            "base_dexterity": 15, "dexterity": 15,
+            "base_constitution": 16, "constitution": 16,
+            "base_armor_class": 15, "armor_class": 15,
+            "loot_gold_max": 10,
+            "spawn_recipes_max": {"skilled": 1}
+        }
+    },
+    {
+        "typeclass": "typeclasses.actors.mob.CombatMob",
+        "key": "Roo",
+        "area_tag": "haw_sandy_pit",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A very small, very bouncy baby kangaroo.",
+        "attrs": {
+            "room_description": "is hiding from Kanga here.",
+            "damage_dice": "2d4+1",
+            "level": 5,
+            "base_hp_max": 55, "hp_max": 55, "hp": 55,
+            "base_strength": 17, "strength": 17,
+            "base_dexterity": 15, "dexterity": 15,
+            "base_constitution": 16, "constitution": 16,
+            "base_armor_class": 15, "armor_class": 15,
+            "loot_gold_max": 15
+        }
     }
 ]

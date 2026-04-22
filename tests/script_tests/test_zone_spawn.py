@@ -13,6 +13,15 @@ from evennia.utils import create
 from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
 
 
+# Module-level post-spawn hook target (referenced by dotted path in the
+# hook test — importlib needs a real importable callable).
+_post_spawn_calls = []
+
+
+def _record_post_spawn(mob):
+    _post_spawn_calls.append(mob)
+
+
 class TestZoneSpawnScript(EvenniaTest):
     """Test the zone spawn script population management."""
 
@@ -287,6 +296,210 @@ class TestZoneSpawnScript(EvenniaTest):
         )
 
 
+class TestZoneSpawnBossExtensions(EvenniaTest):
+    """death_cooldown_seconds, post_spawn_hook, and on_mob_death()."""
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="Boss Room",
+            nohome=True,
+        )
+        self.room.tags.add("boss_area", category="mob_area")
+
+        self.boss_rule = {
+            "typeclass": "typeclasses.actors.mobs.rabbit.Rabbit",
+            "key": "a boss rabbit",
+            "area_tag": "boss_area",
+            "target": 1,
+            "max_per_room": 1,
+            "death_cooldown_seconds": 1800,
+            "desc": "A fearsome rabbit.",
+        }
+
+        self.script = create.create_script(
+            ZoneSpawnScript,
+            key="zone_spawn_boss_zone",
+            autostart=False,
+        )
+        self.script.db.zone_key = "boss_zone"
+        self.script.db.spawn_table = [self.boss_rule]
+        self.script.db.last_spawn_times = {}
+
+        _post_spawn_calls.clear()
+
+    def tearDown(self):
+        from evennia import ObjectDB
+        for mob in ObjectDB.objects.filter(
+            db_tags__db_key="boss_zone",
+            db_tags__db_category="spawn_zone",
+        ):
+            mob.delete()
+        if self.script.pk:
+            self.script.delete()
+        super().tearDown()
+
+    # ── death_cooldown_seconds ───────────────────────────────────────
+
+    @patch("typeclasses.scripts.zone_spawn_script.time")
+    def test_death_cooldown_seconds_overrides_respawn_seconds(self, mock_time):
+        """death_cooldown_seconds, when present, is used in place of respawn_seconds."""
+        rule = dict(self.boss_rule, respawn_seconds=10, death_cooldown_seconds=1800)
+        self.script.db.spawn_table = [rule]
+
+        # Initial seed via populate() — this is how bosses actually enter the world.
+        mock_time.time.return_value = 1000.0
+        self.script.populate()
+        self.assertEqual(self.script._count_living(rule), 1)
+
+        # Simulate kill at t=1020: delete the mob and fire the death notifier.
+        mob = [obj for obj in self.room.contents
+               if obj.typeclass_path == rule["typeclass"]][0]
+        mob.delete()
+        mock_time.time.return_value = 1020.0
+        self.script.on_mob_death(self.script._rule_id(rule))
+
+        # 30s after death: respawn_seconds=10 would allow it, but
+        # death_cooldown_seconds=1800 must block.
+        mock_time.time.return_value = 1050.0
+        self.script._check_rule(rule)
+        self.assertEqual(self.script._count_living(rule), 0)
+
+        # 30 minutes after death: cooldown elapsed, should respawn.
+        mock_time.time.return_value = 1020.0 + 1801
+        self.script._check_rule(rule)
+        self.assertEqual(self.script._count_living(rule), 1)
+
+    def test_spawn_mob_stamps_rule_id_when_death_cooldown(self):
+        """Boss-style rules stamp spawn_rule_id / spawn_zone_key on the mob."""
+        self.script._spawn_mob(self.boss_rule, self.room)
+        mob = [obj for obj in self.room.contents
+               if obj.typeclass_path == self.boss_rule["typeclass"]][0]
+        self.assertEqual(
+            mob.db.spawn_rule_id, self.script._rule_id(self.boss_rule)
+        )
+        self.assertEqual(mob.db.spawn_zone_key, "boss_zone")
+
+    def test_spawn_mob_no_rule_id_when_no_death_cooldown(self):
+        """Legacy rules (no death_cooldown_seconds) do not stamp rule metadata."""
+        plain_rule = dict(self.boss_rule)
+        plain_rule.pop("death_cooldown_seconds")
+        self.script._spawn_mob(plain_rule, self.room)
+        mob = [obj for obj in self.room.contents
+               if obj.typeclass_path == plain_rule["typeclass"]][0]
+        self.assertIsNone(mob.db.spawn_rule_id)
+        self.assertIsNone(mob.db.spawn_zone_key)
+
+    # ── on_mob_death ──────────────────────────────────────────────────
+
+    @patch("typeclasses.scripts.zone_spawn_script.time")
+    def test_on_mob_death_stamps_last_spawn_times(self, mock_time):
+        """on_mob_death updates last_spawn_times so cooldown restarts at kill time."""
+        mock_time.time.return_value = 5000.0
+        rule_id = self.script._rule_id(self.boss_rule)
+        self.script.on_mob_death(rule_id)
+        self.assertEqual(self.script.db.last_spawn_times[rule_id], 5000.0)
+
+    # ── post_spawn_hook ───────────────────────────────────────────────
+
+    def test_post_spawn_hook_invoked(self):
+        """post_spawn_hook is imported and called with the spawned mob."""
+        rule = dict(
+            self.boss_rule,
+            post_spawn_hook="tests.script_tests.test_zone_spawn._record_post_spawn",
+        )
+        self.script._spawn_mob(rule, self.room)
+        self.assertEqual(len(_post_spawn_calls), 1)
+        self.assertEqual(_post_spawn_calls[0].typeclass_path, rule["typeclass"])
+
+    def test_post_spawn_hook_missing_is_logged_not_raised(self):
+        """A bad post_spawn_hook path logs an error but doesn't break spawning."""
+        rule = dict(
+            self.boss_rule,
+            post_spawn_hook="nonexistent.module.missing_function",
+        )
+        # Should not raise; mob is still spawned.
+        self.script._spawn_mob(rule, self.room)
+        self.assertEqual(self.script._count_living(rule), 1)
+
+    # ── attrs overrides + set_ai_idle integration ────────────────────
+
+    def test_attrs_override_per_mob_stats(self):
+        """Two rules share a typeclass but override stats via `attrs` and stay distinct."""
+        # Separate rooms with their own area_tags so _count_living can
+        # distinguish the two rules (typeclass+area_tag keys population).
+        room_a = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="House A",
+            nohome=True,
+        )
+        room_a.tags.add("haw_test_house_a", category="mob_area")
+        room_b = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="House B",
+            nohome=True,
+        )
+        room_b.tags.add("haw_test_house_b", category="mob_area")
+
+        rule_a = {
+            "typeclass": "typeclasses.actors.mob.CombatMob",
+            "key": "Rabbit",
+            "area_tag": "haw_test_house_a",
+            "target": 1, "max_per_room": 1,
+            "death_cooldown_seconds": 300,
+            "attrs": {"hp_max": 55, "base_armor_class": 15},
+        }
+        rule_b = {
+            "typeclass": "typeclasses.actors.mob.CombatMob",
+            "key": "Piglet",
+            "area_tag": "haw_test_house_b",
+            "target": 1, "max_per_room": 1,
+            "death_cooldown_seconds": 300,
+            "attrs": {"hp_max": 22, "base_armor_class": 11},
+        }
+
+        self.script._spawn_mob(rule_a, room_a)
+        self.script._spawn_mob(rule_b, room_b)
+
+        try:
+            mob_a = [o for o in room_a.contents
+                     if o.typeclass_path == rule_a["typeclass"]][0]
+            mob_b = [o for o in room_b.contents
+                     if o.typeclass_path == rule_b["typeclass"]][0]
+            self.assertEqual(mob_a.key, "Rabbit")
+            self.assertEqual(mob_a.hp_max, 55)
+            self.assertEqual(mob_a.base_armor_class, 15)
+            self.assertEqual(mob_b.key, "Piglet")
+            self.assertEqual(mob_b.hp_max, 22)
+            self.assertEqual(mob_b.base_armor_class, 11)
+
+            # _count_living keeps the two rules distinct via their area_tag.
+            self.assertEqual(self.script._count_living(rule_a), 1)
+            self.assertEqual(self.script._count_living(rule_b), 1)
+        finally:
+            room_a.delete()
+            room_b.delete()
+
+    def test_post_spawn_hook_set_ai_idle(self):
+        """The set_ai_idle hook parks a spawned CombatMob in the idle state."""
+        rule = {
+            "typeclass": "typeclasses.actors.mob.CombatMob",
+            "key": "Idle Test",
+            "area_tag": "boss_area",
+            "target": 1, "max_per_room": 1,
+            "death_cooldown_seconds": 300,
+            "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        }
+        self.script._spawn_mob(rule, self.room)
+        mob = [o for o in self.room.contents
+               if o.typeclass_path == rule["typeclass"]][0]
+        self.assertEqual(mob.ai.get_state(), "idle")
+
+
 class TestCombatMobDeath(EvenniaTest):
     """Test that common mob death deletes the object."""
 
@@ -329,3 +542,30 @@ class TestCombatMobDeath(EvenniaTest):
         self.assertTrue(ObjectDB.objects.filter(id=mob_id).exists())
         obj = ObjectDB.objects.get(id=mob_id)
         self.assertIsNone(obj.location)
+
+    def test_die_notifies_spawn_script_when_rule_id_set(self):
+        """A mob spawned with spawn_rule_id notifies the ZoneSpawnScript on death."""
+        script = create.create_script(
+            ZoneSpawnScript,
+            key="zone_spawn_death_notify_zone",
+            autostart=False,
+        )
+        script.db.zone_key = "death_notify_zone"
+        script.db.spawn_table = []
+        script.db.last_spawn_times = {}
+
+        try:
+            mob = create.create_object(
+                "typeclasses.actors.mobs.rabbit.Rabbit",
+                key="a tagged rabbit",
+                location=self.room,
+            )
+            mob.db.spawn_rule_id = "fake_rule_id"
+            mob.db.spawn_zone_key = "death_notify_zone"
+
+            mob.die(cause="test")
+
+            self.assertIn("fake_rule_id", script.db.last_spawn_times)
+        finally:
+            if script.pk:
+                script.delete()

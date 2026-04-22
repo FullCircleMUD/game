@@ -624,6 +624,11 @@ def build_millholm_mine():
         rooms[key].tags.add("mine_kobolds", category="mob_area")
     print(f"  Tagged {len(kobold_rooms)} rooms with mob_area=mine_kobolds.")
 
+    # Pin the Kobold Chieftain boss spawn to its single room via a
+    # dedicated mob_area tag — separate from mine_kobolds so target=1
+    # room selection is guaranteed to land in the Warren.
+    rooms["kobold_warren"].tags.add("mine_kobold_warren", category="mob_area")
+
     # ══════════════════════════════════════════════════════════════════
     # 4. FUTURE CONNECTION NOTES
     # ══════════════════════════════════════════════════════════════════

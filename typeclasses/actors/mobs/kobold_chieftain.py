@@ -27,7 +27,7 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
     Club + wooden shield. SKILLED club mastery gives stagger chance.
     """
 
-    is_unique = AttributeProperty(True)
+    is_unique = AttributeProperty(False)
     base_size = AttributeProperty(Size.SMALL.value)
     size = AttributeProperty(Size.SMALL.value)
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
@@ -123,9 +123,7 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
             return
         # Boss doesn't flee — just stops being aggressive until healed
 
-    # ── Respawn Reset ──
 
-    def _respawn(self):
-        """Reset rally cry flag on respawn."""
-        self.db.has_rallied = False
-        super()._respawn()
+def reset_chieftain_state(mob):
+    """Post-spawn hook: reset rally-cry flag on a JSON-spawned chieftain."""
+    mob.db.has_rallied = False

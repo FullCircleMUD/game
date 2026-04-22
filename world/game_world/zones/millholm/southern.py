@@ -814,6 +814,11 @@ def build_millholm_southern():
         rooms[key].tags.add("gnoll_territory", category="mob_area")
     print(f"  Tagged {len(gnoll_rooms)} rooms with mob_area=gnoll_territory.")
 
+    # Pin the Gnoll Warlord boss spawn to its single room via a dedicated
+    # mob_area tag — separate from gnoll_territory so target=1 room
+    # selection always lands in the camp.
+    rooms["gnoll_camp"].tags.add("gnoll_camp_boss", category="mob_area")
+
     # ══════════════════════════════════════════════════════════════════
     # 4. FUTURE CONNECTION NOTES
     # ══════════════════════════════════════════════════════════════════

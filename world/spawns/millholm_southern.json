@@ -34,5 +34,14 @@
         "max_per_room": 2,
         "respawn_seconds": 180,
         "desc": "A hulking, hyena-headed humanoid covered in crude hide armor. Its yellow eyes gleam with predatory hunger, and a jagged spear is clutched in one clawed hand."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
+        "key": "the Gnoll Warlord",
+        "area_tag": "gnoll_camp_boss",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1800,
+        "desc": "A towering gnoll stands head and shoulders above its kin, its mottled fur streaked with warpaint in red and black. A massive greataxe rests across its shoulders, its blade stained dark. The warlord's yellow eyes burn with feral intelligence, and a necklace of teeth and finger bones rattles at its throat."
     }
 ]
