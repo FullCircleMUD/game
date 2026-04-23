@@ -3,6 +3,7 @@
 from evennia import CmdSet
 from commands.unloggedin_cmds.cmd_override_unconnected_connect import CmdUnconnectedConnect
 from commands.unloggedin_cmds.cmd_override_unloggedin_create import CmdUnconnectedCreate
+from commands.unloggedin_cmds.cmd_override_unloggedin_help import CmdUnconnectedHelp
 
 class CmdSetUnloggedinCustom(CmdSet):
 
@@ -18,7 +19,7 @@ class CmdSetUnloggedinCustom(CmdSet):
         self.add(CmdUnconnectedCreate())
         #CmdUnconnectedQuit
         #CmdUnconnectedLook
-        #CmdUnconnectedHelp
+        self.add(CmdUnconnectedHelp())
         #CmdUnconnectedEncoding
         #CmdUnconnectedScreenreader
         #CmdUnconnectedInfo
