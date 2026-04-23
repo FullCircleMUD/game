@@ -10,6 +10,7 @@ from world.prototypes.consumables.scrolls.shadowcloak_scroll import *  # noqa: F
 from world.prototypes.consumables.scrolls.antimagic_field_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.group_resist_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.invulnerability_scroll import *  # noqa: F401,F403
+from world.prototypes.consumables.scrolls.feather_fall_scroll import *  # noqa: F401,F403
 # Necromancy scrolls
 from world.prototypes.consumables.scrolls.drain_life_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.raise_dead_scroll import *  # noqa: F401,F403
@@ -17,6 +18,8 @@ from world.prototypes.consumables.scrolls.vampiric_touch_scroll import *  # noqa
 from world.prototypes.consumables.scrolls.soul_harvest_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.raise_lich_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.death_mark_scroll import *  # noqa: F401,F403
+from world.prototypes.consumables.scrolls.fear_scroll import *  # noqa: F401,F403
+from world.prototypes.consumables.scrolls.raise_skeleton_scroll import *  # noqa: F401,F403
 # Conjuration scrolls
 from world.prototypes.consumables.scrolls.acid_arrow_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.knock_scroll import *  # noqa: F401,F403
@@ -24,6 +27,8 @@ from world.prototypes.consumables.scrolls.teleport_scroll import *  # noqa: F401
 from world.prototypes.consumables.scrolls.dimensional_lock_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.conjure_elemental_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.gate_scroll import *  # noqa: F401,F403
+from world.prototypes.consumables.scrolls.light_spell_scroll import *  # noqa: F401,F403
+from world.prototypes.consumables.scrolls.create_water_scroll import *  # noqa: F401,F403
 # Divination scrolls
 from world.prototypes.consumables.scrolls.identify_scroll import *  # noqa: F401,F403
 from world.prototypes.consumables.scrolls.true_sight_scroll import *  # noqa: F401,F403
