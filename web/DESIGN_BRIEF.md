@@ -6,7 +6,7 @@ Three overlapping groups, in order of priority:
 
 1. **Old-school MUD players** — Grew up on CircleMUD, DikuMUD, ROM, SMAUG. They know what a MUD is and don't need convincing on the format. They care about depth, systems, and that feeling of being 16 and logged in at midnight. They're suspicious of anything that looks like marketing. Authenticity wins.
 
-2. **Play-to-earn / blockchain gamers** — They've seen a hundred "revolutionary GameFi" projects. Most were scams. They can smell one instantly. They want to see a real game, not a tokenomics diagram. Contract addresses, not promises. Gameplay, not yield projections.
+2. **Play-to-earn / blockchain gamers** — They've seen a hundred "revolutionary GameFi" projects. Most were scams. They can smell one instantly. They want to see a real game, not a tokenomics diagram. Wallet addresses, not promises. Gameplay, not yield projections.
 
 3. **XRPL community** — Curious about what's being built on the ledger. Technically literate, likely developers or early adopters. They'll check the ledger. They want to see competent integration, not hype.
 
