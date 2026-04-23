@@ -9,6 +9,7 @@ from web.website.views.seo import SeoMixin
 
 class TermsView(SeoMixin, TemplateView):
     template_name = "website/terms.html"
+    page_title = "Terms of Service"
     page_description = (
         "Full Circle MUD Terms of Service — rules of play, acceptable use, "
         "account terms, and service limits."
@@ -17,6 +18,7 @@ class TermsView(SeoMixin, TemplateView):
 
 class PrivacyView(SeoMixin, TemplateView):
     template_name = "website/privacy.html"
+    page_title = "Privacy Policy"
     page_description = (
         "Full Circle MUD Privacy Policy — what data we collect, how we use "
         "it, and how we handle on-chain wallet addresses."
@@ -25,6 +27,7 @@ class PrivacyView(SeoMixin, TemplateView):
 
 class EligibleJurisdictionsView(SeoMixin, TemplateView):
     template_name = "website/eligible_jurisdictions.html"
+    page_title = "Eligible Jurisdictions"
     page_description = (
         "Full Circle MUD eligible jurisdictions — where the game can be "
         "legally offered and which regions are excluded."

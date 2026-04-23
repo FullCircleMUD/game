@@ -9,16 +9,20 @@ from django.views.generic import View
 
 
 class SeoMixin:
-    """Inject page_description into template context for <meta name="description">.
+    """Inject page metadata into template context for SEO / social tags.
 
-    Views set ``page_description`` as a class attribute; base.html renders it
-    (with a site-wide fallback) plus a canonical URL derived from the request.
+    Views set ``page_title`` and ``page_description`` as class attributes;
+    base.html renders <meta name="description">, og:*, twitter:*, and the
+    canonical URL derived from the request.
     """
 
+    page_title: str = ""
     page_description: str = ""
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        if self.page_title:
+            ctx["page_title"] = self.page_title
         if self.page_description:
             ctx["page_description"] = self.page_description
         return ctx
@@ -43,7 +47,6 @@ class StaticViewSitemap(Sitemap):
         ("markets", 0.7, "daily"),
         ("costs", 0.7, "monthly"),
         ("xaman", 0.5, "monthly"),
-        ("redemption", 0.5, "monthly"),
         ("terms", 0.3, "yearly"),
         ("privacy", 0.3, "yearly"),
         ("eligible_jurisdictions", 0.3, "yearly"),

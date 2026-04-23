@@ -21,6 +21,7 @@ from web.website.views.seo import SeoMixin
 
 class MarketsView(SeoMixin, TemplateView):
     template_name = "website/markets.html"
+    page_title = "Markets"
     page_description = (
         "Live market data for Full Circle MUD — AMM prices and in-game "
         "circulation for resources, equipment, and tradeable items."

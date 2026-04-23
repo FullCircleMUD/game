@@ -12,7 +12,58 @@
     <meta name="description" content="{% block meta_description %}{{ page_description|default:"Full Circle MUD — an old-school text-based MUD rebuilt with real on-chain item ownership on the XRP Ledger. Gold, resources, and crafted items live on-chain; trade, export, or adventure on." }}{% endblock %}">
     <link rel="canonical" href="https://fcmud.world{{ request.path }}">
 
-    <link rel="icon" type="image/x-icon" href="{% static "website/images/evennia_logo.png" %}" />
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="{% static 'website/images/favicon.ico' %}" />
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'website/images/favicon-32.png' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'website/images/apple-touch-icon.png' %}" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Full Circle MUD" />
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}" />
+    <meta property="og:url" content="https://fcmud.world{{ request.path }}" />
+    <meta property="og:title" content="{% block og_title %}{% if page_title %}{{ page_title }} — Full Circle MUD{% else %}Full Circle MUD{% endif %}{% endblock %}" />
+    <meta property="og:description" content="{% block og_description %}{{ page_description|default:"An old-school text MUD with real on-chain item ownership on the XRP Ledger." }}{% endblock %}" />
+    <meta property="og:image" content="https://fcmud.world{% static 'website/images/og-preview.png' %}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{% block twitter_title %}{% if page_title %}{{ page_title }} — Full Circle MUD{% else %}Full Circle MUD{% endif %}{% endblock %}" />
+    <meta name="twitter:description" content="{% block twitter_description %}{{ page_description|default:"An old-school text MUD with real on-chain item ownership on the XRP Ledger." }}{% endblock %}" />
+    <meta name="twitter:image" content="https://fcmud.world{% static 'website/images/og-preview.png' %}" />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://fcmud.world/#organization",
+          "name": "Full Circle MUD",
+          "url": "https://fcmud.world/",
+          "logo": "https://fcmud.world{% static 'website/images/og-preview.png' %}",
+          "sameAs": [
+            "https://github.com/FullCircleMUD",
+            "https://discord.gg/j8b5GkysM3"
+          ]
+        },
+        {
+          "@type": "VideoGame",
+          "@id": "https://fcmud.world/#game",
+          "name": "Full Circle MUD",
+          "url": "https://fcmud.world/",
+          "description": "An old-school text-based MUD rebuilt with real on-chain item ownership on the XRP Ledger.",
+          "gamePlatform": ["Web Browser", "Telnet"],
+          "genre": ["MUD", "MMORPG", "Text-based", "Fantasy"],
+          "applicationCategory": "Game",
+          "operatingSystem": "Any",
+          "publisher": {"@id": "https://fcmud.world/#organization"}
+        }
+      ]
+    }
+    </script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -9,6 +9,7 @@ from web.website.views.seo import SeoMixin
 
 class XamanView(SeoMixin, TemplateView):
     template_name = "website/xaman.html"
+    page_title = "Xaman Wallet Setup"
     page_description = (
         "Set up Xaman wallet for Full Circle MUD — install the app, create "
         "an XRP Ledger wallet, and link it to your game account."
