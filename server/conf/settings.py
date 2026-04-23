@@ -33,7 +33,12 @@ import dj_database_url
 from evennia.settings_default import *  # noqa: F403, F401 — provides DATABASES, GAME_DIR, etc.
 
 # Register custom Django apps
-INSTALLED_APPS = INSTALLED_APPS + ["blockchain.xrpl", "ai_memory", "subscriptions"]
+INSTALLED_APPS = INSTALLED_APPS + [
+    "blockchain.xrpl",
+    "ai_memory",
+    "subscriptions",
+    "django.contrib.sitemaps",
+]
 
 WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
 SERVER_HOSTNAME = '0.0.0.0'

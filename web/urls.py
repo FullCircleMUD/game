@@ -13,13 +13,24 @@ Search the Django documentation for "URL dispatcher" for more help.
 
 """
 
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 
 # default evennia patterns
 from evennia.web.urls import urlpatterns as evennia_default_urlpatterns
 
+from web.website.views.seo import RobotsTxtView, StaticViewSitemap
+
 # add patterns
 urlpatterns = [
+    # SEO
+    path("robots.txt", RobotsTxtView.as_view(), name="robots_txt"),
+    path(
+        "sitemap.xml",
+        sitemap,
+        {"sitemaps": {"static": StaticViewSitemap}},
+        name="sitemap",
+    ),
     # website
     path("", include("web.website.urls")),
     # webclient
