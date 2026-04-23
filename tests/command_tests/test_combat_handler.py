@@ -365,3 +365,56 @@ class TestCombatUtils(EvenniaCommandTest):
             mock_dice.roll.return_value = 10
             execute_attack(self.char1, self.char2)
             mock_die.assert_called_once_with("combat", killer=self.char1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_offhand_skipped_when_target_deleted_mid_tick(self, mock_ticker):
+        """Off-hand check short-circuits if main-hand attack deleted the mob.
+
+        Regression test for ValueError raised by AttributeProperty write-on-miss
+        when ``getattr(target, "hp", 0)`` runs against a deleted mob (pk=None)
+        in the off-hand gate at combat_handler.py line 268. Common mobs are
+        deleted by mob.die() → self.delete() the moment HP hits 0, so a fatal
+        main-hand blow can leave the off-hand check operating on a dead
+        Django reference within the same tick.
+        """
+        from combat.combat_utils import enter_combat
+        mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a rabbit",
+            location=self.room1,
+        )
+        mob.hp = 1
+        mob.hp_max = 1
+
+        try:
+            enter_combat(self.char1, mob)
+            handler = self.char1.scripts.get("combat_handler")[0]
+            handler.queue_action({
+                "key": "attack",
+                "target": mob,
+                "dt": 3,
+                "repeat": True,
+            })
+
+            # Simulate mob.die() → self.delete() during the main-hand attack:
+            # execute_attack is mocked to delete the target, mirroring what
+            # happens when a common mob takes a fatal blow.
+            def _kill_and_delete(*args, **kwargs):
+                mob.delete()
+
+            with patch("combat.combat_utils.execute_attack",
+                       side_effect=_kill_and_delete):
+                # Must not raise ValueError("...needs to have a value for
+                # field 'id' before this many-to-many relationship...")
+                handler.execute_next_action()
+
+            # Mob is gone — pk has been cleared by .delete()
+            self.assertIsNone(mob.pk)
+        finally:
+            handlers = mob.scripts.get("combat_handler") if mob.pk else None
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+            if mob.pk:
+                mob.delete()
