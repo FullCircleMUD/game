@@ -572,6 +572,45 @@ class TestCombatUtils(EvenniaCommandTest):
             execute_attack(self.char1, self.char2)
             mock_die.assert_called_once_with("combat", killer=self.char1)
 
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_enter_combat_one_shot_kill_does_not_store_deleted_target(self, mock_ticker):
+        """Free attack that one-shots the target must not store a stale
+        reference in action_dict.
+
+        Regression: pickling action_dict for persistence reads db_sessid
+        on the target, which raises ObjectDoesNotExist if the mob was
+        deleted by the free attack.
+        """
+        from combat.combat_utils import enter_combat
+        mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="test_mob",
+            location=self.room1,
+        )
+        mob.hp = 1
+        mob.hp_max = 1
+        mob.is_unique = False  # common mob → deleted on death
+
+        try:
+            with patch("combat.combat_utils.dice") as mock_dice:
+                mock_dice.roll_with_advantage_or_disadvantage.return_value = 20
+                mock_dice.roll.return_value = 99
+                # Should not raise
+                enter_combat(self.char1, mob, instigator=self.char1)
+
+            # Mob was deleted
+            self.assertIsNone(mob.pk)
+
+            # char1's action_dict must not carry the deleted reference
+            handlers = self.char1.scripts.get("combat_handler")
+            if handlers:
+                action = handlers[0].action_dict
+                if action:
+                    self.assertNotEqual(action.get("target"), mob)
+        finally:
+            if mob.pk:
+                mob.delete()
+
 
 # ================================================================== #
 #  CmdSkillBase Mastery Branch Tests

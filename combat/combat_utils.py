@@ -790,6 +790,12 @@ def enter_combat(combatant, target, instigator=None, instigator_advantage=False)
                 handler[0].set_advantage(target, rounds=1)
             execute_attack(instigator, target)
 
+    # One-shot kill: if the free attack deleted the target, drop the stale
+    # reference so downstream queue_action doesn't pickle it into action_dict
+    # (which would raise ObjectDoesNotExist on db_sessid).
+    if not getattr(target, "pk", None):
+        target = None
+
     # --- Roll initiative for all new combatants ---
     from django.conf import settings as django_settings
     tick_interval = getattr(django_settings, "COMBAT_TICK_INTERVAL", 4.0)

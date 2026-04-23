@@ -159,7 +159,7 @@ def build_millholm_mine():
              "gritty with crushed stone, and old torch brackets jut from "
              "the walls, empty and rusted. Scratches and crude marks cover "
              "the lower walls — kobold territory markers. Passages branch "
-             "west into a copper-streaked drift and south into a timbered "
+             "east into a copper-streaked drift and south into a timbered "
              "corridor."),
         ],
     )
@@ -559,7 +559,7 @@ def build_millholm_mine():
 
     # ── Upper Mine — Copper Level ─────────────────────────────────────
     connect_bidirectional_exit(rooms["mine_entrance"], rooms["entry_shaft"], "east")
-    connect_bidirectional_exit(rooms["entry_shaft"], rooms["copper_drift"], "west")
+    connect_bidirectional_exit(rooms["entry_shaft"], rooms["copper_drift"], "east")
     connect_bidirectional_exit(rooms["copper_drift"], rooms["copper_seam"], "south")
     connect_bidirectional_exit(rooms["entry_shaft"], rooms["timbered_corridor"], "south")
     connect_bidirectional_exit(rooms["timbered_corridor"], rooms["ore_cart_track"], "south")

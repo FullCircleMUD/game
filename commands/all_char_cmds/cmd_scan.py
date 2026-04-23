@@ -80,7 +80,6 @@ class CmdScan(FCMCommandMixin, Command):
     aliases = []
     locks = "cmd:all()"
     help_category = "General"
-    allow_while_sleeping = True
 
     def func(self):
         caller = self.caller
