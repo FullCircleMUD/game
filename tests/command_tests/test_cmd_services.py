@@ -47,9 +47,9 @@ class TestServicesRegistry(EvenniaCommandTest):
         self.assertIn("unified_spawn_service", _PIPELINE_KEYS)
         self.assertEqual(len(_PIPELINE_KEYS), 3)
 
-    def test_all_ten_scripts_present(self):
+    def test_all_scripts_present(self):
         """Both global and pipeline scripts are in _ALL_SCRIPTS."""
-        self.assertEqual(len(_ALL_SCRIPTS), 10)
+        self.assertEqual(len(_ALL_SCRIPTS), 11)
 
     def test_per_actor_scripts_not_in_registry(self):
         """
