@@ -52,7 +52,7 @@ DAMAGE_DESCRIPTORS = {
     DamageType.BLUDGEONING: [
         (0,   4,  "tap",        "taps"),
         (5,  10,  "bruise",     "bruises"),
-        (11, 20,  "bash",       "bashes"),
+        (11, 20,  "thump",      "thumps"),
         (21, 35,  "crush",      "crushes"),
         (36, 50,  "Shatter",    "Shatters"),
         (51, 65,  "SMASH",      "SMASHES"),
