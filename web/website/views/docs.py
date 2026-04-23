@@ -5,9 +5,15 @@ Documentation pages — hub and category sub-pages.
 from django.conf import settings
 from django.views.generic import TemplateView
 
+from web.website.views.seo import SeoMixin
 
-class DocsView(TemplateView):
+
+class DocsView(SeoMixin, TemplateView):
     template_name = "website/docs.html"
+    page_description = (
+        "Full Circle MUD documentation hub — gameplay, blockchain, and client "
+        "API reference for players, builders, and integrators."
+    )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -15,12 +21,20 @@ class DocsView(TemplateView):
         return ctx
 
 
-class DocsGameplayView(TemplateView):
+class DocsGameplayView(SeoMixin, TemplateView):
     template_name = "website/docs_gameplay.html"
+    page_description = (
+        "Gameplay documentation for Full Circle MUD — commands, combat, "
+        "crafting, classes, and the new-player experience."
+    )
 
 
-class DocsBlockchainView(TemplateView):
+class DocsBlockchainView(SeoMixin, TemplateView):
     template_name = "website/docs_blockchain.html"
+    page_description = (
+        "Blockchain documentation for Full Circle MUD — XRP Ledger issuer "
+        "and vault addresses, tokenomics, and on-chain item ownership."
+    )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -29,5 +43,9 @@ class DocsBlockchainView(TemplateView):
         return ctx
 
 
-class DocsClientApiView(TemplateView):
+class DocsClientApiView(SeoMixin, TemplateView):
     template_name = "website/docs_client_api.html"
+    page_description = (
+        "Client API reference for Full Circle MUD — telnet, webclient, and "
+        "the protocols used to connect custom clients and bots."
+    )

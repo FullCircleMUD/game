@@ -8,6 +8,22 @@ from django.urls import reverse
 from django.views.generic import View
 
 
+class SeoMixin:
+    """Inject page_description into template context for <meta name="description">.
+
+    Views set ``page_description`` as a class attribute; base.html renders it
+    (with a site-wide fallback) plus a canonical URL derived from the request.
+    """
+
+    page_description: str = ""
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        if self.page_description:
+            ctx["page_description"] = self.page_description
+        return ctx
+
+
 class StaticViewSitemap(Sitemap):
     """Sitemap over the public-facing, indexable website routes."""
 

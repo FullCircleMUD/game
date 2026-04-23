@@ -6,6 +6,11 @@ so this view is only reached by Variant B (eligible) visitors.
 
 from django.views.generic import TemplateView
 
+from web.website.views.seo import SeoMixin
 
-class RedemptionView(TemplateView):
+
+class RedemptionView(SeoMixin, TemplateView):
     template_name = "website/redemption.html"
+    page_description = (
+        "Full Circle MUD redemption information — placeholder until mainnet launch."
+    )

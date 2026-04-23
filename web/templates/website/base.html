@@ -9,6 +9,9 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+    <meta name="description" content="{% block meta_description %}{{ page_description|default:"Full Circle MUD — an old-school text-based MUD rebuilt with real on-chain item ownership on the XRP Ledger. Gold, resources, and crafted items live on-chain; trade, export, or adventure on." }}{% endblock %}">
+    <link rel="canonical" href="https://fcmud.world{{ request.path }}">
+
     <link rel="icon" type="image/x-icon" href="{% static "website/images/evennia_logo.png" %}" />
 
     <!-- Google Fonts -->

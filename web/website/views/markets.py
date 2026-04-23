@@ -16,10 +16,15 @@ from blockchain.xrpl.models import (
     NFTItemType,
     ResourceSnapshot,
 )
+from web.website.views.seo import SeoMixin
 
 
-class MarketsView(TemplateView):
+class MarketsView(SeoMixin, TemplateView):
     template_name = "website/markets.html"
+    page_description = (
+        "Live market data for Full Circle MUD — AMM prices and in-game "
+        "circulation for resources, equipment, and tradeable items."
+    )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
