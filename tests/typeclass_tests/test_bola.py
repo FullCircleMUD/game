@@ -12,7 +12,7 @@ Validates:
     - Max duration safety valve expires entangle
     - Anti-stacking (already entangled → no second entangle)
     - Entangle grants advantage to enemies
-    - Entangle causes action denial in combat handler
+    - Entangle effect lifecycle (apply / clear on combat end)
     - Weapon static attributes
 
 evennia test --settings settings tests.typeclass_tests.test_bola
@@ -480,11 +480,15 @@ class TestSaveEachRound(EvenniaTest):
 
 
 # ================================================================== #
-#  Action Denial Tests (combat handler integration)
+#  Effect Lifecycle Tests
 # ================================================================== #
 
-class TestEntangleActionDenial(EvenniaTest):
-    """Test that entangled targets skip their combat action."""
+class TestEntangleEffectLifecycle(EvenniaTest):
+    """Test entangled effect application and combat-end cleanup.
+
+    NOTE: ENTANGLED is movement-blocking (not full action denial).
+    Movement-block coverage lives in cmd_flee / at_pre_move tests.
+    """
 
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
 

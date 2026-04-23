@@ -185,9 +185,9 @@ class CombatHandler(DefaultScript):
         if hasattr(self.obj, "at_combat_tick"):
             self.obj.at_combat_tick(self)
 
-        # Multi-round skip (stun/prone/paralysis/entangle) — managed by EffectsManagerMixin named effects
-        if (self.obj.has_effect("stunned") or self.obj.has_effect("prone")
-                or self.obj.has_effect("paralysed") or self.obj.has_effect("entangled")):
+        # Multi-round skip (stun/prone/paralysis) — see INCAPACITATING_EFFECTS in named_effect.py
+        incap_effect, _ = self.obj.get_incapacitating_effect()
+        if incap_effect:
             self.bonus_attack_dice = ""  # clear pending stab bonus
         # Frightened — forced flee attempt instead of attacking
         elif self.obj.has_effect("frightened"):
@@ -265,7 +265,7 @@ class CombatHandler(DefaultScript):
                     # --- Off-hand attacks (dual-wield) ---
                     # Main weapon mastery determines off-hand attack count + penalty
                     # SLOWED blocks off-hand entirely
-                    if weapon and getattr(target, "hp", 0) > 0 and not is_slowed:
+                    if weapon and target.pk and getattr(target, "hp", 0) > 0 and not is_slowed:
                         from combat.combat_utils import get_offhand_weapon
                         offhand_count = weapon.get_offhand_attacks(self.obj)
                         if offhand_count > 0:

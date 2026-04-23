@@ -208,6 +208,11 @@ class FCMCharacter(
 
     def at_pre_move(self, destination, move_type="move", **kwargs):
         """Check movement blockers before moving."""
+        # BaseActor handles incapacitation + movement-blocking effects (stun,
+        # prone, paralysed, entangled, thorn_whip_held). Run that first so
+        # the most fundamental blocks fire before character-specific checks.
+        if not super().at_pre_move(destination, move_type=move_type, **kwargs):
+            return False
         if getattr(self, "afk", False) and move_type in ("move", "follow"):
             self.msg("|yReminder: You are currently flagged as AFK.|n")
         if self.ndb.is_processing:
@@ -219,9 +224,6 @@ class FCMCharacter(
         pos = getattr(self, "position", "standing")
         if pos not in ("standing", "fighting"):
             self.msg("You need to stand up first!")
-            return False
-        if hasattr(self, "has_effect") and self.has_effect("thorn_whip_held"):
-            self.msg("Thorny vines hold you in place — you can't move!")
             return False
         if self.scripts.get("combat_handler") and move_type != "flee":
             self.msg("You can't leave while in combat! Use |wflee|n to escape.")
@@ -268,7 +270,7 @@ class FCMCharacter(
                     f"Tell it to stay first (|wpet stay|n)."
                 )
                 return False
-        return super().at_pre_move(destination, move_type=move_type, **kwargs)
+        return True
 
     def at_post_move(self, source_location, move_type="move", **kwargs):
         """Deduct movement and auto-move followers when this character moves."""

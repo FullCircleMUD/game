@@ -193,3 +193,135 @@ class TestCmdFleeOutOfCombat(EvenniaCommandTest):
         result = self.call(CmdFlee(), "", caller=self.char1)
         self.assertIn("nowhere to run", result)
         self.assertEqual(self.char1.location, self.room1)
+
+
+class TestCmdFleeBlockedByMovementEffects(EvenniaCommandTest):
+    """Pre-flight guard: held actors can't flee, no broadcast, no combat exit.
+
+    Regression coverage for the kobold-flees-while-stunned bug — AI paths
+    bypassed combat_handler's gate via execute_cmd("flee"). cmd_flee now
+    rejects up-front when the actor has any MOVEMENT_BLOCKING_EFFECT.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.allow_pvp = True
+        self.char1.hp = 20
+        self.char1.hp_max = 20
+        self.char2.hp = 20
+        self.char2.hp_max = 20
+        if self.exit:
+            self.exit.delete()
+            self.exit = None
+        self.exit1 = create.create_object(
+            "evennia.objects.objects.DefaultExit",
+            key="north",
+            location=self.room1,
+            destination=self.room2,
+        )
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        if self.exit1:
+            self.exit1.delete()
+        super().tearDown()
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_stunned_actor_cannot_flee(self, mock_ticker):
+        """Stunned actor stays in room — the original bug."""
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_stunned(2)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertIn("try to flee", result.lower())
+        self.assertIn("stunned", result.lower())
+        self.assertEqual(self.char1.location, self.room1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_blocked_flee_does_not_end_combat(self, mock_ticker):
+        """Pre-flight guard fires BEFORE handler.stop_combat()."""
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_stunned(2)
+
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        # Combat handler must still be active on the held actor
+        self.assertTrue(self.char1.scripts.get("combat_handler"))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_blocked_flee_does_not_broadcast(self, mock_ticker):
+        """No 'X flees north!' message reaches the room when blocked."""
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_stunned(2)
+
+        # Capture broadcasts to char2 (who would see char1 flee)
+        char2_msg = MagicMock()
+        self.char2.msg = char2_msg
+
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        for call_args in char2_msg.call_args_list:
+            sent = call_args.args[0] if call_args.args else ""
+            self.assertNotIn("flees", sent.lower())
+            self.assertNotIn("flee north", sent.lower())
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_prone_blocks_flee(self, mock_ticker):
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_prone(1)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("prone", result.lower())
+        self.assertEqual(self.char1.location, self.room1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_paralysed_blocks_flee(self, mock_ticker):
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_paralysed(1)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("paralysed", result.lower())
+        self.assertEqual(self.char1.location, self.room1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_entangled_blocks_flee(self, mock_ticker):
+        """Demotion regression: entangled is movement-blocking, must stop flee."""
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_entangled(3, save_dc=15)
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("entangled", result.lower())
+        self.assertEqual(self.char1.location, self.room1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_thorn_whip_blocks_flee(self, mock_ticker):
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.apply_named_effect(
+            key="thorn_whip_held", duration=3, duration_type="combat_rounds",
+            messages={"start": "...", "end": "..."},
+        )
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("vines", result.lower())
+        self.assertEqual(self.char1.location, self.room1)

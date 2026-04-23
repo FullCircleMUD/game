@@ -51,9 +51,11 @@ class NamedEffect(Enum):
     PARALYSED = "paralysed"
 
     # APPLIED: bola_nft_item.py (at_hit) — contested DEX roll on hit
-    # CHECKED: combat_handler.py (has_effect skips action in execute_next_action)
+    #          entangle.py (nature magic spell) — contested WIS+mastery vs STR
+    # CHECKED: at_pre_move + cmd_flee (movement-blocking via MOVEMENT_BLOCKING_EFFECTS)
     # DURATION: 1-6 combat rounds (mastery-scaled max), save-each-round STR escape
-    # No condition flag — purely named effect. Action denial + advantage grant.
+    # No condition flag — purely named effect. Movement block + advantage grant.
+    # Target's legs are bound: cannot leave the room, but CAN still attack/cast.
     # Size-gated: HUGE+ enemies are immune.
     ENTANGLED = "entangled"
 
@@ -389,6 +391,12 @@ class NamedEffect(Enum):
         )
         return template.format(name=character_name)
 
+    def get_block_message(self) -> str:
+        """First-person message shown when this effect blocks an attempted action."""
+        return _NAMED_EFFECT_BLOCK_MESSAGES.get(
+            self, f"You can't do that — you are {self.value}!"
+        )
+
     # ------------------------------------------------------------------ #
     #  Registry lookups — single source of truth for effect metadata
     # ------------------------------------------------------------------ #
@@ -540,6 +548,33 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.SANCTUARY: "A shimmering divine ward surrounds {name}.",
 }
 
+_NAMED_EFFECT_BLOCK_MESSAGES = {
+    NamedEffect.STUNNED: "You are stunned and cannot act!",
+    NamedEffect.PRONE: "You are prone — you must stand up first!",
+    NamedEffect.PARALYSED: "You are paralysed and cannot move!",
+    NamedEffect.ENTANGLED: "You are entangled and cannot move!",
+    NamedEffect.THORN_WHIP_HELD: "Thorny vines hold you in place — you can't move!",
+}
+
+
+# Effects that prevent an actor from taking a deliberate action
+# (attack, cast, flee, walk). Checked via EffectsManagerMixin.get_incapacitating_effect().
+INCAPACITATING_EFFECTS = (
+    NamedEffect.STUNNED,
+    NamedEffect.PRONE,
+    NamedEffect.PARALYSED,
+)
+
+# Effects that prevent the actor from leaving a room — superset of
+# INCAPACITATING_EFFECTS plus restraints that pin you in place but
+# still permit other actions (e.g. attacking).
+# Checked via EffectsManagerMixin.get_movement_blocking_effect().
+MOVEMENT_BLOCKING_EFFECTS = INCAPACITATING_EFFECTS + (
+    NamedEffect.THORN_WHIP_HELD,
+    NamedEffect.ENTANGLED,
+)
+
+
 _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.STUNNED: "{name} shakes their head and looks more alert.",
     NamedEffect.PRONE: "{name} regains their footing and stands back up.",
@@ -683,8 +718,8 @@ _EFFECT_DURATION_TYPES = {
 def _grant_advantage_to_enemies(target, source, duration):
     """Grant advantage to all enemies of target for duration rounds.
 
-    Used by: PRONE, ENTANGLED, PARALYSED — any effect where the target
-    is incapacitated and attackers should have an easier time hitting.
+    Used by: PRONE, PARALYSED, BLINDED (incapacitated) and ENTANGLED
+    (legs bound — can fight back, but easier to hit).
     """
     from combat.combat_utils import get_sides
     _, enemies_of_target = get_sides(target)

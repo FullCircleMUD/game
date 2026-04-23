@@ -65,6 +65,12 @@ class CmdFlee(FCMCommandMixin, Command):
         from combat.combat_utils import get_sides, get_weapon
         from combat.height_utils import can_reach_target
 
+        # Held in place? Refuse before any side effects (broadcast, stop_combat, move).
+        _, block_msg = caller.get_movement_blocking_effect()
+        if block_msg:
+            caller.msg(f"|rYou try to flee — {block_msg}|n")
+            return
+
         exits = _get_open_exits(caller)
         if not exits:
             caller.msg("|rYou try to flee but there's nowhere to go!|n")

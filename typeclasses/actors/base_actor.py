@@ -40,6 +40,20 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
             if hasattr(self, init_method):
                 getattr(self, init_method)()
 
+    def at_pre_move(self, destination, move_type="move", **kwargs):
+        """Block physical movement if held by a movement-blocking effect.
+
+        Catches every movement path (walk, follow, flee, AI wander,
+        forced-flee) for any actor — not just players. Teleport is
+        exempt: magical relocation bypasses physical restraint.
+        """
+        if move_type in ("move", "follow", "flee", "traverse"):
+            _, block_msg = self.get_movement_blocking_effect()
+            if block_msg:
+                self.msg(block_msg)
+                return False
+        return super().at_pre_move(destination, move_type=move_type, **kwargs)
+
     #########################################################
     # Ability Scores (point buy system)
     #########################################################

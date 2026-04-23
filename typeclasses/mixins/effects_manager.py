@@ -466,6 +466,35 @@ class EffectsManagerMixin:
         """Check if a named effect is currently active."""
         return key in (self.active_effects or {})
 
+    def get_incapacitating_effect(self):
+        """
+        Return the first active incapacitating effect as (key, block_message),
+        or (None, None) if none are active.
+
+        Incapacitating effects deny ALL deliberate actions (attack + movement).
+        Used by combat_handler to skip an actor's combat action.
+        """
+        from enums.named_effect import INCAPACITATING_EFFECTS
+        for effect in INCAPACITATING_EFFECTS:
+            if self.has_effect(effect.value):
+                return effect.value, effect.get_block_message()
+        return None, None
+
+    def get_movement_blocking_effect(self):
+        """
+        Return the first active movement-blocking effect as (key, block_message),
+        or (None, None) if none are active.
+
+        Superset of get_incapacitating_effect() — also catches restraints that
+        pin the actor in place but allow other actions (e.g. THORN_WHIP_HELD).
+        Used by at_pre_move and cmd_flee.
+        """
+        from enums.named_effect import MOVEMENT_BLOCKING_EFFECTS
+        for effect in MOVEMENT_BLOCKING_EFFECTS:
+            if self.has_effect(effect.value):
+                return effect.value, effect.get_block_message()
+        return None, None
+
     def get_named_effect(self, key):
         """Get the record for a named effect, or None if not active."""
         return (self.active_effects or {}).get(key)

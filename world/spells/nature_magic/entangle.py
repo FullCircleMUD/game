@@ -2,16 +2,18 @@
 Entangle — nature magic spell, available from BASIC mastery.
 
 Summons grasping vines that root a target in place. The druid/ranger's
-bread-and-butter CC spell.
+bread-and-butter positional CC spell.
 
 Contested check to apply ENTANGLED:
     Caster: d20 + WIS modifier + mastery bonus
     Target: d20 + STR modifier  (strong creatures resist vines)
     Caster must beat target to apply ENTANGLED.
 
-ENTANGLED mechanic (enforced in combat_handler):
-    - Skips target's action entirely (same as stunned/prone/paralysed)
+ENTANGLED mechanic:
+    - Target cannot leave the room (blocks walk / follow / flee)
     - Grants advantage to all enemies attacking the entangled target
+    - Target's hands are free — they can still attack and cast spells
+    - Save-each-round (STR vs escape DC) to break free
 
 Duration scaling:
     BASIC(1):   1 round,  mana 5
@@ -44,7 +46,8 @@ class Entangle(Spell):
     mechanics = (
         "Single-target nature CC — roots target with vines.\n"
         "Contested check: caster d20 + WIS + mastery vs target d20 + STR.\n"
-        "On success: ENTANGLED — target cannot act, attackers gain advantage.\n"
+        "On success: ENTANGLED — target cannot leave the room, attackers gain advantage. "
+        "Target can still attack and cast.\n"
         "Duration: 1 round (Basic) to 5 rounds (Grandmaster).\n"
         "No cooldown."
     )
