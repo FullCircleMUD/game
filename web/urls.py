@@ -14,7 +14,9 @@ Search the Django documentation for "URL dispatcher" for more help.
 """
 
 from django.contrib.sitemaps.views import sitemap
+from django.templatetags.static import static
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 # default evennia patterns
 from evennia.web.urls import urlpatterns as evennia_default_urlpatterns
@@ -30,6 +32,16 @@ urlpatterns = [
         sitemap,
         {"sitemaps": {"static": StaticViewSitemap}},
         name="sitemap",
+    ),
+    # Root favicon — browsers auto-request /favicon.ico regardless of
+    # <link rel="icon"> tags. Override Evennia's broken redirect to
+    # /media/images/favicon.ico (returns 404 without MEDIA config) by
+    # redirecting to our branded file in static.
+    path(
+        "favicon.ico",
+        RedirectView.as_view(
+            url=static("website/images/favicon.ico"), permanent=True
+        ),
     ),
     # website
     path("", include("web.website.urls")),
