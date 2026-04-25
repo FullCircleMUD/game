@@ -26,6 +26,8 @@ from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonE
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
+from typeclasses.terrain.rooms.room_inn import RoomInn
+from typeclasses.terrain.rooms.room_stable import RoomStable
 from utils.exit_helpers import (
     connect_bidirectional_exit,
     connect_bidirectional_door_exit,
@@ -1427,7 +1429,7 @@ def build_millholm_southern():
     )
 
     rooms["bobbin_stable"] = create_object(
-        RoomBase,
+        RoomStable,
         key="The Stable",
         attributes=[
             ("desc",
@@ -1531,7 +1533,7 @@ def build_millholm_southern():
     )
 
     rooms["bobbin_kitchen"] = create_object(
-        RoomBase,
+        RoomInn,
         key="The Kitchen",
         attributes=[
             ("desc",
@@ -1544,6 +1546,10 @@ def build_millholm_southern():
              "bitter and green. A wooden sign nailed to the ale "
              "barrel reads: 'Take What You Need — Pay What You Can "
              "— Bless You Either Way.'"),
+            ("welcome_message",
+             "\n|y--- The cook waves a ladle at you. "
+             "'Sit, sit — there's stew on, and the ale's not "
+             "entirely terrible today.' ---|n"),
         ],
     )
 
@@ -2001,19 +2007,44 @@ def build_millholm_southern():
     )
 
     rooms["raven_herb_garden"] = create_object(
-        RoomBase,
+        RoomHarvesting,
         key="The Herb Garden",
         attributes=[
-            ("desc",
-             "A small patch of turned earth edged with rounded "
-             "river stones, tucked against the south wall of the "
-             "hut. Plants grow here in careful rows — dark-leaved "
-             "henbane, pale mandrake, a cluster of silvery moonpetal, "
-             "a dozen others both common and rare. Each row is "
+            ("resource_id", 22),               # siren petal
+            ("resource_count", 1),             # seeded with 1; UnifiedSpawnScript fills to max hourly
+            ("resource_count_max", 5),
+            ("abundance_threshold", 2),
+            ("harvest_height", 0),
+            ("harvest_command", "gather"),
+            ("desc_abundant",
+             "A small patch of turned earth edged with rounded river "
+             "stones, tucked against the south wall of the hut. Plants "
+             "grow here in careful rows — dark-leaved henbane, pale "
+             "mandrake, a cluster of silvery moonpetal, a dozen others "
+             "both common and rare. At the south end of the garden, a "
+             "shallow sunken bed holds a deeper soil where pink siren "
+             "petals catch the light, ready to 'gather'. Each row is "
              "labelled on a little wooden tag in a precise, old-"
              "fashioned hand. A pair of iron shears rests on a flat "
              "stone at the garden's edge, as though set down only a "
              "moment ago by someone just out of sight."),
+            ("desc_scarce",
+             "A small patch of turned earth edged with rounded river "
+             "stones, tucked against the south wall of the hut. Plants "
+             "grow here in careful rows — dark-leaved henbane, pale "
+             "mandrake, a cluster of silvery moonpetal, a dozen others "
+             "both common and rare. The sunken siren-petal bed at the "
+             "south end is mostly bare; only a pink bloom or two "
+             "remain to 'gather'. The iron shears still rest on the "
+             "flat stone at the garden's edge."),
+            ("desc_depleted",
+             "A small patch of turned earth edged with rounded river "
+             "stones, tucked against the south wall of the hut. The "
+             "henbane and mandrake stand undisturbed in their rows, "
+             "but the sunken bed at the south end is bare turned soil "
+             "— every siren petal has been picked. The roots will "
+             "need time before the bed flowers again. The iron shears "
+             "rest on the flat stone at the garden's edge."),
         ],
     )
 
@@ -2838,6 +2869,16 @@ def build_millholm_southern():
     # Raven flock — 8 ravens pinned to the great oak.
     rooms["raven_tree"].tags.add("raven_tree_flock", category="mob_area")
 
+    # Corren the Sage — wanders slowly between Study, Hut Porch,
+    # Standing Stones, and Herb Garden.
+    for key in (
+        "raven_hut_study",
+        "raven_hut_porch",
+        "raven_standing_stones",
+        "raven_herb_garden",
+    ):
+        rooms[key].tags.add("corren_haunts", category="mob_area")
+
     # Moonpetal meadows — butterfly ambience. Both clearings + their
     # edges share one tag; interfaces stay untagged so butterflies don't
     # drift out into the woods.
@@ -2857,11 +2898,13 @@ def build_millholm_southern():
     # future ambush design pass which may re-scope this).
     rooms["forest_track_7"].tags.add("bandit_ambush", category="mob_area")
 
-    # Bobbin's camp — general bandit pool (chorus, generic mooks)
+    # Bobbin's camp — general bandit pool (chorus, generic mooks).
+    # Kitchen, stable, and barracks are safe-zone rooms (no combat) and
+    # are intentionally excluded from the spawn pool.
     _bandit_camp_keys = [
-        "bobbin_yard", "bobbin_common_fire", "bobbin_barracks",
-        "bobbin_barn_stores", "bobbin_kitchen", "bobbin_training_yard",
-        "bobbin_planning_tent", "bobbin_stable",
+        "bobbin_yard", "bobbin_common_fire",
+        "bobbin_barn_stores", "bobbin_training_yard",
+        "bobbin_planning_tent",
     ]
     for key in _bandit_camp_keys:
         rooms[key].tags.add("bandit_camp", category="mob_area")
@@ -2892,6 +2935,16 @@ def build_millholm_southern():
     ]
     for key in _sheltered_keys:
         rooms[key].sheltered = True
+
+    # ── Sleep policy ─────────────────────────────────────────────────
+    # Super sleep (5x regen) — the barracks is where camp residents
+    # bed down; players welcomed into the camp share the same regen.
+    rooms["bobbin_barracks"].set_sleep_policy("super")
+
+    # ── Combat flags ─────────────────────────────────────────────────
+    # Barracks is a sleeping room — no combat so resting players
+    # can't be attacked in their bedroll.
+    rooms["bobbin_barracks"].allow_combat = False
 
     print("  Tagged rooms with zone, district, terrain, and mob_area.")
 

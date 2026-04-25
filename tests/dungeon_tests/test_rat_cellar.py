@@ -2,7 +2,8 @@
 Tests for the Rat Cellar quest system.
 
 Covers: mob stats, dungeon template, quest lifecycle, quest-gated exit,
-defeat system fixes, and bartender heal.
+and defeat system fixes. Rowan's Harvest-Moon-specific heal-on-defeat
+lives in tests/typeclass_tests/test_room_harvest_moon.py.
 
 evennia test --settings settings tests.dungeon_tests.test_rat_cellar
 """
@@ -365,67 +366,3 @@ class TestRatCellarQuest(EvenniaCommandTest):
 
         can_accept, reason = RatCellarQuest.can_accept(self.char1)
         self.assertFalse(can_accept)
-
-
-# ------------------------------------------------------------------ #
-#  Inn heal tests
-# ------------------------------------------------------------------ #
-
-class TestInnHealOnDefeat(EvenniaCommandTest):
-    """Test bartender heal when defeated player arrives at inn."""
-
-    character_typeclass = "typeclasses.actors.character.FCMCharacter"
-    databases = "__all__"
-
-    def create_script(self):
-        pass
-
-    def setUp(self):
-        super().setUp()
-        self.inn = create_object(
-            "typeclasses.terrain.rooms.room_inn.RoomInn",
-            key="Test Inn",
-        )
-
-    def tearDown(self):
-        if self.inn and self.inn.pk:
-            self.inn.delete()
-        super().tearDown()
-
-    def test_heal_on_defeat_arrival(self):
-        """Player with active rat quest and HP=1 gets healed at inn."""
-        from world.quests.rat_cellar import RatCellarQuest
-
-        self.char1.quests.add(RatCellarQuest)
-        self.char1.hp = 1
-
-        # Move to inn (triggers at_object_receive)
-        self.char1.move_to(self.inn, quiet=True)
-
-        # Should be fully healed
-        self.assertEqual(self.char1.hp, self.char1.effective_hp_max)
-
-    def test_no_heal_when_quest_complete(self):
-        """Player with completed quest should NOT get healed."""
-        from world.quests.rat_cellar import RatCellarQuest
-
-        quest = self.char1.quests.add(RatCellarQuest)
-        quest.status = "completed"  # avoid blockchain gold reward
-        self.char1.hp = 1
-
-        self.char1.move_to(self.inn, quiet=True)
-
-        # Should still be at 1 HP
-        self.assertEqual(self.char1.hp, 1)
-
-    def test_no_heal_when_full_hp(self):
-        """Player with full HP should NOT trigger the heal."""
-        from world.quests.rat_cellar import RatCellarQuest
-
-        self.char1.quests.add(RatCellarQuest)
-        original_hp = self.char1.hp
-
-        self.char1.move_to(self.inn, quiet=True)
-
-        # HP unchanged
-        self.assertEqual(self.char1.hp, original_hp)
