@@ -38,7 +38,6 @@ class WildMule(CombatMob):
 
     # ── Behaviour — passive ──
     is_aggressive = AttributeProperty(False)
-    is_unique = AttributeProperty(False)
 
     # ── Gold loot ──
     loot_gold_max = AttributeProperty(0)

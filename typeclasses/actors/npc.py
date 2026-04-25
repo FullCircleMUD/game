@@ -54,7 +54,6 @@ class BaseNPC(BaseActor):
 
     # ── Spawn/persistence ──
     spawn_room_id = AttributeProperty(None)  # dbref of home room for respawn
-    is_unique = AttributeProperty(True)      # unique NPCs don't respawn
 
     def at_object_creation(self):
         super().at_object_creation()

@@ -65,7 +65,6 @@ class Direwolf(AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(1800)
 
     # ── Retreat — set per-quadrant via spawn-rule attrs ──
     den_room_tag = AttributeProperty(None)
@@ -129,7 +128,6 @@ class SouthernWolf(MobFollowableMixin, AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(7)
-    respawn_delay = AttributeProperty(1800)
 
     # ── Retreat — set per-quadrant via spawn-rule attrs ──
     den_room_tag = AttributeProperty(None)

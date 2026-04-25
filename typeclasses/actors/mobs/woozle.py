@@ -52,7 +52,6 @@ class Woozle(CombatMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(10)
-    respawn_delay = AttributeProperty(300)
 
     def at_object_creation(self):
         super().at_object_creation()

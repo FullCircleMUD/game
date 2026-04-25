@@ -58,7 +58,6 @@ class Wolf(AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(120)
 
     # ── Area ──
     den_room_tag = AttributeProperty("woods_wolves")

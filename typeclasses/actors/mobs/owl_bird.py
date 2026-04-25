@@ -54,7 +54,6 @@ class OwlBird(FlyingMixin, CombatMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(10)
-    respawn_delay = AttributeProperty(120)
 
     def ai_wander(self):
         """Stay put — owls don't wander."""

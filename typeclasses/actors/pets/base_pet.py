@@ -60,7 +60,6 @@ class BasePet(NFTPetMirrorMixin, FollowableMixin, AnimalSpeakerMixin, BaseNPC):
 
     # ── Defaults ──
     is_immortal = AttributeProperty(False)  # pets can die
-    is_unique = AttributeProperty(True)     # pets don't respawn via spawn scripts
 
     def at_object_creation(self):
         super().at_object_creation()

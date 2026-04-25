@@ -58,7 +58,6 @@ class Corren(LLMCombatMob):
     armor_class = AttributeProperty(14)
     level = AttributeProperty(10)
     is_immortal = AttributeProperty(True)
-    is_unique = AttributeProperty(True)
 
     # ── Combat fallbacks (only matter if attacked) ──
     initiative_speed = AttributeProperty(2)
@@ -76,7 +75,6 @@ class Corren(LLMCombatMob):
 
     # ── AI timing — sage's pace ──
     ai_tick_interval = AttributeProperty(20)
-    respawn_delay = AttributeProperty(600)
 
     def at_object_creation(self):
         super().at_object_creation()

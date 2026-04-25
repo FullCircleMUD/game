@@ -55,7 +55,6 @@ class DireWolf(TacticalDodgeMixin, AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(180)
 
     # ── Retreat ──
     den_room_tag = AttributeProperty("wolves_den")

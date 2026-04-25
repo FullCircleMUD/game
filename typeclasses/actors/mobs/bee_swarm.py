@@ -58,7 +58,6 @@ class BeeSwarm(FlyingMixin, AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(5)
-    respawn_delay = AttributeProperty(120)
 
     def ai_wander(self):
         """Stay in the tree — bees don't wander."""

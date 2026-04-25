@@ -39,7 +39,6 @@ class TrainingDummy(CombatMob):
 
     # ── Behavior ──
     is_aggressive_to_players = AttributeProperty(False)
-    respawn_delay = AttributeProperty(5)
 
     # ── AI ──
     ai_tick_interval = AttributeProperty(30)

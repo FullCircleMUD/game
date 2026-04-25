@@ -71,7 +71,6 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(120)
 
     def at_object_creation(self):
         super().at_object_creation()

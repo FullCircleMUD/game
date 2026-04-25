@@ -53,7 +53,6 @@ class Butterfly(FlyingMixin, CombatMob):
 
     # ── AI timing — slow drift ──
     ai_tick_interval = AttributeProperty(10)
-    respawn_delay = AttributeProperty(60)
 
     def ai_wander(self):
         """Slow drift between rooms. Flee combat if engaged."""

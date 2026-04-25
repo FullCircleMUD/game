@@ -27,7 +27,6 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
     Club + wooden shield. SKILLED club mastery gives stagger chance.
     """
 
-    is_unique = AttributeProperty(False)
     base_size = AttributeProperty(Size.SMALL.value)
     size = AttributeProperty(Size.SMALL.value)
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
@@ -68,7 +67,6 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(600)  # 10 minutes
 
     def at_object_creation(self):
         super().at_object_creation()

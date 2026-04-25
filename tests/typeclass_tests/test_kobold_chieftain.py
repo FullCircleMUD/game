@@ -36,12 +36,6 @@ class TestKoboldChieftainStats(EvenniaTest):
         self.assertEqual(self.boss.base_armor_class, 13)
         self.assertEqual(self.boss.size, "small")
 
-    def test_is_unique(self):
-        # Bosses are JSON-spawned now: is_unique=False so die() deletes
-        # and the ZoneSpawnScript respawns a fresh object after the
-        # rule's death_cooldown_seconds elapses.
-        self.assertFalse(self.boss.is_unique)
-
     def test_is_aggressive(self):
         self.assertTrue(self.boss.is_aggressive_to_players)
 

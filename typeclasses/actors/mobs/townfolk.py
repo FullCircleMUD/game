@@ -48,7 +48,6 @@ class Townfolk(LLMCombatMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(10)
-    respawn_delay = AttributeProperty(600)  # 10 minutes
 
     def at_object_creation(self):
         super().at_object_creation()

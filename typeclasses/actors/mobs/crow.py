@@ -71,7 +71,6 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(5)
-    respawn_delay = AttributeProperty(30)
 
     def ai_wander(self):
         """Pack courage AI with re-ascend when idle."""

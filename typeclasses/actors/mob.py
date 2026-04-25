@@ -27,7 +27,6 @@ import random
 
 from evennia import TICKER_HANDLER
 from evennia.typeclasses.attributes import AttributeProperty
-from evennia.utils.utils import delay
 
 from enums.damage_type import DamageType
 from enums.size import Size
@@ -45,16 +44,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
 
     Overrides BaseNPC defaults:
       - is_immortal = False (can die)
-      - is_unique = False (can respawn)
     """
 
     # ── Override BaseNPC defaults ──
     is_immortal = AttributeProperty(False)
-    is_unique = AttributeProperty(False)
 
     # ── Spawn/Area ──
     spawn_room_id = AttributeProperty(None)
-    respawn_delay = AttributeProperty(60)
     corpse_despawn_delay = AttributeProperty(300)  # 5 minutes
 
     @property
@@ -347,11 +343,8 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     def die(self, cause="unknown", killer=None):
         """
         Handle mob death: stop AI, clean up combat, create corpse,
-        award XP to killer.
-
-        Common mobs (is_unique=False) are deleted — the ZoneSpawnScript
-        handles respawning fresh objects. Unique mobs use the legacy
-        delay-based _respawn() path.
+        award XP to killer, then delete. The ZoneSpawnScript handles
+        respawning a fresh object after the rule's death_cooldown_seconds.
         """
         if not self.is_alive:
             return  # already dead
@@ -411,13 +404,7 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
             if scripts.exists():
                 scripts.first().on_mob_death(rule_id)
 
-        if self.is_unique:
-            # Unique/boss mobs: park in limbo and respawn the same object
-            self.location = None
-            delay(self.respawn_delay, self._respawn)
-        else:
-            # Common mobs: delete — ZoneSpawnScript spawns a replacement
-            self.delete()
+        self.delete()
 
     def _create_corpse(self, room, cause):
         """Create a lootable corpse and transfer all contents to it."""
@@ -477,35 +464,6 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
                 self.transfer_resource_to(corpse, rid, amt)
 
         corpse.start_mob_timers(self.corpse_despawn_delay)
-
-    def _respawn(self):
-        """Respawn at the spawn room after the delay."""
-        if not self.pk:
-            return  # object was deleted
-
-        if not self.spawn_room_id:
-            return
-
-        from evennia import ObjectDB
-        try:
-            spawn_room = ObjectDB.objects.get(id=self.spawn_room_id)
-        except ObjectDB.DoesNotExist:
-            return
-
-        # Reset stats
-        self.hp = self.hp_max
-        self.is_alive = True
-
-        # Move to spawn room
-        self.move_to(spawn_room, quiet=True)
-        if spawn_room:
-            spawn_room.msg_contents(
-                f"A {self.key} appears.",
-                from_obj=self, exclude=[self],
-            )
-
-        # Restart AI
-        self.start_ai()
 
     # ================================================================== #
     #  Default AI States
