@@ -327,3 +327,76 @@ class TestTauntOpener(_TauntTestBase):
         mock_roll.side_effect = [18, 5]
         result = self.call(CmdTaunt(), self.mob.key, caller=self.char1)
         self.assertIn("still recovering", result)
+
+
+# ================================================================== #
+#  XP Award Tests
+# ================================================================== #
+
+
+class TestTauntXP(_TauntTestBase):
+    """Successful taunt awards target.level XP on both in-combat and opener paths."""
+
+    def setUp(self):
+        super().setUp()
+        self.mob = create.create_object(
+            "typeclasses.actors.mobs.dire_wolf.DireWolf",
+            key="dire wolf",
+            location=self.room1,
+        )
+        self.mob.hp = 30
+        self.mob.hp_max = 30
+        self.mob.level = 6
+
+    def tearDown(self):
+        handlers = self.mob.scripts.get("combat_handler")
+        if handlers:
+            for h in handlers:
+                h.stop()
+                h.delete()
+        self.mob.delete()
+        super().tearDown()
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_taunt_in_combat_success_awards_xp(
+        self, mock_award, mock_roll, mock_ticker
+    ):
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        mock_roll.side_effect = [18, 5]
+        with patch(
+            "commands.class_skill_cmdsets.class_skill_cmds.cmd_taunt.random.randint",
+            return_value=4,
+        ):
+            self.call(CmdTaunt(), self.mob.key, caller=self.char1)
+        mock_award.assert_called_once_with(self.char1, 6, target=self.mob)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_taunt_in_combat_failure_awards_no_xp(
+        self, mock_award, mock_roll, mock_ticker
+    ):
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        mock_roll.side_effect = [3, 18]
+        self.call(CmdTaunt(), self.mob.key, caller=self.char1)
+        mock_award.assert_not_called()
+
+    @patch("utils.dice_roller.DiceRoller.roll")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_taunt_opener_success_awards_xp(self, mock_award, mock_roll):
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        mock_roll.side_effect = [18, 5]
+        self.call(CmdTaunt(), self.mob.key, caller=self.char1)
+        mock_award.assert_called_once_with(self.char1, 6, target=self.mob)
+
+    @patch("utils.dice_roller.DiceRoller.roll")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_taunt_opener_failure_awards_no_xp(self, mock_award, mock_roll):
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        mock_roll.side_effect = [3, 18]
+        self.call(CmdTaunt(), self.mob.key, caller=self.char1)
+        mock_award.assert_not_called()

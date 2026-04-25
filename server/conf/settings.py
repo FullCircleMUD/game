@@ -261,6 +261,9 @@ LLM_EMBEDDING_MODEL = "text-embedding-3-small"       # 1536 dims, ~$0.02/1M toke
 LLM_EMBEDDING_API_BASE_URL = "https://api.openai.com/v1"  # OpenAI direct (not OpenRouter)
 LLM_EMBEDDING_API_KEY = os.environ.get("LLM_EMBEDDING_API_KEY", "")
 
+# Skill XP — supplementary XP for using class skills (bash, spells, picklock, etc.)
+SKILL_XP_ENABLED = os.environ.get("SKILL_XP_ENABLED", "true").lower() in ("true", "1", "yes")
+
 ######################################################################
 # GAME PLAY SETTINGS
 ######################################################################

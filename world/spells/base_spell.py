@@ -305,6 +305,8 @@ class Spell:
             # shared skill_cooldown onto it.
             self._maybe_enter_combat(caster, target, secondaries, result)
             self.apply_cooldown(caster)
+            from utils.skill_xp import award_skill_xp
+            award_skill_xp(caster, 2 * cost)
 
         return result
 

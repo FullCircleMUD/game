@@ -203,6 +203,8 @@ class CmdBash(CmdSkillBase):
 
         if attacker_total > defender_total:
             # ── Success: knock target prone ──
+            from utils.skill_xp import award_skill_xp
+            award_skill_xp(caller, getattr(target, "level", 1), target=target)
             applied = target.apply_named_effect(
                 key="prone", source=caller,
                 duration=1, duration_type="combat_rounds",

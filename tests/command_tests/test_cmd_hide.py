@@ -231,3 +231,38 @@ class TestSearchFindsHidden(EvenniaCommandTest):
         self.char2.dexterity = 18
         self.call(CmdSearch(), "", "You search but find nothing unusual.")
         self.assertTrue(self.char2.has_condition(Condition.HIDDEN))
+
+
+class TestCmdHideXP(EvenniaCommandTest):
+    """Successful contested hide awards DC XP; failure awards none."""
+    room_typeclass = _ROOM
+    character_typeclass = _CHAR
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        _set_stealth(self.char1, MasteryLevel.BASIC)
+        # Give char2 enough perception that DC > 0 (contested path, not auto-succeed)
+        _set_alertness(self.char2, MasteryLevel.SKILLED)
+        self.char2.wisdom = 14
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_hide_success_awards_dc_xp(self, mock_award, mock_roll):
+        mock_roll.return_value = 30  # huge roll, guaranteed success
+        self.call(CmdHide(), "")
+        self.assertTrue(self.char1.has_condition(Condition.HIDDEN))
+        self.assertEqual(mock_award.call_count, 1)
+        args, kwargs = mock_award.call_args
+        self.assertEqual(args[0], self.char1)
+        self.assertGreater(args[1], 0)  # dc > 0 in contested path
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_hide_failure_awards_no_xp(self, mock_award, mock_roll):
+        mock_roll.return_value = 1  # guaranteed failure
+        self.call(CmdHide(), "")
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+        mock_award.assert_not_called()

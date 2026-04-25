@@ -144,3 +144,32 @@ class TestPicklock(LockableTestBase):
         success, msg = chest.picklock(self.char1)
         self.assertFalse(success)
         self.assertIn("not locked", msg)
+
+
+class TestPicklockXP(LockableTestBase):
+    """Successful picklock awards 10 × lock_dc XP; failure awards none."""
+
+    def test_picklock_success_awards_10x_dc_xp(self):
+        chest = self._make_chest(lock_dc=15)
+        self.char1.db.class_skill_mastery_levels = {
+            skills.SUBTERFUGE.value: {
+                "mastery": MasteryLevel.SKILLED.value, "classes": ["Thief"],
+            },
+        }
+        with patch("utils.dice_roller.DiceRoller.roll", return_value=20):
+            with patch("utils.skill_xp.award_skill_xp") as mock_award:
+                success, msg = chest.picklock(self.char1)
+        self.assertTrue(success)
+        mock_award.assert_called_once_with(self.char1, 150)
+
+    def test_picklock_failure_awards_no_xp(self):
+        chest = self._make_chest(lock_dc=25)
+        self.char1.db.class_skill_mastery_levels = {
+            skills.SUBTERFUGE.value: {
+                "mastery": MasteryLevel.BASIC.value, "classes": ["Thief"],
+            },
+        }
+        with patch("utils.dice_roller.DiceRoller.roll", return_value=1):
+            with patch("utils.skill_xp.award_skill_xp") as mock_award:
+                chest.picklock(self.char1)
+        mock_award.assert_not_called()

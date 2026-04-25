@@ -176,6 +176,9 @@ class CmdStab(CmdSkillBase):
             return
 
         # ── Execute ──
+        from utils.skill_xp import award_skill_xp
+        award_skill_xp(caller, getattr(target, "level", 1), target=target)
+
         if not in_combat:
             # OPENER PATH — from stealth
             caller.remove_condition(Condition.HIDDEN)

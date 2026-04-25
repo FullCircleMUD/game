@@ -8,9 +8,12 @@ Tests:
     - Anti-stacking: skips already-affected targets, refunds if all affected
     - Scaling: bonus and duration scale with mastery tier
     - Mastery gate: unskilled caster blocked
+    - Skill XP: successful cast awards 2 × mana_cost via base_spell hook
 
 evennia test --settings settings tests.spell_tests.test_shadowcloak
 """
+
+from unittest.mock import patch
 
 from evennia.utils.create import create_object
 from evennia.utils.test_resources import EvenniaTest
@@ -293,3 +296,57 @@ class TestShadowcloakGroupCast(EvenniaTest):
         self.assertTrue(leader.has_effect("shadowcloaked"))
         self.assertTrue(self.char1.has_effect("shadowcloaked"))
         self.assertTrue(self.follower.has_effect("shadowcloaked"))
+
+
+class TestSpellSkillXP(EvenniaTest):
+    """Successful spell cast awards 2 × mana_cost via base_spell hook.
+
+    Uses Shadowcloak as the test vehicle but exercises the
+    centralised hook in world/spells/base_spell.py — applies to all spells.
+    """
+
+    character_typeclass = _CHAR
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.spell = get_spell("shadowcloak")
+        self.char1.db.class_skill_mastery_levels = {"abjuration": 2}
+        self.char1.base_mana_max = 200
+        self.char1.mana_max = 200
+        self.char1.mana = 100
+
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_successful_cast_awards_2x_mana_xp(self, mock_award):
+        # Tier 2 mana_cost = 12 → expected XP = 24
+        success, _ = self.spell.cast(self.char1)
+        self.assertTrue(success)
+        mock_award.assert_called_once_with(self.char1, 24)
+
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_failed_cast_awards_no_xp(self, mock_award):
+        # Pre-apply effect → anti-stacking refund path → cast returns False
+        self.spell.cast(self.char1)
+        mock_award.reset_mock()
+        success, _ = self.spell.cast(self.char1)
+        self.assertFalse(success)
+        mock_award.assert_not_called()
+
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_xp_does_not_pass_target_for_pvp_check(self, mock_award):
+        # Spells deliberately don't pass target so cooperative PC heals/buffs
+        # still award XP. Verify the helper is called WITHOUT a target kwarg.
+        self.spell.cast(self.char1)
+        args, kwargs = mock_award.call_args
+        self.assertNotIn("target", kwargs)
+        self.assertEqual(len(args), 2)  # caster, amount
+
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_mastery_tier_scales_xp(self, mock_award):
+        # Tier 4 (MASTER) mana_cost = 20 → XP = 40
+        self.char1.db.class_skill_mastery_levels = {"abjuration": 4}
+        self.char1.mana = 200
+        self.spell.cast(self.char1)
+        mock_award.assert_called_once_with(self.char1, 40)

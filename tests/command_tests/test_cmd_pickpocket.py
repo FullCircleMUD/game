@@ -270,3 +270,51 @@ class TestPickpocketFailure(EvenniaCommandTest):
 
         self.call(CmdPickpocket(), "gold from Char2")
         self.assertIn(self.char2.id, self.char1.ndb.pickpocket_cooldowns)
+
+
+# ── XP Award ──────────────────────────────────────────────────────
+
+class TestPickpocketXP(EvenniaCommandTest):
+    """Successful pickpocket awards DC XP with target=victim; failure awards none."""
+    room_typeclass = _ROOM
+    character_typeclass = _CHAR
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        _set_subterfuge(self.char1, MasteryLevel.SKILLED)
+        self.char2.db.gold = 100
+        self.char2.db.resources = {}
+        self.room1.db.allow_combat = True
+        self.room1.db.allow_pvp = True
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account2.attributes.add("wallet_address", WALLET_B)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.transfer")
+    @patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_pickpocket.dice")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_success_awards_dc_xp_with_target(
+        self, mock_award, mock_dice, mock_gold_svc
+    ):
+        mock_dice.roll_with_advantage_or_disadvantage.return_value = 20
+        mock_dice.roll.return_value = 3
+        _pre_case(self.char1, self.char2, gold_visible=True)
+        # Compute the DC the same way the command does so the assertion
+        # tracks the formula rather than hard-coding a perception value.
+        expected_dc = 10 + self.char2.effective_perception_bonus
+        self.call(CmdPickpocket(), "gold from Char2")
+        mock_award.assert_called_once_with(
+            self.char1, expected_dc, target=self.char2,
+        )
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_failure_awards_no_xp(self, mock_award, mock_roll):
+        mock_roll.return_value = 1
+        _pre_case(self.char1, self.char2, gold_visible=True)
+        self.call(CmdPickpocket(), "gold from Char2")
+        mock_award.assert_not_called()

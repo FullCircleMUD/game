@@ -178,6 +178,8 @@ class CmdTaunt(CmdSkillBase):
 
             if attacker_total > defender_total:
                 # Success — switch mob's target
+                from utils.skill_xp import award_skill_xp
+                award_skill_xp(caller, getattr(target, "level", 1), target=target)
                 target_handlers = target.scripts.get("combat_handler")
                 if target_handlers:
                     dt = random.randint(
@@ -210,6 +212,8 @@ class CmdTaunt(CmdSkillBase):
             # ── OPENER PATH ──
             if attacker_total > defender_total:
                 # Success — mob takes the bait and attacks
+                from utils.skill_xp import award_skill_xp
+                award_skill_xp(caller, getattr(target, "level", 1), target=target)
                 # initiate_attack triggers enter_combat from the mob's side
                 target.initiate_attack(caller)
 
