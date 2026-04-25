@@ -2901,6 +2901,9 @@ def build_millholm_town(one_way_limbo=False):
                 "artisans_way_e1", "artisans_way_e2", "artisans_way_e3",
                 "apothecary", "textiles", "hendricks_house"]:
         rooms[key].tags.add(f"{_rt}:town_se", category="map_cell")
+    # South gate also tags its own region cell at (6, 18) — the gate
+    # symbol marks the boundary between town and the southern district.
+    rooms["south_gate"].tags.add(f"{_rt}:south_gate", category="map_cell")
     print(f"  Tagged {len(_town_map_tags)} town rooms with map_cell tags (district + region).")
 
     print("  Millholm Town complete.\n")
