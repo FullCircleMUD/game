@@ -111,11 +111,52 @@ class ZoneSpawnScript(DefaultScript):
     # ================================================================== #
 
     def _pick_spawn_room(self, rule):
-        """Pick a random room from the area_tag pool, respecting max_per_room."""
+        """Pick a spawn room.
+
+        Resolution order:
+          1. ``spawn_with_typeclass`` — if set, use the room of a living
+             instance of that typeclass within the rule's ``area_tag`` (so
+             pack followers spawn alongside their alpha).
+          2. ``den_room_tag`` — fallback when no living instance from (1)
+             exists, or as the primary location for a leader. Uses the
+             single room tagged with this value.
+          3. Random uniform pick from the area_tag pool (legacy behavior).
+
+        Each step is skipped if the chosen room is already full
+        (``max_per_room`` exceeded) — we fall through to the next step
+        rather than refusing to spawn.
+        """
         area_tag = rule["area_tag"]
         max_per_room = rule.get("max_per_room", 0)
         typeclass = rule["typeclass"]
 
+        # Step 1: spawn alongside a living instance of spawn_with_typeclass
+        leader_typeclass = rule.get("spawn_with_typeclass")
+        if leader_typeclass:
+            leader = ObjectDB.objects.filter(
+                db_typeclass_path=leader_typeclass,
+                db_tags__db_key=area_tag,
+                db_tags__db_category="mob_area",
+            ).exclude(db_location__isnull=True).first()
+            if leader and leader.location and self._room_has_space(
+                leader.location, typeclass, area_tag, max_per_room
+            ):
+                return leader.location
+
+        # Step 2: fall back to the designated den room
+        den_tag = rule.get("den_room_tag")
+        if den_tag:
+            den_room = ObjectDB.objects.filter(
+                db_tags__db_key=den_tag,
+                db_tags__db_category="mob_area",
+                db_typeclass_path__contains="rooms.",
+            ).first()
+            if den_room and self._room_has_space(
+                den_room, typeclass, area_tag, max_per_room
+            ):
+                return den_room
+
+        # Step 3: random uniform pick from the area_tag pool
         rooms = list(
             ObjectDB.objects.filter(
                 db_tags__db_key=area_tag,
@@ -131,18 +172,24 @@ class ZoneSpawnScript(DefaultScript):
         if not max_per_room:
             return rooms[0]
 
-        # Filter rooms that aren't full
         for room in rooms:
-            mob_count = ObjectDB.objects.filter(
-                db_typeclass_path=typeclass,
-                db_location=room,
-                db_tags__db_key=area_tag,
-                db_tags__db_category="mob_area",
-            ).count()
-            if mob_count < max_per_room:
+            if self._room_has_space(room, typeclass, area_tag, max_per_room):
                 return room
 
         return None  # all rooms full
+
+    @staticmethod
+    def _room_has_space(room, typeclass, area_tag, max_per_room):
+        """True if ``room`` can hold another mob of ``typeclass`` for ``area_tag``."""
+        if not max_per_room:
+            return True
+        mob_count = ObjectDB.objects.filter(
+            db_typeclass_path=typeclass,
+            db_location=room,
+            db_tags__db_key=area_tag,
+            db_tags__db_category="mob_area",
+        ).count()
+        return mob_count < max_per_room
 
     # ================================================================== #
     #  Spawning
