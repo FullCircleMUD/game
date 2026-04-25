@@ -241,5 +241,68 @@
         "max_per_room": 1,
         "death_cooldown_seconds": 600,
         "desc": "An old man in plain undyed wool stands among the yews and stones. He is lean, weathered, and very still. His eyes are pale and his attention is patient. Ravens, when he is near them, do not flinch."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.bobbin_goode.BobbinGoode",
+        "key": "Bobbin Goode",
+        "area_tag": "bandit_camp_leader",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A lean, theatrical figure in extravagant green-and-gold striped tights, leather jerkin, and a feathered cap. Quick-eyed and quicker-tongued, with the bearing of someone permanently mid-performance."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.lyttle_jhon.LyttleJhon",
+        "key": "Lyttle Jhon",
+        "area_tag": "bandit_lieutenant_john",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "An enormous man in patched leathers, a heavy club resting easily across one broad shoulder. He watches the training butts with patient, unhurried eyes."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.wille_scarlett.WilleScarlett",
+        "key": "Wille Scarlett",
+        "area_tag": "bandit_lieutenant_will",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A trim, sharp-eyed swordsman in a deep-red doublet very deliberately arranged. His sword hangs loose on the hip and his footing is the footing of someone who drills."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.friar_pluck.FriarPluck",
+        "key": "Friar Pluck",
+        "area_tag": "bandit_friar",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A round, weather-beaten man in a plain brown habit, sleeves pushed up over thick forearms. A wooden ladle rests in one hand. He looks tired and unsurprised."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.maid_maryann.MaidMaryann",
+        "key": "Maid Maryann",
+        "area_tag": "bandit_maid",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A slight, sharp-eyed woman in practical clothes, a charcoal stick tucked behind one ear. She stands at the map table the way someone stands at a problem they intend to solve."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.blynken.Blynken",
+        "key": "Blynken",
+        "area_tag": "bandit_lookout",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A young man sits cross-legged on the watchtower platform with his head tilted slightly, listening. His eyes are pale and unfocused; his attention plainly is not."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.tights_bandit.TightsBandit",
+        "key": "a tights-wearing bandit",
+        "area_tag": "bandit_camp",
+        "target": 3,
+        "max_per_room": 2,
+        "death_cooldown_seconds": 300,
+        "desc": "A wiry figure in patched green-and-brown clothes and a pair of improbable striped tights, sword on hip, watching the camp with cheerful suspicion."
     }
 ]

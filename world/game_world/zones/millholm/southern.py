@@ -2909,15 +2909,23 @@ def build_millholm_southern():
     for key in _bandit_camp_keys:
         rooms[key].tags.add("bandit_camp", category="mob_area")
 
-    # Blinken's post (pinned lookout, future — separate tag)
+    # Blynken's post — the lookout. Already-existing bandit_lookout tag
+    # is the pin point.
     rooms["bobbin_watchtower"].tags.add("bandit_lookout", category="mob_area")
 
-    # Bobbin's personal spawn (pinned, future — separate tag so he
-    # always lands at the common fire to sing on arrival)
+    # Bobbin Goode's personal spawn — pinned to Common Fire so the
+    # entry song-and-introduction routine fires in the right place.
     rooms["bobbin_common_fire"].tags.add("bandit_camp_leader", category="mob_area")
 
     # Bobbin's Quarters — reputation-gated inner sanctum (future)
     rooms["bobbin_quarters"].tags.add("bandit_camp_inner", category="mob_area")
+
+    # Named-lieutenant pin tags — one room per lieutenant so each
+    # spawn rule (target=1, max_per_room=1) lands in exactly one place.
+    rooms["bobbin_training_yard"].tags.add("bandit_lieutenant_john", category="mob_area")
+    rooms["bobbin_yard"].tags.add("bandit_lieutenant_will", category="mob_area")
+    rooms["bobbin_kitchen"].tags.add("bandit_friar", category="mob_area")
+    rooms["bobbin_planning_tent"].tags.add("bandit_maid", category="mob_area")
 
     # ── Sheltered flag (indoor weather behaviour) ──
     # Rooms with real cover — roofed, walled, or under canvas — treated
