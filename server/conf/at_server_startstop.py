@@ -350,6 +350,7 @@ def _register_dungeon_templates():
     import world.dungeons.templates.deep_woods_passage  # noqa: F401
     import world.dungeons.templates.lake_passage  # noqa: F401
     import world.dungeons.templates.rat_cellar  # noqa: F401
+    import world.dungeons.templates.southern_woods_passage  # noqa: F401
 
 
 # ================================================================== #
