@@ -252,6 +252,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 | Races, classes, point buy, remort | [CHARACTER_PROGRESSION.md](../../design/CHARACTER_PROGRESSION.md) |
 | Compliance strategy, token classification | [COMPLIANCE.md](../../design/COMPLIANCE.md) |
 | Website, markets page, frontend | [WEBSITE.md](../../design/WEBSITE.md) |
+| Connection transport, WebSocket-only rationale, telnet/SSH limitations | [CONNECTION_TRANSPORT.md](../../design/CONNECTION_TRANSPORT.md) |
 
 ### Ops (`ops/`) — dev, runbooks, infra
 
