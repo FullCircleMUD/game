@@ -232,5 +232,14 @@
         "death_cooldown_seconds": 300,
         "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
         "desc": "A large black raven perches on the great oak, watching with unnerving stillness."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.corren.Corren",
+        "key": "Corren",
+        "area_tag": "corren_haunts",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 600,
+        "desc": "An old man in plain undyed wool stands among the yews and stones. He is lean, weathered, and very still. His eyes are pale and his attention is patient. Ravens, when he is near them, do not flinch."
     }
 ]
