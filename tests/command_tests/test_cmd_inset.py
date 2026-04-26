@@ -44,17 +44,23 @@ def _instant_delay(seconds, callback, *args, **kwargs):
 
 
 def _make_gem(char, name="Enchanted Ruby", effects=None, restrictions=None):
-    """Create a mock enchanted gem in the character's inventory."""
+    """Create a mock enchanted gem in the character's inventory.
+
+    Effects go on `wear_effects` (standard field). Restrictions populate
+    the gem's ItemRestrictionMixin fields directly (required_classes,
+    excluded_classes, etc.). No custom storage attributes.
+    """
     from evennia.utils.create import create_object
     gem = create_object(
         "typeclasses.items.base_nft_item.BaseNFTItem",
         key=name,
         location=char,
     )
-    gem.db.gem_effects = effects or [
+    gem.db.wear_effects = effects or [
         {"type": "stat_bonus", "stat": "initiative_bonus", "value": 1}
     ]
-    gem.db.gem_restrictions = restrictions or {}
+    for field, value in (restrictions or {}).items():
+        setattr(gem, field, value)
     return gem
 
 
@@ -160,25 +166,28 @@ class TestInsetSuccess(EvenniaCommandTest):
     @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_weapon_gets_gem_effects(self, mock_nft_cls, mock_delay):
-        """Weapon should have gem_effects after insetting."""
+    def test_gem_effects_extend_weapon_wear_effects(self, mock_nft_cls, mock_delay):
+        """Gem's wear_effects extend weapon's wear_effects (same field name)."""
         effects = [{"type": "condition", "condition": "fly"}]
         gem = _make_gem(self.char1, effects=effects)
         weapon = _make_weapon(self.char1)
+        original = list(weapon.wear_effects)
         mock_nft = MagicMock()
         mock_nft.metadata = {}
         mock_nft_cls.objects.get.return_value = mock_nft
 
         self.call(CmdInset(), f"{gem.key} in {weapon.key}", inputs=["y"])
 
-        self.assertEqual(weapon.db.gem_effects, effects)
+        self.assertEqual(weapon.wear_effects, original + effects)
+        self.assertTrue(weapon.is_inset)
 
     @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_weapon_gets_gem_restrictions(self, mock_nft_cls, mock_delay):
-        """Weapon should have gem_restrictions after insetting."""
-        restrictions = {"required_races": ["dwarf"]}
+    def test_gem_restrictions_transfer_to_weapon_mixin_fields(self, mock_nft_cls, mock_delay):
+        """Gem's restriction fields (required_races etc.) merge into weapon's
+        same fields via ItemRestrictionMixin — no custom storage."""
+        restrictions = {"required_races": ["dwarf"], "min_alignment_score": 300}
         gem = _make_gem(self.char1, restrictions=restrictions)
         weapon = _make_weapon(self.char1)
         mock_nft = MagicMock()
@@ -187,7 +196,8 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.call(CmdInset(), f"{gem.key} in {weapon.key}", inputs=["y"])
 
-        self.assertEqual(weapon.db.gem_restrictions, restrictions)
+        self.assertEqual(list(weapon.required_races), ["dwarf"])
+        self.assertEqual(weapon.min_alignment_score, 300)
 
     @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
            side_effect=_instant_delay)
@@ -254,7 +264,9 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.call(CmdInset(), f"{gem.key} in {weapon.key}", inputs=["y"])
 
         self.assertEqual(mock_nft.metadata["name"], "LLMName")
-        self.assertEqual(mock_nft.metadata["gem_effects"], gem_effects)
+        self.assertIn("wear_effects", mock_nft.metadata)
+        self.assertIn("required_classes", mock_nft.metadata)
+        self.assertTrue(mock_nft.metadata["is_inset"])
         mock_nft.save.assert_called_once()
 
     @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
@@ -398,10 +410,10 @@ class TestInsetValidation(EvenniaCommandTest):
         self.assertIn("not a weapon", result)
 
     def test_weapon_already_inset(self):
-        """Should fail if weapon already has gem_effects."""
+        """Should fail if weapon already has a gem (is_inset True)."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
-        weapon.db.gem_effects = [{"type": "condition", "condition": "fly"}]
+        weapon.is_inset = True
         result = self.call(
             CmdInset(), f"{gem.key} in {weapon.key}"
         )

@@ -581,6 +581,43 @@ class BulletinListing(models.Model):
         return f"BulletinListing({self.listing_type}: {self.character_name})"
 
 
+# ─── Enchantment Slot (compliance-driven pre-disclosure) ────────────
+
+class EnchantmentSlot(models.Model):
+    """
+    Pre-disclosed next outcome for a probabilistic enchantment table.
+
+    One row per (output_table, mastery_level) pair. All enchanters
+    server-wide compete for the same row — race resolved via
+    select_for_update() and the slot_number tiebreaker.
+
+    The roll happens AFTER consumption, never before purchase, so the
+    outcome a player sees in the preview is the outcome they receive.
+    Required by ECONOMY.md to stay clear of gambling-law constraints.
+    """
+
+    output_table = models.CharField(max_length=64)
+    mastery_level = models.PositiveSmallIntegerField()
+    slot_number = models.PositiveIntegerField(default=1)
+    current_outcome = models.JSONField()
+    rolled_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "xrpl"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["output_table", "mastery_level"],
+                name="xrpl_enchant_slot_unique_table_mastery",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"EnchantmentSlot({self.output_table}/m{self.mastery_level} "
+            f"#{self.slot_number})"
+        )
+
+
 # ─── Saturation Snapshot (hourly NFT item saturation) ────────────────
 
 class SaturationSnapshot(models.Model):
