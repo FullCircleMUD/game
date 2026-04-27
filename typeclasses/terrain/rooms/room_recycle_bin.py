@@ -36,9 +36,8 @@ class RoomRecycleBin(DefaultRoom):
             return
 
         if isinstance(moved_obj, BaseNFTItem):
-            # NFT landed in the bin — despawn and delete
+            # NFT landed in the bin — delete (at_object_delete handles mirror despawn)
             print(f"  RecycleBin: despawning NFT #{moved_obj.token_id}")
-            moved_obj._despawn_mirror()
             moved_obj.delete()
             return
 
