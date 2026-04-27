@@ -60,6 +60,11 @@ class NFTMirrorMixin(CharacterKeyMixin):
         """
         super().at_post_move(source_location, move_type=move_type, **kwargs)
 
+        if self.pk is None:
+            # Obj was deleted during this move (e.g. recycle bin's
+            # at_object_receive deletes synchronously). Nothing to mirror.
+            return
+
         if self.token_id is None:
             return
 
