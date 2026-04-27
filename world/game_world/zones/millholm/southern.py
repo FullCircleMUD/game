@@ -2843,13 +2843,14 @@ def build_millholm_southern():
         rooms[key].set_terrain(TerrainType.PLAINS.value)
 
     # ── mob_area tags ──
-    # Planning tags for future mob placement. These tags currently have
-    # NO spawn rules, so no mobs will spawn in the new areas — the tags
-    # are a placeholder for when wolf packs, bandits, etc. are designed.
-    #
-    # gnoll_territory / gnoll_camp_boss (which DO have live spawn rules
-    # in world/spawns/millholm_southern.json) are intentionally NOT
-    # applied — the legacy gnoll rooms are parked until a redesign.
+
+    # Gnoll territory — raiders patrol the grasslands and camp
+    for key in ["wild_grasslands", "gnoll_hunting_grounds",
+                "ravaged_farmstead", "gnoll_camp", "gnoll_lookout"]:
+        rooms[key].tags.add("gnoll_territory", category="mob_area")
+
+    # Gnoll warlord — pinned to the camp
+    rooms["gnoll_camp"].tags.add("gnoll_camp_boss", category="mob_area")
 
     # Wolves — one pack per forest chunk (1 direwolf alpha + 3 southern wolves)
     for r in range(1, 6):
