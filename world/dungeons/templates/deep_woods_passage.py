@@ -104,6 +104,8 @@ def generate_deep_woods_room(instance, depth, coords):
         key=name,
     )
     room.db.desc = desc
+    room.set_zone("millholm")
+    room.set_district("millholm_deep_woods")
     return room
 
 

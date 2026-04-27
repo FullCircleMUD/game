@@ -1322,12 +1322,26 @@ def build_millholm_farms(town_rooms):
                 "bw_field_sw", "bw_field_s", "bw_field_se"]:
         rooms[key].tags.add(f"{_rt}:cotton_farm", category="map_cell")
 
-    # South fork road → region "south_fork" cell
-    for key in ["south_fork_1", "south_fork_2", "south_fork_3", "south_fork_end"]:
-        rooms[key].tags.add(f"{_rt}:south_fork", category="map_cell")
-    # Weaving house spur
-    for key in ["weavers_track", "weaving_house"]:
-        rooms[key].tags.add(f"{_rt}:south_fork", category="map_cell")
+    # South fork road → split across the new south-extension cells
+    # geographically the road runs S from the crossroads, then bends E
+    # to merge with the southern district at forests_edge_cell.
+    rooms["south_fork_1"].tags.add(f"{_rt}:south_fork", category="map_cell")
+    rooms["south_fork_2"].tags.add(f"{_rt}:south_fork", category="map_cell")
+    rooms["south_fork_3"].tags.add(f"{_rt}:farms_south_road_n", category="map_cell")
+    # south_fork_end multi-tags the bend + the eastward run, so
+    # surveying it reveals the whole connector to the southern district
+    for cell in ["farms_south_road_w", "farms_south_road_mw",
+                 "farms_south_road_me", "farms_south_road_e"]:
+        rooms["south_fork_end"].tags.add(f"{_rt}:{cell}", category="map_cell")
+
+    # Weaving house spur — track stays with south_fork road, the
+    # weaving house itself is the cotton-processing facility (cotton_mill)
+    rooms["weavers_track"].tags.add(f"{_rt}:south_fork", category="map_cell")
+    rooms["weaving_house"].tags.add(f"{_rt}:cotton_mill", category="map_cell")
+
+    # Abandoned farm cluster → region "abandoned_farm" cell
+    for room in abandoned_farm_rooms:
+        room.tags.add(f"{_rt}:abandoned_farm", category="map_cell")
 
     print(f"  Tagged farms rooms with {_rt} map_cell tags.")
 

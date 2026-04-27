@@ -27,11 +27,84 @@ from evennia import Command
 from evennia.utils import delay
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from blockchain.xrpl.services.enchantment import EnchantmentService
 from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 from enums.skills_enum import skills
 from enums.potion_quality import PotionQuality
 from typeclasses.items.base_nft_item import BaseNFTItem
+
+
+def _describe_slot_effect(effect):
+    """Format a single gem effect dict for the pre-disclosure prompt."""
+    etype = effect.get("type", "")
+    if etype == "stat_bonus":
+        stat = effect.get("stat", "unknown").replace("_", " ")
+        value = effect.get("value", 0)
+        sign = "+" if value > 0 else ""
+        return f"{sign}{value} {stat}"
+    if etype == "condition":
+        return effect.get("condition", "unknown").replace("_", " ")
+    if etype == "damage_resistance":
+        dtype = effect.get("damage_type", "unknown")
+        return f"{effect.get('value', 0)}% {dtype} resistance"
+    if etype == "hit_bonus":
+        wtype = effect.get("weapon_type", "").replace("_", " ")
+        return f"+{effect.get('value', 0)} hit ({wtype})"
+    if etype == "damage_bonus":
+        wtype = effect.get("weapon_type", "").replace("_", " ")
+        return f"+{effect.get('value', 0)} damage ({wtype})"
+    return str(effect)
+
+
+def _describe_slot_restrictions(restrictions):
+    """Format a restriction dict (ItemRestrictionMixin field shape) for
+    the pre-disclosure prompt.
+
+    Reverses the alignment_score → mode mapping for human-readable output.
+    """
+    if not restrictions:
+        return "none"
+
+    parts = []
+
+    if restrictions.get("required_classes"):
+        names = ", ".join(c.capitalize() for c in restrictions["required_classes"])
+        parts.append(f"must be {names}")
+    if restrictions.get("excluded_classes"):
+        names = ", ".join(c.capitalize() for c in restrictions["excluded_classes"])
+        parts.append(f"must not be {names}")
+    if restrictions.get("required_races"):
+        names = ", ".join(r.capitalize() for r in restrictions["required_races"])
+        parts.append(f"race must be {names}")
+    if restrictions.get("excluded_races"):
+        names = ", ".join(r.capitalize() for r in restrictions["excluded_races"])
+        parts.append(f"race must not be {names}")
+
+    # Alignment modes derived from min/max bounds. Boundary semantics:
+    # >= for extremes, strict between for neutral.
+    mn = restrictions.get("min_alignment_score")
+    mx = restrictions.get("max_alignment_score")
+    if mn == 300 and mx is None:
+        parts.append("good alignment only")
+    elif mx == -300 and mn is None:
+        parts.append("evil alignment only")
+    elif mn == -299 and mx == 299:
+        parts.append("neutral alignment only")
+    elif mn == -299 and mx is None:
+        parts.append("non-evil alignment only")
+    elif mx == 299 and mn is None:
+        parts.append("non-good alignment only")
+    elif mn is not None or mx is not None:
+        # Custom bounds (shouldn't occur from rolling but handle gracefully)
+        bound_parts = []
+        if mn is not None:
+            bound_parts.append(f"alignment >= {mn}")
+        if mx is not None:
+            bound_parts.append(f"alignment <= {mx}")
+        parts.append(", ".join(bound_parts))
+
+    return "; ".join(parts) if parts else "none"
 
 
 def _get_crafting_mastery(character, skill):
@@ -298,6 +371,18 @@ class CmdCraft(FCMCommandMixin, Command):
                 )
                 return
 
+        # --- Pre-disclose enchantment outcome (compliance) ---
+        # For recipes with an output_table, the next outcome is read from
+        # the shared EnchantmentSlot for (output_table, char_mastery) and
+        # shown to the player BEFORE they commit. The actual roll happens
+        # after consumption, never before purchase. See ECONOMY.md.
+        slot_preview = None
+        output_table = recipe.get("output_table")
+        if output_table:
+            slot_preview = EnchantmentService.preview_slot(
+                output_table, char_mastery,
+            )
+
         # --- Build cost summary for confirmation ---
         ingredient_lines = []
         for res_id, needed in ingredients.items():
@@ -324,11 +409,29 @@ class CmdCraft(FCMCommandMixin, Command):
         if wand_mana_cost > 0:
             mana_line = f"\nMana cost: {wand_mana_cost} (pre-paid into the wand)"
 
+        slot_line = ""
+        expected_slot_number = None
+        if slot_preview is not None:
+            expected_slot_number = slot_preview["slot_number"]
+            effects_desc = ", ".join(
+                _describe_slot_effect(e) for e in slot_preview["wear_effects"]
+            ) or "no effects"
+            restrictions = slot_preview["restrictions"] or {}
+            restr_desc = "\nRestrictions: " + _describe_slot_restrictions(restrictions)
+            slot_line = (
+                f"\n|cNext available enchantment (slot #{expected_slot_number}):|n"
+                f"\n  Effects: {effects_desc}"
+                f"  {restr_desc}"
+                f"\n  |x(Another enchanter may claim this slot before you. "
+                f"If so, no materials will be consumed.)|n"
+            )
+
         answer = yield (
             f"\n|y--- Craft {recipe['name']} ---|n"
             f"\nMaterials:\n{cost_display}"
             f"\nWorkshop fee: {total_gold} gold"
             f"{mana_line}"
+            f"{slot_line}"
             f"\nCrafting time: {total_time} seconds ({recipe['min_mastery'].name})"
             f"\n\n{verb.capitalize()} {recipe['name']}? Y/[N]"
         )
@@ -372,6 +475,28 @@ class CmdCraft(FCMCommandMixin, Command):
         if not caller.has_gold(total_gold):
             caller.msg("You no longer have enough gold.")
             return
+
+        # --- Consume the enchantment slot BEFORE materials (compliance) ---
+        # If we lose the race, no materials are consumed and the player
+        # can retry to see the new outcome. The roll is locked in here and
+        # applied later at spawn time — never a fresh roll inside _tick.
+        slot_outcome = None
+        if output_table:
+            slot_outcome = EnchantmentService.consume_slot(
+                output_table, char_mastery, expected_slot_number,
+            )
+            if slot_outcome is None:
+                new_preview = EnchantmentService.preview_slot(
+                    output_table, char_mastery,
+                )
+                caller.msg(
+                    f"|yAnother enchanter just claimed slot "
+                    f"#{expected_slot_number}.|n The next available slot is "
+                    f"#{new_preview['slot_number']} — run "
+                    f"|w{verb} {recipe['name']}|n again to see and accept it. "
+                    f"No materials were consumed."
+                )
+                return
 
         # --- Consume resource ingredients (inventory first, bank remainder) ---
         # Bank resources: transfer to character first, then sink from character.
@@ -432,20 +557,18 @@ class CmdCraft(FCMCommandMixin, Command):
                     token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
                     item = BaseNFTItem.spawn_into(token_id, caller)
 
-                    # Apply gem enchantment for roll-table recipes
-                    output_table = recipe.get("output_table")
-                    if output_table and item:
-                        from world.recipes.enchanting.gem_tables import (
-                            roll_gem_enchantment,
-                        )
-                        mastery = (
-                            caller.db.general_skill_mastery_levels or {}
-                        ).get(recipe["skill"].value, 1)
-                        effects, restrictions = roll_gem_enchantment(
-                            output_table, mastery
-                        )
-                        item.db.gem_effects = effects
-                        item.db.gem_restrictions = restrictions
+                    # Apply pre-disclosed enchantment outcome to the gem
+                    # using the standard item field names: wear_effects
+                    # (same array every other item uses) and
+                    # ItemRestrictionMixin fields (required_classes etc.).
+                    # No custom storage; on inset these merge into the
+                    # weapon's same fields.
+                    if slot_outcome and item:
+                        item.db.wear_effects = slot_outcome.get("wear_effects", [])
+                        for field, value in (
+                            slot_outcome.get("restrictions") or {}
+                        ).items():
+                            setattr(item, field, value)
 
                     # Apply wand binding (Phase 2) — bind the spell and
                     # install charges. Dual-persist into mirror metadata.

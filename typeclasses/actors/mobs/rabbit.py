@@ -56,7 +56,6 @@ class Rabbit(CombatMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(30)
 
     def at_new_arrival(self, arriving_obj):
         """Something entered the room — schedule flee if it's a threat."""

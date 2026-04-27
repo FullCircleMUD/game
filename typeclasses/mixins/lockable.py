@@ -129,6 +129,8 @@ class LockableMixin:
             self.is_locked = False
             self.at_unlock(character)
             self._start_relock_timer()
+            from utils.skill_xp import award_skill_xp
+            award_skill_xp(character, 10 * self.lock_dc)
             return True, (
                 f"You deftly pick the lock on {self.key}."
             )

@@ -350,6 +350,7 @@ def _register_dungeon_templates():
     import world.dungeons.templates.deep_woods_passage  # noqa: F401
     import world.dungeons.templates.lake_passage  # noqa: F401
     import world.dungeons.templates.rat_cellar  # noqa: F401
+    import world.dungeons.templates.southern_woods_passage  # noqa: F401
 
 
 # ================================================================== #
@@ -358,19 +359,18 @@ def _register_dungeon_templates():
 
 def _restart_mob_tickers():
     """
-    Find all CombatMobs and restart their AI tickers.
+    Find all living CombatMobs and restart their AI tickers.
 
-    Living mobs with a location get their AI restarted.
-    Dead mobs get their respawn rescheduled.
+    Dead mobs are deleted in `die()`; the ZoneSpawnScript handles
+    spawning fresh replacements on its own clock, so there is no
+    restart-time respawn work to do.
     """
     from evennia import logger
     from evennia.objects.models import ObjectDB
-    from evennia.utils.utils import delay
 
     from typeclasses.actors.mob import CombatMob
 
     alive_count = 0
-    dead_count = 0
     for obj in ObjectDB.objects.filter(
         db_typeclass_path__contains="mobs."
     ):
@@ -379,12 +379,6 @@ def _restart_mob_tickers():
         if obj.is_alive and obj.location:
             obj.start_ai()
             alive_count += 1
-        elif not obj.is_alive:
-            delay(5, obj._respawn)
-            dead_count += 1
 
-    if alive_count or dead_count:
-        logger.log_info(
-            f"Mob restart: {alive_count} alive ticker(s), "
-            f"{dead_count} dead mob(s) queued for respawn"
-        )
+    if alive_count:
+        logger.log_info(f"Mob restart: {alive_count} alive ticker(s)")

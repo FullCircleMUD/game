@@ -96,6 +96,8 @@ def generate_lake_passage_room(instance, depth, coords):
         key=name,
     )
     room.db.desc = desc
+    room.set_zone("millholm")
+    room.set_district("millholm_lake")
     return room
 
 

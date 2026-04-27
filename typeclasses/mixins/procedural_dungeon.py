@@ -39,6 +39,12 @@ class ProceduralDungeonMixin:
         instance resolution, and entry. Characters are moved into the
         dungeon's first room.
 
+        Three-way entry logic:
+        1. Already physically in a dungeon (`dungeon_character` set) → reject.
+        2. Has `dungeon_pending` matching this template → redirect into the
+           existing instance alone (followers/pets stay outside).
+        3. Otherwise → normal new-instance flow with full follower collection.
+
         Args:
             traversing_object: The character entering the dungeon.
 
@@ -57,13 +63,16 @@ class ProceduralDungeonMixin:
             traversing_object.msg("This passage is not configured properly.")
             return False
 
-        # Already in a dungeon — don't stack instances
-        existing_tag = traversing_object.tags.get(category="dungeon_character")
-        if existing_tag:
+        # 1. Already in a dungeon — don't stack instances
+        if traversing_object.tags.get(category="dungeon_character"):
             traversing_object.msg("You are already in a dungeon.")
             return False
 
-        # Collect characters based on instance mode
+        # 2. Pending recovery for this template — redirect alone
+        if self._try_pending_recovery_redirect(traversing_object, template):
+            return True
+
+        # 3. Normal new-instance flow — collect followers/pets and validate
         characters = self._collect_dungeon_characters(
             traversing_object, template
         )
@@ -97,6 +106,77 @@ class ProceduralDungeonMixin:
             self._join_existing_dungeon(characters, instance, template)
 
         return True
+
+    def _try_pending_recovery_redirect(self, traversing_object, template):
+        """If traverser has a `dungeon_pending` tag matching THIS template,
+        redirect them into the existing instance — alone, no followers.
+
+        Stale pending tags (instance gone, instance not active, or instance
+        in a corrupt state) are scrubbed silently and the method returns
+        False so the caller can proceed with the normal new-instance flow.
+
+        Returns:
+            True if the player was redirected into an existing instance.
+            False if no matching pending tag found, or all matches were stale.
+        """
+        pending_keys = traversing_object.tags.get(
+            category="dungeon_pending", return_list=True
+        )
+        if not pending_keys:
+            return False
+
+        from evennia import ObjectDB, ScriptDB
+
+        for instance_key in pending_keys:
+            try:
+                instance = ScriptDB.objects.get(db_key=instance_key)
+            except ScriptDB.DoesNotExist:
+                # Stale — scrub and keep looking
+                traversing_object.tags.remove(
+                    instance_key, category="dungeon_pending"
+                )
+                continue
+
+            if instance.state != "active":
+                # Collapsing or done — also stale
+                traversing_object.tags.remove(
+                    instance_key, category="dungeon_pending"
+                )
+                continue
+
+            if instance.template_id != template.template_id:
+                # Pending tag exists but for a different template — leave the
+                # tag alone, fall through to normal entry for THIS template.
+                continue
+
+            # Live, matching instance — resolve room (0,0) and redirect alone
+            grid = dict(instance.db.xy_grid or {})
+            first_room_id = grid.get((0, 0))
+            first_room = None
+            if first_room_id:
+                try:
+                    first_room = ObjectDB.objects.get(id=first_room_id)
+                except ObjectDB.DoesNotExist:
+                    pass
+            if not first_room:
+                # Instance corrupt — scrub and keep looking
+                traversing_object.tags.remove(
+                    instance_key, category="dungeon_pending"
+                )
+                continue
+
+            # add_character tags with dungeon_character; pending tag is
+            # retained until corpse is fully looted or decays.
+            instance.add_character(traversing_object)
+            traversing_object.move_to(
+                first_room, quiet=True, move_type="teleport"
+            )
+            traversing_object.msg(
+                "|yYou return to recover your remains.|n"
+            )
+            return True
+
+        return False
 
     # ── Character collection ──────────────────────────────────────────
 

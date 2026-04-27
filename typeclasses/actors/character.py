@@ -709,30 +709,44 @@ class FCMCharacter(
         self._real_death(room, cause)
 
     def _defeat(self, room, cause):
-        """Handle defeat in a no-death room — empty corpse, keep gear, teleport out."""
+        """Handle defeat in a no-death room.
+
+        Two flavours:
+        - Static no-death rooms (inns, banks, arenas): empty flavour corpse,
+          character keeps all gear / gold / resources / XP.
+        - Dungeon rooms (room carries a `dungeon_room` tag): full inventory
+          transferred onto the corpse; corpse tagged `dungeon_corpse` to keep
+          the instance alive; character receives a `dungeon_pending` tag
+          which drives the redirect-on-re-entry flow. See
+          design/PROCEDURAL_DUNGEONS.md § Death and Corpse Recovery.
+        """
         from typeclasses.world_objects.corpse import Corpse
 
-        # Capture height before effects removal can change it
+        # Capture height before effects/unequip can change it
         actor_height = self.room_vertical_position
 
-        # 1. Stop combat handler if active
         self.exit_combat()
-
-        # 2. Clear all effects to prevent DoTs following player to safe room
         self.clear_all_effects()
 
-        # 3. Remove dungeon_character tag if in a dungeon instance
-        dungeon_tag = self.tags.get(category="dungeon_character")
-        if dungeon_tag:
-            self.tags.remove(dungeon_tag, category="dungeon_character")
+        # Detect dungeon room and resolve instance + template
+        is_dungeon = bool(room and room.tags.get(category="dungeon_room"))
+        instance_key = None
+        template = None
+        if is_dungeon:
+            instance_key = room.tags.get(category="dungeon_room")
+            from evennia import ScriptDB
 
-        # 4. Empty corpse for flavour (no items, no gold, no resources)
-        #    key="corpse" so name searches don't match the corpse (see mob.py)
-        corpse = create_object(
-            Corpse,
-            key="corpse",
-            location=room,
-        )
+            try:
+                instance = ScriptDB.objects.get(db_key=instance_key)
+                template = instance.template
+            except ScriptDB.DoesNotExist:
+                # Race: instance vanished between room-tag-read and lookup.
+                # Fall back to legacy empty-corpse flow.
+                is_dungeon = False
+                instance_key = None
+
+        # Create corpse
+        corpse = create_object(Corpse, key="corpse", location=room)
         corpse.owner_character_key = self.key
         corpse.owner_name = self.key
         corpse.cause_of_death = "defeat"
@@ -748,19 +762,38 @@ class FCMCharacter(
         elif actor_height < 0:
             corpse.room_vertical_position = actor_height
 
-        corpse.start_timers()
+        # Branch: dungeon vs. static no-death
+        if is_dungeon and instance_key:
+            corpse.tags.add(instance_key, category="dungeon_corpse")
+            # Convert dungeon_character → dungeon_pending on the player
+            self.tags.remove(instance_key, category="dungeon_character")
+            self.tags.add(instance_key, category="dungeon_pending")
+            # Transfer full inventory onto the corpse
+            self._transfer_inventory_to_corpse(corpse)
+            dungeon_name = template.name if template else "the dungeon"
+            defeat_msg = (
+                f"|rYou have been defeated!|n Your body lies in "
+                f"{dungeon_name} — return through its entrance to reclaim "
+                f"what you carried."
+            )
+        else:
+            # Static no-death room: scrub any stray dungeon_character tag
+            # (defensive — non-dungeon no-death rooms shouldn't have one),
+            # keep all gear, empty flavour corpse.
+            dungeon_tag = self.tags.get(category="dungeon_character")
+            if dungeon_tag:
+                self.tags.remove(dungeon_tag, category="dungeon_character")
+            defeat_msg = "|yYou have been defeated!|n"
 
-        # 5. Reset HP to 1
+        corpse.start_timers()
         self.hp = 1
 
-        # 6. Announce defeat
         room.msg_contents(
             f"{self.key} has been defeated!",
             exclude=[self], from_obj=self,
         )
-        self.msg("|yYou have been defeated!|n")
+        self.msg(defeat_msg)
 
-        # 7. Teleport to defeat_destination (or home as fallback)
         destination = getattr(room, "defeat_destination", None)
         if destination is None:
             destination = self.home
@@ -776,12 +809,12 @@ class FCMCharacter(
         make corpse → transfer items. This ensures no stale buff state leaks
         into purgatory and combat is cleanly exited before item transfer.
         """
-        from typeclasses.items.base_nft_item import BaseNFTItem
         from typeclasses.world_objects.corpse import Corpse
 
         # Capture height before effects/equipment removal can change it.
         # Equipment-granted FLY persists through clear_all_effects() and is
-        # only removed at unequip (step 4), which happens after corpse creation.
+        # only removed at unequip (inside the inventory-transfer helper),
+        # which happens after corpse creation.
         actor_height = self.room_vertical_position
 
         # 1. Stop combat — clean up handler, pending actions, combat effects
@@ -815,26 +848,8 @@ class FCMCharacter(
         elif actor_height < 0:
             corpse.room_vertical_position = actor_height
 
-        # 4. Unequip all worn/wielded/held items
-        #    remove() fires at_remove() hooks which decrement conditions
-        for item in list(self.get_all_worn().values()):
-            if item is not None:
-                self.remove(item)
-
-        # 5. Move all NFT items to corpse
-        for obj in list(self.contents):
-            if isinstance(obj, BaseNFTItem):
-                obj.move_to(corpse, quiet=True, move_type="teleport")
-
-        # 6. Transfer all gold to corpse
-        gold = self.get_gold()
-        if gold > 0:
-            self.transfer_gold_to(corpse, gold)
-
-        # 7. Transfer all resources to corpse
-        for rid, amt in list(self.get_all_resources().items()):
-            if amt > 0:
-                self.transfer_resource_to(corpse, rid, amt)
+        # 4-7. Unequip + transfer all items, gold, resources to corpse
+        self._transfer_inventory_to_corpse(corpse)
 
         # 8. Reset hunger and thirst to full with free tick (prevent immediate re-death)
         self.hunger_level = HungerLevel.FULL
@@ -883,6 +898,36 @@ class FCMCharacter(
             self.msg("You feel yourself drawn back to the world of the living...")
             # Reset _dying after 1s so same-tick damage can't re-trigger death
             delay(1, self._reset_dying)
+
+    def _transfer_inventory_to_corpse(self, corpse):
+        """Move all worn/wielded gear, NFTs, gold, and resources onto corpse.
+
+        Shared by `_real_death` and the dungeon branch of `_defeat`. Order
+        matters: unequip first (fires at_remove hooks which decrement
+        equipment-granted bonuses and conditions), then move NFTs, then
+        transfer fungibles.
+        """
+        from typeclasses.items.base_nft_item import BaseNFTItem
+
+        # Unequip all worn/wielded/held items
+        for item in list(self.get_all_worn().values()):
+            if item is not None:
+                self.remove(item)
+
+        # Move all NFT items to corpse
+        for obj in list(self.contents):
+            if isinstance(obj, BaseNFTItem):
+                obj.move_to(corpse, quiet=True, move_type="teleport")
+
+        # Transfer all gold to corpse
+        gold = self.get_gold()
+        if gold > 0:
+            self.transfer_gold_to(corpse, gold)
+
+        # Transfer all resources to corpse
+        for rid, amt in list(self.get_all_resources().items()):
+            if amt > 0:
+                self.transfer_resource_to(corpse, rid, amt)
 
     def _purgatory_release(self):
         """Auto-release from purgatory after the timer expires."""

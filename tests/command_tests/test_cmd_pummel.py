@@ -349,3 +349,56 @@ class TestPummelCombat(_PummelTestBase):
         self.room1.allow_combat = False
         result = self.call(CmdPummel(), self.char2.key, caller=self.char1)
         self.assertIn("not allowed", result)
+
+
+# ================================================================== #
+#  XP Award Tests
+# ================================================================== #
+
+
+class TestPummelXP(_PummelTestBase):
+    """Successful pummel awards target.level XP; failure awards none."""
+
+    def setUp(self):
+        super().setUp()
+        self.mob = create.create_object(
+            "typeclasses.actors.mobs.dire_wolf.DireWolf",
+            key="dire wolf",
+            location=self.room1,
+        )
+        self.mob.hp = 30
+        self.mob.hp_max = 30
+        self.mob.level = 9
+
+    def tearDown(self):
+        handlers = self.mob.scripts.get("combat_handler")
+        if handlers:
+            for h in handlers:
+                h.stop()
+                h.delete()
+        self.mob.delete()
+        super().tearDown()
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_pummel_success_awards_target_level_xp(
+        self, mock_award, mock_roll, mock_ticker
+    ):
+        self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        mock_roll.side_effect = [18, 5]
+        self.call(CmdPummel(), self.mob.key, caller=self.char1)
+        mock_award.assert_called_once_with(self.char1, 9, target=self.mob)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_pummel_failure_awards_no_xp(
+        self, mock_award, mock_roll, mock_ticker
+    ):
+        self._set_pummel_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        mock_roll.side_effect = [3, 18]
+        self.call(CmdPummel(), self.mob.key, caller=self.char1)
+        mock_award.assert_not_called()

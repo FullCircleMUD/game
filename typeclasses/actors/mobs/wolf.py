@@ -27,22 +27,22 @@ class Wolf(AggressiveMob):
     )
 
     # ── Stats ──
-    hp = AttributeProperty(12)
-    base_hp_max = AttributeProperty(12)
-    hp_max = AttributeProperty(12)
+    hp = AttributeProperty(15)
+    base_hp_max = AttributeProperty(15)
+    hp_max = AttributeProperty(15)
     base_strength = AttributeProperty(12)
     strength = AttributeProperty(12)
-    base_dexterity = AttributeProperty(13)
-    dexterity = AttributeProperty(13)
+    base_dexterity = AttributeProperty(14)
+    dexterity = AttributeProperty(14)
     base_constitution = AttributeProperty(12)
     constitution = AttributeProperty(12)
     base_armor_class = AttributeProperty(11)
     armor_class = AttributeProperty(11)
-    level = AttributeProperty(2)
+    level = AttributeProperty(3)
 
     # ── Combat ──
     initiative_speed = AttributeProperty(2)
-    damage_dice = AttributeProperty("1d4")
+    damage_dice = AttributeProperty("1d4+1")
     damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("bites")
     attack_delay_min = AttributeProperty(2)
@@ -58,7 +58,6 @@ class Wolf(AggressiveMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(120)
 
     # ── Area ──
     den_room_tag = AttributeProperty("woods_wolves")

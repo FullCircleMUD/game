@@ -445,7 +445,6 @@ class TestTrainingDummy(EvenniaTest):
         self.assertEqual(dummy.hp_max, 20)
         self.assertEqual(dummy.damage_dice, "1d2")
         self.assertFalse(dummy.is_aggressive_to_players)
-        self.assertEqual(dummy.respawn_delay, 5)
 
     def test_dummy_does_not_wander(self):
         """Training dummy ai_wander should be a no-op."""

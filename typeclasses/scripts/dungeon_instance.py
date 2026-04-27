@@ -103,8 +103,33 @@ class DungeonInstanceScript(DefaultScript):
         char.tags.remove(self.instance_key, category="dungeon_character")
 
     def get_characters(self):
-        """Get all characters tagged for this instance."""
+        """Get all characters tagged for this instance.
+
+        Returns ALL tagged objects regardless of physical location. Used by
+        `add_character`/`remove_character` paths. The collapse gate uses
+        `get_present_characters()` instead — see below.
+        """
         return list(search_tag(self.instance_key, category="dungeon_character"))
+
+    def get_present_characters(self):
+        """Get tagged characters/pets physically inside any dungeon room of
+        this instance.
+
+        Used by the collapse gate. A character carrying the `dungeon_character`
+        tag but standing in the world (e.g. mid-teleport-out, or stale tag)
+        does not count as present. The check is location-based — `room.dungeon_instance_id`
+        is set on every dungeon room at creation time.
+        """
+        present = []
+        for obj in self.get_characters():
+            loc = obj.location
+            if loc and getattr(loc, "dungeon_instance_id", None) == self.id:
+                present.append(obj)
+        return present
+
+    def get_dungeon_corpses(self):
+        """Return all corpses tagged as keeping this instance alive."""
+        return list(search_tag(self.instance_key, category="dungeon_corpse"))
 
     # ------------------------------------------------------------------ #
     #  Room property helper
@@ -368,9 +393,11 @@ class DungeonInstanceScript(DefaultScript):
         """
         Clean up the dungeon instance and destroy all dungeon objects.
 
-        If any characters are still inside (AFK, disconnected, or safety
-        timeout), silently teleports them to the entrance. Returns
-        fungibles to reserve and deletes all tagged rooms/exits/mobs.
+        If any characters are still physically inside (AFK, disconnected, or
+        safety timeout), silently teleports them to the entrance. Scrubs any
+        leftover `dungeon_character` and `dungeon_pending` tags. Defensively
+        despawns any remaining `dungeon_corpse` corpses (returning their
+        contents to RESERVE). Deletes all tagged rooms/exits/mobs.
         """
         if self.state == "done":
             return
@@ -378,11 +405,33 @@ class DungeonInstanceScript(DefaultScript):
         self.state = "collapsing"
         entrance = self.entrance_room
 
-        # Silently evacuate any remaining characters (safety net only)
-        for char in self.get_characters():
+        # Evacuate physically-present characters to the entrance
+        for char in self.get_present_characters():
             if entrance:
                 char.move_to(entrance, quiet=True, move_type="teleport")
             self.remove_character(char)
+
+        # Defence in depth: scrub any leftover dungeon_character tags from
+        # absent characters (e.g. mid-teleport stragglers).
+        for char in search_tag(self.instance_key, category="dungeon_character"):
+            char.tags.remove(self.instance_key, category="dungeon_character")
+
+        # Scrub dungeon_pending tags. Disconnected puppets receive msg()
+        # silently in Evennia, so the unconditional notify is harmless and
+        # connected players see the closure message.
+        for char in search_tag(self.instance_key, category="dungeon_pending"):
+            char.tags.remove(self.instance_key, category="dungeon_pending")
+            char.msg(
+                "|yThe dungeon you died in has collapsed — "
+                "your remains and gear are lost.|n"
+            )
+
+        # Defensive corpse cleanup: collapse should not normally fire while
+        # corpses exist (the gate check prevents it), but cover race conditions
+        # and forced cleanup paths. `despawn()` returns fungibles to RESERVE
+        # and deletes NFTs cleanly.
+        for corpse in self.get_dungeon_corpses():
+            corpse.despawn()
 
         # Delete mobs
         for mob in search_tag(self.instance_key, category="dungeon_mob"):
@@ -411,7 +460,13 @@ class DungeonInstanceScript(DefaultScript):
     # ------------------------------------------------------------------ #
 
     def at_repeat(self):
-        """Check collapse conditions. Never collapse while characters are present."""
+        """Check collapse conditions.
+
+        Collapses if no character is physically present in any dungeon room
+        of this instance AND no `dungeon_corpse` tag exists for this instance.
+        Either condition individually keeps the instance alive — players inside
+        OR pending corpses awaiting recovery.
+        """
         if self.state == "done":
             self.stop()
             return
@@ -419,8 +474,11 @@ class DungeonInstanceScript(DefaultScript):
         now = timezone.now()
         template = self.template
 
-        # All characters/pets left? Collapse (with optional delay).
-        if not self.get_characters():
+        present = self.get_present_characters()
+        corpses = self.get_dungeon_corpses()
+
+        # No characters physically inside, no corpses — collapse eligible
+        if not present and not corpses:
             if template.empty_collapse_delay > 0:
                 if not self.emptied_at:
                     self.emptied_at = now
@@ -431,5 +489,5 @@ class DungeonInstanceScript(DefaultScript):
                 self.collapse_instance()
             return
 
-        # Characters present — reset empty timer
+        # Something keeping the instance alive — reset empty timer
         self.emptied_at = None

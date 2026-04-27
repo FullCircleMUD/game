@@ -49,7 +49,6 @@ class Heffalump(AggressiveMob):
 
     # ── AI timing — short tick = fast aggro ──
     ai_tick_interval = AttributeProperty(3)
-    respawn_delay = AttributeProperty(600)
 
     def ai_wander(self):
         """Stationary — the Heffalump stays in Pooh's Trap."""

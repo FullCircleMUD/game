@@ -20,3 +20,4 @@ class CmdNick(FCMCommandMixin, _CmdNick):
 
     help_category = "System"
     aliases = ["alias"]
+    allow_while_sleeping = True

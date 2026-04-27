@@ -22,18 +22,18 @@ from world.cartography.map_registry import register_map
 # col:  0  3  6  9  12 15 18 21 24 27 30 33 36
 #
 # r0:                ~  L--Z ~         F
-# r1:                ~  ~  ~     ~  ~  M--D
+# r1:                ~  ~  ~     ~  ~  M--D--Z
 # r2:                C--#        ~  ?  ~
 # r3:    F     F     T  T  T  R  ~  ~  ~
 # r4: R--#--#--#--#--T--T--T--#--#--#--#--#--Z
-# r5:       #        T  T  T  R  ~  ~  ~
-# r6:       #--?        #        ~  R  ~
-# r7:       #           #        ~  ~  ~
-# r8:       #           F
-# r9:       #           #
-# r10:      #        ?--~--?
-# r11:      #           #
-# r12:      #--#--#--#--#
+# r5:       #     R  T  T  T  R  ~  ~  ~
+# r6:       #--?        @        ~  R  ~                            
+# r7:       #--#--#--#--#        ~  ~  ~
+# r8:              ? ~  #  ~ ?
+# r9:                ~  #  ~ 
+# r10:             ? ~  #  ~ ?
+# r11:                  #
+# r12:                  !--?
 # r13:                  Z
 
 #        0123456789012345678901234567890123456789
@@ -44,15 +44,15 @@ _TEMPLATE = (
     "            .--.           .  .  .\n"           # r2:  cemetery(c12)--north_road(c15), deep_woods x2, faerie
     "   .     .     .  .  .  .  .  .  .\n"           # r3:  farms, town top, sawmill, woods
     ".--.--.--.--.--.--.--.--.--.--.--.--.\n"        # r4:  main road
-    "      .        .  .  .  .  .  .  .\n"           # r5:  south fork, town bot, smelter, woods
-    "      .--.        .        .  .  .\n"           # r6:  south road, bandits, road, woods+tannery
-    "      .           .        .  .  .\n"           # r7:  south road, road, woods
-    "      .           .\n"                          # r8:  moonpetal, road
-    "      .           .\n"                          # r9:  south road, road
-    "      .        .--.--.\n"                       # r10: south road, ravaged--gnoll--barrow
-    "      .           .\n"                          # r11: south road, road
-    "      .--.--.--.--.          \n"                # r12: south approach road
-    "                  .          "                  # r13: shadowsward gate
+    "      .     .  .  .  .  .  .  .  .\n"           # r5:  south_fork(c6), cotton_mill(c12), town_sw/s/se(c15/18/21), smelter(c24), woods_south x3
+    "      .--.        .        .  .  .\n"           # r6:  farms_south_road_n(c6)--abandoned_farm(c9), south_gate(c18), woods_deep_sw/tannery/woods_deep_se(c27/30/33)
+    "      .--.--.--.--.        .  .  .\n"           # r7:  farms_south_road_w/mw/me/e--forests_edge_cell(c6..c18), woods_far x3(c27/30/33)
+    "            .  .  .  .  .\n"                    # r8:  moonpetal_2(c12), forest_nw(c15), forest_path_n(c18), forest_ne(c21), raven_sage(c24)
+    "               .  .  .\n"                       # r9:  forest_mid_w(c15), forest_path_ravine(c18), forest_mid_e(c21)
+    "            .  .  .  .  .\n"                    # r10: bobbin_camp(c12), forest_sw(c15), forest_path_s(c18), forest_se(c21), moonpetal_1(c24)
+    "                  .\n"                          # r11: grasslands(c18)
+    "                  .--.\n"                       # r12: gnoll_camp(c18)--barrow_underground(c21)
+    "                  .          "                  # r13: shadowsward_gate(c18)
 )
 
 _POINT_CELLS = {
@@ -116,29 +116,36 @@ _POINT_CELLS = {
     "farm_road_e":        {"pos": [(4, 9)],  "poi": "road"},
     "farm_road_far_e":    {"pos": [(4, 12)], "poi": "road"},
     "woods_exit":         {"pos": [(4, 36)], "poi": "zone_boundary"},
-    # ── Southern district ──
-    "south_fork":         {"pos": [(5, 6)],  "poi": "road"},
-    "south_road_1":       {"pos": [(6, 6)],  "poi": "road"},
-    "bandits":            {"pos": [(6, 9)],  "poi": "unknown"},
-    "south_road_2":       {"pos": [(6, 18)], "poi": "road"},
-    "south_road_3":       {"pos": [(7, 6)],  "poi": "road"},
-    "south_road_4":       {"pos": [(7, 18)], "poi": "road"},
-    "moonpetal_fields":   {"pos": [(8, 6)],  "poi": "farm"},
-    "moonpetal_road":     {"pos": [(8, 18)], "poi": "farm"},
-    "south_road_5":       {"pos": [(9, 6)],  "poi": "road"},
-    "south_road_6":       {"pos": [(9, 18)], "poi": "road"},
-    "south_road_gnoll":   {"pos": [(10, 6)],  "poi": "road"},
-    "ravaged_farmstead":  {"pos": [(10, 15)], "poi": "unknown"},
-    "gnoll_territory":    {"pos": [(10, 18)], "poi": "woods"},
-    "barrow_hill":        {"pos": [(10, 21)], "poi": "unknown"},
-    "south_road_7":       {"pos": [(11, 6)], "poi": "road"},
-    "south_road_8":       {"pos": [(11, 18)], "poi": "road"},
-    "south_approach_w":   {"pos": [(12, 6)], "poi": "road"},
-    "south_approach_1":   {"pos": [(12, 9)], "poi": "road"},
-    "south_approach_2":   {"pos": [(12, 12)], "poi": "road"},
-    "south_approach_3":   {"pos": [(12, 15)], "poi": "road"},
-    "south_approach_e":   {"pos": [(12, 18)], "poi": "road"},
-    "shadowsward_gate":   {"pos": [(13, 18)], "poi": "zone_boundary"},
+    # ── Farms south extension ─────────────────────────────────────
+    "south_fork":              {"pos": [(5, 6)],  "poi": "road"},
+    "cotton_mill":             {"pos": [(5, 12)], "poi": "resource_processing"},
+    "farms_south_road_n":      {"pos": [(6, 6)],  "poi": "road"},
+    "abandoned_farm":          {"pos": [(6, 9)],  "poi": "unknown"},
+    "farms_south_road_w":      {"pos": [(7, 6)],  "poi": "road"},
+    "farms_south_road_mw":     {"pos": [(7, 9)],  "poi": "road"},
+    "farms_south_road_me":     {"pos": [(7, 12)], "poi": "road"},
+    "farms_south_road_e":      {"pos": [(7, 15)], "poi": "road"},
+    # ── Town south gate (region-scale tag) ────────────────────────
+    "south_gate":              {"pos": [(6, 18)], "poi": "gate"},
+    # ── Southern district ─────────────────────────────────────────
+    "forests_edge_cell":       {"pos": [(7, 18)], "poi": "road"},
+    "moonpetal_2":             {"pos": [(8, 12)], "poi": "unknown"},
+    "forest_nw":               {"pos": [(8, 15)], "poi": "woods"},
+    "forest_path_n":           {"pos": [(8, 18)], "poi": "road"},
+    "forest_ne":               {"pos": [(8, 21)], "poi": "woods"},
+    "raven_sage":              {"pos": [(8, 24)], "poi": "unknown"},
+    "forest_mid_w":            {"pos": [(9, 15)], "poi": "woods"},
+    "forest_path_ravine":      {"pos": [(9, 18)], "poi": "road"},
+    "forest_mid_e":            {"pos": [(9, 21)], "poi": "woods"},
+    "bobbin_camp":             {"pos": [(10, 12)], "poi": "unknown"},
+    "forest_sw":               {"pos": [(10, 15)], "poi": "woods"},
+    "forest_path_s":           {"pos": [(10, 18)], "poi": "road"},
+    "forest_se":               {"pos": [(10, 21)], "poi": "woods"},
+    "moonpetal_1":             {"pos": [(10, 24)], "poi": "unknown"},
+    "grasslands":              {"pos": [(11, 18)], "poi": "road"},
+    "gnoll_camp":              {"pos": [(12, 18)], "poi": "lair"},
+    "barrow_underground":      {"pos": [(12, 21)], "poi": "unknown"},
+    "shadowsward_gate":        {"pos": [(13, 18)], "poi": "zone_boundary"},
 }
 
 register_map({

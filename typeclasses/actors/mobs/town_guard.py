@@ -119,7 +119,6 @@ class GuardSergeant(BashAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, LLM
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(3600)
 
     def ai_wander(self):
         """Stationary — sergeant stays at the gate."""
@@ -188,7 +187,6 @@ class MeleeGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidWe
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(3600)
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -252,7 +250,6 @@ class RangedGuard(BashAbility, WeaponMasteryMixin, MobFollowableMixin, HumanoidW
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(6)
-    respawn_delay = AttributeProperty(3600)
 
     def at_object_creation(self):
         super().at_object_creation()

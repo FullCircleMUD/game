@@ -102,7 +102,7 @@ class CmdInset(FCMCommandMixin, Command):
             return
         gem = gem[0] if isinstance(gem, list) else gem
 
-        if not gem.db.gem_effects:
+        if not gem.db.wear_effects:
             caller.msg(f"{gem.key} is not an enchanted gem.")
             return
 
@@ -147,8 +147,8 @@ class CmdInset(FCMCommandMixin, Command):
             )
             return
 
-        # --- Check weapon doesn't already have inset gem effects ---
-        if weapon.db.gem_effects:
+        # --- Check weapon doesn't already have an inset gem ---
+        if weapon.is_inset:
             caller.msg(
                 f"{weapon.key} already has an inset gem. "
                 f"A weapon can only hold one gem."
@@ -166,7 +166,7 @@ class CmdInset(FCMCommandMixin, Command):
             return
 
         # --- Confirmation ---
-        gem_effects = gem.db.gem_effects
+        gem_effects = gem.db.wear_effects
         effect_desc = ", ".join(
             _describe_effect(e) for e in gem_effects
         )
@@ -197,9 +197,19 @@ class CmdInset(FCMCommandMixin, Command):
         # --- Consume gold ---
         caller.return_gold_to_sink(total_gold)
 
-        # --- Capture gem data before deletion (convert to plain types) ---
-        gem_effects = list(gem.db.gem_effects)
-        gem_restrictions = dict(gem.db.gem_restrictions or {})
+        # --- Capture gem data before deletion (read directly from the
+        # gem's existing fields — wear_effects + ItemRestrictionMixin
+        # fields. No custom storage; same field names that exist on the
+        # weapon, so transfer is just field-by-field copy/merge.) ---
+        gem_effects = list(gem.db.wear_effects)
+        gem_restrictions = {
+            "required_classes": list(gem.required_classes or []),
+            "excluded_classes": list(gem.excluded_classes or []),
+            "required_races":   list(gem.required_races or []),
+            "excluded_races":   list(gem.excluded_races or []),
+            "min_alignment_score": gem.min_alignment_score,
+            "max_alignment_score": gem.max_alignment_score,
+        }
 
         # --- Consume the gem (delete → NFTService → RESERVE) ---
         gem.delete()
@@ -226,13 +236,21 @@ class CmdInset(FCMCommandMixin, Command):
                 caller.msg(f"Insetting... [{bar}] Done!")
 
                 try:
-                    # Extend weapon's wear_effects with gem effects
-                    original_effects = list(weapon.wear_effects or [])
-                    weapon.wear_effects = original_effects + gem_effects
+                    # Transfer gem effects → weapon.wear_effects (extend)
+                    weapon.wear_effects = (
+                        list(weapon.wear_effects or []) + gem_effects
+                    )
 
-                    # Store gem data on weapon
-                    weapon.db.gem_effects = gem_effects
-                    weapon.db.gem_restrictions = gem_restrictions
+                    # Transfer gem restrictions → weapon ItemRestrictionMixin
+                    # fields. Lists are unioned (deduplicated); alignment
+                    # bounds take the more restrictive value.
+                    _merge_list_field(weapon, "required_classes", gem_restrictions)
+                    _merge_list_field(weapon, "excluded_classes", gem_restrictions)
+                    _merge_list_field(weapon, "required_races",   gem_restrictions)
+                    _merge_list_field(weapon, "excluded_races",   gem_restrictions)
+                    _merge_min_bound(weapon, "min_alignment_score", gem_restrictions)
+                    _merge_max_bound(weapon, "max_alignment_score", gem_restrictions)
+
                     weapon.is_inset = True
 
                     # Generate LLM name
@@ -241,14 +259,21 @@ class CmdInset(FCMCommandMixin, Command):
                     )
                     weapon.key = new_name
 
-                    # Persist to NFTGameState metadata
+                    # Persist updated fields to NFTGameState metadata so the
+                    # weapon survives despawn/respawn. Uses the same field
+                    # names as ItemRestrictionMixin / WearableMixin —
+                    # no custom keys.
                     nft = NFTGameState.objects.get(
                         nftoken_id=str(weapon.token_id),
                     )
                     nft.metadata["name"] = new_name
                     nft.metadata["wear_effects"] = weapon.wear_effects
-                    nft.metadata["gem_effects"] = gem_effects
-                    nft.metadata["gem_restrictions"] = gem_restrictions
+                    nft.metadata["required_classes"] = list(weapon.required_classes or [])
+                    nft.metadata["excluded_classes"] = list(weapon.excluded_classes or [])
+                    nft.metadata["required_races"]   = list(weapon.required_races or [])
+                    nft.metadata["excluded_races"]   = list(weapon.excluded_races or [])
+                    nft.metadata["min_alignment_score"] = weapon.min_alignment_score
+                    nft.metadata["max_alignment_score"] = weapon.max_alignment_score
                     nft.metadata["is_inset"] = True
                     nft.save(update_fields=["metadata", "updated_at"])
 
@@ -280,6 +305,34 @@ class CmdInset(FCMCommandMixin, Command):
         delay(INSET_TICK_SECONDS, _tick, 1)
 
 
+def _merge_list_field(weapon, field, gem_restrictions):
+    """Union the gem's list-shaped restriction into the weapon's field."""
+    incoming = gem_restrictions.get(field) or []
+    if not incoming:
+        return
+    existing = list(getattr(weapon, field, None) or [])
+    merged = existing + [v for v in incoming if v not in existing]
+    setattr(weapon, field, merged)
+
+
+def _merge_min_bound(weapon, field, gem_restrictions):
+    """Take the more restrictive (higher) min bound."""
+    incoming = gem_restrictions.get(field)
+    if incoming is None:
+        return
+    existing = getattr(weapon, field, None)
+    setattr(weapon, field, incoming if existing is None else max(existing, incoming))
+
+
+def _merge_max_bound(weapon, field, gem_restrictions):
+    """Take the more restrictive (lower) max bound."""
+    incoming = gem_restrictions.get(field)
+    if incoming is None:
+        return
+    existing = getattr(weapon, field, None)
+    setattr(weapon, field, incoming if existing is None else min(existing, incoming))
+
+
 def _describe_effect(effect):
     """Format a single effect dict into a human-readable string."""
     etype = effect.get("type", "")
@@ -290,6 +343,9 @@ def _describe_effect(effect):
         return f"{sign}{value} {stat}"
     elif etype == "condition":
         return effect.get("condition", "unknown").replace("_", " ")
+    elif etype == "damage_resistance":
+        dtype = effect.get("damage_type", "unknown")
+        return f"{effect.get('value', 0)}% {dtype} resistance"
     elif etype == "hit_bonus":
         wtype = effect.get("weapon_type", "").replace("_", " ")
         value = effect.get("value", 0)

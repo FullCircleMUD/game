@@ -473,3 +473,73 @@ class TestStabDamage(EvenniaCommandTest):
 
         # Bonus dice should be cleared
         self.assertEqual(handler.bonus_attack_dice, "")
+
+
+# ================================================================== #
+#  XP Award Tests
+# ================================================================== #
+
+
+class TestStabXP(EvenniaCommandTest):
+    """Successful stab awards target.level XP via the helper."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.room1.allow_combat = True
+        self.char1.hp = 20
+        self.char1.hp_max = 20
+        self.char1.move = 100
+        self.char2.hp = 20
+        self.char2.hp_max = 20
+        self.char2.level = 12
+        self.dagger = create.create_object(
+            "typeclasses.items.weapons.dagger_nft_item.DaggerNFTItem",
+            key="test dagger",
+        )
+        self.char1.db.wearslots["WIELD"] = self.dagger
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        if self.dagger:
+            self.dagger.delete()
+        super().tearDown()
+
+    def _set_stab_mastery(self, char, level):
+        if not char.db.class_skill_mastery_levels:
+            char.db.class_skill_mastery_levels = {}
+        char.db.class_skill_mastery_levels[skills.STAB.value] = {
+            "mastery": level.value, "classes": ["Thief"],
+        }
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_stab_opener_awards_target_level_xp(
+        self, mock_award, mock_ticker
+    ):
+        self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
+        self.char1.add_condition(Condition.HIDDEN)
+        self.call(CmdStab(), self.char2.key)
+        mock_award.assert_called_once_with(self.char1, 12, target=self.char2)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.skill_xp.award_skill_xp")
+    def test_stab_blocked_no_advantage_awards_no_xp(
+        self, mock_award, mock_ticker
+    ):
+        self._set_stab_mastery(self.char1, MasteryLevel.BASIC)
+        # Not hidden, not in combat → returns before XP hook
+        self.call(CmdStab(), self.char2.key)
+        mock_award.assert_not_called()

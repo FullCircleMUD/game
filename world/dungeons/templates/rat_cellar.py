@@ -77,6 +77,8 @@ def generate_rat_cellar_room(instance, depth, coords):
         room = create_object(DungeonRoom, key="Rat King's Lair")
         room.db.desc = _ROOM2_DESC
 
+    room.set_zone("millholm")
+    room.set_district("millholm_town")
     return room
 
 

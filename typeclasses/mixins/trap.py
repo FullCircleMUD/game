@@ -254,6 +254,8 @@ class TrapMixin:
         if total >= self.trap_disarm_dc:
             self.trap_armed = False
             self.at_trap_disarm(character)
+            from utils.skill_xp import award_skill_xp
+            award_skill_xp(character, 10 * self.trap_disarm_dc)
             return True, (
                 f"You carefully disarm {self.trap_description}."
             )

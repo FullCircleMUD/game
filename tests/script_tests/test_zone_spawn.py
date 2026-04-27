@@ -514,8 +514,8 @@ class TestCombatMobDeath(EvenniaTest):
             nohome=True,
         )
 
-    def test_common_mob_deleted_on_death(self):
-        """Common mob (is_unique=False) is deleted on death."""
+    def test_mob_deleted_on_death(self):
+        """Mob is deleted on death — ZoneSpawnScript spawns a fresh replacement."""
         mob = create.create_object(
             "typeclasses.actors.mobs.rabbit.Rabbit",
             key="a rabbit",
@@ -526,22 +526,6 @@ class TestCombatMobDeath(EvenniaTest):
 
         from evennia import ObjectDB
         self.assertFalse(ObjectDB.objects.filter(id=mob_id).exists())
-
-    def test_unique_mob_not_deleted_on_death(self):
-        """Unique mob (is_unique=True) is NOT deleted — parks in limbo."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.rabbit.Rabbit",
-            key="boss rabbit",
-            location=self.room,
-        )
-        mob.is_unique = True
-        mob_id = mob.id
-        mob.die(cause="test")
-
-        from evennia import ObjectDB
-        self.assertTrue(ObjectDB.objects.filter(id=mob_id).exists())
-        obj = ObjectDB.objects.get(id=mob_id)
-        self.assertIsNone(obj.location)
 
     def test_die_notifies_spawn_script_when_rule_id_set(self):
         """A mob spawned with spawn_rule_id notifies the ZoneSpawnScript on death."""

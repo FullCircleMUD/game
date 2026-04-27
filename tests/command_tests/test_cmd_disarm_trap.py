@@ -211,3 +211,50 @@ class TestCmdDisarmTrap(EvenniaCommandTest):
             self.call(CmdDisarmTrap(), "north", "You carefully disarm")
 
         self.assertFalse(tripwire.trap_armed)
+
+    # ── XP Award ──
+
+    def test_disarm_success_awards_10x_dc_xp(self):
+        """Successful disarm awards 10 × trap_disarm_dc XP."""
+        chest = create.create_object(
+            "typeclasses.world_objects.trap_chest.TrapChest",
+            key="ornate chest",
+            location=self.room1,
+            nohome=True,
+        )
+        chest.is_trapped = True
+        chest.trap_armed = True
+        chest.trap_detected = True
+        chest.trap_disarm_dc = 12
+        chest.trap_description = "a poison dart trap"
+
+        _give_subterfuge(self.char1)
+        with patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage",
+                   return_value=20):
+            with patch("utils.skill_xp.award_skill_xp") as mock_award:
+                self.call(CmdDisarmTrap(), "ornate chest", "You carefully disarm")
+        mock_award.assert_called_once_with(self.char1, 120)
+
+    def test_disarm_failure_awards_no_xp(self):
+        """Failed disarm awards no XP."""
+        chest = create.create_object(
+            "typeclasses.world_objects.trap_chest.TrapChest",
+            key="chest",
+            location=self.room1,
+            nohome=True,
+        )
+        chest.is_trapped = True
+        chest.trap_armed = True
+        chest.trap_detected = True
+        chest.trap_disarm_dc = 30
+        chest.trap_damage_dice = "1d4"
+        chest.trap_damage_type = "fire"
+
+        self.char1.db.hp = 50
+        _give_subterfuge(self.char1)
+        with patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage",
+                   return_value=1):
+            with patch("utils.dice_roller.DiceRoller.roll", return_value=2):
+                with patch("utils.skill_xp.award_skill_xp") as mock_award:
+                    self.call(CmdDisarmTrap(), "chest", "A trap springs!")
+        mock_award.assert_not_called()

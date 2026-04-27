@@ -589,7 +589,6 @@ class TestCombatUtils(EvenniaCommandTest):
         )
         mob.hp = 1
         mob.hp_max = 1
-        mob.is_unique = False  # common mob → deleted on death
 
         try:
             with patch("combat.combat_utils.dice") as mock_dice:

@@ -56,7 +56,6 @@ class Mouse(CombatMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(30)
 
     def ai_wander(self):
         """Wander quietly. Flee combat if engaged."""

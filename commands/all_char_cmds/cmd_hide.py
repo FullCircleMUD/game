@@ -121,6 +121,8 @@ class CmdHide(FCMCommandMixin, Command):
         if total >= dc:
             caller.add_condition(Condition.HIDDEN)
             caller.msg("|gYou slip into the shadows, unseen.|n")
+            from utils.skill_xp import award_skill_xp
+            award_skill_xp(caller, dc)
         else:
             caller.msg(
                 "You look for a place to hide but can't find adequate cover."

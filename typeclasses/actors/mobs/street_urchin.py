@@ -55,7 +55,6 @@ class StreetUrchin(CombatMob):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(600)  # 10 minutes
 
     # ── Pickpocket delay ──
     _pickpocket_delay = 10  # seconds before attempting

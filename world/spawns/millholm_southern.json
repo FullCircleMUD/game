@@ -43,5 +43,266 @@
         "max_per_room": 1,
         "death_cooldown_seconds": 1800,
         "desc": "A towering gnoll stands head and shoulders above its kin, its mottled fur streaked with warpaint in red and black. A massive greataxe rests across its shoulders, its blade stained dark. The warlord's yellow eyes burn with feral intelligence, and a necklace of teeth and finger bones rattles at its throat."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "key": "a direwolf",
+        "area_tag": "wolves_ne",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1800,
+        "den_room_tag": "wolves_ne_den",
+        "attrs": {"den_room_tag": "wolves_ne_den"},
+        "desc": "A massive grey wolf, head and shoulders larger than its kin. Heavy with muscle, scarred across the muzzle, amber eyes hard as flint."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolf",
+        "key": "a southern wolf",
+        "area_tag": "wolves_ne",
+        "target": 2,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_ne_den",
+        "attrs": {"den_room_tag": "wolves_ne_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolfFatLoad",
+        "key": "a southern wolf",
+        "area_tag": "wolves_ne",
+        "target": 1,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_ne_den",
+        "attrs": {"den_room_tag": "wolves_ne_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "key": "a direwolf",
+        "area_tag": "wolves_nw",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1800,
+        "den_room_tag": "wolves_nw_den",
+        "attrs": {"den_room_tag": "wolves_nw_den"},
+        "desc": "A massive grey wolf, head and shoulders larger than its kin. Heavy with muscle, scarred across the muzzle, amber eyes hard as flint."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolf",
+        "key": "a southern wolf",
+        "area_tag": "wolves_nw",
+        "target": 2,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_nw_den",
+        "attrs": {"den_room_tag": "wolves_nw_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolfFatLoad",
+        "key": "a southern wolf",
+        "area_tag": "wolves_nw",
+        "target": 1,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_nw_den",
+        "attrs": {"den_room_tag": "wolves_nw_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "key": "a direwolf",
+        "area_tag": "wolves_se",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1800,
+        "den_room_tag": "wolves_se_den",
+        "attrs": {"den_room_tag": "wolves_se_den"},
+        "desc": "A massive grey wolf, head and shoulders larger than its kin. Heavy with muscle, scarred across the muzzle, amber eyes hard as flint."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolf",
+        "key": "a southern wolf",
+        "area_tag": "wolves_se",
+        "target": 2,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_se_den",
+        "attrs": {"den_room_tag": "wolves_se_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolfFatLoad",
+        "key": "a southern wolf",
+        "area_tag": "wolves_se",
+        "target": 1,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_se_den",
+        "attrs": {"den_room_tag": "wolves_se_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "key": "a direwolf",
+        "area_tag": "wolves_sw",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1800,
+        "den_room_tag": "wolves_sw_den",
+        "attrs": {"den_room_tag": "wolves_sw_den"},
+        "desc": "A massive grey wolf, head and shoulders larger than its kin. Heavy with muscle, scarred across the muzzle, amber eyes hard as flint."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolf",
+        "key": "a southern wolf",
+        "area_tag": "wolves_sw",
+        "target": 2,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_sw_den",
+        "attrs": {"den_room_tag": "wolves_sw_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.southern_wolf.SouthernWolfFatLoad",
+        "key": "a southern wolf",
+        "area_tag": "wolves_sw",
+        "target": 1,
+        "max_per_room": 4,
+        "death_cooldown_seconds": 1800,
+        "spawn_with_typeclass": "typeclasses.actors.mobs.southern_wolf.Direwolf",
+        "den_room_tag": "wolves_sw_den",
+        "attrs": {"den_room_tag": "wolves_sw_den"},
+        "desc": "A lean grey wolf with darker shoulders, moving with the easy confidence of a pack hunter."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.butterfly.Butterfly",
+        "key": "a butterfly",
+        "area_tag": "moonpetal_meadow",
+        "target": 4,
+        "max_per_room": 1,
+        "respawn_seconds": 60,
+        "desc": "A small butterfly drifts among the silver blooms, wings catching the light."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.raven.RavenFlockLeader",
+        "key": "a raven",
+        "area_tag": "raven_tree_flock",
+        "target": 1,
+        "max_per_room": 8,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A large black raven perches on the great oak, watching with unnerving stillness."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.raven.Raven",
+        "key": "a raven",
+        "area_tag": "raven_tree_flock",
+        "target": 5,
+        "max_per_room": 8,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A large black raven perches on the great oak, watching with unnerving stillness."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.raven.RavenScrollLoad",
+        "key": "a raven",
+        "area_tag": "raven_tree_flock",
+        "target": 1,
+        "max_per_room": 8,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A large black raven perches on the great oak, watching with unnerving stillness."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.raven.RavenRecipeLoad",
+        "key": "a raven",
+        "area_tag": "raven_tree_flock",
+        "target": 1,
+        "max_per_room": 8,
+        "death_cooldown_seconds": 300,
+        "post_spawn_hook": "typeclasses.scripts.spawn_hooks.set_ai_idle",
+        "desc": "A large black raven perches on the great oak, watching with unnerving stillness."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.corren.Corren",
+        "key": "Corren",
+        "area_tag": "corren_haunts",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 600,
+        "desc": "An old man in plain undyed wool stands among the yews and stones. He is lean, weathered, and very still. His eyes are pale and his attention is patient. Ravens, when he is near them, do not flinch."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.bobbin_goode.BobbinGoode",
+        "key": "Bobbin Goode",
+        "area_tag": "bandit_camp_leader",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A lean, theatrical figure in extravagant green-and-gold striped tights, leather jerkin, and a feathered cap. Quick-eyed and quicker-tongued, with the bearing of someone permanently mid-performance."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.lyttle_jhon.LyttleJhon",
+        "key": "Lyttle Jhon",
+        "area_tag": "bandit_lieutenant_john",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "An enormous man in patched leathers, a heavy club resting easily across one broad shoulder. He watches the training butts with patient, unhurried eyes."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.wille_scarlett.WilleScarlett",
+        "key": "Wille Scarlett",
+        "area_tag": "bandit_lieutenant_will",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A trim, sharp-eyed swordsman in a deep-red doublet very deliberately arranged. His sword hangs loose on the hip and his footing is the footing of someone who drills."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.friar_pluck.FriarPluck",
+        "key": "Friar Pluck",
+        "area_tag": "bandit_friar",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A round, weather-beaten man in a plain brown habit, sleeves pushed up over thick forearms. A wooden ladle rests in one hand. He looks tired and unsurprised."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.maid_maryann.MaidMaryann",
+        "key": "Maid Maryann",
+        "area_tag": "bandit_maid",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A slight, sharp-eyed woman in practical clothes, a charcoal stick tucked behind one ear. She stands at the map table the way someone stands at a problem they intend to solve."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.blynken.Blynken",
+        "key": "Blynken",
+        "area_tag": "bandit_lookout",
+        "target": 1,
+        "max_per_room": 1,
+        "death_cooldown_seconds": 1200,
+        "desc": "A young man sits cross-legged on the watchtower platform with his head tilted slightly, listening. His eyes are pale and unfocused; his attention plainly is not."
+    },
+    {
+        "typeclass": "typeclasses.actors.mobs.tights_bandit.TightsBandit",
+        "key": "a tights-wearing bandit",
+        "area_tag": "bandit_camp",
+        "target": 3,
+        "max_per_room": 2,
+        "death_cooldown_seconds": 300,
+        "desc": "A wiry figure in patched green-and-brown clothes and a pair of improbable striped tights, sword on hip, watching the camp with cheerful suspicion."
     }
 ]

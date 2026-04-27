@@ -163,6 +163,94 @@ class Corpse(HeightAwareMixin, FungibleInventoryMixin, DefaultObject):
         self.delete()
 
     # ------------------------------------------------------------------ #
+    #  Emptiness check
+    # ------------------------------------------------------------------ #
+
+    def is_empty(self, exclude=None):
+        """Return True if the corpse holds no recoverable contents.
+
+        Args:
+            exclude: Optional object to exclude from the contents check.
+                Used by at_object_leave (which fires before the move
+                completes, so the leaving item is still in self.contents).
+        """
+        from typeclasses.items.base_nft_item import BaseNFTItem
+
+        for obj in self.contents:
+            if obj is exclude:
+                continue
+            if isinstance(obj, BaseNFTItem):
+                return False
+        if self.get_gold() > 0:
+            return False
+        if any(amt > 0 for amt in self.get_all_resources().values()):
+            return False
+        return True
+
+    # ------------------------------------------------------------------ #
+    #  Lifecycle hooks — recovery confirmation, decay closure,
+    #  dungeon pending-tag scrub
+    # ------------------------------------------------------------------ #
+
+    def _resolve_owner(self):
+        """Look up the owning character by owner_character_key. May return None."""
+        if not self.owner_character_key:
+            return None
+        from evennia.objects.models import ObjectDB
+
+        return ObjectDB.objects.filter(db_key=self.owner_character_key).first()
+
+    def at_object_leave(self, moved_obj, target_location, **kwargs):
+        """Detect full recovery — fire confirmation message and scrub
+        dungeon pending tag if applicable.
+
+        Fires before the move completes, so we exclude moved_obj from the
+        emptiness check.
+        """
+        super().at_object_leave(moved_obj, target_location, **kwargs)
+
+        if not self.is_empty(exclude=moved_obj):
+            return
+
+        # Universal: if the owner is the one taking items, confirm recovery
+        if (
+            target_location is not None
+            and self.owner_character_key is not None
+            and getattr(target_location, "key", None) == self.owner_character_key
+        ):
+            target_location.msg(
+                "|gYou have recovered everything from your remains.|n"
+            )
+
+        # Dungeon-specific: scrub matching pending tag on owner
+        instance_key = self.tags.get(category="dungeon_corpse")
+        if instance_key:
+            owner = self._resolve_owner()
+            if owner:
+                owner.tags.remove(instance_key, category="dungeon_pending")
+
+    def at_object_delete(self):
+        """Notify owner of decay; scrub dungeon pending tag if applicable.
+
+        Fires for every deletion path: natural decay (despawn → delete),
+        defensive collapse cleanup, manual delete. Returns True to allow
+        the delete to proceed (Evennia convention).
+
+        The owner msg() is unconditional — calls on disconnected puppets
+        are silent in Evennia, so offline players naturally see nothing.
+        """
+        owner = self._resolve_owner()
+        if owner:
+            instance_key = self.tags.get(category="dungeon_corpse")
+            if instance_key:
+                owner.tags.remove(instance_key, category="dungeon_pending")
+            owner.msg(
+                "|yYour remains have decayed — "
+                "anything left behind is lost.|n"
+            )
+        return True
+
+    # ------------------------------------------------------------------ #
     #  Loot access check
     # ------------------------------------------------------------------ #
 

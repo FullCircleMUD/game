@@ -26,7 +26,6 @@ class GnollWarlord(Gnoll):
     20% sunder (-1 AC) and 20% cleave on kills.
     """
 
-    is_unique = AttributeProperty(False)
     default_weapon_masteries = {"battleaxe": MasteryLevel.SKILLED.value}
     room_description = AttributeProperty(
         "looms over the camp, a notched battleaxe slung across its massive shoulders."
@@ -66,7 +65,6 @@ class GnollWarlord(Gnoll):
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
-    respawn_delay = AttributeProperty(600)  # 10 minutes
 
     def at_object_creation(self):
         # Skip Gnoll's at_object_creation (spear) — warlord gets battleaxe

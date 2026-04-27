@@ -32,9 +32,10 @@ class TestWolfAggression(EvenniaTest):
         self.assertTrue(self.wolf.is_aggressive_to_players)
 
     def test_wolf_stats(self):
-        self.assertEqual(self.wolf.hp_max, 12)
-        self.assertEqual(self.wolf.damage_dice, "1d4")
-        self.assertEqual(self.wolf.level, 2)
+        self.assertEqual(self.wolf.hp_max, 15)
+        self.assertEqual(self.wolf.damage_dice, "1d4+1")
+        self.assertEqual(self.wolf.level, 3)
+        self.assertEqual(self.wolf.dexterity, 14)
 
     def test_wolf_max_per_room(self):
         self.assertEqual(self.wolf.max_per_room, 1)

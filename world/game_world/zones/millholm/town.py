@@ -27,7 +27,7 @@ from enums.terrain_type import TerrainType
 from typeclasses.terrain.rooms.room_base import RoomBase
 from typeclasses.terrain.rooms.room_bank import RoomBank
 from typeclasses.terrain.rooms.room_crafting import RoomCrafting
-from typeclasses.terrain.rooms.room_inn import RoomInn
+from typeclasses.terrain.rooms.room_harvest_moon import RoomHarvestMoon
 from typeclasses.terrain.rooms.room_postoffice import RoomPostOffice
 from typeclasses.terrain.rooms.room_stable import RoomStable
 from typeclasses.terrain.rooms.room_processing import RoomProcessing
@@ -57,7 +57,7 @@ def build_millholm_town(one_way_limbo=False):
 
     # ── The Harvest Moon (Inn) ────────────────────────────────────────
     rooms["inn"] = create_object(
-        RoomInn,
+        RoomHarvestMoon,
         key="The Harvest Moon",
         attributes=[
             ("desc",
@@ -2623,7 +2623,7 @@ def build_millholm_town(one_way_limbo=False):
     # All no-combat rooms in Millholm Town.
     # Rooms using specialised typeclasses already have allow_combat=False
     # via their class definition — listed here as comments for reference:
-    #   RoomInn:        inn
+    #   RoomHarvestMoon: inn
     #   RoomBank:       bank
     #   RoomPostOffice: post_office
     #   RoomCrafting:   smithy, leathershop, textiles, woodshop,
@@ -2901,6 +2901,9 @@ def build_millholm_town(one_way_limbo=False):
                 "artisans_way_e1", "artisans_way_e2", "artisans_way_e3",
                 "apothecary", "textiles", "hendricks_house"]:
         rooms[key].tags.add(f"{_rt}:town_se", category="map_cell")
+    # South gate also tags its own region cell at (6, 18) — the gate
+    # symbol marks the boundary between town and the southern district.
+    rooms["south_gate"].tags.add(f"{_rt}:south_gate", category="map_cell")
     print(f"  Tagged {len(_town_map_tags)} town rooms with map_cell tags (district + region).")
 
     print("  Millholm Town complete.\n")

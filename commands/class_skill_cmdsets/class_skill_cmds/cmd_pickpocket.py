@@ -170,6 +170,8 @@ class CmdPickpocket(CmdSkillBase):
             self._apply_steal(
                 caller, target, steal_type, steal_target, mastery_bonus,
             )
+            from utils.skill_xp import award_skill_xp
+            award_skill_xp(caller, dc, target=target)
         else:
             self._handle_failure(caller, target)
 

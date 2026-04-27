@@ -54,7 +54,6 @@ class CellarRat(AggressiveMob):
 
     # ── Behavior ──
     ai_tick_interval = AttributeProperty(5)
-    respawn_delay = AttributeProperty(0)  # dungeon mob, no respawn
 
     # ── AI States ──
 

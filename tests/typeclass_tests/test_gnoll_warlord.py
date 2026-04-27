@@ -36,12 +36,6 @@ class TestGnollWarlordStats(EvenniaTest):
         self.assertEqual(self.boss.base_armor_class, 16)
         self.assertEqual(self.boss.strength, 16)
 
-    def test_is_unique(self):
-        # Bosses are JSON-spawned now: is_unique=False so die() deletes
-        # and the ZoneSpawnScript respawns a fresh object after the
-        # rule's death_cooldown_seconds elapses.
-        self.assertFalse(self.boss.is_unique)
-
     def test_never_flees_threshold(self):
         """aggro_hp_threshold=0 means is_low_health is always False."""
         self.assertEqual(self.boss.aggro_hp_threshold, 0.0)

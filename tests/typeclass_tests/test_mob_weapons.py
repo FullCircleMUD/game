@@ -403,15 +403,6 @@ class TestTownGuardCreation(EvenniaTest):
         levels = guard.db.class_skill_mastery_levels or {}
         self.assertEqual(levels.get("bash"), MasteryLevel.EXPERT.value)
 
-    def test_sergeant_is_not_unique(self):
-        """Sergeant is non-unique — spawn script handles max 1 via target count."""
-        guard = create.create_object(
-            "typeclasses.actors.mobs.town_guard.GuardSergeant",
-            key="the guard sergeant",
-            location=self.room1,
-        )
-        self.assertFalse(guard.is_unique)
-
     def test_guard_stats(self):
         guard = create.create_object(
             "typeclasses.actors.mobs.town_guard.MeleeGuard",

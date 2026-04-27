@@ -55,7 +55,6 @@ class RatKing(CombatMob):
     # ── Behavior ──
     is_aggressive_to_players = AttributeProperty(True)
     ai_tick_interval = AttributeProperty(5)
-    respawn_delay = AttributeProperty(0)  # dungeon mob, no respawn
 
     def at_new_arrival(self, arriving_obj):
         """Attack players on sight after a longer delay than regular rats."""

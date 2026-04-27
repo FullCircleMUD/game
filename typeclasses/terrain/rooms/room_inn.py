@@ -12,6 +12,8 @@ class RoomInn(RoomBase):
     max_height = AttributeProperty(0)
     max_depth = AttributeProperty(0)
 
+    welcome_message = AttributeProperty("\n|c--- Welcome to the Inn ---|n")
+
     def at_object_creation(self):
         super().at_object_creation()
         self.cmdset.add(CmdSetInn, persistent=True)
@@ -21,26 +23,4 @@ class RoomInn(RoomBase):
         super().at_object_receive(moved_obj, source_location, **kwargs)
 
         if moved_obj.has_account:
-            moved_obj.msg("\n|c--- Welcome to the Inn ---|n")
-            self._check_rat_quest_defeat(moved_obj)
-
-    def _check_rat_quest_defeat(self, character):
-        """Heal a player who was just defeated in the rat cellar quest."""
-        if not hasattr(character, "quests") or not hasattr(character, "hp"):
-            return
-        if character.hp > 1:
-            return
-        quest = character.quests.get("rat_cellar")
-        if not quest or quest.is_completed:
-            return
-        # Defeated in the rat cellar — bartender heals them
-        character.hp = character.effective_hp_max
-        character.msg(
-            '\n|yRowan rushes over, concern written across his face. '
-            '"Easy there! Let me get you a drink \u2014 on the house." '
-            "He presses a warm mug into your hands and you feel "
-            "strength returning to your limbs.|n\n"
-            "|gYou have been fully healed.|n\n"
-            '|wRowan says, "Those rats are nastier than I thought. '
-            "Take a moment to rest and try again when you're ready.\"|n"
-        )
+            moved_obj.msg(self.welcome_message)

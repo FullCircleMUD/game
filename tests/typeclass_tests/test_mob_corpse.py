@@ -101,22 +101,8 @@ class TestMobCorpse(EvenniaTest):
         self.mob.die("combat")
         self.assertIsNone(self.mob.location)
 
-    @patch("typeclasses.actors.mob.delay")
-    def test_mob_schedules_respawn(self, mock_delay):
-        """Respawn delay should still be scheduled."""
-        self.mob.is_unique = True
-        self.mob.respawn_delay = 60
-        self.mob.die("combat")
-        # The mob's die() calls delay(respawn_delay, self._respawn)
-        respawn_calls = [
-            c for c in mock_delay.call_args_list
-            if c[0][0] == 60
-        ]
-        self.assertEqual(len(respawn_calls), 1)
-
     @patch("typeclasses.world_objects.corpse.delay")
-    @patch("typeclasses.actors.mob.delay")
-    def test_corpse_despawn_delay_configurable(self, mock_mob_delay, mock_corpse_delay):
+    def test_corpse_despawn_delay_configurable(self, mock_corpse_delay):
         self.mob.corpse_despawn_delay = 120
         self.mob.die("combat")
         corpse = self._find_corpse(self.room1)
@@ -129,13 +115,12 @@ class TestMobCorpse(EvenniaTest):
         self.assertEqual(len(despawn_calls), 1)
 
     @patch("evennia.utils.utils.delay")
-    def test_double_death_no_second_corpse(self, mock_delay):
-        """Calling die() twice should only create one corpse."""
-        self.mob.is_unique = True  # prevent deletion so is_alive check works
+    def test_die_on_already_dead_mob_is_noop(self, mock_delay):
+        """die() on a mob whose is_alive flag is already False creates no corpse."""
+        self.mob.is_alive = False
         self.mob.die("combat")
-        self.mob.die("combat")  # should be no-op
         corpses = [obj for obj in self.room1.contents if isinstance(obj, Corpse)]
-        self.assertEqual(len(corpses), 1)
+        self.assertEqual(len(corpses), 0)
 
     @patch("evennia.utils.utils.delay")
     def test_can_loot_returns_true_for_any_character(self, mock_delay):
