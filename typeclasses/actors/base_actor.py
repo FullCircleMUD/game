@@ -100,17 +100,17 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # Core Stats
     #########################################################
 
-    hp = AttributeProperty(1)           # Current hit points
-    base_hp_max = AttributeProperty(2)  # Natural max HP (race + class levels, no equipment/spells)
-    hp_max = AttributeProperty(2)       # Effective max HP (base + equipment/spell bonuses)
+    hp = AttributeProperty(5)           # Current hit points
+    base_hp_max = AttributeProperty(5)  # Natural max HP (race + class levels, no equipment/spells)
+    hp_max = AttributeProperty(5)       # Effective max HP (base + equipment/spell bonuses)
 
-    mana = AttributeProperty(0)
-    base_mana_max = AttributeProperty(1)  # Natural max mana (race + class levels)
-    mana_max = AttributeProperty(1)
+    mana = AttributeProperty(5)
+    base_mana_max = AttributeProperty(5)  # Natural max mana (race + class levels)
+    mana_max = AttributeProperty(5)
 
-    move = AttributeProperty(2)
-    base_move_max = AttributeProperty(3)  # Natural max move (race + class levels)
-    move_max = AttributeProperty(3)
+    move = AttributeProperty(80)
+    base_move_max = AttributeProperty(80)  # Natural max move (race + class levels)
+    move_max = AttributeProperty(80)
 
     # what the actors base AC is
     # WITHOUT DEXTERITY or other modifiers armour, spells, or anything else
