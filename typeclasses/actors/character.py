@@ -1219,7 +1219,7 @@ class FCMCharacter(
                 )
 
         # Send initial vitals for the split webclient panel
-        self.send_vitals_update()
+        # self.send_vitals_update()
 
     # ── Prompt ──────────────────────────────────────────────────────
 

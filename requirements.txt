@@ -26,3 +26,6 @@ psycopg2-binary
 
 # Parse DATABASE_URL into Django DATABASES format
 dj-database-url
+
+# World builder (local sibling repo, editable install)
+-e ../libraries/evennia-world-builder
