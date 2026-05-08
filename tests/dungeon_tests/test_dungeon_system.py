@@ -829,7 +829,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         self.char1.quests.add(RatCellarQuest)
         self.exit.condition_type = "quest_active"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room2)
@@ -838,7 +838,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         """quest_active condition not met — goes to alternate."""
         self.exit.condition_type = "quest_active"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.alt_room)
@@ -851,7 +851,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         quest.status = "completed"
         self.exit.condition_type = "quest_complete"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room2)
@@ -863,7 +863,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         self.char1.quests.add(RatCellarQuest)
         self.exit.condition_type = "quest_complete"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.alt_room)
@@ -873,7 +873,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         self.char1.tags.add("vip_access", category="player_flag")
         self.exit.condition_type = "has_tag"
         self.exit.condition_key = "vip_access"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room2)
@@ -882,7 +882,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         """has_tag condition not met — goes to alternate."""
         self.exit.condition_type = "has_tag"
         self.exit.condition_key = "vip_access"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.alt_room)
@@ -891,7 +891,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         """Condition not met with no alternate — blocked."""
         self.exit.condition_type = "quest_active"
         self.exit.condition_key = "rat_cellar"
-        # No alternate_destination_id set
+        # No alternate_destination set
 
         self.exit.at_traverse(self.char1, self.room2)
         # Should still be in room1 (not moved)
@@ -930,7 +930,7 @@ class TestConditionalDungeonExitNoAlternate(EvenniaCommandTest):
         self.trigger.dungeon_template_id = "test_dungeon"
         self.trigger.condition_type = "quest_active"
         self.trigger.condition_key = "nonexistent_quest"
-        # No alternate_destination_id
+        # No alternate_destination
 
     def tearDown(self):
         _cleanup_instances()

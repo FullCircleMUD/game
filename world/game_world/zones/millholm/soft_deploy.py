@@ -166,7 +166,7 @@ def build_zone(one_way_limbo=False):
     cellar_trigger.dungeon_template_id = "rat_cellar"
     cellar_trigger.condition_type = "quest_active"
     cellar_trigger.condition_key = "rat_cellar"
-    cellar_trigger.alternate_destination_id = town_rooms["back_cellar"].id
+    cellar_trigger.alternate_destination = town_rooms["back_cellar"]
 
     # Return exit from back cellar to cellar
     back_cellar_return = create_object(

@@ -4,7 +4,7 @@ based on player state.
 
 The exit is always visible. When the condition is met, the player traverses
 to the exit's normal ``destination``. When the condition is NOT met, the
-player is routed to ``alternate_destination_id`` instead.
+player is routed to ``alternate_destination`` instead.
 
 Extends ExitVerticalAware for direction system + vertical checks.
 Has zero dungeon knowledge — pure routing logic.
@@ -36,12 +36,12 @@ class ConditionalRoutingExit(ExitVerticalAware):
         exit.set_direction("south")
         exit.condition_type = "quest_active"
         exit.condition_key = "rat_cellar"
-        exit.alternate_destination_id = room_c.id  # condition NOT met → go here
+        exit.alternate_destination = room_c  # condition NOT met → go here
     """
 
     condition_type = AttributeProperty(None)
     condition_key = AttributeProperty(None)
-    alternate_destination_id = AttributeProperty(None)
+    alternate_destination = AttributeProperty(None)
 
     def at_traverse(self, traversing_object, target_location, **kwargs):
         """
@@ -100,12 +100,10 @@ class ConditionalRoutingExit(ExitVerticalAware):
         return True
 
     def _get_alternate_destination(self):
-        """Look up the alternate destination room by ID."""
-        from evennia import ObjectDB
+        """Return the alternate destination room, or None if unset.
 
-        if not self.alternate_destination_id:
-            return None
-        try:
-            return ObjectDB.objects.get(id=self.alternate_destination_id)
-        except ObjectDB.DoesNotExist:
-            return None
+        Stored as an Evennia object reference (soft-ref); the attribute
+        is dbref-stable across rebuilds and survives cleanup-and-rebuild
+        cycles automatically.
+        """
+        return self.alternate_destination

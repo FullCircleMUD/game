@@ -32,7 +32,7 @@ class ConditionalDungeonExit(ProceduralDungeonMixin, ConditionalRoutingExit):
         trigger.dungeon_template_id = "rat_cellar"
         trigger.condition_type = "quest_active"
         trigger.condition_key = "rat_cellar"
-        trigger.alternate_destination_id = empty_cellar.id
+        trigger.alternate_destination = empty_cellar
     """
 
     def at_traverse(self, traversing_object, target_location, **kwargs):
