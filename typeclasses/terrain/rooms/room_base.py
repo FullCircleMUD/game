@@ -59,6 +59,11 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
     # True = sheltered (indoor building), False = exposed (outdoor)
     sheltered = AttributeProperty(None, autocreate=False)
 
+    # Weather suppression — None means "derive from terrain type"
+    # True = no weather at all (extra-planar / artificial sky / void),
+    # False = forced weather-eligible regardless of terrain.
+    subterranean = AttributeProperty(None, autocreate=False)
+
     # Terrain types that are naturally dark (no sunlight)
     _DARK_TERRAIN = {TerrainType.UNDERGROUND.value, TerrainType.DUNGEON.value}
 
@@ -149,7 +154,16 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
 
     @property
     def is_subterranean(self):
-        """True for underground/dungeon rooms — no weather at all."""
+        """
+        True for rooms with no weather at all.
+
+        If subterranean is explicitly set (True/False), use that.
+        Otherwise derive from terrain type: underground/dungeon = True,
+        everything else = False.
+        """
+        explicit = self.subterranean
+        if explicit is not None:
+            return bool(explicit)
         terrain = self.get_terrain()
         return terrain is not None and terrain in self._SUBTERRANEAN_TERRAIN
 

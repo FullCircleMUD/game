@@ -19,6 +19,9 @@ class RoomPurgatory(RoomBase):
     allow_combat = AttributeProperty(False, autocreate=False)
     allow_pvp = AttributeProperty(False, autocreate=False)
     allow_death = AttributeProperty(False, autocreate=False)
+    always_lit = AttributeProperty(True, autocreate=False)
+    max_height = AttributeProperty(0)
+    subterranean = AttributeProperty(True, autocreate=False)
 
     def at_object_creation(self):
         super().at_object_creation()
