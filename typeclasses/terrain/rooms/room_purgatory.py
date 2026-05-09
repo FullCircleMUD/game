@@ -26,9 +26,3 @@ class RoomPurgatory(RoomBase):
     def at_object_creation(self):
         super().at_object_creation()
         self.cmdset.add(CmdSetPurgatory, persistent=True)
-        self.db.desc = (
-            "You float in a grey void between life and death. "
-            "Faint whispers echo around you, the voices of those who came before. "
-            "A dim light pulses in the distance, slowly growing brighter.\n\n"
-            "You will be released soon. Type |wrelease|n for early release (50 gold)."
-        )
