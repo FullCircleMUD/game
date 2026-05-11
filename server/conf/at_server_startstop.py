@@ -118,6 +118,12 @@ def _ensure_global_scripts():
         if not existing:
             create_script(typeclass_path, key=key, obj=None)
             logger.log_info(f"Global scripts: started {key}")
+        elif not (existing.ndb._task and existing.ndb._task.running):
+            # Row is active in DB but its LoopingCall isn't attached — happens
+            # after hard kills where Evennia's restart-active-scripts walk
+            # didn't complete. start() is idempotent (see DefaultScript._start_task).
+            existing.start()
+            logger.log_info(f"Global scripts: re-attached LoopingCall for {key}")
 
     _dedupe_pipeline_scripts()
     _create_pipeline_scripts(skip_existing=True)
@@ -171,6 +177,9 @@ def _create_pipeline_scripts(skip_existing=False):
     for key, typeclass_path, _ in _PIPELINE_SCRIPTS:
         existing = getattr(GLOBAL_SCRIPTS, key, None)
         if existing and skip_existing:
+            if not (existing.ndb._task and existing.ndb._task.running):
+                existing.start()
+                logger.log_info(f"Pipeline scripts: re-attached LoopingCall for {key}")
             continue
         create_script(typeclass_path, key=key, obj=None)
         logger.log_info(f"Pipeline scripts: started {key}")
