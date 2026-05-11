@@ -19,7 +19,6 @@ from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonE
 from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 from world.game_world.zones.millholm.faerie_hollow import build_faerie_hollow
-from world.game_world.zones.millholm.farms import build_millholm_farms
 from world.game_world.zones.millholm.fixtures import place_millholm_fixtures
 from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
@@ -59,8 +58,11 @@ def build_zone(one_way_limbo=False):
     print("[1] Building Millholm Town...")
     town_rooms = build_millholm_town(one_way_limbo=one_way_limbo)
 
-    print("[2] Building Millholm Farms...")
-    farm_rooms = build_millholm_farms(town_rooms)
+    # Farms ported to YAML: shard0/millholm/farms/{roads,wheat-farm,
+    # cotton-farm,abandoned-farm,secret-tunnel,npc_bramble,npc_tilly}.yaml.
+    # All cross-district exits wired in YAML:
+    #   - farms ↔ town (roads.yaml id 2 ↔ west-old-trade-way.yaml id 27)
+    #   - farms ↔ southern (roads.yaml id 52 ↔ forest-north.yaml id 4)
 
     print("[3] Building Millholm Woods...")
     woods_rooms = build_millholm_woods(town_rooms)
@@ -192,8 +194,8 @@ def build_zone(one_way_limbo=False):
     print("[7a] Connecting town south gate → southern district...")
     connect_bidirectional_exit(town_rooms["south_gate"], southern_rooms["countryside_road"], "south")
 
-    print("[7b] Connecting farm south fork → southern countryside...")
-    connect_bidirectional_exit(farm_rooms["south_fork_end"], southern_rooms["countryside_road"], "east")
+    # [7b] farms ↔ southern wired in YAML (roads.yaml id 52 ↔
+    # forest-north.yaml id 4).
 
     # ── Rooftops District ──────────────────────────────────────────────
     # Ported to YAML: shard0/millholm/rooftops/rooftops.yaml (rooms +
@@ -232,10 +234,14 @@ def build_zone(one_way_limbo=False):
     trigger_from_lake.dungeon_destination_room_id = northern_rooms["lake_track"].id
 
     # ── Fixtures, NPCs, Mobs ─────────────────────────────────────────
-    place_millholm_fixtures(
-        town_rooms, farm_rooms, woods_rooms, sewer_rooms, southern_rooms,
-        mine_rooms,
-    )
+    # TODO: place_millholm_fixtures is temporarily disabled — its
+    # signature still expects farm_rooms and sewer_rooms dicts which
+    # no longer exist (those districts now build via YAML). The
+    # fixtures that were placed by Python need to be validated against
+    # YAML (most are likely already in YAML as room `contents` entries)
+    # and fixtures.py should be retired here. Tracked in the Python →
+    # YAML cleanup sweep.
+    # place_millholm_fixtures(town_rooms, woods_rooms, southern_rooms, mine_rooms)
     spawn_millholm_npcs()
     spawn_millholm_mobs()
 
