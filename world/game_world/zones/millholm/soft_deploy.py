@@ -25,7 +25,6 @@ from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
 from world.game_world.zones.millholm.northern import build_millholm_northern
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
 from world.game_world.zones.millholm.town import build_millholm_town
-from world.game_world.zones.millholm.woods import build_millholm_woods
 
 ZONE_KEY = "millholm"
 
@@ -63,8 +62,18 @@ def build_zone(one_way_limbo=False):
     #   - farms ↔ town (roads.yaml id 2 ↔ west-old-trade-way.yaml id 27)
     #   - farms ↔ southern (roads.yaml id 52 ↔ forest-north.yaml id 4)
 
-    print("[3] Building Millholm Woods...")
-    woods_rooms = build_millholm_woods(town_rooms)
+    # Woods ported to YAML: shard0/millholm/woods/{track,woods}.yaml
+    # (94 rooms covering the forest_path_east spine, sawmill +
+    # tannery + smelter RoomProcessing setups, 60-room Southern Woods
+    # grid with RoomHarvesting for timber, 10-room Northern Woods
+    # transition row, and the deep_woods_entry procedural-passage
+    # anchor at track.yaml id 130). All cross-district exits in YAML:
+    #   - forest_path_east ↔ town/east-old-trade-way (track.yaml id 1)
+    #   - wooded_foothills ↔ gateways/east_gate.yaml
+    # The deep_woods_passage procedural exits ([6a-d] below) reference
+    # deep_woods_entry which is now in YAML only; soft_deploy will
+    # need to fetch it via search/tag lookup once those passages are
+    # also re-wired in YAML.
 
     # Cemetery ported to YAML: shard0/millholm/cemetery/cemetery.yaml.
     # north_road → cemetery_gates cross-district exit is wired in
@@ -136,55 +145,19 @@ def build_zone(one_way_limbo=False):
     faerie_rooms = build_faerie_hollow()
 
     # ── Deep Woods procedural passages ──────────────────────────────
-    import world.dungeons.templates.deep_woods_passage  # noqa: F401
-
-    entry_room = woods_rooms["deep_woods_entry"]
-    clearing_room = faerie_rooms["deep_woods_clearing"]
-    miners_camp = mine_rooms["miners_camp"]
-
-    print("[6a] Connecting deep woods entry → clearing (procedural passage)...")
-    trigger_in = create_object(
-        ProceduralDungeonExit,
-        key="Deep Woods",
-        location=entry_room,
-        destination=entry_room,
-    )
-    trigger_in.set_direction("north")
-    trigger_in.dungeon_template_id = "deep_woods_passage"
-    trigger_in.dungeon_destination_room_id = clearing_room.id
-
-    print("[6b] Connecting deep woods clearing → entry (procedural passage)...")
-    trigger_out = create_object(
-        ProceduralDungeonExit,
-        key="Deep Woods",
-        location=clearing_room,
-        destination=clearing_room,
-    )
-    trigger_out.set_direction("west")
-    trigger_out.dungeon_template_id = "deep_woods_passage"
-    trigger_out.dungeon_destination_room_id = entry_room.id
-
-    print("[6c] Connecting deep woods clearing → miners' camp (procedural passage)...")
-    trigger_to_mine = create_object(
-        ProceduralDungeonExit,
-        key="Deep Woods",
-        location=clearing_room,
-        destination=clearing_room,
-    )
-    trigger_to_mine.set_direction("east")
-    trigger_to_mine.dungeon_template_id = "deep_woods_passage"
-    trigger_to_mine.dungeon_destination_room_id = miners_camp.id
-
-    print("[6d] Connecting miners' camp → deep woods clearing (procedural passage)...")
-    trigger_from_mine = create_object(
-        ProceduralDungeonExit,
-        key="Deep Woods",
-        location=miners_camp,
-        destination=miners_camp,
-    )
-    trigger_from_mine.set_direction("west")
-    trigger_from_mine.dungeon_template_id = "deep_woods_passage"
-    trigger_from_mine.dungeon_destination_room_id = clearing_room.id
+    # TODO: stubbed during the Python→YAML transition. The four
+    # deep_woods_passage procedural exits ([6a/b/c/d]) wire:
+    #   - woods deep_woods_entry (now in track.yaml id 130) ↔
+    #     faerie_hollow deep_woods_clearing (Python)
+    #   - faerie_hollow deep_woods_clearing ↔ mine miners_camp (Python)
+    # The deep_woods_entry side will need a YAML/search lookup once
+    # the passages are re-wired. The faerie + mine ends stay in Python
+    # until those districts are also ported (NEEDS_YAML_PORT flags
+    # at the top of faerie_hollow.py and mine.py).
+    # Original implementation kept in git history (pre-removal).
+    # clearing_room = faerie_rooms["deep_woods_clearing"]
+    # miners_camp = mine_rooms["miners_camp"]
+    # ... 4 × ProceduralDungeonExit creates ...
 
     # ── Southern District ────────────────────────────────────────────
     # Southern ported to YAML: shard0/millholm/southern/{forest-north,
