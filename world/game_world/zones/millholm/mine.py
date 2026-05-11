@@ -1,4 +1,13 @@
 """
+NEEDS_YAML_PORT — The mine district has NOT yet been ported to YAML.
+fcm-world/shard0/millholm/mine/ contains only an empty index.yaml.
+
+This file (and all the rooms it builds) must be transferred to
+shard0/millholm/mine/ before this Python module can be deleted. The
+deep_woods_passage procedural exit that points at miners_camp also
+needs YAML wiring once the YAML port exists (see soft_deploy.py
+[6c] and [6d]).
+
 Millholm Abandoned Mine — a static mine district reached via the Deep Woods.
 
 Builds ~17 rooms:

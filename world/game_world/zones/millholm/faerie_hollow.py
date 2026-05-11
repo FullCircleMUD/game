@@ -1,4 +1,14 @@
 """
+NEEDS_YAML_PORT — The Faerie Hollow district has NOT yet been ported
+to YAML. fcm-world/shard0/millholm/faeries/ contains only an empty
+index.yaml.
+
+This file (and all the rooms it builds) must be transferred to
+shard0/millholm/faeries/ before this Python module can be deleted.
+The deep_woods_passage procedural exits that anchor at
+deep_woods_clearing also need YAML wiring once the YAML port exists
+(see soft_deploy.py [6a]/[6b]/[6c]/[6d]).
+
 Millholm Faerie Hollow — a small hidden district in the deep woods.
 
 Builds ~5 rooms:
