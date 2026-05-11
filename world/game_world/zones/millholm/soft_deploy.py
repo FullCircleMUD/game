@@ -96,6 +96,13 @@ def build_zone(one_way_limbo=False):
     # of faerie_hollow.py and mine.py). Original implementation kept in
     # git history (pre-removal).
 
+    # ── Fixtures ─────────────────────────────────────────────────────
+    # fixtures.py is flagged NEEDS_YAML_PORT — 15 of its 17 fixtures
+    # need YAML porting into the target rooms' `contents:` blocks.
+    # The 1 mine warning sign stays in Python until mine is ported.
+    # The call is deliberately not invoked here — see fixtures.py
+    # docstring for the full porting checklist.
+
     # ── Zone spawn scripts ───────────────────────────────────────────
     # ZoneSpawnScript.create_for_zone reads world/spawns/<zone>.json and
     # creates a persistent population-maintenance script for that area.

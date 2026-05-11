@@ -1,4 +1,59 @@
 """
+NEEDS_YAML_PORT — fixtures.py is partially ported.
+
+place_millholm_fixtures is currently disabled in soft_deploy.py
+because its signature still references farm_rooms / sewer_rooms /
+woods_rooms / southern_rooms dicts that no longer exist (those
+districts are built by the YAML world-builder library now).
+
+Status of the 17 fixtures it creates:
+  PORTED (1):
+    - market-square sq_nw jobs_board → market-square.yaml id 84
+      (JobsBoard with all 5 postings)
+
+  NEEDS PORTING TO YAML (15 — go in the target room's `contents:`):
+    - town back_alley     drainpipe (ClimbableFixture, heights {0,1},
+                          climb_dc 0, climb up/down msgs)
+                          → west-artisans-way.yaml (back_alley)
+    - farms farm_road_crossroads  crossroads_sign (WorldSign,
+                                  "Millholm East / Farms West", post)
+                                  + mile_marker (WorldFixture)
+                                  → roads.yaml
+    - farms bw_track      bw_sign (WorldSign,
+                          "Brightwater Farm — Finest Cotton in Millholm",
+                          hanging) → cotton-farm.yaml
+    - farms gw_lane       gw_sign (WorldSign,
+                          "Goldwheat Farm — Fresh Grain & Flour", hanging)
+                          → wheat-farm.yaml
+    - farms windmill      millstone (WorldFixture) → roads.yaml
+                          (windmill room is in roads.yaml)
+    - farms bw_well       bw_well_fixture (FountainFixture, water refill,
+                          aliases=well,water) → cotton-farm.yaml
+    - farms ab_yard       plough (WorldFixture, rusted) → abandoned-farm.yaml
+    - woods creekside_crossing  creek (FountainFixture, water refill,
+                                aliases=creek,stream,water) → track.yaml
+    - woods sawmill       saw (WorldFixture, the great saw) → track.yaml
+    - woods smelter       forge (WorldFixture, roaring forge) → woods.yaml
+    - sewers blocked_grate     grate (WorldFixture) → sewers.yaml
+    - sewers thieves_hall      thief_map (WorldFixture) → sewers.yaml
+    - sewers shadow_mistress_chamber  lockbox (WorldFixture)
+                                       → sewers.yaml
+    - woods east_gate     east_warning (WorldSign, wall, _WARNING_TEXT
+                          below) → gateways/east_gate.yaml
+    - southern shadowsward_gate  south_warning (WorldSign, same _WARNING_TEXT)
+                                  → gateways/shadowsward_gate.yaml
+
+  STAYS IN PYTHON (1):
+    - mine sealed_door    sealed_door_sign (WorldSign, _WARNING_TEXT)
+                          — mine is still Python (NEEDS_YAML_PORT)
+
+The function is kept in place as the reference spec for the YAML port.
+Once all 15 entries above are added to YAML as `contents:` items, the
+mine warning sign can be moved inline into mine.py (or its YAML port)
+and this entire file deleted.
+
+Original docstring follows.
+
 Millholm world fixtures — signs, monuments, fountains, and other
 interactable objects placed into already-built rooms.
 
