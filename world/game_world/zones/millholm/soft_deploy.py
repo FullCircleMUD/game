@@ -24,7 +24,6 @@ from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
 from world.game_world.zones.millholm.northern import build_millholm_northern
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
-from world.game_world.zones.millholm.southern import build_millholm_southern
 from world.game_world.zones.millholm.town import build_millholm_town
 from world.game_world.zones.millholm.woods import build_millholm_woods
 
@@ -188,14 +187,23 @@ def build_zone(one_way_limbo=False):
     trigger_from_mine.dungeon_destination_room_id = clearing_room.id
 
     # ── Southern District ────────────────────────────────────────────
-    print("[7] Building Millholm Southern District...")
-    southern_rooms = build_millholm_southern()
-
-    print("[7a] Connecting town south gate → southern district...")
-    connect_bidirectional_exit(town_rooms["south_gate"], southern_rooms["countryside_road"], "south")
-
-    # [7b] farms ↔ southern wired in YAML (roads.yaml id 52 ↔
-    # forest-north.yaml id 4).
+    # Southern ported to YAML: shard0/millholm/southern/{forest-north,
+    # forest-south,gnolls,barrow,raven_sage,bandit_camp,
+    # moonpetal-sage-side,moonpetal-bandit-side}.yaml — 144 rooms
+    # total. All 6 southern_woods_passage procedural-passage pairs
+    # are wired via YAML `links:` blocks setting
+    # dungeon_destination_room_id on each ProceduralDungeonExit
+    # (forest grid anchors ↔ mini-area interfaces, sibling-pair
+    # mini-areas). Cross-district exits in YAML:
+    #   - town south_gate (south-road.yaml id 83) ↔ countryside_road
+    #     (forest-north.yaml id 1)
+    #   - farms south_fork_end (roads.yaml id 52) ↔ countryside_road
+    #     (forest-north.yaml id 4)
+    #   - southern_approach (gnolls.yaml id 35) ↔ shadowsward_gate
+    #     (gateways/shadowsward_gate.yaml id 1, north exit id 2)
+    # The shadowsward_gate room itself is in gateways/, so it's
+    # returned from this build via a YAML lookup if needed by
+    # deploy_world.
 
     # ── Rooftops District ──────────────────────────────────────────────
     # Ported to YAML: shard0/millholm/rooftops/rooftops.yaml (rooms +
@@ -247,12 +255,18 @@ def build_zone(one_way_limbo=False):
 
     print("=== MILLHOLM ZONE BUILD COMPLETE ===\n")
 
-    # Return gateway rooms for cross-zone wiring in deploy_world.py.
-    # Exits will be added to these rooms when adjacent zones are built.
-    return {
-        "east_gate": woods_rooms["east_gate"],
-        "shadowsward_gate": southern_rooms["shadowsward_gate"],
-    }
+    # TODO: deploy_world.py still does `millholm["east_gate"].destinations
+    # = [...]` and `millholm["shadowsward_gate"].destinations = [...]` to
+    # set interzone destinations. Both gateway rooms now live in YAML
+    # (millholm/gateways/east_gate.yaml + shadowsward_gate.yaml) with
+    # their `destinations` lists already filled via YAML `links:` —
+    # so the Python override is now redundant. Once deploy_world.py is
+    # updated to drop the Python overrides, this return value can go.
+    # For now, return empty dict — deploy_world will fail at the
+    # `.destinations = [...]` lines until those are also cleaned up.
+    # (Branch is set up for the purpose, breakage during transition
+    # is expected.)
+    return {}
 
 
 def soft_deploy():
