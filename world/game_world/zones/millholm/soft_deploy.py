@@ -25,7 +25,6 @@ from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
 from world.game_world.zones.millholm.northern import build_millholm_northern
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
-from world.game_world.zones.millholm.sewers import build_millholm_sewers
 from world.game_world.zones.millholm.southern import build_millholm_southern
 from world.game_world.zones.millholm.town import build_millholm_town
 from world.game_world.zones.millholm.woods import build_millholm_woods
@@ -70,59 +69,14 @@ def build_zone(one_way_limbo=False):
     # north_road → cemetery_gates cross-district exit is wired in
     # town/north-road.yaml id 9 ↔ cemetery.yaml id 2.
 
-    print("[4] Building Millholm Sewers...")
-    sewer_rooms = build_millholm_sewers()
-
-    # ── Cross-district hidden doors (town ↔ sewers) ──────────────────
-    print("[4a] Connecting cellar → sewer entrance (hidden)...")
-    door_ab, _ = connect_bidirectional_door_exit(
-        town_rooms["cellar"],
-        sewer_rooms["sewer_entrance"],
-        "west",
-        key="a concealed stone door",
-        closed_ab=(
-            "The west wall of the cellar appears to be solid stone, "
-            "though moisture seeps through some of the mortar joints."
-        ),
-        open_ab=(
-            "The concealed door stands open, revealing the damp passage "
-            "to the sewers beyond."
-        ),
-        closed_ba=(
-            "A heavy stone door blocks the passage east, fitted to look "
-            "like part of the sewer wall."
-        ),
-        open_ba="The stone door stands open, revealing a dimly lit cellar.",
-        door_name="stone door",
-    )
-    door_ab.is_hidden = True
-    door_ab.find_dc = 10
-
-    print("[4b] Connecting abandoned house → old cistern (hidden)...")
-    door_ab2, _ = connect_bidirectional_door_exit(
-        town_rooms["abandoned_house"],
-        sewer_rooms["old_cistern"],
-        "down",
-        key="a trapdoor",
-        closed_ab=(
-            "The floorboards here are warped and uneven. One section "
-            "seems slightly different from the rest."
-        ),
-        open_ab=(
-            "A trapdoor in the floor stands open, a rusted ladder "
-            "descending into a cistern below."
-        ),
-        closed_ba=(
-            "A wooden trapdoor is set into the ceiling far above, "
-            "accessible by a rusted ladder."
-        ),
-        open_ba=(
-            "The trapdoor above hangs open, the abandoned house visible through the gap."
-        ),
-        door_name="trapdoor",
-    )
-    door_ab2.is_hidden = True
-    door_ab2.find_dc = 10
+    # Sewers ported to YAML: shard0/millholm/sewers/sewers.yaml (rooms
+    # + the thieves' gauntlet trap door, tripwire, hidden levers, key,
+    # chest, guild token) plus npc_gareth/npc_vex/npc_whisper.yaml.
+    # The two cross-district hidden doors are wired in YAML:
+    #   - cellar (harvest-moon id 27) ↔ sewer_entrance (sewers id 3)
+    #     stone door, hidden cellar side, find_dc 10
+    #   - abandoned_house (west-old-trade-way id 26) ↔ old_cistern
+    #     (sewers id 34) trapdoor, hidden abandoned-house side, find_dc 10
 
     # ── Cellar access + Rat Cellar quest trigger ────────────────────
     print("[4c] Setting up Cellar and Rat Cellar quest entrance...")
