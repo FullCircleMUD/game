@@ -31,6 +31,22 @@ class ProceduralDungeonMixin:
     dungeon_template_id = AttributeProperty(None)
     dungeon_destination_room_id = AttributeProperty(None)
 
+    def _get_dungeon_destination_id(self):
+        """Resolve dungeon_destination_room_id to an int dbref.
+
+        Accepts either a plain int (set by Python deploy code like
+        ``trigger.dungeon_destination_room_id = other_room.id``) OR a
+        room object (set by the YAML world-builder library's cross-ref
+        resolution, which stores resolved targets as objects). When a
+        room object is stored, return its ``.id`` so downstream code
+        — which expects an int for ``ObjectDB.objects.get(id=...)`` —
+        keeps working without further changes.
+        """
+        val = self.dungeon_destination_room_id
+        if val is None:
+            return None
+        return val.id if hasattr(val, "id") else val
+
     def enter_dungeon(self, traversing_object):
         """
         Create or join a procedural dungeon instance.
@@ -255,9 +271,11 @@ class ProceduralDungeonMixin:
             else None
         )
 
-        # For passages, set the destination room
-        if self.dungeon_destination_room_id:
-            instance.destination_room_id = self.dungeon_destination_room_id
+        # For passages, set the destination room. Resolve through the
+        # helper so YAML-stored room objects get converted to int dbrefs.
+        dest_id = self._get_dungeon_destination_id()
+        if dest_id:
+            instance.destination_room_id = dest_id
 
         instance.start()
         return instance
