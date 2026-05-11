@@ -15,14 +15,12 @@ from evennia import create_object
 
 from typeclasses.terrain.exits.conditional_dungeon_exit import ConditionalDungeonExit
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
-from typeclasses.terrain.exits.procedural_dungeon_exit import ProceduralDungeonExit
 from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional_door_exit
 from world.game_world.zone_utils import clean_zone as _clean_zone
 from world.game_world.zones.millholm.faerie_hollow import build_faerie_hollow
 from world.game_world.zones.millholm.fixtures import place_millholm_fixtures
 from world.game_world.zones.millholm.mine import build_millholm_mine
 from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
-from world.game_world.zones.millholm.northern import build_millholm_northern
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
 from world.game_world.zones.millholm.town import build_millholm_town
 
@@ -185,34 +183,20 @@ def build_zone(one_way_limbo=False):
     # Gareth's wardrobe). All exits and door pairs are now wired in YAML.
 
     # ── Northern District (lake) ─────────────────────────────────────
-    print("[9] Building Millholm Northern...")
-    northern_rooms = build_millholm_northern()
-
-    print("[9a] Connecting north road → lake track...")
-    connect_bidirectional_exit(town_rooms["north_road"], northern_rooms["lake_track"], "north")
-
-    print("[9b] Connecting lake track ↔ lake shore (procedural passage)...")
-    import world.dungeons.templates.lake_passage  # noqa: F401
-
-    trigger_to_lake = create_object(
-        ProceduralDungeonExit,
-        key="a rough track",
-        location=northern_rooms["lake_track"],
-        destination=northern_rooms["lake_track"],
-    )
-    trigger_to_lake.set_direction("north")
-    trigger_to_lake.dungeon_template_id = "lake_passage"
-    trigger_to_lake.dungeon_destination_room_id = northern_rooms["lake_shore"].id
-
-    trigger_from_lake = create_object(
-        ProceduralDungeonExit,
-        key="a rough track",
-        location=northern_rooms["lake_shore"],
-        destination=northern_rooms["lake_shore"],
-    )
-    trigger_from_lake.set_direction("south")
-    trigger_from_lake.dungeon_template_id = "lake_passage"
-    trigger_from_lake.dungeon_destination_room_id = northern_rooms["lake_track"].id
+    # Ported to YAML:
+    #   - lake.yaml: 16 lake-district rooms (shore + shallows + deep
+    #     rows with WATER terrain, height/depth gating; underwater
+    #     bloodmoss grotto with RoomHarvesting; boatyard RoomCrafting;
+    #     wreck WorldChest fixture at vertical -2 in deep_dock).
+    #   - town/north-road.yaml id 10: lake_track (millholm_town district
+    #     per source).
+    #   - gateways/sailing_club.yaml + canadia/gateways/far_shore.yaml:
+    #     boat gateways, boat_level + food_cost conditions.
+    # Cross-district / procedural exits wired in YAML:
+    #   - north_road ↔ lake_track  (north-road.yaml internal pair)
+    #   - lake_track ↔ lake_shore via lake_passage ProceduralDungeonExit
+    #     (north-road.yaml id 13 + lake.yaml id 69, both with
+    #     dungeon_destination_room_id links).
 
     # ── Fixtures, NPCs, Mobs ─────────────────────────────────────────
     # TODO: place_millholm_fixtures is temporarily disabled — its
