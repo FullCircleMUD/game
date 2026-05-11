@@ -19,8 +19,8 @@ from utils.exit_helpers import connect_bidirectional_exit, connect_bidirectional
 from world.game_world.zone_utils import clean_zone as _clean_zone
 from world.game_world.zones.millholm.faerie_hollow import build_faerie_hollow
 from world.game_world.zones.millholm.fixtures import place_millholm_fixtures
+from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
 from world.game_world.zones.millholm.mine import build_millholm_mine
-from world.game_world.zones.millholm.mobs import spawn_millholm_mobs
 from world.game_world.zones.millholm.npcs import spawn_millholm_npcs
 from world.game_world.zones.millholm.town import build_millholm_town
 
@@ -208,7 +208,30 @@ def build_zone(one_way_limbo=False):
     # YAML cleanup sweep.
     # place_millholm_fixtures(town_rooms, woods_rooms, southern_rooms, mine_rooms)
     spawn_millholm_npcs()
-    spawn_millholm_mobs()
+
+    # Zone spawn scripts (formerly the thin spawn_millholm_mobs wrapper).
+    # ZoneSpawnScript.create_for_zone reads world/spawns/<zone>.json and
+    # creates a persistent population-maintenance script for that area.
+    # The YAML world tags rooms with `mob_area` so the spawn script can
+    # locate valid spawn rooms by tag query.
+    print("--- Creating Millholm Spawn Scripts ---")
+    for zone_key in (
+        "millholm_farms",
+        "millholm_woods",
+        "millholm_sewers",
+        "millholm_mine",
+        "millholm_southern",
+        "millholm_cemetery",
+        "millholm_lake",
+        "millholm_town",
+        "millholm_rooftops",
+    ):
+        script = ZoneSpawnScript.create_for_zone(zone_key)
+        if script:
+            print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
+        else:
+            print(f"  [!] Failed to create {zone_key} spawn script")
+    print("--- Millholm spawn script creation complete ---")
 
     print("=== MILLHOLM ZONE BUILD COMPLETE ===\n")
 
