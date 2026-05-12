@@ -197,7 +197,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 ## Coding Conventions
 
 - **Prefer enums over raw strings** for validation and typo prevention. When a field references a fixed set of values (ability scores, weapon types, alignments, damage types, skills, …), use the enum: `WeaponType.BATTLEAXE` not `"battleaxe"`, `Ability.STR` not `"strength"`, `skills.STEALTH.value` not `"stealth"`. Skill commands should set `skill = skills.ENUM.value` so renaming a skill in the enum propagates.
-- **All exits MUST be created through helpers** in `utils/exit_helpers.py`. Never use bare `create_object()` for exits in zone builders. If a new exit type isn't covered, create the helper first. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See [design/EXIT_ARCHITECTURE.md](../../design/EXIT_ARCHITECTURE.md) § Builder Helpers.
+- **All exits are authored in YAML** (`exits:` blocks on rooms in the fcm-world repo) and built by `wb_build` via the `evennia-world-builder` library. Runtime exit creation (procedural dungeons, conditional rebinds) MUST go through helpers in `utils/exit_helpers.py` — never bare `create_object()`. If a new exit type isn't covered by an existing helper, create the helper first. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See [design/EXIT_ARCHITECTURE.md](../../design/EXIT_ARCHITECTURE.md) § Builder Helpers and [design/WORLD_DEPLOYMENT.md](../../design/WORLD_DEPLOYMENT.md) for the authoring pipeline.
 
 ---
 
