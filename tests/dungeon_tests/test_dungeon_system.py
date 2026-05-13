@@ -221,6 +221,45 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
             "test_dungeon_1",
         )
 
+    def test_start_dungeon_records_entrance_on_character(self):
+        """Entering a dungeon must stamp the entrance room on the character
+        so reconnect can route to it if the dungeon room is gone."""
+        self.instance.start_dungeon([self.char1])
+        self.assertEqual(
+            self.char1.db.dungeon_entrance_room, self.room1
+        )
+
+    def test_remove_character_clears_dungeon_entrance(self):
+        """Leaving the dungeon clears the entrance attribute so a later
+        non-dungeon disconnect falls through to last_rent_location."""
+        self.instance.start_dungeon([self.char1])
+        self.assertIsNotNone(self.char1.db.dungeon_entrance_room)
+
+        self.instance.remove_character(self.char1)
+        self.assertIsNone(self.char1.db.dungeon_entrance_room)
+
+    def test_collapse_clears_dungeon_entrance(self):
+        """Collapse evacuates and clears entrance via remove_character."""
+        self.instance.start_dungeon([self.char1])
+        self.assertIsNotNone(self.char1.db.dungeon_entrance_room)
+
+        self.instance.collapse_instance()
+        self.assertIsNone(self.char1.db.dungeon_entrance_room)
+
+    def test_at_pre_puppet_restores_dungeon_entrance_over_rent(self):
+        """If the broken location was a dungeon room, restore to the
+        recorded dungeon entrance — beating last_rent_location."""
+        self.instance.start_dungeon([self.char1])
+        # Set a different rent location to confirm dungeon entrance wins.
+        self.char1.db.last_rent_location = self.room2
+
+        # Simulate the dungeon room being deleted out from under the char.
+        self.char1.location = None
+
+        self.char1.at_pre_puppet(self.account)
+
+        self.assertEqual(self.char1.location, self.room1)
+
     def test_first_room_has_exits(self):
         """First room should have at least one forward exit."""
         self.instance.start_dungeon([self.char1])

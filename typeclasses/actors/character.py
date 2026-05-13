@@ -767,6 +767,7 @@ class FCMCharacter(
             corpse.tags.add(instance_key, category="dungeon_corpse")
             # Convert dungeon_character → dungeon_pending on the player
             self.tags.remove(instance_key, category="dungeon_character")
+            self.attributes.remove("dungeon_entrance_room")
             self.tags.add(instance_key, category="dungeon_pending")
             # Transfer full inventory onto the corpse
             self._transfer_inventory_to_corpse(corpse)
@@ -783,6 +784,7 @@ class FCMCharacter(
             dungeon_tag = self.tags.get(category="dungeon_character")
             if dungeon_tag:
                 self.tags.remove(dungeon_tag, category="dungeon_character")
+                self.attributes.remove("dungeon_entrance_room")
             defeat_msg = "|yYou have been defeated!|n"
 
         corpse.start_timers()
@@ -1081,7 +1083,33 @@ class FCMCharacter(
             loc = None
 
         if loc is None:
-            fallback = self.home or self._get_limbo()
+            # Fallback priority (per rent/quit/disconnect rules):
+            #   dungeon_entrance_room — if the broken location was a
+            #     procedural-dungeon room, return to that dungeon's entrance
+            #     (a static world room). Set on dungeon entry, cleared on
+            #     any exit, so a value here means "they were inside when
+            #     things went wrong."
+            #   last_rent_location — wherever they last rented.
+            #   home — Evennia plumbing, last resort.
+            dungeon_entrance = None
+            try:
+                candidate = self.db.dungeon_entrance_room
+                if candidate is not None and candidate.pk:
+                    dungeon_entrance = candidate
+            except Exception:
+                dungeon_entrance = None
+
+            rent_loc = None
+            try:
+                candidate = self.db.last_rent_location
+                if candidate is not None and candidate.pk:
+                    rent_loc = candidate
+            except Exception:
+                rent_loc = None
+
+            fallback = (
+                dungeon_entrance or rent_loc or self.home or self._get_limbo()
+            )
             if fallback:
                 self.location = fallback
                 self.location.at_object_receive(self, None)

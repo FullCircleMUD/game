@@ -53,6 +53,8 @@ class CmdRent(FCMCommandMixin, Command):
             from_obj=caller,
         )
 
+        caller.db.last_rent_location = caller.location
+
         account.msg(
             account.at_look(
                 target=account.characters,

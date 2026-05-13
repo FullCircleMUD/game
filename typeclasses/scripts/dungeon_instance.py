@@ -89,18 +89,25 @@ class DungeonInstanceScript(DefaultScript):
 
     def add_characters(self, characters):
         """Tag multiple characters for this instance."""
+        entrance = self.entrance_room
         for char in characters:
             char.tags.add(self.instance_key, category="dungeon_character")
+            if entrance:
+                char.db.dungeon_entrance_room = entrance
         self.emptied_at = None
 
     def add_character(self, char):
         """Tag a single character joining this instance (shared mode)."""
         char.tags.add(self.instance_key, category="dungeon_character")
+        entrance = self.entrance_room
+        if entrance:
+            char.db.dungeon_entrance_room = entrance
         self.emptied_at = None
 
     def remove_character(self, char):
         """Remove a character from this instance."""
         char.tags.remove(self.instance_key, category="dungeon_character")
+        char.attributes.remove("dungeon_entrance_room")
 
     def get_characters(self):
         """Get all characters tagged for this instance.
@@ -415,6 +422,7 @@ class DungeonInstanceScript(DefaultScript):
         # absent characters (e.g. mid-teleport stragglers).
         for char in search_tag(self.instance_key, category="dungeon_character"):
             char.tags.remove(self.instance_key, category="dungeon_character")
+            char.attributes.remove("dungeon_entrance_room")
 
         # Scrub dungeon_pending tags. Disconnected puppets receive msg()
         # silently in Evennia, so the unconditional notify is harmless and
