@@ -39,6 +39,7 @@ INSTALLED_APPS = INSTALLED_APPS + [
     "subscriptions",
     "django.contrib.sitemaps",
     "evennia_world_builder",
+    "evennia_mob_spawner",
 ]
 
 WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
@@ -343,6 +344,17 @@ WORLDBUILDER_REPO = os.environ.get("WORLDBUILDER_REPO", "FullCircleMUD/fcm-world
 WORLDBUILDER_REF = os.environ.get("WORLDBUILDER_REF", "main")
 WORLDBUILDER_GITHUB_PAT = os.environ.get("WORLDBUILDER_GITHUB_PAT", "")
 
+# ── Mob spawner ──────────────────────────────────────────────────────
+# Reads YAML mob spawn rules from the FullCircleMUD/fcm-mobs repo.
+# MOB_SPAWNER_GITHUB_PAT is the secret — set it in secret_settings.local
+# (or the MOB_SPAWNER_GITHUB_PAT env var on Railway). The reader kwargs
+# dict is composed at the bottom of this file, AFTER secret_settings is
+# loaded, so the PAT override propagates.
+MOB_SPAWNER_READER = "evennia_yaml_reader.github.GitHubReader"
+MOB_SPAWNER_REPO = os.environ.get("MOB_SPAWNER_REPO", "FullCircleMUD/fcm-mobs")
+MOB_SPAWNER_REF = os.environ.get("MOB_SPAWNER_REF", "main")
+MOB_SPAWNER_GITHUB_PAT = os.environ.get("MOB_SPAWNER_GITHUB_PAT", "")
+
 
 ######################################################################
 # Local development overrides.
@@ -385,4 +397,12 @@ WORLDBUILDER_READER_KWARGS = {
     "repo": WORLDBUILDER_REPO,
     "ref": WORLDBUILDER_REF,
     "pat": WORLDBUILDER_GITHUB_PAT,
+}
+
+# Compose mob-spawner reader kwargs after secret_settings has loaded
+# so any override of MOB_SPAWNER_GITHUB_PAT / REPO / REF takes effect.
+MOB_SPAWNER_READER_KWARGS = {
+    "repo": MOB_SPAWNER_REPO,
+    "ref": MOB_SPAWNER_REF,
+    "pat": MOB_SPAWNER_GITHUB_PAT,
 }

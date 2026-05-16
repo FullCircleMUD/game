@@ -29,3 +29,6 @@ dj-database-url
 
 # World builder (local sibling repo, editable install)
 -e ../libraries/evennia-world-builder
+
+# Mob spawner (local sibling repo, editable install)
+-e ../libraries/evennia-mob-spawner
