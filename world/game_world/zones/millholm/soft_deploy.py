@@ -68,16 +68,27 @@ def build_zone(one_way_limbo=False):
     # creates a persistent population-maintenance script that finds spawn
     # rooms via mob_area tag queries against the YAML-deployed world.
     print("--- Creating Millholm Spawn Scripts ---")
+    # All Millholm zones are being progressively MIGRATED to the
+    # evennia-mob-spawner library. Source of truth: the fcm-mobs repo
+    # (shard0/millholm/<file>.yaml). Loaded via
+    # `ms_load shard=shard0 zone=millholm file=<name>`.
+    # The JSON files in world/spawns/ are kept for reference until each
+    # zone has been fully validated under the new system.
     for zone_key in (
-        "millholm_farms",
-        "millholm_woods",
-        "millholm_sewers",
-        "millholm_mine",
-        "millholm_southern",
-        "millholm_cemetery",
-        "millholm_lake",
-        "millholm_town",
-        "millholm_rooftops",
+        # All Millholm zones are disabled here for the migration. The
+        # JSON spawn data remains in world/spawns/<zone>.json as the
+        # porting reference. `town` has been ported to YAML
+        # (fcm-mobs/shard0/millholm/town.yaml); the others are pending
+        # — they will spawn no mobs until their YAML is in place.
+        # "millholm_farms",      # PENDING port
+        # "millholm_woods",      # PENDING port
+        # "millholm_sewers",     # PENDING port
+        # "millholm_mine",       # PENDING port
+        # "millholm_southern",   # PENDING port
+        # "millholm_cemetery",   # PENDING port
+        # "millholm_lake",       # PENDING port
+        # "millholm_town",       # PORTED → fcm-mobs/shard0/millholm/town.yaml
+        # "millholm_rooftops",   # PENDING port
     ):
         script = ZoneSpawnScript.create_for_zone(zone_key)
         if script:
