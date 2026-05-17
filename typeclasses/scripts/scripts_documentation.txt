@@ -1,3 +1,6 @@
+# kept as a reference for the DefaulScripts api
+
+
 """
 Scripts
 
@@ -12,10 +15,11 @@ just overloads its hooks to have it perform its function.
 
 """
 
-from evennia.scripts.scripts import DefaultScript
+#from evennia.scripts.scripts import DefaultScript
 
 
-class Script(DefaultScript):
+#class Script(DefaultScript):
+
     """
     This is the base TypeClass for all Scripts. Scripts describe
     all entities/systems without a physical existence in the game world
@@ -100,4 +104,4 @@ class Script(DefaultScript):
 
     """
 
-    pass
+    #pass

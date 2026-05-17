@@ -147,6 +147,9 @@ BASE_ACCOUNT_TYPECLASS = "typeclasses.accounts.accounts.Account"
 # Typeclass for character objects linked to an account (fallback)
 BASE_CHARACTER_TYPECLASS = "typeclasses.actors.character.FCMCharacter"
 
+# overrides the evennia default whcih points to typeclasses.scripts.Script 
+# which has been deleted (and is just a thin wrapper of DefaultScript anyway)
+BASE_SCRIPT_TYPECLASS = "evennia.DefaultScript"
 
 # this means a new account doesn;t auto generate a new character
 AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
@@ -339,7 +342,7 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
 # (or the WORLDBUILDER_GITHUB_PAT env var on Railway). The reader kwargs
 # dict is composed at the bottom of this file, AFTER secret_settings is
 # loaded, so the PAT override propagates.
-WORLDBUILDER_READER = "evennia_world_builder.readers.github.GitHubReader"
+WORLDBUILDER_READER = "evennia_yaml_reader.github.GitHubReader"
 WORLDBUILDER_REPO = os.environ.get("WORLDBUILDER_REPO", "FullCircleMUD/fcm-world")
 WORLDBUILDER_REF = os.environ.get("WORLDBUILDER_REF", "main")
 WORLDBUILDER_GITHUB_PAT = os.environ.get("WORLDBUILDER_GITHUB_PAT", "")
