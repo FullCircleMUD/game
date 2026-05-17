@@ -319,8 +319,10 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     def die(self, cause="unknown", killer=None):
         """
         Handle mob death: stop AI, clean up combat, create corpse,
-        award XP to killer, then delete. The ZoneSpawnScript handles
-        respawning a fresh object after the rule's death_cooldown_seconds.
+        award XP to killer, then delete. The mob-spawner library
+        observes the population change at its next tick and starts
+        any death_cooldown_seconds clock from that observation
+        (decision #5: observation, not callback).
         """
         if not self.is_alive:
             return  # already dead
@@ -370,15 +372,20 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         if room:
             self._create_corpse(room, cause)
 
-        # Notify the ZoneSpawnScript so rules using `death_cooldown_seconds`
-        # can start the clock from kill time rather than spawn time.
-        rule_id = self.db.spawn_rule_id
-        zone_key = self.db.spawn_zone_key
-        if rule_id and zone_key:
-            from evennia import ScriptDB
-            scripts = ScriptDB.objects.filter(db_key=f"zone_spawn_{zone_key}")
-            if scripts.exists():
-                scripts.first().on_mob_death(rule_id)
+        # SUSPECTED DEAD — pending confirmation before deletion.
+        # ZoneSpawnScript callback-based death notification, replaced by
+        # the mob-spawner library's observation-based death detection
+        # (it counts living mobs each tick and infers deaths via delta).
+        # Mobs spawned by the new system never had spawn_rule_id /
+        # spawn_zone_key stamped on them, so this block was already a
+        # silent no-op for them; commenting out now to make that explicit.
+        # rule_id = self.db.spawn_rule_id
+        # zone_key = self.db.spawn_zone_key
+        # if rule_id and zone_key:
+        #     from evennia import ScriptDB
+        #     scripts = ScriptDB.objects.filter(db_key=f"zone_spawn_{zone_key}")
+        #     if scripts.exists():
+        #         scripts.first().on_mob_death(rule_id)
 
         self.delete()
 

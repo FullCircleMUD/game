@@ -8,7 +8,11 @@ from world.test_world.test_area_arena import test_area_arena
 from world.test_world.test_area_combat import test_area_combat
 from world.test_world.spawn_test_items import spawn_test_items
 from world.test_world.spawn_npcs import spawn_npcs
-from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
+# SUSPECTED DEAD — pending confirmation before deletion. The
+# test_economic_zone mob population is no longer auto-created at
+# build time. Port to the evennia-mob-spawner library if testing
+# needs mobs in this zone again.
+# from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
 from world.test_world.test_area_dungeon import test_area_dungeon
 from world.test_world.test_area_gateway import test_area_gateway
 from world.test_world.test_area_castle_wall import test_area_castle_wall
@@ -101,8 +105,9 @@ def build_test_world():
     # spawn NPCs (trainers, shopkeepers, etc.)
     spawn_npcs()
 
+    # SUSPECTED DEAD — pending confirmation before deletion.
     # create zone spawn script (rabbits, wolves, dire wolf auto-managed)
-    ZoneSpawnScript.create_for_zone("test_economic_zone")
+    # ZoneSpawnScript.create_for_zone("test_economic_zone")
 
     # spawn dungeon entrance (requires economic area for Thieves Guild)
     test_area_dungeon()

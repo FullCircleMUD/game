@@ -821,14 +821,23 @@ def build_hundred_acre_wood():
 
 
 def soft_deploy():
-    """Wipe and rebuild the Hundred Acre Wood."""
-    from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
+    """Wipe and rebuild the Hundred Acre Wood.
+
+    Mob populations for this zone are now maintained by the
+    evennia-mob-spawner library reading from
+    shard0/hundred-acre-wood/ in the fcm-mobs repo, deployed
+    operator-side via ``ms_load shard=shard0 zone=hundred-acre-wood``.
+    """
+    # SUSPECTED DEAD — pending confirmation before deletion.
+    # The old ZoneSpawnScript.create_for_zone("book_hundred_acre_wood")
+    # call was replaced by the mob-spawner ms_load workflow above.
+    # from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
 
     clean_hundred_acre_wood()
     build_hundred_acre_wood()
 
-    script = ZoneSpawnScript.create_for_zone("book_hundred_acre_wood")
-    if script:
-        print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
-    else:
-        print("  [!] Failed to create book_hundred_acre_wood spawn script")
+    # script = ZoneSpawnScript.create_for_zone("book_hundred_acre_wood")
+    # if script:
+    #     print(f"  Created {script.key} ({len(script.db.spawn_table)} rules)")
+    # else:
+    #     print("  [!] Failed to create book_hundred_acre_wood spawn script")
