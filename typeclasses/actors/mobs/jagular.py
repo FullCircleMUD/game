@@ -43,9 +43,6 @@ class Jagular(CombatMob):
     aggro_hp_threshold = AttributeProperty(0.3)
     max_per_room = AttributeProperty(1)
 
-    # ── Loot ──
-    loot_gold_max = AttributeProperty(5)
-
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(10)
 
@@ -54,15 +51,18 @@ class Jagular(CombatMob):
         self.tags.add("hundred_acre_wood_main", category="mob_area")
 
 
-class JagularRecipeLoad(Jagular):
-    """Jagular variant that carries a recipe instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    spawn_recipes_max = AttributeProperty({"skilled": 1})
-
-
-class JagularScrollLoad(Jagular):
-    """Jagular variant that carries a scroll instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    spawn_scrolls_max = AttributeProperty({"skilled": 1})
+# JagularRecipeLoad / JagularScrollLoad — collapsed onto Jagular.
+# Loot now lives in YAML (fcm-mobs/shard0/hundred-acre-wood/wood.yaml).
+#
+# class JagularRecipeLoad(Jagular):
+#     """Jagular variant that carries a recipe instead of gold."""
+#
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_recipes_max = AttributeProperty({"skilled": 1})
+#
+#
+# class JagularScrollLoad(Jagular):
+#     """Jagular variant that carries a scroll instead of gold."""
+#
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_scrolls_max = AttributeProperty({"skilled": 1})
