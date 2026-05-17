@@ -55,15 +55,16 @@ class TestMobScrollRecipeTags(EvenniaTest):
         tags = mob.tags.get(category="spawn_recipes", return_list=True)
         self.assertNotIn("spawn_recipes", tags)
 
-    def test_kobold_recipe_load_has_recipe_tag(self):
-        """KoboldRecipeLoad variant gets spawn_recipes tag."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
-            key="a kobold",
-            location=self.room,
-        )
-        tags = mob.tags.get(category="spawn_recipes", return_list=True)
-        self.assertIn("spawn_recipes", tags)
+    # def test_kobold_recipe_load_has_recipe_tag(self):
+    #     """Obsolete: KoboldRecipeLoad collapsed onto Kobold. Recipe load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/mine.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
+    #         key="a kobold",
+    #         location=self.room,
+    #     )
+    #     tags = mob.tags.get(category="spawn_recipes", return_list=True)
+    #     self.assertIn("spawn_recipes", tags)
 
     def test_kobold_base_has_no_scrolls_max(self):
         """Base Kobold has no spawn_scrolls_max (empty dict)."""
@@ -74,15 +75,16 @@ class TestMobScrollRecipeTags(EvenniaTest):
         )
         self.assertFalse(mob.spawn_scrolls_max)
 
-    def test_kobold_recipe_load_recipes_max_is_basic(self):
-        """KoboldRecipeLoad variant gets basic tier dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
-            key="a kobold",
-            location=self.room,
-        )
-        expected = {"basic": 1}
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+    # def test_kobold_recipe_load_recipes_max_is_basic(self):
+    #     """Obsolete: KoboldRecipeLoad collapsed onto Kobold. Recipe load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/mine.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
+    #         key="a kobold",
+    #         location=self.room,
+    #     )
+    #     expected = {"basic": 1}
+    #     self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
     def test_gnoll_base_has_no_knowledge(self):
         """Base Gnoll has no knowledge loot (moved to GnollRecipeLoad/GnollScrollLoad variants)."""

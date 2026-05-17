@@ -9,11 +9,10 @@ valid exit) fight desperately.
 Designed for the Millholm Mine — L2 mobs, individually weak but
 dangerous in groups of 2-3.
 
-Two variants share identical appearance, stats, and behaviour so players
-cannot tell them apart:
-
-- **Kobold** — drops gold, no knowledge loot.
-- **KoboldRecipeLoad** — drops a recipe instead of gold.
+Loot is data, not behaviour: gold / recipe variants are expressed
+per-rule in YAML (`spawn_gold_max`, `spawn_recipes_max`) and share
+this single typeclass. The legacy KoboldRecipeLoad subclass is
+commented out below.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -61,9 +60,6 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)
 
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(2)
-
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.7)  # flee early
     min_allies_to_attack = AttributeProperty(1)   # need 1+ ally
@@ -79,8 +75,11 @@ class Kobold(PackCourageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggre
             self.wear(weapon)
 
 
-class KoboldRecipeLoad(Kobold):
-    """Kobold variant that carries a recipe instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    spawn_recipes_max = AttributeProperty({"basic": 1})
+# KoboldRecipeLoad — collapsed onto Kobold. Loot variants live in
+# YAML (fcm-mobs/shard0/millholm/mine.yaml).
+#
+# class KoboldRecipeLoad(Kobold):
+#     """Kobold variant that carries a recipe instead of gold."""
+#
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_recipes_max = AttributeProperty({"basic": 1})
