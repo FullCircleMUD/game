@@ -5,7 +5,7 @@ class RoomHarvestMoon(RoomInn):
 
     def at_object_receive(self, moved_obj, source_location, **kwargs):
         super().at_object_receive(moved_obj, source_location, **kwargs)
-        if moved_obj.has_account:
+        if getattr(moved_obj, "is_pc", False):
             self._check_rat_quest_defeat(moved_obj)
 
     def _check_rat_quest_defeat(self, character):
