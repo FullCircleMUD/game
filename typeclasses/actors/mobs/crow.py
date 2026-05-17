@@ -61,8 +61,7 @@ class Crow(FlyingMixin, PackCourageMixin, AggressiveMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
 
-    # ── Loot ──
-    loot_gold_max = AttributeProperty(1)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)

@@ -21,93 +21,100 @@ from evennia.utils.test_resources import EvenniaTest
 # ================================================================== #
 
 
-class TestMobGoldTags(EvenniaTest):
-    """Mobs with loot_gold_max > 0 get spawn_gold tag."""
-
-    def create_script(self):
-        pass
-
-    def setUp(self):
-        super().setUp()
-        self.room = create.create_object(
-            "typeclasses.terrain.rooms.room_base.RoomBase",
-            key="Test Room",
-        )
-
-    def test_kobold_has_gold_tag(self):
-        """Kobold (loot_gold_max=6) gets spawn_gold tag."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.Kobold",
-            key="a kobold",
-            location=self.room,
-        )
-        tags = mob.tags.get(category="spawn_gold", return_list=True)
-        self.assertIn("spawn_gold", tags)
-
-    def test_kobold_gold_max(self):
-        """Kobold spawn_gold_max should be 2."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.Kobold",
-            key="a kobold",
-            location=self.room,
-        )
-        self.assertEqual(mob.db.spawn_gold_max, 2)
-
-    def test_kobold_chieftain_gold_max(self):
-        """KoboldChieftain spawn_gold_max should be 6."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
-            key="Kobold Chieftain",
-            location=self.room,
-        )
-        self.assertEqual(mob.db.spawn_gold_max, 6)
-
-    def test_gnoll_gold_max(self):
-        """Base Gnoll spawn_gold_max should be 3 (reduced from 8 in loot variant split)."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll.Gnoll",
-            key="a gnoll",
-            location=self.room,
-        )
-        self.assertEqual(mob.db.spawn_gold_max, 3)
-
-    def test_gnoll_warlord_gold_max(self):
-        """GnollWarlord spawn_gold_max should be 15."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
-            key="Gnoll Warlord",
-            location=self.room,
-        )
-        self.assertEqual(mob.db.spawn_gold_max, 15)
-
-    def test_wolf_has_gold_tag(self):
-        """Wolf (loot_gold_max=2) gets spawn_gold tag."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.wolf.Wolf",
-            key="a grey wolf",
-            location=self.room,
-        )
-        tags = mob.tags.get(category="spawn_gold", return_list=True)
-        self.assertIn("spawn_gold", tags)
-
-    def test_wolf_gold_max(self):
-        """Wolf spawn_gold_max should be 2."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.wolf.Wolf",
-            key="a grey wolf",
-            location=self.room,
-        )
-        self.assertEqual(mob.db.spawn_gold_max, 2)
-
-    def test_base_combat_mob_no_gold_tag(self):
-        """Base CombatMob (loot_gold_max=0) should NOT get gold tag."""
-        mob = create.create_object(
-            "typeclasses.actors.mob.CombatMob",
-            key="a mob",
-            location=self.room,
-        )
-        tags = mob.tags.get(category="spawn_gold", return_list=True)
-        self.assertNotIn("spawn_gold", tags)
+# Disabled: CombatMob no longer derives spawn_gold tag / spawn_gold_max
+# attr from typeclass loot_gold_max at creation time. Loot lives in YAML
+# (mob-spawner rules) under the project principle "loot is data, not
+# typeclass behaviour". The runtime tag/attr path is now covered by the
+# evennia-mob-spawner library tests (SpawnIdentityTagTest,
+# YamlDeclaredTagsTest).
+#
+# class TestMobGoldTags(EvenniaTest):
+#     """Mobs with loot_gold_max > 0 get spawn_gold tag."""
+#
+#     def create_script(self):
+#         pass
+#
+#     def setUp(self):
+#         super().setUp()
+#         self.room = create.create_object(
+#             "typeclasses.terrain.rooms.room_base.RoomBase",
+#             key="Test Room",
+#         )
+#
+#     def test_kobold_has_gold_tag(self):
+#         """Kobold (loot_gold_max=6) gets spawn_gold tag."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.kobold.Kobold",
+#             key="a kobold",
+#             location=self.room,
+#         )
+#         tags = mob.tags.get(category="spawn_gold", return_list=True)
+#         self.assertIn("spawn_gold", tags)
+#
+#     def test_kobold_gold_max(self):
+#         """Kobold spawn_gold_max should be 2."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.kobold.Kobold",
+#             key="a kobold",
+#             location=self.room,
+#         )
+#         self.assertEqual(mob.db.spawn_gold_max, 2)
+#
+#     def test_kobold_chieftain_gold_max(self):
+#         """KoboldChieftain spawn_gold_max should be 6."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
+#             key="Kobold Chieftain",
+#             location=self.room,
+#         )
+#         self.assertEqual(mob.db.spawn_gold_max, 6)
+#
+#     def test_gnoll_gold_max(self):
+#         """Base Gnoll spawn_gold_max should be 3 (reduced from 8 in loot variant split)."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.gnoll.Gnoll",
+#             key="a gnoll",
+#             location=self.room,
+#         )
+#         self.assertEqual(mob.db.spawn_gold_max, 3)
+#
+#     def test_gnoll_warlord_gold_max(self):
+#         """GnollWarlord spawn_gold_max should be 15."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
+#             key="Gnoll Warlord",
+#             location=self.room,
+#         )
+#         self.assertEqual(mob.db.spawn_gold_max, 15)
+#
+#     def test_wolf_has_gold_tag(self):
+#         """Wolf (loot_gold_max=2) gets spawn_gold tag."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.wolf.Wolf",
+#             key="a grey wolf",
+#             location=self.room,
+#         )
+#         tags = mob.tags.get(category="spawn_gold", return_list=True)
+#         self.assertIn("spawn_gold", tags)
+#
+#     def test_wolf_gold_max(self):
+#         """Wolf spawn_gold_max should be 2."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mobs.wolf.Wolf",
+#             key="a grey wolf",
+#             location=self.room,
+#         )
+#         self.assertEqual(mob.db.spawn_gold_max, 2)
+#
+#     def test_base_combat_mob_no_gold_tag(self):
+#         """Base CombatMob (loot_gold_max=0) should NOT get gold tag."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mob.CombatMob",
+#             key="a mob",
+#             location=self.room,
+#         )
+#         tags = mob.tags.get(category="spawn_gold", return_list=True)
+#         self.assertNotIn("spawn_gold", tags)
 
 
 # ================================================================== #

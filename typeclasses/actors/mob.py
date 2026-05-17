@@ -117,27 +117,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     # from wandering into a room that already has one of them.
     max_per_room = AttributeProperty(0)
 
-    # ── Loot resources ──
-    # Dict of {resource_id (int): max_amount (int)} defining which resources
-    # this mob can carry as loot. The spawn system fills mobs up to these
-    # caps over time. On death, all resources transfer to the corpse.
-    # Override in subclasses (e.g. Wolf: {8: 1} for 1 hide).
-    loot_resources = AttributeProperty({})
-
-    # ── Gold loot ──
-    # Max gold this mob can carry as loot. 0 = no gold.
-    # Override in intelligent mob subclasses (kobolds, gnolls, etc.).
-    # Animals (wolves, rabbits) should not carry gold.
-    loot_gold_max = AttributeProperty(0)
-
-    # ── Knowledge loot ──
-    # Per-tier max dicts for scroll/recipe capacity. Empty = no scrolls/recipes.
-    # Override in intelligent mob subclasses with explicit tier dicts, e.g.:
-    #   spawn_scrolls_max = AttributeProperty({"basic": 1})
-    # At-or-below filtering: a "basic" slot accepts basic-tier scrolls only,
-    # a "skilled" slot accepts basic or skilled, etc.
-    spawn_scrolls_max = AttributeProperty({})
-    spawn_recipes_max = AttributeProperty({})
+    # ── Loot ──
+    # Loot lives in the spawn rule YAML (mob-spawner library), not on the
+    # typeclass. Each rule that wants its mob to drop loot declares the
+    # runtime values directly: spawn_resources_max / spawn_gold_max /
+    # spawn_scrolls_max / spawn_recipes_max as `attrs`, plus the matching
+    # spawn_* tags so the unified-spawn distributor finds the mob.
+    # No typeclass defaults, no derivation at creation time.
 
     # ── XP override ──
     # Optional per-mob XP award. When None, _die uses level * 10 (default
@@ -152,24 +138,6 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         # by BaseNPC.at_object_creation() conditional hasattr checks.
         if self.location:
             self.spawn_room_id = self.location.id
-
-        # Unified spawn system: tag for target pooling, max dict for headroom.
-        if self.loot_resources:
-            self.tags.add("spawn_resources", category="spawn_resources")
-            self.db.spawn_resources_max = dict(self.loot_resources)
-
-        # Gold loot: plain int capacity.
-        if self.loot_gold_max > 0:
-            self.tags.add("spawn_gold", category="spawn_gold")
-            self.db.spawn_gold_max = self.loot_gold_max
-
-        # Knowledge loot: builder-set per-tier max dicts.
-        if self.spawn_scrolls_max:
-            self.tags.add("spawn_scrolls", category="spawn_scrolls")
-            self.db.spawn_scrolls_max = dict(self.spawn_scrolls_max)
-        if self.spawn_recipes_max:
-            self.tags.add("spawn_recipes", category="spawn_recipes")
-            self.db.spawn_recipes_max = dict(self.spawn_recipes_max)
 
     # ================================================================== #
     #  Appearance — HP condition when looked at

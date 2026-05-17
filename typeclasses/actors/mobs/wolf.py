@@ -52,9 +52,7 @@ class Wolf(AggressiveMob):
     aggro_hp_threshold = AttributeProperty(0.5)
     max_per_room = AttributeProperty(1)
 
-    # ── Loot — spawn service fills up to these caps ──
-    loot_resources = AttributeProperty({8: 1})  # max 1 hide
-    loot_gold_max = AttributeProperty(2)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── AI timing ──
     ai_tick_interval = AttributeProperty(8)
@@ -130,29 +128,33 @@ class Wolf(AggressiveMob):
         self.retreat_to_spawn()
 
 
-class WolfFatLoad(Wolf):
-    """Wolf variant — drops animal fat instead of hide."""
-
-    loot_resources = AttributeProperty({45: 1})  # 1 animal fat, no hide
-
-
-class WolfHideAndFatLoad(Wolf):
-    """Wolf variant — drops both hide and animal fat."""
-
-    loot_resources = AttributeProperty({8: 1, 45: 1})
-
-
-class WolfRecipeLoad(Wolf):
-    """Wolf variant — drops only a basic-tier recipe (no gold, hide, or fat)."""
-
-    loot_resources = AttributeProperty({})
-    loot_gold_max = AttributeProperty(0)
-    spawn_recipes_max = AttributeProperty({"basic": 1})
-
-
-class WolfScrollLoad(Wolf):
-    """Wolf variant — drops only a basic-tier scroll (no gold, hide, or fat)."""
-
-    loot_resources = AttributeProperty({})
-    loot_gold_max = AttributeProperty(0)
-    spawn_scrolls_max = AttributeProperty({"basic": 1})
+# Pure-data loot-variant subclasses retired — same key/desc as Wolf,
+# only differed in loot_* AttributeProperty defaults. Loot lives in
+# YAML rules now (fcm-mobs/shard0/millholm/woods.yaml uses the base
+# Wolf typeclass with per-rule spawn_*_max attrs + spawn_* tags to
+# express the same hide / fat / both / recipe / scroll variants).
+# Commented out (not deleted) so the historical loot tables are
+# recoverable if needed for audit.
+#
+# class WolfFatLoad(Wolf):
+#     """Wolf variant — drops animal fat instead of hide."""
+#     loot_resources = AttributeProperty({45: 1})  # 1 animal fat, no hide
+#
+#
+# class WolfHideAndFatLoad(Wolf):
+#     """Wolf variant — drops both hide and animal fat."""
+#     loot_resources = AttributeProperty({8: 1, 45: 1})
+#
+#
+# class WolfRecipeLoad(Wolf):
+#     """Wolf variant — drops only a basic-tier recipe (no gold, hide, or fat)."""
+#     loot_resources = AttributeProperty({})
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_recipes_max = AttributeProperty({"basic": 1})
+#
+#
+# class WolfScrollLoad(Wolf):
+#     """Wolf variant — drops only a basic-tier scroll (no gold, hide, or fat)."""
+#     loot_resources = AttributeProperty({})
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_scrolls_max = AttributeProperty({"basic": 1})

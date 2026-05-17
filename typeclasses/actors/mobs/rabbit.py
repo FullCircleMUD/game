@@ -48,8 +48,7 @@ class Rabbit(CombatMob):
     damage_dice = AttributeProperty("1d2")
     attack_message = AttributeProperty("nips at")
 
-    # ── Loot — base variant carries 1 gold ──
-    loot_gold_max = AttributeProperty(1)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── XP override ──
     xp_award = AttributeProperty(15)
@@ -127,14 +126,17 @@ class Rabbit(CombatMob):
             self.wander()
 
 
-class RabbitRich(Rabbit):
-    """Rabbit variant — carries 2 gold."""
-
-    loot_gold_max = AttributeProperty(2)
-
-
-class RabbitFat(Rabbit):
-    """Rabbit variant — carries 1 animal fat instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    loot_resources = AttributeProperty({45: 1})  # 1 animal fat
+# Pure-data loot-variant subclasses retired — same key/desc as Rabbit,
+# only differed in loot_* defaults. Loot lives in YAML rules now
+# (fcm-mobs/shard0/millholm/farms.yaml uses the base Rabbit typeclass
+# with per-rule attrs + tags to express the rich / fat variants).
+#
+# class RabbitRich(Rabbit):
+#     """Rabbit variant — carries 2 gold."""
+#     loot_gold_max = AttributeProperty(2)
+#
+#
+# class RabbitFat(Rabbit):
+#     """Rabbit variant — carries 1 animal fat instead of gold."""
+#     loot_gold_max = AttributeProperty(0)
+#     loot_resources = AttributeProperty({45: 1})  # 1 animal fat
