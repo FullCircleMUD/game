@@ -56,45 +56,49 @@ class TestRavenStats(EvenniaTest):
         from typeclasses.actors.mobs.raven import RavenFlockLeader
         self.assertIs(type(self.raven).squad_leader_typeclass, RavenFlockLeader)
 
-    def test_base_raven_drops_gold(self):
-        """Base Raven and the leader carry up to 3 gold."""
-        self.assertEqual(self.raven.loot_gold_max, 3)
-        self.assertEqual(self.leader.loot_gold_max, 3)
+    # def test_base_raven_drops_gold(self):
+    #     """Obsolete: loot_gold_max stripped from Raven typeclass — gold
+    #     now declared per-rule in YAML."""
+    #     self.assertEqual(self.raven.loot_gold_max, 3)
+    #     self.assertEqual(self.leader.loot_gold_max, 3)
 
 
-class TestRavenLootVariants(EvenniaTest):
-    """Loot variants — scroll and recipe ravens swap gold for a skilled drop."""
-
-    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
-
-    def create_script(self):
-        pass
-
-    def test_scroll_load_drops_skilled_scroll_no_gold(self):
-        scroll_raven = create.create_object(
-            "typeclasses.actors.mobs.raven.RavenScrollLoad",
-            key="a raven",
-            location=self.room1,
-        )
-        self.assertEqual(scroll_raven.loot_gold_max, 0)
-        self.assertEqual(scroll_raven.spawn_scrolls_max, {"skilled": 1})
-        self.assertFalse(scroll_raven.spawn_recipes_max)
-
-    def test_recipe_load_drops_skilled_recipe_no_gold(self):
-        recipe_raven = create.create_object(
-            "typeclasses.actors.mobs.raven.RavenRecipeLoad",
-            key="a raven",
-            location=self.room1,
-        )
-        self.assertEqual(recipe_raven.loot_gold_max, 0)
-        self.assertEqual(recipe_raven.spawn_recipes_max, {"skilled": 1})
-        self.assertFalse(recipe_raven.spawn_scrolls_max)
-
-    def test_loot_variants_inherit_follower_behavior(self):
-        """Loot variants are still followers — squad_leader_typeclass intact."""
-        from typeclasses.actors.mobs.raven import RavenFlockLeader, RavenScrollLoad, RavenRecipeLoad
-        self.assertIs(RavenScrollLoad.squad_leader_typeclass, RavenFlockLeader)
-        self.assertIs(RavenRecipeLoad.squad_leader_typeclass, RavenFlockLeader)
+# class TestRavenLootVariants(EvenniaTest):
+#     """Obsolete: RavenScrollLoad / RavenRecipeLoad variants were
+#     collapsed onto the base Raven typeclass — scroll/recipe loads are
+#     now declared per-rule in fcm-mobs/shard0/millholm/southern.yaml.
+#     """
+#
+#     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+#
+#     def create_script(self):
+#         pass
+#
+#     def test_scroll_load_drops_skilled_scroll_no_gold(self):
+#         scroll_raven = create.create_object(
+#             "typeclasses.actors.mobs.raven.RavenScrollLoad",
+#             key="a raven",
+#             location=self.room1,
+#         )
+#         self.assertEqual(scroll_raven.loot_gold_max, 0)
+#         self.assertEqual(scroll_raven.spawn_scrolls_max, {"skilled": 1})
+#         self.assertFalse(scroll_raven.spawn_recipes_max)
+#
+#     def test_recipe_load_drops_skilled_recipe_no_gold(self):
+#         recipe_raven = create.create_object(
+#             "typeclasses.actors.mobs.raven.RavenRecipeLoad",
+#             key="a raven",
+#             location=self.room1,
+#         )
+#         self.assertEqual(recipe_raven.loot_gold_max, 0)
+#         self.assertEqual(recipe_raven.spawn_recipes_max, {"skilled": 1})
+#         self.assertFalse(recipe_raven.spawn_scrolls_max)
+#
+#     def test_loot_variants_inherit_follower_behavior(self):
+#         """Loot variants are still followers — squad_leader_typeclass intact."""
+#         from typeclasses.actors.mobs.raven import RavenFlockLeader, RavenScrollLoad, RavenRecipeLoad
+#         self.assertIs(RavenScrollLoad.squad_leader_typeclass, RavenFlockLeader)
+#         self.assertIs(RavenRecipeLoad.squad_leader_typeclass, RavenFlockLeader)
 
 
 class TestRavenLeaderAcquisition(EvenniaTest):

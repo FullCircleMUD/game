@@ -62,9 +62,6 @@ class BobbinBandit(WeaponMasteryMixin, HumanoidWearslotsMixin, LLMCombatMob):
     ai_tick_interval = AttributeProperty(15)
     max_per_room = AttributeProperty(1)
 
-    # Modest gold; the camp's real wealth is in the barn ledger
-    loot_gold_max = AttributeProperty(3)
-
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
 
     def at_object_creation(self):

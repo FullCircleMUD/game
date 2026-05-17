@@ -56,7 +56,6 @@ class FriarPluck(BobbinBandit):
     damage_dice = AttributeProperty("1d6")
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     attack_message = AttributeProperty("brings a heavy ladle down hard on")
-    loot_gold_max = AttributeProperty(2)
 
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
 

@@ -192,10 +192,18 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     # ================================================================== #
 
     def start_ai(self):
-        """Register with TICKER_HANDLER to start the AI loop."""
+        """Register with TICKER_HANDLER to start the AI loop.
+
+        Defaults the AI to ``"wander"`` on first start, but respects a
+        pre-existing ``ai_state`` attribute. This lets spawn rules
+        declare a non-default initial state (e.g. ``ai_state: idle``
+        for stationary NPCs) and lets mobs resume their last-known
+        state across server restarts.
+        """
         if not self.is_alive:
             return
-        self.ai.set_state("wander")
+        if not self.attributes.has("ai_state", category="ai_state"):
+            self.ai.set_state("wander")
         TICKER_HANDLER.add(
             interval=self.ai_tick_interval,
             callback=self.ai_tick,

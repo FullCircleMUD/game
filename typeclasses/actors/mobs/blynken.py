@@ -54,7 +54,6 @@ class Blynken(BobbinBandit):
     damage_dice = AttributeProperty("1d4")
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     attack_message = AttributeProperty("looses a sling-stone with surprising accuracy at")
-    loot_gold_max = AttributeProperty(2)
 
     default_weapon_masteries = {}
 

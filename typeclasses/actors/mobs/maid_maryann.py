@@ -56,7 +56,6 @@ class MaidMaryann(BobbinBandit):
     damage_dice = AttributeProperty("1d4")
     damage_type = AttributeProperty(DamageType.PIERCING)
     attack_message = AttributeProperty("draws a slim dagger and stabs at")
-    loot_gold_max = AttributeProperty(5)
 
     default_weapon_masteries = {"dagger": MasteryLevel.SKILLED.value}
 

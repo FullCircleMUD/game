@@ -94,36 +94,40 @@ class TestMobScrollRecipeTags(EvenniaTest):
         self.assertFalse(mob.spawn_scrolls_max)
         self.assertFalse(mob.spawn_recipes_max)
 
-    def test_gnoll_recipe_load_has_basic_tier(self):
-        """GnollRecipeLoad variant gets basic tier recipe dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll.GnollRecipeLoad",
-            key="a gnoll raider",
-            location=self.room,
-        )
-        expected = {"basic": 1}
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
-
-    def test_gnoll_scroll_load_has_basic_tier(self):
-        """GnollScrollLoad variant gets basic tier scroll dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll.GnollScrollLoad",
-            key="a gnoll raider",
-            location=self.room,
-        )
-        expected = {"basic": 1}
-        self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
-
-    def test_gnoll_warlord_has_skilled_tier(self):
-        """GnollWarlord gets builder-set skilled tier dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
-            key="Gnoll Warlord",
-            location=self.room,
-        )
-        expected = {"skilled": 1}
-        self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+    # def test_gnoll_recipe_load_has_basic_tier(self):
+    #     """Obsolete: GnollRecipeLoad collapsed onto Gnoll. Recipe load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/southern.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll.GnollRecipeLoad",
+    #         key="a gnoll raider",
+    #         location=self.room,
+    #     )
+    #     expected = {"basic": 1}
+    #     self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+    #
+    # def test_gnoll_scroll_load_has_basic_tier(self):
+    #     """Obsolete: GnollScrollLoad collapsed onto Gnoll. Scroll load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/southern.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll.GnollScrollLoad",
+    #         key="a gnoll raider",
+    #         location=self.room,
+    #     )
+    #     expected = {"basic": 1}
+    #     self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
+    #
+    # def test_gnoll_warlord_has_skilled_tier(self):
+    #     """Obsolete: spawn_scrolls_max / spawn_recipes_max stripped from
+    #     GnollWarlord typeclass — loot now declared per-rule in
+    #     fcm-mobs/shard0/millholm/southern.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
+    #         key="Gnoll Warlord",
+    #         location=self.room,
+    #     )
+    #     expected = {"skilled": 1}
+    #     self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
+    #     self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
     def test_kobold_chieftain_has_skilled_tier(self):
         """KoboldChieftain gets builder-set skilled tier dict."""

@@ -60,7 +60,6 @@ class BobbinGoode(BobbinBandit):
 
     damage_dice = AttributeProperty("1d6")
     attack_message = AttributeProperty("flourishes a blade and slashes at")
-    loot_gold_max = AttributeProperty(8)
 
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
 

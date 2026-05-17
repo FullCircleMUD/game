@@ -55,10 +55,6 @@ class Direwolf(AggressiveMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(6)
 
-    # ── Loot ──
-    loot_resources = AttributeProperty({8: 1})  # 1 hide
-    loot_gold_max = AttributeProperty(5)
-
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)
     max_per_room = AttributeProperty(1)
@@ -118,10 +114,6 @@ class SouthernWolf(MobFollowableMixin, AggressiveMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(7)
 
-    # ── Loot ──
-    loot_resources = AttributeProperty({8: 1})  # 1 hide
-    loot_gold_max = AttributeProperty(3)
-
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)
     max_per_room = AttributeProperty(4)  # whole pack can stack in one room
@@ -150,7 +142,10 @@ class SouthernWolf(MobFollowableMixin, AggressiveMob):
         self.retreat_to_spawn()
 
 
-class SouthernWolfFatLoad(SouthernWolf):
-    """Loot variant — drops animal fat instead of hide."""
-
-    loot_resources = AttributeProperty({45: 1})  # 1 animal fat, no hide
+# SouthernWolfFatLoad — collapsed onto SouthernWolf. Loot variants
+# live in YAML (fcm-mobs/shard0/millholm/southern.yaml).
+#
+# class SouthernWolfFatLoad(SouthernWolf):
+#     """Loot variant — drops animal fat instead of hide."""
+#
+#     loot_resources = AttributeProperty({45: 1})  # 1 animal fat, no hide

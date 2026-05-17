@@ -63,7 +63,6 @@ class TightsBandit(WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
     damage_dice = AttributeProperty("1d6")
     damage_type = AttributeProperty(DamageType.SLASHING)
     attack_message = AttributeProperty("hacks at")
-    loot_gold_max = AttributeProperty(2)
 
     aggro_hp_threshold = AttributeProperty(0.5)
     max_per_room = AttributeProperty(2)

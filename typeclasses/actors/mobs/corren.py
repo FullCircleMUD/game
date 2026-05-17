@@ -67,9 +67,6 @@ class Corren(LLMCombatMob):
     attack_delay_min = AttributeProperty(4)
     attack_delay_max = AttributeProperty(8)
 
-    # ── No loot ──
-    loot_gold_max = AttributeProperty(0)
-
     # ── Behavior ──
     max_per_room = AttributeProperty(1)
 
