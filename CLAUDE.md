@@ -16,6 +16,13 @@ For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For C
 
 ## Development Approach
 
+**Architectural decisions go to the user, not me.** Significant design and architectural choices belong to the user for explicit consensus. Present options with honest tradeoffs and let the user direct — never lock in a choice unilaterally, even if framed as a "recommendation" inside a plan or proposal. Two compounding risks make this load-bearing on a 15-repo project:
+
+1. **LLM context gap.** I cannot hold the whole project in context. The user remembers history, constraints, and prior decisions I have lost. That institutional memory is the value the human-in-the-loop provides.
+2. **Comprehension debt.** When I make decisions without the user going through the understanding process, the user accrues blind spots over their own codebase and can no longer fill the role above. The slow path of consensus is cheaper than the debt accrued by unilateral speed.
+
+How to apply: present options as options, not as "the design choice"; use AskUserQuestion when the call is non-trivial; if I'd normally pick a default, say "this is open — your call" instead. Trivial mechanical choices within an already-agreed approach (naming, formatting, comment phrasing, helper placement inside a file) are fine to make — the line is *does this shape the architecture or the user's mental model of it?* If yes, it's theirs. The recurring failure mode to watch for: a plan with a "Design choice" section that prescribes an option dressed in supporting rationale. That's unilateral even when it reads as analysis.
+
 **Evennia-first.** Before designing or implementing any solution, explore what Evennia already provides natively. Do not build something Evennia has already solved. Check `evennia/` in the venv (`src/venv/Lib/site-packages/evennia/`), search for existing helpers on `DefaultObject`/`DefaultCharacter`/`DefaultRoom`/`DefaultScript`, read the relevant Evennia manager or utility module, and understand how Evennia's sub-methods (e.g. `get_search_candidates`, `at_object_creation`, `at_post_move`) can be overridden or composed. Where Evennia provides partial functionality, prefer **thin wrappers, narrow overrides of sub-methods, and composition over reimplementation**. Build custom solutions only for the gaps Evennia doesn't cover, and document those gaps in the relevant design doc. See [design/UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) § What Evennia Already Provides for an example of this discipline applied.
 
 ---
