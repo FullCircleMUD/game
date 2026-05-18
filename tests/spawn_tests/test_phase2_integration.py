@@ -62,6 +62,37 @@ class TestRoomHarvestingSpawnTags(EvenniaTest):
         )
         self.assertEqual(room.db.spawn_resources_max, {6: 5})
 
+    def test_wb_at_post_build_resyncs_dict_after_late_attribute_application(self):
+        """Simulates wb_build's lifecycle: at_object_post_creation fires with
+        typeclass defaults, then the library applies YAML attributes via
+        obj.attributes.add(), then it invokes wb_at_post_build (which recalls
+        at_object_post_creation) so spawn_resources_max is re-derived from
+        the now-correct attribute state. Verifies idempotency too — the
+        second write replaces the first; only one Attribute row exists.
+        """
+        room = create.create_object(
+            "typeclasses.terrain.rooms.room_harvesting.RoomHarvesting",
+            key="Late Override Mine",
+        )
+        # at_object_post_creation has fired with defaults.
+        self.assertEqual(room.db.spawn_resources_max, {1: 10})
+
+        # Library applies YAML attributes post-create_object — the dict is
+        # NOT updated yet; that's the gap wb_at_post_build closes.
+        room.attributes.add("resource_id", 19)
+        room.attributes.add("resource_count_max", 5)
+        self.assertEqual(room.db.spawn_resources_max, {1: 10})
+
+        # Library invokes the post-build hook — dict now reflects YAML values.
+        room.wb_at_post_build()
+        self.assertEqual(room.db.spawn_resources_max, {19: 5})
+
+        # Idempotency check — only one Attribute row exists for the key.
+        matches = room.attributes.get(
+            "spawn_resources_max", return_obj=True, return_list=True,
+        )
+        self.assertEqual(len(matches), 1)
+
 
 # Disabled: CombatMob no longer derives spawn_* tags / spawn_*_max attrs
 # from typeclass loot_* defaults at creation time. Loot lives in YAML
