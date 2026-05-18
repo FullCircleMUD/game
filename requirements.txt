@@ -32,3 +32,9 @@ dj-database-url
 
 # Mob spawner (local sibling repo, editable install)
 -e ../libraries/evennia-mob-spawner
+
+# Shards — split-deployment / horizontal sharding extension
+# (local sibling repo, editable install). Library is dormant in
+# monolith mode; activated by SHARDS_ROLE in settings_router.py /
+# settings_shard0.py.
+-e ../libraries/evennia-shards
