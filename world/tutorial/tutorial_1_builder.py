@@ -571,8 +571,11 @@ def _phase_4(state):
         "counter, alongside a jug of water.",
         "|wTutorial: Eating & Hunger|n\n\n"
         "Your character gets hungry over time. Hunger levels:\n"
-        "  |gFULL|n → SATED → PECKISH → |yHUNGRY|n → |rSTARVING|n\n\n"
-        "When STARVING, you take periodic damage! Keep fed.\n\n"
+        "  |gFULL|n → |gSATISFIED|n → |gNOURISHED|n → |gCONTENT|n → "
+        "|gPECKISH|n → |yHUNGRY|n → |rFAMISHED|n → |rSTARVING|n\n\n"
+        "At |yHUNGRY|n your health regeneration stops. At |rFAMISHED|n "
+        "and |rSTARVING|n you take periodic damage to HP, mana, and "
+        "movement — keep fed!\n\n"
         "  |weat bread|n — Eat bread to restore hunger.\n"
         "  |whunger|n — Check your current hunger level.\n"
         "  |wscore|n — Also shows hunger level.\n\n"
@@ -587,12 +590,14 @@ def _phase_4(state):
         "  Check your hunger: |whunger|n\n"
         "  Move |weast|n when ready.",
         guide_context=(
-            "Explain hunger. Characters get hungry over time: FULL → "
-            "SATED → PECKISH → HUNGRY → STARVING. Starving causes "
-            "damage! |weat bread|n restores hunger. |whunger|n checks "
-            "level. Suggest picking up bread and eating it. Mention "
-            "bread comes from wheat→flour→bread chain — Tutorial 2 "
-            "covers the economics."
+            "Explain hunger. Characters get hungry over time through "
+            "eight levels: FULL → SATISFIED → NOURISHED → CONTENT → "
+            "PECKISH → HUNGRY → FAMISHED → STARVING. At HUNGRY health "
+            "regeneration stops; at FAMISHED and STARVING the character "
+            "takes damage to HP, mana, and movement. |weat bread|n "
+            "restores hunger. |whunger|n checks level. Suggest picking "
+            "up bread and eating it. Mention bread comes from "
+            "wheat→flour→bread chain — Tutorial 2 covers the economics."
         ),
     )
     _connect(rooms["rest"], rooms["pantry"], "east")

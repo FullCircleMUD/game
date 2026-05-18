@@ -360,8 +360,7 @@ def _phase_2(state):
         "The tome is open to a chapter titled 'The Path of Mastery':\n\n"
         "  UNSKILLED → BASIC → SKILLED → EXPERT → MASTER → GRANDMASTER\n\n"
         "Each rank improves your ability with that skill. Train at a "
-        "trainer to advance your mastery. Higher mastery means better "
-        "success rates and more powerful effects.",
+        "trainer to advance your mastery.",
     )
     tome.aliases.add("tome")
     tome.aliases.add("skill tome")
@@ -428,6 +427,10 @@ def _phase_3(state):
         "a no-nonsense demeanor. She's trained countless adventurers in "
         "the basics of crafting. Type |wtrain|n to see what she teaches."
     )
+    trainer.room_description = (
+        "{name}, a stocky veteran with calloused hands, watches the "
+        "training yard with an evaluating eye."
+    )
     trainer.tags.add(tag, category="tutorial_mob")
 
     # ----- ROOM 6: Guild Hall -----
@@ -472,6 +475,10 @@ def _phase_3(state):
         "Guild Warden Aldric is a tall, grizzled man in ceremonial armour. "
         "He oversees guild membership and advancement. Type |wguild|n for "
         "class info, or |wquest|n for guild quests."
+    )
+    guildmaster.room_description = (
+        "{name}, a tall man in ceremonial armour, stands beside the "
+        "stone lectern reviewing membership records."
     )
     guildmaster.tags.add(tag, category="tutorial_mob")
 
@@ -526,6 +533,10 @@ def _phase_4(state):
         "A lanky young squire with unruly hair and an eager grin. He "
         "practices sword forms with exaggerated enthusiasm, occasionally "
         "tripping over his own feet."
+    )
+    companion.room_description = (
+        "{name}, a lanky young squire with unruly hair, practices "
+        "sword forms with eager enthusiasm."
     )
     companion.tags.add(tag, category="tutorial_mob")
 
