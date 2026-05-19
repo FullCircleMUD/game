@@ -35,7 +35,8 @@ SHARD_ID = get_router_shard_id()
 #
 # Inherits from settings.py (FCM sets this to False already), but
 # stated explicitly here so the router behaviour is self-documenting.
-AUTO_PUPPET_ON_LOGIN = False
+#AUTO_PUPPET_ON_LOGIN = False
+AUTO_PUPPET_ON_LOGIN = True
 
 # Localhost ports. On Railway these are overridden by the platform's
 # $PORT env var (already handled in base settings.py).
