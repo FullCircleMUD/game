@@ -286,18 +286,45 @@ def _restart_corpse_timers():
     """
     Find all Corpse and QuitDrop objects and restart their unlock/despawn
     timers based on persisted timestamps.
+
+    Per-role behaviour:
+      - router: skip entirely. The router doesn't own game-world corpses.
+      - shard:  scope the query to this shard via shard_id. Corpses are
+        in-world objects that live on the same shard as the room they
+        dropped in; cross-shard restart is never correct.
+      - monolith: no shard scoping; matches the pre-sharding behaviour.
     """
+    from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role, get_shard_id
+
+    role = get_role()
+    if role == ROLE_ROUTER:
+        return
+
     from evennia import logger
     from evennia.objects.models import ObjectDB
 
     from typeclasses.world_objects.corpse import Corpse
 
-    corpse_count = 0
-    for obj in ObjectDB.objects.filter(
+    # Union of corpse and quit_drop typeclass paths via the | operator
+    # on two filter() querysets of the same model. Django composes this
+    # into a single SELECT with an OR'd predicate:
+    #   WHERE (db_typeclass_path LIKE '%corpse%'
+    #          OR db_typeclass_path LIKE '%quit_drop%')
+    # Chaining .filter(shard_id=...) afterward adds an outer AND, so
+    # the final predicate is:
+    #   WHERE (corpse OR quit_drop) AND shard_id = '<this>'
+    # Cross-shard rows are excluded by SQL; from_db is never called
+    # on them.
+    qs = ObjectDB.objects.filter(
         db_typeclass_path__contains="corpse"
     ) | ObjectDB.objects.filter(
         db_typeclass_path__contains="quit_drop"
-    ):
+    )
+    if role != ROLE_MONOLITH:
+        qs = qs.filter(shard_id=get_shard_id())
+
+    corpse_count = 0
+    for obj in qs:
         if not isinstance(obj, Corpse):
             continue
         try:
