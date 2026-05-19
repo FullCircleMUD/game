@@ -1162,18 +1162,52 @@ class FCMCharacter(
             TelemetryService.record_session_start(self.account.id, self.key)
         # Backfill respawn_location and home for characters created before
         # these defaults existed, or created before the world was built.
+        #
+        # Uses values_list pk projection plus a local-shard filter so the
+        # global search_tag queryset never instantiates a foreign-shard
+        # row (which would trip the from_db chokepoint and noisily raise
+        # inside this post-hook). Scoping to the local shard (plus the
+        # global "*" sentinel) also keeps the assignment safe: writing a
+        # cross-shard pk into respawn_location's Attribute store or
+        # db_home_id would trip any later read of those fields.
+        from evennia_shards import ROLE_MONOLITH, get_role, get_shard_id
+
+        _role = get_role()
+
         if not self.respawn_location:
             from evennia.utils.search import search_tag
+            from evennia.objects.models import ObjectDB
 
-            cemetery_rooms = search_tag("millholm_cemetery", category="special_room")
-            if cemetery_rooms:
-                self.respawn_location = cemetery_rooms[0]
-        if not self.home or self.home.id == 2:  # 2 = Limbo
+            cemetery_qs = search_tag(
+                "millholm_cemetery", category="special_room"
+            )
+            if _role != ROLE_MONOLITH:
+                cemetery_qs = cemetery_qs.filter(
+                    shard_id__in=[get_shard_id(), "*"]
+                )
+            cemetery_pks = list(
+                cemetery_qs.values_list("pk", flat=True)[:1]
+            )
+            if cemetery_pks:
+                # pk is guaranteed local (or global "*"), so this load
+                # is chokepoint-safe.
+                self.respawn_location = ObjectDB.objects.get(
+                    pk=cemetery_pks[0]
+                )
+        if not self.db_home_id or self.db_home_id == 2:  # 2 = Limbo
             from evennia.utils.search import search_tag
 
-            inn_rooms = search_tag("harvest_moon_inn", category="special_room")
-            if inn_rooms:
-                self.home = inn_rooms[0]
+            inn_qs = search_tag(
+                "harvest_moon_inn", category="special_room"
+            )
+            if _role != ROLE_MONOLITH:
+                inn_qs = inn_qs.filter(
+                    shard_id__in=[get_shard_id(), "*"]
+                )
+            inn_pks = list(inn_qs.values_list("pk", flat=True)[:1])
+            if inn_pks:
+                self.db_home_id = inn_pks[0]
+                self.save(update_fields=["db_home"])
 
         # Safety net: if stuck in purgatory (e.g. server crash lost the timer),
         # reschedule the release so they don't wait forever.
