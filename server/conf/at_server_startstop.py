@@ -321,7 +321,21 @@ def _restart_purgatory_timers():
     Find all characters currently in a purgatory room and restart
     their release timers (1 minute from now, since we don't know
     how much time remained).
+
+    Per-role behaviour:
+      - router: skip entirely. The router doesn't own game-world
+        characters; purgatory is a shard-local concept.
+      - shard:  scope the query to this shard only via shard_id. Each
+        shard has its own RoomPurgatory (per fcm-world/<shard>/scaffold/);
+        a character in purgatory on shard1 must be released by shard1.
+      - monolith: no shard scoping; matches the pre-sharding behaviour.
     """
+    from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role, get_shard_id
+
+    role = get_role()
+    if role == ROLE_ROUTER:
+        return
+
     from evennia import logger
     from evennia.objects.models import ObjectDB
     from evennia.utils.utils import delay
@@ -329,10 +343,28 @@ def _restart_purgatory_timers():
     from typeclasses.actors.character import FCMCharacter
     from typeclasses.terrain.rooms.room_purgatory import RoomPurgatory
 
+    # Build the queryset in two steps. Django querysets are lazy: neither
+    # of the .filter() calls below hits the database — they just compose
+    # an SQL description. The actual SELECT runs only when the `for obj
+    # in qs` loop starts iterating, at which point BOTH filters are
+    # AND'd into a single WHERE clause. Result: cross-shard characters
+    # are excluded by the SQL itself and never come back across the wire,
+    # so the from_db chokepoint never sees them. We are NOT attempting to
+    # load other shards' characters and discarding them in Python.
+    qs = ObjectDB.objects.filter(db_typeclass_path__contains="character")
+    if role != ROLE_MONOLITH:
+        # In a sharded role, restrict to this shard. The composed SQL is:
+        #   WHERE db_typeclass_path LIKE '%character%'
+        #     AND shard_id = '<this_shard_id>'
+        # Characters live on a specific shard, never the "*" global
+        # sentinel, so equality with this shard's id is correct.
+        qs = qs.filter(shard_id=get_shard_id())
+
     count = 0
-    for obj in ObjectDB.objects.filter(
-        db_typeclass_path__contains="character"
-    ):
+    for obj in qs:
+        # FCMCharacter isinstance check survives even the broad
+        # db_typeclass_path__contains="character" pre-filter catching
+        # anything unrelated (e.g. DefaultCharacter, future subclasses).
         if not isinstance(obj, FCMCharacter):
             continue
         if isinstance(obj.location, RoomPurgatory):
@@ -379,16 +411,34 @@ def _restart_mob_tickers():
     Dead mobs are deleted in `die()`; the ZoneSpawnScript handles
     spawning fresh replacements on its own clock, so there is no
     restart-time respawn work to do.
+
+    Per-role behaviour:
+      - router: skip entirely. The router doesn't own game-world mobs.
+      - shard:  scope the query to this shard only via shard_id. Mobs
+        live on the same shard as the rooms they spawned into; a mob
+        on shard1 must be ticked by shard1.
+      - monolith: no shard scoping; matches the pre-sharding behaviour.
     """
+    from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role, get_shard_id
+
+    role = get_role()
+    if role == ROLE_ROUTER:
+        return
+
     from evennia import logger
     from evennia.objects.models import ObjectDB
 
     from typeclasses.actors.mob import CombatMob
 
+    # Lazy queryset composition — both filters AND in one WHERE clause
+    # at iteration time, so cross-shard rows are excluded by SQL and
+    # from_db is never called on them.
+    qs = ObjectDB.objects.filter(db_typeclass_path__contains="mobs.")
+    if role != ROLE_MONOLITH:
+        qs = qs.filter(shard_id=get_shard_id())
+
     alive_count = 0
-    for obj in ObjectDB.objects.filter(
-        db_typeclass_path__contains="mobs."
-    ):
+    for obj in qs:
         if not isinstance(obj, CombatMob):
             continue
         if obj.is_alive and obj.location:
