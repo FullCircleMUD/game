@@ -1134,8 +1134,25 @@ class FCMCharacter(
             except Exception:
                 rent_loc = None
 
+            # self.home and _get_limbo() both dereference an FK that
+            # may point to a foreign-shard row (e.g. after cross-shard
+            # move the home pk was rewritten unscoped, or Limbo #2 lives
+            # on shard0). Either trip the from_db chokepoint. Wrap each
+            # so a refused load is treated as "not available" rather
+            # than raising out of the puppet flow.
+            home_obj = None
+            try:
+                home_obj = self.home
+            except Exception:
+                home_obj = None
+            limbo_obj = None
+            try:
+                limbo_obj = self._get_limbo()
+            except Exception:
+                limbo_obj = None
+
             fallback = (
-                dungeon_entrance or rent_loc or self.home or self._get_limbo()
+                dungeon_entrance or rent_loc or home_obj or limbo_obj
             )
             if fallback:
                 self.location = fallback
@@ -1174,7 +1191,20 @@ class FCMCharacter(
 
         _role = get_role()
 
-        if not self.respawn_location:
+        # Reading self.respawn_location dereferences an AttributeProperty
+        # whose pickled value may store a cross-shard ObjectDB reference
+        # (e.g. respawn was set on shard0 then the character cross-shard-
+        # moved to shard1 — the Attribute payload still pickles shard0's
+        # cemetery row). Unpickle triggers from_db on that row, and the
+        # chokepoint refuses. Wrap the existence check so a refused load
+        # is treated as "no usable respawn set" — the search block below
+        # then writes a fresh local-shard pk, overwriting the stale one.
+        try:
+            has_respawn = self.respawn_location is not None
+        except Exception:
+            has_respawn = False
+
+        if not has_respawn:
             from evennia.utils.search import search_tag
             from evennia.objects.models import ObjectDB
 
