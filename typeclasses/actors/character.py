@@ -961,6 +961,22 @@ class FCMCharacter(
         except ObjectDB.DoesNotExist:
             return None
 
+    def _get_limbo_pk(self):
+        """Return Limbo's pk (#2) if the row exists, else None.
+
+        Pk-only counterpart to ``_get_limbo()`` — uses ``values_list``
+        so the row is never instantiated. Safe to call from any shard:
+        a cross-shard Limbo row will still return its pk without
+        tripping the ``from_db`` chokepoint, because no instance is
+        constructed.
+        """
+        from evennia import ObjectDB
+
+        rows = list(
+            ObjectDB.objects.filter(pk=2).values_list("pk", flat=True)[:1]
+        )
+        return rows[0] if rows else None
+
     def _find_purgatory(self):
         """Find the purgatory room."""
         from evennia import ObjectDB
@@ -1069,10 +1085,21 @@ class FCMCharacter(
         except Exception:
             home_gone = True
 
-        if home_gone or self.home is None:
+        if home_gone or self.db_home_id is None:
             from evennia.utils.search import search_tag
-            inn_rooms = search_tag("harvest_moon_inn", category="special_room")
-            self.home = inn_rooms[0] if inn_rooms else self._get_limbo()
+            # values_list reads pks without instantiating any row —
+            # avoids the from_db chokepoint on cross-shard rooms.
+            # The fallback chain is unchanged: inn → Limbo. Writing
+            # db_home_id directly bypasses the FK descriptor's load,
+            # so the target row's shard is irrelevant for this write.
+            inn_pks = list(
+                search_tag("harvest_moon_inn", category="special_room")
+                .values_list("pk", flat=True)[:1]
+            )
+            new_home_pk = inn_pks[0] if inn_pks else self._get_limbo_pk()
+            if new_home_pk is not None:
+                self.db_home_id = new_home_pk
+                self.save(update_fields=["db_home"])
 
         # Fix location — dangling FK to a deleted room
         try:
