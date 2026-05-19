@@ -106,11 +106,9 @@ several more options for customizing the Guest account system.
 """
 
 from evennia.accounts.accounts import DefaultAccount, DefaultGuest
-from evennia.commands.default.cmdset_account import AccountCmdSet
-from evennia.utils import evmenu
 from evennia.utils.utils import is_iter
 
-from evennia import AttributeProperty
+from evennia.typeclasses.attributes import AttributeProperty
 
 
 class Account(DefaultAccount):
