@@ -60,11 +60,17 @@ _PIPELINE_SCRIPTS = [
 # These are unscheduled relative to each other — they're created
 # immediately at boot and tick on their own intervals.
 _GLOBAL_SCRIPTS = [
-    ("regeneration_service",     "typeclasses.scripts.regeneration_service.RegenerationService"),
-    ("survival_service",         "typeclasses.scripts.survival_service.SurvivalService"),
-    ("day_night_service",        "typeclasses.scripts.day_night_service.DayNightService"),
-    ("season_service",           "typeclasses.scripts.season_service.SeasonService"),
-    ("weather_service",          "typeclasses.scripts.weather_service.WeatherService"),
+    # ("regeneration_service",     "typeclasses.scripts.regeneration_service.RegenerationService"),
+    # ("survival_service",         "typeclasses.scripts.survival_service.SurvivalService"),
+    # Temporarily disabled during shards bisect — these scripts do
+    # global ObjectDB.objects.filter(...) which on a shard tries to
+    # instantiate cross-shard rows and trips the from_db chokepoint.
+    # The fix lives in commit fc525de on the original `shards` branch
+    # (scope queries by shard_id). Re-enable when that fix is applied
+    # on `shards-rework`.
+    # ("day_night_service",        "typeclasses.scripts.day_night_service.DayNightService"),
+    # ("season_service",           "typeclasses.scripts.season_service.SeasonService"),
+    # ("weather_service",          "typeclasses.scripts.weather_service.WeatherService"),
     ("reallocation_service",     "typeclasses.scripts.reallocation_service.ReallocationServiceScript"),
     ("durability_decay_service", "typeclasses.scripts.durability_decay_service.DurabilityDecayService"),
     ("cosigner_keepalive_service", "typeclasses.scripts.cosigner_keepalive_service.CosignerKeepAliveScript"),
