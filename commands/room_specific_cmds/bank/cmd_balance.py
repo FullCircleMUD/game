@@ -34,11 +34,27 @@ def ensure_bank(account):
     bank = account.db.bank
     if bank is None:
         from evennia.utils.create import create_object
+        from evennia_shards import ROLE_MONOLITH, get_role
+
         bank = create_object(
             "typeclasses.accounts.account_bank.AccountBank",
             key=f"bank-{account.key}",
             nohome=True,
         )
+        # Account banks are account-attached and may be read/written
+        # from whichever shard the account is currently puppeting on.
+        # Stamping shard_id="*" makes the row a global asset that
+        # every shard can load without tripping the from_db chokepoint.
+        # See typeclasses/accounts/accounts.py:at_post_login for the
+        # canonical creation path; this branch is defence-in-depth.
+        #
+        # Skipped in monolith mode (see accounts.py for the rationale).
+        if get_role() != ROLE_MONOLITH:
+            from evennia_shards import shard_writes_allowed_for
+            with shard_writes_allowed_for(bank):
+                bank.shard_id = "*"
+                bank.save()
+                bank.flush_from_cache(force=True)
         bank.wallet_address = account.attributes.get("wallet_address")
         account.db.bank = bank
     else:
