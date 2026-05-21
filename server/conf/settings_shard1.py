@@ -48,7 +48,7 @@ AUTO_PUPPET_ON_LOGIN = True
 # router-side and the library's chargen wrapper stamps the new
 # character with the start-location's shard_id — so new characters
 # spawn on shard0 (the populated world), not here.
-DEFAULT_HOME = "#2238"
+DEFAULT_HOME = "#4"
 START_LOCATION = "#2"
 
 # Localhost ports — offset by 20 from the router so a developer can
