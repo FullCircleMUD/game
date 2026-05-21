@@ -34,27 +34,45 @@ def ensure_bank(account):
     bank = account.db.bank
     if bank is None:
         from evennia.utils.create import create_object
-        from evennia_shards import ROLE_MONOLITH, get_role
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        # Defence-in-depth path. The canonical creation is in
+        # typeclasses/accounts/accounts.py:at_post_login, which runs
+        # on the router (every account's first login passes through
+        # the router by architecture). By the time any bank command
+        # can be invoked from a shard, this row already exists.
+        #
+        # Gated to monolith + router so a shard-side execution path
+        # cannot accidentally trigger creation against the
+        # tenant-column-immutability check: under the multitenant
+        # auto-stamp, a row created on a shard would land
+        # shard_id=<that shard's id> and the subsequent re-stamp to
+        # "*" would raise NotSupportedError. Loud failure is the
+        # right response — `account.db.bank is None` on a shard
+        # implies an account that somehow skipped the router login
+        # flow, which is a deeper bug worth surfacing.
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            raise RuntimeError(
+                f"AccountBank defence-in-depth create reached on "
+                f"role={role!r} — account.db.bank should have been "
+                f"set during router-side at_post_login."
+            )
 
         bank = create_object(
             "typeclasses.accounts.account_bank.AccountBank",
             key=f"bank-{account.key}",
             nohome=True,
         )
-        # Account banks are account-attached and may be read/written
-        # from whichever shard the account is currently puppeting on.
-        # Stamping shard_id="*" makes the row a global asset that
-        # every shard can load without tripping the from_db chokepoint.
-        # See typeclasses/accounts/accounts.py:at_post_login for the
-        # canonical creation path; this branch is defence-in-depth.
-        #
-        # Skipped in monolith mode (see accounts.py for the rationale).
-        if get_role() != ROLE_MONOLITH:
-            from evennia_shards import shard_writes_allowed_for
-            with shard_writes_allowed_for(bank):
-                bank.shard_id = "*"
-                bank.save()
-                bank.flush_from_cache(force=True)
+        # Stamp shard_id="*" so the bank is visible to every shard's
+        # auto-filter scope. On the router (unscoped) the auto-stamp
+        # is skipped at create time → row lands NULL → the assignment
+        # below is a legitimate first-stamp, not a tenant-column
+        # mutation. Skipped in monolith (no shard_id column exists).
+        if role != ROLE_MONOLITH:
+            bank.shard_id = "*"
+            bank.save()
+            bank.flush_from_cache(force=True)
         bank.wallet_address = account.attributes.get("wallet_address")
         account.db.bank = bank
     else:

@@ -612,19 +612,22 @@ Leave Character / Game      |gquit|n
             # that lives on the router) and may be read/written from
             # whichever shard the account is currently puppeting on.
             # Stamping shard_id="*" makes the row a global asset that
-            # every shard can load without tripping the from_db chokepoint.
+            # the multitenant auto-filter admits from every shard's scope.
             #
             # Skipped in monolith mode: evennia_shards isn't in
             # INSTALLED_APPS there, so the shard_id column doesn't exist
-            # on ObjectDB and the chokepoint isn't installed — the
-            # stamping would be a no-op at best, an AttributeError at
-            # worst (via flush_from_cache wiping a Python-only attr).
+            # on ObjectDB and assigning to it would AttributeError.
+            #
+            # Why no bypass is needed: create_object runs on the router
+            # (unscoped tenant context), so the auto-stamp on insert is
+            # skipped and the row lands shard_id=NULL. The subsequent
+            # assignment to "*" then a save() is a legitimate first-stamp
+            # — the __setattr__ immutability check only flags an
+            # already-stamped row being re-stamped, which isn't this case.
             if get_role() != ROLE_MONOLITH:
-                from evennia_shards import shard_writes_allowed_for
-                with shard_writes_allowed_for(bank):
-                    bank.shard_id = "*"
-                    bank.save()
-                    bank.flush_from_cache(force=True)
+                bank.shard_id = "*"
+                bank.save()
+                bank.flush_from_cache(force=True)
             bank.wallet_address = self.wallet_address
             self.db.bank = bank
             self.msg("|y[Dev] Bank created for account.|n")
