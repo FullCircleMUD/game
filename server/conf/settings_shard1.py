@@ -32,12 +32,23 @@ SHARD_ID = "shard1"
 # settings.py.
 AUTO_PUPPET_ON_LOGIN = True
 
-# Shard1 does NOT own Limbo (#2) — shard0 does. New characters never
-# spawn here directly; they arrive via cross-shard movement from
-# shard0. DEFAULT_HOME for a stranded character on shard1 routes back
-# to Limbo on shard0 via the standard handoff (a character's home
-# room shard_id determines which shard they land on).
-DEFAULT_HOME = "#2"
+# Per-shard DEFAULT_HOME. Evennia's create_object falls back to
+# settings.DEFAULT_HOME when no explicit home= kwarg is passed, and
+# it resolves the dbref by loading the row. A cross-shard pointer
+# (e.g. shard0's Limbo #2 from a shard1 process) trips the library's
+# from_db chokepoint — so each shard must point DEFAULT_HOME at a
+# room it actually owns.
+#
+# Shard1's "Limbo equivalent" is the cross-shard-dug Shard1-Limbo
+# room (created via library's `cross_shard_dig` command and stamped
+# shard_id="shard1"). This pk needs to stay stable for the deployment;
+# update if the bootstrap topology changes.
+#
+# START_LOCATION stays at #2 (shard0's Limbo) because chargen runs
+# router-side and the library's chargen wrapper stamps the new
+# character with the start-location's shard_id — so new characters
+# spawn on shard0 (the populated world), not here.
+DEFAULT_HOME = "#2238"
 START_LOCATION = "#2"
 
 # Localhost ports — offset by 20 from the router so a developer can
