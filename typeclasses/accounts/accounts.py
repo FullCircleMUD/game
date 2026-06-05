@@ -262,28 +262,65 @@ Leave Character / Game      |gquit|n
 """.strip()
 
     def create_character(self, *args, **kwargs):
-        """Create characters with no location and derive shard_id from home.
+        """Player chargen: stow, set home to The Harvest Moon, derive shard_id.
 
-        New characters are stowed (``location=None``) until first IC.
-        FCMCharacter.at_object_creation sets ``home`` to The Harvest
-        Moon. Vanilla ``DefaultCharacter.at_pre_puppet`` restores
-        ``self.location`` from ``prelogout_location`` (last seen) with
-        ``self.home`` as the fallback — so first IC lands at the inn,
-        subsequent IC at the last room.
+        Only called from chargen — NPCs/mobs/admin-spawned characters
+        do not go through ``Account.create_character`` so they keep
+        whatever home their typeclass / spawn pipeline assigns.
 
-        The evennia-shards library wrapper derives ``shard_id`` from
-        the start location, which is now ``None``, so we fill in
-        ``shard_id`` here by reading the home row's shard. Mirrors the
-        library's pattern (``values_list`` keeps the read cheap and
-        avoids instantiating the home row).
+        Three things happen after vanilla create_character returns:
+
+        1. **Stow** — ``location=None`` skips placing the character in
+           the world. They sit in "headless body" storage until first
+           IC. Vanilla ``DefaultCharacter.at_pre_puppet`` restores
+           ``self.location`` from ``prelogout_location`` (last seen)
+           with ``self.home`` as the fallback, so first IC lands at
+           the inn and subsequent IC at the last room.
+
+        2. **Overwrite home with The Harvest Moon** — vanilla
+           ``create_object`` defaults ``home`` to
+           ``settings.START_LOCATION`` (Limbo) before
+           ``at_object_creation`` fires, which makes
+           ``at_object_creation``'s guarded inn-search a no-op. We
+           overwrite here, after vanilla has finished. If the inn
+           isn't findable (world not built / tag missing) the vanilla
+           default stays. ``values_list`` keeps the read cheap;
+           ``db_home_id =`` + ``save`` bypasses the FK descriptor.
+
+        3. **Derive shard_id from home** — the evennia-shards library
+           wrapper would normally derive ``shard_id`` from the start
+           location, which is now ``None``. With home set to the inn
+           we can read the inn's shard the same way. Without this the
+           character ends up with ``shard_id=None`` and
+           ShardAwareCmdIC rejects with "no shard assignment" on first
+           IC.
         """
+        from evennia_shards.tenancy import shard_context
+
         kwargs.setdefault("location", None)
         character, errs = super().create_character(*args, **kwargs)
-        if character and not character.shard_id and character.db_home_id:
-            rows = list(
-                ObjectDB.objects.filter(pk=character.db_home_id)
-                .values_list("shard_id", flat=True)[:1]
+        if not character:
+            return character, errs
+
+        # 2. Overwrite the START_LOCATION default home with the inn.
+        with shard_context(None):
+            inn_pks = list(
+                ObjectDB.objects.filter(
+                    db_tags__db_key="harvest_moon_inn",
+                    db_tags__db_category="special_room",
+                ).values_list("pk", flat=True)[:1]
             )
+        if inn_pks:
+            character.db_home_id = inn_pks[0]
+            character.save(update_fields=["db_home"])
+
+        # 3. Derive shard_id from home (now the inn, if found).
+        if not character.shard_id and character.db_home_id:
+            with shard_context(None):
+                rows = list(
+                    ObjectDB.objects.filter(pk=character.db_home_id)
+                    .values_list("shard_id", flat=True)[:1]
+                )
             home_shard = rows[0] if rows else None
             if home_shard and home_shard != "*":
                 character.shard_id = home_shard
