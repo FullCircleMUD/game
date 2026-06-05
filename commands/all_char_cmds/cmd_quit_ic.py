@@ -73,15 +73,29 @@ class CmdQuitIC(FCMCommandMixin, Command):
         self._create_quit_drop(caller, room)
         self._send_to_last_rent_location(caller)
 
-        # Return to OOC account menu
-        account.msg(
-            account.at_look(
-                target=account.characters,
-                session=account.sessions.get()[0],
-            )
-        )
         account.mark_graceful_logout()
-        account.unpuppet_object(session)
+
+        # Take the player off the playing surface. In monolith we just
+        # unpuppet locally and synthesise the OOC menu; in shard mode
+        # the player's session is on a shard process and has to be
+        # redirected back to the router (where the OOC menu lives).
+        # evennia_shards.handoff.redirect_to_router sends the
+        # shard_redirect OOB and the disconnect handler auto-unpuppets
+        # when the WebSocket closes.
+        from evennia_shards import ROLE_MONOLITH, get_role
+
+        if get_role() == ROLE_MONOLITH:
+            account.msg(
+                account.at_look(
+                    target=account.characters,
+                    session=account.sessions.get()[0],
+                )
+            )
+            account.unpuppet_object(session)
+        else:
+            from evennia_shards.handoff import redirect_to_router
+
+            redirect_to_router(account, session)
 
     def _create_quit_drop(self, caller, room):
         """Unequip everything, create a QuitDrop, move gear into it."""
