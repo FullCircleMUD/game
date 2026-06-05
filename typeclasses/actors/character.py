@@ -1162,7 +1162,26 @@ class FCMCharacter(
 
     def at_post_puppet(self, **kwargs):
         """Called after player connects to this character."""
-        super().at_post_puppet(**kwargs)
+        # Distinguish an explicit @ic entry (where vanilla Evennia
+        # messaging — "You become X" + "X has entered the game"
+        # broadcast — is appropriate) from a mid-game cross-shard
+        # arrival (where that same messaging reads as noise, since the
+        # player was already in a body on the previous shard).
+        #
+        # evennia_shards.ShardAwareCmdIC sets the
+        # ``_shards_via_ic_command`` Attribute on the character before
+        # redirecting from the router. We honour and clear it here.
+        via_ic = self.attributes.get("_shards_via_ic_command", default=False)
+        if via_ic:
+            super().at_post_puppet(**kwargs)
+            self.attributes.remove("_shards_via_ic_command")
+        else:
+            # Limited messaging for cross-shard arrivals (e.g. @tel):
+            # skip "You become X" and the room-contents broadcast, but
+            # still show the room so the player lands cleanly.
+            if self.location is not None:
+                self.msg((self.at_look(self.location), {"type": "look"}), options=None)
+            self.account.db._last_puppet = self
         # Safety net: clear double-death guard on login
         self._dying = False
         # Reconnect-to-state: record this as the account's active puppet
