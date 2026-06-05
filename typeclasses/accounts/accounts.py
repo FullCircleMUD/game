@@ -262,12 +262,33 @@ Leave Character / Game      |gquit|n
 """.strip()
 
     def create_character(self, *args, **kwargs):
-        """Place new characters at The Harvest Moon inn instead of Limbo."""
-        if "location" not in kwargs:
-            inn = ObjectDB.objects.filter(db_key="The Harvest Moon").first()
-            if inn:
-                kwargs["location"] = inn
-        return super().create_character(*args, **kwargs)
+        """Create characters with no location and derive shard_id from home.
+
+        New characters are stowed (``location=None``) until first IC.
+        FCMCharacter.at_object_creation sets ``home`` to The Harvest
+        Moon. Vanilla ``DefaultCharacter.at_pre_puppet`` restores
+        ``self.location`` from ``prelogout_location`` (last seen) with
+        ``self.home`` as the fallback — so first IC lands at the inn,
+        subsequent IC at the last room.
+
+        The evennia-shards library wrapper derives ``shard_id`` from
+        the start location, which is now ``None``, so we fill in
+        ``shard_id`` here by reading the home row's shard. Mirrors the
+        library's pattern (``values_list`` keeps the read cheap and
+        avoids instantiating the home row).
+        """
+        kwargs.setdefault("location", None)
+        character, errs = super().create_character(*args, **kwargs)
+        if character and not character.shard_id and character.db_home_id:
+            rows = list(
+                ObjectDB.objects.filter(pk=character.db_home_id)
+                .values_list("shard_id", flat=True)[:1]
+            )
+            home_shard = rows[0] if rows else None
+            if home_shard and home_shard != "*":
+                character.shard_id = home_shard
+                character.save(update_fields=["shard_id"])
+        return character, errs
 
     def _build_subscription_line(self):
         """Build the subscription status line for the OOC menu."""
