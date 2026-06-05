@@ -266,6 +266,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 | Folder map / subsystem tree | [ARCHITECTURE.md](../../ops/DEVELOPMENT/ARCHITECTURE.md) |
 | Developer setup, venv, CLI, migrations | [DEV_SETUP.md](../../ops/DEVELOPMENT/DEV_SETUP.md) |
 | Running tests, base classes, common patterns | [TESTING.md](../../ops/DEVELOPMENT/TESTING.md) |
+| Diagnosing slow operations — measure-bisect-pinpoint methodology | [PERFORMANCE_DIAGNOSIS.md](../../ops/DEVELOPMENT/PERFORMANCE_DIAGNOSIS.md) |
 | Deployment, Railway, branching, multisig | [DEPLOYMENT.md](../../ops/DEVELOPMENT/DEPLOYMENT.md) |
 | Compliance legal framework | [COMPLIANCE_LEGAL.md](../../ops/COMPLIANCE_LEGAL.md) |
 | Compliance website checklist | [COMPLIANCE_WEBSITE_CHECKLIST.md](../../ops/COMPLIANCE_WEBSITE_CHECKLIST.md) |
