@@ -302,8 +302,13 @@ class FCMCharacter(
         if self.location:
             self._check_traps_on_entry()
 
-        # Notify LLM NPCs of player arrival
-        if self.location and getattr(self, "is_pc", False):
+        # Notify LLM NPCs of player arrival. Gated on source_location
+        # so we don't fire on initial placement during create_object()
+        # (chargen): an instantiated character isn't semantically
+        # "arriving" anywhere, and the LLM call from any reactive NPC
+        # in the start room (e.g. Rowan in The Harvest Moon) is a
+        # blocking multi-second hit on the chargen finalisation.
+        if source_location is not None and self.location and getattr(self, "is_pc", False):
             for obj in self.location.contents:
                 if obj != self and hasattr(obj, "at_llm_player_arrive"):
                     obj.at_llm_player_arrive(self)
