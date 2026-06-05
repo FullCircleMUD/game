@@ -6,7 +6,7 @@ Core rules, critical patterns, and an index into the full design/ops docs. Keep 
 
 **FullCircleMUD** — a text MUD built on Evennia (Python/Django) with real blockchain item ownership on **XRPL**. Domain: **fcmud.world**. This folder (`src/game/`) is the Evennia game module; run `evennia start` from `FCM/src/`.
 
-For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For CLI/setup see [ops/DEV_SETUP.md](../../ops/DEV_SETUP.md). For tests see [ops/TESTING.md](../../ops/TESTING.md) — **always `tee` multi-package test runs to a file; piping through `grep` eats tracebacks.**
+For folder structure see [ops/ARCHITECTURE.md](../../ops/DEVELOPMENT/ARCHITECTURE.md). For CLI/setup see [ops/DEV_SETUP.md](../../ops/DEVELOPMENT/DEV_SETUP.md). For tests see [ops/TESTING.md](../../ops/DEVELOPMENT/TESTING.md) — **always `tee` multi-package test runs to a file; piping through `grep` eats tracebacks.**
 
 ## Security Rules
 
@@ -171,8 +171,6 @@ Custom cmdsets merge on top of Evennia defaults via `commands/default_cmdsets.py
 2. Import and `self.add(CmdMyCommand())` in `cmdset_character_custom.py`.
 3. Always add instances `()`, not bare class references.
 
-For help categories, OOC lock, and default overrides see [ops/HELP_CATEGORIES.md](../../ops/HELP_CATEGORIES.md).
-
 ### Key Evennia gotchas
 
 - Use `session.puppet` (not `session.puppets`) to get the character.
@@ -265,12 +263,10 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 
 | Topic | Doc |
 |---|---|
-| Folder map / subsystem tree | [ARCHITECTURE.md](../../ops/ARCHITECTURE.md) |
-| Developer setup, venv, CLI, migrations | [DEV_SETUP.md](../../ops/DEV_SETUP.md) |
-| Running tests, base classes, common patterns | [TESTING.md](../../ops/TESTING.md) |
-| Help categories, OOC lock, default overrides | [HELP_CATEGORIES.md](../../ops/HELP_CATEGORIES.md) |
-| Deployment, Railway, branching, multisig | [DEPLOYMENT.md](../../ops/DEPLOYMENT.md) |
+| Folder map / subsystem tree | [ARCHITECTURE.md](../../ops/DEVELOPMENT/ARCHITECTURE.md) |
+| Developer setup, venv, CLI, migrations | [DEV_SETUP.md](../../ops/DEVELOPMENT/DEV_SETUP.md) |
+| Running tests, base classes, common patterns | [TESTING.md](../../ops/DEVELOPMENT/TESTING.md) |
+| Deployment, Railway, branching, multisig | [DEPLOYMENT.md](../../ops/DEVELOPMENT/DEPLOYMENT.md) |
 | Compliance legal framework | [COMPLIANCE_LEGAL.md](../../ops/COMPLIANCE_LEGAL.md) |
 | Compliance website checklist | [COMPLIANCE_WEBSITE_CHECKLIST.md](../../ops/COMPLIANCE_WEBSITE_CHECKLIST.md) |
-| Release phasing (Pre-Alpha → Launch) | [DEVELOPMENT_PHASE_PLAN.md](../../ops/DEVELOPMENT_PHASE_PLAN.md) |
-| Backlog / in-progress / long-term | [PLANNING/](../../ops/PLANNING/) |
+| Release phasing (Pre-Alpha → Launch) | [DEVELOPMENT_PHASE_PLAN.md](../../ops/DEVELOPMENT/DEVELOPMENT_PHASE_PLAN.md) |
