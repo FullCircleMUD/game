@@ -1,5 +1,10 @@
 # CLAUDE.md
 
+> **Project-wide working rules and cross-repo context live in the FCM umbrella repo's `CLAUDE.md`**,
+> loaded automatically when you work from the umbrella root. If you opened this repo directly instead
+> of via the umbrella, relaunch from the umbrella root for the full context. This file holds only this
+> repo's specific instructions.
+
 Core rules, critical patterns, and an index into the full design/ops docs. Keep this file lean — it loads into every prompt. If a topic has a design doc, put detail there and leave only a pointer here.
 
 ## Project Overview
