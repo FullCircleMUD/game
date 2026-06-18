@@ -61,7 +61,7 @@ WEBSOCKET_CLIENT_URL = os.environ.get(
 # DATABASE_URL controls the backend:
 #   - Set (Railway/production): PostgreSQL for all 3 databases
 #   - Not set (local dev): SQLite files, zero config
-# See design/DATABASE.md for full architecture documentation.
+# See docs/database.md for full architecture documentation.
 _DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if _DATABASE_URL:

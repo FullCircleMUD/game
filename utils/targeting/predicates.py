@@ -8,7 +8,7 @@ checks. Compose them by filtering a candidate list before passing it to
 
 **Predicates are added only when a real consumer needs them.** Do not
 pre-populate this module with speculative filters. See
-design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
+docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 
 
 ============================================================================

@@ -723,7 +723,7 @@ class FCMCharacter(
           transferred onto the corpse; corpse tagged `dungeon_corpse` to keep
           the instance alive; character receives a `dungeon_pending` tag
           which drives the redirect-on-re-entry flow. See
-          design/PROCEDURAL_DUNGEONS.md § Death and Corpse Recovery.
+          docs/procedural-dungeons.md § Death and Corpse Recovery.
         """
         from typeclasses.world_objects.corpse import Corpse
 

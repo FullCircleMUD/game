@@ -7,8 +7,8 @@ Usage:
 Second shard, used during pre-alpha as a spike to prove the cross-shard
 handoff machinery works end-to-end before production. Shipped behind
 the scenes so adding a second shard later (when load demands it) is a
-config flip, not a new feature. See design/SCALING.md for the
-multi-shard intent and design/WORLD_DEPLOYMENT.md for how zones map to
+config flip, not a new feature. See docs/scaling.md for the
+multi-shard intent and docs/world-deployment.md for how zones map to
 shards.
 
 Cascade:

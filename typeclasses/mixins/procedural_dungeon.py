@@ -9,7 +9,7 @@ This mixin can be composed with any exit type:
     ConditionalDungeonExit(ProceduralDungeonMixin, ConditionalRoutingExit)
     DungeonDoor(ProceduralDungeonMixin, ExitDoor)
 
-See design/EXIT_ARCHITECTURE.md and design/PROCEDURAL_DUNGEONS.md.
+See docs/exit-architecture.md and docs/procedural-dungeons.md.
 """
 
 from evennia import AttributeProperty

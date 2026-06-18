@@ -3,7 +3,7 @@
 Thin wrappers over ``caller.search`` that pre-filter candidate lists
 with FCM semantic predicates and then delegate string matching to
 Evennia. Helpers are added only when a real consumer needs them — see
-design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
+docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (

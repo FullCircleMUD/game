@@ -16,7 +16,7 @@ Training flow (deterministic — no random outcomes):
 Compliance note: training is fully deterministic. There is no random
 failure roll. The player knows exactly what they will receive before
 paying — the consideration element of the gambling test is decoupled
-from any chance element. See design/COMPLIANCE.md and
+from any chance element. See docs/compliance.md and
 ops/COMPLIANCE_LEGAL.md §9.5.
 """
 

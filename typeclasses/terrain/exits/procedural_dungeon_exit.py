@@ -9,7 +9,7 @@ Use this for unconditional dungeon entries (deep woods passages, cave
 of trials, etc.). For quest-gated entries with a fallback room, use
 ConditionalDungeonExit instead.
 
-See design/EXIT_ARCHITECTURE.md and design/PROCEDURAL_DUNGEONS.md.
+See docs/exit-architecture.md and docs/procedural-dungeons.md.
 """
 
 from typeclasses.mixins.procedural_dungeon import ProceduralDungeonMixin

@@ -14,7 +14,7 @@ Supported condition types:
     "quest_complete" — player has completed the quest
     "has_tag"        — player has a specific tag (category="player_flag")
 
-See design/EXIT_ARCHITECTURE.md.
+See docs/exit-architecture.md.
 """
 
 from evennia import AttributeProperty

@@ -77,7 +77,7 @@ class CombatMemory(models.Model):
     - **Per-instance:** query by ``mob_name`` (a named boss remembers).
     - **Hybrid:** instance first, type fallback.
 
-    See design/COMBAT_AI_MEMORY.md for the full architecture.
+    See docs/combat-ai-memory.md for the full architecture.
     """
 
     # ── Who fought ──
@@ -142,7 +142,7 @@ class LoreMemory(models.Model):
     - **local:** district-level knowledge — NPCs in that district.
     - **faction:** guild/faction secrets — NPCs with matching tags.
 
-    See design/LORE_MEMORY.md for the full architecture.
+    See docs/lore-memory.md for the full architecture.
     """
 
     # ── Identity ──

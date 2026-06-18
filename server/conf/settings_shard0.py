@@ -12,7 +12,7 @@ live on the router.
 
 In the single-Postgres era FCM starts with one shard ("shard0"); the
 architecture supports adding shard1, shard2, ... by config alone
-(per design/SCALING.md). Until then, every game-world row is owned
+(per docs/scaling.md). Until then, every game-world row is owned
 by shard0.
 
 Cascade:

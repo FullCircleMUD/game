@@ -7,7 +7,7 @@ room traversal with vertical checks).
 
 Composes ProceduralDungeonMixin with ConditionalRoutingExit.
 
-See design/EXIT_ARCHITECTURE.md and design/PROCEDURAL_DUNGEONS.md.
+See docs/exit-architecture.md and docs/procedural-dungeons.md.
 """
 
 from typeclasses.mixins.procedural_dungeon import ProceduralDungeonMixin

@@ -45,7 +45,7 @@ ROUTER_URL = os.environ.get(
 #
 # Shard IDs are flexible — name them to match the game world. FCM
 # starts with a single "shard0" because we deploy the architecture
-# with shard_count=1 first (see design/SCALING.md for the design
+# with shard_count=1 first (see docs/scaling.md for the design
 # rationale).
 #
 # In production, override the per-shard URL via SHARDS_SHARD0_URL,
@@ -64,6 +64,6 @@ SHARD_URLS = {
 # Telnet has no mechanism to carry a ticket token (no URL, no query
 # params), so the library's WebSocket-only ticket auth flow doesn't
 # extend to it. FCM's base settings.py already disables telnet (see
-# design/CONNECTION_TRANSPORT.md), but make it explicit here so the
+# docs/connection-transport.md), but make it explicit here so the
 # requirement is visible to anyone reading just the shard cascade.
 TELNET_ENABLED = False

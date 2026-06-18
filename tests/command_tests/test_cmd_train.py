@@ -12,7 +12,7 @@ Tests for CmdTrain — verifies the deterministic training system including:
 
 Compliance note: training is fully deterministic. There is no random
 failure roll. The player knows exactly what they will receive before
-paying. See design/COMPLIANCE.md and ops/COMPLIANCE_LEGAL.md §9.5.
+paying. See docs/compliance.md and ops/COMPLIANCE_LEGAL.md §9.5.
 
 Uses EvenniaCommandTest which provides self.call() with obj= for NPC commands.
 """

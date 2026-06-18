@@ -2,10 +2,10 @@
 Add CombatMemory and LoreMemory tables.
 
 CombatMemory: structured combat encounter records with embeddings for
-the strategy bot system (see design/COMBAT_AI_MEMORY.md).
+the strategy bot system (see docs/combat-ai-memory.md).
 
 LoreMemory: scoped world knowledge with embeddings for dynamic NPC
-knowledge retrieval (see design/LORE_MEMORY.md).
+knowledge retrieval (see docs/lore-memory.md).
 
 Both tables use the same dual-backend embedding pattern as NpcMemory:
 VectorField on PostgreSQL (with HNSW index), BinaryField on SQLite.

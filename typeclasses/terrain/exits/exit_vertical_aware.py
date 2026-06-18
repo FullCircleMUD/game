@@ -13,7 +13,7 @@ Provides:
 All height features default to None — existing exits work identically.
 Builders override attributes only when height transitions are needed.
 
-See design/VERTICAL_MOVEMENT.md for full design and examples.
+See docs/vertical-movement.md for full design and examples.
 """
 
 from evennia import AttributeProperty

@@ -28,7 +28,7 @@ For folder structure see [ops/ARCHITECTURE.md](../../ops/DEVELOPMENT/ARCHITECTUR
 
 How to apply: present options as options, not as "the design choice"; use AskUserQuestion when the call is non-trivial; if I'd normally pick a default, say "this is open — your call" instead. Trivial mechanical choices within an already-agreed approach (naming, formatting, comment phrasing, helper placement inside a file) are fine to make — the line is *does this shape the architecture or the user's mental model of it?* If yes, it's theirs. The recurring failure mode to watch for: a plan with a "Design choice" section that prescribes an option dressed in supporting rationale. That's unilateral even when it reads as analysis.
 
-**Evennia-first.** Before designing or implementing any solution, explore what Evennia already provides natively. Do not build something Evennia has already solved. Check `evennia/` in the venv (`src/venv/Lib/site-packages/evennia/`), search for existing helpers on `DefaultObject`/`DefaultCharacter`/`DefaultRoom`/`DefaultScript`, read the relevant Evennia manager or utility module, and understand how Evennia's sub-methods (e.g. `get_search_candidates`, `at_object_creation`, `at_post_move`) can be overridden or composed. Where Evennia provides partial functionality, prefer **thin wrappers, narrow overrides of sub-methods, and composition over reimplementation**. Build custom solutions only for the gaps Evennia doesn't cover, and document those gaps in the relevant design doc. See [design/UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) § What Evennia Already Provides for an example of this discipline applied.
+**Evennia-first.** Before designing or implementing any solution, explore what Evennia already provides natively. Do not build something Evennia has already solved. Check `evennia/` in the venv (`src/venv/Lib/site-packages/evennia/`), search for existing helpers on `DefaultObject`/`DefaultCharacter`/`DefaultRoom`/`DefaultScript`, read the relevant Evennia manager or utility module, and understand how Evennia's sub-methods (e.g. `get_search_candidates`, `at_object_creation`, `at_post_move`) can be overridden or composed. Where Evennia provides partial functionality, prefer **thin wrappers, narrow overrides of sub-methods, and composition over reimplementation**. Build custom solutions only for the gaps Evennia doesn't cover, and document those gaps in the relevant design doc. See [docs/unified-search-system.md](../../docs/unified-search-system.md) § What Evennia Already Provides for an example of this discipline applied.
 
 ---
 
@@ -185,7 +185,7 @@ Custom cmdsets merge on top of Evennia defaults via `commands/default_cmdsets.py
 - `at_object_creation()` fires BEFORE `create_object()`'s `attributes` kwarg is applied — `AttributeProperty` values are `None` during this hook. Always create `nohome=True`, set attributes, then `move_to()` when hooks need kwargs or attributes.
 - `move_to(**kwargs)` forwards all kwargs to `at_post_move()` — use this to pass `tx_hash`.
 - Creating with `location=` triggers `at_post_move` immediately with no way to pass kwargs.
-- **NPCs need `call:true()` lock + `_EmptyNPCCmdSet` default** for command visibility. See [design/NPC_QUEST_SYSTEM.md](../../design/NPC_QUEST_SYSTEM.md).
+- **NPCs need `call:true()` lock + `_EmptyNPCCmdSet` default** for command visibility. See [docs/npc-quest-system.md](../../docs/npc-quest-system.md).
 
 ### Wallet address lookup
 
@@ -200,14 +200,14 @@ wallet = caller.account.attributes.get("wallet_address")
 
 ### Transaction model
 
-All on-chain XRPL transactions (import/export) are signed by players via Xaman wallet. The game server creates payloads and polls for results but never holds private keys or pays transaction fees. See [design/IMPORT_EXPORT.md](../../design/IMPORT_EXPORT.md).
+All on-chain XRPL transactions (import/export) are signed by players via Xaman wallet. The game server creates payloads and polls for results but never holds private keys or pays transaction fees. See [docs/import-export.md](../../docs/import-export.md).
 
 ---
 
 ## Coding Conventions
 
 - **Prefer enums over raw strings** for validation and typo prevention. When a field references a fixed set of values (ability scores, weapon types, alignments, damage types, skills, …), use the enum: `WeaponType.BATTLEAXE` not `"battleaxe"`, `Ability.STR` not `"strength"`, `skills.STEALTH.value` not `"stealth"`. Skill commands should set `skill = skills.ENUM.value` so renaming a skill in the enum propagates.
-- **All exits are authored in YAML** (`exits:` blocks on rooms in the fcm-world repo) and built by `wb_build` via the `evennia-world-builder` library. Runtime exit creation (procedural dungeons, conditional rebinds) MUST go through helpers in `utils/exit_helpers.py` — never bare `create_object()`. If a new exit type isn't covered by an existing helper, create the helper first. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See [design/EXIT_ARCHITECTURE.md](../../design/EXIT_ARCHITECTURE.md) § Builder Helpers and [design/WORLD_DEPLOYMENT.md](../../design/WORLD_DEPLOYMENT.md) for the authoring pipeline.
+- **All exits are authored in YAML** (`exits:` blocks on rooms in the fcm-world repo) and built by `wb_build` via the `evennia-world-builder` library. Runtime exit creation (procedural dungeons, conditional rebinds) MUST go through helpers in `utils/exit_helpers.py` — never bare `create_object()`. If a new exit type isn't covered by an existing helper, create the helper first. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See [docs/exit-architecture.md](../../docs/exit-architecture.md) § Builder Helpers and [docs/world-deployment.md](../../docs/world-deployment.md) for the authoring pipeline.
 
 ---
 
@@ -227,42 +227,42 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 
 | Topic | Doc |
 |---|---|
-| Unified search & targeting (scopes, predicates, resolvers, name matching) | [UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) |
-| Combat, weapons, stealth, parry/riposte, height combat | [COMBAT_SYSTEM.md](../../design/COMBAT_SYSTEM.md) |
-| Effects, conditions, damage pipeline, DamageResistanceMixin | [EFFECTS_SYSTEM.md](../../design/EFFECTS_SYSTEM.md) |
-| Spells, schools, spellbooks, scrolls, recipe catalog | [SPELL_SKILL_DESIGN.md](../../design/SPELL_SKILL_DESIGN.md) |
-| Crafting, processing, enchanting, recipes | [CRAFTING_SYSTEM.md](../../design/CRAFTING_SYSTEM.md) |
-| NPCs, quests, trainers, guildmasters, shopkeepers | [NPC_QUEST_SYSTEM.md](../../design/NPC_QUEST_SYSTEM.md) |
-| NPC/mob class hierarchy, AI mixins, tier system | [NPC_MOB_ARCHITECTURE.md](../../design/NPC_MOB_ARCHITECTURE.md) |
-| Combat AI memory, strategy bot | [COMBAT_AI_MEMORY.md](../../design/COMBAT_AI_MEMORY.md) |
-| LLM NPC lore memory, embeddings | [LORE_MEMORY.md](../../design/LORE_MEMORY.md) |
-| Inventory, equipment, wearslots, weight, NFT ownership model, durability | [INVENTORY_EQUIPMENT.md](../../design/INVENTORY_EQUIPMENT.md) |
-| Economy, pricing, markets, spawn algorithms, SINK, reallocation | [ECONOMY.md](../../design/ECONOMY.md) |
-| Unified spawn system (resources / gold / rare NFTs / knowledge) | [UNIFIED_ITEM_SPAWN_SYSTEM.md](../../design/UNIFIED_ITEM_SPAWN_SYSTEM.md) |
-| Mob spawning (population, respawn, area tags, hooks) | [SPAWN_MOBS.md](../../design/SPAWN_MOBS.md) |
-| Economy telemetry, snapshots, velocity categories | [TELEMETRY.md](../../design/TELEMETRY.md) |
-| Treasury, fiscal discipline, vault architecture | [TREASURY.md](../../design/TREASURY.md) |
-| Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../design/SUBSCRIPTIONS.md) |
-| Import / export / wallet flow, deferToThread, replay protection | [IMPORT_EXPORT.md](../../design/IMPORT_EXPORT.md) |
-| Database architecture, 4-DB layout, pgvector | [DATABASE.md](../../design/DATABASE.md) |
-| World lore, zones, districts | [WORLD.md](../../design/WORLD.md) |
-| New player experience, tutorial, Millholm onboarding | [NEW_PLAYER_EXPERIENCE.md](../../design/NEW_PLAYER_EXPERIENCE.md) |
-| Inter-zone travel, sail, cartography mastery gates | [INTERZONE_TRAVEL.md](../../design/INTERZONE_TRAVEL.md) |
-| Intra-zone cartography, `survey` / `map` | [CARTOGRAPHY.md](../../design/CARTOGRAPHY.md) |
-| Procedural dungeons, instance lifecycle | [PROCEDURAL_DUNGEONS.md](../../design/PROCEDURAL_DUNGEONS.md) |
-| Vertical movement, flying, swimming, climbing | [VERTICAL_MOVEMENT.md](../../design/VERTICAL_MOVEMENT.md) |
-| Exit types, doors, traps, builder helpers | [EXIT_ARCHITECTURE.md](../../design/EXIT_ARCHITECTURE.md) |
-| Room architecture, banking / crafting / harvesting rooms | [ROOM_ARCHITECTURE.md](../../design/ROOM_ARCHITECTURE.md) |
-| World objects, fixtures, climbables, searchables | [WORLD_OBJECTS.md](../../design/WORLD_OBJECTS.md) |
-| Pets and mounts | [PETS_AND_MOUNTS.md](../../design/PETS_AND_MOUNTS.md) |
-| Alignment system | [ALIGNMENT_SYSTEM.md](../../design/ALIGNMENT_SYSTEM.md) |
-| Language system, garbling, racial languages | [LANGUAGE_SYSTEM.md](../../design/LANGUAGE_SYSTEM.md) |
-| Survival (hunger, thirst) | [SURVIVAL_SYSTEM.md](../../design/SURVIVAL_SYSTEM.md) |
-| Weapon damage scaling by tier × mastery | [WEAPON_DAMAGE_SCALING.md](../../design/WEAPON_DAMAGE_SCALING.md) |
-| Races, classes, point buy, remort | [CHARACTER_PROGRESSION.md](../../design/CHARACTER_PROGRESSION.md) |
-| Compliance strategy, token classification | [COMPLIANCE.md](../../design/COMPLIANCE.md) |
-| Website, markets page, frontend | [WEBSITE.md](../../design/WEBSITE.md) |
-| Connection transport, WebSocket-only rationale, telnet/SSH limitations | [CONNECTION_TRANSPORT.md](../../design/CONNECTION_TRANSPORT.md) |
+| Unified search & targeting (scopes, predicates, resolvers, name matching) | [UNIFIED_SEARCH_SYSTEM.md](../../docs/unified-search-system.md) |
+| Combat, weapons, stealth, parry/riposte, height combat | [COMBAT_SYSTEM.md](../../docs/combat-system.md) |
+| Effects, conditions, damage pipeline, DamageResistanceMixin | [EFFECTS_SYSTEM.md](../../docs/effects-system.md) |
+| Spells, schools, spellbooks, scrolls, recipe catalog | [SPELL_SKILL_DESIGN.md](../../docs/spell-skill-design.md) |
+| Crafting, processing, enchanting, recipes | [CRAFTING_SYSTEM.md](../../docs/crafting-system.md) |
+| NPCs, quests, trainers, guildmasters, shopkeepers | [NPC_QUEST_SYSTEM.md](../../docs/npc-quest-system.md) |
+| NPC/mob class hierarchy, AI mixins, tier system | [NPC_MOB_ARCHITECTURE.md](../../docs/npc-mob-architecture.md) |
+| Combat AI memory, strategy bot | [COMBAT_AI_MEMORY.md](../../docs/combat-ai-memory.md) |
+| LLM NPC lore memory, embeddings | [LORE_MEMORY.md](../../docs/lore-memory.md) |
+| Inventory, equipment, wearslots, weight, NFT ownership model, durability | [INVENTORY_EQUIPMENT.md](../../docs/inventory-equipment.md) |
+| Economy, pricing, markets, spawn algorithms, SINK, reallocation | [ECONOMY.md](../../docs/economy.md) |
+| Unified spawn system (resources / gold / rare NFTs / knowledge) | [UNIFIED_ITEM_SPAWN_SYSTEM.md](../../docs/unified-item-spawn-system.md) |
+| Mob spawning (population, respawn, area tags, hooks) | [SPAWN_MOBS.md](../../docs/spawn-mobs.md) |
+| Economy telemetry, snapshots, velocity categories | [TELEMETRY.md](../../docs/telemetry.md) |
+| Treasury, fiscal discipline, vault architecture | [TREASURY.md](../../docs/treasury.md) |
+| Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../docs/subscriptions.md) |
+| Import / export / wallet flow, deferToThread, replay protection | [IMPORT_EXPORT.md](../../docs/import-export.md) |
+| Database architecture, 4-DB layout, pgvector | [DATABASE.md](../../docs/database.md) |
+| World lore, zones, districts | [WORLD.md](../../docs/world.md) |
+| New player experience, tutorial, Millholm onboarding | [NEW_PLAYER_EXPERIENCE.md](../../docs/new-player-experience.md) |
+| Inter-zone travel, sail, cartography mastery gates | [INTERZONE_TRAVEL.md](../../docs/interzone-travel.md) |
+| Intra-zone cartography, `survey` / `map` | [CARTOGRAPHY.md](../../docs/cartography.md) |
+| Procedural dungeons, instance lifecycle | [PROCEDURAL_DUNGEONS.md](../../docs/procedural-dungeons.md) |
+| Vertical movement, flying, swimming, climbing | [VERTICAL_MOVEMENT.md](../../docs/vertical-movement.md) |
+| Exit types, doors, traps, builder helpers | [EXIT_ARCHITECTURE.md](../../docs/exit-architecture.md) |
+| Room architecture, banking / crafting / harvesting rooms | [ROOM_ARCHITECTURE.md](../../docs/room-architecture.md) |
+| World objects, fixtures, climbables, searchables | [WORLD_OBJECTS.md](../../docs/world-objects.md) |
+| Pets and mounts | [PETS_AND_MOUNTS.md](../../docs/pets-and-mounts.md) |
+| Alignment system | [ALIGNMENT_SYSTEM.md](../../docs/alignment-system.md) |
+| Language system, garbling, racial languages | [LANGUAGE_SYSTEM.md](../../docs/language-system.md) |
+| Survival (hunger, thirst) | [SURVIVAL_SYSTEM.md](../../docs/survival-system.md) |
+| Weapon damage scaling by tier × mastery | [WEAPON_DAMAGE_SCALING.md](../../docs/weapon-damage-scaling.md) |
+| Races, classes, point buy, remort | [CHARACTER_PROGRESSION.md](../../docs/character-progression.md) |
+| Compliance strategy, token classification | [COMPLIANCE.md](../../docs/compliance.md) |
+| Website, markets page, frontend | [WEBSITE.md](../../docs/website.md) |
+| Connection transport, WebSocket-only rationale, telnet/SSH limitations | [CONNECTION_TRANSPORT.md](../../docs/connection-transport.md) |
 
 ### Ops (`ops/`) — dev, runbooks, infra
 
