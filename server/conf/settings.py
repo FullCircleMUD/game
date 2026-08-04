@@ -285,6 +285,26 @@ TIME_FACTOR = 24
 # a fixed starting date (e.g. int(datetime(2026, 1, 1).timestamp())).
 TIME_GAME_EPOCH = None
 
+# Derive game time from wall clock rather than from accumulated uptime.
+#
+# Evennia's other mode tracks uptime in a per-process module global that every
+# Server process writes back to a single ServerConfig row every 60 seconds. That
+# is safe with one process and unsafe with several: under sharding the router and
+# each shard overwrite one another every minute, and a process that reloads can
+# read a lower total than it held — moving game time backwards. Seasons running
+# backwards have no narrative cover.
+#
+# Wall-clock mode bypasses that accumulator entirely. Every term is a settings
+# constant, a database constant written once at creation, or the OS clock — so
+# all processes agree with no coordination and nothing to persist per tick.
+#
+# What it costs: game time advances while the server is down.
+#
+# Turning this off is NOT a one-line reversal under sharding — it reintroduces
+# the multi-writer race, and would first require making the accumulator
+# single-writer. See docs/scaling.md § Game time for that design.
+TIME_IGNORE_DOWNTIMES = True
+
 # Survival upkeep cycle (hunger today, thirst + future meters tomorrow)
 SURVIVAL_TICK_INTERVAL = 1200  # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAME DAY
 HUNGER_TICK_INTERVAL = SURVIVAL_TICK_INTERVAL  # back-compat alias for forage cooldown / older imports
