@@ -54,15 +54,28 @@ class TestDurabilityDecayService(EvenniaTest):
 
     def _make_mock_char(self, equipped_items=None):
         char = MagicMock()
-        char.has_account = True
-        char.sessions.count.return_value = 1
         char.get_all_worn.return_value = equipped_items or {}
         return char
 
+    @staticmethod
+    def _sessions_for(*puppets):
+        """Build session stand-ins, one per puppet.
+
+        The service walks SESSION_HANDLER rather than querying the
+        database, so the fixture is a list of sessions. Pass ``None``
+        for an OOC session — one that is connected but not puppeting.
+        """
+        sessions = []
+        for puppet in puppets:
+            session = MagicMock()
+            session.get_puppet.return_value = puppet
+            sessions.append(session)
+        return sessions
+
     @patch("typeclasses.scripts.durability_decay_service.delay")
-    @patch("typeclasses.scripts.durability_decay_service.ObjectDB")
+    @patch("typeclasses.scripts.durability_decay_service.SESSION_HANDLER")
     @patch("typeclasses.scripts.durability_decay_service.get_game_day_number")
-    def test_no_decay_when_same_day(self, mock_day, mock_odb, mock_delay):
+    def test_no_decay_when_same_day(self, mock_day, mock_handler, mock_delay):
         """No processing when the game day hasn't changed."""
         mock_day.return_value = 100
 
@@ -74,13 +87,13 @@ class TestDurabilityDecayService(EvenniaTest):
         mock_delay.assert_not_called()
 
     @patch("typeclasses.scripts.durability_decay_service.delay")
-    @patch("typeclasses.scripts.durability_decay_service.ObjectDB")
+    @patch("typeclasses.scripts.durability_decay_service.SESSION_HANDLER")
     @patch("typeclasses.scripts.durability_decay_service.get_game_day_number")
-    def test_schedules_decay_on_day_change(self, mock_day, mock_odb, mock_delay):
-        """IC characters get scheduled for decay when the day advances."""
+    def test_schedules_decay_on_day_change(self, mock_day, mock_handler, mock_delay):
+        """Puppeted characters get scheduled for decay when the day advances."""
         mock_day.return_value = 101
         char = self._make_mock_char()
-        mock_odb.objects.filter.return_value = [char]
+        mock_handler.get_sessions.return_value = self._sessions_for(char)
 
         service = MagicMock(spec=DurabilityDecayService)
         service.ndb = MagicMock()
@@ -91,15 +104,18 @@ class TestDurabilityDecayService(EvenniaTest):
         self.assertEqual(service.ndb.last_game_day, 101)
 
     @patch("typeclasses.scripts.durability_decay_service.delay")
-    @patch("typeclasses.scripts.durability_decay_service.ObjectDB")
+    @patch("typeclasses.scripts.durability_decay_service.SESSION_HANDLER")
     @patch("typeclasses.scripts.durability_decay_service.get_game_day_number")
-    def test_skips_offline_characters(self, mock_day, mock_odb, mock_delay):
-        """Characters without an active session are skipped."""
+    def test_skips_sessions_without_a_puppet(self, mock_day, mock_handler, mock_delay):
+        """OOC sessions are connected but puppet nothing — nothing to decay.
+
+        Replaces an older "skips offline characters" case: the service
+        walks SESSION_HANDLER, which only yields connected sessions, so
+        a logged-out character is never reached in the first place. The
+        surviving edge is a session with no puppet.
+        """
         mock_day.return_value = 101
-        offline_char = MagicMock()
-        offline_char.has_account = True
-        offline_char.sessions.count.return_value = 0
-        mock_odb.objects.filter.return_value = [offline_char]
+        mock_handler.get_sessions.return_value = self._sessions_for(None)
 
         service = MagicMock(spec=DurabilityDecayService)
         service.ndb = MagicMock()
@@ -159,14 +175,14 @@ class TestDurabilityDecayService(EvenniaTest):
         service._decay_equipped(char)
 
     @patch("typeclasses.scripts.durability_decay_service.delay")
-    @patch("typeclasses.scripts.durability_decay_service.ObjectDB")
+    @patch("typeclasses.scripts.durability_decay_service.SESSION_HANDLER")
     @patch("typeclasses.scripts.durability_decay_service.get_game_day_number")
-    def test_staggered_delay(self, mock_day, mock_odb, mock_delay):
-        """Multiple IC characters are staggered 0.1s apart."""
+    def test_staggered_delay(self, mock_day, mock_handler, mock_delay):
+        """Multiple puppeted characters are staggered 0.1s apart."""
         mock_day.return_value = 101
         char1 = self._make_mock_char()
         char2 = self._make_mock_char()
-        mock_odb.objects.filter.return_value = [char1, char2]
+        mock_handler.get_sessions.return_value = self._sessions_for(char1, char2)
 
         service = MagicMock(spec=DurabilityDecayService)
         service.ndb = MagicMock()
