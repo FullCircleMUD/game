@@ -37,7 +37,7 @@ def get_weather(zone_name):
     service = getattr(GLOBAL_SCRIPTS, "weather_service", None)
     if not service:
         return Weather.CLEAR
-    zone_weather = service.db.zone_weather or {}
+    zone_weather = service.ndb.zone_weather or {}
     weather_value = zone_weather.get(zone_name)
     if weather_value is None:
         return Weather.CLEAR
@@ -52,8 +52,19 @@ class WeatherService(DefaultScript):
     """
     Global persistent script that manages per-zone weather.
 
-    Weather state is persisted in self.db.zone_weather so it
-    survives server reloads.
+    Weather state lives in self.ndb.zone_weather — in-memory and
+    per-process, not on the shared ScriptDB row. A zone belongs to one
+    shard, and the character scan below is auto-filtered to this shard's
+    rows, so each process rolls exactly the zones it owns and cannot
+    clobber another's. Persisting it instead would put one dict on one
+    row that every process rewrites whole, losing each other's updates
+    on every tick.
+
+    Cost of that choice: weather resets to CLEAR on reload and re-rolls
+    from there. Unlike day/night and season — which are *derived* from
+    gametime and so recompute for free — weather is a Markov roll and
+    cannot be recomputed, only remembered. Accepted deliberately;
+    reloads are infrequent and weather is variable anyway.
     """
 
     def at_script_creation(self):
@@ -63,12 +74,11 @@ class WeatherService(DefaultScript):
         self.persistent = True
         self.start_delay = True
         self.repeats = 0  # repeat forever
-        self.db.zone_weather = {}
 
     def at_start(self, **kwargs):
-        """Ensure zone_weather dict exists after reload."""
-        if self.db.zone_weather is None:
-            self.db.zone_weather = {}
+        """Initialise this process's weather state on start or reload."""
+        if self.ndb.zone_weather is None:
+            self.ndb.zone_weather = {}
 
     def at_repeat(self):
         """Roll weather transitions for zones with connected players."""
@@ -78,7 +88,7 @@ class WeatherService(DefaultScript):
             return
 
         season = get_season()
-        zone_weather = dict(self.db.zone_weather or {})
+        zone_weather = dict(self.ndb.zone_weather or {})
 
         for zone_name, chars_with_rooms in zone_chars.items():
             climate = get_climate_for_zone(zone_name)
@@ -94,7 +104,7 @@ class WeatherService(DefaultScript):
             if new_weather != current:
                 self._broadcast_weather_change(new_weather, chars_with_rooms)
 
-        self.db.zone_weather = zone_weather
+        self.ndb.zone_weather = zone_weather
 
     def _get_zone_characters(self):
         """

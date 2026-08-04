@@ -23,7 +23,10 @@ class NFTSaturationScript(DefaultScript):
     """
     Global persistent script for hourly NFT saturation snapshots at HH:05.
 
-    Created once via at_server_startstop._ensure_global_scripts().
+    Global script registration lives in server/conf/at_server_startstop.py.
+    One ScriptDB row is shared cluster-wide, but each Server process
+    attaches its own ticker — under a sharded deployment the script runs
+    once per process, not once overall.
     """
 
     def at_script_creation(self):

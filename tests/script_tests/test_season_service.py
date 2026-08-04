@@ -96,3 +96,57 @@ class TestSeasonService(EvenniaTest):
 
         SeasonService.at_repeat(service)
         self.assertEqual(service.ndb.last_season, Season.WINTER)
+
+    @patch("typeclasses.scripts.season_service.SESSION_HANDLER")
+    def test_broadcast_messages_every_puppeted_session(self, mock_handler):
+        """Each connected session's puppet is messaged once."""
+        from typeclasses.scripts.season_service import SeasonService
+
+        first, second = MagicMock(), MagicMock()
+        sessions = []
+        for puppet in (first, second):
+            session = MagicMock()
+            session.get_puppet.return_value = puppet
+            sessions.append(session)
+        mock_handler.get_sessions.return_value = sessions
+
+        SeasonService._broadcast_transition(
+            MagicMock(spec=SeasonService), Season.WINTER
+        )
+
+        first.msg.assert_called_once()
+        second.msg.assert_called_once()
+
+    @patch("typeclasses.scripts.season_service.SESSION_HANDLER")
+    def test_broadcast_skips_sessions_without_a_puppet(self, mock_handler):
+        """OOC sessions have no puppet — skipped, not crashed on."""
+        from typeclasses.scripts.season_service import SeasonService
+
+        puppet = MagicMock()
+        ic_session = MagicMock()
+        ic_session.get_puppet.return_value = puppet
+        ooc_session = MagicMock()
+        ooc_session.get_puppet.return_value = None
+        mock_handler.get_sessions.return_value = [ooc_session, ic_session]
+
+        SeasonService._broadcast_transition(
+            MagicMock(spec=SeasonService), Season.WINTER
+        )
+
+        puppet.msg.assert_called_once()
+
+    @patch("typeclasses.scripts.season_service.SESSION_HANDLER")
+    def test_broadcast_is_a_noop_when_season_has_no_message(self, mock_handler):
+        """A season with no configured message sends nothing at all."""
+        from typeclasses.scripts.season_service import SeasonService
+
+        puppet = MagicMock()
+        session = MagicMock()
+        session.get_puppet.return_value = puppet
+        mock_handler.get_sessions.return_value = [session]
+
+        SeasonService._broadcast_transition(
+            MagicMock(spec=SeasonService), MagicMock()  # not in the message table
+        )
+
+        puppet.msg.assert_not_called()

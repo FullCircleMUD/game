@@ -497,3 +497,57 @@ class TestDayNightService(EvenniaTest):
 
         DayNightService.at_repeat(service)
         service._broadcast_transition.assert_called_once_with(TimeOfDay.NIGHT)
+
+    @patch("typeclasses.scripts.day_night_service.SESSION_HANDLER")
+    def test_broadcast_messages_every_puppeted_session(self, mock_handler):
+        """Each connected session's puppet is messaged once."""
+        from typeclasses.scripts.day_night_service import DayNightService
+
+        first, second = MagicMock(), MagicMock()
+        sessions = []
+        for puppet in (first, second):
+            session = MagicMock()
+            session.get_puppet.return_value = puppet
+            sessions.append(session)
+        mock_handler.get_sessions.return_value = sessions
+
+        DayNightService._broadcast_transition(
+            MagicMock(spec=DayNightService), TimeOfDay.NIGHT
+        )
+
+        first.msg.assert_called_once()
+        second.msg.assert_called_once()
+
+    @patch("typeclasses.scripts.day_night_service.SESSION_HANDLER")
+    def test_broadcast_skips_sessions_without_a_puppet(self, mock_handler):
+        """OOC sessions have no puppet — skipped, not crashed on."""
+        from typeclasses.scripts.day_night_service import DayNightService
+
+        puppet = MagicMock()
+        ic_session = MagicMock()
+        ic_session.get_puppet.return_value = puppet
+        ooc_session = MagicMock()
+        ooc_session.get_puppet.return_value = None
+        mock_handler.get_sessions.return_value = [ooc_session, ic_session]
+
+        DayNightService._broadcast_transition(
+            MagicMock(spec=DayNightService), TimeOfDay.NIGHT
+        )
+
+        puppet.msg.assert_called_once()
+
+    @patch("typeclasses.scripts.day_night_service.SESSION_HANDLER")
+    def test_broadcast_is_a_noop_when_phase_has_no_message(self, mock_handler):
+        """A phase with no configured message sends nothing at all."""
+        from typeclasses.scripts.day_night_service import DayNightService
+
+        puppet = MagicMock()
+        session = MagicMock()
+        session.get_puppet.return_value = puppet
+        mock_handler.get_sessions.return_value = [session]
+
+        DayNightService._broadcast_transition(
+            MagicMock(spec=DayNightService), MagicMock()  # not in the message table
+        )
+
+        puppet.msg.assert_not_called()

@@ -12,7 +12,7 @@ Query the current phase from anywhere:
 """
 
 
-from evennia import DefaultScript, ObjectDB
+from evennia import DefaultScript, SESSION_HANDLER
 from evennia.utils.gametime import gametime
 
 from enums.time_of_day import TimeOfDay
@@ -75,13 +75,19 @@ class DayNightService(DefaultScript):
             self._broadcast_transition(current_phase)
 
     def _broadcast_transition(self, phase):
-        """Send the transition message to all connected player characters."""
+        """Send the transition message to all connected player characters.
+
+        Walks SESSION_HANDLER rather than querying ObjectDB. The sessions
+        are an in-memory dict belonging to this process, so this reaches
+        exactly the players connected here — which under sharding is the
+        set this process should be messaging. The objects are the same
+        instances a query would return (one per pk, via the idmapper).
+        """
         msg = _TRANSITION_MESSAGES.get(phase)
         if not msg:
             return
 
-        for char in ObjectDB.objects.filter(
-            db_typeclass_path__contains="Character"
-        ):
-            if char.has_account and char.sessions.count():
+        for session in SESSION_HANDLER.get_sessions():
+            char = session.get_puppet()
+            if char:
                 char.msg(msg)
