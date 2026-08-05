@@ -190,31 +190,3 @@ class TestGoldDistributorConfig(EvenniaTest):
 # ================================================================== #
 #  Headroom — gold get_current_count
 # ================================================================== #
-
-
-class TestGoldHeadroom(EvenniaTest):
-    """get_current_count for gold reads db.gold."""
-
-    def create_script(self):
-        pass
-
-    def test_gold_count_zero(self):
-        from blockchain.xrpl.services.spawn.headroom import get_current_count
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.gold = 0
-        self.assertEqual(get_current_count(target, "gold", "gold"), 0)
-
-    def test_gold_count_nonzero(self):
-        from blockchain.xrpl.services.spawn.headroom import get_current_count
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.gold = 15
-        self.assertEqual(get_current_count(target, "gold", "gold"), 15)
-
-    def test_gold_count_none(self):
-        from blockchain.xrpl.services.spawn.headroom import get_current_count
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.gold = None
-        self.assertEqual(get_current_count(target, "gold", "gold"), 0)

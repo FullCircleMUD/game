@@ -58,7 +58,7 @@ class TestPersistSpawnTelemetryResources(EvenniaTest):
         bs = BudgetState(item_type="resource", type_key=1)
         bs.total = 20
         bs.quest_debt = 3
-        bs.spawned_this_hour = 15
+        bs.dispatched_this_hour = 15
         bs.dropped_this_hour = 2
         svc.budget_states[("resource", 1)] = bs
 
@@ -93,7 +93,7 @@ class TestPersistSpawnTelemetryResources(EvenniaTest):
         svc = SpawnService(_MINI_CONFIG)
         bs = BudgetState(item_type="resource", type_key=1)
         bs.total = 10
-        bs.spawned_this_hour = 8
+        bs.dispatched_this_hour = 8
         svc.budget_states[("resource", 1)] = bs
 
         with patch(
@@ -128,7 +128,7 @@ class TestPersistSpawnTelemetryGold(EvenniaTest):
         bs = BudgetState(item_type="gold", type_key="gold")
         bs.total = 50
         bs.quest_debt = 10
-        bs.spawned_this_hour = 35
+        bs.dispatched_this_hour = 35
         bs.dropped_this_hour = 5
         svc.budget_states[("gold", "gold")] = bs
 
@@ -170,7 +170,7 @@ class TestPersistSpawnTelemetryKnowledge(EvenniaTest):
         bs = BudgetState(item_type="knowledge", type_key="scroll_magic_missile")
         bs.total = 15
         bs.quest_debt = 2
-        bs.spawned_this_hour = 12
+        bs.dispatched_this_hour = 12
         bs.dropped_this_hour = 1
         svc.budget_states[("knowledge", "scroll_magic_missile")] = bs
 
