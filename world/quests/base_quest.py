@@ -198,13 +198,69 @@ class FCMQuest:
     def _register_quest_debt(category, key, amount):
         """Register quest reward debt with the spawn system.
 
-        Graceful no-op if the spawn service isn't running yet (e.g. in tests).
+        Quest rewards must not inflate the economy: what a player is handed
+        here is deducted from what the spawn system would otherwise place in
+        the world, rather than being created on top of it.
+
+        The budget those deductions apply to lives on the process running
+        the spawn service, which under sharding is the router — but quests
+        complete wherever the player is, which is a shard. So on a shard the
+        debt is sent to the router over the message bus; in monolith the
+        service is right here and is called directly.
+
+        Ordering matters: the send has to come before the local
+        `get_spawn_service()` check, because on a shard that always returns
+        None and the debt would be silently discarded.
         """
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            FCMQuest._send_quest_debt(category, key, amount)
+            return
+
         from blockchain.xrpl.services.spawn.service import get_spawn_service
 
         service = get_spawn_service()
         if service:
             service.allocate_quest_reward(category, key, amount)
+        elif role == ROLE_ROUTER:
+            # In monolith a missing service is ordinary (tests, or before
+            # at_server_start has run). On the router it means the spawn
+            # script is not running, and every quest reward is now
+            # unrepaid — worth saying so rather than quietly inflating.
+            from blockchain.xrpl.services.spawn.log import spawn_log
+
+            spawn_log(
+                f"quest debt {category}/{key} x{amount} dropped — no spawn "
+                f"service on the router",
+                level="ERROR",
+            )
+
+    @staticmethod
+    def _send_quest_debt(category, key, amount):
+        """Forward quest debt to the router, which owns the budget."""
+        from evennia_shards import get_router_shard_id, send_message
+
+        from blockchain.xrpl.services.spawn.log import spawn_log
+        from blockchain.xrpl.services.spawn.quest_debt import QUEST_DEBT_KIND
+
+        try:
+            send_message(
+                QUEST_DEBT_KIND,
+                {"category": category, "key": key, "amount": amount},
+                to_shard=get_router_shard_id(),
+            )
+            spawn_log(f"quest debt sent: {category}/{key} x{amount}")
+        except Exception as err:
+            # The reward has already been given. Losing the debt means the
+            # world spawns slightly more than intended for one cycle, which
+            # the next hour's saturation reading absorbs.
+            spawn_log(
+                f"quest debt {category}/{key} x{amount} could not be sent: "
+                f"{type(err).__name__}: {err}",
+                level="ERROR",
+            )
 
     def on_complete(self):
         """Called on completion. Override for custom logic."""
