@@ -24,10 +24,15 @@ class UnifiedSpawnScript(DefaultScript):
     """
     Global persistent script for the unified item spawn system.
 
-    Global script registration lives in server/conf/at_server_startstop.py.
-    One ScriptDB row is shared cluster-wide, but each Server process
-    attaches its own ticker — under a sharded deployment the script runs
-    once per process, not once overall.
+    Registered for router and monolith roles only — see the _SCRIPTS table
+    in server/conf/at_server_startstop.py. Deciding how much the world needs
+    and which targets receive it requires seeing every shard's rows, which
+    only the unscoped router does.
+
+    Shards run no spawn script at all. They receive placements as bus
+    messages and carry them out through the message handler, which is a
+    Twisted LoopingCall started in at_server_start() rather than a script —
+    one less thing to check is running.
     """
 
     def at_script_creation(self):

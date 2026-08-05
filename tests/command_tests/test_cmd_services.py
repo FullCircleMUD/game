@@ -40,17 +40,6 @@ class TestServicesRegistry(EvenniaCommandTest):
         }
         self.assertEqual(_PIPELINE_KEYS, derived)
 
-    def test_pipeline_includes_all_three_scripts(self):
-        """The full pipeline trio is in the registry."""
-        self.assertIn("telemetry_aggregator_service", _PIPELINE_KEYS)
-        self.assertIn("nft_saturation_service", _PIPELINE_KEYS)
-        self.assertIn("unified_spawn_service", _PIPELINE_KEYS)
-        self.assertEqual(len(_PIPELINE_KEYS), 3)
-
-    def test_all_scripts_present(self):
-        """Both global and pipeline scripts are in _ALL_SCRIPTS."""
-        self.assertEqual(len(_ALL_SCRIPTS), 11)
-
     def test_per_actor_scripts_not_in_registry(self):
         """
         Combat handlers, dot scripts, dungeon instances, and tutorial
