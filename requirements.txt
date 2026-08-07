@@ -27,6 +27,15 @@ psycopg2-binary
 # Parse DATABASE_URL into Django DATABASES format
 dj-database-url
 
+# Bundled SQLite, macOS only. Apple's /usr/lib/libsqlite3.dylib runs
+# sqlite3_initialize() through libdispatch, which cannot survive the fork
+# twistd uses to daemonize — so `evennia start` hangs silently on the
+# child's first SQLite call. settings.py swaps this in ahead of any
+# sqlite3 import. The marker means pip skips it on Linux (Railway runs
+# Postgres and never loads SQLite at all).
+# See libraries/evennia-shards/docs/deployment-topology.md § macOS.
+sqlean.py; sys_platform == "darwin"
+
 # World builder (local sibling repo, editable install)
 -e ../libraries/evennia-world-builder
 

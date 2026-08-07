@@ -26,6 +26,61 @@ put secret game- or server-specific settings in secret_settings.py.
 
 import json
 import os
+import sys
+
+# ── macOS only: use a bundled, non-Apple SQLite build ────────────────
+#
+# macOS ships /usr/lib/libsqlite3.dylib, which runs sqlite3_initialize()
+# through libdispatch. libdispatch cannot survive fork(), and twistd
+# daemonizes with a double fork and never exec()s — so once any SQLite
+# connection has been opened, every SQLite call in the daemonized child
+# blocks forever on a dispatch queue nothing will service. There is no
+# exception, no timeout and nothing in any log: `evennia start` just
+# prints "Server starting  ..." and never returns.
+#
+# A connection is always open by then: evennia._init() imports
+# evennia/utils/gametime.py, which runs a ServerConfig query at module
+# scope.
+#
+# sqlean.py ships a statically-linked SQLite, so Apple's library is never
+# loaded. This must run before anything imports sqlite3 — once the stdlib
+# module is cached, Django's backend gets Apple's build regardless.
+#
+# Lives here rather than in settings_common_shard_config.py because this
+# file is the one every role loads (monolith directly; router and shards
+# through the cascade), and monolith forks too.
+#
+# Inert off-platform: Railway runs Linux on Postgres, where the marker
+# excludes the package and this block is skipped.
+# See libraries/evennia-shards/docs/deployment-topology.md § macOS.
+if sys.platform == "darwin":
+    try:
+        import sqlean
+        import sqlean.dbapi2
+
+        # sqlean's DBAPI predates Connection.getlimit(), which Django 6
+        # calls when sizing bulk_create batches. Its Connection is an
+        # immutable C type, so the method goes on a subclass installed
+        # via connect(factory=...).
+        class _FCMSQLiteConnection(sqlean.dbapi2.Connection):
+            def getlimit(self, category):
+                return 999  # SQLite's conservative historical default
+
+        _sqlean_connect = sqlean.dbapi2.connect
+
+        def _connect(*args, **kwargs):
+            kwargs.setdefault("factory", _FCMSQLiteConnection)
+            return _sqlean_connect(*args, **kwargs)
+
+        sqlean.dbapi2.connect = _connect
+        sqlean.connect = _connect
+        sqlean.SQLITE_LIMIT_VARIABLE_NUMBER = 9
+        sqlean.dbapi2.SQLITE_LIMIT_VARIABLE_NUMBER = 9
+
+        sys.modules["sqlite3"] = sqlean
+        sys.modules["sqlite3.dbapi2"] = sqlean.dbapi2
+    except ImportError:
+        pass
 
 import dj_database_url
 
