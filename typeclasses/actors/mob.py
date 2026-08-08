@@ -36,9 +36,10 @@ from typeclasses.mixins.combat_mixin import CombatMixin
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.llm_mixin import LLMMixin
+from typeclasses.mixins.loot_mob_mixin import LootMobMixin
 
 
-class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, BaseNPC):
+class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, LootMobMixin, BaseNPC):
     """
     Base class for killable mobs with AI behavior.
 
