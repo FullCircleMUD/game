@@ -327,14 +327,14 @@ def _phase_3(state):
         "  |wBanking:|n      balance, deposit, withdraw\n\n"
         "The full chain: harvest → process → consume or bank.\n"
         "Head to Tutorial 3 to learn about character growth!\n\n"
-        "|yMove |weast|y to return to the Tutorial Hub and "
+        "|yMove |wdown|y to return to the Tutorial Hub and "
         "receive your graduation reward!|n",
         guide_context=(
             "Congratulate the player! They've learned the economic loop: "
             "harvesting, processing, and banking. Recap the full chain: "
             "harvest → process → consume or bank. Mention Tutorial 3 "
             "covers character growth and social features. Tell them "
-            "|weast|n takes them to the hub for their reward."
+            "|wdown|n takes them to the hub for their reward."
         ),
     )
     _connect(rooms["vault"], rooms["complete"], "east")
@@ -354,7 +354,7 @@ def _phase_3(state):
                 ("tutorial_instance_id", instance.id),
             ],
         )
-        exit_to_hub.set_direction("east")
+        exit_to_hub.set_direction("down")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
 

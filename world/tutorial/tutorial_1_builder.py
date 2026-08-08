@@ -702,14 +702,14 @@ def _phase_5(state):
         "  |wDrinking:|n     drink, refill, score (thirst level)\n\n"
         "For more info on any topic, use |whelp <topic>|n.\n"
         "For a list of all help topics, use |whelp|n.\n\n"
-        "|yMove |weast|y to return to the Tutorial Hub and "
+        "|yMove |wdown|y to return to the Tutorial Hub and "
         "receive your graduation reward!|n",
         guide_context=(
             "Congratulate the player! They've learned the survival basics: "
             "movement, looking, inventory, equipment, flying, swimming, "
             "light, combat, resting/posture, eating, and drinking. "
             "Mention |whelp <topic>|n "
-            "for more info. Tell them to head |weast|n for their graduation "
+            "for more info. Tell them to head |wdown|n for their graduation "
             "reward. Mention Tutorials 2 (economics) and 3 (growth & social) "
             "are available from the hub."
         ),
@@ -731,7 +731,7 @@ def _phase_5(state):
                 ("tutorial_instance_id", instance.id),
             ],
         )
-        exit_to_hub.set_direction("east")
+        exit_to_hub.set_direction("down")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
 

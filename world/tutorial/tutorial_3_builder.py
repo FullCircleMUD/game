@@ -555,15 +555,15 @@ def _phase_4(state):
         "  |wTraining:|n       train, train <skill>\n"
         "  |wGuilds:|n         guild, advance, quest\n"
         "  |wGroups:|n         follow, group, unfollow, nofollow\n\n"
-        "You're ready for the world! Head east for your reward.\n\n"
+        "You're ready for the world! Head down for your reward.\n\n"
         "|yTip:|n Type |whelp|n at any time to see all available "
         "commands, or |whelp <command>|n for details on a specific one.\n\n"
-        "|yMove |weast|y to return to the Tutorial Hub and "
+        "|yMove |wdown|y to return to the Tutorial Hub and "
         "receive your graduation reward!|n",
         guide_context=(
             "Congratulate the player! They've learned aliases, character info, "
             "communication, skills, training, guilds, and groups. They're "
-            "ready for the real world. Tell them |weast|n takes them to "
+            "ready for the real world. Tell them |wdown|n takes them to "
             "the hub for their reward. Wish them well!"
         ),
     )
@@ -584,7 +584,7 @@ def _phase_4(state):
                 ("tutorial_instance_id", instance.id),
             ],
         )
-        exit_to_hub.set_direction("east")
+        exit_to_hub.set_direction("down")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
 
