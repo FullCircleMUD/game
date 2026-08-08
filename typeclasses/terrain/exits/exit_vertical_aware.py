@@ -31,13 +31,15 @@ class _HeightAwareExitCommand(FCMCommandMixin, ExitCommand):
     exits from appearing in command disambiguation.
     """
 
-    def access(self, srcobj, access_type="cmd", default=False):
+    def access(self, srcobj, access_type="cmd", default=False, session=None):
         if access_type == "cmd" and self.obj:
             if hasattr(self.obj, "is_height_accessible"):
                 height = getattr(srcobj, "room_vertical_position", 0)
                 if not self.obj.is_height_accessible(height):
                     return False
-        return super().access(srcobj, access_type=access_type, default=default)
+        return super().access(
+            srcobj, access_type=access_type, default=default, session=session
+        )
 
 
 class ExitVerticalAware(ExitBase):
