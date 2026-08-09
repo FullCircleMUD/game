@@ -16,4 +16,18 @@ from commands.command import FCMCommandMixin
 
 
 class CmdHelp(FCMCommandMixin, _CmdHelp):
+    """
+    Get help.
+
+    Usage:
+        help
+        help <topic, command or category>
+        help <topic>/<subtopic>
+        help <topic>/<subtopic>/<subsubtopic> ...
+
+    Use the 'help' command alone to see an index of all help topics,
+    organized by category. Some big topics may offer additional
+    subtopics.
+    """
+
     help_more = False
