@@ -42,6 +42,8 @@ Public API:
 
     # Display
     self.equipment_cmd_output(header) -> str
+    self.empty_slot_note(slot)        -> str   (override point)
+    self.visible_item_name(item)      -> str
 
     # Inventory helper
     self.get_carried() -> list
@@ -353,8 +355,8 @@ class BaseWearslotsMixin:
         for slot, item in wearslots.items():
             display_slot = slot.replace("_", " ").title()
             slot_str = f"<|c{display_slot}|n>"
+            pad = col_width - len(display_slot) - 2
             if item is not None:
-                pad = col_width - len(display_slot) - 2
                 can_see = not is_dark and (
                     not looker or p_visible_to(item, looker)
                 )
@@ -371,8 +373,48 @@ class BaseWearslotsMixin:
                     line = f"  {slot_str}{' ' * pad} Something"
                 lines.append(line)
             else:
-                lines.append(f"  {slot_str}")
+                note = self.empty_slot_note(slot, looker=looker, is_dark=is_dark)
+                if note:
+                    lines.append(f"  {slot_str}{' ' * pad} |x{note}|n")
+                else:
+                    lines.append(f"  {slot_str}")
         return "\n".join(lines)
+
+    def empty_slot_note(self, slot, looker=None, is_dark=False):
+        """
+        Annotation shown beside an empty slot that is nonetheless unusable.
+
+        Empty slots hold no item, so the display has no way to know a slot
+        is blocked by what's in another slot. Child mixins override this to
+        report such cross-slot restrictions.
+
+        Args:
+            slot: str — the wearslot name being rendered
+            looker: object or None — the character viewing
+            is_dark: bool — whether the looker is in darkness
+
+        Returns:
+            str — the note, or "" for no note
+        """
+        return ""
+
+    def visible_item_name(self, item, looker=None, is_dark=False):
+        """
+        An item's name as this looker sees it — "Something" when masked.
+
+        Args:
+            item: the Evennia object being named
+            looker: object or None — the character viewing
+            is_dark: bool — whether the looker is in darkness
+
+        Returns:
+            str — item.key, or "Something" if it can't be identified
+        """
+        from utils.targeting.predicates import p_visible_to
+
+        if is_dark or (looker and not p_visible_to(item, looker)):
+            return "Something"
+        return item.key
 
     # ================================================================== #
     #  Inventory Helper

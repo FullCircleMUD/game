@@ -569,6 +569,27 @@ class TestEquipmentCmdOutput(EvenniaTest):
         slot_lines = [l for l in output.split("\n") if l.strip().startswith("<")]
         self.assertEqual(len(slot_lines), 19)
 
+    def test_hold_slot_reports_two_handed_weapon(self):
+        """Empty HOLD slot should name the two-handed weapon consuming it."""
+        axe = _make_wearable(
+            "Training Battleaxe", HumanoidWearSlot.WIELD.value, self.char1
+        )
+        # Mirrors WeaponMechanicsMixin's two_handed AttributeProperty, which
+        # BaseNFTItem test fixtures don't have.
+        axe.two_handed = True
+        self.char1.wear(axe)
+        output = self.char1.equipment_cmd_output()
+        self.assertIn("Training Battleaxe is two handed", output)
+
+    def test_hold_slot_bare_for_one_handed_weapon(self):
+        """A one-handed wielded weapon should leave HOLD unannotated."""
+        sword = _make_wearable(
+            "Short Sword", HumanoidWearSlot.WIELD.value, self.char1
+        )
+        self.char1.wear(sword)
+        output = self.char1.equipment_cmd_output()
+        self.assertNotIn("is two handed", output)
+
 
 class TestCanWearNotImplemented(EvenniaTest):
     """Test that BaseWearslotsMixin.can_wear raises NotImplementedError."""
