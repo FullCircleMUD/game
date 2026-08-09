@@ -341,8 +341,12 @@ class LLMMixin:
         """
         Generate an LLM response and deliver it as in-game speech.
 
-        Non-blocking: uses ``deferToThread`` to call LLMService, then
-        ``reactor.callFromThread`` to deliver the response on the main thread.
+        Non-blocking: prompt assembly (system prompt, lore search, memory
+        search) and the LLMService call all happen inside ``deferToThread``,
+        then ``reactor.callFromThread`` delivers the response on the main
+        thread. Prompt/memory/lore lookups can hit the ai_memory DB and the
+        embeddings API, so they must not run on the reactor thread — see
+        ai_memory/services.py's own "caller wraps in deferToThread" contract.
 
         Args:
             speaker: the character/object that triggered this
@@ -370,21 +374,25 @@ class LLMMixin:
         self.ndb._llm_current_speaker = speaker
         self.ndb._llm_current_message = message
 
-        # Build LLM messages
-        system_prompt = self.get_llm_system_prompt()
-        history = self._get_relevant_memories(speaker, message)
-        user_message = self._format_user_message(speaker, message, interaction_type)
-
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(history)
-        messages.append({"role": "user", "content": user_message})
-
         npc_key = str(self.dbref)
 
         def _do_llm_call():
             from llm.service import LLMService
 
-            return LLMService.chat_completion(
+            # Prompt/memory/lore assembly happens here, off the reactor
+            # thread — it can call ai_memory (separate DB) and the
+            # embeddings API.
+            system_prompt = self.get_llm_system_prompt()
+            history = self._get_relevant_memories(speaker, message)
+            user_message = self._format_user_message(
+                speaker, message, interaction_type
+            )
+
+            messages = [{"role": "system", "content": system_prompt}]
+            messages.extend(history)
+            messages.append({"role": "user", "content": user_message})
+
+            response_text = LLMService.chat_completion(
                 messages=messages,
                 model=self.llm_model,
                 max_tokens=self.llm_max_tokens,
@@ -392,9 +400,18 @@ class LLMMixin:
                 npc_key=npc_key,
             )
 
+            # Vector-memory storage embeds the exchange — same off-reactor
+            # requirement as the lookups above. Rolling-list storage stays
+            # in _on_response since it writes self.db.
+            if response_text and self.llm_use_vector_memory:
+                self._store_memory_vector(speaker.key, message, response_text)
+
+            return response_text
+
         def _on_response(response_text):
             if response_text:
-                self._store_memory(speaker.key, message, response_text)
+                if not self.llm_use_vector_memory:
+                    self._store_memory_rolling(speaker.key, message, response_text)
                 if callback:
                     callback(response_text)
                 else:

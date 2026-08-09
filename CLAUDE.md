@@ -161,6 +161,14 @@ def func(self):
 
 **Y/N confirmations:** use `yield` in simple commands; use `get_input()` callbacks in async commands that `deferToThread` (`yield` is incompatible with deferred callbacks).
 
+### Non-blocking LLM NPC calls (`deferToThread`)
+
+`LLMMixin.llm_respond()` (`typeclasses/mixins/llm_mixin.py`) is the single entry point behind every NPC LLM interaction — `say`, `whisper`, room `arrive`/`leave`, and the `llm_decide` relevance check all funnel through it. The **entire** request — system-prompt assembly, memory/lore retrieval, and the chat completion itself — runs inside one `deferToThread` closure, not just the final API call. Vector-memory storage of the exchange (which also embeds) happens in that same closure; rolling-list storage (a `self.db` write) happens in the `_on_response` callback on the reactor thread.
+
+**Deliberate exception to the `self.db`-on-reactor-thread rule above:** prompt assembly reads `self.location`, `self.db.desc`, `self.tags`, `self.ndb`, etc., and this happens inside the worker thread along with the genuinely expensive work (`ai_memory` DB queries, OpenAI embedding calls for lore/memory search). Splitting those reads back onto the reactor thread would be more correct per the XRPL pattern, but was chosen against for simplicity — the reads are read-only NPC/room state with low practical concurrency risk. If this ever causes a real bug, split `_get_context_variables()` into a reactor-thread "local state" half and a worker-thread "lore/memory lookup" half instead of moving it back wholesale.
+
+**Why the whole thing had to move off-thread:** it originally only wrapped the final `LLMService.chat_completion()` call. Any NPC with `llm_use_lore=True` or `llm_use_vector_memory=True` (e.g. Rowan, Harlow) still made synchronous OpenAI embedding calls during prompt assembly — on the reactor thread, blocking every connected player, not just the arriving one. See [PERFORMANCE_DIAGNOSIS.md](../../ops/DEVELOPMENT/PERFORMANCE_DIAGNOSIS.md) for the worked example.
+
 ### Command Architecture
 
 Custom cmdsets merge on top of Evennia defaults via `commands/default_cmdsets.py`:
