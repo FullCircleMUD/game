@@ -647,8 +647,63 @@ Leave Character / Game      |gquit|n
 
             grant_trial(self)
 
+    def _refresh_account_scoped_cache(self):
+        """Re-read this account's own objects from the database.
+
+        Under a split deployment the router and each shard are separate
+        processes with separate Evennia caches, and nothing reconciles
+        them. Account-scoped state is written on one and read on the other
+        — a deposit made in game on a shard is read out of game on the
+        router — so each side serves whatever it last loaded. Left alone,
+        an in-game deposit does not appear in the OOC bank until the router
+        restarts.
+
+        Refreshing at login rather than per read keeps the caches doing
+        their job. Scope is this account only: a whole-process flush would
+        evict every player's objects, and since ``ndb`` lives on the
+        instance that would destroy live state — a combat handler lost
+        because someone else logged in.
+
+        Covers arrival, not the whole session. A player sitting at the OOC
+        menu while a shard writes can still read stale values.
+        """
+        self._refresh_attributes(self)
+
+        bank = self.db.bank
+        if bank is not None:
+            self._refresh_attributes(bank)
+            # Fungibles are attributes on the bank, but deposited items are
+            # objects inside it, and contents is cached separately.
+            bank.contents_cache.init()
+
+        # The OOC menu renders level and class off the character, and those
+        # are written on a shard.
+        for character in self.characters or []:
+            self._refresh_attributes(character)
+
+    @staticmethod
+    def _refresh_attributes(obj):
+        """Force ``obj``'s attributes to be re-read from the database.
+
+        Two caches sit in front of an attribute value and both have to go.
+        ``AttributeHandler`` caches resolved values on the object, and the
+        underlying ``Attribute`` rows are themselves ``SharedMemoryModel``
+        instances held in the idmapper — so resetting the handler alone
+        just re-queries and gets the same stale rows back.
+
+        Evicting the ``Attribute`` rows rather than the owning object is
+        deliberate: flushing an object from the idmapper would leave any
+        held reference untouched while later lookups built a fresh one, and
+        ``ndb`` lives on the instance, so live state would split between
+        the two.
+        """
+        for attr in obj.db_attributes.all():
+            attr.flush_from_cache(force=True)
+        obj.attributes.reset_cache()
+
     def at_post_login(self, session=None, **kwargs):
         """Called after login. Backfills wallet + bank for the superuser."""
+        self._refresh_account_scoped_cache()
         super().at_post_login(session=session, **kwargs)
 
         from blockchain.xrpl.cosigner_ping import warm_cosigner

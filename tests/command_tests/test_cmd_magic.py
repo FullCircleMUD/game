@@ -36,6 +36,7 @@ def _create_scroll(char, token_id=TOKEN_ID, spell_key="magic_missile"):
     # Place directly in inventory bypassing at_post_move
     obj.db_location = char
     obj.save(update_fields=["db_location"])
+    char.contents_cache.init()  # the direct write bypasses the cache
     return obj
 
 

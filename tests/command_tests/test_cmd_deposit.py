@@ -149,6 +149,7 @@ class TestCmdDepositNFT(EvenniaCommandTest):
         self.sword.token_id = 42
         self.sword.db_location = self.char1
         self.sword.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
 
     @patch("blockchain.xrpl.services.nft.NFTService.bank")
     def test_deposit_nft(self, mock_bank):

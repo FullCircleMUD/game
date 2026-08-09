@@ -402,6 +402,7 @@ class TestCheckBoatLevel(EvenniaCommandTest):
         ship.db.ship_tier = tier
         ship.db_location = self.char1
         ship.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
         return ship
 
     def test_check_passes(self):

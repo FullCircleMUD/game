@@ -152,6 +152,7 @@ class TestCmdJunkNFT(EvenniaCommandTest):
         # Place directly in inventory bypassing at_post_move
         self.sword.db_location = self.char1
         self.sword.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
     def test_junk_nft_by_item_id(self, mock_craft):

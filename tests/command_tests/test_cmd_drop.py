@@ -153,6 +153,7 @@ class TestCmdDropObject(EvenniaCommandTest):
         )
         mount.db_location = self.char1
         mount.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
         self.call(CmdDrop(), "horse", "You can't drop")
         self.assertEqual(mount.location, self.char1)
 

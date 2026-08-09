@@ -169,6 +169,7 @@ class TestCmdGiveObject(EvenniaCommandTest):
         )
         mount.db_location = self.char1
         mount.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
         self.call(CmdGive(), "horse to Char2", "You give")
         self.assertEqual(mount.location, self.char2)
 

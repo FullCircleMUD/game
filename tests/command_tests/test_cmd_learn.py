@@ -35,6 +35,7 @@ def _create_recipe_item(char, token_id=TOKEN_ID, recipe_key="training_longsword"
     # Place directly in inventory bypassing at_post_move
     obj.db_location = char
     obj.save(update_fields=["db_location"])
+    char.contents_cache.init()  # the direct write bypasses the cache
     return obj
 
 

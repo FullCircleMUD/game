@@ -106,6 +106,9 @@ def _make_map_item(char, map_key, surveyed=None):
     item.db.surveyed_points = set(surveyed) if surveyed else set()
     item.db_location = char
     item.save(update_fields=["db_location"])
+    # The direct db_location write bypasses move_to, so char's contents
+    # cache never learns about the item. Rebuild it from the database.
+    char.contents_cache.init()
     return item
 
 
