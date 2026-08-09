@@ -13,6 +13,7 @@ evennia test --settings settings tests.server_tests.test_script_registry
 """
 
 import sys
+import types
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -241,3 +242,107 @@ class TestBootEntryPoint(TestCase):
                 patch.object(ass, "start_scripts") as start:
             ass._start_scripts_for_this_role()
         start.assert_called_once_with(role="router")
+
+
+class TestSelectScriptEntries(TestCase):
+    """The three-column view, used to stamp roles onto each script."""
+
+    SAMPLE = [
+        ("regen", "path.Regen", ("shard", "monolith"), ()),
+        ("routery", "path.Routery", ("router",), ("pipeline",)),
+    ]
+
+    def test_returns_roles_alongside_key_and_path(self):
+        with patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            self.assertEqual(
+                ass._select_script_entries(role="router"),
+                [("routery", "path.Routery", ("router",))],
+            )
+
+    def test_two_column_view_matches_the_three_column_one(self):
+        # _select_scripts is a projection of the same filter, not a second
+        # implementation — callers unpacking pairs must keep working.
+        with patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            for role in (None, "shard", "router", "monolith"):
+                self.assertEqual(
+                    ass._select_scripts(role=role),
+                    [(k, p) for k, p, _r in ass._select_script_entries(role=role)],
+                )
+
+
+class TestDeclareScriptRoles(TestCase):
+    """Scripts are stamped with the roles allowed to run them.
+
+    The _SCRIPTS table gates what a process *creates*. Evennia's boot walk
+    attaches a LoopingCall to any active row still carrying a pause marker
+    and knows nothing about roles, so without this stamp the first process
+    to boot picks up every script in the cluster.
+    """
+
+    SAMPLE = [("regen", "path.Regen", ("shard", "monolith"), ())]
+
+    def _shards(self, role):
+        """A stand-in evennia_shards exposing only what the stamp reads."""
+        mod = types.ModuleType("evennia_shards")
+        mod.OWNING_ROLES_ATTR = "owning_roles"
+        mod.ROLE_MONOLITH = "monolith"
+        mod.get_role = lambda: role
+        return mod
+
+    def test_stamps_declared_roles_on_creation(self):
+        created = MagicMock()
+        fake = _fake_evennia(existing={})
+        fake.create_script.return_value = created
+        with patch.dict(sys.modules, {"evennia": fake,
+                                      "evennia_shards": self._shards("shard")}), \
+                patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            ass.start_scripts(role="shard")
+        created.attributes.add.assert_called_once_with(
+            "owning_roles", ["shard", "monolith"]
+        )
+
+    def test_stamps_before_reattaching(self):
+        # start() goes through the shards guard, which reads the attribute
+        # to decide whether the attach is allowed — so the stamp has to
+        # land first or the re-attach is refused.
+        row = _script_row(task_running=False)
+        fake = _fake_evennia(existing={"regen": row})
+        manager = MagicMock()
+        manager.attach_mock(row.attributes.add, "stamp")
+        manager.attach_mock(row.start, "start")
+        with patch.dict(sys.modules, {"evennia": fake,
+                                      "evennia_shards": self._shards("shard")}), \
+                patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            ass.start_scripts(role="shard")
+        self.assertEqual([c[0] for c in manager.mock_calls], ["stamp", "start"])
+
+    def test_no_stamp_in_monolith(self):
+        # Monolith is a single process that is the whole world — nothing to
+        # keep a script away from.
+        created = MagicMock()
+        fake = _fake_evennia(existing={})
+        fake.create_script.return_value = created
+        with patch.dict(sys.modules, {"evennia": fake,
+                                      "evennia_shards": self._shards("monolith")}), \
+                patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            ass.start_scripts(role="monolith")
+        created.attributes.add.assert_not_called()
+
+    def test_no_stamp_without_shards_installed(self):
+        created = MagicMock()
+        fake = _fake_evennia(existing={})
+        fake.create_script.return_value = created
+        with patch.dict(sys.modules, {"evennia": fake, "evennia_shards": None}), \
+                patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            ass.start_scripts(role="shard")
+        created.attributes.add.assert_not_called()
+
+    def test_a_running_script_is_left_entirely_alone(self):
+        row = _script_row(task_running=True)
+        fake = _fake_evennia(existing={"regen": row})
+        with patch.dict(sys.modules, {"evennia": fake,
+                                      "evennia_shards": self._shards("shard")}), \
+                patch.object(ass, "_SCRIPTS", self.SAMPLE):
+            ass.start_scripts(role="shard")
+        row.attributes.add.assert_not_called()
+        row.start.assert_not_called()

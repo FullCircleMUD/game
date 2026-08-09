@@ -191,19 +191,22 @@ _SCRIPTS = [
 ]
 
 
-def _select_scripts(role=None, tag=None):
+def _select_script_entries(role=None, tag=None):
     """
-    Return the _SCRIPTS entries matching both filters.
+    Return matching _SCRIPTS entries as (key, typeclass_path, roles) triples.
 
     Filters are ANDed, and either may be omitted:
 
-        _select_scripts(role="shard")                 every script on shards
-        _select_scripts(tag="pipeline")               every pipeline script
-        _select_scripts(role="shard", tag="pipeline") pipeline scripts on shards
+        _select_script_entries(role="shard")     every script on shards
+        _select_script_entries(tag="pipeline")   every pipeline script
+        _select_script_entries(role="shard", tag="pipeline")
 
     ANDing is what makes "restart the pipeline on this process" express
     itself correctly — on a role that owns no pipeline scripts it
     selects nothing rather than starting scripts that don't belong there.
+
+    The roles column comes back because start_scripts() stamps it onto each
+    script; callers that only need the pair use _select_scripts().
     """
     out = []
     for key, typeclass_path, roles, tags in _SCRIPTS:
@@ -211,8 +214,49 @@ def _select_scripts(role=None, tag=None):
             continue
         if tag is not None and tag not in tags:
             continue
-        out.append((key, typeclass_path))
+        out.append((key, typeclass_path, roles))
     return out
+
+
+def _select_scripts(role=None, tag=None):
+    """
+    Return the matching _SCRIPTS entries as (key, typeclass_path) pairs.
+
+    The two-column view of _select_script_entries(), for callers that don't
+    need the roles column.
+    """
+    return [(key, path) for key, path, _roles in _select_script_entries(role, tag)]
+
+
+def _declare_script_roles(script, roles):
+    """
+    Record on the script which roles are allowed to run it.
+
+    This table gates what each process *creates*. It does not gate what
+    Evennia's boot walk *attaches*: update_scripts_after_server_start()
+    iterates every active ScriptDB row, knows nothing about roles, and
+    attaches a LoopingCall to any row still carrying a pause marker. So the
+    first process to boot picks up every script in the cluster, not just its
+    own — a router ends up ticking shard-only world scripts, and a shard
+    booting first would pick up the router-only ones, including the
+    reallocation service that must run exactly once.
+
+    Stamping the declared roles lets the shards library refuse that attach on
+    a process the script was never declared for. See
+    libraries/evennia-shards/docs/shard-owned-scripts.md.
+
+    No-op off a sharded deployment: in monolith the single process is the
+    whole world, and without shards installed there is nothing to enforce it.
+    """
+    try:
+        from evennia_shards import OWNING_ROLES_ATTR, ROLE_MONOLITH, get_role
+    except ImportError:
+        return
+
+    if get_role() == ROLE_MONOLITH:
+        return
+
+    script.attributes.add(OWNING_ROLES_ATTR, list(roles))
 
 
 def start_scripts(role=None, tag=None):
@@ -222,18 +266,29 @@ def start_scripts(role=None, tag=None):
     Called from at_server_start() so scripts launch on every boot,
     independent of which world (test/game) is built. GLOBAL_SCRIPTS
     lookup returns None for missing scripts, so duplicates are impossible.
+
+    Every script touched here is stamped with its declared roles, so the
+    shards library can keep it off processes that never declared it — see
+    _declare_script_roles().
     """
     from evennia import GLOBAL_SCRIPTS, create_script, logger
 
-    for key, typeclass_path in _select_scripts(role=role, tag=tag):
+    for key, typeclass_path, roles in _select_script_entries(role=role, tag=tag):
         existing = getattr(GLOBAL_SCRIPTS, key, None)
         if not existing:
-            create_script(typeclass_path, key=key, obj=None)
+            created = create_script(typeclass_path, key=key, obj=None)
+            if created:
+                _declare_script_roles(created, roles)
             logger.log_info(f"Global scripts: started {key}")
         elif not (existing.ndb._task and existing.ndb._task.running):
             # Row is active in DB but its LoopingCall isn't attached — happens
             # after hard kills where Evennia's restart-active-scripts walk
             # didn't complete. start() is idempotent (see DefaultScript._start_task).
+            #
+            # Stamped before start(), not after: start() goes through the
+            # shards guard, which reads this attribute to decide whether the
+            # attach is allowed.
+            _declare_script_roles(existing, roles)
             existing.start()
             logger.log_info(f"Global scripts: re-attached LoopingCall for {key}")
 
