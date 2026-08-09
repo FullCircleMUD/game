@@ -217,17 +217,17 @@ class BattleaxeMixin:
 
         # Messages
         wielder.msg(
-            f"|r*SUNDER* Your battleaxe cracks {target.key}'s armour! "
+            f"|r*SUNDER* Your battleaxe cracks {target.key}'s defences! "
             f"(-{new_stacks} AC total)|n"
         )
         target.msg(
-            f"|r*SUNDER* {wielder.key}'s battleaxe cracks your armour! "
+            f"|r*SUNDER* {wielder.key}'s battleaxe cracks your defences! "
             f"(-{new_stacks} AC total)|n"
         )
         if wielder.location:
             wielder.location.msg_contents(
                 f"|r*SUNDER* {wielder.key}'s battleaxe cracks "
-                f"{target.key}'s armour!|n",
+                f"{target.key}'s defences!|n",
                 exclude=[wielder, target],
             )
 
