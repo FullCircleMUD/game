@@ -191,18 +191,6 @@ _SCRIPTS = [
 ]
 
 
-# --- Compatibility shims (temporary) -------------------------------
-#
-# cmd_services.py and cmd_svc_diag.py unpack these two names at module
-# import time, and cmdset_account_custom.py imports those modules — so
-# removing the names here breaks the account cmdset at construction,
-# not just the admin commands. Derived from _SCRIPTS with their
-# original tuple shapes until those consumers are migrated, then
-# deleted.
-_PIPELINE_SCRIPTS = [(k, p, 0) for k, p, _r, t in _SCRIPTS if "pipeline" in t]
-_GLOBAL_SCRIPTS = [(k, p) for k, p, _r, t in _SCRIPTS if "pipeline" not in t]
-
-
 def _select_scripts(role=None, tag=None):
     """
     Return the _SCRIPTS entries matching both filters.
@@ -282,36 +270,6 @@ def _start_scripts_for_this_role():
     from evennia_shards import get_role
 
     start_scripts(role=get_role())
-
-
-def _create_pipeline_scripts(skip_existing=False):
-    """
-    Create the telemetry/saturation/spawn pipeline scripts.
-
-    All three scripts tick every 60s and self-align to wall-clock minute
-    slots (telemetry HH:00, saturation HH:05, spawn HH:10), so there is
-    no creation-time stagger to preserve — just create them immediately.
-
-    Retained for the `services reset` command, which passes
-    skip_existing=False because it has already deleted the rows. The
-    boot path no longer calls this — start_scripts() covers pipeline
-    scripts along with everything else.
-
-    Args:
-        skip_existing: If True, only create pipeline scripts that don't
-            already exist.
-    """
-    from evennia import GLOBAL_SCRIPTS, create_script, logger
-
-    for key, typeclass_path, _ in _PIPELINE_SCRIPTS:
-        existing = getattr(GLOBAL_SCRIPTS, key, None)
-        if existing and skip_existing:
-            if not (existing.ndb._task and existing.ndb._task.running):
-                existing.start()
-                logger.log_info(f"Pipeline scripts: re-attached LoopingCall for {key}")
-            continue
-        create_script(typeclass_path, key=key, obj=None)
-        logger.log_info(f"Pipeline scripts: started {key}")
 
 
 def at_server_stop():

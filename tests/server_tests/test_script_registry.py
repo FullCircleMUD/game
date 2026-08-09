@@ -1,9 +1,8 @@
 """
 Tests for the global-script registry in at_server_startstop.
 
-Covers the declaration list (_SCRIPTS), the role/tag selector, the
-start/stop engine, and the compatibility shims the service commands
-unpack at import time.
+Covers the declaration list (_SCRIPTS), the role/tag selector, and the
+start/stop engine.
 
 at_server_startstop has no module-level imports — every Evennia import
 is function-local — so these tests run under plain unittest without a
@@ -242,46 +241,3 @@ class TestBootEntryPoint(TestCase):
                 patch.object(ass, "start_scripts") as start:
             ass._start_scripts_for_this_role()
         start.assert_called_once_with(role="router")
-
-
-class TestCompatibilityShims(TestCase):
-    """The derived names cmd_services / cmd_svc_diag unpack at import.
-
-    These are temporary — deleted once those modules read _SCRIPTS
-    directly — but until then their tuple shapes are load-bearing:
-    cmdset_account_custom imports those modules, so a shape mismatch
-    breaks the account cmdset at construction, not just the commands.
-    """
-
-    SAMPLE = [
-        ("regen", "path.Regen", ("shard", "monolith"), ()),
-        ("spawn", "path.Spawn", ("shard",), ("pipeline",)),
-    ]
-
-    def _derive(self):
-        pipeline = [(k, p, 0) for k, p, _r, t in self.SAMPLE if "pipeline" in t]
-        globals_ = [(k, p) for k, p, _r, t in self.SAMPLE if "pipeline" not in t]
-        return pipeline, globals_
-
-    def test_live_shims_have_the_shapes_consumers_unpack(self):
-        for entry in ass._PIPELINE_SCRIPTS:
-            self.assertEqual(len(entry), 3, "cmd_svc_diag unpacks 3-tuples")
-        for entry in ass._GLOBAL_SCRIPTS:
-            self.assertEqual(len(entry), 2, "cmd_services unpacks 2-tuples")
-
-    def test_shims_partition_by_pipeline_tag(self):
-        pipeline, globals_ = self._derive()
-        self.assertEqual([k for k, _p, _z in pipeline], ["spawn"])
-        self.assertEqual([k for k, _p in globals_], ["regen"])
-
-    def test_every_declared_script_appears_in_exactly_one_shim(self):
-        keys = {e[0] for e in ass._SCRIPTS}
-        shimmed = {k for k, _p, _z in ass._PIPELINE_SCRIPTS} | {
-            k for k, _p in ass._GLOBAL_SCRIPTS
-        }
-        self.assertEqual(keys, shimmed)
-        self.assertEqual(
-            len(keys),
-            len(ass._PIPELINE_SCRIPTS) + len(ass._GLOBAL_SCRIPTS),
-            "a script appears in both shims",
-        )

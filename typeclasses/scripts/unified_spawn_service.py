@@ -13,14 +13,17 @@ within a single hour.
 from datetime import datetime, timezone
 
 from evennia import DefaultScript
+from evennia.utils import logger
 from twisted.internet import threads
+
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 TICK_INTERVAL_SECONDS = 60
 SLOT_MINUTE = 10  # fires at HH:10
 
 
-class UnifiedSpawnScript(DefaultScript):
+class UnifiedSpawnScript(HeartbeatMixin, DefaultScript):
     """
     Global persistent script for the unified item spawn system.
 
@@ -52,14 +55,20 @@ class UnifiedSpawnScript(DefaultScript):
         set_spawn_service(self._service)
 
     def at_repeat(self):
-        now = datetime.now(timezone.utc)
-        if now.minute != SLOT_MINUTE:
-            return
-        hour_bucket = now.replace(minute=0, second=0, microsecond=0)
-        if self.db.last_run_hour == hour_bucket:
-            return
-        if not hasattr(self, "_service"):
-            return
-        self.db.last_run_hour = hour_bucket
+        self.record_repeat()
+        try:
+            now = datetime.now(timezone.utc)
+            if now.minute != SLOT_MINUTE:
+                return
+            hour_bucket = now.replace(minute=0, second=0, microsecond=0)
+            if self.db.last_run_hour == hour_bucket:
+                return
+            if not hasattr(self, "_service"):
+                return
+            self.db.last_run_hour = hour_bucket
 
-        threads.deferToThread(self._service.run_hourly_cycle)
+            threads.deferToThread(self._service.run_hourly_cycle)
+
+            self.record_work()
+        except Exception:
+            logger.log_trace("unified_spawn_service: tick failed")

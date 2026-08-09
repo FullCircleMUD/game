@@ -13,9 +13,11 @@ Query the current phase from anywhere:
 
 
 from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from evennia.utils.gametime import gametime
 
 from enums.time_of_day import TimeOfDay
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 # How often (real seconds) the service checks for phase transitions.
@@ -46,7 +48,7 @@ def get_time_of_day():
     return TimeOfDay.from_hour(get_game_hour())
 
 
-class DayNightService(DefaultScript):
+class DayNightService(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that tracks day/night phase transitions.
 
@@ -67,12 +69,17 @@ class DayNightService(DefaultScript):
 
     def at_repeat(self):
         """Check for phase transition and broadcast if one occurred."""
-        current_phase = get_time_of_day()
-        last_phase = self.ndb.last_phase
+        try:
+            current_phase = get_time_of_day()
+            last_phase = self.ndb.last_phase
 
-        if current_phase != last_phase:
-            self.ndb.last_phase = current_phase
-            self._broadcast_transition(current_phase)
+            if current_phase != last_phase:
+                self.ndb.last_phase = current_phase
+                self._broadcast_transition(current_phase)
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("day_night_service: tick failed")
 
     def _broadcast_transition(self, phase):
         """Send the transition message to all connected player characters.

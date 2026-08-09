@@ -30,6 +30,13 @@ class CmdEconomy(Command):
     help_category = "Economy"
 
     def func(self):
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            self.caller.msg("|rThis command can only be run OOC on the router.|n")
+            return
+
         resource_filter = self.args.strip().lower() or None
 
         if resource_filter:

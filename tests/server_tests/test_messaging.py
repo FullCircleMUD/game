@@ -11,9 +11,13 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from server.conf.messaging import FCMMessageHandler
+from blockchain.xrpl.services.nft_token_patch import MESSAGE_KIND as NFT_PATCH_KIND
 from blockchain.xrpl.services.spawn.dispatcher import MESSAGE_KIND as SPAWN_KIND
+from utils.broadcast import MESSAGE_KIND as BROADCAST_KIND
 
 EXECUTE = "blockchain.xrpl.services.spawn.executor.execute"
+APPLY_LOCAL_PATCHES = "blockchain.xrpl.services.nft_token_patch.apply_local_patches"
+BROADCAST_TO_LOCAL_SESSIONS = "utils.broadcast.broadcast_to_local_sessions"
 GET_ROLE = "evennia_shards.get_role"
 START_BUS = "evennia_shards.start_message_bus"
 
@@ -113,6 +117,76 @@ class TestNeverRetries(unittest.TestCase):
                 _message(payload={"placements": [1, 2, 3]}),
             )
         self.assertTrue(handled)
+
+
+# ================================================================== #
+#  nft_token_patch_sweep routing
+# ================================================================== #
+
+
+class TestNftTokenPatchSweepRouting(unittest.TestCase):
+    """The router sends this trigger after sync_nfts updates the mirror —
+    payload carries no data, this shard just checks its own objects."""
+
+    def test_sweep_trigger_reaches_apply_local_patches(self):
+        with patch(APPLY_LOCAL_PATCHES, return_value=2) as mock_apply:
+            handled = FCMMessageHandler().handle(
+                _message(kind=NFT_PATCH_KIND, payload={}),
+            )
+        self.assertTrue(handled)
+        mock_apply.assert_called_once()
+
+    def test_null_payload_does_not_raise(self):
+        with patch(APPLY_LOCAL_PATCHES, return_value=0) as mock_apply:
+            handled = FCMMessageHandler().handle(
+                _message(kind=NFT_PATCH_KIND, payload=None),
+            )
+        self.assertTrue(handled)
+        mock_apply.assert_called_once()
+
+    def test_always_consumed_even_with_nothing_patched(self):
+        """Re-running the sweep is harmless — an object already holding a
+        real token_id is skipped, so a duplicate message finds nothing."""
+        with patch(APPLY_LOCAL_PATCHES, return_value=0):
+            handled = FCMMessageHandler().handle(
+                _message(kind=NFT_PATCH_KIND, payload={}),
+            )
+        self.assertTrue(handled)
+
+
+# ================================================================== #
+#  broadcast_to_shard routing
+# ================================================================== #
+
+
+class TestBroadcastRouting(unittest.TestCase):
+
+    def test_broadcast_reaches_local_sessions(self):
+        with patch(BROADCAST_TO_LOCAL_SESSIONS, return_value=3) as mock_broadcast:
+            handled = FCMMessageHandler().handle(
+                _message(
+                    kind=BROADCAST_KIND,
+                    payload={"caller_name": "Tim", "message": "hello shard"},
+                ),
+            )
+        self.assertTrue(handled)
+        mock_broadcast.assert_called_once_with("Tim", "hello shard")
+
+    def test_missing_caller_name_defaults_to_admin(self):
+        with patch(BROADCAST_TO_LOCAL_SESSIONS, return_value=0) as mock_broadcast:
+            handled = FCMMessageHandler().handle(
+                _message(kind=BROADCAST_KIND, payload={"message": "hi"}),
+            )
+        self.assertTrue(handled)
+        mock_broadcast.assert_called_once_with("Admin", "hi")
+
+    def test_null_payload_does_not_raise(self):
+        with patch(BROADCAST_TO_LOCAL_SESSIONS, return_value=0) as mock_broadcast:
+            handled = FCMMessageHandler().handle(
+                _message(kind=BROADCAST_KIND, payload=None),
+            )
+        self.assertTrue(handled)
+        mock_broadcast.assert_called_once_with("Admin", "")
 
 
 # ================================================================== #

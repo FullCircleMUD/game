@@ -1,13 +1,51 @@
 """
 Superuser command: show resource stock across all harvesting rooms.
 
-Queries ObjectDB for objects tagged spawn_resources (the marker
-RoomHarvesting applies at creation), then reads each room's
-resource_count and spawn_resources_max to produce a per-district
-fill report with a cross-zone by-resource roll-up.
+Router-only cluster-wide report. The router runs ObjectDB unscoped, so it
+is the only process that can see every shard's rooms at once — but that
+also means it must never instantiate what it finds: doing so would pull
+every shard's harvesting rooms into the router's process-wide idmapper,
+the anti-pattern blockchain/xrpl/services/spawn/reader.py exists to avoid
+on the write side. Every read here is a .values() projection instead;
+nothing in this module calls .db on an instantiated room.
 """
 
 from evennia import Command
+from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+# Typeclass paths standing in for `isinstance(obj, RoomHarvesting)` — a
+# .values() query has no notion of subclassing, so a future subclass must
+# be added here explicitly to be picked up by the report.
+HARVESTING_ROOM_TYPECLASSES = [
+    "typeclasses.terrain.rooms.room_harvesting.RoomHarvesting",
+]
+
+
+def _room_attributes(room_pks, attr_names):
+    """Return {pk: {attr_name: value}} for the named uncategorised attributes.
+
+    Same shape as spawn/reader.py's _target_attributes() — missing
+    attributes come back as None, matching what room.db.x yields for an
+    attribute that was never set.
+    """
+    from evennia.objects.models import ObjectDB
+
+    attrs = {pk: {name: None for name in attr_names} for pk in room_pks}
+    if not room_pks:
+        return attrs
+
+    rows = ObjectDB.objects.filter(
+        id__in=room_pks,
+        db_attributes__db_key__in=attr_names,
+        # Load-bearing: matches room.db.x semantics — without it a
+        # same-named attribute in another category joins as an extra row.
+        db_attributes__db_category__isnull=True,
+    ).values_list("id", "db_attributes__db_key", "db_attributes__db_value")
+
+    for pk, attr_name, value in rows:
+        attrs.setdefault(pk, {})[attr_name] = value
+
+    return attrs
 
 
 class CmdSpawnReportResources(Command):
@@ -20,6 +58,10 @@ class CmdSpawnReportResources(Command):
     Groups harvesting rooms by district and shows current count vs
     cap for each, with [FULL] and [DEPLETED] markers. Ends with a
     by-resource roll-up across all zones.
+
+    Router-only: a cluster-wide view is only available where ObjectDB
+    runs unscoped. Never instantiates a room — see
+    HARVESTING_ROOM_TYPECLASSES above.
     """
 
     key = "spawn_report_resources"
@@ -27,38 +69,57 @@ class CmdSpawnReportResources(Command):
     help_category = "Economy"
 
     def func(self):
+        caller = self.caller
+        if get_role() not in (ROLE_MONOLITH, ROLE_ROUTER):
+            caller.msg("|rThis command can only be run OOC on the router.|n")
+            return
+
         from collections import defaultdict
         from evennia.objects.models import ObjectDB
         from blockchain.xrpl.currency_cache import get_resource_type
-        from typeclasses.terrain.rooms.room_harvesting import RoomHarvesting
 
-        rooms = [
-            obj for obj in ObjectDB.objects.filter(
+        room_rows = list(
+            ObjectDB.objects.filter(
                 db_tags__db_key="spawn_resources",
-            ).distinct()
-            if isinstance(obj, RoomHarvesting)
-        ]
+                db_tags__db_category="spawn_resources",
+                db_typeclass_path__in=HARVESTING_ROOM_TYPECLASSES,
+            ).distinct().values_list("id", "db_key")
+        )
 
-        if not rooms:
+        if not room_rows:
             self.msg("No harvesting rooms found.")
             return
+
+        room_pks = [pk for pk, _key in room_rows]
+        room_keys = dict(room_rows)
+
+        district_rows = ObjectDB.objects.filter(
+            id__in=room_pks,
+            db_tags__db_category="district",
+        ).values_list("id", "db_tags__db_key")
+        districts = dict(district_rows)
+
+        attrs = _room_attributes(
+            room_pks, ("resource_id", "resource_count", "spawn_resources_max")
+        )
 
         # district -> list of (room_key, resource_name, current, cap)
         by_district = defaultdict(list)
         # resource_name -> [total_current, total_cap]
         by_resource = defaultdict(lambda: [0, 0])
 
-        for room in rooms:
-            resource_id = room.db.resource_id
-            current = room.db.resource_count or 0
-            max_dict = room.db.spawn_resources_max or {}
+        for pk in room_pks:
+            values = attrs[pk]
+            resource_id = values.get("resource_id")
+            current = values.get("resource_count") or 0
+            max_dict = values.get("spawn_resources_max") or {}
             cap = max_dict.get(resource_id, max_dict.get(str(resource_id), 0))
 
             rt = get_resource_type(resource_id)
             resource_name = rt["name"] if rt else f"Resource #{resource_id}"
 
-            district = room.tags.get(category="district") or "unknown"
-            by_district[district].append((room.key, resource_name, current, cap))
+            district = districts.get(pk, "unknown")
+            by_district[district].append((room_keys[pk], resource_name, current, cap))
 
             by_resource[resource_name][0] += current
             by_resource[resource_name][1] += cap

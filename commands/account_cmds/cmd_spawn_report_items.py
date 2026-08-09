@@ -25,6 +25,13 @@ class CmdSpawnReportItems(Command):
     help_category = "Economy"
 
     def func(self):
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            self.msg("|rThis command can only be run OOC on the router.|n")
+            return
+
         from collections import defaultdict
         from blockchain.xrpl.models import NFTGameState, NFTItemType
 

@@ -12,14 +12,17 @@ within a single hour.
 from datetime import datetime, timezone
 
 from evennia import DefaultScript
+from evennia.utils import logger
 from twisted.internet import threads
+
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 TICK_INTERVAL_SECONDS = 60
 SLOT_MINUTE = 5  # fires at HH:05
 
 
-class NFTSaturationScript(DefaultScript):
+class NFTSaturationScript(HeartbeatMixin, DefaultScript):
     """
     Global persistent script for hourly NFT saturation snapshots at HH:05.
 
@@ -38,14 +41,20 @@ class NFTSaturationScript(DefaultScript):
         self.repeats = 0
 
     def at_repeat(self):
-        now = datetime.now(timezone.utc)
-        if now.minute != SLOT_MINUTE:
-            return
-        hour_bucket = now.replace(minute=0, second=0, microsecond=0)
-        if self.db.last_run_hour == hour_bucket:
-            return
-        self.db.last_run_hour = hour_bucket
+        self.record_repeat()
+        try:
+            now = datetime.now(timezone.utc)
+            if now.minute != SLOT_MINUTE:
+                return
+            hour_bucket = now.replace(minute=0, second=0, microsecond=0)
+            if self.db.last_run_hour == hour_bucket:
+                return
+            self.db.last_run_hour = hour_bucket
 
-        from blockchain.xrpl.services.nft_saturation import NFTSaturationService
+            from blockchain.xrpl.services.nft_saturation import NFTSaturationService
 
-        threads.deferToThread(NFTSaturationService.take_snapshot)
+            threads.deferToThread(NFTSaturationService.take_snapshot)
+
+            self.record_work()
+        except Exception:
+            logger.log_trace("nft_saturation_service: tick failed")

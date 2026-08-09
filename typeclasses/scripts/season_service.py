@@ -15,9 +15,11 @@ Query the current season from anywhere:
 from datetime import datetime
 
 from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from evennia.utils.gametime import gametime
 
 from enums.season import Season
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 # How often (real seconds) the service checks for season transitions.
@@ -56,7 +58,7 @@ def get_season():
     return Season.from_day(get_day_of_year())
 
 
-class SeasonService(DefaultScript):
+class SeasonService(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that tracks season transitions.
 
@@ -80,12 +82,17 @@ class SeasonService(DefaultScript):
 
     def at_repeat(self):
         """Check for season transition and broadcast if one occurred."""
-        current_season = get_season()
-        last_season = self.ndb.last_season
+        try:
+            current_season = get_season()
+            last_season = self.ndb.last_season
 
-        if current_season != last_season:
-            self.ndb.last_season = current_season
-            self._broadcast_transition(current_season)
+            if current_season != last_season:
+                self.ndb.last_season = current_season
+                self._broadcast_transition(current_season)
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("season_service: tick failed")
 
     def _broadcast_transition(self, season):
         """Send the transition message to all connected player characters.

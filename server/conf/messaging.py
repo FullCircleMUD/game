@@ -17,9 +17,11 @@ delivery primitives `obj_msg` / `account_msg` / `room_msg` /
 
 from evennia_shards import MessageHandler
 
+from blockchain.xrpl.services.nft_token_patch import MESSAGE_KIND as NFT_PATCH_KIND
 from blockchain.xrpl.services.spawn.dispatcher import MESSAGE_KIND as SPAWN_KIND
 from blockchain.xrpl.services.spawn.log import spawn_log
 from blockchain.xrpl.services.spawn.quest_debt import QUEST_DEBT_KIND
+from utils.broadcast import MESSAGE_KIND as BROADCAST_KIND
 
 
 class FCMMessageHandler(MessageHandler):
@@ -34,6 +36,12 @@ class FCMMessageHandler(MessageHandler):
 
         if message.kind == QUEST_DEBT_KIND:
             return self._handle_quest_debt(message)
+
+        if message.kind == NFT_PATCH_KIND:
+            return self._handle_nft_token_patch_sweep(message)
+
+        if message.kind == BROADCAST_KIND:
+            return self._handle_broadcast(message)
 
         return False
 
@@ -70,5 +78,31 @@ class FCMMessageHandler(MessageHandler):
         spawn_log(
             f"received: {len(placements)} placement(s) from "
             f"{message.from_shard} -> {placed} unit(s) placed"
+        )
+        return True
+
+    def _handle_nft_token_patch_sweep(self, message) -> bool:
+        """Reconcile this shard's own NFT items against the mirror.
+
+        The router already updated NFTGameState before dispatching this
+        trigger — the payload carries no data, this shard just checks
+        its own resident objects against the now-current mirror.
+
+        Always returns True. Re-running the sweep is harmless: an object
+        already holding a real token_id is skipped, so a duplicate
+        message finds nothing left to do.
+        """
+        from blockchain.xrpl.services.nft_token_patch import apply_local_patches
+
+        apply_local_patches()
+        return True
+
+    def _handle_broadcast(self, message) -> bool:
+        """Announce a router-dispatched message to this shard's sessions."""
+        from utils.broadcast import broadcast_to_local_sessions
+
+        payload = message.payload or {}
+        broadcast_to_local_sessions(
+            payload.get("caller_name", "Admin"), payload.get("message", ""),
         )
         return True

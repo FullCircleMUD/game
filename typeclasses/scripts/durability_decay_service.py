@@ -11,8 +11,10 @@ Combat wear (1 per hit/parry) is additive on top of this.
 from datetime import datetime
 
 from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from evennia.utils.gametime import gametime
 from evennia.utils.utils import delay
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 def get_game_day_number():
@@ -28,7 +30,7 @@ def get_game_day_number():
     return dt.year * 360 + day_of_year
 
 
-class DurabilityDecayService(DefaultScript):
+class DurabilityDecayService(HeartbeatMixin, DefaultScript):
     """
     Global persistent script — once per game day, apply 1 durability
     loss to every equipped item on every IC character.
@@ -46,21 +48,27 @@ class DurabilityDecayService(DefaultScript):
         self.ndb.last_game_day = get_game_day_number()
 
     def at_repeat(self):
-        current_day = get_game_day_number()
-        if current_day <= self.ndb.last_game_day:
-            return
-        self.ndb.last_game_day = current_day
+        self.record_repeat()
+        try:
+            current_day = get_game_day_number()
+            if current_day <= self.ndb.last_game_day:
+                return
+            self.ndb.last_game_day = current_day
 
-        # Gather IC characters, then stagger processing so we don't
-        # block the reactor if the player count is large.
-        ic_chars = [
-            session.get_puppet()
-            for session in SESSION_HANDLER.get_sessions()
-            if session.get_puppet()
-        ]
+            # Gather IC characters, then stagger processing so we don't
+            # block the reactor if the player count is large.
+            ic_chars = [
+                session.get_puppet()
+                for session in SESSION_HANDLER.get_sessions()
+                if session.get_puppet()
+            ]
 
-        for i, char in enumerate(ic_chars):
-            delay(i * 0.1, self._decay_equipped, char)
+            for i, char in enumerate(ic_chars):
+                delay(i * 0.1, self._decay_equipped, char)
+
+            self.record_work()
+        except Exception:
+            logger.log_trace("durability_decay_service: tick failed")
 
     def _decay_equipped(self, char):
         if not hasattr(char, "get_all_worn"):

@@ -13,8 +13,10 @@ Query the current weather for any zone from anywhere:
 """
 
 from evennia import DefaultScript, ObjectDB, GLOBAL_SCRIPTS
+from evennia.utils import logger
 
 from enums.weather import Weather
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 from typeclasses.scripts.season_service import get_season
 from utils.weather_descs import (
     TRANSITION_MESSAGES,
@@ -48,7 +50,7 @@ def get_weather(zone_name):
         return Weather.CLEAR
 
 
-class WeatherService(DefaultScript):
+class WeatherService(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that manages per-zone weather.
 
@@ -82,29 +84,34 @@ class WeatherService(DefaultScript):
 
     def at_repeat(self):
         """Roll weather transitions for zones with connected players."""
-        # Gather zones with connected players and their rooms
-        zone_chars = self._get_zone_characters()
-        if not zone_chars:
-            return
+        try:
+            # Gather zones with connected players and their rooms
+            zone_chars = self._get_zone_characters()
+            if not zone_chars:
+                self.record_heartbeat()
+                return
 
-        season = get_season()
-        zone_weather = dict(self.ndb.zone_weather or {})
+            season = get_season()
+            zone_weather = dict(self.ndb.zone_weather or {})
 
-        for zone_name, chars_with_rooms in zone_chars.items():
-            climate = get_climate_for_zone(zone_name)
-            current_value = zone_weather.get(zone_name, Weather.CLEAR.value)
-            try:
-                current = Weather(current_value)
-            except ValueError:
-                current = Weather.CLEAR
+            for zone_name, chars_with_rooms in zone_chars.items():
+                climate = get_climate_for_zone(zone_name)
+                current_value = zone_weather.get(zone_name, Weather.CLEAR.value)
+                try:
+                    current = Weather(current_value)
+                except ValueError:
+                    current = Weather.CLEAR
 
-            new_weather = roll_next_weather(climate, season, current)
-            zone_weather[zone_name] = new_weather.value
+                new_weather = roll_next_weather(climate, season, current)
+                zone_weather[zone_name] = new_weather.value
 
-            if new_weather != current:
-                self._broadcast_weather_change(new_weather, chars_with_rooms)
+                if new_weather != current:
+                    self._broadcast_weather_change(new_weather, chars_with_rooms)
 
-        self.ndb.zone_weather = zone_weather
+            self.ndb.zone_weather = zone_weather
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("weather_service: tick failed")
 
     def _get_zone_characters(self):
         """
