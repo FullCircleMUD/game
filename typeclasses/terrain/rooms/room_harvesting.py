@@ -60,7 +60,7 @@ class RoomHarvesting(RoomBase):
     # Wilderness rooms — combat allowed by default, settable per instance
     allow_combat = AttributeProperty(True, autocreate=False)
     allow_pvp = AttributeProperty(False, autocreate=False)
-    allow_death = AttributeProperty(False, autocreate=False)
+    allow_death = AttributeProperty(True, autocreate=False)
 
     def at_object_creation(self):
         super().at_object_creation()
