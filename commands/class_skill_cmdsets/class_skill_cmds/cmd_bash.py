@@ -19,7 +19,12 @@ Usage:
                         out of combat: stumble awkwardly
 """
 
-from combat.combat_utils import enter_combat, get_actor_size, get_sides
+from combat.combat_utils import (
+    enter_combat,
+    fight_refusal_message,
+    get_actor_size,
+    get_sides,
+)
 from enums.mastery_level import MasteryLevel
 from enums.size import size_value
 from enums.skills_enum import skills
@@ -64,6 +69,12 @@ class CmdBash(CmdSkillBase):
 
     def func(self):
         caller = self.caller
+
+        # ── Can this actor pick a fight right now? ──
+        ok, reason = caller._can_start_fight_now()
+        if not ok:
+            caller.msg(fight_refusal_message(reason))
+            return
 
         # ── Mastery check ──
         if not (getattr(caller.db, "general_skill_mastery_levels", None)

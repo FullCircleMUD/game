@@ -11,7 +11,7 @@ Usage:
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from combat.combat_utils import enter_combat
+from combat.combat_utils import enter_combat, fight_refusal_message
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_in_combat, p_same_height
@@ -35,6 +35,12 @@ class CmdJoin(FCMCommandMixin, Command):
 
     def func(self):
         caller = self.caller
+
+        # ── Can this actor pick a fight right now? ──
+        ok, reason = caller._can_start_fight_now()
+        if not ok:
+            caller.msg(fight_refusal_message(reason))
+            return
 
         if not self.args or not self.args.strip():
             caller.msg("Join who? Usage: join <ally>")

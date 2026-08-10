@@ -4,6 +4,8 @@ Combat utility functions — attack resolution, combat entry, side detection.
 execute_attack()  — full attack resolution with all weapon hooks
 enter_combat()    — shared entry point for all combat-initiating actions
 get_sides()       — ally/enemy detection from a combatant's perspective
+
+fight_refusal_message() — default wording for a _can_start_fight_now() refusal
 """
 
 import random
@@ -28,6 +30,23 @@ INTERCEPT_CHANCE = {
     MasteryLevel.MASTER: 70,
     MasteryLevel.GRANDMASTER: 80,
 }
+
+
+# ================================================================== #
+#  Fight initiation refusals
+# ================================================================== #
+
+# Default wording per reason key returned by
+# CombatMixin._can_start_fight_now(). A call site that wants its own voice
+# for a given reason writes it inline instead of using this.
+FIGHT_REFUSALS = {
+    "busy": "You are busy. Finish what you're doing first.",
+}
+
+
+def fight_refusal_message(reason):
+    """Default player-facing wording for a _can_start_fight_now() refusal."""
+    return FIGHT_REFUSALS.get(reason, "You can't do that right now.")
 
 
 # ================================================================== #

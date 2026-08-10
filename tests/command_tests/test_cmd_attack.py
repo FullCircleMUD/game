@@ -112,6 +112,79 @@ class TestCmdAttack(EvenniaCommandTest):
 
 
 # ================================================================== #
+#  Fight initiation gate — _can_start_fight_now()
+# ================================================================== #
+
+
+class TestCannotStartFightWhileBusy(EvenniaCommandTest):
+    """A busy actor cannot pick a fight; the reflex reads differently."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.char1.hp = 20
+        self.char1.hp_max = 20
+        self.char2.hp = 20
+        self.char2.hp_max = 20
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        super().tearDown()
+
+    def test_gate_reports_busy(self):
+        """The lock the harvest/craft/process pipeline holds is a blocker."""
+        self.assertEqual(self.char1._can_start_fight_now(), (True, None))
+        self.char1.ndb.is_processing = True
+        self.assertEqual(self.char1._can_start_fight_now(), (False, "busy"))
+
+    def test_attack_refused_while_busy(self):
+        """A typed attack is refused outright."""
+        self.char1.ndb.is_processing = True
+        result = self.call(CmdAttack(), self.char2.key)
+        self.assertIn("busy", result.lower())
+
+    def test_refused_attack_starts_no_combat(self):
+        """The refusal happens before enter_combat, so no handler appears."""
+        self.char1.ndb.is_processing = True
+        self.call(CmdAttack(), self.char2.key)
+        self.assertFalse(self.char1.scripts.get("combat_handler"))
+        self.assertFalse(self.char2.scripts.get("combat_handler"))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_attack_allowed_once_lock_clears(self, mock_ticker):
+        """The gate is state, not a latch."""
+        self.char1.ndb.is_processing = True
+        self.call(CmdAttack(), self.char2.key)
+        self.char1.ndb.is_processing = False
+        self.call(CmdAttack(), self.char2.key)
+        self.assertTrue(self.char1.scripts.get("combat_handler"))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_busy_defender_still_enters_combat_and_auto_attacks(self, mock_ticker):
+        """The gate governs starting a fight, never being dragged into one."""
+        from combat.combat_utils import enter_combat
+
+        self.char2.ndb.is_processing = True
+        enter_combat(self.char1, self.char2)
+
+        handlers = self.char2.scripts.get("combat_handler")
+        self.assertTrue(handlers)
+        self.assertEqual(handlers[0].action_dict.get("key"), "attack")
+
+
+# ================================================================== #
 #  CmdDodge Tests
 # ================================================================== #
 

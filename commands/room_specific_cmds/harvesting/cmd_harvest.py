@@ -74,6 +74,16 @@ class CmdHarvest(FCMCommandMixin, Command):
             caller.msg(f"You can't {canonical} here.")
             return
 
+        # --- Combat check ---
+        # A fight already underway blocks a new harvest. The reverse gate
+        # lives in CombatMixin._can_start_fight_now(), which reads the
+        # is_processing lock below — together they stop a player alternating
+        # between the two, while still letting an in-progress harvest finish
+        # when an aggro mob jumps them mid-action.
+        if getattr(caller, "is_in_combat", False):
+            caller.msg("How about you finish the fight first, oh patient one.")
+            return
+
         # --- Busy check (shared with process/craft) ---
         if caller.ndb.is_processing:
             caller.msg("You are busy. Wait until you finish what you're doing.")

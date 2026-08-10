@@ -251,6 +251,19 @@ class Spell:
         """
         if secondaries is None:
             secondaries = []
+
+        # A hostile spell starts a fight, so it answers to the same gate as
+        # attack/bash/stab. Spells that never aggro are untouched. Guarded on
+        # the attribute because cast() is generic — not every caster the
+        # spell system accepts composes CombatMixin.
+        if self.target_type == "actor_hostile":
+            can_start = getattr(caster, "_can_start_fight_now", None)
+            if can_start:
+                ok, reason = can_start()
+                if not ok:
+                    from combat.combat_utils import fight_refusal_message
+                    return (False, fight_refusal_message(reason))
+
         tier = self.get_caster_tier(caster)
         if tier < self.min_mastery.value:
             return (False, "Your mastery is too low to cast this spell.")

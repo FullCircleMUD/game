@@ -11,7 +11,7 @@ immediately (no actual waiting in tests).
 evennia test --settings settings tests.command_tests.test_cmd_harvest
 """
 
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
@@ -144,6 +144,43 @@ class TestHarvestValidation(HarvestingTestBase):
         self.assertIn("busy", result.lower())
         # Count should NOT change
         self.assertEqual(self.room1.db.resource_count, 10)
+
+
+# ── Combat Lockout ────────────────────────────────────────────────
+
+class TestHarvestInCombat(HarvestingTestBase):
+    """No new harvest may begin while a fight is underway."""
+
+    def _in_combat(self):
+        """Report char1 as in combat without standing up the handler."""
+        return patch.object(
+            type(self.char1), "is_in_combat",
+            new_callable=PropertyMock, return_value=True,
+        )
+
+    def test_combat_rejected(self):
+        """Harvesting during a fight is refused and takes nothing."""
+        with self._in_combat():
+            result = self.call(CmdHarvest(), "", cmdstring="mine")
+        self.assertIn("finish the fight first", result.lower())
+        self.assertEqual(self.room1.db.resource_count, 10)
+        self.assertEqual(self.char1.get_resource(4), 0)
+
+    def test_combat_does_not_set_busy_lock(self):
+        """A refused harvest must not leave the busy lock held."""
+        with self._in_combat():
+            self.call(CmdHarvest(), "", cmdstring="mine")
+        self.assertFalse(self.char1.ndb.is_processing)
+
+    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+           side_effect=_instant_delay)
+    def test_harvest_allowed_once_combat_ends(self, mock_delay):
+        """The lockout is combat state only — it lifts when the fight does."""
+        with self._in_combat():
+            self.call(CmdHarvest(), "", cmdstring="mine")
+        result = self.call(CmdHarvest(), "", cmdstring="mine")
+        self.assertIn("Iron Ore", result)
+        self.assertEqual(self.room1.db.resource_count, 9)
 
 
 # ── Tool Requirement ──────────────────────────────────────────────

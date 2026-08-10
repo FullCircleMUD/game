@@ -47,6 +47,25 @@ class CombatMixin:
         threshold = getattr(self, "aggro_hp_threshold", 0.5)
         return self.hp_fraction < threshold
 
+    # ── Fight initiation gate ──
+
+    def _can_start_fight_now(self):
+        """
+        Whether this actor may *start* a fight right now.
+
+        Returns ``(True, None)`` when nothing blocks it, otherwise
+        ``(False, reason)`` where reason is a short key. Callers turn the key
+        into their own wording — being jumped mid-harvest should not read like
+        a refused command — with `combat_utils.fight_refusal_message()` as the
+        default phrasing.
+
+        Blockers are additive: anything that should stop an actor picking a
+        fight belongs here rather than in each combat command.
+        """
+        if self.ndb.is_processing:
+            return False, "busy"
+        return True, None
+
     # ── Combat entry/exit ──
 
     def enter_combat(self, target, **kwargs):
