@@ -223,6 +223,82 @@ class TestDarkRoomRendering(EvenniaTest):
         self.assertEqual(desc, "A sunny clearing.")
 
 
+class TestDarkvisionRoomTag(EvenniaTest):
+    """Test the (Dark) room-name tag shown to darkvision lookers."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_darkvision_looker_sees_dark_tag(self, mock_tod):
+        """A darkvision looker in a dark room sees a (Dark) tag on the room name."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.room1.return_appearance(self.char1)
+        self.assertIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_non_darkvision_looker_no_dark_tag(self, mock_tod):
+        """A non-darkvision looker in a dark room gets the Unknown shortcut, not a tag."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        result = self.room1.return_appearance(self.char1)
+        self.assertNotIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_darkvision_looker_no_tag_in_lit_room(self, mock_tod):
+        """A darkvision looker in a genuinely lit room sees no (Dark) tag."""
+        mock_tod.return_value = TimeOfDay.DAY
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.room1.return_appearance(self.char1)
+        self.assertNotIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_seeing_via_darkvision_true_in_dark_room(self, mock_tod):
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        self.assertTrue(self.room1.seeing_via_darkvision(self.char1))
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_seeing_via_darkvision_false_without_condition(self, mock_tod):
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.assertFalse(self.room1.seeing_via_darkvision(self.char1))
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_seeing_via_darkvision_false_in_lit_room(self, mock_tod):
+        mock_tod.return_value = TimeOfDay.DAY
+        self.char1.add_condition(Condition.DARKVISION)
+        self.assertFalse(self.room1.seeing_via_darkvision(self.char1))
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_darkvision_with_carried_light_no_dark_tag(self, mock_tod):
+        """A darkvision looker who also carries a lit torch sees no (Dark) tag —
+        they have genuine light, not just darkvision."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        light = create.create_object(key="torch", location=self.char1, nohome=True)
+        light.db.is_light_source = True
+        light.is_light_source = True
+        light.db.is_lit = True
+        light.is_lit = True
+
+        self.assertFalse(self.room1.seeing_via_darkvision(self.char1))
+        result = self.room1.return_appearance(self.char1)
+        self.assertNotIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_dark_tag_combines_with_height_suffix(self, mock_tod):
+        """The (Dark) tag appends after, not instead of, the height suffix."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        self.char1.room_vertical_position = 1
+        result = self.room1.return_appearance(self.char1)
+        self.assertIn("(Flying)", result)
+        self.assertIn("(Dark)", result)
+        self.assertLess(result.index("(Flying)"), result.index("(Dark)"))
+
+
 class TestLightSourceMixin(EvenniaTest):
     """Test LightSourceMixin methods."""
 

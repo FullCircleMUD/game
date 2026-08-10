@@ -15,6 +15,7 @@ from enums.terrain_type import TerrainType
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.quest_tag import QuestTagMixin
 from utils.targeting.predicates import p_height_visible_to
+from utils.visibility import looker_is_blind
 
 
 def _can_see_hidden(entity):
@@ -206,16 +207,13 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                 return True
         return False
 
-    def is_dark(self, looker=None):
+    def _dark_ignoring_darkvision(self, looker=None):
         """
-        Return True if this room is currently dark for the given looker.
+        Return True if this room lacks light for a looker without DARKVISION.
 
-        A room is NOT dark if any of:
-            - It is permanently lit (always_lit)
-            - It has natural light and the current phase is a light phase
-            - A lit light source exists in the room (lamp post, dropped torch)
-            - The looker carries a lit light source
-            - The looker has DARKVISION
+        Same checks as is_dark(), minus the looker's own DARKVISION —
+        used both by is_dark() and by seeing_via_darkvision() to tell
+        "genuinely lit" apart from "dark, but seen through darkvision".
         """
         # Permanently lit rooms are never dark
         if self.always_lit:
@@ -231,17 +229,55 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         if self._has_light_source_in_room():
             return False
 
-        # Looker-specific checks
-        if looker:
-            if self._looker_has_light(looker):
-                return False
-            if (
-                hasattr(looker, "has_condition")
-                and looker.has_condition(Condition.DARKVISION)
-            ):
-                return False
+        # Looker carrying a lit light source is genuine light, not vision
+        if looker and self._looker_has_light(looker):
+            return False
 
         return True
+
+    def is_dark(self, looker=None):
+        """
+        Return True if this room is currently dark for the given looker.
+
+        A room is NOT dark if any of:
+            - It is permanently lit (always_lit)
+            - It has natural light and the current phase is a light phase
+            - A lit light source exists in the room (lamp post, dropped torch)
+            - The looker carries a lit light source
+            - The looker has DARKVISION
+        """
+        if not self._dark_ignoring_darkvision(looker):
+            return False
+
+        if (
+            looker
+            and hasattr(looker, "has_condition")
+            and looker.has_condition(Condition.DARKVISION)
+        ):
+            return False
+
+        return True
+
+    def seeing_via_darkvision(self, looker=None):
+        """
+        Return True if the room is dark but the looker sees it via DARKVISION.
+
+        Used to tag the room name (Dark) for darkvision lookers, so they
+        experience the darkness mechanic instead of it being invisible to
+        them, and can anticipate when non-darkvision companions can't see.
+        """
+        if not looker or not hasattr(looker, "has_condition"):
+            return False
+        return (
+            looker.has_condition(Condition.DARKVISION)
+            and self._dark_ignoring_darkvision(looker)
+        )
+
+    def get_display_name(self, looker=None, **kwargs):
+        """Redact to "Somewhere" when looker can't currently see anything."""
+        if looker is not None and looker_is_blind(looker):
+            return "Somewhere"
+        return super().get_display_name(looker, **kwargs)
 
     def at_object_receive(self, moved_obj, source_location, **kwargs):
         """Fire quest events and notify mobs when something enters."""
@@ -397,6 +433,9 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             formatted_name = f"{base_name}   (Flying)"
         else:
             formatted_name = base_name
+
+        if self.seeing_via_darkvision(looker):
+            formatted_name = f"{formatted_name}   (Dark)"
 
         parts = []
         header = self.get_display_header(looker, **kwargs)

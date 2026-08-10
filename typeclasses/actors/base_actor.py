@@ -11,6 +11,7 @@ from enums.skills_enum import skills
 from typeclasses.mixins.effects_manager import EffectsManagerMixin
 from typeclasses.mixins.damage_resistance import DamageResistanceMixin
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+from utils.visibility import looker_is_blind
 
 
 class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
@@ -22,6 +23,12 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # size is the active value, rebuilt from base_size by _recalculate_stats().
     base_size = AttributeProperty(Size.MEDIUM.value)
     size = AttributeProperty(Size.MEDIUM.value)
+
+    def get_display_name(self, looker=None, **kwargs):
+        """Redact to "Someone" when looker can't currently see anything."""
+        if looker is not None and looker_is_blind(looker):
+            return "Someone"
+        return super().get_display_name(looker, **kwargs)
 
     def at_object_creation(self):
         super().at_object_creation()
