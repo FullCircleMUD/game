@@ -263,6 +263,102 @@ class TestLLMMixin(EvenniaCommandTest):
         npc.clear_llm_memory()
         self.assertEqual(len(npc.db.llm_conversation_history), 0)
 
+    # --- Presence guard (speaker left before the response arrived) ---
+
+    def test_speaker_in_room_is_still_here(self):
+        """A speaker who stayed put reads as present."""
+        npc = self._create_llm_npc()
+        self.assertTrue(npc._speaker_still_here(self.char1))
+
+    def test_speaker_who_left_room_is_not_here(self):
+        """A speaker who walked out fails the check."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        self.assertFalse(npc._speaker_still_here(self.char1))
+
+    def test_logged_out_speaker_is_not_here(self):
+        """at_post_unpuppet takes the character off the grid entirely."""
+        npc = self._create_llm_npc()
+        self.char1.location = None
+        self.assertFalse(npc._speaker_still_here(self.char1))
+
+    def test_npc_speaker_is_still_here(self):
+        """An NPC speaker has no session and must not be treated as absent."""
+        npc = self._create_llm_npc()
+        other = self._create_llm_npc(key="Mara")
+        self.assertTrue(npc._speaker_still_here(other))
+
+    def test_departed_speaker_gets_snub_not_response(self):
+        """The LLM line is withheld and a snub goes out instead."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
+        mock_snub.assert_called_once_with(self.char1)
+        mock_say.assert_not_called()
+
+    def test_logged_out_speaker_gets_snub(self):
+        """Renting or quitting mid-call is snubbed like walking out."""
+        npc = self._create_llm_npc()
+        self.char1.location = None
+        with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
+        mock_snub.assert_called_once_with(self.char1)
+        mock_say.assert_not_called()
+
+    def test_present_speaker_still_hears_response(self):
+        """The guard must not suppress the normal case."""
+        npc = self._create_llm_npc()
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
+        mock_say.assert_called_once()
+
+    def test_leave_reaction_exempt_from_presence_check(self):
+        """A leave reaction is aimed at someone already gone."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_response(self.char1, "Come back soon!", "leave")
+        mock_snub.assert_not_called()
+        mock_say.assert_called_once()
+
+    def test_snub_emits_a_social_and_a_comment(self):
+        """The snub is a room social followed by a spoken line."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        with patch.object(npc.location, "msg_contents") as mock_room, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_snub(self.char1)
+        mock_room.assert_called_once()
+        mock_say.assert_called_once()
+
+    def test_snub_comment_fills_speaker_name(self):
+        """{name} in a comment resolves to the departed speaker."""
+        npc = self._create_llm_npc()
+        npc.llm_snub_comments = ["Nice to see you too {name}"]
+        self.char1.location = self.room2
+        with patch.object(npc.location, "msg_contents"), patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_snub(self.char1)
+        self.assertIn(self.char1.key, mock_say.call_args[0][0])
+
+    def test_snub_uses_only_targetless_socials(self):
+        """Every default snub social must have a no-target room variant."""
+        from commands.all_char_cmds.socials_data import SOCIALS
+        from typeclasses.mixins.llm_mixin import LLMMixin
+
+        for key in LLMMixin._SNUB_SOCIALS:
+            self.assertIn(key, SOCIALS)
+            self.assertIn("no_target_room", SOCIALS[key])
+
     # --- Response sanitization ---
 
     def test_sanitize_strips_quotes(self):

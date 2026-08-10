@@ -151,6 +151,47 @@ class LLMMixin:
         "furrows their brow, thinking...",
     ]
 
+    # ── Snub Reaction ─────────────────────────────────────────────────
+
+    llm_snub_socials = AttributeProperty(None, autocreate=False)
+    """Social keys the NPC picks from when the speaker leaves before the
+    response arrives. ``None`` = ``_SNUB_SOCIALS``."""
+
+    llm_snub_comments = AttributeProperty(None, autocreate=False)
+    """Lines the NPC picks from to mutter after the departed speaker.
+    ``None`` = ``_SNUB_COMMENTS``. ``{name}`` fills with their name."""
+
+    _SNUB_SOCIALS = ["frown", "pout", "shrug", "sigh", "glare"]
+
+    _SNUB_COMMENTS = [
+        "Well. Not even a hello.",
+        "Well, someone's in a hurry!",
+        "Some folk have no manners.",
+        "In one door and out the other.",
+        "Nice to see you too {name}",
+        "And I made an LLM call and all for you {name}",
+    ]
+
+    # ── Snub Reaction ─────────────────────────────────────────────────
+
+    llm_snub_socials = AttributeProperty(None, autocreate=False)
+    """Social keys the NPC picks from when the speaker leaves before the
+    response arrives. ``None`` = ``_SNUB_SOCIALS``."""
+
+    llm_snub_comments = AttributeProperty(None, autocreate=False)
+    """Lines the NPC picks from to mutter after the departed speaker.
+    ``None`` = ``_SNUB_COMMENTS``. ``{name}`` fills with their name."""
+
+    _SNUB_SOCIALS = ["frown", "pout", "shrug", "sigh", "glare"]
+
+    _SNUB_COMMENTS = [
+        "Well. Not even a hello.",
+        "Well, someone's in a hurry!",
+        "Some folk have no manners.",
+        "In one door and out the other.",
+        "Nice to see you too {name}",
+    ]
+
     # ==================================================================
     #  Initialization
     # ==================================================================
@@ -403,21 +444,31 @@ class LLMMixin:
             # Vector-memory storage embeds the exchange — same off-reactor
             # requirement as the lookups above. Rolling-list storage stays
             # in _on_response since it writes self.db.
-            if response_text and self.llm_use_vector_memory:
+            #
+            # Skipped when the speaker has gone: a response nobody hears is
+            # not part of the NPC's history, and storing it would feed a
+            # line that was never said back into the next prompt.
+            heard = interaction_type == "leave" or self._speaker_still_here(speaker)
+            if response_text and self.llm_use_vector_memory and heard:
                 self._store_memory_vector(speaker.key, message, response_text)
 
             return response_text
 
         def _on_response(response_text):
-            if response_text:
-                if not self.llm_use_vector_memory:
-                    self._store_memory_rolling(speaker.key, message, response_text)
-                if callback:
-                    callback(response_text)
-                else:
-                    self._deliver_response(speaker, response_text, interaction_type)
-            else:
+            if not response_text:
                 self._deliver_fallback(speaker, interaction_type)
+                return
+
+            # Same rule as the vector store above — only record what the
+            # speaker is actually around to hear.
+            heard = interaction_type == "leave" or self._speaker_still_here(speaker)
+            if heard and not self.llm_use_vector_memory:
+                self._store_memory_rolling(speaker.key, message, response_text)
+
+            if callback:
+                callback(response_text)
+            else:
+                self._deliver_response(speaker, response_text, interaction_type)
 
         def _on_error(failure):
             logger.exception("LLM error for %s: %s", self.key, failure)
@@ -628,6 +679,42 @@ class LLMMixin:
         self._deliver_thinking_emote(speaker)
         self._llm_decide_and_respond(speaker, message)
 
+    def _speaker_still_here(self, speaker):
+        """
+        Whether the speaker is still in the room to hear the response.
+
+        Covers the gap between sending an LLM call and its answer coming
+        back. Walking out and logging out both fail this check: Evennia's
+        ``at_post_unpuppet`` takes the character off the grid, so a rented
+        or disconnected player has no location rather than a sleeping body
+        left standing in the room.
+        """
+        return bool(speaker and self.location and speaker.location == self.location)
+
+    def _deliver_snub(self, speaker):
+        """
+        Mutter after a speaker who left before the response arrived.
+
+        The social and the comment are drawn independently, so the two
+        lists combine rather than pair up.
+        """
+        from commands.all_char_cmds.socials_data import SOCIALS
+
+        if not speaker or not self.location:
+            return
+
+        social = SOCIALS.get(random.choice(self.llm_snub_socials or self._SNUB_SOCIALS))
+        if social:
+            self.location.msg_contents(social["no_target_room"], from_obj=self)
+
+        comment = random.choice(
+            self.llm_snub_comments or self._SNUB_COMMENTS
+        ).format(name=speaker.key)
+        self._msg_room_dark_aware(
+            f'|c{self.key} says:|n "{comment}"',
+            f'|cSomeone says:|n "{comment}"',
+        )
+
     def _deliver_response(self, speaker, response_text, interaction_type):
         """
         Deliver the LLM response as in-game speech.
@@ -639,7 +726,14 @@ class LLMMixin:
 
         In dark rooms, listeners who can't see hear "Someone" instead
         of the NPC's name.
+
+        A "leave" reaction is aimed at someone already on their way out,
+        so it is exempt from the presence check.
         """
+        if interaction_type != "leave" and not self._speaker_still_here(speaker):
+            self._deliver_snub(speaker)
+            return
+
         clean = self._sanitize_response(response_text)
         if not clean or not self.location:
             return
@@ -684,6 +778,10 @@ class LLMMixin:
 
     def _deliver_fallback(self, speaker, interaction_type):
         """Deliver a hardcoded fallback when LLM is unavailable."""
+        if interaction_type != "leave" and not self._speaker_still_here(speaker):
+            self._deliver_snub(speaker)
+            return
+
         response = self.llm_fallback_response(speaker, interaction_type)
         if not response or not self.location:
             return
