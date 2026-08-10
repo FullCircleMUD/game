@@ -17,9 +17,21 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.dice_roller import dice
+from utils.movement_messages import FLEE_MESSAGES
 
 
 FLEE_DC = 10
+
+
+def _direction_of(exit_obj):
+    """
+    The direction to tell the fleeing character they went.
+
+    Exits are keyed by their destination's name, so the key is no use here —
+    "You flee Old Trade Way West!" reads as nonsense. Fall back to it only
+    when an exit carries no direction at all.
+    """
+    return getattr(exit_obj, "direction", None) or exit_obj.key
 
 
 def _get_open_exits(caller):
@@ -99,28 +111,30 @@ class CmdFlee(FCMCommandMixin, Command):
         if not any_melee_threat or roll >= FLEE_DC:
             # Success — flee through random exit
             chosen = random.choice(exits)
-            direction = chosen.key
+            direction = _direction_of(chosen)
 
             caller.msg(f"|rYou flee {direction}!|n")
-            if caller.location:
-                caller.location.msg_contents(
-                    f"$You() $conj(flee) {direction}!",
-                    from_obj=caller,
-                    exclude=[caller],
-                )
 
             # Stop combat before moving so weapon hooks fire in the right room
             handler.stop_combat()
 
-            # Pull following pets out of combat and flee with owner
+            # Pull following pets out of combat and flee with owner. They move
+            # quietly — the owner's own announce covers the group.
             source_room = caller.location
             for f in caller.get_followers(same_room=True):
                 if getattr(f, "is_pet", False) and f.location == source_room:
                     if hasattr(f, "exit_combat"):
                         f.exit_combat()
-                    f.move_to(chosen.destination, move_type="flee")
+                    f.move_to(chosen.destination, move_type="flee", quiet=True)
 
-            caller.move_to(chosen.destination, move_type="flee")
+            # The room hears about this through the seam, not from here, so a
+            # quiet caller can silence it and blind onlookers get "Someone".
+            caller.move_to(
+                chosen.destination,
+                move_type="flee",
+                exit_obj=chosen,
+                **FLEE_MESSAGES,
+            )
 
             # Check if remaining combatants should end combat
             for enemy in enemies:
@@ -157,14 +171,15 @@ class CmdFlee(FCMCommandMixin, Command):
             return
 
         chosen = random.choice(exits)
-        direction = chosen.key
+        direction = _direction_of(chosen)
 
         caller.msg(f"|yYou panic and flee {direction}!|n")
-        if caller.location:
-            caller.location.msg_contents(
-                f"$You() $conj(panic) and $conj(flee) {direction} "
-                f"for no apparent reason!",
-                from_obj=caller,
-                exclude=[caller],
-            )
-        caller.move_to(chosen.destination, move_type="flee")
+
+        # One-off wording, so it is passed rather than given a flag of its own.
+        caller.move_to(
+            chosen.destination,
+            move_type="flee",
+            exit_obj=chosen,
+            msg_from="{name} panics and flees {direction} for no apparent reason!",
+            msg_to="{name} arrives {direction}, in a blind panic.",
+        )

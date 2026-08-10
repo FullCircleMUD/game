@@ -148,11 +148,6 @@ class ExitDoor(
     #  Traverse gating
     # ------------------------------------------------------------------ #
 
-    def _get_reverse_direction(self):
-        """Return the opposite compass direction, or None."""
-        from utils.exit_helpers import OPPOSITES
-        return OPPOSITES.get(self.direction)
-
     def at_traverse(self, traversing_object, destination, **kwargs):
         """Block passage when invisible/hidden, closed, or locked."""
         # Invisible or hidden doors can't be traversed if the character
@@ -173,37 +168,14 @@ class ExitDoor(
             )
             return
 
-        # Announce departure to source room
-        # e.g. "Tim goes south through the oak door."
-        if self.location:
-            dir_str = self.direction if self.direction in self.DIRECTION_ALIASES else ""
-            if dir_str:
-                msg = f"$You() $conj(go) {dir_str} through {self.key}."
-            else:
-                msg = f"$You() $conj(go) through {self.key}."
-            self.location.msg_contents(
-                msg,
-                from_obj=traversing_object,
-                exclude=[traversing_object],
-            )
+        # Movement messages are not emitted here. at_traverse/at_post_traverse
+        # fire regardless of move_to(quiet=...), so a message sent from them
+        # cannot be silenced by a caller and would duplicate the announce pair.
+        # The door announces only itself — opening, closing, locking.
+        # See docs/movement-messages.md.
 
         # Door is open — continue with height/depth/encumbrance checks
         super().at_traverse(traversing_object, destination, **kwargs)
-
-    def at_post_traverse(self, traversing_object, source_location, **kwargs):
-        """Announce arrival to destination room."""
-        # e.g. "Tim arrives from the north through the oak door."
-        if self.destination:
-            reverse = self._get_reverse_direction()
-            if reverse:
-                msg = f"$You() $conj(arrive) from the {reverse} through {self.key}."
-            else:
-                msg = f"$You() $conj(arrive) through {self.key}."
-            self.destination.msg_contents(
-                msg,
-                from_obj=traversing_object,
-                exclude=[traversing_object],
-            )
 
     # ------------------------------------------------------------------ #
     #  Display

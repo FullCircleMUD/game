@@ -148,6 +148,144 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         self.assertEqual(self.char1.location, self.room1)
 
 
+class TestCmdFleeRoomMessages(EvenniaCommandTest):
+    """
+    Flee announces through the movement seam rather than writing its own room
+    message — so both rooms hear it, and the direction is a direction.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.allow_pvp = True
+        for char in (self.char1, self.char2):
+            char.hp = 20
+            char.hp_max = 20
+        if self.exit:
+            self.exit.delete()
+            self.exit = None
+
+        # A real directional exit — its key is the destination's name, which is
+        # exactly what flee used to print at players.
+        self.exit1 = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="Room2",
+            location=self.room1,
+            destination=self.room2,
+            nohome=True,
+        )
+        self.exit1.direction = "north"
+        self.back = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="Room1",
+            location=self.room2,
+            destination=self.room1,
+            nohome=True,
+        )
+        self.back.direction = "south"
+
+        self.here = self._watcher("Bystander", self.room1)
+        self.there = self._watcher("Watcher", self.room2)
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for handler in handlers:
+                    handler.stop()
+                    handler.delete()
+        super().tearDown()
+
+    def _watcher(self, key, room):
+        watcher = create.create_object(
+            self.character_typeclass, key=key, location=room, home=room
+        )
+        watcher.msg = MagicMock()
+        return watcher
+
+    def _lines(self, watcher):
+        said = []
+        for args, kwargs in watcher.msg.call_args_list:
+            payload = kwargs.get("text", args[0] if args else None)
+            if isinstance(payload, tuple):
+                payload = payload[0]
+            if payload:
+                said.append(str(payload))
+        return said
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_announces_a_direction_not_an_exit_name(
+        self, mock_ticker, mock_dice
+    ):
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertIn("Char flees north!", self._lines(self.here))
+        for line in self._lines(self.here):
+            self.assertNotIn("Room2", line)
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_is_heard_on_arrival(self, mock_ticker, mock_dice):
+        """The destination room used to hear nothing at all."""
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertIn("Char flees in from the south!", self._lines(self.there))
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_announces_once(self, mock_ticker, mock_dice):
+        """One line, not the command's own plus the seam's."""
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        about_char = [ln for ln in self._lines(self.here) if ln.startswith("Char ")]
+        self.assertEqual(about_char, ["Char flees north!"])
+
+    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_flee_tells_the_fleeing_character_the_direction(
+        self, mock_ticker, mock_dice
+    ):
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("You flee north!", result)
+
+    def test_panic_flee_keeps_its_own_wording(self):
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn(
+            "Char panics and flees north for no apparent reason!",
+            self._lines(self.here),
+        )
+
+    def test_panic_flee_is_heard_on_arrival(self):
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn(
+            "Char arrives from the south, in a blind panic.", self._lines(self.there)
+        )
+
+
 class TestCmdFleeOutOfCombat(EvenniaCommandTest):
     """Test flee when not in combat (comic panic run)."""
 

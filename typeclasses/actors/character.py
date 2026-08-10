@@ -328,11 +328,16 @@ class FCMCharacter(
         # Collect ALL followers in the chain (direct + indirect) who are
         # in the source room, and move them all with move_type="follow"
         # so they don't trigger further cascades.
+        # Followers move quietly: the leader's own announce already told both
+        # rooms the party left and arrived, so a pair per follower would say
+        # the same thing five more times. Their signal is the direct message.
+        direction = getattr(exit_obj, "direction", None)
+        suffix = f" {direction}" if direction else ""
         all_followers = self.get_followers(same_room=False)
         for f in all_followers:
             if f.location == source_location:
-                f.msg(f"You follow {self.get_display_name(f)}.")
-                f.move_to(self.location, move_type="follow")
+                f.msg(f"You follow {self.get_display_name(f)}{suffix}.")
+                f.move_to(self.location, move_type="follow", quiet=True)
 
     # ── HIDDEN movement check ──
 

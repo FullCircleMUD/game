@@ -30,6 +30,146 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
             return "Someone"
         return super().get_display_name(looker, **kwargs)
 
+    # ── Movement messages ──
+    # The single seam for inter-room movement text. Everything lives here
+    # rather than in exit hooks because move_to() gates these two methods on
+    # quiet= — a message emitted from at_traverse()/at_post_traverse() is
+    # unconditional and cannot be silenced. See docs/movement-messages.md.
+
+    def _movement_subject(self, party):
+        """The actor, or their party when others are moving with them."""
+        return "{name}'s party" if party else "{name}"
+
+    def _announce_movement(self, room, text, move_type, direction=None, extra=None):
+        """
+        Emit a movement line to a room, with the mover excluded.
+
+        ``text`` is a template, never a finished string. ``{name}`` is bound to
+        the mover as an object, so Evennia resolves it through
+        get_display_name() once per recipient — that is what redacts it to
+        "Someone" for anyone who cannot see. A caller that formats a name in
+        itself has already lost that.
+
+        ``extra`` lets a caller add placeholders of its own. It is merged
+        first, so the seam's own keys always win and ``{name}`` cannot be
+        rebound to something that skips the per-recipient resolution.
+        """
+        mapping = dict(extra or {})
+        mapping.update({"name": self, "direction": direction or ""})
+        room.msg_contents(
+            (text, {"type": move_type}),
+            exclude=(self,),
+            from_obj=self,
+            mapping=mapping,
+        )
+
+    def announce_move_from(
+        self, destination, msg=None, mapping=None, move_type="move", **kwargs
+    ):
+        """
+        Tell the room being left that this actor is going, and which way.
+
+        A caller may supply its own wording as ``msg_from``, and extra
+        placeholders as ``msg_mapping``. Templates get ``{name}`` and
+        ``{direction}`` — here the bare direction travelled, e.g. "north".
+        """
+        from utils.movement_messages import followers_in, resolve_rule
+
+        location = self.location
+        if not location:
+            return
+        if msg:
+            return super().announce_move_from(
+                destination, msg=msg, mapping=mapping, move_type=move_type, **kwargs
+            )
+
+        exit_obj = kwargs.get("exit_obj")
+        direction = getattr(exit_obj, "direction", None)
+        extra = kwargs.get("msg_mapping")
+
+        # A caller that knows something the seam cannot see says so directly.
+        override = kwargs.get("msg_from")
+        if override:
+            self._announce_movement(location, override, move_type, direction, extra)
+            return
+
+        # A group is one event, so the party moves under the leader's verb —
+        # a mixed walking/flying party still reads as a single line.
+        rule = resolve_rule(self, location)
+        subject = self._movement_subject(followers_in(self, location))
+
+        if direction:
+            text = f"{subject} {rule.departure} {{direction}}{rule.end}"
+        else:
+            text = f"{subject} {rule.departure}{rule.end}"
+        self._announce_movement(location, text, move_type, direction, extra)
+
+    def announce_move_to(
+        self, source_location, msg=None, mapping=None, move_type="move", **kwargs
+    ):
+        """
+        Tell the room being entered that this actor has arrived, and from where.
+
+        A caller may supply its own wording as ``msg_to``, and extra
+        placeholders as ``msg_mapping``. Templates get ``{name}`` and
+        ``{direction}`` — here the whole arrival phrase, e.g. "from the south"
+        or "from below", since that is what reads naturally on this side.
+        """
+        from utils.exit_helpers import OPPOSITES
+        from utils.movement_messages import arrival_phrase, followers_in, resolve_rule
+
+        destination = self.location
+        if msg or not source_location or not destination:
+            # No source means this wasn't a move through the world (creation,
+            # or straight into an inventory) — vanilla handles those.
+            return super().announce_move_to(
+                source_location,
+                msg=msg,
+                mapping=mapping,
+                move_type=move_type,
+                **kwargs,
+            )
+
+        # The exit leading back the way they came names the direction they
+        # arrived from. Two rooms can be joined more than once — a staircase
+        # and a passage, say — so prefer the way back that pairs with the exit
+        # actually used, or arriving by the stairs reports the corridor.
+        # Failing that take any way back (links need not be symmetrical), and
+        # failing that invert the exit traversed, which is all a one-way exit
+        # leaves us.
+        travelled = getattr(kwargs.get("exit_obj"), "direction", None)
+        opposite = OPPOSITES.get(travelled) if travelled else None
+
+        ways_back = [
+            obj
+            for obj in destination.contents
+            if obj.location is destination and obj.destination is source_location
+        ]
+        paired = next(
+            (obj for obj in ways_back if getattr(obj, "direction", None) == opposite),
+            None,
+        )
+        reciprocal = paired or (ways_back[0] if ways_back else None)
+        direction = getattr(reciprocal, "direction", None) or opposite
+
+        phrase = arrival_phrase(direction) if direction else ""
+        extra = kwargs.get("msg_mapping")
+
+        override = kwargs.get("msg_to")
+        if override:
+            self._announce_movement(destination, override, move_type, phrase, extra)
+            return
+
+        # Followers have not cascaded yet — they are still in the source room.
+        rule = resolve_rule(self, destination)
+        subject = self._movement_subject(followers_in(self, source_location))
+
+        if phrase:
+            text = f"{subject} {rule.arrival} {{direction}}{rule.end}"
+        else:
+            text = f"{subject} {rule.arrival}{rule.end}"
+        self._announce_movement(destination, text, move_type, phrase, extra)
+
     def at_object_creation(self):
         super().at_object_creation()
         # Auto-init composed mixins if present. Defensive pattern —
