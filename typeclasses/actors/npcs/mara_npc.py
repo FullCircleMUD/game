@@ -38,7 +38,8 @@ _MARA_KNOWLEDGE = (
     "whether they're sleeping well. It unsettles people sometimes. You "
     "don't mind. You sell herbs — Moonpetal, Bloodmoss, Windroot, and "
     "Ogre's Cap — at market rates. If someone asks what you stock or "
-    "wants to buy, tell them to type |wbrowse|n to see current prices. "
+    "wants to buy, tell them to type |wlist|n to see what you stock, and "
+    "|wquote|n for a current price. "
     "You train apprentices in basic alchemy when they show the patience "
     "for it — |wtrain|n to get started."
 )
@@ -102,7 +103,7 @@ QUEST_DONE_CONTEXT = (
     "a quiet 'the child is better, thanks to you' means more from you "
     "than a parade would from someone else. If they want to learn "
     "alchemy, you can teach them the basics — tell them to type "
-    "|wtrain|n. If they need herbs, tell them to type |wbrowse|n.\n\n"
+    "|wtrain|n. If they need herbs, tell them to type |wlist|n.\n\n"
     f"{_COMMON_RULES}"
 )
 
@@ -112,7 +113,7 @@ GENERIC_CONTEXT = (
     "YOUR GOAL: Be your usual quiet, observant self. You might notice "
     "something about them and comment on it. If they want to learn "
     "alchemy, you can teach them the basics — tell them to type "
-    "|wtrain|n. If they need herbs, tell them to type |wbrowse|n. "
+    "|wtrain|n. If they need herbs, tell them to type |wlist|n. "
     "You're not unfriendly, just... precise.\n\n"
     f"{_COMMON_RULES}"
 )

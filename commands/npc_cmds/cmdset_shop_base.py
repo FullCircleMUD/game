@@ -1,7 +1,7 @@
 """
 Shop cmdset base — shared commands for any ShopkeeperNPC subclass.
 
-Owns ``list``/``browse`` and ``accept``. These commands are shop-type
+Owns ``list`` and ``accept``. These commands are shop-type
 agnostic: they call abstract methods on ``self.obj`` (the NPC) and never
 touch service classes directly. Resource vs NFT polymorphism lives
 entirely inside the NPC subclasses' ``list_inventory`` / ``execute_buy``
@@ -51,9 +51,12 @@ class CmdShopList(FCMCommandMixin, Command):
     """
     List items available at this shop.
 
+    Names only — prices are not shown here. Pricing every row would fire
+    one AMM query per item on every ``list``, so rates are fetched per
+    quote instead. Use ``quote`` for a price.
+
     Usage:
         list      — show tradeable items
-        browse    — same as list
     """
 
     key = "list"
