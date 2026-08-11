@@ -42,6 +42,14 @@ class MovementSeamTest(EvenniaTest):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
 
+        # Light both rooms. Without this, darkness is decided by the
+        # real-time-derived game hour, so a watcher standing in an unlit
+        # room counts as blind and every name in these assertions redacts
+        # to "Someone" — making the whole suite pass or fail depending on
+        # what time it is run.
+        self.room1.always_lit = True
+        self.room2.always_lit = True
+
         self.north = self._exit(self.room1, self.room2, "north")
         self.south = self._exit(self.room2, self.room1, "south")
 

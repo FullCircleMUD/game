@@ -316,11 +316,23 @@ class TestCmdForget(EvenniaCommandTest):
     def test_forget_not_memorised(self):
         """Forget a spell that isn't memorised should fail."""
         self.char1.db.memorised_spells = {}
-        self.call(CmdForget(), "magic missile", "That spell isn't memorised.")
+        self.call(
+            CmdForget(), "magic missile",
+            "You don't have magic missile memorised.",
+        )
 
     def test_forget_unknown_spell(self):
-        """Forget a spell that doesn't exist should show error."""
-        self.call(CmdForget(), "baleful polymorph", "You don't know a spell")
+        """An unknown spell gives the same answer as an unmemorised one.
+
+        Only two outcomes matter to the player — it worked, or it wasn't
+        memorised — and the remedy is identical either way, so the command
+        deliberately does not distinguish "you never knew it" from "you
+        knew it but dropped it".
+        """
+        self.call(
+            CmdForget(), "baleful polymorph",
+            "You don't have baleful polymorph memorised.",
+        )
 
 
 # ================================================================== #
