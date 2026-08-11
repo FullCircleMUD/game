@@ -383,3 +383,87 @@ class TestWandRecipeGeneration(EvenniaTest):
         self._set_evocation_mastery(1)
         self._learn_spell("magic_missile")
         self.assertFalse(self.char1.knows_recipe("wand_magic_missile"))
+
+
+# ── Granted recipes (enchanting) ─────────────────────────────────────────
+
+class TestGrantedRecipes(EvenniaTest):
+    """Recipes granted by mastery live in their own store, alongside the
+    learned recipe book. See docs/knowledge-grants.md.
+    """
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.db.recipe_book = {}
+        self.char1.db.granted_recipes = {}
+
+    def _an_enchanting_recipe(self):
+        from world.recipes import get_recipes_for_skill
+        basic = [
+            key
+            for key, recipe in get_recipes_for_skill(skills.ENCHANTING).items()
+            if recipe["min_mastery"] == MasteryLevel.BASIC
+        ]
+        self.assertTrue(basic, "expected at least one BASIC enchanting recipe")
+        return sorted(basic)[0]
+
+    def test_granted_recipes_initialized(self):
+        """New character should have an empty granted-recipes dict."""
+        self.assertIsNotNone(self.char1.db.granted_recipes)
+        self.assertEqual(len(self.char1.db.granted_recipes), 0)
+
+    def test_knows_granted_recipe(self):
+        key = self._an_enchanting_recipe()
+        self.assertFalse(self.char1.knows_recipe(key))
+        self.char1.db.granted_recipes = {key: True}
+        self.assertTrue(self.char1.knows_recipe(key))
+
+    def test_get_known_recipes_includes_granted(self):
+        key = self._an_enchanting_recipe()
+        self.char1.db.granted_recipes = {key: True}
+        self.assertIn(key, self.char1.get_known_recipes())
+
+    def test_granted_recipes_respect_skill_filter(self):
+        key = self._an_enchanting_recipe()
+        self.char1.db.granted_recipes = {key: True}
+        self.assertIn(
+            key, self.char1.get_known_recipes(skill=skills.ENCHANTING)
+        )
+        self.assertNotIn(
+            key, self.char1.get_known_recipes(skill=skills.CARPENTER)
+        )
+
+    def test_learned_and_granted_merge(self):
+        granted = self._an_enchanting_recipe()
+        self.char1.db.granted_recipes = {granted: True}
+        self.char1.db.recipe_book = {"training_longsword": True}
+
+        known = self.char1.get_known_recipes()
+        self.assertIn(granted, known)
+        self.assertIn("training_longsword", known)
+
+    def test_unknown_granted_key_is_ignored(self):
+        """A recipe removed from the game shouldn't break the listing."""
+        self.char1.db.granted_recipes = {"recipe_that_no_longer_exists": True}
+        known = self.char1.get_known_recipes()
+        self.assertNotIn("recipe_that_no_longer_exists", known)
+
+    def test_mastery_alone_does_not_grant(self):
+        """Mastery is reconciled into the store, not read through at query
+        time — knows_recipe reflects the store, nothing else.
+        """
+        key = self._an_enchanting_recipe()
+        self.char1.db.class_skill_mastery_levels = {
+            skills.ENCHANTING.value: {
+                "mastery": MasteryLevel.GRANDMASTER.value,
+                "classes": ["mage"],
+            }
+        }
+        self.assertFalse(self.char1.knows_recipe(key))
+
+        from world.grants import grant_recipes
+        grant_recipes(self.char1)
+        self.assertTrue(self.char1.knows_recipe(key))

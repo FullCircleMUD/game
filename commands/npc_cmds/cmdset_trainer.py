@@ -27,6 +27,7 @@ from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills, _CLASS_MAPPINGS_LOOKUP
 from enums.weapon_type import WeaponType
+from world.grants import format_gains, reconcile_grants
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -691,6 +692,12 @@ def _resolve_skill_training(
         f"|g*** You have advanced to {_mastery_name(target)} "
         f"mastery in {skill_key}! ***|n"
     )
+
+    # The new tier may entitle the character to spells or recipes — a
+    # cleric reaching SKILLED in a domain, a mage in enchanting.
+    for line in format_gains(reconcile_grants(caller)):
+        caller.msg(line)
+
     if caller.location:
         caller.location.msg_contents(
             f"{caller.key} completes training with {trainer.key}.",

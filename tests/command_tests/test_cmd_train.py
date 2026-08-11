@@ -601,3 +601,105 @@ class TestChaDiscount(EvenniaCommandTest):
         self.char1.charisma = 6
         self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
         self.assertEqual(self.char1.get_gold(), 989)
+
+
+class TestTrainingGrantsKnowledge(EvenniaCommandTest):
+    """Advancing a divine school hands over that tier's spells on the spot.
+
+    The reconcile is what makes this work; see docs/knowledge-grants.md.
+    """
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.trainer = MagicMock()
+        self.trainer.key = "Brother Aldric"
+        self.trainer.trainer_class = "cleric"
+        self.char1.db.classes = {"cleric": {"level": 1, "skill_pts_available": 10}}
+        self.char1.db.spellbook = {}
+        self.char1.db.granted_spells = {}
+        self.char1.location = None
+
+    def _set_mastery(self, value):
+        self.char1.db.class_skill_mastery_levels = {
+            skills.DIVINE_HEALING.value: {
+                "mastery": value,
+                "classes": ["cleric"],
+            }
+        }
+
+    def _skilled_only_keys(self):
+        from world.spells.registry import get_spells_for_school
+        return {
+            key
+            for key, spell in get_spells_for_school(
+                skills.DIVINE_HEALING.value
+            ).items()
+            if spell.min_mastery == MasteryLevel.SKILLED
+        }
+
+    def test_advancing_to_skilled_grants_the_new_tier(self):
+        from commands.npc_cmds.cmdset_trainer import _resolve_skill_training
+        from world.grants import grant_spells
+
+        self._set_mastery(MasteryLevel.BASIC.value)
+        grant_spells(self.char1)
+        before = set(self.char1.db.granted_spells)
+
+        _resolve_skill_training(
+            self.char1, self.trainer, skills.DIVINE_HEALING.value,
+            is_general=False,
+            current=MasteryLevel.BASIC.value,
+            target=MasteryLevel.SKILLED.value,
+            pts_cost=1,
+        )
+
+        gained = set(self.char1.db.granted_spells) - before
+        self.assertEqual(gained, self._skilled_only_keys())
+
+    def test_player_is_told_what_they_gained(self):
+        from commands.npc_cmds.cmdset_trainer import _resolve_skill_training
+        from world.grants import grant_spells
+        from world.spells.registry import get_spell
+
+        self._set_mastery(MasteryLevel.BASIC.value)
+        grant_spells(self.char1)
+
+        sent = []
+        with patch.object(
+            type(self.char1), "msg", lambda s, text="", **kw: sent.append(str(text))
+        ):
+            _resolve_skill_training(
+                self.char1, self.trainer, skills.DIVINE_HEALING.value,
+                is_general=False,
+                current=MasteryLevel.BASIC.value,
+                target=MasteryLevel.SKILLED.value,
+                pts_cost=1,
+            )
+
+        joined = "\n".join(sent)
+        self.assertIn("advanced to SKILLED", joined)
+        for key in self._skilled_only_keys():
+            self.assertIn(get_spell(key).name, joined)
+
+    def test_no_grant_message_for_a_tier_with_no_new_spells(self):
+        """Weapon-style skills and empty tiers stay quiet."""
+        from commands.npc_cmds.cmdset_trainer import _resolve_skill_training
+        from world.grants import grant_spells
+
+        # EXPERT adds Mass Heal; training on to MASTER adds nothing.
+        self._set_mastery(MasteryLevel.EXPERT.value)
+        grant_spells(self.char1)
+        before = set(self.char1.db.granted_spells)
+
+        _resolve_skill_training(
+            self.char1, self.trainer, skills.DIVINE_HEALING.value,
+            is_general=False,
+            current=MasteryLevel.EXPERT.value,
+            target=MasteryLevel.MASTER.value,
+            pts_cost=1,
+        )
+
+        self.assertEqual(set(self.char1.db.granted_spells), before)

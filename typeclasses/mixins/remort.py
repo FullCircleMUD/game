@@ -69,9 +69,12 @@ class RemortMixin:
         # --- Wipe quests (allows restart of starter quests on remort) ---
         self.attributes.clear(category="fcm_quests")
 
-        # --- Wipe spells (granted only — learned persist) ---
+        # --- Wipe granted knowledge (learned persists) ---
+        # Granted spells and recipes are derived from mastery, which this
+        # reset clears below. Learned knowledge was paid for and stays.
         self.revoke_all_granted_spells()
         self.db.memorised_spells = {}
+        self.db.granted_recipes = {}
 
         # --- Reset ability scores to base 8 ---
         for stat in ("strength", "dexterity", "constitution",

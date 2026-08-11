@@ -1206,6 +1206,15 @@ class FCMCharacter(
             from blockchain.xrpl.services.telemetry import TelemetryService
 
             TelemetryService.record_session_start(self.account.id, self.key)
+        # Reconcile mastery-derived knowledge. Normally a no-op, so a
+        # routine login is silent. It earns its place when the game gains
+        # a spell or recipe a character already has the mastery for —
+        # they pick it up here, with no migration. See world/grants.py.
+        from world.grants import format_gains, reconcile_grants
+
+        for line in format_gains(reconcile_grants(self)):
+            self.msg(line)
+
         # Backfill respawn_location and home for characters created before
         # these defaults existed, or created before the world was built.
         #
