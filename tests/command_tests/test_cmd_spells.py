@@ -54,9 +54,6 @@ class TestCmdSpells(EvenniaCommandTest):
         self.char1.db.memorised_spells = []
 
         with patch(
-            "commands.all_char_cmds.cmd_spells.SPELL_REGISTRY",
-            {"magic_missile": spell},
-        ), patch(
             "typeclasses.mixins.spellbook.get_spell",
             side_effect=lambda k: {"magic_missile": spell}.get(k),
         ):
@@ -71,9 +68,6 @@ class TestCmdSpells(EvenniaCommandTest):
         self.char1.db.memorised_spells = ["magic_missile"]
 
         with patch(
-            "commands.all_char_cmds.cmd_spells.SPELL_REGISTRY",
-            {"magic_missile": spell},
-        ), patch(
             "typeclasses.mixins.spellbook.get_spell",
             side_effect=lambda k: {"magic_missile": spell}.get(k),
         ):
@@ -87,9 +81,6 @@ class TestCmdSpells(EvenniaCommandTest):
         self.char1.db.memorised_spells = []
 
         with patch(
-            "commands.all_char_cmds.cmd_spells.SPELL_REGISTRY",
-            {"fireball": spell},
-        ), patch(
             "typeclasses.mixins.spellbook.get_spell",
             side_effect=lambda k: {"fireball": spell}.get(k),
         ):
@@ -103,9 +94,6 @@ class TestCmdSpells(EvenniaCommandTest):
         self.char1.db.memorised_spells = ["magic_missile"]
 
         with patch(
-            "commands.all_char_cmds.cmd_spells.SPELL_REGISTRY",
-            {"magic_missile": spell},
-        ), patch(
             "typeclasses.mixins.spellbook.get_spell",
             side_effect=lambda k: {"magic_missile": spell}.get(k),
         ):

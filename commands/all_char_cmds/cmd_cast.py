@@ -16,7 +16,7 @@ from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import check_range, p_can_see
-from world.spells.registry import SPELL_REGISTRY
+from world.spells.registry import find_spell
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -72,16 +72,7 @@ class CmdCast(FCMCommandMixin, Command):
             caller.msg("Cast what? Usage: cast '<spell>' [target]")
             return
 
-        # Look up spell by name or key (underscores as spaces)
-        spell_match = None
-        spell_name_lower = spell_name.lower()
-        for spell_key, spell_obj in SPELL_REGISTRY.items():
-            if spell_obj.name.lower() == spell_name_lower:
-                spell_match = spell_obj
-                break
-            if spell_key.replace("_", " ") == spell_name_lower:
-                spell_match = spell_obj
-                break
+        spell_match = find_spell(spell_name.lower())
 
         if not spell_match:
             caller.msg("You don't know a spell by that name.")
