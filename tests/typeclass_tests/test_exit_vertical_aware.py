@@ -379,3 +379,158 @@ class TestTraversalMovementCost(TestExitVerticalAwareBase):
         self.char1.move = 0
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room1)
+
+
+class TestTraverseForwardsKwargs(TestExitVerticalAwareBase):
+    """
+    at_traverse performs the move itself so callers keep control of it.
+
+    Evennia's DefaultExit.at_traverse hardcodes move_type="traverse" and
+    discards **kwargs, which is why anything wanting a different move_type
+    or its own wording had to call move_to directly and skip the exit's
+    gating altogether.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.room2.max_height = 2
+        self.room2.max_depth = -3
+
+    def test_move_type_reaches_move_to(self):
+        """A caller's move_type is honoured, not overwritten with 'traverse'."""
+        seen = {}
+        original = self.char1.move_to
+
+        def capture(destination, **kwargs):
+            seen.update(kwargs)
+            return original(destination, **kwargs)
+
+        self.char1.move_to = capture
+        self.exit.at_traverse(self.char1, self.room2, move_type="flee")
+
+        self.assertEqual(seen.get("move_type"), "flee")
+        self.assertEqual(self.char1.location, self.room2)
+
+    def test_defaults_to_traverse(self):
+        """A caller that says nothing still gets the walk behaviour."""
+        seen = {}
+        original = self.char1.move_to
+
+        def capture(destination, **kwargs):
+            seen.update(kwargs)
+            return original(destination, **kwargs)
+
+        self.char1.move_to = capture
+        self.exit.at_traverse(self.char1, self.room2)
+
+        self.assertEqual(seen.get("move_type"), "traverse")
+
+    def test_arbitrary_kwargs_reach_move_to(self):
+        """Movement wording rides the same channel and must survive."""
+        seen = {}
+        original = self.char1.move_to
+
+        def capture(destination, **kwargs):
+            seen.update(kwargs)
+            return original(destination, **kwargs)
+
+        self.char1.move_to = capture
+        self.exit.at_traverse(
+            self.char1, self.room2, msg_from="{name} bolts {direction}!"
+        )
+
+        self.assertEqual(seen.get("msg_from"), "{name} bolts {direction}!")
+
+    def test_exit_obj_is_passed(self):
+        """move_to needs the exit to resolve direction and movement cost."""
+        seen = {}
+        original = self.char1.move_to
+
+        def capture(destination, **kwargs):
+            seen.update(kwargs)
+            return original(destination, **kwargs)
+
+        self.char1.move_to = capture
+        self.exit.at_traverse(self.char1, self.room2)
+
+        self.assertIs(seen.get("exit_obj"), self.exit)
+
+    def test_returns_true_when_the_move_happens(self):
+        self.assertTrue(self.exit.at_traverse(self.char1, self.room2))
+
+    def test_returns_falsy_when_a_gate_refuses(self):
+        """A gate above the move returns None — falsy, so callers can branch."""
+        self.char1.move = 0
+        self.assertFalse(self.exit.at_traverse(self.char1, self.room2))
+        self.assertEqual(self.char1.location, self.room1)
+
+    def test_closed_door_returns_falsy_and_does_not_move(self):
+        """The door gate sits above this override and still wins."""
+        door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="an oak door",
+            location=self.room1,
+            destination=self.room2,
+            nohome=True,
+        )
+        self.assertFalse(door.at_traverse(self.char1, self.room2, move_type="flee"))
+        self.assertEqual(self.char1.location, self.room1)
+        door.delete()
+
+
+class TestRefusedMoveLeavesHeightAlone(TestExitVerticalAwareBase):
+    """
+    Arrival height and falling only take effect if the move lands.
+
+    The height is assigned before move_to() because the destination room's
+    display reads it on arrival. A refusal after that point would otherwise
+    leave the character airborne in the room they never left, and fall
+    damage would follow.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.room2.max_height = 2
+        self.room2.max_depth = -3
+        # Ground level in, airborne out
+        self.exit.arrival_heights = {0: 2}
+
+    def test_height_restored_when_the_move_is_refused(self):
+        self.char1.room_vertical_position = 0
+        self.char1.move = 0  # at_pre_move refuses: too exhausted
+
+        self.exit.at_traverse(self.char1, self.room2)
+
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertEqual(self.char1.room_vertical_position, 0)
+
+    def test_height_applied_when_the_move_lands(self):
+        """Arrival height sticks. _check_fall is stubbed — a character with
+        no FLY would otherwise drop straight back to the ground, which is
+        the fall behaviour, not the assignment under test."""
+        self.char1.room_vertical_position = 0
+        self.char1._check_fall = lambda: None
+
+        self.exit.at_traverse(self.char1, self.room2)
+
+        self.assertEqual(self.char1.location, self.room2)
+        self.assertEqual(self.char1.room_vertical_position, 2)
+
+    def test_no_fall_check_when_the_move_is_refused(self):
+        self.char1.room_vertical_position = 0
+        self.char1.move = 0
+        called = []
+        self.char1._check_fall = lambda: called.append(True)
+
+        self.exit.at_traverse(self.char1, self.room2)
+
+        self.assertEqual(called, [])
+
+    def test_fall_check_runs_when_the_move_lands(self):
+        self.char1.room_vertical_position = 0
+        called = []
+        self.char1._check_fall = lambda: called.append(True)
+
+        self.exit.at_traverse(self.char1, self.room2)
+
+        self.assertEqual(called, [True])

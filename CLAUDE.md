@@ -91,6 +91,36 @@ Why Tier 3 exists: ability modifiers are context-dependent (finesse weapons use 
 
 Documented in code: `BaseActor._recalculate_stats()`, `BaseActor._accumulate_effect()`, `CarryingCapacityMixin`.
 
+### Actors move via `at_traverse()`, never `move_to()`
+
+**Every actor — player, mob, pet, familiar, mount — moves through an exit by calling
+`at_traverse()` on that exit.** `move_to()` does not know an exit exists and therefore cannot ask it
+anything, so a direct `move_to()` silently skips every gate the exit owns: door open/closed/locked,
+door hidden or invisible, encumbrance, height and depth compatibility, `max_size`, arrival height and
+fall warnings, tripwires and trap doors, dungeon tag cleanup and conditional routing.
+
+```python
+# WRONG — walks through closed doors, ignores height, never trips the tripwire
+caller.move_to(chosen.destination, move_type="flee", **FLEE_MESSAGES)
+
+# RIGHT — same kwargs, all gating applied
+chosen.at_traverse(caller, chosen.destination, move_type="flee", **FLEE_MESSAGES)
+```
+
+`at_traverse()` forwards `move_type` and `**kwargs` to `move_to()`, so nothing is lost. It returns
+`True` when the move happened; a gate above it returns `None`, so callers test truthiness.
+
+**Not covered by this rule:** objects (inventory transfers via get/drop/give/put/banking — no exit is
+involved), and teleports (`move_type="teleport"` — recall, purgatory, sailing, dungeon and tutorial
+transitions cross no threshold, so there is nothing to gate).
+
+**Exception process.** A direct `move_to()` on an actor requires all four: `at_traverse()` was tried
+and genuinely cannot work; a human discussed and agreed the exception for that specific callsite;
+every applicable check is reproduced at the callsite; and a comment states plainly why
+`at_traverse()` could not be used and where the checks now live. Without that evidence it is a
+defect, not a style choice. Full rationale in
+[docs/exit-architecture.md](../../docs/exit-architecture.md) § Moving actors through exits.
+
 ### Non-combat advantage/disadvantage — mandatory roll pattern
 
 Two independent systems. **In combat:** advantage is tracked per-target on `CombatHandler` (`advantage_against = {target_id: rounds}`) and consumed by `execute_attack()`. **Out of combat:** boolean flags `db.non_combat_advantage` / `db.non_combat_disadvantage` on the actor.
