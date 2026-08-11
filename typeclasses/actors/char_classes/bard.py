@@ -60,7 +60,20 @@ PROGRESSION = {
     39: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 2, "hp_gain": 6, "mana_gain": 6, "move_gain": 4},
     40: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 2, "hp_gain": 6, "mana_gain": 6, "move_gain": 4},
     #  Total       weapon:23  class:73  general:59  hp:240  mana:240 move:160
+
+    # class still needs to be rebalances
+
+    #   weapon    
+    #   class     
+    #   general   
+    #    in weapons -  in class -  in general
+
+    # mage      12/82/41 = 135
+    # warrior   75/50/16 = 141
+    # thief     41/50/50 = 141
+    # cleric.   41/70/25 = 136
 }
+
 
 
 BARD = CharClassBase(

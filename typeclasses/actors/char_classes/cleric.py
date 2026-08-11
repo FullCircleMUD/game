@@ -8,37 +8,37 @@ PROGRESSION = {
     1: {"weapon_skill_pts": 2, "class_skill_pts": 3, "general_skill_pts": 2, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     2: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     3: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    4: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    4: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     5: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:6   class:11  general:4   hp:40   mana:30  move:20
+    #  Total       weapon:6                 class:10                general:4        hp:40          mana:30         move:20
 
-    6: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    6: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 2, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     7: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    8: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    8: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     9: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    10: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:11  class:21  general:7   hp:80   mana:60  move:40
+    10: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    #  Total       weapon:11                class:17                general:8       hp:80           mana:60         move:40
 
     11: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    12: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    12: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 2, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     13: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    14: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    14: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     15: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:16  class:31  general:9   hp:120  mana:90  move:60
+    #  Total       weapon:16                class:25                general:11     hp:120            mana:90         move:60
 
-    16: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    16: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 2, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     17: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    18: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    18: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     19: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    20: {"weapon_skill_pts": 1, "class_skill_pts": 3, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:21  class:42  general:12  hp:160  mana:120 move:80
+    20: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    #  Total       weapon:21                class:32                general:15    hp:160            mana:120        move:80
 
     21: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    22: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    22: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     23: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    24: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    24: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     25: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:26  class:52  general:14  hp:200  mana:150 move:100
+    #  Total       weapon:26                class:40                general:17      hp:200        mana:150        move:100
 
     # High Levels (26-40) - Master cleric
     26: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
@@ -46,21 +46,32 @@ PROGRESSION = {
     28: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     29: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     30: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:31  class:62  general:17  hp:240  mana:180 move:120
+    #  Total       weapon:31                class:50                general:20      hp:240         mana:180        move:120
 
     31: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     32: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     33: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     34: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     35: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:36  class:72  general:19  hp:280  mana:210 move:140
+    #  Total       weapon:36                class:60                general:22      hp:280          mana:210        move:140
 
     36: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     37: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     38: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
     39: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    40: {"weapon_skill_pts": 1, "class_skill_pts": 3, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
-    #  Total       weapon:41  class:83  general:22  hp:320  mana:240 move:160
+    40: {"weapon_skill_pts": 1, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 6, "move_gain": 4},
+    #  Total        weapon:41               class: 70               general: 25     hp:320          mana:240        move:160
+
+    #   weapon    gm at 1 + master at 1 / master at 2 expert at 1 / expert at 4
+    #   class     gm at 2 master at 1 / master at 4 / expert at 7
+    #   general   gm at 1 / master at 1 + expert at 1 / expert at 2 + skilled at 1
+    #   mid in weapons - mid/strong in class - , mid/weak in general
+
+    # mage      12/82/41 = 135
+    # warrior   75/50/16 = 141
+    # thief     41/50/50 = 141
+    # cleric.   41/70/25 = 136
+
 }
 
 
