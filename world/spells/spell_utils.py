@@ -119,5 +119,3 @@ def get_room_all_at_height(caster):
         e for e in get_room_all(caster)
         if getattr(e, "room_vertical_position", 0) == caster_height
     ]
-
-
