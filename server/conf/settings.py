@@ -411,6 +411,13 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
 ]
 
 
+# ── Typeclasses ──────────────────────────────────────────────────────
+# Exits built without an explicit typeclass (@dig, @open, @tunnel) get
+# the same base every authored exit uses, so they inherit the height,
+# size and encumbrance gating rather than bypassing the exit chain.
+BASE_EXIT_TYPECLASS = "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware"
+
+
 # ── World builder ────────────────────────────────────────────────────
 # Reads YAML world content from the FullCircleMUD/fcm-world repo.
 # WORLDBUILDER_GITHUB_PAT is the secret — set it in secret_settings.local
