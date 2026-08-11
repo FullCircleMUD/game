@@ -281,11 +281,23 @@ class CombatHandler(DefaultScript):
                                         hit_modifier=offhand_penalty,
                                     )
                 elif not height_blocked:
-                    # Target gone or dead — auto-retarget next enemy
+                    # Target gone or dead — auto-retarget next enemy.
+                    #
+                    # Candidates must satisfy the same conditions as the
+                    # attack guard above. get_sides() reads the room's
+                    # contents cache, which can list an object whose
+                    # location has since moved elsewhere; retargeting to
+                    # one would fail the guard again on the next tick and
+                    # every tick after, with no way out of the branch.
                     from combat.combat_utils import get_sides
                     _, remaining_enemies = get_sides(self.obj)
-                    if remaining_enemies:
-                        new_target = remaining_enemies[0]
+                    new_target = next(
+                        (enemy for enemy in remaining_enemies
+                         if getattr(enemy, "hp", 0) > 0
+                         and enemy.location == self.obj.location),
+                        None,
+                    )
+                    if new_target:
                         self.obj.msg(
                             f"|yYou turn to attack "
                             f"{new_target.get_display_name(self.obj)}!|n"
@@ -293,7 +305,7 @@ class CombatHandler(DefaultScript):
                         action["target"] = new_target
                         self.obj.ndb.combat_target = new_target
                     else:
-                        # No enemies left — end combat immediately
+                        # No valid enemies left — end combat immediately
                         self.stop_combat()
                         return
 
