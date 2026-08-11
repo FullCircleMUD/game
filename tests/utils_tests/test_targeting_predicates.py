@@ -12,7 +12,10 @@ from enums.size import Size
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
+from enums.condition import Condition
+
 from utils.targeting.predicates import (
+    p_actor_visible_to,
     p_can_see,
     p_different_height,
     p_height_visible_to,
@@ -22,9 +25,9 @@ from utils.targeting.predicates import (
     p_living,
     p_not_actor,
     p_not_exit,
+    p_object_visible_to,
     p_passes_lock,
     p_same_height,
-    p_visible_to,
 )
 
 
@@ -91,19 +94,19 @@ class TestPredicates(EvenniaTest):
         exit_obj = MagicMock(spec=DefaultExit)
         self.assertFalse(p_not_exit(exit_obj, caller=None))
 
-    # ── p_visible_to ──────────────────────────────────────────────
+    # ── p_object_visible_to ──────────────────────────────────────────────
 
-    def test_p_visible_to_true_when_no_mixin(self):
+    def test_p_object_visible_to_true_when_no_mixin(self):
         obj = SimpleNamespace()
-        self.assertTrue(p_visible_to(obj, caller=None))
+        self.assertTrue(p_object_visible_to(obj, caller=None))
 
-    def test_p_visible_to_true_when_mixin_returns_true(self):
+    def test_p_object_visible_to_true_when_mixin_returns_true(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: True)
-        self.assertTrue(p_visible_to(obj, caller=None))
+        self.assertTrue(p_object_visible_to(obj, caller=None))
 
-    def test_p_visible_to_false_when_mixin_returns_false(self):
+    def test_p_object_visible_to_false_when_mixin_returns_false(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
-        self.assertFalse(p_visible_to(obj, caller=None))
+        self.assertFalse(p_object_visible_to(obj, caller=None))
 
     # ── p_living ──────────────────────────────────────────────────
 
@@ -288,6 +291,120 @@ class TestPredicates(EvenniaTest):
         obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
         looker = SimpleNamespace(room_vertical_position=0)
         self.assertTrue(p_height_visible_to(obj, looker))
+
+    # ── p_object_visible_to: both object mixins ─────────────────────────
+
+    def test_p_object_visible_to_false_when_invisible_object(self):
+        """An invisible object is filtered out for a caller who can't see it."""
+        obj = SimpleNamespace(is_invis_visible_to=lambda caller: False)
+        self.assertFalse(p_object_visible_to(obj, caller=None))
+
+    def test_p_object_visible_to_true_when_invisible_object_perceived(self):
+        obj = SimpleNamespace(is_invis_visible_to=lambda caller: True)
+        self.assertTrue(p_object_visible_to(obj, caller=None))
+
+    def test_p_object_visible_to_requires_both_object_mixins(self):
+        """Fixtures and doors carry both mixins — each must pass."""
+        both_ok = SimpleNamespace(
+            is_hidden_visible_to=lambda caller: True,
+            is_invis_visible_to=lambda caller: True,
+        )
+        hidden_fails = SimpleNamespace(
+            is_hidden_visible_to=lambda caller: False,
+            is_invis_visible_to=lambda caller: True,
+        )
+        invis_fails = SimpleNamespace(
+            is_hidden_visible_to=lambda caller: True,
+            is_invis_visible_to=lambda caller: False,
+        )
+        self.assertTrue(p_object_visible_to(both_ok, caller=None))
+        self.assertFalse(p_object_visible_to(hidden_fails, caller=None))
+        self.assertFalse(p_object_visible_to(invis_fails, caller=None))
+
+    def test_p_object_visible_to_raising_mixin_does_not_hide_object(self):
+        """A mixin that raises is skipped, not treated as a refusal."""
+        def _boom(caller):
+            raise RuntimeError("broken mixin")
+
+        self.assertTrue(p_object_visible_to(SimpleNamespace(is_hidden_visible_to=_boom), None))
+
+    def test_p_object_visible_to_raising_mixin_does_not_mask_the_other(self):
+        """One gate erroring must not let a failing second gate through."""
+        def _boom(caller):
+            raise RuntimeError("broken mixin")
+
+        obj = SimpleNamespace(
+            is_hidden_visible_to=_boom,
+            is_invis_visible_to=lambda caller: False,
+        )
+        self.assertFalse(p_object_visible_to(obj, None))
+
+    # ── p_actor_visible_to ───────────────────────────────────
+    #
+    # Two independent concealment gates, each with its own counter:
+    #   HIDDEN    (physical) is pierced ONLY by the true_sight effect
+    #   INVISIBLE (magical)  is pierced ONLY by the DETECT_INVIS condition
+    #
+    # True Sight's own mechanics text is explicit that it "does NOT ...
+    # see invisible entities", so an actor under both conditions requires
+    # the observer to hold both counters. The gates compose; neither
+    # short-circuits the other.
+
+    @staticmethod
+    def _concealed(*conditions):
+        """A fake actor reporting the given conditions."""
+        return SimpleNamespace(has_condition=lambda c: c in conditions)
+
+    @staticmethod
+    def _observer(true_sight=False, detect_invis=False):
+        """A fake observer with the given piercing capabilities."""
+        return SimpleNamespace(
+            has_effect=lambda key: true_sight and key == "true_sight",
+            has_condition=lambda c: detect_invis and c == Condition.DETECT_INVIS,
+        )
+
+    def test_p_actor_visible_to_true_without_has_condition(self):
+        """Items and fixtures have no conditions — they pass through."""
+        self.assertTrue(p_actor_visible_to(SimpleNamespace(), self._observer()))
+
+    def test_p_actor_visible_to_true_when_unconcealed(self):
+        self.assertTrue(p_actor_visible_to(self._concealed(), self._observer()))
+
+    def test_p_actor_visible_to_hidden_needs_true_sight(self):
+        obj = self._concealed(Condition.HIDDEN)
+        self.assertFalse(p_actor_visible_to(obj, self._observer()))
+        self.assertTrue(p_actor_visible_to(obj, self._observer(true_sight=True)))
+
+    def test_p_actor_visible_to_hidden_not_pierced_by_detect_invis(self):
+        """DETECT_INVIS is the wrong counter for physical concealment."""
+        obj = self._concealed(Condition.HIDDEN)
+        self.assertFalse(p_actor_visible_to(obj, self._observer(detect_invis=True)))
+
+    def test_p_actor_visible_to_invisible_needs_detect_invis(self):
+        obj = self._concealed(Condition.INVISIBLE)
+        self.assertFalse(p_actor_visible_to(obj, self._observer()))
+        self.assertTrue(p_actor_visible_to(obj, self._observer(detect_invis=True)))
+
+    def test_p_actor_visible_to_invisible_not_pierced_by_true_sight(self):
+        """True Sight explicitly does not see invisible entities."""
+        obj = self._concealed(Condition.INVISIBLE)
+        self.assertFalse(p_actor_visible_to(obj, self._observer(true_sight=True)))
+
+    def test_p_actor_visible_to_both_needs_both_counters(self):
+        """An actor hidden AND invisible requires both counters to be seen.
+
+        Each gate must be pierced by its own counter — holding one does
+        not excuse the other.
+        """
+        obj = self._concealed(Condition.HIDDEN, Condition.INVISIBLE)
+        self.assertFalse(p_actor_visible_to(obj, self._observer()))
+        self.assertFalse(p_actor_visible_to(obj, self._observer(true_sight=True)))
+        self.assertFalse(p_actor_visible_to(obj, self._observer(detect_invis=True)))
+        self.assertTrue(
+            p_actor_visible_to(
+                obj, self._observer(true_sight=True, detect_invis=True)
+            )
+        )
 
     # ── p_can_see (composite) ────────────────────────────────────
 

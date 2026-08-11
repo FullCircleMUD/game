@@ -198,6 +198,43 @@ class TestMsgContentsVisibility(EvenniaTest):
             )
             mock_msg.assert_called_once()
 
+    def test_hidden_actor_seen_with_true_sight(self):
+        """A HIDDEN actor's msg_contents should reach a recipient with true_sight."""
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.apply_true_sight(duration_seconds=300)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self.room1.msg_contents(
+                "Char does something.", from_obj=self.char1, exclude=[self.char1]
+            )
+            mock_msg.assert_called_once()
+
+    def test_hidden_mixed_room(self):
+        """Only recipients with true_sight should see a hidden actor's messages."""
+        char3 = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Char3", location=self.room1, home=self.room1, nohome=False,
+        )
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.apply_true_sight(duration_seconds=300)
+        # char3 has no true_sight
+        with patch.object(self.char2, "msg") as mock_msg2, \
+             patch.object(char3, "msg") as mock_msg3:
+            self.room1.msg_contents(
+                "Char does something.", from_obj=self.char1, exclude=[self.char1]
+            )
+            mock_msg2.assert_called_once()
+            mock_msg3.assert_not_called()
+
+    def test_hidden_detect_invis_does_not_pierce(self):
+        """DETECT_INVIS must NOT reveal a HIDDEN actor — the two axes are separate."""
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.add_condition(Condition.DETECT_INVIS)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self.room1.msg_contents(
+                "Char does something.", from_obj=self.char1, exclude=[self.char1]
+            )
+            mock_msg.assert_not_called()
+
     # ── INVISIBLE ───────────────────────────────────────────────
 
     def test_invisible_actor_excluded_without_detect(self):
@@ -262,6 +299,245 @@ class TestMsgContentsVisibility(EvenniaTest):
             )
             mock_msg2.assert_not_called()  # no DETECT_INVIS
             mock_msg3.assert_not_called()  # explicitly excluded
+
+
+def _received(mock):
+    """The text passed to a mocked ``msg()``, however it was called.
+
+    The concealed branches call ``obj.msg(text)`` directly; the normal
+    path goes through Evennia's ``msg_contents``, which may pass the
+    text positionally or as ``text=``, and may wrap it in a tuple
+    alongside kwargs. Normalises all of those to the plain string so
+    assertions don't depend on which route delivered the message.
+    """
+    if not mock.call_args:
+        return None
+    args, kwargs = mock.call_args
+    text = args[0] if args else kwargs.get("text")
+    if isinstance(text, (tuple, list)):
+        text = text[0]
+    return text
+
+
+class TestMsgContentsWithInvisAlt(EvenniaTest):
+    """Tests for RoomBase.msg_contents_with_invis_alt.
+
+    Encodes the intended rule: **what you receive depends on whether you
+    can see the actor, not on why you can't.** Seers get the normal
+    message, non-seers get the alternate.
+
+    The HIDDEN alternate-text cases fail against the current
+    implementation, which sends hidden actors' non-seers nothing at all.
+    They pass once the method routes through ``p_actor_visible_to``.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    NORMAL = "Char hammers away at the forge."
+    ALT = "You hear hammering, but can't see who's doing it."
+
+    def create_script(self):
+        pass
+
+    def _send(self, exclude=None):
+        self.room1.msg_contents_with_invis_alt(
+            self.NORMAL, self.ALT, from_obj=self.char1, exclude=exclude
+        )
+
+    # ── Normal actor (regression) ───────────────────────────────
+
+    def test_normal_actor_gets_normal_message(self):
+        """A visible actor's observers should get the normal message."""
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send()
+            mock_msg.assert_called_once()
+            self.assertEqual(_received(mock_msg), self.NORMAL)
+
+    def test_actor_always_excluded(self):
+        """The acting character never receives either message."""
+        with patch.object(self.char1, "msg") as mock_msg:
+            self._send()
+            mock_msg.assert_not_called()
+
+    # ── INVISIBLE ───────────────────────────────────────────────
+
+    def test_invisible_non_perceiver_gets_alt(self):
+        """Without DETECT_INVIS the observer gets the alternate message."""
+        self.char1.add_condition(Condition.INVISIBLE)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send()
+            mock_msg.assert_called_once()
+            self.assertEqual(_received(mock_msg), self.ALT)
+
+    def test_invisible_perceiver_gets_normal(self):
+        """With DETECT_INVIS the observer gets the normal message."""
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char2.add_condition(Condition.DETECT_INVIS)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send()
+            mock_msg.assert_called_once()
+            self.assertEqual(_received(mock_msg), self.NORMAL)
+
+    # ── HIDDEN ──────────────────────────────────────────────────
+
+    def test_hidden_non_perceiver_gets_alt(self):
+        """Without true_sight the observer gets the alternate message.
+
+        The farting case: concealment stops you seeing who did it, not
+        hearing that it happened. Currently fails — hidden actors send
+        their non-seers nothing.
+        """
+        self.char1.add_condition(Condition.HIDDEN)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send()
+            mock_msg.assert_called_once()
+            self.assertEqual(_received(mock_msg), self.ALT)
+
+    def test_hidden_perceiver_gets_normal(self):
+        """With true_sight the observer gets the normal message."""
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.apply_true_sight(duration_seconds=300)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send()
+            mock_msg.assert_called_once()
+            self.assertEqual(_received(mock_msg), self.NORMAL)
+
+    # ── Cause-agnostic: same outcome either way ─────────────────
+
+    def test_hidden_and_invisible_agree_for_non_perceivers(self):
+        """Both concealment causes must produce the same observer experience."""
+        self.char1.add_condition(Condition.INVISIBLE)
+        with patch.object(self.char2, "msg") as mock_invis:
+            self._send()
+            invis_text = _received(mock_invis)
+        self.char1.remove_condition(Condition.INVISIBLE)
+
+        self.char1.add_condition(Condition.HIDDEN)
+        with patch.object(self.char2, "msg") as mock_hidden:
+            self._send()
+            hidden_text = _received(mock_hidden)
+
+        self.assertEqual(invis_text, hidden_text)
+
+    # ── Mixed rooms ─────────────────────────────────────────────
+
+    def test_invisible_mixed_room(self):
+        """Each observer gets the message matching their own perception."""
+        char3 = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Char3", location=self.room1, home=self.room1, nohome=False,
+        )
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char2.add_condition(Condition.DETECT_INVIS)
+        with patch.object(self.char2, "msg") as mock_msg2, \
+             patch.object(char3, "msg") as mock_msg3:
+            self._send()
+            self.assertEqual(_received(mock_msg2), self.NORMAL)
+            self.assertEqual(_received(mock_msg3), self.ALT)
+
+    def test_hidden_mixed_room(self):
+        """Same split for HIDDEN — true_sight sees, others hear. Currently fails."""
+        char3 = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Char3", location=self.room1, home=self.room1, nohome=False,
+        )
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.apply_true_sight(duration_seconds=300)
+        with patch.object(self.char2, "msg") as mock_msg2, \
+             patch.object(char3, "msg") as mock_msg3:
+            self._send()
+            self.assertEqual(_received(mock_msg2), self.NORMAL)
+            self.assertEqual(_received(mock_msg3), self.ALT)
+
+    # ── Exclude handling ────────────────────────────────────────
+
+    def test_explicit_exclude_receives_nothing_when_invisible(self):
+        """An explicitly excluded observer gets neither message."""
+        self.char1.add_condition(Condition.INVISIBLE)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send(exclude=[self.char2])
+            mock_msg.assert_not_called()
+
+    def test_explicit_exclude_receives_nothing_when_hidden(self):
+        """Exclude wins over perception for hidden actors too."""
+        self.char1.add_condition(Condition.HIDDEN)
+        with patch.object(self.char2, "msg") as mock_msg:
+            self._send(exclude=[self.char2])
+            mock_msg.assert_not_called()
+
+
+class TestDisplayCharactersVisibility(EvenniaTest):
+    """Tests for concealment filtering in RoomBase.get_display_characters.
+
+    Same rules as the messaging seams, applied to room appearance: HIDDEN
+    is pierced only by true_sight, INVISIBLE only by DETECT_INVIS, and an
+    actor under both requires both counters.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        # Darkness short-circuits the whole method — keep it lit so these
+        # tests exercise concealment rather than lighting.
+        self.room1.always_lit = True
+
+    def _listed(self):
+        return self.char2.key in self.room1.get_display_characters(self.char1)
+
+    def test_visible_character_listed(self):
+        self.assertTrue(self._listed())
+
+    # ── HIDDEN ──────────────────────────────────────────────────
+
+    def test_hidden_character_not_listed(self):
+        self.char2.add_condition(Condition.HIDDEN)
+        self.assertFalse(self._listed())
+
+    def test_hidden_character_listed_with_true_sight(self):
+        self.char2.add_condition(Condition.HIDDEN)
+        self.char1.apply_true_sight(duration_seconds=300)
+        self.assertTrue(self._listed())
+
+    def test_hidden_character_not_listed_with_detect_invis(self):
+        """DETECT_INVIS is the wrong counter for physical concealment."""
+        self.char2.add_condition(Condition.HIDDEN)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        self.assertFalse(self._listed())
+
+    # ── INVISIBLE ───────────────────────────────────────────────
+
+    def test_invisible_character_not_listed(self):
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.assertFalse(self._listed())
+
+    def test_invisible_character_listed_with_detect_invis(self):
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        self.assertTrue(self._listed())
+
+    def test_invisible_character_not_listed_with_true_sight(self):
+        """True Sight explicitly does not see invisible entities."""
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.apply_true_sight(duration_seconds=300)
+        self.assertFalse(self._listed())
+
+    # ── Both conditions — each gate needs its own counter ───────
+
+    def test_both_conditions_need_both_counters(self):
+        self.char2.add_condition(Condition.HIDDEN)
+        self.char2.add_condition(Condition.INVISIBLE)
+
+        self.assertFalse(self._listed())
+
+        self.char1.apply_true_sight(duration_seconds=300)
+        self.assertFalse(self._listed())
+
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        self.assertTrue(self._listed())
 
 
 class TestConditionMessaging(EvenniaTest):

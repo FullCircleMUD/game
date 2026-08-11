@@ -15,7 +15,7 @@ from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_visible_to
+from utils.targeting.predicates import p_object_visible_to
 
 
 class TestResolveInventoryItem(EvenniaTest):
@@ -77,7 +77,7 @@ class TestResolveWorldItem(EvenniaTest):
         chest = self._spawn_room_object("iron chest")
         result, _secondaries = resolve_target(
             self.char1, "iron chest", "items_room_all_then_inventory",
-            extra_predicates=(p_visible_to,),
+            extra_predicates=(p_object_visible_to,),
         )
         self.assertEqual(result, chest)
 
@@ -86,7 +86,7 @@ class TestResolveWorldItem(EvenniaTest):
         chest.is_hidden = True   # HiddenObjectMixin attribute
         result, _secondaries = resolve_target(
             self.char1, "hidden chest", "items_room_all_then_inventory",
-            extra_predicates=(p_visible_to,),
+            extra_predicates=(p_object_visible_to,),
         )
         self.assertIsNone(result)
 
@@ -97,7 +97,7 @@ class TestResolveWorldItem(EvenniaTest):
         chest.discovered_by.add(self.char1.key)
         result, _secondaries = resolve_target(
             self.char1, "hidden chest", "items_room_all_then_inventory",
-            extra_predicates=(p_visible_to,),
+            extra_predicates=(p_object_visible_to,),
         )
         self.assertEqual(result, chest)
 

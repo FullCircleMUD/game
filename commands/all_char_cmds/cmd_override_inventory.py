@@ -14,7 +14,7 @@ from collections import OrderedDict
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from utils.targeting.predicates import p_visible_to
+from utils.targeting.predicates import p_object_visible_to
 
 
 class CmdInventory(FCMCommandMixin, Command):
@@ -68,7 +68,7 @@ class CmdInventory(FCMCommandMixin, Command):
                 hidden_count = 0
 
                 for obj in items:
-                    if not p_visible_to(obj, caller):
+                    if not p_object_visible_to(obj, caller):
                         hidden_count += 1
                         continue
                     has_durability = getattr(obj, "max_durability", 0) > 0

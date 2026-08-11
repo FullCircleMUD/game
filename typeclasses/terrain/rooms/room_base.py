@@ -14,19 +14,8 @@ from enums.condition import Condition
 from enums.terrain_type import TerrainType
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.quest_tag import QuestTagMixin
-from utils.targeting.predicates import p_height_visible_to
+from utils.targeting.predicates import p_actor_visible_to, p_can_see
 from utils.visibility import looker_is_blind
-
-
-def _can_see_hidden(entity):
-    """Check if entity can see HIDDEN actors/objects.
-
-    True Sight is the single-purpose effect that pierces physical
-    concealment (HIDDEN condition). Nothing else grants this.
-    """
-    if not hasattr(entity, "has_effect"):
-        return False
-    return entity.has_effect("true_sight")
 
 
 class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
@@ -298,24 +287,19 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         - HIDDEN actor: only recipients with true_sight see the message.
         - INVISIBLE actor: only recipients with DETECT_INVIS see the message.
 
+        Both rules come from ``p_actor_visible_to``, asked once per
+        recipient with the operands in messaging order — the sender is the
+        thing being seen, the recipient is the observer. Targeting asks the
+        same predicate the other way round.
+
         All 34+ existing callers pass from_obj=caller, so this works
         automatically with zero caller changes.
         """
-        if from_obj and hasattr(from_obj, "has_condition"):
-            if from_obj.has_condition(Condition.HIDDEN):
-                # Only sight-capable recipients see messages from hidden actors
-                exclude = list(make_iter(exclude)) if exclude else []
-                for obj in self.contents:
-                    if obj not in exclude and not _can_see_hidden(obj):
-                        exclude.append(obj)
-            elif from_obj.has_condition(Condition.INVISIBLE):
-                exclude = list(make_iter(exclude)) if exclude else []
-                for obj in self.contents:
-                    if obj not in exclude and not (
-                        hasattr(obj, "has_condition")
-                        and obj.has_condition(Condition.DETECT_INVIS)
-                    ):
-                        exclude.append(obj)
+        if from_obj is not None:
+            exclude = list(make_iter(exclude)) if exclude else []
+            for obj in self.contents:
+                if obj not in exclude and not p_actor_visible_to(from_obj, obj):
+                    exclude.append(obj)
 
         # Sleeping characters get a muffled message instead of the real content.
         # Collect sleepers, exclude them from the normal broadcast, then send
@@ -338,42 +322,51 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             raise_funcparse_errors=raise_funcparse_errors, **kwargs
         )
 
-    def msg_contents_with_invis_alt(self, normal_msg, invis_msg, from_obj, exclude=None):
+    def msg_contents_with_invis_alt(self, normal_msg, invis_msg, from_obj,
+                                    exclude=None, mapping=None):
         """
-        Send room message with alternate text for invisible actors.
+        Send a room message with alternate text for those who can't see the actor.
 
-        - HIDDEN from_obj: only true_sight recipients see normal_msg.
-        - INVISIBLE from_obj: DETECT_INVIS recipients see normal_msg,
-          others see invis_msg. from_obj is always excluded.
-        - Normal: standard msg_contents with from_obj.
+        Recipients who can see ``from_obj`` get ``normal_msg``; those who
+        cannot get ``invis_msg``. ``from_obj`` is always excluded.
+
+        What an observer receives depends only on **whether** they can see
+        the actor, never on **why** they can't — hidden and invisible
+        produce the same experience, and a future concealment cause gets
+        the same treatment for free. ``p_actor_visible_to`` is the
+        single source of that answer.
+
+        Both messages go through ``super().msg_contents``, so each keeps
+        its funcparser handling ($You() / $conj()). That matters for the
+        alt: ``get_display_name`` already renders the actor as "Someone"
+        for anyone who can't see them, so a caller can pass the *same*
+        template as both arguments and get correct anonymised grammar
+        without authoring a second string.
         """
         exclude = list(make_iter(exclude)) if exclude else []
         if from_obj and from_obj not in exclude:
             exclude.append(from_obj)
 
-        if from_obj and hasattr(from_obj, "has_condition"):
-            if from_obj.has_condition(Condition.HIDDEN):
-                # Only sight-capable recipients see messages from hidden actors
-                for obj in self.contents:
-                    if obj in exclude:
-                        continue
-                    if _can_see_hidden(obj):
-                        obj.msg(normal_msg)
-                return
-            if from_obj.has_condition(Condition.INVISIBLE):
-                for obj in self.contents:
-                    if obj in exclude:
-                        continue
-                    if (
-                        hasattr(obj, "has_condition")
-                        and obj.has_condition(Condition.DETECT_INVIS)
-                    ):
-                        obj.msg(normal_msg)
-                    else:
-                        obj.msg(invis_msg)
-                return
+        unseeing = []
+        if from_obj is not None:
+            unseeing = [
+                obj for obj in self.contents
+                if obj not in exclude
+                and not p_actor_visible_to(from_obj, obj)
+            ]
 
-        super().msg_contents(normal_msg, exclude=exclude, from_obj=from_obj)
+        if unseeing:
+            seeing = [obj for obj in self.contents if obj not in exclude
+                      and obj not in unseeing]
+            super().msg_contents(
+                invis_msg, exclude=exclude + seeing, from_obj=from_obj,
+                mapping=mapping,
+            )
+
+        super().msg_contents(
+            normal_msg, exclude=exclude + unseeing, from_obj=from_obj,
+            mapping=mapping,
+        )
 
     def return_appearance(self, looker, **kwargs):
         """
@@ -657,28 +650,9 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             self.contents_get(content_type="character"), looker, **kwargs
         )
 
-        # Filter hidden/invisible characters
-        visible = []
-        looker_has_detect = (
-            hasattr(looker, "has_condition")
-            and looker.has_condition(Condition.DETECT_INVIS)
-        )
-        for char in characters:
-            if not hasattr(char, "has_condition"):
-                visible.append(char)
-                continue
-            if char.has_condition(Condition.HIDDEN):
-                if not _can_see_hidden(looker):
-                    continue
-            if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
-                continue
-            visible.append(char)
-
-        # Filter by height-gated visibility
-        visible = [
-            char for char in visible
-            if p_height_visible_to(char, looker)
-        ]
+        # Concealment (HIDDEN / INVISIBLE) and height gating are one
+        # question — whether this looker can perceive that character.
+        visible = [char for char in characters if p_can_see(char, looker)]
 
         if not visible:
             return ""
@@ -736,17 +710,9 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # sort and handle same-named things
         things = self.filter_visible(self.contents_get(content_type="object"), looker, **kwargs)
 
-        # Filter hidden/invisible objects
-        things = [
-            thing for thing in things
-            if not hasattr(thing, "is_visible_to") or thing.is_visible_to(looker)
-        ]
-
-        # Filter by height-gated visibility
-        things = [
-            thing for thing in things
-            if p_height_visible_to(thing, looker)
-        ]
+        # Concealment (hidden / invisible mixins) and height gating are
+        # one question — whether this looker can perceive that object.
+        things = [thing for thing in things if p_can_see(thing, looker)]
 
         # Separate items with ground descriptions (full sentences) from
         # bare-name items (grouped and comma-separated).

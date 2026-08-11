@@ -121,39 +121,52 @@ def p_not_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform signatur
     return not isinstance(obj, DefaultExit)
 
 
-def p_visible_to(obj, caller):
+def p_object_visible_to(obj, caller):
     """True if ``obj`` is not hidden/invisible to ``caller`` (stealth gate).
 
-    Respects FCM's ``HiddenObjectMixin`` — a hidden object returns
-    False unless the caller has discovered it. Objects without the
-    mixin are visible by default.
+    Delegates to both object concealment mixins, and an object must
+    clear both to be visible:
+
+    - ``HiddenObjectMixin`` — hidden until this caller has discovered
+      it, or holds ``true_sight``.
+    - ``InvisibleObjectMixin`` — invisible unless the caller has the
+      ``DETECT_INVIS`` condition.
+
+    Objects composing neither mixin are visible by default, so items,
+    actors, and plain exits pass through untouched.
 
     Evennia's ``use_locks=True`` (default) respects the static
-    ``search`` lock, but hidden-mixin visibility is per-caller runtime
-    state (who discovered what), which a static lock cannot express.
-    Hence this predicate.
+    ``search`` lock, but these are per-caller runtime state (who
+    discovered what, who can see invisible), which a static lock
+    cannot express. Hence this predicate.
 
-    When ``InvisibleObjectMixin`` support is needed by a real consumer,
-    extend this predicate to delegate to both mixins.
+    This is the object-side counterpart to ``p_actor_visible_to``,
+    which gates *actors* by condition. An actor can be HIDDEN by
+    condition while a chest is hidden by mixin — independent systems,
+    both composed by ``p_can_see``.
 
     **Visibility predicate family:**
 
-    - ``p_visible_to`` (this) — stealth only. Use in targeting
-      resolvers where height is handled separately by range predicates.
+    - ``p_object_visible_to`` (this) — object concealment only. Use in
+      targeting resolvers where height is handled separately by range
+      predicates.
     - ``p_height_visible_to`` — spatial only. Use when you need just
-      the height gate (e.g. room display methods that have their own
-      stealth logic).
-    - ``p_can_see`` — composite of both. Use for display/perception
-      paths (look, scan) where "can the player see this?" is the
-      question and there is no separate stealth filtering.
+      the height gate.
+    - ``p_actor_visible_to`` — actor conditions only.
+    - ``p_can_see`` — composite of all three. Use for display and
+      perception paths where "can this observer see it?" is the whole
+      question.
     """
-    check = getattr(obj, "is_hidden_visible_to", None)
-    if check is None:
-        return True
-    try:
-        return bool(check(caller))
-    except Exception:
-        return True
+    for method in ("is_hidden_visible_to", "is_invis_visible_to"):
+        check = getattr(obj, method, None)
+        if check is None:
+            continue
+        try:
+            if not check(caller):
+                return False
+        except Exception:
+            continue
+    return True
 
 
 def p_height_visible_to(obj, caller):
@@ -167,7 +180,7 @@ def p_height_visible_to(obj, caller):
     Objects without the mixin are visible by default.
 
     This is a **spatial** visibility check, not a stealth check — see
-    ``p_visible_to`` for hidden/invisible filtering.
+    ``p_object_visible_to`` for hidden/invisible filtering.
     """
     check = getattr(obj, "is_height_visible_to", None)
     if check is None:
@@ -178,20 +191,27 @@ def p_height_visible_to(obj, caller):
         return True
 
 
-def p_condition_visible_to(obj, caller):
+def p_actor_visible_to(obj, caller):
     """True if ``obj`` is not concealed from ``caller`` by a condition.
 
-    Checks actor conditions that make an entity hard to see:
+    Two independent concealment gates, each pierced by its own counter:
 
-    - ``Condition.HIDDEN`` (physical stealth) — visible only if caller
-      has the ``true_sight`` named effect.
-    - ``Condition.INVISIBLE`` (magical) — visible only if caller has
-      the ``Condition.DETECT_INVIS`` condition.
+    - ``Condition.HIDDEN`` (physical stealth) — pierced only by the
+      ``true_sight`` named effect.
+    - ``Condition.INVISIBLE`` (magical) — pierced only by the
+      ``Condition.DETECT_INVIS`` condition.
+
+    **The gates compose — neither short-circuits the other.** An actor
+    under both conditions is visible only to an observer holding both
+    counters. True Sight's own mechanics text is explicit that it does
+    not see invisible entities, and Detect Invisibility does not see
+    through physical concealment, so holding one counter cannot excuse
+    the other gate.
 
     Objects without ``has_condition`` (items, fixtures, exits) pass
     through unconditionally — this predicate only gates actors.
 
-    This is separate from ``p_visible_to`` which handles
+    This is separate from ``p_object_visible_to`` which handles
     ``HiddenObjectMixin`` (hidden objects with ``find_dc``). The two
     systems are independent: an actor can be HIDDEN (condition) while
     a chest can be hidden (mixin). ``p_can_see`` composes both.
@@ -205,11 +225,13 @@ def p_condition_visible_to(obj, caller):
     try:
         if has_cond(Condition.HIDDEN):
             has_effect = getattr(caller, "has_effect", None)
-            return bool(has_effect and has_effect("true_sight"))
+            if not (has_effect and has_effect("true_sight")):
+                return False
 
         if has_cond(Condition.INVISIBLE):
             caller_cond = getattr(caller, "has_condition", None)
-            return bool(caller_cond and caller_cond(Condition.DETECT_INVIS))
+            if not (caller_cond and caller_cond(Condition.DETECT_INVIS)):
+                return False
     except Exception:
         return True
 
@@ -221,9 +243,9 @@ def p_can_see(obj, caller):
 
     Combines all visibility checks into a single predicate:
 
-    1. ``p_visible_to`` — stealth (hidden/invisible object mixin)
+    1. ``p_object_visible_to`` — stealth (hidden/invisible object mixin)
     2. ``p_height_visible_to`` — spatial (height-gated visibility)
-    3. ``p_condition_visible_to`` — actor conditions (HIDDEN/INVISIBLE)
+    3. ``p_actor_visible_to`` — actor conditions (HIDDEN/INVISIBLE)
 
     Use this for **display/perception** paths: room appearance, look
     command, scan command — anywhere the question is "can the player
@@ -239,9 +261,9 @@ def p_can_see(obj, caller):
     consumers pick it up automatically.
     """
     return (
-        p_visible_to(obj, caller)
+        p_object_visible_to(obj, caller)
         and p_height_visible_to(obj, caller)
-        and p_condition_visible_to(obj, caller)
+        and p_actor_visible_to(obj, caller)
     )
 
 
@@ -351,6 +373,41 @@ def p_is_open(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
     object returns False.
     """
     return getattr(obj, "is_open", False)
+
+
+def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` is not barred by its own door state.
+
+    An exit with no door is always open, so this defaults to True where
+    ``p_is_open`` defaults to False — the question here is "is anything
+    blocking this exit?", and a plain passage blocks nothing. A door must
+    be both unlocked and open.
+
+    State check only. It says nothing about whether the caller can see or
+    reach the exit; compose with ``p_can_see`` and
+    ``p_passes_lock("traverse")`` for the whole "can I go this way?"
+    question::
+
+        traversable = p_passes_lock("traverse")
+        ways_out = [
+            ex for ex in room.exits
+            if ex.destination
+            and traversable(ex, caller)
+            and p_can_see(ex, caller)
+            and p_is_open_exit(ex, caller)
+        ]
+
+    Selection only — ``at_traverse`` on the exit remains the authority on
+    whether a move is allowed, and applies gates this cannot see
+    (encumbrance, size, traps). Use this to choose a candidate exit, never
+    as a substitute for traversing one.
+
+    Consumers: cmd_flee, cmd_retreat — both pick a random exit to escape
+    through and must not offer one the actor cannot actually use.
+    """
+    if getattr(obj, "is_locked", False):
+        return False
+    return getattr(obj, "is_open", True)
 
 
 def p_passes_lock(lock_type):

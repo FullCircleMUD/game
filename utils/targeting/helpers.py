@@ -7,17 +7,49 @@ docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
+    p_can_see,
     p_in_combat,
     p_involved_with,
     p_is_character,
     p_is_container,
+    p_is_open_exit,
     p_living,
     p_not_actor,
     p_not_exit,
+    p_object_visible_to,
     p_passes_lock,
     p_same_height_value,
-    p_visible_to,
 )
+
+_traversable = p_passes_lock("traverse")
+
+
+def open_exits(caller):
+    """Return the exits ``caller`` could actually leave the room through.
+
+    Three separate questions, one predicate each: the traverse lock and
+    height access, whether the caller can see the exit at all, and whether
+    a door on it is open and unlocked. Exits are read from ``room.exits``,
+    Evennia's own filtered view — there is no "is an exit" predicate
+    because there is no need for one.
+
+    Selection only. The chosen exit's ``at_traverse`` is what enforces
+    passage and applies gates these predicates cannot see — encumbrance,
+    size, traps — so a caller picks from this list and then traverses,
+    never treating membership as permission.
+
+    Consumers: cmd_flee, cmd_retreat.
+    """
+    room = getattr(caller, "location", None)
+    if not room:
+        return []
+    return [
+        ex for ex in room.exits
+        if ex.destination
+        and _traversable(ex, caller)
+        and p_can_see(ex, caller)
+        and p_is_open_exit(ex, caller)
+    ]
 
 
 def walk_contents(caller, source, *predicates):
@@ -33,10 +65,10 @@ def walk_contents(caller, source, *predicates):
     to evaluate what it actually needs to filter::
 
         # Room items — no actors, no exits, stealth-visible:
-        walk_contents(caller, room, p_not_actor, p_not_exit, p_visible_to)
+        walk_contents(caller, room, p_not_actor, p_not_exit, p_object_visible_to)
 
         # Room containers — same plus container check:
-        walk_contents(caller, room, p_not_actor, p_not_exit, p_visible_to, p_is_container)
+        walk_contents(caller, room, p_not_actor, p_not_exit, p_object_visible_to, p_is_container)
 
         # Inventory — no predicates needed (only items in contents):
         walk_contents(caller, caller)
@@ -188,7 +220,7 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
         1. p_not_character — exclude PCs, NPCs, mobs (also excludes
                              the caller, who is always a character)
         2. p_not_exit      — exclude exits
-        3. p_visible_to    — exclude hidden objects the caller has
+        3. p_object_visible_to    — exclude hidden objects the caller has
                              not discovered (HiddenObjectMixin)
 
     Filters explicitly NOT applied:
@@ -233,7 +265,7 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
     # nothing on the empty path until the short-circuit was
     # removed.
     candidates = walk_contents(
-        caller, source, p_not_actor, p_not_exit, p_visible_to,
+        caller, source, p_not_actor, p_not_exit, p_object_visible_to,
     )
     return caller.search(search_term, candidates=candidates, **kwargs)
 
@@ -269,7 +301,7 @@ def resolve_container(caller, name):
             continue
         candidates = walk_contents(
             caller, source,
-            p_not_actor, p_not_exit, p_visible_to, p_is_container,
+            p_not_actor, p_not_exit, p_object_visible_to, p_is_container,
         )
         if not candidates:
             continue
@@ -399,7 +431,7 @@ def resolve_attack_target_out_of_combat(caller, name, order=None, extra_predicat
 
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_visible_to, *extra_predicates,
+        p_living, p_object_visible_to, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -476,7 +508,7 @@ def resolve_attack_target_in_combat(caller, name, order=None, extra_predicates=(
 
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_visible_to, *extra_predicates,
+        p_living, p_object_visible_to, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -621,14 +653,14 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
     if aoe == "unsafe_all_heights":
         # All living visible actors regardless of height.
         candidates = walk_contents(
-            caster, caster.location, p_living, p_visible_to,
+            caster, caster.location, p_living, p_object_visible_to,
         )
     else:
         # Living visible actors at the primary target's height.
         target_height = getattr(primary_target, "room_vertical_position", 0)
         height_pred = p_same_height_value(target_height)
         candidates = walk_contents(
-            caster, caster.location, p_living, p_visible_to, height_pred,
+            caster, caster.location, p_living, p_object_visible_to, height_pred,
         )
 
     # ── Bystander filter (non-PvP rooms, unsafe variants only) ──
@@ -1472,14 +1504,14 @@ def _resolve_all_room(caller, target_str, quiet=False):
     """Find any visible non-actor object in the room, including exits.
 
     Single-pass walk over ``room.contents`` via ``walk_contents`` with
-    ``(p_not_actor, p_visible_to)`` — includes exits, fixtures, loose
+    ``(p_not_actor, p_object_visible_to)`` — includes exits, fixtures, loose
     items, containers. Excludes actors.
 
     Used by ``items_inventory_then_room_all`` (room fallback) and
     ``items_room_all_then_inventory`` (room step, silent mode).
     """
     candidates = walk_contents(
-        caller, caller.location, p_not_actor, p_visible_to,
+        caller, caller.location, p_not_actor, p_object_visible_to,
     )
     if not candidates:
         if not quiet:

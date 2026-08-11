@@ -22,7 +22,7 @@ from utils.targeting.helpers import (
     resolve_target,
     walk_contents,
 )
-from utils.targeting.predicates import p_not_actor, p_not_exit, p_visible_to
+from utils.targeting.predicates import p_not_actor, p_not_exit, p_object_visible_to
 
 
 def _make_actor(
@@ -157,17 +157,17 @@ class TestWalkContents(EvenniaTest):
     # ── Source edge cases ─────────────────────────────────────────
 
     def test_source_is_none_returns_empty_list(self):
-        result = walk_contents(None, None, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, None, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [])
 
     def test_source_without_contents_returns_empty_list(self):
         source = SimpleNamespace()  # no .contents attribute
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [])
 
     def test_source_with_empty_contents_returns_empty_list(self):
         source = SimpleNamespace(contents=[])
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [])
 
     # ── Predicate composition ─────────────────────────────────────
@@ -187,16 +187,16 @@ class TestWalkContents(EvenniaTest):
         a = _make_item("a")
         b = _make_item("b")
         source = SimpleNamespace(contents=[a, b])
-        # p_not_actor, p_not_exit, p_visible_to filters out
+        # p_not_actor, p_not_exit, p_object_visible_to filters out
         # actors/exits/hidden — plain SimpleNamespace items pass all three.
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [a, b])
 
     def test_first_predicate_filters_out_object(self):
         item = _make_item("sword")
         character = _make_character()
         source = SimpleNamespace(contents=[item, character])
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         # Character filtered by p_not_actor (first predicate)
         self.assertEqual(result, [item])
 
@@ -204,8 +204,8 @@ class TestWalkContents(EvenniaTest):
         visible = _make_item("sword")
         hidden = _make_hidden_item(visible=False)
         source = SimpleNamespace(contents=[visible, hidden])
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
-        # Hidden item filtered by p_visible_to (last predicate)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
+        # Hidden item filtered by p_object_visible_to (last predicate)
         self.assertEqual(result, [visible])
 
     # ── Short-circuit eval ───────────────────────────────────────
@@ -507,7 +507,7 @@ class TestResolveItemInSource(EvenniaTest):
     # ── Filter exclusions ─────────────────────────────────────────
     #
     # These three tests assert that the base item predicates
-    # (p_not_actor, p_not_exit, p_visible_to) filter the named
+    # (p_not_actor, p_not_exit, p_object_visible_to) filter the named
     # object OUT of the candidate list. After filtering, candidates
     # is empty and the helper delegates to caller.search with
     # candidates=[] (which fires any nofound_string or default
@@ -932,7 +932,7 @@ class TestResolveAttackTargetOutOfCombat(EvenniaTest):
         result = resolve_attack_target_out_of_combat(caller, "goblin")
         self.assertIs(result, stranger_goblin)
 
-    # ── p_living / p_visible_to filter correctly ─────────────────
+    # ── p_living / p_object_visible_to filter correctly ─────────────────
 
     def test_dead_stranger_is_filtered(self):
         caller = self._caller()

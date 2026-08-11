@@ -1,8 +1,7 @@
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from enums.condition import Condition
-from utils.targeting.predicates import p_height_visible_to
+from utils.targeting.predicates import p_can_see
 
 
 # Canonical scan directions — only follow cardinal + vertical exits
@@ -21,47 +20,21 @@ _DIR_ORDER = [
 _DISTANCE_LABELS = {1: "nearby", 2: "not far off", 3: "far off"}
 
 
-def _can_see_hidden(entity):
-    """Check if entity can see HIDDEN actors.
-
-    Granted by the `true_sight` named effect, which both the True Sight
-    and Holy Sight spells apply.
-    """
-    if not hasattr(entity, "has_effect"):
-        return False
-    return entity.has_effect("true_sight")
-
-
 def _get_visible_characters(room, looker):
     """Return list of visible character names in *room* for *looker*.
 
-    Filters out the looker, hidden, and invisible characters.
-    Returns empty list if room is dark for the looker.
+    Filters out the looker and anyone they can't perceive — concealment
+    (HIDDEN / INVISIBLE) and height gating both come from ``p_can_see``.
+    Returns None if the room is dark for the looker.
     """
     if hasattr(room, "is_dark") and room.is_dark(looker):
         return None  # dark — can't see
 
-    characters = room.contents_get(content_type="character")
-    looker_has_detect = (
-        hasattr(looker, "has_condition")
-        and looker.has_condition(Condition.DETECT_INVIS)
-    )
-    see_hidden = _can_see_hidden(looker)
-
-    names = []
-    for char in characters:
-        if char == looker:
-            continue
-        if hasattr(char, "has_condition"):
-            if char.has_condition(Condition.HIDDEN) and not see_hidden:
-                continue
-            if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
-                continue
-        # Height-gated visibility — canopy mobs invisible to ground-level lookers
-        if not p_height_visible_to(char, looker):
-            continue
-        names.append(char.get_display_name(looker))
-    return names
+    return [
+        char.get_display_name(looker)
+        for char in room.contents_get(content_type="character")
+        if char != looker and p_can_see(char, looker)
+    ]
 
 
 class CmdScan(FCMCommandMixin, Command):

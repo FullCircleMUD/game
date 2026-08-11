@@ -332,7 +332,7 @@ class BaseWearslotsMixin:
         Returns:
             str — formatted multi-line string
         """
-        from utils.targeting.predicates import p_visible_to
+        from utils.targeting.predicates import p_object_visible_to
 
         wearslots = self.db.wearslots or {}
         if not wearslots:
@@ -358,7 +358,7 @@ class BaseWearslotsMixin:
             pad = col_width - len(display_slot) - 2
             if item is not None:
                 can_see = not is_dark and (
-                    not looker or p_visible_to(item, looker)
+                    not looker or p_object_visible_to(item, looker)
                 )
                 if can_see:
                     condition = (
@@ -410,9 +410,9 @@ class BaseWearslotsMixin:
         Returns:
             str — item.key, or "Something" if it can't be identified
         """
-        from utils.targeting.predicates import p_visible_to
+        from utils.targeting.predicates import p_object_visible_to
 
-        if is_dark or (looker and not p_visible_to(item, looker)):
+        if is_dark or (looker and not p_object_visible_to(item, looker)):
             return "Something"
         return item.key
 

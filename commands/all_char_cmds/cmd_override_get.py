@@ -46,7 +46,7 @@ from utils.targeting.helpers import (
     resolve_item_in_source,
     resolve_target,
 )
-from utils.targeting.predicates import p_passes_lock, p_same_height, p_visible_to
+from utils.targeting.predicates import p_object_visible_to, p_passes_lock, p_same_height
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -366,7 +366,7 @@ class CmdGet(FCMCommandMixin, NumberedTargetCommand):
 
         objs, _ = resolve_target(
             caller, search_term, "items_room_nonexit",
-            extra_predicates=(p_visible_to,),
+            extra_predicates=(p_object_visible_to,),
             stacked=self.number or 0,
         )
         if not objs:
