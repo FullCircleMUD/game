@@ -398,69 +398,74 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
 
         ignore_brief = kwargs.get("ignore_brief", False)
 
-        # ── Dark room shortcut ─────────────────────────────────────
-        if self.is_dark(looker):
-            parts = []
-            header = self.get_display_header(looker, **kwargs)
-            if header:
-                parts.append(header)
-            parts.append("|cUnknown|n")
-            parts.append(self.get_display_desc(looker, **kwargs))
-            footer = self.get_display_footer(looker, **kwargs)
-            if footer:
-                parts.append(footer)
-            return f"\n{self.format_appearance(chr(10).join(parts), looker, **kwargs)}"
-
-        # ── Room name (cyan) with vertical position suffix ─────────
-        char_height = looker.room_vertical_position
-        base_name = self.get_display_name(looker, **kwargs)
-        extra = self.get_extra_display_name_info(looker, **kwargs)
-        if extra:
-            base_name = f"{base_name} {extra}"
-
-        if char_height == 0 and self.max_depth < 0:
-            formatted_name = f"{base_name}   (Swimming)"
-        elif char_height < 0:
-            formatted_name = f"{base_name}   (Underwater)"
-        elif char_height > 0:
-            formatted_name = f"{base_name}   (Flying)"
-        else:
-            formatted_name = base_name
-
-        if self.seeing_via_darkvision(looker):
-            formatted_name = f"{formatted_name}   (Dark)"
-
         parts = []
         header = self.get_display_header(looker, **kwargs)
         if header:
             parts.append(header)
+
+        # Sight is a property of the looker, so it is asked once here and
+        # the sections below share the answer.
+        sighted = not looker_is_blind(looker)
+
+        # ── Room name (cyan) ───────────────────────────────────────
+        # Always shown. get_display_name anonymises it for itself, so an
+        # unseen room names itself "Somewhere" — or whatever its own
+        # unseen_name says. Only the decorations are sight-only: where
+        # you are standing, and the darkvision tag.
+        char_height = looker.room_vertical_position
+        formatted_name = self.get_display_name(looker, **kwargs)
+
+        if sighted:
+            extra = self.get_extra_display_name_info(looker, **kwargs)
+            if extra:
+                formatted_name = f"{formatted_name} {extra}"
+
+            if char_height == 0 and self.max_depth < 0:
+                formatted_name = f"{formatted_name}   (Swimming)"
+            elif char_height < 0:
+                formatted_name = f"{formatted_name}   (Underwater)"
+            elif char_height > 0:
+                formatted_name = f"{formatted_name}   (Flying)"
+
+            if self.seeing_via_darkvision(looker):
+                formatted_name = f"{formatted_name}   (Dark)"
+
         parts.append(f"|c{formatted_name}|n")
 
-        # ── Description (default color) — respect brief mode ────────
-        show_desc = ignore_brief or not getattr(looker, "brief_mode", False)
-        if show_desc:
-            desc = self.get_display_desc(looker, **kwargs)
-            # Add height prefix only when vert_descriptions didn't provide
-            # a height-specific description (those already describe the
-            # scene from the correct perspective).
-            has_vert_desc = (
-                self.vert_descriptions
-                and (char_height in self.vert_descriptions
-                     or str(char_height) in self.vert_descriptions)
-            )
-            if not has_vert_desc:
-                if char_height < 0:
-                    desc = f"Swimming underwater you can dimly perceive above you:\n{desc}"
-                elif char_height > 0:
-                    desc = f"Flying you can see below you:\n{desc}"
-            if desc:
-                parts.append(f"|n{desc}")
+        # ── Description, exits — sight only ────────────────────────
+        # The description names and describes the place, and you cannot
+        # pick out a doorway across an unlit room. Things and characters
+        # follow below for everyone — each anonymises for itself, so an
+        # unlit room reads as shapes you cannot identify, not as empty.
+        if sighted:
+            # ── Description (default color) — respect brief mode ────
+            show_desc = ignore_brief or not getattr(looker, "brief_mode", False)
+            if show_desc:
+                desc = self.get_display_desc(looker, **kwargs)
+                # Add height prefix only when vert_descriptions didn't
+                # provide a height-specific description (those already
+                # describe the scene from the correct perspective).
+                has_vert_desc = (
+                    self.vert_descriptions
+                    and (char_height in self.vert_descriptions
+                         or str(char_height) in self.vert_descriptions)
+                )
+                if not has_vert_desc:
+                    if char_height < 0:
+                        desc = f"Swimming underwater you can dimly perceive above you:\n{desc}"
+                    elif char_height > 0:
+                        desc = f"Flying you can see below you:\n{desc}"
+                if desc:
+                    parts.append(f"|n{desc}")
 
-        # ── Auto-exits (cyan, compact) ─────────────────────────────
-        if getattr(looker, "auto_exits", True):
-            exits_str = self.get_display_exits(looker, **kwargs)
-            if exits_str:
-                parts.append(f"|c{exits_str}|n")
+            # ── Auto-exits (cyan, compact) ─────────────────────────
+            # Sight only: you cannot pick out a doorway across an unlit
+            # room, even though open_exits still lets you grope your way
+            # through one.
+            if getattr(looker, "auto_exits", True):
+                exits_str = self.get_display_exits(looker, **kwargs)
+                if exits_str:
+                    parts.append(f"|c{exits_str}|n")
 
         # ── Things/objects (green) ─────────────────────────────────
         things_str = self.get_display_things(looker, **kwargs)
@@ -662,22 +667,31 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         if not visible:
             return ""
 
-        if looker_is_blind(looker):
-            return "\n".join(
-                char.get_display_name(looker, **kwargs) + " is here."
-                for char in visible
-            )
+        # Sight is a property of the looker, not of any one character, so
+        # it is the same answer for everyone here — asked once rather than
+        # once per candidate, since is_dark scans the room to answer it.
+        sighted = not looker_is_blind(looker)
 
-        # Check if looker can see alignment auras
+        # Check if looker can see alignment auras. Sighted, because an
+        # aura tells you what someone is — the same identifying detail the
+        # anonymised name is withholding.
         looker_detects_alignment = (
-            hasattr(looker, "has_effect")
+            sighted
+            and hasattr(looker, "has_effect")
             and looker.has_effect("detect_alignment")
         )
 
         lines = []
         for char in visible:
-            # Use room_description if available, otherwise fall back to name
-            if hasattr(char, "get_room_description"):
+            # Three distinct renderings. A looker who cannot see gets the
+            # anonymised name and a verb of its own; one who can gets the
+            # room description, or the plain name where there is none.
+            if not sighted:
+                # No "else" — unseen_name is settable, so this has to read
+                # for "A mysterious presence" as well as for "Someone".
+                name = char.get_display_name(looker, **kwargs)
+                line = f"{name} is in the room."
+            elif hasattr(char, "get_room_description"):
                 line = char.get_room_description()
             else:
                 line = char.get_display_name(looker, **kwargs)
@@ -690,16 +704,20 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
                     line = f"|Y(Good)|n {line}"
                 else:
                     line = f"|w(Neutral)|n {line}"
-            # Append height tags
-            char_height = getattr(char, "room_vertical_position", 0)
-            if char_height > 0:
-                line += " (Flying)"
-            elif char_height < 0:
-                line += " (Underwater)"
-            elif self.max_depth < 0:
-                line += " (Swimming)"
-            # Append visibility tags
-            if hasattr(char, "has_condition"):
+            # Append height tags. Where someone is standing is something
+            # you can see, so a looker who cannot gets none of it.
+            if sighted:
+                char_height = getattr(char, "room_vertical_position", 0)
+                if char_height > 0:
+                    line += " (Flying)"
+                elif char_height < 0:
+                    line += " (Underwater)"
+                elif self.max_depth < 0:
+                    line += " (Swimming)"
+            # Append visibility tags. These say how you are managing to
+            # perceive someone concealed — meaningless to a looker who is
+            # not perceiving them by sight at all.
+            if sighted and hasattr(char, "has_condition"):
                 if char.has_condition(Condition.INVISIBLE):
                     line += " (invisible)"
                 if char.has_condition(Condition.HIDDEN):
@@ -712,12 +730,11 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         Get the 'things' component of the object description. Called by `return_appearance`.
 
         Filters out hidden/invisible objects based on looker's discovery
-        state and conditions. Returns empty string in dark rooms or when
-        no visible objects.
-        """
-        if self.is_dark(looker):
-            return ""
+        state and conditions. Returns empty string when nothing can be
+        perceived.
 
+        Lighting is not this method's decision — see get_display_characters.
+        """
         # sort and handle same-named things
         things = self.filter_visible(self.contents_get(content_type="object"), looker, **kwargs)
 
@@ -725,31 +742,58 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         # one question — whether this looker can perceive that object.
         things = [thing for thing in things if p_can_perceive(thing, looker)]
 
+        # Sight is a property of the looker, so it is the same answer for
+        # everything here — asked once rather than once per candidate.
+        sighted = not looker_is_blind(looker)
+
         # Separate items with ground descriptions (full sentences) from
-        # bare-name items (grouped and comma-separated).
+        # bare-name items (grouped and comma-separated). A ground
+        # description names and describes the item, so a looker who cannot
+        # see gets none of them — everything falls through to the
+        # anonymising name instead.
         ground_sentences = []
         bare_things = []
         for thing in things:
-            gdesc = getattr(thing, "ground_description", "")
+            gdesc = getattr(thing, "ground_description", "") if sighted else ""
             if gdesc:
                 ground_sentences.append(gdesc)
             else:
                 bare_things.append(thing)
 
-        grouped_things = defaultdict(list)
-        for thing in bare_things:
-            grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
+        if not sighted:
+            # Collapsed rather than one line each: item counts vary far
+            # more than character counts, and a room of twelve dropped
+            # things would otherwise repeat itself twelve times. The
+            # singular keeps the item's own word, so a settable
+            # unseen_name still reads ("A strange shape is on the ground.").
+            if not bare_things:
+                thing_names = ""
+            elif len(bare_things) == 1:
+                # Capitalised here rather than in unseen_name, which stays
+                # lowercase so it still reads mid-sentence ("you bump into
+                # something"). Any settable word gets the same treatment.
+                name = bare_things[0].get_display_name(looker, **kwargs)
+                name = name[0].upper() + name[1:] if name else name
+                thing_names = f"{name} is on the ground."
+            else:
+                thing_names = "Several things are on the ground."
+        else:
+            grouped_things = defaultdict(list)
+            for thing in bare_things:
+                grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
 
-        thing_names = []
-        for thingname, thinglist in sorted(grouped_things.items()):
-            nthings = len(thinglist)
-            thing = thinglist[0]
-            singular, plural = thing.get_numbered_name(nthings, looker, key=thingname)
-            thing_names.append(singular if nthings == 1 else plural)
-        thing_names = iter_to_str(thing_names, endsep=_(", and"))
+            names = []
+            for thingname, thinglist in sorted(grouped_things.items()):
+                nthings = len(thinglist)
+                thing = thinglist[0]
+                singular, plural = thing.get_numbered_name(nthings, looker, key=thingname)
+                names.append(singular if nthings == 1 else plural)
+            thing_names = iter_to_str(names, endsep=_(", and"))
 
-        # Append any fungibles (gold, resources) visible in the room
-        fungible_display = self.get_room_fungible_display()
+        # Append any fungibles (gold, resources) visible in the room.
+        # Sighted only — loose coin on the floor is spotted by eye, and
+        # the display names and counts it besides.
+        fungible_display = self.get_room_fungible_display() if sighted else ""
 
         parts = []
         if ground_sentences:
