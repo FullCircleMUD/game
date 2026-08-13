@@ -18,6 +18,7 @@ from utils.targeting.predicates import (
     p_actor_visible_to,
     p_can_see,
     p_different_height,
+    p_excluding,
     p_height_visible_to,
     p_in_combat,
     p_involved_with,
@@ -28,6 +29,7 @@ from utils.targeting.predicates import (
     p_object_visible_to,
     p_passes_lock,
     p_same_height,
+    p_typeclass,
 )
 
 
@@ -498,3 +500,59 @@ class TestPredicates(EvenniaTest):
         # No get_group_leader, so caster_leader defaults to caster itself.
         pred = p_involved_with(caster)
         self.assertTrue(pred(caster, caster))
+
+    # ── p_typeclass ───────────────────────────────────────────────
+
+    def test_p_typeclass_matches_the_named_class(self):
+        char = MagicMock(spec=DefaultCharacter)
+        self.assertTrue(p_typeclass(DefaultCharacter)(char, caller=None))
+
+    def test_p_typeclass_rejects_a_different_class(self):
+        exit_obj = MagicMock(spec=DefaultExit)
+        self.assertFalse(p_typeclass(DefaultCharacter)(exit_obj, caller=None))
+
+    def test_p_typeclass_accepts_several_classes(self):
+        pred = p_typeclass(DefaultCharacter, DefaultExit)
+        self.assertTrue(pred(MagicMock(spec=DefaultCharacter), caller=None))
+        self.assertTrue(pred(MagicMock(spec=DefaultExit), caller=None))
+        self.assertFalse(pred(SimpleNamespace(), caller=None))
+
+    def test_p_typeclass_matches_subclasses(self):
+        """isinstance semantics — a subclass of the named class passes."""
+        self.assertTrue(p_typeclass(DefaultCharacter)(self.char1, caller=None))
+
+    def test_p_typeclass_with_no_classes_matches_nothing(self):
+        self.assertFalse(p_typeclass()(SimpleNamespace(), caller=None))
+
+    # ── p_excluding ───────────────────────────────────────────────
+
+    def test_p_excluding_rejects_the_named_object(self):
+        victim = SimpleNamespace()
+        self.assertFalse(p_excluding(victim)(victim, caller=None))
+
+    def test_p_excluding_admits_everything_else(self):
+        victim = SimpleNamespace()
+        other = SimpleNamespace()
+        self.assertTrue(p_excluding(victim)(other, caller=None))
+
+    def test_p_excluding_accepts_several_objects(self):
+        a, b, c = SimpleNamespace(), SimpleNamespace(), SimpleNamespace()
+        pred = p_excluding(a, b)
+        self.assertFalse(pred(a, caller=None))
+        self.assertFalse(pred(b, caller=None))
+        self.assertTrue(pred(c, caller=None))
+
+    def test_p_excluding_is_identity_not_equality(self):
+        """A typeclass defining __eq__ must not smuggle an object past."""
+
+        class AlwaysEqual:
+            def __eq__(self, other):
+                return True
+
+        excluded = AlwaysEqual()
+        impostor = AlwaysEqual()
+        self.assertFalse(p_excluding(excluded)(excluded, caller=None))
+        self.assertTrue(p_excluding(excluded)(impostor, caller=None))
+
+    def test_p_excluding_with_nothing_admits_everything(self):
+        self.assertTrue(p_excluding()(SimpleNamespace(), caller=None))

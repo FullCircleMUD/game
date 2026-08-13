@@ -410,6 +410,46 @@ def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
     return getattr(obj, "is_open", True)
 
 
+def p_typeclass(*typeclasses):
+    """Factory — returns a predicate matching any of the given typeclasses.
+
+    The general form of the named type predicates. Reach for it when a
+    call site needs a type check the library has no name for::
+
+        # The urchin won't steal in front of the watch
+        watch = self.ai.get_targets_in_room(p_typeclass(CityWatch), p_living)
+
+    Prefer a named predicate where one exists — ``p_is_character`` says
+    "player characters only, not NPCs or pets", which is meaning that
+    ``p_typeclass(FCMCharacter)`` does not carry.
+
+    The caller supplies the classes, so the library imports no typeclasses
+    of its own and stays a leaf package.
+    """
+    def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+        return isinstance(obj, typeclasses)
+    return _pred
+
+
+def p_excluding(*excluded):
+    """Factory — returns a predicate rejecting specific objects by identity.
+
+    "Everything but these". Identity, not equality, so it is unaffected by
+    any ``__eq__`` a typeclass defines::
+
+        # The next living player other than the one just killed
+        targets = self.ai.get_targets_in_room(
+            p_is_character, p_living, p_excluding(victim)
+        )
+
+    Excluding the caller is not this predicate's job — helpers that should
+    never return their own caller drop it themselves.
+    """
+    def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+        return not any(obj is item for item in excluded)
+    return _pred
+
+
 def p_fits_through(actor):
     """Factory — returns a predicate that checks ``actor`` fits an exit.
 
