@@ -15,6 +15,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 class CmdRefill(FCMCommandMixin, Command):
@@ -56,9 +57,11 @@ class CmdRefill(FCMCommandMixin, Command):
         if not room:
             return
 
-        # Darkness — can't see what you're doing
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Holding a canteen under a spout needs eyes, so this refuses
+        # rather than costing time. Name what they asked for — "you don't
+        # see it here" reads as absent when the well is right there.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.source_name}'.")
             return
 
         # Find container in inventory

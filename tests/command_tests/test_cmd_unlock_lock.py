@@ -90,3 +90,91 @@ class TestCmdLock(UnlockLockTestBase):
         chest = self._make_chest(is_locked=False)
         chest.is_open = True
         self.call(CmdLock(), "iron chest", "You need to close iron chest first.")
+
+
+class TestCmdLockSightless(UnlockLockTestBase):
+    """
+    Lining a key up with a keyhole needs eyes, so locking refuses in the
+    dark rather than costing time.
+    """
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_dark_room_refuses_the_lock(self):
+        self._make_chest(is_locked=False)
+        self._darken()
+        result = self.call(CmdLock(), "chest")
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_the_refusal_does_not_claim_it_is_absent(self):
+        """The chest is right there — 'you don't see it here' misleads."""
+        self._make_chest(is_locked=False)
+        self._darken()
+        result = self.call(CmdLock(), "chest")
+        self.assertNotIn("don't see", result.lower())
+
+    def test_a_blinded_character_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self._make_chest(is_locked=False)
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdLock(), "chest")
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_nothing_is_locked_when_refused(self):
+        chest = self._make_chest(is_locked=False)
+        self._darken()
+        self.call(CmdLock(), "chest")
+        self.assertFalse(chest.is_locked)
+
+    def test_darkvision_locks_normally(self):
+        from enums.condition import Condition
+
+        chest = self._make_chest(is_locked=False)
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.call(CmdLock(), "chest")
+        self.assertTrue(chest.is_locked)
+
+
+class TestCmdUnlockSightless(UnlockLockTestBase):
+    """Unlocking needs eyes for the same reason locking does."""
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_dark_room_refuses_the_unlock(self):
+        self._make_chest(is_locked=True)
+        self._make_key()
+        self._darken()
+        result = self.call(CmdUnlock(), "chest")
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_a_blinded_character_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self._make_chest(is_locked=True)
+        self._make_key()
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdUnlock(), "chest")
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_nothing_is_unlocked_when_refused(self):
+        chest = self._make_chest(is_locked=True)
+        self._make_key()
+        self._darken()
+        self.call(CmdUnlock(), "chest")
+        self.assertTrue(chest.is_locked)
+
+    def test_darkvision_unlocks_normally(self):
+        from enums.condition import Condition
+
+        chest = self._make_chest(is_locked=True)
+        self._make_key()
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.call(CmdUnlock(), "chest")
+        self.assertFalse(chest.is_locked)

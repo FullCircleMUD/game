@@ -14,6 +14,7 @@ from commands.command import FCMCommandMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
 from utils.targeting.helpers import resolve_character_in_room, resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 class CmdShow(FCMCommandMixin, Command):
@@ -52,9 +53,12 @@ class CmdShow(FCMCommandMixin, Command):
             caller.msg("Usage: show <object> to <character>")
             return
 
-        # Darkness — can't see what you're pointing out
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Pointing something out is the definition of a visual act, and
+        # there is no version of it done by touch, so this refuses rather
+        # than costing time. Both targets go together: no point finding
+        # the object if you cannot find who to show it to.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{obj_str}'.")
             return
 
         # Find the object in the room — p_can_see handles info-leak

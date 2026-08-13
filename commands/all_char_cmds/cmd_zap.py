@@ -89,6 +89,9 @@ class CmdZap(FCMCommandMixin, Command):
 
         # ── 3. Resolve target per the spell's target_type ────
         target_str = self.args.strip()
+        # Matches cast — requires_sight controls whether p_can_see is
+        # passed. Zapping is casting through an implement, so the same
+        # rule applies: a spell that needs to be aimed needs eyes.
         extra = (p_can_see,) if spell.requires_sight else ()
         target, secondaries = resolve_target(
             caller, target_str, spell.target_type,

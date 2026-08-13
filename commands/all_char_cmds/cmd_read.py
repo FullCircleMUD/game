@@ -26,6 +26,7 @@ from commands.command import FCMCommandMixin
 from typeclasses.world_objects.library_book import LibraryBook
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_same_height
+from utils.visibility import looker_is_blind
 
 
 PARAGRAPH_PAUSE = 1.0
@@ -78,14 +79,19 @@ class CmdRead(FCMCommandMixin, Command):
         if not room:
             return
 
-        # Darkness — can't read without sight
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        query = self.args.strip()
+
+        # Reading is the one thing that has no version done by touch, so
+        # this refuses rather than costing time. Name what they asked for
+        # — "you don't see that here" reads as absent when the book is on
+        # the shelf in front of them.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to read '{query}'.")
             return
 
         # Broad targeting — find whatever the player named in the room
         book, _ = resolve_target(
-            caller, self.args.strip(), "items_room_fixed_nonexit",
+            caller, query, "items_room_fixed_nonexit",
             extra_predicates=(p_can_see,),
         )
         if not book:

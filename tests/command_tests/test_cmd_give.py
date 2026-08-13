@@ -280,3 +280,65 @@ class TestCmdGiveAll(EvenniaCommandTest):
         self.char1.db.gold = 0
         self.char1.db.resources = {}
         self.call(CmdGive(), "all to Char2", "You aren't carrying anything.")
+
+
+class TestCmdGiveSightless(EvenniaCommandTest):
+    """
+    Handing something over means putting it into a particular person's
+    hands, so sightlessness refuses it rather than costing time — there
+    is no point groping through your pack for an item you have nobody to
+    give to.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.sword = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="sword",
+            location=self.char1,
+        )
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_dark_room_refuses_the_give(self):
+        self._darken()
+        result = self.call(CmdGive(), "sword to Char2")
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_the_refusal_names_the_recipient(self):
+        self._darken()
+        result = self.call(CmdGive(), "sword to Char2")
+        self.assertIn("'char2'", result.lower())
+
+    def test_the_refusal_does_not_claim_they_are_absent(self):
+        self._darken()
+        result = self.call(CmdGive(), "sword to Char2")
+        self.assertNotIn("don't see a character", result.lower())
+
+    def test_a_blinded_giver_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdGive(), "sword to Char2")
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_nothing_changes_hands_when_refused(self):
+        self._darken()
+        self.call(CmdGive(), "sword to Char2")
+        self.assertIn(self.sword, self.char1.contents)
+
+    def test_darkvision_gives_normally(self):
+        from enums.condition import Condition
+
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.call(CmdGive(), "sword to Char2")
+        self.assertIn(self.sword, self.char2.contents)

@@ -2,6 +2,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 # Canonical scan directions — only follow cardinal + vertical exits
@@ -27,7 +28,7 @@ def _can_scan_through(exit_obj, looker):
 
     - **The door is shut.** Open means you can see through, closed means you
       cannot. An exit with no door never obstructs anything.
-    - **The looker cannot perceive the exit.** Scanning past a hidden or
+    - **The looker cannot see the exit.** Scanning past a hidden or
       invisible door would report who is beyond a passage the looker does not
       know exists — so concealment blocks the sight line whether the door
       stands open or not.
@@ -52,7 +53,7 @@ def _can_scan_through(exit_obj, looker):
 def _get_visible_characters(room, looker):
     """Return list of visible character names in *room* for *looker*.
 
-    Filters out the looker and anyone they can't perceive — concealment
+    Filters out the looker and anyone they can't see — concealment
     (HIDDEN / INVISIBLE) and height gating both come from ``p_can_see``.
     Returns None if the room is dark for the looker.
     """
@@ -89,6 +90,13 @@ class CmdScan(FCMCommandMixin, Command):
 
         if not room:
             caller.msg("You have no location to scan from.")
+            return
+
+        # Scanning is pure sight, so it needs working eyes. Being in an
+        # unlit room without darkvision and being blinded are the same
+        # state, and looker_is_blind covers both.
+        if looker_is_blind(caller):
+            caller.msg("You can't see a thing.")
             return
 
         lines = []

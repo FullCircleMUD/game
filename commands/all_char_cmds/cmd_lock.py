@@ -13,6 +13,7 @@ from commands.command import FCMCommandMixin
 from utils.direction_parser import parse_direction
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_is_lockable, p_same_height
+from utils.visibility import looker_is_blind
 
 
 class CmdLock(FCMCommandMixin, Command):
@@ -38,13 +39,15 @@ class CmdLock(FCMCommandMixin, Command):
             caller.msg("Lock what?")
             return
 
-        # Darkness
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        target_str = self.args.strip()
+
+        # Lining a key up with a keyhole needs eyes, so this one refuses
+        # rather than costing time. Say why — "you don't see it here"
+        # reads as absent when the lock is right in front of them.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{target_str}'.")
             return
 
-        target_str = self.args.strip()
         parsed_name, direction = parse_direction(target_str)
 
         if direction:

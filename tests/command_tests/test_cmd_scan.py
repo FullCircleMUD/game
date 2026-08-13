@@ -481,3 +481,79 @@ class TestCmdScanDoorsAtDepth(EvenniaCommandTest):
         result = self.call(CmdScan(), "")
         self.assertIn("goblin", result)
         self.assertNotIn("troll", result)
+
+
+class TestCmdScanSightless(EvenniaCommandTest):
+    """
+    Scanning is pure sight. Being in an unlit room without darkvision
+    and being blinded are the same state, so both refuse it outright.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        for ex in self.room1.contents_get(content_type="exit"):
+            ex.delete()
+
+        self.north_room = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="North Room",
+            nohome=True,
+        )
+        self.north_room.always_lit = True
+        exit_north = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="north",
+            location=self.room1,
+            destination=self.north_room,
+            nohome=True,
+        )
+        exit_north.set_direction("north")
+        self.mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a goblin",
+            location=self.north_room,
+            nohome=True,
+        )
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_blinded_character_cannot_scan(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdScan(), "")
+        self.assertIn("can't see a thing", result.lower())
+
+    def test_an_unlit_room_stops_the_scan(self):
+        """Darkness and blindness are one rule — a lit room next door
+        does not rescue a scanner who cannot see."""
+        self._darken()
+        result = self.call(CmdScan(), "")
+        self.assertIn("can't see a thing", result.lower())
+
+    def test_nobody_is_reported_when_refused(self):
+        self._darken()
+        result = self.call(CmdScan(), "")
+        self.assertNotIn("goblin", result)
+        self.assertNotIn("North", result)
+
+    def test_darkvision_scans_normally(self):
+        from enums.condition import Condition
+
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdScan(), "")
+        self.assertIn("North", result)
+
+    def test_a_sighted_scanner_is_unaffected(self):
+        result = self.call(CmdScan(), "")
+        self.assertIn("North", result)

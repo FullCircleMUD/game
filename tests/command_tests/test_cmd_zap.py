@@ -421,3 +421,70 @@ class TestCmdZapEdgeCases(EvenniaCommandTest):
         # The can_use check fires first and reports a broken binding
         self.assertIn("broken", result.lower())
         self.assertEqual(wand.charges_remaining, 5)
+
+
+class TestCmdZapSightless(EvenniaCommandTest):
+    """
+    Zapping is casting through an implement, so it follows cast: a spell
+    that must be aimed cannot be aimed at what you cannot see.
+    """
+
+    databases = "__all__"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        _setup_mage(self.char1)
+        self.wand = _create_wand(
+            self.char1, spell_key="magic_missile", charges=5,
+        )
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _zap(self, args="char2"):
+        with patch.object(
+            type(self.wand), "can_use", return_value=(True, "")
+        ), patch(
+            "commands.all_char_cmds.cmd_zap.SPELL_REGISTRY"
+        ) as mock_registry:
+            mock_spell = MagicMock()
+            mock_spell.target_type = "actor_hostile"
+            mock_spell.requires_sight = True
+            mock_spell.min_mastery.value = 1
+            mock_spell.cast.return_value = (
+                True,
+                {"first": "ZAP", "second": None, "third": None},
+            )
+            mock_registry.get.return_value = mock_spell
+            return self.call(CmdZap(), args)
+
+    def test_a_dark_room_costs_no_charge(self):
+        self._darken()
+        self._zap()
+        self.assertEqual(self.wand.charges_remaining, 5)
+
+    def test_a_blinded_zapper_costs_no_charge(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+        self._zap()
+        self.assertEqual(self.wand.charges_remaining, 5)
+
+    def test_darkvision_zaps_normally(self):
+        from enums.condition import Condition
+
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self._zap()
+        self.assertEqual(self.wand.charges_remaining, 4)
+
+    def test_a_sighted_zapper_is_unaffected(self):
+        self._zap()
+        self.assertEqual(self.wand.charges_remaining, 4)

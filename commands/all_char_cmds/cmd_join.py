@@ -15,6 +15,7 @@ from combat.combat_utils import enter_combat, fight_refusal_message
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_in_combat, p_same_height
+from utils.visibility import looker_is_blind
 
 
 class CmdJoin(FCMCommandMixin, Command):
@@ -46,10 +47,13 @@ class CmdJoin(FCMCommandMixin, Command):
             caller.msg("Join who? Usage: join <ally>")
             return
 
-        # Darkness — can't see who to join
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Stepping in beside one particular person means picking them
+        # out of a room full of people swinging at each other, so this
+        # needs eyes. It refuses rather than costing time: a three second
+        # grope while your ally takes hits is worse than being told no.
+        # Name who they asked for — "you don't see them" reads as absent.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
         ally, _ = resolve_target(

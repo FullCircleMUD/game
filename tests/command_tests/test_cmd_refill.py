@@ -108,10 +108,49 @@ class TestCmdRefill(EvenniaCommandTest):
         result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("don't see", result)
 
+    # --- Sightlessness ---
+    #
+    # Holding a canteen under a spout needs eyes, so this refuses rather
+    # than costing time. Both targets are gated together — there is no
+    # point finding the canteen if you cannot find the well.
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
     def test_darkness_blocks(self):
         """refill in darkness should error."""
         self._make_canteen()
-        self.room1.always_lit = False
-        self.room1.natural_light = False
+        self._darken()
         result = self.call(CmdRefill(), "canteen from fountain")
         self.assertIn("too dark", result)
+
+    def test_the_refusal_names_the_source(self):
+        """'You don't see it here' reads as absent when it is right there."""
+        self._make_canteen()
+        self._darken()
+        result = self.call(CmdRefill(), "canteen from fountain")
+        self.assertIn("too dark to make out 'fountain'", result.lower())
+
+    def test_a_blinded_character_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self._make_canteen()
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdRefill(), "canteen from fountain")
+        self.assertIn("too dark", result)
+
+    def test_nothing_is_refilled_when_refused(self):
+        canteen = self._make_canteen(current=1)
+        self._darken()
+        self.call(CmdRefill(), "canteen from fountain")
+        self.assertEqual(canteen.current, 1)
+
+    def test_darkvision_refills_normally(self):
+        from enums.condition import Condition
+
+        canteen = self._make_canteen(current=1)
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.call(CmdRefill(), "canteen from fountain")
+        self.assertEqual(canteen.current, canteen.max_capacity)
