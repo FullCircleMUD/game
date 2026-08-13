@@ -22,6 +22,7 @@ from evennia.utils.utils import delay
 
 from combat.height_utils import can_reach_target
 from enums.condition import Condition
+from utils.targeting.predicates import p_is_character
 
 
 class AggressiveMixin:
@@ -120,8 +121,7 @@ class AggressiveMixin:
             return
         if self.scripts.get("combat_handler"):
             return
-
-        players = self.ai.get_targets_in_room()
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             # Prefer reachable targets, but try height-matching for others
             target = random.choice(players)

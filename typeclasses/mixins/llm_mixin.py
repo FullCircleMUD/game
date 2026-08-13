@@ -279,13 +279,17 @@ class LLMMixin:
         if location and hasattr(location, "db"):
             room_desc = location.db.desc or ""
 
-        nearby = []
-        if location:
-            for obj in location.contents:
-                if obj == self:
-                    continue
-                if getattr(obj, "is_pc", False):
-                    nearby.append(obj.key)
+        # Only characters this NPC can perceive — a concealed player must
+        # not appear in the prompt. walk_contents rather than the AIHandler
+        # helper because LLMMixin also composes onto BaseNPC, which has no
+        # ``.ai``. p_is_character excludes self and is cheap, so it leads.
+        from utils.targeting.helpers import walk_contents
+        from utils.targeting.predicates import p_can_see, p_is_character
+
+        nearby = [
+            obj.key
+            for obj in walk_contents(self, location, p_is_character, p_can_see)
+        ]
         nearby_str = ", ".join(nearby) if nearby else "nobody"
 
         hp = getattr(self, "hp", 0)

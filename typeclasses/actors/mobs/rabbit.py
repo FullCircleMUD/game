@@ -1,9 +1,9 @@
 """
 Rabbit — skittish prey that flees on sight but fights when cornered.
 
-Behavioural opposite of Mouse: when a character/wolf/dire-wolf enters
-the room, the rabbit flees 2-3 seconds later. If caught and attacked,
-it stands and fights for its 7 HP rather than fleeing combat.
+Behavioural opposite of Mouse: when a player character or an aggressive
+mob enters the room, the rabbit flees 2-3 seconds later. If caught and
+attacked, it stands and fights for its 7 HP rather than fleeing combat.
 
 Three indistinguishable variants share the same key/desc:
 - Rabbit — carries 1 gold
@@ -17,7 +17,10 @@ from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
 from enums.size import Size
+from typeclasses.actors.character import FCMCharacter
 from typeclasses.actors.mob import CombatMob
+from typeclasses.mixins.aggressive_mixin import AggressiveMixin
+from utils.targeting.predicates import p_is_typeclass
 
 
 class Rabbit(CombatMob):
@@ -61,20 +64,11 @@ class Rabbit(CombatMob):
         if not self.is_alive or arriving_obj == self:
             return
 
-        if self._is_threat(arriving_obj):
+        if all(p(arriving_obj, self) for p in THREAT_PREDICATES):
             delay(
                 random.uniform(2, 3),
                 self._flee_reaction,
             )
-
-    def _is_threat(self, obj):
-        """Return True if obj is something the rabbit should flee from."""
-        if getattr(obj, "is_pc", False):
-            return True
-        # Flee from wolves/dire wolves but not other rabbits
-        if isinstance(obj, CombatMob) and not isinstance(obj, Rabbit):
-            return True
-        return False
 
     def _flee_reaction(self):
         """
@@ -92,7 +86,7 @@ class Rabbit(CombatMob):
         if self.scripts.get("combat_handler"):
             return
 
-        threats = self.ai.get_targets_in_room(self._is_threat)
+        threats = self.ai.get_targets_in_room(THREAT_PREDICATES)
         if not threats:
             return
 
@@ -114,7 +108,7 @@ class Rabbit(CombatMob):
             return
 
         # Check for threats — if any, schedule flee
-        threats = self.ai.get_targets_in_room(self._is_threat)
+        threats = self.ai.get_targets_in_room(THREAT_PREDICATES)
         if threats:
             delay(
                 random.uniform(2, 3),
@@ -125,6 +119,14 @@ class Rabbit(CombatMob):
         # Random movement
         if random.random() < 0.2:
             self.wander()
+
+
+#: What a rabbit flees from: player characters, and mobs that attack on
+#: sight. A mob being a ``CombatMob`` is not enough — mice, butterflies
+#: and owls are all combat-capable and none of them hunt rabbits.
+THREAT_PREDICATES = (
+    p_is_typeclass(FCMCharacter, AggressiveMixin),
+)
 
 
 # Pure-data loot-variant subclasses retired — same key/desc as Rabbit,

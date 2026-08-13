@@ -65,32 +65,47 @@ class AIHandler:
 
     # ── Target helpers ──
 
-    def get_targets_in_room(self, target_filter=None):
+    def get_targets_in_room(self, *predicates):
         """
-        Return potential targets the mob can currently perceive.
+        Return everything in the room this mob can perceive.
 
-        Perception is the floor: ``target_filter`` narrows that set
-        further, it never widens it. A concealed actor is returned only
-        when the mob holds the counter that reveals them — ``true_sight``
-        for HIDDEN, ``DETECT_INVIS`` for INVISIBLE.
+        Perception is the floor. ``p_can_see`` always applies and the
+        supplied predicates narrow the result further — they can never
+        widen it. A concealed actor is returned only when the mob holds
+        the counter that reveals them: the ``true_sight`` effect for
+        HIDDEN, the ``DETECT_INVIS`` condition for INVISIBLE.
+
+        The mob decides what it *cares* about by passing predicates; it
+        does not decide what it can *perceive*. Callers narrow with
+        targeting-library predicates rather than filtering the returned
+        list, so filtering stays uniform and debuggable across every
+        call site::
+
+            self.ai.get_targets_in_room(p_is_character)
+            self.ai.get_targets_in_room(p_is_character, p_living,
+                                        p_excluding(victim))
 
         Args:
-            target_filter: callable(obj) -> bool. If None, returns PCs.
+            *predicates: ``(obj, caller) -> bool``, the targeting-library
+                predicate shape. Prefer an existing library predicate;
+                where none fits, add one rather than filtering inline.
+                Accepts them loose or as a single list, so a mob can hold
+                a named predicate stack as an attribute and pass it whole.
         """
+        from utils.targeting.helpers import walk_contents
         from utils.targeting.predicates import p_can_see
 
-        if not self.obj.location:
-            return []
-        if target_filter:
-            return [
-                obj for obj in self.obj.location.contents
-                if obj != self.obj and target_filter(obj)
-                and p_can_see(obj, self.obj)
-            ]
-        # Default: player characters only
+        if len(predicates) == 1 and isinstance(predicates[0], (list, tuple)):
+            predicates = tuple(predicates[0])
+
+        mob = self.obj
+        # Caller predicates lead: they are typically cheap isinstance
+        # checks, so they short-circuit most candidates before p_can_see
+        # does its method calls.
         return [
-            obj for obj in self.obj.location.contents
-            if getattr(obj, "is_pc", False) and p_can_see(obj, self.obj)
+            obj
+            for obj in walk_contents(mob, mob.location, *predicates, p_can_see)
+            if obj is not mob
         ]
 
     # ── Movement helpers ──

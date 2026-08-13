@@ -17,6 +17,8 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from utils.targeting.predicates import p_excluding, p_is_character, p_living
+
 
 class RampageMixin:
     """On kill, instantly attack the next enemy."""
@@ -31,9 +33,7 @@ class RampageMixin:
             return
 
         targets = self.ai.get_targets_in_room(
-            lambda obj: obj != victim
-            and getattr(obj, "is_pc", False)
-            and getattr(obj, "hp", 0) > 0
+            p_is_character, p_living, p_excluding(victim)
         )
         if not targets:
             return

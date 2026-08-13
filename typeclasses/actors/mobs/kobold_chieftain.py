@@ -19,6 +19,7 @@ from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
+from utils.targeting.predicates import p_is_character
 
 
 class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
@@ -99,8 +100,7 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
             return
         if self.scripts.get("combat_handler"):
             return
-
-        players = self.ai.get_targets_in_room()
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             self._schedule_attack(random.choice(players))
 

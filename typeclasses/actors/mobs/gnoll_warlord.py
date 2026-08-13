@@ -17,6 +17,7 @@ from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.gnoll import Gnoll
 from typeclasses.items.mob_items.mob_item import MobItem
+from utils.targeting.predicates import p_is_character
 
 
 class GnollWarlord(Gnoll):
@@ -87,8 +88,7 @@ class GnollWarlord(Gnoll):
             return
         if self.scripts.get("combat_handler"):
             return
-
-        players = self.ai.get_targets_in_room()
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             self._schedule_attack(random.choice(players))
 

@@ -17,6 +17,7 @@ from evennia.typeclasses.attributes import AttributeProperty
 
 from enums.damage_type import DamageType
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from utils.targeting.predicates import p_is_character
 
 
 class Wolf(AggressiveMob):
@@ -91,7 +92,7 @@ class Wolf(AggressiveMob):
             return
 
         # Players first (higher priority)
-        players = self.ai.get_targets_in_room()
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             self._schedule_attack(random.choice(players))
             return

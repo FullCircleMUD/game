@@ -19,6 +19,8 @@ import random
 
 from evennia.typeclasses.attributes import AttributeProperty
 
+from utils.targeting.predicates import p_is_character
+
 
 class PackCourageMixin:
     """Fights only when enough allies of the same type are present."""
@@ -97,7 +99,7 @@ class PackCourageMixin:
             return
 
         # Not in combat — look for targets
-        players = self.ai.get_targets_in_room()
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             if self._has_pack_courage() or self._is_cornered():
                 self._schedule_attack(random.choice(players))

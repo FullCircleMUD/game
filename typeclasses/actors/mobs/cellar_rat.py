@@ -14,6 +14,7 @@ from evennia.utils.search import search_tag
 from enums.damage_type import DamageType
 from enums.size import Size
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from utils.targeting.predicates import p_is_character
 
 
 class CellarRat(AggressiveMob):
@@ -63,7 +64,8 @@ class CellarRat(AggressiveMob):
             return
         if self.scripts.get("combat_handler"):
             return
-        players = self.ai.get_targets_in_room()
+
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             import random
             self._schedule_attack(random.choice(players))
