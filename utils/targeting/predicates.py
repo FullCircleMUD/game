@@ -410,24 +410,47 @@ def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
     return getattr(obj, "is_open", True)
 
 
-def p_typeclass(*typeclasses):
+def p_is_typeclass(*typeclasses):
     """Factory — returns a predicate matching any of the given typeclasses.
 
     The general form of the named type predicates. Reach for it when a
     call site needs a type check the library has no name for::
 
         # The urchin won't steal in front of the watch
-        watch = self.ai.get_targets_in_room(p_typeclass(CityWatch), p_living)
+        watch = self.ai.get_targets_in_room(p_is_typeclass(CityWatch), p_living)
 
     Prefer a named predicate where one exists — ``p_is_character`` says
     "player characters only, not NPCs or pets", which is meaning that
-    ``p_typeclass(FCMCharacter)`` does not carry.
+    ``p_is_typeclass(FCMCharacter)`` does not carry.
 
     The caller supplies the classes, so the library imports no typeclasses
     of its own and stays a leaf package.
+
+    Pairs with ``p_not_typeclass``.
     """
     def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
         return isinstance(obj, typeclasses)
+    return _pred
+
+
+def p_not_typeclass(*typeclasses):
+    """Factory — returns a predicate rejecting any of the given typeclasses.
+
+    The inverse of ``p_is_typeclass``. Its use is narrowing a positive type
+    check by carving an exception out of it, which a single positive
+    predicate cannot express::
+
+        # Any actor, but not one of my own kind
+        THREAT_PREDICATES = (
+            p_is_typeclass(FCMCharacter, CombatMob),
+            p_not_typeclass(Rabbit),
+        )
+
+    Named predicates still win where they exist — ``p_not_actor`` and
+    ``p_not_exit`` say what they exclude and why.
+    """
+    def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+        return not isinstance(obj, typeclasses)
     return _pred
 
 

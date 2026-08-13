@@ -23,13 +23,14 @@ from utils.targeting.predicates import (
     p_in_combat,
     p_involved_with,
     p_is_character,
+    p_is_typeclass,
     p_living,
     p_not_actor,
     p_not_exit,
+    p_not_typeclass,
     p_object_visible_to,
     p_passes_lock,
     p_same_height,
-    p_typeclass,
 )
 
 
@@ -501,28 +502,73 @@ class TestPredicates(EvenniaTest):
         pred = p_involved_with(caster)
         self.assertTrue(pred(caster, caster))
 
-    # ── p_typeclass ───────────────────────────────────────────────
+    # ── p_is_typeclass ────────────────────────────────────────────
 
-    def test_p_typeclass_matches_the_named_class(self):
+    def test_p_is_typeclass_matches_the_named_class(self):
         char = MagicMock(spec=DefaultCharacter)
-        self.assertTrue(p_typeclass(DefaultCharacter)(char, caller=None))
+        self.assertTrue(p_is_typeclass(DefaultCharacter)(char, caller=None))
 
-    def test_p_typeclass_rejects_a_different_class(self):
+    def test_p_is_typeclass_rejects_a_different_class(self):
         exit_obj = MagicMock(spec=DefaultExit)
-        self.assertFalse(p_typeclass(DefaultCharacter)(exit_obj, caller=None))
+        self.assertFalse(p_is_typeclass(DefaultCharacter)(exit_obj, caller=None))
 
-    def test_p_typeclass_accepts_several_classes(self):
-        pred = p_typeclass(DefaultCharacter, DefaultExit)
+    def test_p_is_typeclass_accepts_several_classes(self):
+        pred = p_is_typeclass(DefaultCharacter, DefaultExit)
         self.assertTrue(pred(MagicMock(spec=DefaultCharacter), caller=None))
         self.assertTrue(pred(MagicMock(spec=DefaultExit), caller=None))
         self.assertFalse(pred(SimpleNamespace(), caller=None))
 
-    def test_p_typeclass_matches_subclasses(self):
+    def test_p_is_typeclass_matches_subclasses(self):
         """isinstance semantics — a subclass of the named class passes."""
-        self.assertTrue(p_typeclass(DefaultCharacter)(self.char1, caller=None))
+        self.assertTrue(p_is_typeclass(DefaultCharacter)(self.char1, caller=None))
 
-    def test_p_typeclass_with_no_classes_matches_nothing(self):
-        self.assertFalse(p_typeclass()(SimpleNamespace(), caller=None))
+    def test_p_is_typeclass_with_no_classes_matches_nothing(self):
+        self.assertFalse(p_is_typeclass()(SimpleNamespace(), caller=None))
+
+    # ── p_not_typeclass ───────────────────────────────────────────
+
+    def test_p_not_typeclass_rejects_the_named_class(self):
+        char = MagicMock(spec=DefaultCharacter)
+        self.assertFalse(p_not_typeclass(DefaultCharacter)(char, caller=None))
+
+    def test_p_not_typeclass_admits_a_different_class(self):
+        exit_obj = MagicMock(spec=DefaultExit)
+        self.assertTrue(p_not_typeclass(DefaultCharacter)(exit_obj, caller=None))
+
+    def test_p_not_typeclass_rejects_subclasses(self):
+        self.assertFalse(p_not_typeclass(DefaultCharacter)(self.char1, caller=None))
+
+    def test_p_not_typeclass_with_no_classes_admits_everything(self):
+        self.assertTrue(p_not_typeclass()(SimpleNamespace(), caller=None))
+
+    def test_the_pair_is_exactly_inverse(self):
+        """Whatever one admits, the other rejects."""
+        subjects = [
+            MagicMock(spec=DefaultCharacter),
+            MagicMock(spec=DefaultExit),
+            SimpleNamespace(),
+            self.char1,
+        ]
+        positive = p_is_typeclass(DefaultCharacter)
+        negative = p_not_typeclass(DefaultCharacter)
+        for subject in subjects:
+            self.assertNotEqual(
+                positive(subject, caller=None), negative(subject, caller=None)
+            )
+
+    def test_the_pair_composes_to_carve_out_an_exception(self):
+        """The rabbit's rule: any actor, but not one of my own kind."""
+        stack = (
+            p_is_typeclass(DefaultCharacter),
+            p_not_typeclass(DefaultExit),
+        )
+
+        def passes(obj):
+            return all(p(obj, None) for p in stack)
+
+        self.assertTrue(passes(MagicMock(spec=DefaultCharacter)))
+        self.assertFalse(passes(MagicMock(spec=DefaultExit)))
+        self.assertFalse(passes(SimpleNamespace()))
 
     # ── p_excluding ───────────────────────────────────────────────
 
