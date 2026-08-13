@@ -9,6 +9,8 @@ from unittest.mock import patch, MagicMock
 from evennia.utils import create
 from evennia.utils.test_resources import EvenniaTest
 
+from enums.condition import Condition
+
 
 class TestGnollStats(EvenniaTest):
     """Gnoll should have correct L4 stats."""
@@ -173,6 +175,74 @@ class TestGnollRampage(EvenniaTest):
         self.gnoll.at_kill(victim)
 
         mock_execute.assert_not_called()
+
+
+class TestGnollRampagePerception(EvenniaTest):
+    """Rampage must not chain onto a character the gnoll cannot perceive."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.gnoll = create.create_object(
+            "typeclasses.actors.mobs.gnoll.Gnoll",
+            key="a gnoll raider",
+            location=self.room1,
+        )
+        self.gnoll.is_alive = True
+        self.gnoll.hp = 40
+
+        self.victim = MagicMock()
+        self.victim.is_pc = True
+        self.victim.hp = 0
+
+        # char1 is the only live rampage candidate in the room
+        self.char1.hp = 30
+        self.char1.location = self.room1
+        self.char2.location = self.room2
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_rampage_attacks_a_visible_player(self, mock_execute):
+        self.gnoll.at_kill(self.victim)
+        mock_execute.assert_called_once_with(self.gnoll, self.char1)
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_rampage_ignores_an_invisible_player(self, mock_execute):
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.gnoll.at_kill(self.victim)
+        mock_execute.assert_not_called()
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_rampage_ignores_a_hidden_player(self, mock_execute):
+        self.char1.add_condition(Condition.HIDDEN)
+        self.gnoll.at_kill(self.victim)
+        mock_execute.assert_not_called()
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_detect_invis_lets_the_gnoll_rampage_on(self, mock_execute):
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.gnoll.add_condition(Condition.DETECT_INVIS)
+        self.gnoll.at_kill(self.victim)
+        mock_execute.assert_called_once_with(self.gnoll, self.char1)
+
+    @patch("combat.combat_utils.execute_attack")
+    def test_the_broadcast_carries_names_as_mapping(self, mock_execute):
+        """
+        Names must resolve per recipient, not be formatted in up front —
+        otherwise a concealed target is named to the whole room.
+        """
+        with patch.object(self.room1, "msg_contents") as mock_msg:
+            self.gnoll.at_kill(self.victim)
+
+        mapping = mock_msg.call_args.kwargs["mapping"]
+        self.assertIs(mapping["target"], self.char1)
+        self.assertIs(mapping["name"], self.gnoll)
+        # The template travels unsubstituted
+        self.assertIn("{target}", mock_msg.call_args.args[0])
 
 
 class TestGnollRetreat(EvenniaTest):

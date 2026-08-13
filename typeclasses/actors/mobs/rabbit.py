@@ -2,7 +2,7 @@
 Rabbit — skittish prey that flees on sight but fights when cornered.
 
 Behavioural opposite of Mouse: when a character/wolf/dire-wolf enters
-the room, the rabbit flees 4-5 seconds later. If caught and attacked,
+the room, the rabbit flees 2-3 seconds later. If caught and attacked,
 it stands and fights for its 7 HP rather than fleeing combat.
 
 Three indistinguishable variants share the same key/desc:
@@ -63,7 +63,7 @@ class Rabbit(CombatMob):
 
         if self._is_threat(arriving_obj):
             delay(
-                random.uniform(4, 5),
+                random.uniform(2, 3),
                 self._flee_reaction,
             )
 
@@ -77,7 +77,14 @@ class Rabbit(CombatMob):
         return False
 
     def _flee_reaction(self):
-        """Execute the flee — move to an adjacent room if threats remain."""
+        """
+        Execute the flee — move to an adjacent room if threats remain.
+
+        Both callers check for a threat before scheduling this, but they
+        schedule it on a 2-3 second delay, so the check runs again here.
+        The threat may have walked back out in the meantime, or the
+        rabbit may have been pulled into combat while the timer ran.
+        """
         if not self.is_alive or not self.location:
             return
 
@@ -85,10 +92,7 @@ class Rabbit(CombatMob):
         if self.scripts.get("combat_handler"):
             return
 
-        threats = [
-            obj for obj in self.location.contents
-            if obj != self and self._is_threat(obj)
-        ]
+        threats = self.ai.get_targets_in_room(self._is_threat)
         if not threats:
             return
 
@@ -110,13 +114,10 @@ class Rabbit(CombatMob):
             return
 
         # Check for threats — if any, schedule flee
-        threats = [
-            obj for obj in self.location.contents
-            if obj != self and self._is_threat(obj)
-        ]
+        threats = self.ai.get_targets_in_room(self._is_threat)
         if threats:
             delay(
-                random.uniform(4, 5),
+                random.uniform(2, 3),
                 self._flee_reaction,
             )
             return
