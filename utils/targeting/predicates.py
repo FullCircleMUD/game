@@ -143,7 +143,7 @@ def p_object_visible_to(obj, caller):
     This is the object-side counterpart to ``p_actor_visible_to``,
     which gates *actors* by condition. An actor can be HIDDEN by
     condition while a chest is hidden by mixin — independent systems,
-    both composed by ``p_can_see``.
+    both composed by ``p_can_perceive``.
 
     **Visibility predicate family:**
 
@@ -153,7 +153,7 @@ def p_object_visible_to(obj, caller):
     - ``p_height_visible_to`` — spatial only. Use when you need just
       the height gate.
     - ``p_actor_visible_to`` — actor conditions only.
-    - ``p_can_see`` — composite of all three. Use for display and
+    - ``p_can_perceive`` — composite of all three. Use for display and
       perception paths where "can this observer see it?" is the whole
       question.
     """
@@ -214,7 +214,7 @@ def p_actor_visible_to(obj, caller):
     This is separate from ``p_object_visible_to`` which handles
     ``HiddenObjectMixin`` (hidden objects with ``find_dc``). The two
     systems are independent: an actor can be HIDDEN (condition) while
-    a chest can be hidden (mixin). ``p_can_see`` composes both.
+    a chest can be hidden (mixin). ``p_can_perceive`` composes both.
     """
     has_cond = getattr(obj, "has_condition", None)
     if has_cond is None:
@@ -238,33 +238,80 @@ def p_actor_visible_to(obj, caller):
     return True
 
 
-def p_can_see(obj, caller):
-    """True if ``caller`` can perceive ``obj`` — composite visibility gate.
+def p_can_perceive(obj, caller):
+    """True if ``obj`` is present to ``caller`` and not concealed from them.
 
-    Combines all visibility checks into a single predicate:
+    Composite of the three concealment axes:
 
     1. ``p_object_visible_to`` — stealth (hidden/invisible object mixin)
     2. ``p_height_visible_to`` — spatial (height-gated visibility)
     3. ``p_actor_visible_to`` — actor conditions (HIDDEN/INVISIBLE)
 
-    Use this for **display/perception** paths: room appearance, look
-    command, scan command — anywhere the question is "can the player
-    see this thing right now?"
+    **Perceiving is not seeing.** This asks only whether the thing is
+    there and unconcealed. It does not ask whether the observer has
+    working sight — ``p_can_see`` is the stricter companion that adds
+    light and blindness on top. A blind character, or one standing in an
+    unlit room, perceives everything present: they know bodies are
+    there, they cannot tell who.
 
-    Targeting resolvers should generally use the specific predicates
-    instead, since they handle height through range predicates
-    (``p_same_height`` / ``p_different_height``) separately from
-    stealth visibility.
+    The split exists because the two behave differently in play:
 
-    Extensible — when a new visibility gate is introduced (e.g.
-    ethereal, phased, fog-of-war), add it here and all display
-    consumers pick it up automatically.
+    - **Concealment excludes.** A hidden or invisible actor fails this
+      predicate, is filtered out, and the observer never learns they
+      exist.
+    - **Darkness redacts.** It does not reach this predicate at all.
+      ``BaseActor.get_display_name`` and ``RoomBase.get_display_name``
+      consult ``utils.visibility.looker_is_blind`` at *render* time and
+      return "Someone" / "Somewhere". The candidate stays in the list.
+
+    So a dark room reads as several people you cannot identify, not as
+    an empty room. Folding darkness in here would turn one into the
+    other, and would cost a room-contents scan per candidate to answer
+    a question that has one answer for the whole room.
+
+    Use this when the question is "is it there": room appearance, look,
+    scan, mob perception, and any action that does not depend on sight —
+    swinging at the opponent you are already fighting, finding your own
+    dagger by touch. Where the action genuinely needs eyes, use
+    ``p_can_see``.
+
+    Extensible — when a new concealment gate is introduced (ethereal,
+    phased, fog-of-war), add it here and every consumer picks it up,
+    including ``p_can_see``.
     """
     return (
         p_object_visible_to(obj, caller)
         and p_height_visible_to(obj, caller)
         and p_actor_visible_to(obj, caller)
     )
+
+
+def p_can_see(obj, caller):
+    """True if ``caller`` can perceive ``obj`` **and** actually see it.
+
+    ``p_can_perceive`` plus working sight: the caller must not be
+    ``BLINDED``, and their room must not be dark for them. Darkvision,
+    carried light sources, lit fixtures and the day/night phase are all
+    folded into that second half by ``RoomBase.is_dark``.
+
+    Use this where the action needs eyes — reading, climbing, picking a
+    lock, disarming a trap, choosing a target by name across a room.
+    Use ``p_can_perceive`` where it does not: fighting an opponent you
+    are already engaged with, or handling something in your own pack.
+
+    Sight is a property of the observer, not of the candidate, so this
+    is the same answer for every object in the room. That makes it more
+    expensive than it looks — ``is_dark`` scans room contents for light
+    sources and the caller's inventory for a carried one, per candidate.
+    Fine on a targeting path resolving one command; do not put it on a
+    display path that renders every object in the room.
+
+    Not for display, for a second reason: darkness is supposed to redact
+    rather than exclude. See ``p_can_perceive`` for that distinction.
+    """
+    from utils.visibility import looker_is_blind
+
+    return not looker_is_blind(caller) and p_can_perceive(obj, caller)
 
 
 def p_living(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
@@ -384,7 +431,7 @@ def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
     be both unlocked and open.
 
     State check only. It says nothing about whether the caller can see or
-    reach the exit; compose with ``p_can_see`` and
+    reach the exit; compose with ``p_can_perceive`` and
     ``p_passes_lock("traverse")`` for the whole "can I go this way?"
     question::
 
@@ -393,7 +440,7 @@ def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
             ex for ex in room.exits
             if ex.destination
             and traversable(ex, caller)
-            and p_can_see(ex, caller)
+            and p_can_perceive(ex, caller)
             and p_is_open_exit(ex, caller)
         ]
 

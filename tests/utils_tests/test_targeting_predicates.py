@@ -16,6 +16,7 @@ from enums.condition import Condition
 
 from utils.targeting.predicates import (
     p_actor_visible_to,
+    p_can_perceive,
     p_can_see,
     p_different_height,
     p_excluding,
@@ -411,17 +412,17 @@ class TestPredicates(EvenniaTest):
             )
         )
 
-    # ── p_can_see (composite) ────────────────────────────────────
+    # ── p_can_perceive (composite) ────────────────────────────────────
 
-    def test_p_can_see_true_when_both_pass(self):
+    def test_p_can_perceive_true_when_both_pass(self):
         obj = SimpleNamespace()  # no hidden mixin, no height mixin
-        self.assertTrue(p_can_see(obj, caller=None))
+        self.assertTrue(p_can_perceive(obj, caller=None))
 
-    def test_p_can_see_false_when_hidden(self):
+    def test_p_can_perceive_false_when_hidden(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
-        self.assertFalse(p_can_see(obj, caller=None))
+        self.assertFalse(p_can_perceive(obj, caller=None))
 
-    def test_p_can_see_false_when_height_gated(self):
+    def test_p_can_perceive_false_when_height_gated(self):
         room = SimpleNamespace(visibility_up_barrier=(1, "small"))
         obj = SimpleNamespace(
             room_vertical_position=1, size="tiny", location=room,
@@ -429,7 +430,7 @@ class TestPredicates(EvenniaTest):
         from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
         obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
         looker = SimpleNamespace(room_vertical_position=0)
-        self.assertFalse(p_can_see(obj, looker))
+        self.assertFalse(p_can_perceive(obj, looker))
 
     # ── p_involved_with ──────────────────────────────────────────
 
