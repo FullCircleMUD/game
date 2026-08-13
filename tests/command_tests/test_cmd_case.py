@@ -57,7 +57,7 @@ class TestCaseGates(EvenniaCommandTest):
         self.call(CmdCase(), "Char2", "You can't case someone while in combat!")
 
     def test_hidden_target_not_found(self):
-        """HIDDEN targets filtered by p_can_see — not found."""
+        """HIDDEN targets filtered by p_can_perceive — not found."""
         self.char2.add_condition(Condition.HIDDEN)
         result = self.call(CmdCase(), "Char2")
         self.assertIn("no 'Char2' here", result)

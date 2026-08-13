@@ -26,6 +26,7 @@ from enums.skills_enum import skills
 from utils.dice_roller import dice
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 # Cooldown per target in seconds
@@ -69,9 +70,10 @@ class CmdPickpocket(CmdSkillBase):
         thing_name = parts[0].strip()
         target_name = parts[1].strip()
 
-        # Darkness — can't see whose pockets to pick
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Lifting something off a specific person needs eyes on both
+        # them and the pocket.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{target_name}'.")
             return
 
         # ── Find target ──

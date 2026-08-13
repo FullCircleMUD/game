@@ -16,10 +16,11 @@ from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 def _mappable_exits(room, surveyor):
-    """Exits the surveyor can perceive, and so can record.
+    """Exits the surveyor can see, and so can record.
 
     A shut door is no obstacle to mapping — you are standing in the street
     looking at the building, and the door itself tells you a room is there.
@@ -32,7 +33,7 @@ def _mappable_exits(room, surveyor):
     of knowing exist, turning ``survey`` into a secret-door detector.
 
     Open or closed is therefore not consulted; only whether the exit can be
-    perceived at all.
+    seen at all.
     """
     return [ex for ex in room.exits if ex.destination and p_can_see(ex, surveyor)]
 
@@ -72,6 +73,12 @@ class CmdSurvey(FCMCommandMixin, Command):
 
         room = caller.location
         if room is None:
+            return
+
+        # Surveying is careful study of the place and its doorways, so it
+        # needs eyes. Nothing about it works by touch.
+        if looker_is_blind(caller):
+            caller.msg("It's too dark to make anything out.")
             return
 
         from world.cartography.map_registry import get_map_keys_for_room

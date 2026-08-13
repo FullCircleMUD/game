@@ -16,6 +16,7 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 from .cmd_skill_base import CmdSkillBase
 
@@ -93,9 +94,9 @@ class CmdTame(CmdSkillBase):
         if not room:
             return
 
-        # Darkness — can't approach what you can't see
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Taming is reading a creature's body language as you approach.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
         target, _ = resolve_target(

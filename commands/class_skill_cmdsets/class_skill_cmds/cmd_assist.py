@@ -18,6 +18,7 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 ASSIST_ROUNDS = {
@@ -58,9 +59,11 @@ class CmdAssist(CmdSkillBase):
         if not room:
             return None
 
-        # Darkness — can't see who you're assisting
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Stepping in beside someone means picking them out of the
+        # room, so this refuses rather than costing time. Name who they
+        # asked for — "you don't see them" reads as absent.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return None
 
         target, _ = resolve_target(

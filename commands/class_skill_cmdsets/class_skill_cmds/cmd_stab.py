@@ -23,6 +23,7 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 STAB_COOLDOWNS = {
@@ -90,10 +91,11 @@ class CmdStab(CmdSkillBase):
         if handlers:
             handler = handlers[0]
 
-        # Darkness — can't aim for vitals you can't see
+        # Aiming for vitals needs to see them. No target name to quote
+        # — stab falls back to the current combat target.
         room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if looker_is_blind(caller):
+            caller.msg("It's too dark to see where to strike.")
             return
 
         target = None
