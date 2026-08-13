@@ -473,6 +473,55 @@ def p_excluding(*excluded):
     return _pred
 
 
+def p_larger_than(actor):
+    """Factory — returns a predicate matching objects bigger than ``actor``.
+
+    Strict comparison on the ``Size`` scale, so equals do not pass. Takes
+    the actor to compare *against*, not the caller doing the looking — the
+    two differ whenever one actor sizes something up on another's behalf.
+
+    The prey/predator axis: a mob flees what is larger and hunts what is
+    smaller, without either rule naming a typeclass::
+
+        threats = self.ai.get_targets_in_room(p_larger_than(self))
+
+    An object with no ``size`` counts as ``MEDIUM``. An unrecognised size
+    fails the comparison rather than guessing.
+
+    Pairs with ``p_smaller_than``.
+    """
+    from enums.size import Size, bigger_than
+
+    def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+        try:
+            return bigger_than(
+                getattr(obj, "size", Size.MEDIUM),
+                getattr(actor, "size", Size.MEDIUM),
+            )
+        except (ValueError, KeyError):
+            return False
+    return _pred
+
+
+def p_smaller_than(actor):
+    """Factory — returns a predicate matching objects smaller than ``actor``.
+
+    The inverse of ``p_larger_than``, and strict in the same way, so an
+    object of equal size passes neither. See that predicate for the rest.
+    """
+    from enums.size import Size, smaller_than
+
+    def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+        try:
+            return smaller_than(
+                getattr(obj, "size", Size.MEDIUM),
+                getattr(actor, "size", Size.MEDIUM),
+            )
+        except (ValueError, KeyError):
+            return False
+    return _pred
+
+
 def p_fits_through(actor):
     """Factory — returns a predicate that checks ``actor`` fits an exit.
 

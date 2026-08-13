@@ -24,6 +24,7 @@ from utils.targeting.predicates import (
     p_involved_with,
     p_is_character,
     p_is_typeclass,
+    p_larger_than,
     p_living,
     p_not_actor,
     p_not_exit,
@@ -31,6 +32,7 @@ from utils.targeting.predicates import (
     p_object_visible_to,
     p_passes_lock,
     p_same_height,
+    p_smaller_than,
 )
 
 
@@ -555,6 +557,59 @@ class TestPredicates(EvenniaTest):
             self.assertNotEqual(
                 positive(subject, caller=None), negative(subject, caller=None)
             )
+
+    # ── p_larger_than / p_smaller_than ────────────────────────────
+
+    def test_p_larger_than_matches_a_bigger_object(self):
+        rabbit = SimpleNamespace(size=Size.TINY)
+        wolf = SimpleNamespace(size=Size.MEDIUM)
+        self.assertTrue(p_larger_than(rabbit)(wolf, caller=None))
+
+    def test_p_larger_than_rejects_a_smaller_object(self):
+        wolf = SimpleNamespace(size=Size.MEDIUM)
+        rabbit = SimpleNamespace(size=Size.TINY)
+        self.assertFalse(p_larger_than(wolf)(rabbit, caller=None))
+
+    def test_p_larger_than_is_strict_about_equals(self):
+        a = SimpleNamespace(size=Size.MEDIUM)
+        b = SimpleNamespace(size=Size.MEDIUM)
+        self.assertFalse(p_larger_than(a)(b, caller=None))
+
+    def test_p_smaller_than_matches_a_smaller_object(self):
+        wolf = SimpleNamespace(size=Size.MEDIUM)
+        rabbit = SimpleNamespace(size=Size.TINY)
+        self.assertTrue(p_smaller_than(wolf)(rabbit, caller=None))
+
+    def test_p_smaller_than_is_strict_about_equals(self):
+        a = SimpleNamespace(size=Size.MEDIUM)
+        b = SimpleNamespace(size=Size.MEDIUM)
+        self.assertFalse(p_smaller_than(a)(b, caller=None))
+
+    def test_equal_sizes_pass_neither(self):
+        """The wolf's rule: bigger = flee, smaller = hunt, equal = ignore."""
+        a = SimpleNamespace(size=Size.LARGE)
+        b = SimpleNamespace(size=Size.LARGE)
+        self.assertFalse(p_larger_than(a)(b, caller=None))
+        self.assertFalse(p_smaller_than(a)(b, caller=None))
+
+    def test_size_predicates_accept_raw_strings(self):
+        """size_value takes enum members or raw strings."""
+        rabbit = SimpleNamespace(size="tiny")
+        ogre = SimpleNamespace(size="huge")
+        self.assertTrue(p_larger_than(rabbit)(ogre, caller=None))
+        self.assertTrue(p_smaller_than(ogre)(rabbit, caller=None))
+
+    def test_a_sizeless_object_counts_as_medium(self):
+        rabbit = SimpleNamespace(size=Size.TINY)
+        unsized = SimpleNamespace()
+        self.assertTrue(p_larger_than(rabbit)(unsized, caller=None))
+
+    def test_an_unrecognised_size_fails_the_comparison(self):
+        """Rather than guessing — neither predicate claims a result."""
+        rabbit = SimpleNamespace(size=Size.TINY)
+        nonsense = SimpleNamespace(size="enormous")
+        self.assertFalse(p_larger_than(rabbit)(nonsense, caller=None))
+        self.assertFalse(p_smaller_than(rabbit)(nonsense, caller=None))
 
     def test_the_pair_composes_to_carve_out_an_exception(self):
         """The rabbit's rule: any actor, but not one of my own kind."""
