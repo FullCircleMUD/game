@@ -8,7 +8,7 @@ class MasteryLevel(Enum):
     Mastery levels for all skills (weapons, class skills, general skills)
     
     Each level requires a specific point investment to achieve.
-    The cost is cumulative - EXPERT costs 7 total points (not just 4).
+    The cost is cumulative - EXPERT costs 9 total points (not just 5).
     """
     # Simple string values - data moved to external dictionaries
     UNSKILLED = 0
@@ -51,7 +51,7 @@ _MASTERY_TRAINING_POINTS = {
     MasteryLevel.SKILLED: 3,    # total 4
     MasteryLevel.EXPERT: 5,     # total 9
     MasteryLevel.MASTER: 7,     # total 16
-    MasteryLevel.GRANDMASTER: 9, # total 27
+    MasteryLevel.GRANDMASTER: 9, # total 25
 }
 
 # MASTERY LEVEL REVERSE LOOKUP
