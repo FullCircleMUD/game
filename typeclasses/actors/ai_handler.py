@@ -69,7 +69,7 @@ class AIHandler:
         """
         Return everything in the room this mob can perceive.
 
-        Perception is the floor. ``p_can_see`` always applies and the
+        Perception is the floor. ``p_can_perceive`` always applies and the
         supplied predicates narrow the result further — they can never
         widen it. A concealed actor is returned only when the mob holds
         the counter that reveals them: the ``true_sight`` effect for
@@ -93,18 +93,18 @@ class AIHandler:
                 a named predicate stack as an attribute and pass it whole.
         """
         from utils.targeting.helpers import walk_contents
-        from utils.targeting.predicates import p_can_see
+        from utils.targeting.predicates import p_can_perceive
 
         if len(predicates) == 1 and isinstance(predicates[0], (list, tuple)):
             predicates = tuple(predicates[0])
 
         mob = self.obj
         # Caller predicates lead: they are typically cheap isinstance
-        # checks, so they short-circuit most candidates before p_can_see
+        # checks, so they short-circuit most candidates before p_can_perceive
         # does its method calls.
         return [
             obj
-            for obj in walk_contents(mob, mob.location, *predicates, p_can_see)
+            for obj in walk_contents(mob, mob.location, *predicates, p_can_perceive)
             if obj is not mob
         ]
 

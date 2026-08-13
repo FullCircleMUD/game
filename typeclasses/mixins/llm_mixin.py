@@ -169,27 +169,21 @@ class LLMMixin:
         "Some folk have no manners.",
         "In one door and out the other.",
         "Nice to see you too {name}",
-        "And I made an LLM call and all for you {name}",
     ]
 
-    # ── Snub Reaction ─────────────────────────────────────────────────
+    # ── Blind Arrival Challenge ───────────────────────────────────────
 
-    llm_snub_socials = AttributeProperty(None, autocreate=False)
-    """Social keys the NPC picks from when the speaker leaves before the
-    response arrives. ``None`` = ``_SNUB_SOCIALS``."""
+    llm_blind_challenges = AttributeProperty(None, autocreate=False)
+    """Lines the NPC picks from when someone arrives it cannot see.
+    ``None`` = ``_BLIND_CHALLENGES``. No ``{name}`` — it does not know who
+    has arrived, which is the whole point."""
 
-    llm_snub_comments = AttributeProperty(None, autocreate=False)
-    """Lines the NPC picks from to mutter after the departed speaker.
-    ``None`` = ``_SNUB_COMMENTS``. ``{name}`` fills with their name."""
-
-    _SNUB_SOCIALS = ["frown", "pout", "shrug", "sigh", "glare"]
-
-    _SNUB_COMMENTS = [
-        "Well. Not even a hello.",
-        "Well, someone's in a hurry!",
-        "Some folk have no manners.",
-        "In one door and out the other.",
-        "Nice to see you too {name}",
+    _BLIND_CHALLENGES = [
+        "Is someone there?",
+        "Who's that? Name yourself.",
+        "I hear you. Speak up.",
+        "Show yourself.",
+        "Someone's come in. Who is it?",
     ]
 
     # ==================================================================
@@ -283,12 +277,16 @@ class LLMMixin:
         # not appear in the prompt. walk_contents rather than the AIHandler
         # helper because LLMMixin also composes onto BaseNPC, which has no
         # ``.ai``. p_is_character excludes self and is cheap, so it leads.
+        #
+        # Perceive, not see: an NPC in the dark still knows someone is there.
+        # get_display_name carries the distinction into the prompt — a name
+        # when it can see, its unseen_name when it cannot.
         from utils.targeting.helpers import walk_contents
-        from utils.targeting.predicates import p_can_see, p_is_character
+        from utils.targeting.predicates import p_can_perceive, p_is_character
 
         nearby = [
-            obj.key
-            for obj in walk_contents(self, location, p_is_character, p_can_see)
+            obj.get_display_name(self)
+            for obj in walk_contents(self, location, p_is_character, p_can_perceive)
         ]
         nearby_str = ", ".join(nearby) if nearby else "nobody"
 
@@ -637,6 +635,16 @@ class LLMMixin:
         """
         if not self.llm_enabled or not self.llm_hook_arrive:
             return
+
+        # An arrival is identified by sight alone — nobody has spoken yet.
+        # A sightless NPC hears someone come in and challenges them; it
+        # cannot greet by name because it does not know the name.
+        from utils.visibility import looker_is_blind
+
+        if looker_is_blind(self):
+            self._deliver_blind_challenge()
+            return
+
         self.llm_respond(
             player,
             f"{player.key} has just entered the room.",
@@ -717,6 +725,23 @@ class LLMMixin:
         self._msg_room_dark_aware(
             f'|c{self.key} says:|n "{comment}"',
             f'|cSomeone says:|n "{comment}"',
+        )
+
+    def _deliver_blind_challenge(self):
+        """
+        Challenge an arrival the NPC heard but could not see.
+
+        Stands in for the LLM rather than feeding it: an NPC that cannot
+        see has no way to know who walked in, so there is nothing for a
+        prompt to work with and no call worth paying for.
+        """
+        if not self.location:
+            return
+
+        line = random.choice(self.llm_blind_challenges or self._BLIND_CHALLENGES)
+        self._msg_room_dark_aware(
+            f'|c{self.key} says:|n "{line}"',
+            f'|cSomeone says:|n "{line}"',
         )
 
     def _deliver_response(self, speaker, response_text, interaction_type):

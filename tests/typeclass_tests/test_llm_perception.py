@@ -30,6 +30,10 @@ class LLMPerceptionTest(EvenniaTest):
 
     def setUp(self):
         super().setUp()
+        # A bare test room has no light source and reads as dark, which
+        # would redact every name. Light it, and let the sightlessness
+        # tests put it out deliberately.
+        self.room1.always_lit = True
         self.npc = create_object(
             LLMRoleplayNPC,
             key="Rowan",
@@ -84,3 +88,59 @@ class TestCounters(LLMPerceptionTest):
         self.char1.add_condition(Condition.INVISIBLE)
         self.npc.apply_true_sight(duration_seconds=300)
         self.assertNotIn(self.char1.key, self._nearby())
+
+
+class TestSightlessness(LLMPerceptionTest):
+    """
+    Presence survives sightlessness, identity does not.
+
+    An NPC that cannot see still knows someone is in the room — it hears
+    and senses them — but has no way to put a name to them. The prompt
+    must say so rather than handing the model a name it could not have.
+    """
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_dark_room_hides_the_players_name(self):
+        self._darken()
+        self.assertNotIn(self.char1.key, self._nearby())
+
+    def test_a_dark_room_still_reports_someone_present(self):
+        self._darken()
+        self.assertEqual(self._nearby(), self.char1.unseen_name)
+
+    def test_a_dark_room_does_not_read_as_nobody(self):
+        self._darken()
+        self.assertNotEqual(self._nearby(), "nobody")
+
+    def test_a_blinded_npc_hides_the_players_name(self):
+        self.npc.add_condition(Condition.BLINDED)
+        self.assertNotIn(self.char1.key, self._nearby())
+
+    def test_a_blinded_npc_still_reports_someone_present(self):
+        self.npc.add_condition(Condition.BLINDED)
+        self.assertEqual(self._nearby(), self.char1.unseen_name)
+
+    def test_darkvision_restores_the_name_in_a_dark_room(self):
+        self._darken()
+        self.npc.add_condition(Condition.DARKVISION)
+        self.assertIn(self.char1.key, self._nearby())
+
+    def test_darkvision_does_not_rescue_a_blinded_npc(self):
+        self._darken()
+        self.npc.add_condition(Condition.DARKVISION)
+        self.npc.add_condition(Condition.BLINDED)
+        self.assertNotIn(self.char1.key, self._nearby())
+
+    def test_a_concealed_player_stays_absent_in_the_dark(self):
+        """Concealment excludes; darkness only redacts. Absent beats unnamed."""
+        self._darken()
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.assertEqual(self._nearby(), "nobody")
+
+    def test_a_custom_unseen_name_is_used(self):
+        self._darken()
+        self.char1.unseen_name = "a shape in the dark"
+        self.assertEqual(self._nearby(), "a shape in the dark")

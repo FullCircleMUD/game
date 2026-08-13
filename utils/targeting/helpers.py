@@ -7,7 +7,7 @@ docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
-    p_can_see,
+    p_can_perceive,
     p_in_combat,
     p_involved_with,
     p_is_character,
@@ -28,10 +28,16 @@ def open_exits(caller):
     """Return the exits ``caller`` could actually leave the room through.
 
     Three separate questions, one predicate each: the traverse lock and
-    height access, whether the caller can see the exit at all, and whether
-    a door on it is open and unlocked. Exits are read from ``room.exits``,
-    Evennia's own filtered view — there is no "is an exit" predicate
-    because there is no need for one.
+    height access, whether the exit is concealed from the caller, and
+    whether a door on it is open and unlocked. Exits are read from
+    ``room.exits``, Evennia's own filtered view — there is no "is an exit"
+    predicate because there is no need for one.
+
+    Deliberately ``p_can_perceive`` and not ``p_can_see``: a doorway is
+    found by touch, and a character in an unlit room would otherwise have
+    no exits at all and count as cornered. Realism would gate this on
+    sight; playability wins, because losing your light should not turn
+    every escape into a forced fight.
 
     Selection only. The chosen exit's ``at_traverse`` is what enforces
     passage and applies gates these predicates cannot see — encumbrance,
@@ -50,7 +56,7 @@ def open_exits(caller):
         ex for ex in room.exits
         if ex.destination
         and _traversable(ex, caller)
-        and p_can_see(ex, caller)
+        and p_can_perceive(ex, caller)
         and p_is_open_exit(ex, caller)
     ]
 

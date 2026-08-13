@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from commands.all_char_cmds.cmd_say import CmdSay
+from enums.condition import Condition
 
 
 def _immediate_call_later(delay, fn, *args, **kwargs):
@@ -37,6 +38,9 @@ class TestLLMMixin(EvenniaCommandTest):
         self.account.attributes.add("wallet_address", WALLET_A)
         self.char1.db.languages = {"common"}
         self.char2.db.languages = {"common"}
+        # A bare test room has no light source and reads as dark, which
+        # would send every arrival down the blind-challenge path.
+        self.room1.always_lit = True
 
     def _create_llm_npc(self, **kwargs):
         """Create an LLMRoleplayNPC in the test room."""
@@ -211,6 +215,94 @@ class TestLLMMixin(EvenniaCommandTest):
         npc = self._create_llm_npc()
         npc.at_llm_player_arrive(self.char1)
         mock_respond.assert_not_called()
+
+    # --- Blind arrival challenge ---
+    #
+    # An arrival is identified by sight alone — nobody has spoken yet. A
+    # sightless NPC has no name to greet, so it challenges instead of
+    # calling the LLM with nothing to work with.
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_dark_room_arrival_makes_no_llm_call(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        self._darken()
+        npc.at_llm_player_arrive(self.char1)
+        mock_respond.assert_not_called()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_blinded_npc_arrival_makes_no_llm_call(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        npc.at_llm_player_arrive(self.char1)
+        mock_respond.assert_not_called()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_darkvision_npc_still_calls_the_llm(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.DARKVISION)
+        self._darken()
+        npc.at_llm_player_arrive(self.char1)
+        mock_respond.assert_called_once()
+
+    def test_blind_arrival_speaks_a_challenge(self):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        spoken = mock_say.call_args[0][0]
+        self.assertTrue(
+            any(line in spoken for line in npc._BLIND_CHALLENGES),
+            f"no challenge line found in: {spoken}",
+        )
+
+    def test_blind_challenge_names_nobody(self):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        # Both the lit and the dark rendering of the line
+        for rendered in mock_say.call_args[0]:
+            self.assertNotIn(self.char1.key, rendered)
+
+    def test_a_custom_challenge_pool_is_used(self):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.llm_blind_challenges = ["Who goes there, damn you?"]
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        self.assertIn("Who goes there, damn you?", mock_say.call_args[0][0])
+
+    def test_a_disabled_arrive_hook_challenges_nobody(self):
+        npc = self._create_llm_npc()
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        mock_say.assert_not_called()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_speech_still_reaches_the_llm_when_blind(self, mock_respond):
+        """A voice identifies a person — blindness must not mute conversation."""
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch(
+            "twisted.internet.reactor.callLater", side_effect=_immediate_call_later
+        ):
+            npc.at_llm_say_heard(self.char1, "hello there")
+        mock_respond.assert_called_once()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_whisper_still_reaches_the_llm_when_blind(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_whisper=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch(
+            "twisted.internet.reactor.callLater", side_effect=_immediate_call_later
+        ):
+            npc.at_llm_whisper_received(self.char1, "secret message")
+        mock_respond.assert_called_once()
 
     # --- Non-common language ignored ---
 
