@@ -632,9 +632,13 @@ class FCMCharacter(
             return True
 
     def _wimpy_flee(self):
-        """Auto-flee when HP drops below wimpy threshold during combat."""
-        import random
-        from combat.combat_utils import get_sides
+        """Auto-flee when HP drops below the wimpy threshold during combat.
+
+        Wimpy is a convenience, not a better escape: it saves typing ``flee``
+        fast enough, and nothing more. So it runs the same process, rolls the
+        same check, and can fail the same way — see ``flee_from_combat``.
+        """
+        from combat.combat_utils import FleeWording, flee_from_combat
 
         if self.wimpy_threshold <= 0 or self.hp <= 0:
             return
@@ -645,44 +649,18 @@ class FCMCharacter(
         if not handler:
             return
 
-        # Find open exits
-        room = self.location
-        if not room:
-            return
-        exits = [
-            ex for ex in room.exits
-            if ex.destination and ex.access(self, "traverse")
-        ]
-        if not exits:
-            self.msg("|rYou try to flee but there's nowhere to go!|n")
-            return
-
-        chosen = random.choice(exits)
-        direction = chosen.key
-
-        # Capture enemies before stopping combat
-        _, enemies = get_sides(self)
-
-        # Stop combat before moving
-        handler.stop_combat()
-
-        self.msg(f"|rYour wimpy threshold is reached — you flee {direction}!|n")
-        if room:
-            room.msg_contents(
-                f"$You() $conj(panic) and $conj(flee) {direction}!",
-                from_obj=self,
-                exclude=[self],
-            )
-
-        self.move_to(chosen.destination)
-
-        # Clean up combat for remaining enemies
-        for enemy in enemies:
-            enemy_handler = (enemy.get_combat_handler()
-                             if hasattr(enemy, "get_combat_handler")
-                             else None)
-            if enemy_handler:
-                enemy_handler._check_stop_combat()
+        flee_from_combat(self, handler, FleeWording(
+            to_actor="|rYour wimpy threshold is reached — you flee {direction}!|n",
+            failed_to_actor=(
+                "|rYour wimpy threshold is reached but you can't break away!|n"
+            ),
+            failed_in_room="$You() $conj(try) to run but cannot escape!",
+            no_exits="|rYou try to flee but there's nowhere to go!|n",
+            room_msgs={
+                "msg_from": "{name} panics and flees {direction}!",
+                "msg_to": "{name} arrives {direction}, panicking!",
+            },
+        ))
 
     def die(self, cause="unknown", killer=None):
         """

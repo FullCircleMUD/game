@@ -89,27 +89,39 @@ class AIHandler:
 
     def get_area_exits(self):
         """
-        Return exits leading to rooms tagged with the mob's area_tag.
+        Return the exits this mob can actually use, within its area.
 
-        Uses the 'mob_area' tag category. If the mob has no area_tag,
-        returns all traversable exits (no restriction).
+        Two questions in sequence. Can the mob go that way at all —
+        ``open_exits`` answers that, applying the traverse lock and height
+        access, whether the mob can see the exit, and whether a door on it is
+        open and unlocked. Then, should it: exits are narrowed to rooms
+        sharing the mob's ``mob_area`` tag so populations stay in their zone.
+        A mob with no area tag is unrestricted and gets the first answer.
+
+        Every mob movement decision reaches this — ``wander``,
+        ``flee_to_random_room``, ``_flee_from_threat``, ``_is_cornered`` and
+        the wounded retreats — so a mob will not wander through a closed door,
+        and a mob boxed in by one counts as cornered and turns to fight.
+
+        Selection only. ``at_traverse`` on the chosen exit is what enforces
+        passage, and applies gates these predicates cannot see (encumbrance,
+        size, traps).
         """
+        from utils.targeting.helpers import open_exits
+
         mob = self.obj
-        area_tags = mob.tags.get(category="mob_area", return_list=True)
-        area_tag = area_tags[0] if area_tags else None
         if not mob.location:
             return []
 
-        all_exits = [
-            exi for exi in mob.location.exits
-            if exi.access(mob, "traverse") and exi.destination
-        ]
+        usable = open_exits(mob)
 
+        area_tags = mob.tags.get(category="mob_area", return_list=True)
+        area_tag = area_tags[0] if area_tags else None
         if not area_tag:
-            return all_exits
+            return usable
 
         return [
-            exi for exi in all_exits
+            exi for exi in usable
             if area_tag in (
                 exi.destination.tags.get(
                     category="mob_area", return_list=True

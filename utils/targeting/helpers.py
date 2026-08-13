@@ -38,7 +38,10 @@ def open_exits(caller):
     size, traps — so a caller picks from this list and then traverses,
     never treating membership as permission.
 
-    Consumers: cmd_flee, cmd_retreat.
+    Consumers: every path that chooses a way out. ``flee_from_combat`` and
+    ``retreat_group`` in ``combat/combat_utils.py``, and mob AI through
+    ``AIHandler.get_area_exits`` — which is itself reached by wandering,
+    fleeing, retreating and the cornered check.
     """
     room = getattr(caller, "location", None)
     if not room:

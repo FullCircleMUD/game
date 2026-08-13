@@ -311,3 +311,173 @@ class TestCmdScanDoors(EvenniaCommandTest):
         )
         result = self.call(CmdScan(), "")
         self.assertIn("North", result)
+
+    def _goblin_beyond(self):
+        create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a goblin",
+            location=self.north_room,
+            nohome=True,
+        )
+
+    # Open and closed are covered above. Lock state is not a visibility
+    # mechanic, and open-and-locked is a data anomaly lock() cannot produce,
+    # so the only combination left worth pinning is the real one.
+
+    def test_closed_and_locked_door_is_not_scannable(self):
+        """Blocked because it is shut. Locking adds nothing to the sight line.
+
+        A lock governs passage, not sight — the closed state is doing all the
+        work here, and this exists to say so.
+        """
+        self.door.is_open = False
+        self.door.is_locked = True
+        self._goblin_beyond()
+        self.assertIn("no one nearby", self.call(CmdScan(), ""))
+
+    def test_hidden_door_blocks_scan(self):
+        """An undiscovered door does not leak what lies beyond it.
+
+        Scanning past a door the character cannot perceive would report who
+        is through a passage they do not know exists.
+        """
+        self.door.is_open = True
+        self.door.is_hidden = True
+        create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a goblin",
+            location=self.north_room,
+            nohome=True,
+        )
+        result = self.call(CmdScan(), "")
+        self.assertIn("no one nearby", result)
+
+    def test_discovered_hidden_door_allows_scan(self):
+        """Once found, it is an ordinary open doorway."""
+        self.door.is_open = True
+        self.door.is_hidden = True
+        self.door.discover(self.char1)
+        create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a goblin",
+            location=self.north_room,
+            nohome=True,
+        )
+        result = self.call(CmdScan(), "")
+        self.assertIn("North", result)
+
+    def test_traverse_locked_exit_is_still_scannable(self):
+        """A sight line is not a route.
+
+        You can see down a corridor you are not permitted to walk into, so a
+        traverse lock must not block scanning — only something that actually
+        obstructs sight does.
+        """
+        self.door.is_open = True
+        self.door.locks.add("traverse:false()")
+        create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a goblin",
+            location=self.north_room,
+            nohome=True,
+        )
+        result = self.call(CmdScan(), "")
+        self.assertIn("North", result)
+
+
+class TestCmdScanDoorsAtDepth(EvenniaCommandTest):
+    """Gating applies at every step outward, not just the first.
+
+    The check inside the distance loop is a separate call site from the one
+    that admits the first exit, and it decides whether a scan stops partway
+    down a corridor. Rooms nearer than the obstruction must still report.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        for ex in self.room1.contents_get(content_type="exit"):
+            ex.delete()
+
+        # room1 --north--> near --north(door)--> far
+        self.near = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="Near Room", nohome=True,
+        )
+        self.near.always_lit = True
+        self.far = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="Far Room", nohome=True,
+        )
+        self.far.always_lit = True
+
+        first = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="north", location=self.room1, destination=self.near, nohome=True,
+        )
+        first.set_direction("north")
+
+        self.far_door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="north", location=self.near, destination=self.far, nohome=True,
+        )
+        self.far_door.set_direction("north")
+
+        create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a goblin", location=self.near, nohome=True,
+        )
+        create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a troll", location=self.far, nohome=True,
+        )
+
+    def test_open_door_at_depth_two_scans_both_rooms(self):
+        self.far_door.is_open = True
+        result = self.call(CmdScan(), "")
+        self.assertIn("goblin", result)
+        self.assertIn("troll", result)
+
+    def test_closed_door_at_depth_two_stops_the_chain(self):
+        """The near room still reports; only what is past the door is lost."""
+        self.far_door.is_open = False
+        result = self.call(CmdScan(), "")
+        self.assertIn("goblin", result)
+        self.assertNotIn("troll", result)
+
+    def test_hidden_door_at_depth_two_stops_the_chain(self):
+        """Judged from the caller's discovery state, not from the near room.
+
+        The caller is not standing next to this door, so an undiscovered one
+        two rooms out conceals what lies beyond it just as it would up close.
+        """
+        self.far_door.is_open = True
+        self.far_door.is_hidden = True
+        result = self.call(CmdScan(), "")
+        self.assertIn("goblin", result)
+        self.assertNotIn("troll", result)
+
+    def test_discovered_door_at_depth_two_scans_through(self):
+        self.far_door.is_open = True
+        self.far_door.is_hidden = True
+        self.far_door.discover(self.char1)
+        result = self.call(CmdScan(), "")
+        self.assertIn("troll", result)
+
+    def test_corridor_that_bends_stops_the_scan(self):
+        """Onward exits are matched on direction, so a turn ends the chain."""
+        self.far_door.delete()
+        turn = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="east", location=self.near, destination=self.far, nohome=True,
+        )
+        turn.set_direction("east")
+        result = self.call(CmdScan(), "")
+        self.assertIn("goblin", result)
+        self.assertNotIn("troll", result)

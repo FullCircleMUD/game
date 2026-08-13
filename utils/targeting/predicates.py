@@ -410,6 +410,38 @@ def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
     return getattr(obj, "is_open", True)
 
 
+def p_fits_through(actor):
+    """Factory — returns a predicate that checks ``actor`` fits an exit.
+
+    Wraps the ``max_size`` gate that ``ExitVerticalAware.at_traverse``
+    enforces, so a caller choosing between exits can rule out ones the
+    actor would be turned back from. An exit with no ``max_size`` admits
+    anything.
+
+    Note this takes the *actor to fit*, not the caller doing the looking —
+    the two differ whenever one character picks an exit on another's
+    behalf. A retreat leader choosing a way out for the whole party has to
+    check the largest member, not themselves::
+
+        biggest = max(group, key=lambda m: size_value(getattr(m, "size", Size.MEDIUM)))
+        passable = [ex for ex in open_exits(leader) if p_fits_through(biggest)(ex, leader)]
+
+    Selection only, like the rest of this family — ``at_traverse`` remains
+    the authority.
+    """
+    from enums.size import Size, size_value
+
+    def _pred(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+        limit = getattr(obj, "max_size", None)
+        if limit is None:
+            return True
+        try:
+            return size_value(getattr(actor, "size", Size.MEDIUM)) <= size_value(limit)
+        except (ValueError, KeyError):
+            return True
+    return _pred
+
+
 def p_passes_lock(lock_type):
     """Factory — returns a predicate that checks an Evennia access lock.
 

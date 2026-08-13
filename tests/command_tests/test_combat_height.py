@@ -501,7 +501,7 @@ class TestFleeHeight(EvenniaCommandTest):
                     h.delete()
         super().tearDown()
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_auto_succeeds_vs_ranged_only(self, mock_ticker, mock_dice):
         """Flee auto-succeeds when all enemies are at different height (ranged only)."""
@@ -534,7 +534,7 @@ class TestFleeHeight(EvenniaCommandTest):
         self.assertIn("flee", result.lower())
         self.assertNotIn("can't escape", result)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_requires_check_vs_melee(self, mock_ticker, mock_dice):
         """Flee requires DEX check when enemy is in melee range (same height)."""
@@ -551,7 +551,7 @@ class TestFleeHeight(EvenniaCommandTest):
         result = self.call(CmdFlee(), "", caller=self.char1)
         self.assertIn("can't escape", result)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_auto_succeeds_flying_vs_grounded_melee(self, mock_ticker, mock_dice):
         """Flying player auto-succeeds flee vs grounded melee enemy."""

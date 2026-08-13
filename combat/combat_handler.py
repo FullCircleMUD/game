@@ -461,54 +461,26 @@ class CombatHandler(DefaultScript):
     # ================================================================== #
 
     def _frightened_flee(self):
-        """Attempt to flee through a random exit while frightened."""
-        import random
-        from evennia.objects.objects import DefaultExit
+        """Flee this round because the frightened effect compels it.
 
-        actor = self.obj
-        room = actor.location
-        if not room:
-            return
+        Fear compels the attempt, not the escape — this is the same flee
+        everyone else makes, with the same check and the same cost for
+        failing. That is what makes the effect worth casting either way: the
+        target either leaves the fight, or wastes its turn and hands every
+        enemy a round of advantage.
+        """
+        from combat.combat_utils import FleeWording, flee_from_combat
 
-        # Find open exits
-        exits = [
-            ex for ex in room.exits
-            if isinstance(ex, DefaultExit)
-            and not (hasattr(ex, "is_open") and not ex.is_open)
-        ]
-
-        if not exits:
-            actor.msg("|rYou cower in terror, unable to flee!|n")
-            if room:
-                room.msg_contents(
-                    f"{actor.key} cowers in terror, unable to flee!",
-                    exclude=[actor],
-                    from_obj=actor,
-                )
-            return
-
-        chosen = random.choice(exits)
-        direction = chosen.key
-
-        actor.msg(f"|rBlind with terror, you flee {direction}!|n")
-        if room:
-            room.msg_contents(
-                f"{actor.key} flees {direction} in terror!",
-                exclude=[actor],
-                from_obj=actor,
-            )
-
-        # Stop combat before moving
-        from combat.combat_utils import get_sides
-        _, enemies = get_sides(actor)
-        self.stop_combat()
-        actor.move_to(chosen.destination, move_type="flee")
-
-        # Check if remaining combatants should end combat
-        for enemy in enemies:
-            enemy_handlers = enemy.scripts.get("combat_handler")
-            if enemy_handlers:
-                enemy_handlers[0]._check_stop_combat()
+        flee_from_combat(self.obj, self, FleeWording(
+            to_actor="|rBlind with terror, you flee {direction}!|n",
+            failed_to_actor="|rYou cower in terror, unable to escape!|n",
+            failed_in_room="$You() $conj(cower) in terror, unable to escape!",
+            no_exits="|rYou cower in terror, unable to flee!|n",
+            room_msgs={
+                "msg_from": "{name} flees {direction} in terror!",
+                "msg_to": "{name} arrives {direction}, wild with terror!",
+            },
+        ))
 
     # ================================================================== #
     #  Combat End Detection

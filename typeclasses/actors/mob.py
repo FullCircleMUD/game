@@ -280,13 +280,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         else:
             exi = self.ai.pick_random_exit()
         if exi:
-            self.move_to(exi.destination, quiet=False)
+            exi.at_traverse(self, exi.destination)
 
     def flee_to_random_room(self):
         """Flee to any adjacent room within the mob's area."""
         exi = self.ai.pick_random_exit()
         if exi:
-            self.move_to(exi.destination, quiet=False)
+            exi.at_traverse(self, exi.destination, move_type="flee")
 
     def retreat_to_spawn(self):
         """Move directly to spawn room (teleport, for retreat behavior)."""

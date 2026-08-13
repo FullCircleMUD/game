@@ -64,13 +64,20 @@ class PackCourageMixin:
             self._flee_from_threat()
 
     def _flee_from_threat(self):
-        """Flee to an adjacent room with a flavoured message."""
+        """Flee to an adjacent room with a flavoured message.
+
+        ``flee_message`` is the departure line, passed through the movement
+        seam rather than emitted alongside it. It is a template, not a
+        finished string — ``{name}`` binds to the mob as an object, so it
+        resolves per recipient and redacts for anyone who cannot see it.
+        """
         exi = self.ai.pick_random_exit()
         if exi:
-            if self.location:
-                msg = self.flee_message.format(name=self.key)
-                self.location.msg_contents(msg, exclude=[self])
-            self.move_to(exi.destination, quiet=False)
+            exi.at_traverse(
+                self, exi.destination,
+                move_type="flee",
+                msg_from=self.flee_message,
+            )
 
     # ── AI wander override ──
 

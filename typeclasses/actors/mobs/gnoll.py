@@ -94,15 +94,15 @@ class Gnoll(RampageMixin, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressive
             # Recovered enough to fight again
             self.ai.set_state("wander")
             return
-        # Try to flee
+        # Try to flee — the wording is the departure line, passed through the
+        # movement seam. {name} stays a template so it resolves per recipient.
         exi = self.ai.pick_random_exit()
         if exi:
-            if self.location:
-                self.location.msg_contents(
-                    f"{self.key} snarls and retreats, wounded!",
-                    exclude=[self],
-                )
-            self.move_to(exi.destination, quiet=False)
+            exi.at_traverse(
+                self, exi.destination,
+                move_type="flee",
+                msg_from="{name} snarls and retreats, wounded!",
+            )
 
 
 class GnollArcher(Gnoll):

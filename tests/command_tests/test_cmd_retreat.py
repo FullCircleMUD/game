@@ -162,7 +162,7 @@ class TestRetreatMechanics(_RetreatTestBase):
         enter_combat(self.char1, self.mob)
 
         mock_roll.return_value = 15  # 15 + mods >= DC 10
-        with patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_retreat.random.choice") as mock_choice:
+        with patch("combat.combat_utils.random.choice") as mock_choice:
             mock_choice.return_value = self.exit
             result = self.call(CmdRetreat(), "", caller=self.char1)
 
@@ -177,7 +177,7 @@ class TestRetreatMechanics(_RetreatTestBase):
         enter_combat(self.char1, self.mob)
 
         mock_roll.return_value = 15
-        with patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_retreat.random.choice") as mock_choice:
+        with patch("combat.combat_utils.random.choice") as mock_choice:
             mock_choice.return_value = self.exit
             self.call(CmdRetreat(), "", caller=self.char1)
 
@@ -193,7 +193,7 @@ class TestRetreatMechanics(_RetreatTestBase):
         self.char2.following = self.char1
 
         mock_roll.return_value = 15
-        with patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_retreat.random.choice") as mock_choice:
+        with patch("combat.combat_utils.random.choice") as mock_choice:
             mock_choice.return_value = self.exit
             self.call(CmdRetreat(), "", caller=self.char1)
 
@@ -260,8 +260,178 @@ class TestRetreatMechanics(_RetreatTestBase):
 
         # Roll 3 + 0 (INT) + 0 (CHA) + 8 (GM bonus) = 11 >= 10
         mock_roll.return_value = 3
-        with patch("commands.class_skill_cmdsets.class_skill_cmds.cmd_retreat.random.choice") as mock_choice:
+        with patch("combat.combat_utils.random.choice") as mock_choice:
             mock_choice.return_value = self.exit
             result = self.call(CmdRetreat(), "", caller=self.char1)
 
         self.assertIn("*RETREAT*", result)
+
+
+# ================================================================== #
+#  Group transit — selection gating and messaging
+# ================================================================== #
+
+
+class TestRetreatGroupTransit(_RetreatTestBase):
+    """The whole party has to fit, and the room hears one line, not five."""
+
+    def setUp(self):
+        super().setUp()
+        # Names appear in these assertions, so the watchers must be able to see
+        self.room1.always_lit = True
+        self.room2.always_lit = True
+        self.mob = create.create_object(
+            "typeclasses.actors.mobs.dire_wolf.DireWolf",
+            key="dire wolf",
+            location=self.room1,
+        )
+        self.mob.hp = 30
+        self.mob.hp_max = 30
+
+    def tearDown(self):
+        handlers = self.mob.scripts.get("combat_handler")
+        if handlers:
+            for h in handlers:
+                h.stop()
+                h.delete()
+        self.mob.delete()
+        self.char2.following = None
+        super().tearDown()
+
+    def _watcher(self, key, room):
+        from unittest.mock import MagicMock
+        watcher = create.create_object(
+            self.character_typeclass, key=key, location=room, home=room
+        )
+        watcher.msg = MagicMock()
+        return watcher
+
+    def _lines(self, watcher):
+        said = []
+        for args, kwargs in watcher.msg.call_args_list:
+            payload = kwargs.get("text", args[0] if args else None)
+            if isinstance(payload, tuple):
+                payload = payload[0]
+            if payload:
+                said.append(str(payload))
+        return said
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_exit_too_small_for_a_member_is_not_chosen(self, mock_roll, mock_ticker):
+        """The widest member sets the limit, not the leader.
+
+        Choosing an exit someone cannot fit would strand them: combat stops
+        for the whole group, so they would be left alone, out of the fight.
+        """
+        from enums.size import Size
+
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        self.exit.max_size = Size.SMALL.value
+        self.char1.size = Size.SMALL.value      # leader fits
+        self.char2.size = Size.LARGE.value      # follower does not
+
+        enter_combat(self.char1, self.mob)
+        enter_combat(self.char2, self.mob)
+        self.char2.following = self.char1
+
+        mock_roll.return_value = 15
+        result = self.call(CmdRetreat(), "", caller=self.char1)
+
+        self.assertIn("nowhere to go", result)
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertEqual(self.char2.location, self.room1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_exit_the_whole_group_fits_is_chosen(self, mock_roll, mock_ticker):
+        from enums.size import Size
+
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        self.exit.max_size = Size.LARGE.value
+        self.char1.size = Size.SMALL.value
+        self.char2.size = Size.LARGE.value
+
+        enter_combat(self.char1, self.mob)
+        enter_combat(self.char2, self.mob)
+        self.char2.following = self.char1
+
+        mock_roll.return_value = 15
+        self.call(CmdRetreat(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, self.room2)
+        self.assertEqual(self.char2.location, self.room2)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_group_announces_once_per_room(self, mock_roll, mock_ticker):
+        """Members move quietly — the leader's line covers the group."""
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        enter_combat(self.char2, self.mob)
+        self.char2.following = self.char1
+
+        here = self._watcher("Bystander", self.room1)
+        there = self._watcher("Watcher", self.room2)
+
+        mock_roll.return_value = 15
+        self.call(CmdRetreat(), "", caller=self.char1)
+
+        departures = [ln for ln in self._lines(here) if "withdraws" in ln]
+        arrivals = [ln for ln in self._lines(there) if "withdrawing" in ln]
+        self.assertEqual(len(departures), 1, self._lines(here))
+        self.assertEqual(len(arrivals), 1, self._lines(there))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_departure_names_a_direction(self, mock_roll, mock_ticker):
+        """at_traverse supplies exit_obj, so {direction} resolves."""
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        self.exit.set_direction("north")
+        enter_combat(self.char1, self.mob)
+
+        here = self._watcher("Bystander", self.room1)
+
+        mock_roll.return_value = 15
+        self.call(CmdRetreat(), "", caller=self.char1)
+
+        self.assertTrue(
+            any("north" in ln for ln in self._lines(here)), self._lines(here)
+        )
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    @patch("utils.dice_roller.DiceRoller.roll")
+    def test_every_member_goes_through_at_traverse(self, mock_roll, mock_ticker):
+        """Each member is moved by the exit, never by a bare move_to.
+
+        This is the policy, not a style preference: move_to does not know an
+        exit exists, so a member relocated that way skips the door, height,
+        size and trap gating the exit owns. Moving the leader correctly and
+        the followers with move_to would walk the rest of the party through
+        a closed door behind them.
+
+        See docs/exit-architecture.md § Moving actors through exits.
+        """
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        enter_combat(self.char2, self.mob)
+        self.char2.following = self.char1
+
+        traversed = []
+        real_at_traverse = self.exit.at_traverse
+
+        def spy(traversing_object, destination, **kwargs):
+            traversed.append(traversing_object)
+            return real_at_traverse(traversing_object, destination, **kwargs)
+
+        self.exit.at_traverse = spy
+
+        mock_roll.return_value = 15
+        self.call(CmdRetreat(), "", caller=self.char1)
+
+        self.assertIn(self.char1, traversed)
+        self.assertIn(self.char2, traversed)
+        self.assertEqual(len(traversed), 2, traversed)
+        # And they actually arrived — the spy delegated, it didn't stub
+        self.assertEqual(self.char1.location, self.room2)
+        self.assertEqual(self.char2.location, self.room2)

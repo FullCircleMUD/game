@@ -20,6 +20,35 @@ _DIR_ORDER = [
 _DISTANCE_LABELS = {1: "nearby", 2: "not far off", 3: "far off"}
 
 
+def _can_scan_through(exit_obj, looker):
+    """True if *looker* can see past *exit_obj*.
+
+    A sight line, not a route. Exactly two things block one:
+
+    - **The door is shut.** Open means you can see through, closed means you
+      cannot. An exit with no door never obstructs anything.
+    - **The looker cannot perceive the exit.** Scanning past a hidden or
+      invisible door would report who is beyond a passage the looker does not
+      know exists — so concealment blocks the sight line whether the door
+      stands open or not.
+
+    Lock state is deliberately not read. A lock governs passage, not sight,
+    and every locked door is a shut one anyway — ``lock()`` refuses on an open
+    door, so an open-and-locked exit is a data anomaly rather than a case to
+    handle. The closed check covers every state that can legitimately occur;
+    consulting ``is_locked`` here would encode a rule about sight that does
+    not exist.
+
+    For the same reason ``open_exits()`` is wrong for scanning, and
+    ``p_is_open_exit`` on its own is too: both fold in questions about
+    whether you may *go* through.
+
+    Judged from the looker's perspective at any distance, matching how
+    ``_get_visible_characters`` treats characters rooms away.
+    """
+    return getattr(exit_obj, "is_open", True) and p_can_see(exit_obj, looker)
+
+
 def _get_visible_characters(room, looker):
     """Return list of visible character names in *room* for *looker*.
 
@@ -77,8 +106,7 @@ class CmdScan(FCMCommandMixin, Command):
             if not direction or direction not in _SCAN_DIRECTIONS:
                 continue
 
-            # Don't scan through closed doors
-            if hasattr(exit_obj, "is_open") and not exit_obj.is_open:
+            if not _can_scan_through(exit_obj, caller):
                 continue
 
             dir_label = direction.capitalize()
@@ -94,8 +122,7 @@ class CmdScan(FCMCommandMixin, Command):
                     for ex in current_room.exits:
                         ex_dir = getattr(ex, "direction", None)
                         if ex_dir == direction:
-                            # Don't scan through closed doors
-                            if hasattr(ex, "is_open") and not ex.is_open:
+                            if not _can_scan_through(ex, caller):
                                 next_exit = None
                                 break
                             next_exit = ex
