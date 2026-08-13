@@ -67,22 +67,30 @@ class AIHandler:
 
     def get_targets_in_room(self, target_filter=None):
         """
-        Return potential targets in the mob's current room.
+        Return potential targets the mob can currently perceive.
+
+        Perception is the floor: ``target_filter`` narrows that set
+        further, it never widens it. A concealed actor is returned only
+        when the mob holds the counter that reveals them — ``true_sight``
+        for HIDDEN, ``DETECT_INVIS`` for INVISIBLE.
 
         Args:
             target_filter: callable(obj) -> bool. If None, returns PCs.
         """
+        from utils.targeting.predicates import p_can_see
+
         if not self.obj.location:
             return []
         if target_filter:
             return [
                 obj for obj in self.obj.location.contents
                 if obj != self.obj and target_filter(obj)
+                and p_can_see(obj, self.obj)
             ]
         # Default: player characters only
         return [
             obj for obj in self.obj.location.contents
-            if getattr(obj, "is_pc", False)
+            if getattr(obj, "is_pc", False) and p_can_see(obj, self.obj)
         ]
 
     # ── Movement helpers ──
