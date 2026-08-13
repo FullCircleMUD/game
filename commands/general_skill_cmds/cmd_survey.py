@@ -15,6 +15,26 @@ from evennia.utils.utils import delay
 from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
+from utils.targeting.predicates import p_can_see
+
+
+def _mappable_exits(room, surveyor):
+    """Exits the surveyor can perceive, and so can record.
+
+    A shut door is no obstacle to mapping — you are standing in the street
+    looking at the building, and the door itself tells you a room is there.
+    Landmarks announce themselves the same way, which is why the POI registry
+    already draws the line between a smithy and an anonymous residence.
+
+    An undetected door is different: there is no visible doorway to reason
+    from, so nothing to record. Mapping through one would put rooms — and
+    their landmark symbols — onto the map for places the surveyor has no way
+    of knowing exist, turning ``survey`` into a secret-door detector.
+
+    Open or closed is therefore not consulted; only whether the exit can be
+    perceived at all.
+    """
+    return [ex for ex in room.exits if ex.destination and p_can_see(ex, surveyor)]
 
 
 class CmdSurvey(FCMCommandMixin, Command):
@@ -80,10 +100,8 @@ class CmdSurvey(FCMCommandMixin, Command):
         has_new = any(pk not in nft.surveyed_points for nft, pk in targets)
         if not has_new:
             # Check adjacents for district-scale maps
-            for exit_obj in room.exits:
+            for exit_obj in _mappable_exits(room, caller):
                 dest = exit_obj.destination
-                if not dest:
-                    continue
                 for adj_map_key, adj_pk in _get_keys(dest):
                     adj_nft = self._get_map(caller, adj_map_key)
                     if not adj_nft:
@@ -151,11 +169,10 @@ def _finish_survey(caller, targets, room_id):
         _add(map_nft, point_key)
         map_nfts_by_key[map_nft.map_key] = map_nft
 
-    # Reveal adjacent rooms — district-scale maps only
-    for exit_obj in caller.location.exits:
+    # Reveal adjacent rooms — district-scale maps only, and only through
+    # exits the surveyor can perceive.
+    for exit_obj in _mappable_exits(caller.location, caller):
         dest = exit_obj.destination
-        if not dest:
-            continue
         for adj_map_key, adj_point_key in get_map_keys_for_room(dest):
             map_nft = map_nfts_by_key.get(adj_map_key)
             if not map_nft:
