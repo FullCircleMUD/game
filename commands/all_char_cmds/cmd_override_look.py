@@ -23,8 +23,9 @@ from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import (
-    p_can_see, p_is_container, p_is_open, p_is_openable, p_same_height,
+    p_can_perceive, p_is_container, p_is_open, p_is_openable, p_same_height,
 )
+from utils.visibility import looker_is_blind
 
 # Build set of all direction strings (abbreviations + full names)
 _DIRECTION_STRINGS = set()
@@ -45,7 +46,8 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
         examine <obj>
 
     Observes your location or objects in your vicinity.
-    In darkness, you can only see the room layout and your own inventory.
+    In darkness you still sense what is around you, but cannot make
+    out any detail.
     Use 'look in' to view the contents of a container.
     """
 
@@ -80,22 +82,6 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                 self._look_direction(caller, lower)
                 return
 
-        # --- Darkness check ---
-        if self.args and caller.location:
-            room = caller.location
-            if hasattr(room, "is_dark") and room.is_dark(caller):
-                # In darkness, only allow looking at items in your inventory.
-                target = caller.search(self.args)
-                if not target:
-                    return
-                if target.location == room:
-                    caller.msg("It's too dark to see anything.")
-                    return
-                # Target is in inventory — allow the look.
-                desc = caller.at_look(target)
-                self.msg(text=(desc, {"type": "look"}), options=None)
-                return
-
         # --- Room detail check (fallback when no real object matches) ---
         if self.args and caller.location:
             # Quiet search — filter out room and hidden/invisible objects
@@ -104,17 +90,16 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                 if not isinstance(found, list):
                     found = [found]
                 # Filter out the room itself and non-perceivable objects.
-                # p_can_see is the targeting library's composite
+                # p_can_perceive is the targeting library's composite
                 # visibility gate — stealth + height in one check.
                 found = [
                     obj for obj in found
-                    if obj != caller.location and p_can_see(obj, caller)
+                    if obj != caller.location and p_can_perceive(obj, caller)
                 ]
             if found:
-                # Show the first visible match directly (bypass super's
+                # Show the first perceived match directly (bypass super's
                 # search which would re-find the room and disambiguate)
-                desc = caller.at_look(found[0])
-                self.msg(text=(desc, {"type": "look"}), options=None)
+                self._show_target(caller, found[0])
                 return
             else:
                 room = caller.location
@@ -123,6 +108,14 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                     key = self.args.strip().lower()
                     for detail_key, desc in details.items():
                         if detail_key.lower() == key:
+                            # A detail is nothing but a description, so
+                            # there is no reduced version to give — it is
+                            # not an object that can be sensed.
+                            if looker_is_blind(caller):
+                                caller.msg(
+                                    "It's too dark to make out any detail."
+                                )
+                                return
                             caller.msg(desc)
                             return
 
@@ -143,13 +136,13 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
                 # Filter out room and hidden/invisible objects
                 visible = [
                     obj for obj in found
-                    if obj != caller.location and p_can_see(obj, caller)
+                    if obj != caller.location and p_can_perceive(obj, caller)
                 ]
                 if not visible and found:
                     # All matches were room or hidden — check if any were
                     # hidden (no period hint) vs just the room (with period)
                     has_hidden = any(
-                        not p_can_see(obj, caller)
+                        not p_can_perceive(obj, caller)
                         for obj in found
                         if obj != caller.location
                     )
@@ -161,14 +154,50 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
 
         super().func()
 
+    # ── Target rendering ──────────────────────────────────────────────
+
+    def _show_target(self, caller, obj):
+        """
+        Render a look at one thing, at whatever fidelity is available.
+
+        Targets are resolved on ``p_can_perceive``, so reaching here
+        means the thing is present and unconcealed. Whether its *detail*
+        is available is a separate question, and the answer is the same
+        for everything in the room: sightless is sightless.
+
+        Unseen, it is named by ``get_display_name`` — "Someone" for an
+        actor, "something" for an object, or whatever ``unseen_name`` a
+        builder set. Capitalised here rather than in the attribute, which
+        holds the mid-sentence form.
+        """
+        if looker_is_blind(caller):
+            name = obj.get_display_name(caller)
+            name = name[0].upper() + name[1:] if name else name
+            caller.msg(
+                f"{name} is there, but it's too dark to make out any detail."
+            )
+            return
+
+        desc = caller.at_look(obj)
+        self.msg(text=(desc, {"type": "look"}), options=None)
+
     # ── Direction lookup ──────────────────────────────────────────────
 
     def _look_direction(self, caller, direction_str):
         """
         Look in a compass direction. Finds the exit with that direction
         and shows its details. Hidden/invisible exits are not revealed.
+
+        A direction is not a thing you can sense the presence of, so a
+        sightless character gets the same answer as one facing a blank
+        wall. That is already the no-exit response, so it reveals nothing
+        about whether a door is there.
         """
         from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+
+        if looker_is_blind(caller):
+            caller.msg("You see nothing special in that direction.")
+            return
 
         # Resolve abbreviation to canonical direction
         canonical = None
@@ -208,18 +237,13 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
         """Display contents of a container."""
         room = caller.location
 
-        # Darkness — can't inspect containers without sight
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
-            return
-
         # Broad targeting — find whatever the player named, then
         # check container/height/open at command layer (design principle #7).
-        # p_can_see filters hidden and height-barrier-gated objects.
+        # p_can_perceive filters hidden and height-barrier-gated objects.
         container, _ = resolve_target(
             caller, container_name,
             "items_inventory_then_room_nonexit",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
         )
         if not container:
             caller.msg(f"You don't see '{container_name}' here.")
@@ -233,6 +257,11 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             return
         if p_is_openable(container, caller) and not p_is_open(container, caller):
             caller.msg(f"{container.key} is closed.")
+            return
+
+        # Perceiving a container is not enough to read off its contents.
+        if looker_is_blind(caller):
+            self._show_target(caller, container)
             return
 
         caller.msg(container.get_container_display())
