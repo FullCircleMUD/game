@@ -4,6 +4,7 @@ from commands.command import FCMCommandMixin
 from utils.health_desc import health_description as _health_description
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 class CmdDiagnose(FCMCommandMixin, Command):
@@ -29,9 +30,11 @@ class CmdDiagnose(FCMCommandMixin, Command):
         if not self.args or not self.args.strip():
             target = caller
         else:
-            # Darkness — can't assess what you can't see
-            room = caller.location
-            if room and hasattr(room, "is_dark") and room.is_dark(caller):
+            # Reading someone's wounds is visual, so it needs working
+            # eyes — a dark room or the BLINDED condition both stop it.
+            # Diagnosing yourself short-circuits above and is unaffected:
+            # you know your own injuries by feel.
+            if looker_is_blind(caller):
                 caller.msg("It's too dark to see anything.")
                 return
 

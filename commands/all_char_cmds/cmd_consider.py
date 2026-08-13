@@ -13,6 +13,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 def _compare(yours, theirs):
@@ -85,9 +86,12 @@ class CmdConsider(FCMCommandMixin, Command):
             caller.msg("Consider who?")
             return
 
-        # Darkness — can't assess what you can't see
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
+        # Sizing someone up is a visual appraisal — build, gear, wounds.
+        # looker_is_blind covers both halves of that: a dark room and the
+        # BLINDED condition. Kept as an early return rather than left to
+        # p_can_see so the player is told why, instead of being told the
+        # target isn't there when it plainly is.
+        if looker_is_blind(caller):
             caller.msg("It's too dark to see anything.")
             return
 

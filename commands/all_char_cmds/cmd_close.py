@@ -12,7 +12,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from utils.direction_parser import parse_direction
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see, p_is_openable, p_same_height
+from utils.targeting.predicates import p_can_perceive, p_is_openable, p_same_height
 
 
 class CmdClose(FCMCommandMixin, Command):
@@ -52,13 +52,13 @@ class CmdClose(FCMCommandMixin, Command):
             # directional qualifiers only apply to exits.
             target, _ = resolve_target(
                 caller, parsed_name, "items_room_exit_by_direction",
-                extra_predicates=(p_can_see,), direction=direction,
+                extra_predicates=(p_can_perceive,), direction=direction,
             )
         else:
             # No direction — broad search: exits, room objects, inventory.
             target, _ = resolve_target(
                 caller, target_str, "items_room_all_then_inventory",
-                extra_predicates=(p_can_see,),
+                extra_predicates=(p_can_perceive,),
             )
 
         if not target:

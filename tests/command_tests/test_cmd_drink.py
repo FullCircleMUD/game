@@ -8,6 +8,7 @@ from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
 
 from commands.all_char_cmds.cmd_drink import CmdDrink
+from enums.condition import Condition
 from enums.thirst_level import ThirstLevel
 
 
@@ -96,3 +97,53 @@ class TestCmdDrinkAtRefreshed(CmdDrinkTestBase):
         result = self.call(CmdDrink(), "canteen")
         self.assertIn("not thirsty", result.lower())
         self.assertEqual(canteen.current, starting_current)
+
+
+class TestCmdDrinkSightless(CmdDrinkTestBase):
+    """
+    Your own pack is found by touch, so darkness and blindness slow the
+    drink down rather than preventing it.
+    """
+
+    def _darken(self):
+        # has_natural_light is a read-only property derived from this.
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_dark_room_no_longer_blocks_the_drink(self):
+        self._make_canteen()
+        self._darken()
+        starting = self.char1.thirst_level.value
+        self.call(CmdDrink(), "")
+        self.assertEqual(self.char1.thirst_level.value, starting + 1)
+
+    def test_a_blinded_character_still_drinks(self):
+        self._make_canteen()
+        self.char1.add_condition(Condition.BLINDED)
+        starting = self.char1.thirst_level.value
+        self.call(CmdDrink(), "")
+        self.assertEqual(self.char1.thirst_level.value, starting + 1)
+
+    def test_the_dark_adds_fumbling_flavour(self):
+        self._make_canteen()
+        self._darken()
+        result = self.call(CmdDrink(), "")
+        self.assertIn("fumble blindly", result)
+
+    def test_a_sighted_drinker_gets_no_fumbling(self):
+        self._make_canteen()
+        result = self.call(CmdDrink(), "")
+        self.assertNotIn("fumble", result)
+
+    def test_naming_the_container_still_works_unseen(self):
+        canteen = self._make_canteen()
+        self._darken()
+        self.call(CmdDrink(), "canteen")
+        self.assertEqual(canteen.current, canteen.max_capacity - 1)
+
+    def test_darkvision_drinks_without_fumbling(self):
+        self._make_canteen()
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdDrink(), "")
+        self.assertNotIn("fumble", result)

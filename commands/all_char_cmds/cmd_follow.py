@@ -14,6 +14,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 class CmdFollow(FCMCommandMixin, Command):
@@ -57,14 +58,19 @@ class CmdFollow(FCMCommandMixin, Command):
             caller.msg("You can't change sides mid-fight, traitor!")
             return
 
-        # Darkness — can't see who to follow
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        target_name = self.args.strip()
+
+        # Choosing who to follow means picking them out and naming them,
+        # which needs working eyes — a dark room or BLINDED both stop it.
+        # Only starting to follow is gated: an established link is not
+        # re-checked here, so it survives the lamp going out. Echoes what
+        # was typed, since nothing has been resolved at this point.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to see '{target_name}'.")
             return
 
         target, _ = resolve_target(
-            caller, self.args.strip(), "actor_hostile",
+            caller, target_name, "actor_hostile",
             extra_predicates=(p_can_see,),
         )
         if not target:
@@ -111,12 +117,13 @@ class CmdFollow(FCMCommandMixin, Command):
         # Set follow — always follow the direct target, not the resolved leader.
         # Chain resolution handles the rest.
         caller.following = target
-        caller.msg(f"You start following {target.key}.")
-        target.msg(f"{caller.key} starts following you.")
+        caller.msg(f"You start following {target.get_display_name(caller)}.")
+        target.msg(f"{caller.get_display_name(target)} starts following you.")
         caller.location.msg_contents(
-            f"$You() $conj(start) following {target.key}.",
+            "$You() $conj(start) following {leader}.",
             from_obj=caller,
             exclude=[caller, target],
+            mapping={"leader": target},
         )
 
 
@@ -143,13 +150,14 @@ class CmdUnfollow(FCMCommandMixin, Command):
 
         target = caller.following
         caller.following = None
-        caller.msg(f"You stop following {target.key}.")
+        caller.msg(f"You stop following {target.get_display_name(caller)}.")
         if target.location == caller.location:
-            target.msg(f"{caller.key} stops following you.")
+            target.msg(f"{caller.get_display_name(target)} stops following you.")
             caller.location.msg_contents(
-                f"$You() $conj(stop) following {target.key}.",
+                "$You() $conj(stop) following {leader}.",
                 from_obj=caller,
                 exclude=[caller, target],
+                mapping={"leader": target},
             )
 
 

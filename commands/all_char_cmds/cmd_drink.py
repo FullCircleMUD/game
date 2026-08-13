@@ -15,7 +15,8 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdDrink(FCMCommandMixin, Command):
@@ -36,16 +37,14 @@ class CmdDrink(FCMCommandMixin, Command):
         caller = self.caller
         query = self.args.strip()
 
-        # Darkness — can't identify items without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
-            return
+        # Your own pack is found by touch, so being unable to see does
+        # not stop you drinking — it only slows you down.
+        sightless = looker_is_blind(caller)
 
         if query:
             container, _ = resolve_target(
                 caller, query, "items_inventory",
-                extra_predicates=(p_can_see,),
+                extra_predicates=(p_can_perceive,),
             )
             if not container:
                 caller.msg(f"You aren't carrying '{query}'.")
@@ -64,6 +63,11 @@ class CmdDrink(FCMCommandMixin, Command):
             caller.msg(msg)
             return
 
+        if sightless:
+            caller.msg(
+                f"You fumble blindly through your pack, and eventually "
+                f"your fingers close around {container.key}."
+            )
         caller.msg(f"|cYou drink from {container.key}.|n")
         if caller.location:
             caller.location.msg_contents(

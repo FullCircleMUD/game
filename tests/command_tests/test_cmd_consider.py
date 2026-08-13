@@ -8,6 +8,7 @@ from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
 
 from commands.all_char_cmds.cmd_consider import CmdConsider, _compare, _compare_armor
+from enums.condition import Condition
 
 
 class TestCmdConsider(EvenniaCommandTest):
@@ -116,3 +117,65 @@ class TestCompareArmorFunction(EvenniaCommandTest):
     def test_much_worse_armored(self):
         msg = _compare_armor(10, 18)
         self.assertIn("Much worse armored", msg)
+
+
+class TestCmdConsiderSight(EvenniaCommandTest):
+    """
+    Sizing someone up is a visual appraisal — build, gear, wounds — so it
+    needs working eyes, not just an awareness that they are present.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+
+    def _darken(self):
+        # has_natural_light is a read-only property derived from this.
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_lit_room_considers_normally(self):
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("About the same", result)
+
+    def test_a_dark_room_says_why_it_refuses(self):
+        """Not "no such target" — the target is plainly there."""
+        self._darken()
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("too dark", result)
+
+    def test_a_blinded_character_cannot_consider(self):
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("too dark", result)
+
+    def test_darkvision_restores_it(self):
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("About the same", result)
+
+    def test_darkvision_does_not_cure_blindness(self):
+        self.char1.add_condition(Condition.DARKVISION)
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("too dark", result)
+
+    def test_an_invisible_target_cannot_be_considered(self):
+        """Sight is not the only gate — concealment still applies."""
+        self.char2.add_condition(Condition.INVISIBLE)
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("no 'Char2' here", result)
+
+    def test_detect_invis_restores_an_invisible_target(self):
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        result = self.call(CmdConsider(), "Char2", caller=self.char1)
+        self.assertIn("About the same", result)
