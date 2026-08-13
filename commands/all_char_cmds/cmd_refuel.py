@@ -13,8 +13,10 @@ or the player has no oil. Oil is processed from Animal Fat at a tannery.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.busy import check_busy, fumble_seconds, start_busy
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 FUEL_RESOURCE_ID = 46  # Oil (processed from Animal Fat at tannery)
@@ -47,25 +49,37 @@ class CmdRefuel(FCMCommandMixin, Command):
 
         query = self.args.strip()
 
-        # Darkness — need sight to pour fuel
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
             return
 
+        # No sight check — the lantern is in your own pack or on your
+        # own belt, and pouring by feel is slow rather than impossible.
+        # The search runs before the outcome is known.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._refuel(caller, query),
+                self_msg="You fumble blindly through your pack, then pour by touch...",
+            )
+            return
+
+        self._refuel(caller, query)
+
+    def _refuel(self, caller, query):
+        """Find the light source and fill it. Success or failure both."""
         # Search inventory first, then equipped (held lantern)
         item, _ = resolve_target(
             caller, query, "items_inventory",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
         )
         if not item:
             item, _ = resolve_target(
                 caller, query, "items_equipped",
-                extra_predicates=(p_can_see,),
+                extra_predicates=(p_can_perceive,),
             )
         if not item:
             caller.msg(f"You aren't carrying '{query}'.")
-            return
             return
 
         # Must be a light source

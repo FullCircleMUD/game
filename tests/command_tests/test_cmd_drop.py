@@ -144,6 +144,55 @@ class TestCmdDropObject(EvenniaCommandTest):
         self.sword.delete()
         self.call(CmdDrop(), "banana", "You aren't carrying 'banana'.")
 
+    # --- Dropping by touch ---
+    #
+    # Your own pack is found by feel, so darkness costs the time spent
+    # searching rather than the action.
+
+    def _drop_blind(self, args="sword"):
+        """Call drop while sightless, returning (output, completion)."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdDrop(), args)
+        complete = mock_delay.call_args[0][1] if mock_delay.call_args else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def test_dropping_in_the_dark_announces_the_fumble(self):
+        out, _ = self._drop_blind()
+        self.assertIn("fumble blindly through your pack", out)
+
+    def test_dropping_in_the_dark_succeeds_after_the_fumble(self):
+        _, complete = self._drop_blind()
+        complete()
+        self.assertEqual(self.sword.location, self.room1)
+
+    def test_nothing_is_dropped_until_the_fumble_ends(self):
+        self._drop_blind()
+        self.assertEqual(self.sword.location, self.char1)
+
+    def test_a_missing_item_is_searched_for_first(self):
+        """The search gives nothing away — you fumble, then find out."""
+        out, complete = self._drop_blind("banana")
+        self.assertIn("fumble blindly through your pack", out)
+        self.assertNotIn("aren't carrying", out)
+        self.assertIn("aren't carrying 'banana'", self._finish(complete))
+
+    def test_dropping_when_sighted_does_not_fumble(self):
+        result = self.call(CmdDrop(), "sword")
+        self.assertNotIn("fumble", result)
+
+    def test_dropping_is_refused_while_busy(self):
+        self.char1.ndb.is_processing = True
+        self.call(CmdDrop(), "sword", "You are busy.")
+
     def test_drop_world_anchored_nft_item(self):
         """drop should refuse to drop an WorldAnchoredNFTItem."""
         mount = create.create_object(

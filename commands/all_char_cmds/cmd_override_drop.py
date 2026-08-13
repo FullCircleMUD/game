@@ -23,9 +23,11 @@ from evennia.utils import utils
 from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
+from utils.busy import check_busy, fumble_seconds, start_busy
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -57,6 +59,9 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
 
         if not self.args:
             caller.msg("Drop what?")
+            return
+
+        if check_busy(caller):
             return
 
         # ---------------------------------------------------------- #
@@ -271,15 +276,25 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
 
     def _drop_object(self, caller, search_term):
         """Standard Evennia object drop with fuzzy matching."""
-        # Darkness — can't identify items without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # No sight check — your own pack is found by touch. Sightlessness
+        # costs the time spent searching, and the search runs before the
+        # outcome is known.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._do_drop_object(caller, search_term),
+                self_msg="You fumble blindly through your pack...",
+            )
             return
 
+        self._do_drop_object(caller, search_term)
+
+    def _do_drop_object(self, caller, search_term):
+        """Find the item and drop it. Success or failure both."""
         objs, _ = resolve_target(
             caller, search_term, "items_inventory",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
             stacked=self.number or 0,
         )
 

@@ -13,8 +13,10 @@ the dark, and if a torch is lit the room isn't dark.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.busy import check_busy, fumble_seconds, start_busy
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdLight(FCMCommandMixin, Command):
@@ -42,10 +44,28 @@ class CmdLight(FCMCommandMixin, Command):
 
         query = self.args.strip()
 
-        # No darkness check — you can light an equipped torch by touch
+        if check_busy(caller):
+            return
+
+        # No sight check — an equipped torch is found by touch. Being
+        # unable to see costs the time spent feeling for it, and the
+        # search runs before the outcome is known.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._light(caller, query),
+                self_msg="You feel across your gear in the dark, searching by touch...",
+            )
+            return
+
+        self._light(caller, query)
+
+    def _light(self, caller, query):
+        """Find the light source and light it. Success or failure both."""
         item, _ = resolve_target(
             caller, query, "items_equipped",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
         )
         if not item:
             caller.msg(f"You aren't wearing '{query}'.")
@@ -99,7 +119,7 @@ class CmdExtinguish(FCMCommandMixin, Command):
         # No darkness check — if a light source is lit, the room isn't dark
         item, _ = resolve_target(
             caller, query, "items_equipped",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
         )
         if not item:
             caller.msg(f"You aren't wearing '{query}'.")

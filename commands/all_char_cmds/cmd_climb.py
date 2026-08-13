@@ -16,6 +16,7 @@ Optional DEX check if the fixture has climb_dc > 0.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.busy import check_busy, fumble_seconds, start_busy
 from utils.dice_roller import dice
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -74,10 +75,26 @@ class CmdClimb(FCMCommandMixin, Command):
         if not room:
             return
 
-        # Climbing is done by touch as much as by sight, so being unable
-        # to see does not prevent it — it only changes how it reads.
-        sightless = looker_is_blind(caller)
+        if check_busy(caller):
+            return
 
+        # Climbing is done by touch as much as by sight, so being unable
+        # to see does not prevent it — it costs the time spent finding
+        # the thing by feel. The search runs before the outcome is known,
+        # so a room with nothing climbable costs the same as one with.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._climb(caller, room, delta, sightless=True),
+                self_msg="You grope about in the dark, feeling for something to climb...",
+            )
+            return
+
+        self._climb(caller, room, delta, sightless=False)
+
+    def _climb(self, caller, room, delta, sightless):
+        """Find something to climb and climb it. Success or failure both."""
         # ── Find climbable fixtures ──
         climbables = [
             obj for obj in room.contents
