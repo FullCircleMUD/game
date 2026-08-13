@@ -11,11 +11,20 @@ from enums.skills_enum import skills
 from typeclasses.mixins.effects_manager import EffectsManagerMixin
 from typeclasses.mixins.damage_resistance import DamageResistanceMixin
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
-from utils.targeting.predicates import p_actor_visible_to
-from utils.visibility import looker_is_blind
+from typeclasses.mixins.unseen_name import UnseenNameMixin
 
 
-class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
+class BaseActor(
+    UnseenNameMixin,
+    HeightAwareMixin,
+    EffectsManagerMixin,
+    DamageResistanceMixin,
+    DefaultCharacter,
+):
+
+    #: Actors are people until a typeclass or spawn rule says otherwise.
+    #: CombatMob sets "something" — most mobs are animals.
+    unseen_name = AttributeProperty("Someone")
 
     # ── Size — unified across all actors ──
     # Stored as string for Evennia serialization (dbserialize can't handle
@@ -24,31 +33,6 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # size is the active value, rebuilt from base_size by _recalculate_stats().
     base_size = AttributeProperty(Size.MEDIUM.value)
     size = AttributeProperty(Size.MEDIUM.value)
-
-    def get_display_name(self, looker=None, **kwargs):
-        """Redact to "Someone" when the looker cannot see this actor.
-
-        Two independent reasons, same outcome — naming someone the looker
-        cannot perceive leaks their identity either way:
-
-        - the looker can't see anything (darkness, ``BLINDED``)
-        - the looker can't see *this actor* (``HIDDEN`` / ``INVISIBLE``
-          without the matching counter)
-
-        Self is exempt: you always know your own name, however concealed.
-
-        This is what lets funcparser actor-stance strings anonymise for
-        free — ``$You()`` resolves through this method, so
-        ``"$You() $conj(slap) {target}."`` renders as "Someone slaps Fred"
-        for an observer who can't see the actor, with correct grammar and
-        no separately authored text.
-        """
-        if looker is not None and looker is not self:
-            if looker_is_blind(looker):
-                return "Someone"
-            if not p_actor_visible_to(self, looker):
-                return "Someone"
-        return super().get_display_name(looker, **kwargs)
 
     # ── Movement messages ──
     # The single seam for inter-room movement text. Everything lives here

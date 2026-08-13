@@ -29,9 +29,17 @@ from typeclasses.mixins.hidden_object import HiddenObjectMixin
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 from typeclasses.mixins.item_restriction import ItemRestrictionMixin
 from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+from typeclasses.mixins.unseen_name import UnseenNameMixin
 
 
-class BaseNFTItem(NFTMirrorMixin, HeightAwareMixin, HiddenObjectMixin, ItemRestrictionMixin, DefaultObject):
+class BaseNFTItem(
+    UnseenNameMixin,
+    NFTMirrorMixin,
+    HeightAwareMixin,
+    HiddenObjectMixin,
+    ItemRestrictionMixin,
+    DefaultObject,
+):
     """
     Base class for all NFT-backed items in the game world.
 

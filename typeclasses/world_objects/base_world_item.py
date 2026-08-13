@@ -15,9 +15,10 @@ from evennia.objects.objects import DefaultObject
 from enums.size import Size
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
 from typeclasses.mixins.hidden_object import HiddenObjectMixin
+from typeclasses.mixins.unseen_name import UnseenNameMixin
 
 
-class WorldItem(HeightAwareMixin, HiddenObjectMixin, DefaultObject):
+class WorldItem(UnseenNameMixin, HeightAwareMixin, HiddenObjectMixin, DefaultObject):
     """
     Takeable, non-NFT item. Can be picked up, dropped, given, banked,
     but NOT exported to the blockchain.

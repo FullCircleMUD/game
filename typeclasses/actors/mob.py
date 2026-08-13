@@ -40,6 +40,10 @@ from typeclasses.mixins.loot_mob_mixin import LootMobMixin
 
 
 class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, LootMobMixin, BaseNPC):
+
+    #: Most mobs are animals — a wolf in the dark is "something", not
+    #: "Someone". Humanoid mobs set this back, in code or from a spawn rule.
+    unseen_name = AttributeProperty("something")
     """
     Base class for killable mobs with AI behavior.
 

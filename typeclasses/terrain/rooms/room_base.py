@@ -14,11 +14,15 @@ from enums.condition import Condition
 from enums.terrain_type import TerrainType
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.quest_tag import QuestTagMixin
-from utils.targeting.predicates import p_actor_visible_to, p_can_see
+from typeclasses.mixins.unseen_name import UnseenNameMixin
+from utils.targeting.predicates import p_actor_visible_to, p_can_perceive
 from utils.visibility import looker_is_blind
 
 
-class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
+class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
+
+    #: A room you cannot see is not nowhere — it is somewhere unidentified.
+    unseen_name = AttributeProperty("Somewhere")
 
     allow_combat = AttributeProperty(True, autocreate=False)
     allow_pvp = AttributeProperty(False, autocreate=False)
@@ -262,11 +266,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             and self._dark_ignoring_darkvision(looker)
         )
 
-    def get_display_name(self, looker=None, **kwargs):
-        """Redact to "Somewhere" when looker can't currently see anything."""
-        if looker is not None and looker_is_blind(looker):
-            return "Somewhere"
-        return super().get_display_name(looker, **kwargs)
+    # Naming is UnseenNameMixin's job — see unseen_name above.
 
     def at_object_receive(self, moved_obj, source_location, **kwargs):
         """Fire quest events and notify mobs when something enters."""
@@ -641,21 +641,32 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         Get the 'characters' component of the object description. Called by `return_appearance`.
 
         Filters out HIDDEN and INVISIBLE characters based on looker's conditions.
-        Returns empty string in dark rooms or when no visible characters.
-        """
-        if self.is_dark(looker):
-            return ""
+        Returns empty string when no characters can be perceived.
 
+        Lighting is not this method's decision. A looker who cannot see
+        still perceives that bodies are present, so every perceived
+        character is rendered — each through ``get_display_name``, which
+        anonymises to "Someone" when the looker is blind or the room is
+        dark for them. What is withheld alongside the name is everything
+        else that would identify them: the room description, the
+        alignment aura, and the height and concealment tags.
+        """
         characters = self.filter_visible(
             self.contents_get(content_type="character"), looker, **kwargs
         )
 
         # Concealment (HIDDEN / INVISIBLE) and height gating are one
         # question — whether this looker can perceive that character.
-        visible = [char for char in characters if p_can_see(char, looker)]
+        visible = [char for char in characters if p_can_perceive(char, looker)]
 
         if not visible:
             return ""
+
+        if looker_is_blind(looker):
+            return "\n".join(
+                char.get_display_name(looker, **kwargs) + " is here."
+                for char in visible
+            )
 
         # Check if looker can see alignment auras
         looker_detects_alignment = (
@@ -712,7 +723,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
 
         # Concealment (hidden / invisible mixins) and height gating are
         # one question — whether this looker can perceive that object.
-        things = [thing for thing in things if p_can_see(thing, looker)]
+        things = [thing for thing in things if p_can_perceive(thing, looker)]
 
         # Separate items with ground descriptions (full sentences) from
         # bare-name items (grouped and comma-separated).

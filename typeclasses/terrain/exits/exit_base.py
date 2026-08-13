@@ -4,9 +4,15 @@ room when no custom ``db.desc`` is set.
 """
 
 from evennia import DefaultExit
+from evennia.typeclasses.attributes import AttributeProperty
+
+from typeclasses.mixins.unseen_name import UnseenNameMixin
 
 
-class ExitBase(DefaultExit):
+class ExitBase(UnseenNameMixin, DefaultExit):
+
+    #: A way out you cannot make out still leads somewhere.
+    unseen_name = AttributeProperty("somewhere")
 
     def return_appearance(self, looker, **kwargs):
         """
