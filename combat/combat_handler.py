@@ -12,6 +12,8 @@ from evennia import TICKER_HANDLER
 from evennia.scripts.scripts import DefaultScript
 from evennia.typeclasses.attributes import AttributeProperty
 
+from utils.targeting.predicates import p_is_character
+
 
 def _broadcast_height_change(actor, old_height, new_height):
     """Broadcast a message when an actor changes height mid-combat."""
@@ -206,8 +208,10 @@ class CombatHandler(DefaultScript):
                     # --- Height reachability check ---
                     from combat.height_utils import can_reach_target
                     if not can_reach_target(self.obj, target, weapon):
-                        is_pc = getattr(self.obj, "is_pc", False)
-                        if not is_pc:
+                        # Mobs reposition to reach; players are left to
+                        # sort out their own height. Asked of the handler's
+                        # owner, so p_is_character takes it as both operands.
+                        if not p_is_character(self.obj, self.obj):
                             # Step 1: Try to match current target's height
                             old_height = self.obj.room_vertical_position
                             matched = (

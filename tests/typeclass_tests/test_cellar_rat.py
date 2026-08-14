@@ -97,10 +97,22 @@ class TestRoomClearance(CellarRatTest):
         super().setUp()
         self.room1.tags.add("not_clear", category="dungeon_room")
 
+    @staticmethod
+    def _kill(mob):
+        """Both halves of death, as die() sets them.
+
+        The clearance check reads hp, so a test that flips only the
+        is_alive flag leaves a mob that is dead by one measure and alive
+        by the other. die() zeroes hp first and then clears the flag, so
+        a simulated death has to do both.
+        """
+        mob.hp = 0
+        mob.is_alive = False
+
     def test_last_mob_death_clears_the_room(self):
         from typeclasses.actors.mobs.cellar_rat import _check_room_cleared
 
-        self.rat.is_alive = False
+        self._kill(self.rat)
         _check_room_cleared(self.room1)
         self.assertFalse(
             self.room1.tags.has("not_clear", category="dungeon_room")
@@ -116,7 +128,7 @@ class TestRoomClearance(CellarRatTest):
             nohome=True,
         )
         survivor.is_alive = True
-        self.rat.is_alive = False
+        self._kill(self.rat)
         _check_room_cleared(self.room1)
         self.assertTrue(
             self.room1.tags.has("not_clear", category="dungeon_room")
@@ -127,8 +139,7 @@ class TestRoomClearance(CellarRatTest):
         from typeclasses.actors.mobs.cellar_rat import _check_room_cleared
 
         self.assertEqual(self.char1.location, self.room1)
-        self.assertTrue(self.char1.is_pc)
-        self.rat.is_alive = False
+        self._kill(self.rat)
         _check_room_cleared(self.room1)
         self.assertFalse(
             self.room1.tags.has("not_clear", category="dungeon_room")

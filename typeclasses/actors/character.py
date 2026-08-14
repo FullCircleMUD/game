@@ -314,7 +314,7 @@ class FCMCharacter(
                     obj.at_llm_player_arrive(self)
 
         # District map auto-creation for cartographers
-        if self.location and getattr(self, "is_pc", False):
+        if self.location:
             self._check_map_autocreation()
 
         # Don't cascade followers on follow moves or teleports.

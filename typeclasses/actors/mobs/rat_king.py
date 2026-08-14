@@ -61,7 +61,7 @@ class RatKing(CombatMob):
         """Attack players on sight after a longer delay than regular rats."""
         if not self.is_alive or arriving_obj == self:
             return
-        if getattr(arriving_obj, "is_pc", False):
+        if p_is_character(arriving_obj, self):
             attack_delay = random.uniform(
                 self.attack_delay_min, self.attack_delay_max
             )

@@ -13,7 +13,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_see, p_is_character
 from utils.visibility import looker_is_blind
 
 
@@ -228,7 +228,7 @@ class CmdDisband(FCMCommandMixin, Command):
                     from evennia import search_object
                     owners = [
                         o for o in search_object(owner_key, exact=True)
-                        if getattr(o, "is_pc", False)
+                        if p_is_character(o, caller)
                     ]
                     if owners:
                         f.following = owners[0]

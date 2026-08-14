@@ -27,6 +27,7 @@ from enums.mastery_level import MasteryLevel
 from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 from utils.dice_roller import dice
+from utils.targeting.predicates import p_is_character
 
 
 # Subterfuge mastery bonus at SKILLED
@@ -85,7 +86,7 @@ class StreetUrchin(CombatMob):
 
     def at_new_arrival(self, arriving_obj):
         """When a player enters, schedule a pickpocket attempt."""
-        if not getattr(arriving_obj, "is_pc", False):
+        if not p_is_character(arriving_obj, self):
             return
         if not self.is_alive:
             return
@@ -102,7 +103,7 @@ class StreetUrchin(CombatMob):
             return
         if target.location != self.location:
             return  # player left the room
-        if not getattr(target, "is_pc", False):
+        if not p_is_character(target, self):
             return
         if getattr(target, "hp", 0) <= 0:
             return

@@ -9,6 +9,8 @@ Non-PC actors automatically receive CmdSetMobCombat (attack, dodge, flee)
 at creation. PCs keep their existing command pipeline via CmdSetCharacterCustom.
 """
 
+from utils.targeting.predicates import p_is_character
+
 
 class CombatMixin:
     """
@@ -109,7 +111,13 @@ class CombatMixin:
 
     def at_object_creation(self):
         super().at_object_creation()
-        if not getattr(self, "is_pc", False):
+        # Asked of self, because FCMCharacter composes this mixin too —
+        # a player must not pick up the mob combat cmdset. p_is_character
+        # rather than the is_pc flag: the flag is read with a default, so
+        # anything merely lacking it reads as "not a player", and the
+        # predicate's lazy import is what lets a mixin ask about a
+        # typeclass that composes it.
+        if not p_is_character(self, self):
             # Override call:true() from BaseNPC — mob commands shouldn't
             # merge into nearby players' command pools.
             self.locks.add("call:false()")

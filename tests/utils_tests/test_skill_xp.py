@@ -46,15 +46,22 @@ class TestAwardSkillXP(TestCase):
         self.caller.at_gain_experience_points.assert_not_called()
 
     def test_pc_target_blocks_pvp_grant(self):
-        target = MagicMock()
-        target.is_pc = True
+        """Practising on another player earns nothing.
+
+        spec= is what makes isinstance pass on a mock, and it has to:
+        the guard is a typeclass check, not a flag, so a bare mock
+        claiming is_pc=True is not a player as far as the rule is
+        concerned.
+        """
+        from typeclasses.actors.character import FCMCharacter
+
+        target = MagicMock(spec=FCMCharacter)
         with self._enabled(True):
             award_skill_xp(self.caller, 25, target=target)
         self.caller.at_gain_experience_points.assert_not_called()
 
     def test_npc_target_does_not_block(self):
         target = MagicMock()
-        target.is_pc = False
         with self._enabled(True):
             award_skill_xp(self.caller, 25, target=target)
         self.caller.at_gain_experience_points.assert_called_once_with(25)
