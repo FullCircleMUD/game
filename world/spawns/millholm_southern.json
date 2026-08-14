@@ -270,15 +270,6 @@
         "desc": "A trim, sharp-eyed swordsman in a deep-red doublet very deliberately arranged. His sword hangs loose on the hip and his footing is the footing of someone who drills."
     },
     {
-        "typeclass": "typeclasses.actors.mobs.friar_pluck.FriarPluck",
-        "key": "Friar Pluck",
-        "area_tag": "bandit_friar",
-        "target": 1,
-        "max_per_room": 1,
-        "death_cooldown_seconds": 1200,
-        "desc": "A round, weather-beaten man in a plain brown habit, sleeves pushed up over thick forearms. A wooden ladle rests in one hand. He looks tired and unsurprised."
-    },
-    {
         "typeclass": "typeclasses.actors.mobs.maid_maryann.MaidMaryann",
         "key": "Maid Maryann",
         "area_tag": "bandit_maid",
