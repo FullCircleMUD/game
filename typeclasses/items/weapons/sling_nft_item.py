@@ -119,9 +119,10 @@ class SlingMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|y*DAZE* {wielder.key}'s sling stone cracks "
-                    f"{target.key} in the skull!|n",
+                    "|y*DAZE* {wielder}'s sling stone cracks "
+                    "{target} in the skull!|n",
                     exclude=[wielder, target],
+                    mapping={"wielder": wielder, "target": target},
                 )
 
 

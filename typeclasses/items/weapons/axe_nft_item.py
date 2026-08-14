@@ -149,9 +149,10 @@ class AxeMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|r*SUNDER* {wielder.key}'s axe cracks "
-                f"{target.key}'s defences!|n",
+                "|r*SUNDER* {wielder}'s axe cracks "
+                "{target}'s defences!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
 

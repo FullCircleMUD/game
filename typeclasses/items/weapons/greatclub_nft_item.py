@@ -110,9 +110,10 @@ class GreatclubMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|r*STAGGER* {wielder.key}'s greatclub sends "
-                f"{target.key} reeling!|n",
+                "|r*STAGGER* {wielder}'s greatclub sends "
+                "{target} reeling!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
 

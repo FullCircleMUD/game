@@ -162,9 +162,10 @@ class BattleaxeMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|r{wielder.key}'s battleaxe cleaves into "
-                    f"{cleave_target.key} for {actual} damage!|n",
+                    f"|r{{wielder}}'s battleaxe cleaves into "
+                    f"{{victim}} for {actual} damage!|n",
                     exclude=[wielder, cleave_target],
+                    mapping={"wielder": wielder, "victim": cleave_target},
                 )
 
     def _try_sunder(self, wielder, target):
@@ -226,9 +227,10 @@ class BattleaxeMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|r*SUNDER* {wielder.key}'s battleaxe cracks "
-                f"{target.key}'s defences!|n",
+                "|r*SUNDER* {wielder}'s battleaxe cracks "
+                "{target}'s defences!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
 

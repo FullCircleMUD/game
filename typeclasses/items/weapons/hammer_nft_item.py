@@ -92,9 +92,10 @@ class HammerMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|R*DEVASTATING BLOW* {wielder.key}'s hammer delivers "
-                    f"a bone-crushing critical strike to {target.key}!|n",
+                    "|R*DEVASTATING BLOW* {wielder}'s hammer delivers "
+                    "a bone-crushing critical strike to {target}!|n",
                     exclude=[wielder, target],
+                    mapping={"wielder": wielder, "target": target},
                 )
 
         return damage
