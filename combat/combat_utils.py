@@ -228,11 +228,18 @@ def _check_reach_counters(attacker, target, target_allies=None):
             f"|y*REACH COUNTER* {ally.key} strikes at you "
             f"from behind {target.key}!|n"
         )
+        # Announced before the counter resolves, so a concealed ally is
+        # still concealed here and reads as "Someone" to anyone who cannot
+        # see them. The `execute_attack` below ends that — it calls
+        # `break_conditions_from_hostile_action` — which is the intended
+        # order: the room learns a spear came out of nowhere, then learns
+        # whose it was.
         if attacker.location:
             attacker.location.msg_contents(
-                f"|y*REACH COUNTER* {ally.key} strikes at {attacker.key} "
-                f"from behind {target.key}!|n",
+                "|y*REACH COUNTER* {ally} strikes at {attacker} "
+                "from behind {ward}!|n",
                 exclude=[ally, attacker],
+                mapping={"ally": ally, "attacker": attacker, "ward": target},
             )
         execute_attack(ally, attacker, _is_riposte=True)
 
@@ -394,10 +401,17 @@ def execute_attack(attacker, target, _is_riposte=False,
                 target.msg(
                     f"|gYou parry {attacker.key}'s attack with {defender_weapon.key}!|n"
                 )
+                # Nothing breaks here, deliberately. Parrying is a reaction
+                # to being attacked, and being attacked never reveals you
+                # (R3) — otherwise any targeted command becomes a free
+                # reveal and `cmd_search` is bypassed. A concealed defender
+                # who only parries stays concealed; one whose weapon grants
+                # a riposte gives themselves away below, by striking back.
                 if attacker.location:
                     attacker.location.msg_contents(
-                        f"|y{target.key} skillfully parries {attacker.key}'s attack!|n",
+                        "|y{defender} skillfully parries {attacker}'s attack!|n",
                         exclude=[attacker, target],
+                        mapping={"defender": target, "attacker": attacker},
                     )
 
                 # --- 3b. Disarm-on-parry (sai) ---
@@ -412,10 +426,16 @@ def execute_attack(attacker, target, _is_riposte=False,
                         and getattr(attacker, "hp", 0) > 0):
                     target.msg(f"|g*RIPOSTE* You strike back at {attacker.key}!|n")
                     attacker.msg(f"|y*RIPOSTE* {target.key} strikes back!|n")
+                    # Announced before the counter resolves, so a concealed
+                    # defender still reads as "Someone" here. The
+                    # `execute_attack` below ends that — striking back is
+                    # the defender's own hostile act, where parrying was
+                    # not.
                     if attacker.location:
                         attacker.location.msg_contents(
-                            f"|y*RIPOSTE* {target.key} counter-attacks {attacker.key}!|n",
+                            "|y*RIPOSTE* {defender} counter-attacks {attacker}!|n",
                             exclude=[attacker, target],
+                            mapping={"defender": target, "attacker": attacker},
                         )
                     execute_attack(target, attacker, _is_riposte=True)
 
@@ -472,9 +492,13 @@ def execute_attack(attacker, target, _is_riposte=False,
             crit_was_resisted = True
             if attacker.location:
                 helmet = target.get_slot("HEAD") if hasattr(target, "get_slot") else None
-                helmet_name = helmet.key if helmet else "helmet"
+                # Nobody acts here — the defender's equipment does its job,
+                # so there is nothing to break. Both names resolve per
+                # recipient; the helmet falls back to a bare word when the
+                # slot is empty and the crit immunity came from elsewhere.
                 attacker.location.msg_contents(
-                    f"|c{target.key}'s {helmet_name} deflects the critical blow!|n",
+                    "|c{defender}'s {helm} deflects the critical blow!|n",
+                    mapping={"defender": target, "helm": helmet or "helmet"},
                 )
 
         # --- 7. Crit hooks (only if not downgraded) ---
@@ -514,11 +538,21 @@ def execute_attack(attacker, target, _is_riposte=False,
                 f"|r*PROTECT* You throw yourself in front of {target.key}, "
                 f"intercepting {attacker.key}'s attack!|n"
             )
+            # Nothing breaks here. Intercepting is defensive — the protector
+            # takes the blow rather than dealing one — so it sits with parry
+            # rather than with riposte. They cannot be HIDDEN in any case,
+            # since `cmd_protect` needs a combat handler and hiding is
+            # refused in combat; invisibility and sanctuary survive.
             if attacker.location:
                 attacker.location.msg_contents(
-                    f"|y{protector.key} leaps in front of {target.key}, "
-                    f"intercepting {attacker.key}'s attack!|n",
+                    "|y{protector} leaps in front of {ward}, "
+                    "intercepting {attacker}'s attack!|n",
                     exclude=[attacker, target, protector],
+                    mapping={
+                        "protector": protector,
+                        "ward": target,
+                        "attacker": attacker,
+                    },
                 )
             target = protector  # swap for damage, durability, kill check
 
@@ -571,9 +605,10 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"with their {weapon_name}{punct}|n"
                 )
                 attacker.location.msg_contents(
-                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key} "
+                    f"|r{crit_prefix}{{attacker}} {third_verb} {{defender}} "
                     f"with their {weapon_name}{punct}|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
             else:
                 # Natural attack — use damage descriptor system
@@ -589,8 +624,9 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"|r{crit_prefix}{attacker.key} {third_verb} you{punct}|n"
                 )
                 attacker.location.msg_contents(
-                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key}{punct}|n",
+                    f"|r{crit_prefix}{{attacker}} {third_verb} {{defender}}{punct}|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
 
         # --- 9c. Apply damage (subtracts HP, triggers die/death) ---
@@ -629,8 +665,9 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"|y{attacker.key} {third_miss} at you but misses.|n"
                 )
                 attacker.location.msg_contents(
-                    f"|y{attacker.key} {third_miss} at {target.key} but misses.|n",
+                    f"|y{{attacker}} {third_miss} at {{defender}} but misses.|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
             else:
                 atk_msg = getattr(attacker, "attack_message", "attacks")
@@ -641,8 +678,9 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"|y{attacker.key} {atk_msg} you but misses.|n"
                 )
                 attacker.location.msg_contents(
-                    f"|y{attacker.key} {atk_msg} {target.key} but misses.|n",
+                    f"|y{{attacker}} {atk_msg} {{defender}} but misses.|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
 
     # --- 13. Post-attack hook (always fires) ---

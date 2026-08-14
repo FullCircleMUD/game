@@ -123,8 +123,9 @@ def check_reactive_smite(attacker, target):
     )
     if attacker.location:
         attacker.location.msg_contents(
-            f"|Y{attacker.key}'s weapon blazes with holy light!|n",
+            "|Y{smiter}'s weapon blazes with holy light!|n",
             exclude=[attacker],
+            mapping={"smiter": attacker},
         )
 
     return actual
