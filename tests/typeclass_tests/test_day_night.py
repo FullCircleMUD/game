@@ -201,18 +201,18 @@ class TestDarkRoomRendering(EvenniaTest):
         self.assertIn("pitch black", desc)
 
     @patch("typeclasses.scripts.day_night_service.get_time_of_day")
-    def test_dark_room_characters_empty(self, mock_tod):
-        """Dark room doesn't show characters."""
+    def test_dark_room_characters_are_anonymous(self, mock_tod):
+        """Dark room shows that someone is there, without naming them."""
         mock_tod.return_value = TimeOfDay.NIGHT
         result = self.room1.get_display_characters(self.char1)
-        self.assertEqual(result, "")
+        self.assertEqual(result, "Someone is in the room.")
 
     @patch("typeclasses.scripts.day_night_service.get_time_of_day")
-    def test_dark_room_things_empty(self, mock_tod):
-        """Dark room doesn't show things."""
+    def test_dark_room_things_are_anonymous(self, mock_tod):
+        """Dark room collapses things to one unnamed line."""
         mock_tod.return_value = TimeOfDay.NIGHT
         result = self.room1.get_display_things(self.char1)
-        self.assertEqual(result, "")
+        self.assertEqual(result, "Several things are on the ground.")
 
     @patch("typeclasses.scripts.day_night_service.get_time_of_day")
     def test_lit_room_shows_normal_desc(self, mock_tod):
