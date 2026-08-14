@@ -300,16 +300,12 @@ class FCMCharacter(
         if self.location:
             self._check_traps_on_entry()
 
-        # Notify LLM NPCs of player arrival. Gated on source_location
-        # so we don't fire on initial placement during create_object()
-        # (chargen): an instantiated character isn't semantically
-        # "arriving" anywhere, and the LLM call from any reactive NPC
-        # in the start room (e.g. Rowan in The Harvest Moon) is a
-        # blocking multi-second hit on the chargen finalisation.
-        if source_location is not None and self.location:
-            for obj in self.location.contents:
-                if obj != self and hasattr(obj, "at_llm_player_arrive"):
-                    obj.at_llm_player_arrive(self)
+        # Arrivals are announced by RoomBase.at_object_receive, which fires
+        # earlier in move_to and gates both the mob and LLM hooks on
+        # perception. Everything left in this method is the mover's own
+        # bookkeeping — its move points, its lungs, its map, its followers.
+        # Telling other people something happened belongs to the room; a
+        # second loop here is how one of the two hooks ended up unfiltered.
 
         # District map auto-creation for cartographers
         if self.location:
