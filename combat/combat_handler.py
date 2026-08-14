@@ -255,6 +255,7 @@ class CombatHandler(DefaultScript):
                                 f"|B{self.obj.key} moves sluggishly, "
                                 f"slowed by magic.|n",
                                 exclude=[self.obj],
+                                from_obj=self.obj,
                             )
 
                     # --- Main hand attacks ---

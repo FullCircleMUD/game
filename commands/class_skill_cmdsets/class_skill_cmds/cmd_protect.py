@@ -81,8 +81,10 @@ class CmdProtect(CmdSkillBase):
                     protected.msg(f"|y{caller.key} is no longer protecting you.|n")
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} stops protecting {name}.|n",
+                        f"|y{{protector}} stops protecting {name}.|n",
                         exclude=[caller] + ([protected] if protected else []),
+                        from_obj=caller,
+                        mapping={"protector": caller},
                     )
             else:
                 caller.msg("You aren't protecting anyone.")
@@ -124,8 +126,10 @@ class CmdProtect(CmdSkillBase):
             target.msg(f"|y{caller.key} is no longer protecting you.|n")
             if caller.location:
                 caller.location.msg_contents(
-                    f"|y{caller.key} stops protecting {target.key}.|n",
+                    "|y{protector} stops protecting {ally}.|n",
                     exclude=[caller, target],
+                    from_obj=caller,
+                    mapping={"protector": caller, "ally": target},
                 )
             return
 
@@ -148,8 +152,10 @@ class CmdProtect(CmdSkillBase):
         target.msg(f"|g{caller.key} moves to protect you!|n")
         if caller.location:
             caller.location.msg_contents(
-                f"|y{caller.key} moves to protect {target.key}!|n",
+                "|y{protector} moves to protect {ally}!|n",
                 exclude=[caller, target],
+                from_obj=caller,
+                mapping={"protector": caller, "ally": target},
             )
 
     # ── Mob fallback ──

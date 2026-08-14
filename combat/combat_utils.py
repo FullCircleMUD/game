@@ -286,29 +286,33 @@ def execute_attack(attacker, target, _is_riposte=False,
     weapon = weapon_override if weapon_override else get_weapon(attacker)
     defender_weapon = get_weapon(target)
 
-    # Break invisibility on auto-attack (mid-combat edge case)
-    if (hasattr(attacker, "break_invisibility")
-            and attacker.has_condition(Condition.INVISIBLE)):
-        attacker.break_invisibility()
-        handler = attacker.scripts.get("combat_handler")
-        if handler:
-            handler[0].set_advantage(target, rounds=1)
-
-    # Sanctuary: target is protected — attack blocked entirely
+    # Sanctuary: target is protected — attack blocked entirely. Checked
+    # before the attacker's own conditions break, so a blocked attack costs
+    # them nothing.
     if (hasattr(target, "has_condition")
             and target.has_condition(Condition.SANCTUARY)):
         attacker.msg(f"|W{target.key} is protected by a divine sanctuary!|n")
         return
 
-    # Sanctuary: attacker loses it on offensive action (attack still proceeds)
-    if (hasattr(attacker, "has_condition")
-            and attacker.has_condition(Condition.SANCTUARY)):
-        attacker.break_sanctuary()
+    # Attacking ends concealment and sanctuary alike. This is the catch-all
+    # for every path into an attack — mob attacks, auto-attack ticks,
+    # ripostes and reach counters — as well as the commands.
+    broken = []
+    if hasattr(attacker, "break_conditions_from_hostile_action"):
+        broken = attacker.break_conditions_from_hostile_action()
+
+    if Condition.INVISIBLE in broken:
+        handler = attacker.scripts.get("combat_handler")
+        if handler:
+            handler[0].set_advantage(target, rounds=1)
+
+    if Condition.SANCTUARY in broken:
         attacker.msg("|WYour sanctuary fades as you take an offensive action!|n")
         if attacker.location:
             attacker.location.msg_contents(
-                f"|W{attacker.key}'s divine sanctuary fades!|n",
+                "|W{caster}'s divine sanctuary fades!|n",
                 exclude=[attacker],
+                mapping={"caster": attacker},
             )
 
     # --- Height reachability check (height can change mid-combat) ---

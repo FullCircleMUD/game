@@ -101,8 +101,9 @@ class CmdDefence(CmdSkillBase):
             caller.msg("|yYou signal the group to return to a normal stance.|n")
             if caller.location:
                 caller.location.msg_contents(
-                    f"|y{caller.key} signals the group to return to a normal stance.|n",
+                    "|y{leader} signals the group to return to a normal stance.|n",
                     exclude=[caller],
+                    mapping={"leader": caller},
                 )
             return
 
@@ -142,8 +143,9 @@ class CmdDefence(CmdSkillBase):
         )
         if caller.location:
             caller.location.msg_contents(
-                f"|y{caller.key} commands the group to fight defensively!|n",
+                "|y{leader} commands the group to fight defensively!|n",
                 exclude=[caller],
+                mapping={"leader": caller},
             )
 
     # ── Mob fallback ──

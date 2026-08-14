@@ -217,3 +217,26 @@ _CONDITION_END_MESSAGES_THIRD_PERSON = {
     Condition.PARALYSED: "{name}'s muscles relax and they can move again.",
     Condition.SLOWED: "{name} shakes off the sluggishness and moves normally again.",
 }
+
+
+# ================================================================== #
+#  Conditions ended by taking a hostile action
+# ================================================================== #
+
+#: Every condition that acting with hostile intent should end. Read by
+#: ``EffectsManagerMixin.break_conditions_from_hostile_action``, which is
+#: the only thing that should consult it.
+#:
+#: **This tuple is the single place a new condition joins the set.** Adding
+#: an entry here reaches every call site at once. The alternative — a break
+#: hand-rolled at each site — cannot be kept complete: SANCTUARY was added
+#: to some paths and not others precisely that way, and `cmd_cast` and
+#: `cmd_zap` still do not end HIDDEN.
+#:
+#: A call site that genuinely needs a subset passes the exceptions as
+#: ``excluded``, so the omission is visible where it is made.
+HOSTILE_ACTION_BREAKS = (
+    Condition.INVISIBLE,
+    Condition.HIDDEN,
+    Condition.SANCTUARY,
+)

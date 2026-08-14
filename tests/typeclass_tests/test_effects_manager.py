@@ -1671,3 +1671,155 @@ class TestClearAllEffects(EvenniaTest):
         self.assertEqual(self.char1.armor_class, original_ac)
         self.assertEqual(self.char1.total_hit_bonus, 0)
         self.assertFalse(self.char1.has_condition(Condition.SLOWED))
+
+
+class TestBreakConditionsFromHostileAction(EvenniaTest):
+    """
+    break_conditions_from_hostile_action — the single seam for conditions
+    that acting with hostile intent ends.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    # ── The set ───────────────────────────────────────────────
+
+    def test_breaks_every_condition_in_the_set(self):
+        """All three go at once, whatever combination the actor holds."""
+        self.char1.apply_named_effect(
+            key="invisible", condition=Condition.INVISIBLE,
+            duration=60, duration_type="seconds",
+        )
+        self.char1.apply_sanctuary(60)
+        self.char1.add_condition(Condition.HIDDEN)
+
+        broken = self.char1.break_conditions_from_hostile_action()
+
+        self.assertCountEqual(
+            broken,
+            [Condition.INVISIBLE, Condition.HIDDEN, Condition.SANCTUARY],
+        )
+        for condition in broken:
+            self.assertFalse(self.char1.has_condition(condition))
+
+    def test_set_is_read_from_the_enum_module(self):
+        """
+        The method breaks exactly HOSTILE_ACTION_BREAKS — the guarantee that
+        adding a condition there reaches every call site.
+        """
+        from enums.condition import HOSTILE_ACTION_BREAKS
+
+        for condition in HOSTILE_ACTION_BREAKS:
+            self.char1.add_condition(condition)
+
+        broken = self.char1.break_conditions_from_hostile_action()
+
+        self.assertCountEqual(broken, list(HOSTILE_ACTION_BREAKS))
+
+    def test_leaves_conditions_outside_the_set_alone(self):
+        """An unrelated condition survives — this is not a general clear."""
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char1.add_condition(Condition.DARKVISION)
+
+        self.char1.break_conditions_from_hostile_action()
+
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+        self.assertTrue(self.char1.has_condition(Condition.DARKVISION))
+
+    def test_returns_empty_when_nothing_is_held(self):
+        self.assertEqual(self.char1.break_conditions_from_hostile_action(), [])
+
+    # ── Exclusions ────────────────────────────────────────────
+
+    def test_excluded_condition_survives(self):
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char1.apply_sanctuary(60)
+
+        broken = self.char1.break_conditions_from_hostile_action(
+            Condition.SANCTUARY,
+        )
+
+        self.assertEqual(broken, [Condition.HIDDEN])
+        self.assertTrue(self.char1.has_condition(Condition.SANCTUARY))
+
+    def test_excluding_everything_breaks_nothing(self):
+        from enums.condition import HOSTILE_ACTION_BREAKS
+
+        for condition in HOSTILE_ACTION_BREAKS:
+            self.char1.add_condition(condition)
+
+        broken = self.char1.break_conditions_from_hostile_action(
+            *HOSTILE_ACTION_BREAKS,
+        )
+
+        self.assertEqual(broken, [])
+        for condition in HOSTILE_ACTION_BREAKS:
+            self.assertTrue(self.char1.has_condition(condition))
+
+    # ── The two removal routes ────────────────────────────────
+
+    def test_named_effect_condition_unwinds_the_effect_too(self):
+        """
+        INVISIBLE is managed by a named effect, so breaking it has to take
+        the effect record with it, not just the condition flag.
+        """
+        self.char1.apply_named_effect(
+            key="invisible", condition=Condition.INVISIBLE,
+            duration=60, duration_type="seconds",
+        )
+        self.assertTrue(self.char1.has_effect("invisible"))
+
+        self.char1.break_conditions_from_hostile_action()
+
+        self.assertFalse(self.char1.has_condition(Condition.INVISIBLE))
+        self.assertFalse(self.char1.has_effect("invisible"))
+
+    def test_bare_condition_is_removed_without_a_named_effect(self):
+        """HIDDEN has no named effect — break_effect declines, removal covers it."""
+        self.char1.add_condition(Condition.HIDDEN)
+        self.assertFalse(self.char1.has_effect("hidden"))
+
+        broken = self.char1.break_conditions_from_hostile_action()
+
+        self.assertEqual(broken, [Condition.HIDDEN])
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_stacked_refs_are_zeroed_not_decremented(self):
+        """
+        Two sources of invisibility must not leave the actor half-invisible.
+        Attacking ends it outright.
+        """
+        from enums.wearslot import HumanoidWearSlot
+
+        ring = _make_wearable(
+            "Invis Ring", HumanoidWearSlot.LEFT_RING_FINGER,
+            [{"type": "condition", "condition": "invisible"}],
+            self.char1,
+        )
+        self.char1.wear(ring)
+        self.char1.apply_named_effect(
+            key="invisible", condition=Condition.INVISIBLE,
+            duration=60, duration_type="seconds",
+        )
+        self.assertEqual(self.char1.get_condition_count("invisible"), 2)
+
+        self.char1.break_conditions_from_hostile_action()
+
+        self.assertFalse(self.char1.has_condition(Condition.INVISIBLE))
+
+    # ── Works for mobs, not just players ──────────────────────
+
+    def test_applies_to_mobs(self):
+        """The seam lives on the mixin, so every actor gets it."""
+        mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob", key="Test Mob",
+            location=self.room1,
+        )
+        mob.add_condition(Condition.HIDDEN)
+
+        broken = mob.break_conditions_from_hostile_action()
+
+        self.assertEqual(broken, [Condition.HIDDEN])
+        self.assertFalse(mob.has_condition(Condition.HIDDEN))

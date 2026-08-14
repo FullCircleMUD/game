@@ -56,8 +56,10 @@ class AcidDoTScript(DefaultScript):
         )
         if getattr(char, "location", None):
             char.location.msg_contents(
-                f"|GAcid continues to burn and corrode {char.key}!|n",
+                "|GAcid continues to burn and corrode {sufferer}!|n",
                 exclude=[char],
+                from_obj=char,
+                mapping={"sufferer": char},
             )
 
         self.db.remaining_ticks = remaining - 1
