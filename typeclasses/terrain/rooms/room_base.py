@@ -269,15 +269,36 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
     # Naming is UnseenNameMixin's job — see unseen_name above.
 
     def at_object_receive(self, moved_obj, source_location, **kwargs):
-        """Fire quest events and notify mobs when something enters."""
+        """Fire quest events and notify mobs when something enters.
+
+        The notification is gated on perception, asked once per recipient
+        with the arriver as the thing being perceived. This is the push
+        side of the same question ``get_targets_in_room`` answers when a
+        mob looks around: without it, a mob attacks an invisible player
+        it walked past a moment ago without noticing.
+
+        ``p_can_perceive`` rather than ``p_can_see``, deliberately.
+        Concealment excludes — a hidden or invisible arrival is not
+        announced at all. Darkness does not: someone walking in makes
+        noise, so an unlit room still gets the notification. What a mob
+        can work out about an arrival it cannot see is the behaviour's
+        problem, not the dispatcher's.
+
+        The counters come with the predicate: a mob holding DETECT_INVIS
+        is still told about an invisible arrival, and one under
+        true_sight about a hidden one.
+        """
         super().at_object_receive(moved_obj, source_location, **kwargs)
         if self.quest_tags and hasattr(moved_obj, "quests"):
             self.fire_quest_event(moved_obj, "enter_room")
 
         # Notify mobs in this room about the new arrival
         for obj in self.contents:
-            if obj != moved_obj and hasattr(obj, "at_new_arrival"):
-                obj.at_new_arrival(moved_obj)
+            if obj is moved_obj or not hasattr(obj, "at_new_arrival"):
+                continue
+            if not p_can_perceive(moved_obj, obj):
+                continue
+            obj.at_new_arrival(moved_obj)
 
     def msg_contents(self, text=None, exclude=None, from_obj=None, mapping=None,
                      raise_funcparse_errors=False, **kwargs):
