@@ -21,7 +21,7 @@ from twisted.internet import threads
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from enums.condition import Condition
+from commands.room_specific_cmds.inn.service import bartender_refuses
 from enums.hunger_level import HungerLevel
 
 
@@ -47,14 +47,7 @@ class CmdStew(FCMCommandMixin, Command):
     def func(self):
         caller = self.caller
 
-        if hasattr(caller, "has_condition") and (
-            caller.has_condition(Condition.HIDDEN)
-            or caller.has_condition(Condition.INVISIBLE)
-        ):
-            caller.msg(
-                "The bartender looks around wildly, trying to identify "
-                "where the voice is coming from. No service."
-            )
+        if bartender_refuses(caller):
             return
 
         current = caller.hunger_level

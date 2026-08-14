@@ -12,7 +12,7 @@ Usage:
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from enums.condition import Condition
+from commands.room_specific_cmds.inn.service import bartender_refuses
 from enums.thirst_level import ThirstLevel
 
 # Price in gold — static for now, will draw from market makers later.
@@ -36,14 +36,7 @@ class CmdAle(FCMCommandMixin, Command):
     def func(self):
         caller = self.caller
 
-        if hasattr(caller, "has_condition") and (
-            caller.has_condition(Condition.HIDDEN)
-            or caller.has_condition(Condition.INVISIBLE)
-        ):
-            caller.msg(
-                "The bartender looks around wildly, trying to identify "
-                "where the voice is coming from. No service."
-            )
+        if bartender_refuses(caller):
             return
 
         if hasattr(caller, "thirst_level") and caller.thirst_level == ThirstLevel.REFRESHED:
