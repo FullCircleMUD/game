@@ -665,7 +665,7 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         # Filter hidden/invisible exits and closed doors
         exits = [
             ex for ex in exits
-            if (not hasattr(ex, "is_visible_to") or ex.is_visible_to(looker))
+            if p_object_visible_to(ex, looker)
             and (not hasattr(ex, "is_open") or ex.is_open)
         ]
 

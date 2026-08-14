@@ -8,6 +8,7 @@ Supports directional qualifiers: "door south", "door s", "south door",
 """
 
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from utils.targeting.predicates import p_object_visible_to
 
 # Build reverse map: abbreviation → canonical direction
 # e.g. {"n": "north", "north": "north", "s": "south", ...}
@@ -38,13 +39,13 @@ def find_exit_target(caller, name):
     if target:
         if isinstance(target, list):
             target = target[0]
-        if _is_visible(target, caller):
+        if p_object_visible_to(target, caller):
             return target
 
     # Check exits (doors, gates, etc.)
     name_lower = name.lower()
     for ex in caller.location.exits:
-        if not _is_visible(ex, caller):
+        if not p_object_visible_to(ex, caller):
             continue
         if name_lower in ex.key.lower():
             return ex
@@ -85,7 +86,7 @@ def _find_exit_by_direction(caller, name_lower):
 
         # Search exits with matching direction + name/alias
         for ex in caller.location.exits:
-            if not _is_visible(ex, caller):
+            if not p_object_visible_to(ex, caller):
                 continue
             ex_dir = getattr(ex, "direction", None)
             if ex_dir != direction:
@@ -98,13 +99,3 @@ def _find_exit_by_direction(caller, name_lower):
     return None
 
 
-def _is_visible(obj, looker):
-    """
-    Check if an object is visible to the looker.
-
-    Filters hidden objects (undiscovered) and invisible objects
-    (requires DETECT_INVIS condition on the looker).
-    """
-    if hasattr(obj, "is_visible_to"):
-        return obj.is_visible_to(looker)
-    return True

@@ -9,6 +9,7 @@ controls the compact ``[ Exits: n s e w ]`` line in the room display).
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.predicates import p_object_visible_to
 
 
 class CmdExits(FCMCommandMixin, Command):
@@ -53,7 +54,7 @@ class CmdExits(FCMCommandMixin, Command):
         # Filter visibility (hidden/invisible doors, etc.)
         exits = [
             ex for ex in exits
-            if not hasattr(ex, "is_visible_to") or ex.is_visible_to(caller)
+            if p_object_visible_to(ex, caller)
         ]
 
         # Filter height-gated exits based on caller's vertical position

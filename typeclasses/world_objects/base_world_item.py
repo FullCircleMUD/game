@@ -36,7 +36,3 @@ class WorldItem(UnseenNameMixin, HeightAwareMixin, HiddenObjectMixin, DefaultObj
         super().at_object_creation()
         self.at_hidden_init()
         # Default Evennia lock allows get — no override needed
-
-    def is_visible_to(self, character):
-        """Hidden-state visibility check for room display filtering."""
-        return self.is_hidden_visible_to(character)

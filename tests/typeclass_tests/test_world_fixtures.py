@@ -6,6 +6,7 @@ evennia test --settings settings tests.typeclass_tests.test_world_fixtures
 
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
+from utils.targeting.predicates import p_object_visible_to
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -51,7 +52,7 @@ class TestWorldFixture(WorldFixtureTestBase):
             location=self.room1,
             nohome=True,
         )
-        self.assertTrue(fixture.is_visible_to(self.char1))
+        self.assertTrue(p_object_visible_to(fixture, self.char1))
 
 
 class TestWorldSign(WorldFixtureTestBase):

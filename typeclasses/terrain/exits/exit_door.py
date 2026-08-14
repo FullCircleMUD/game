@@ -31,6 +31,7 @@ from typeclasses.mixins.invisible_object import InvisibleObjectMixin
 from typeclasses.mixins.lockable import LockableMixin
 from typeclasses.mixins.smashable import SmashableMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
+from utils.targeting.predicates import p_object_visible_to
 
 
 class ExitDoor(
@@ -137,18 +138,6 @@ class ExitDoor(
             other.is_locked = True
 
     # ------------------------------------------------------------------ #
-    #  Visibility
-    # ------------------------------------------------------------------ #
-
-    def is_visible_to(self, character):
-        """Combined hidden + invisible check for room display filtering."""
-        if not self.is_hidden_visible_to(character):
-            return False
-        if not self.is_invis_visible_to(character):
-            return False
-        return True
-
-    # ------------------------------------------------------------------ #
     #  Traverse gating
     # ------------------------------------------------------------------ #
 
@@ -156,7 +145,7 @@ class ExitDoor(
         """Block passage when invisible/hidden, closed, or locked."""
         # Invisible or hidden doors can't be traversed if the character
         # can't see them. Use a generic message to avoid revealing the exit.
-        if not self.is_visible_to(traversing_object):
+        if not p_object_visible_to(self, traversing_object):
             traversing_object.msg("You can't go that way.")
             return
 

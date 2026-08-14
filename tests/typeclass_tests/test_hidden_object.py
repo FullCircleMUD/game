@@ -6,6 +6,7 @@ evennia test --settings settings tests.typeclass_tests.test_hidden_object
 
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
+from utils.targeting.predicates import p_object_visible_to
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -68,10 +69,10 @@ class TestHiddenObject(EvenniaTest):
         self.assertFalse(obj.is_hidden_visible_to(self.char2))
 
     def test_combined_visibility_hidden_blocks(self):
-        """is_visible_to() returns False for hidden + undiscovered."""
+        """p_object_visible_to is False for hidden + undiscovered."""
         obj = self._make_hidden_fixture()
-        self.assertFalse(obj.is_visible_to(self.char1))
+        self.assertFalse(p_object_visible_to(obj, self.char1))
 
     def test_combined_visibility_passes_when_not_hidden(self):
         obj = self._make_hidden_fixture(is_hidden=False)
-        self.assertTrue(obj.is_visible_to(self.char1))
+        self.assertTrue(p_object_visible_to(obj, self.char1))

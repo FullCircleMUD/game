@@ -69,10 +69,6 @@ class BaseNFTItem(
     #  Display
     # ================================================================== #
 
-    def is_visible_to(self, character):
-        """Hidden-state visibility check for room display filtering."""
-        return self.is_hidden_visible_to(character)
-
     def get_display_name(self, looker=None, **kwargs):
         """Include token ID for builders, plain name for players."""
         name = super().get_display_name(looker, **kwargs)

@@ -8,6 +8,7 @@ from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
 from enums.condition import Condition
+from utils.targeting.predicates import p_object_visible_to
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -49,9 +50,9 @@ class TestInvisibleObject(EvenniaTest):
 
     def test_combined_visibility_invisible_blocks(self):
         obj = self._make_invisible_fixture()
-        self.assertFalse(obj.is_visible_to(self.char1))
+        self.assertFalse(p_object_visible_to(obj, self.char1))
 
     def test_combined_visibility_with_detect_invis(self):
         obj = self._make_invisible_fixture()
         self.char1.add_condition(Condition.DETECT_INVIS)
-        self.assertTrue(obj.is_visible_to(self.char1))
+        self.assertTrue(p_object_visible_to(obj, self.char1))

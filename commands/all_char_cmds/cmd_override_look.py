@@ -23,7 +23,8 @@ from commands.command import FCMCommandMixin
 from typeclasses.terrain.exits.exit_vertical_aware import ExitVerticalAware
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import (
-    p_can_perceive, p_is_container, p_is_open, p_is_openable, p_same_height,
+    p_can_perceive, p_is_container, p_is_open, p_is_openable,
+    p_object_visible_to, p_same_height,
 )
 from utils.visibility import looker_is_blind
 
@@ -216,7 +217,7 @@ class CmdLook(FCMCommandMixin, _EvenniaCmdLook):
             if ex_dir != canonical:
                 continue
             # Check visibility
-            if hasattr(ex, "is_visible_to") and not ex.is_visible_to(caller):
+            if not p_object_visible_to(ex, caller):
                 break  # exit exists but is hidden — don't reveal
             # Check height accessibility
             if (

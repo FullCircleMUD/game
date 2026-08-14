@@ -5,7 +5,7 @@ For signs, chests, decorations, furniture — anything placed in the world
 that players cannot pick up and that is NOT blockchain-backed.
 
 Includes HiddenObjectMixin and InvisibleObjectMixin for room appearance
-filtering. Subclasses combine these via a unified is_visible_to() check.
+filtering, both consulted by ``p_object_visible_to``.
 
 Usage:
     class WorldSign(WorldFixture):
@@ -48,17 +48,3 @@ class WorldFixture(
     def at_pre_get(self, getter, **kwargs):
         getter.msg("You can't pick that up.")
         return False
-
-    def is_visible_to(self, character):
-        """
-        Combined visibility check across both hidden and invisible states.
-
-        An object is visible only if BOTH checks pass:
-            - Hidden check: not hidden, or character has discovered it
-            - Invisible check: not invisible, or character has DETECT_INVIS
-        """
-        if not self.is_hidden_visible_to(character):
-            return False
-        if not self.is_invis_visible_to(character):
-            return False
-        return True
