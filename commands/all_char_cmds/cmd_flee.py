@@ -19,6 +19,7 @@ from evennia import Command
 
 from combat.combat_utils import FleeWording, flee_from_combat
 from commands.command import FCMCommandMixin
+from enums.condition import Condition
 from utils.targeting.helpers import open_exits
 
 
@@ -74,6 +75,15 @@ class CmdFlee(FCMCommandMixin, Command):
         Not the combat process: there is no fight to disengage from, so
         there is nothing to roll against and nothing to lose by failing.
         """
+        # Bolting is not sneaking. Without this a hidden character could
+        # panic-run into the next room and still get a stealth roll there,
+        # while the room they left is told someone fled it in plain terms.
+        # Combat flee needs no equivalent: attack, stab and join all strip
+        # HIDDEN, so nobody reaches a fight still concealed.
+        if caller.has_condition(Condition.HIDDEN):
+            caller.remove_condition(Condition.HIDDEN)
+            caller.msg("|yYou break cover as you bolt!|n")
+
         exits = open_exits(caller)
         if not exits:
             caller.msg("|yYou panic but there's nowhere to run!|n")

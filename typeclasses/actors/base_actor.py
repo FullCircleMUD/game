@@ -123,6 +123,24 @@ class BaseActor(
         from utils.movement_messages import arrival_phrase, followers_in, resolve_rule
 
         destination = self.location
+
+        # Stealth resolves before anything is said. The roll is against the
+        # occupants of the room being entered, so it is a question about
+        # crossing the threshold, and everything downstream reads the
+        # answer: a revealed actor passes the visibility filter on the
+        # arrival message, and at_object_receive — which Evennia calls
+        # after this — announces them to the mobs. Resolve it afterwards
+        # and a failed roll leaves someone standing in plain sight that
+        # nothing in the room was ever told about.
+        #
+        # This seam is skipped on a quiet move, which is how followers
+        # travel — that case is checked in FCMCharacter.at_post_move,
+        # guarded on move_type == "follow". One roll per move either way.
+        if source_location and destination and hasattr(
+            self, "_check_hidden_on_entry"
+        ) and self.has_condition(Condition.HIDDEN):
+            self._check_hidden_on_entry()
+
         if msg or not source_location or not destination:
             # No source means this wasn't a move through the world (creation,
             # or straight into an inventory) — vanilla handles those.

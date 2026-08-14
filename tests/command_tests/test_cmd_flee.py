@@ -336,6 +336,35 @@ class TestCmdFleeOutOfCombat(EvenniaCommandTest):
         self.assertIn("nowhere to run", result)
         self.assertEqual(self.char1.location, self.room1)
 
+    def test_bolting_breaks_cover(self):
+        """Panic-running is not sneaking.
+
+        Without this the panic run leaves the room in plain terms and
+        then gets a stealth roll on the way into the next one.
+        """
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_the_bolter_is_told_they_broke_cover(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("break cover", result)
+
+    def test_cover_is_broken_even_with_nowhere_to_run(self):
+        """The panic is the tell, not the running."""
+        from enums.condition import Condition
+
+        self.exit1.delete()
+        self.exit1 = None
+        self.char1.add_condition(Condition.HIDDEN)
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
 
 class TestCmdFleeDoors(EvenniaCommandTest):
     """Door state gates flee.

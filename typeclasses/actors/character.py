@@ -292,8 +292,20 @@ class FCMCharacter(
             # Surfaced or on land — stop any running timer
             self.stop_breath_timer()
 
-        # HIDDEN movement check — stealth vs best perceiver on room entry
-        if self.has_condition(Condition.HIDDEN) and self.location:
+        # HIDDEN check for followers only. Every other move resolves
+        # stealth in BaseActor.announce_move_to, before anything is said,
+        # so the room reacts to what the arriver turned out to be.
+        # Followers travel with quiet=True and Evennia skips both announce
+        # hooks on a quiet move, so that seam never runs for them — and
+        # without a check here a hidden character could follow a group
+        # across the map without rolling once.
+        #
+        # Resolving it after the arrival is the right shape for a group
+        # anyway: the room hears about the party, then notices the extra
+        # body a moment later.
+        if (move_type == "follow"
+                and self.has_condition(Condition.HIDDEN)
+                and self.location):
             self._check_hidden_on_entry()
 
         # Passive trap detection on room entry
