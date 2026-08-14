@@ -179,6 +179,7 @@ class TestCmdCast(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _setup_mage(self.char1)
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.memorised_spells = {"magic_missile": True}
