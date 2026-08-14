@@ -40,10 +40,11 @@ Public API:
     # Validation (must override)
     self.can_wear(item)          -> bool
 
-    # Display
-    self.equipment_cmd_output(header) -> str
+    # Display — both name items through get_display_name(looker), so one
+    # the looker cannot make out reads as its own unseen_name.
+    self.equipment_cmd_output(header) -> str   (the full slot sheet)
+    self.worn_summary(looker)         -> str   (compact, for look <actor>)
     self.empty_slot_note(slot)        -> str   (override point)
-    self.visible_item_name(item)      -> str
 
     # Inventory helper
     self.get_carried() -> list
@@ -325,24 +326,17 @@ class BaseWearslotsMixin:
         Args:
             header: str — header line (e.g. "You are wearing:" or
                     "Cujo is wearing:" for pet commands)
-            looker: object or None — the character viewing. When provided,
-                    items are masked ("Something") if the looker is in
-                    darkness or the item fails visibility checks.
+            looker: object or None — the character viewing. Each item is
+                    named through ``get_display_name(looker)``, so one the
+                    looker cannot make out reads as its own
+                    ``unseen_name``. Passing None names everything.
 
         Returns:
             str — formatted multi-line string
         """
-        from utils.targeting.predicates import p_object_visible_to
-
         wearslots = self.db.wearslots or {}
         if not wearslots:
             return f"{header}\n  Nothing — no equipment slots."
-
-        # Darkness — can't identify items without sight
-        is_dark = False
-        if looker:
-            room = looker.location
-            is_dark = room and hasattr(room, "is_dark") and room.is_dark(looker)
 
         lines = [header]
 
@@ -357,30 +351,64 @@ class BaseWearslotsMixin:
             slot_str = f"<|c{display_slot}|n>"
             pad = col_width - len(display_slot) - 2
             if item is not None:
-                can_see = not is_dark and (
-                    not looker or p_object_visible_to(item, looker)
+                name = item.get_display_name(looker)
+                line = f"  {slot_str}{' ' * pad} |w{name}|n"
+                # Durability is detail, and detail belongs to something you
+                # can identify — so it rides on being named, not on a
+                # separate check.
+                if name != item.key:
+                    lines.append(line)
+                    continue
+                condition = (
+                    item.get_condition_label()
+                    if hasattr(item, "get_condition_label")
+                    else ""
                 )
-                if can_see:
-                    condition = (
-                        item.get_condition_label()
-                        if hasattr(item, "get_condition_label")
-                        else ""
-                    )
-                    line = f"  {slot_str}{' ' * pad} |w{item.key}|n"
-                    if condition:
-                        line = f"{line}  ({condition})"
-                else:
-                    line = f"  {slot_str}{' ' * pad} Something"
+                if condition:
+                    line = f"{line}  ({condition})"
                 lines.append(line)
             else:
-                note = self.empty_slot_note(slot, looker=looker, is_dark=is_dark)
+                note = self.empty_slot_note(slot, looker=looker)
                 if note:
                     lines.append(f"  {slot_str}{' ' * pad} |x{note}|n")
                 else:
                     lines.append(f"  {slot_str}")
         return "\n".join(lines)
 
-    def empty_slot_note(self, slot, looker=None, is_dark=False):
+    def worn_summary(self, looker):
+        """
+        A short list of what this actor is wearing, for ``look <actor>``.
+
+        The compact counterpart to ``equipment_cmd_output``: filled slots
+        only, no slot names, no condition labels. Sizing someone up when
+        you look at them, rather than reading your own sheet. Reached
+        through ``return_appearance``, so it never appears in the room's
+        contents listing — that uses ``room_description``.
+
+        Sight is asked once, for the whole block: a kit list is detail, and
+        detail is what darkness takes away. Each surviving item is then
+        named through ``get_display_name``, so one the looker cannot make
+        out reads as its own ``unseen_name`` rather than being dropped —
+        you can tell a slot is filled without learning what fills it.
+
+        Returns:
+            str — the formatted block, or "" when there is nothing to say
+        """
+        from utils.visibility import looker_is_blind
+
+        if looker_is_blind(looker):
+            return ""
+
+        items = [item for item in self.get_all_worn().values() if item is not None]
+        if not items:
+            return ""
+
+        lines = [f"|w{self.get_display_name(looker)} is equipped with:|n"]
+        for item in items:
+            lines.append(f"  |g{item.get_display_name(looker)}|n")
+        return "\n".join(lines)
+
+    def empty_slot_note(self, slot, looker=None):
         """
         Annotation shown beside an empty slot that is nonetheless unusable.
 
@@ -391,30 +419,11 @@ class BaseWearslotsMixin:
         Args:
             slot: str — the wearslot name being rendered
             looker: object or None — the character viewing
-            is_dark: bool — whether the looker is in darkness
 
         Returns:
             str — the note, or "" for no note
         """
         return ""
-
-    def visible_item_name(self, item, looker=None, is_dark=False):
-        """
-        An item's name as this looker sees it — "Something" when masked.
-
-        Args:
-            item: the Evennia object being named
-            looker: object or None — the character viewing
-            is_dark: bool — whether the looker is in darkness
-
-        Returns:
-            str — item.key, or "Something" if it can't be identified
-        """
-        from utils.targeting.predicates import p_object_visible_to
-
-        if is_dark or (looker and not p_object_visible_to(item, looker)):
-            return "Something"
-        return item.key
 
     # ================================================================== #
     #  Inventory Helper

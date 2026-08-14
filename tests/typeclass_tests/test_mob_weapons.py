@@ -426,7 +426,12 @@ class TestTownGuardCreation(EvenniaTest):
         self.assertEqual(guard.level, 8)
 
     def test_guard_equipment_in_appearance(self):
-        """Looking at a guard should show their equipment."""
+        """Looking at a guard should show their equipment.
+
+        The room needs lighting: a bare test room is dark, and a kit list
+        is detail that darkness takes away.
+        """
+        self.room1.always_lit = True
         guard = create.create_object(
             "typeclasses.actors.mobs.town_guard.MeleeGuard",
             key="a town guard",

@@ -67,7 +67,7 @@ class HumanoidWearslotsMixin(BaseWearslotsMixin):
     #  Display
     # ================================================================== #
 
-    def empty_slot_note(self, slot, looker=None, is_dark=False):
+    def empty_slot_note(self, slot, looker=None):
         """
         Report the HOLD slot as consumed by a two-handed wielded weapon.
 
@@ -78,7 +78,6 @@ class HumanoidWearslotsMixin(BaseWearslotsMixin):
         Args:
             slot: str — the wearslot name being rendered
             looker: object or None — the character viewing
-            is_dark: bool — whether the looker is in darkness
 
         Returns:
             str — the note, or "" for no note
@@ -88,5 +87,4 @@ class HumanoidWearslotsMixin(BaseWearslotsMixin):
         wielded = self.get_slot(HumanoidWearSlot.WIELD)
         if not wielded or not getattr(wielded, "two_handed", False):
             return ""
-        name = self.visible_item_name(wielded, looker=looker, is_dark=is_dark)
-        return f"{name} is two handed"
+        return f"{wielded.get_display_name(looker)} is two handed"

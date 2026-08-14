@@ -173,24 +173,14 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         condition = self.get_condition_text()
         name = self.get_display_name(looker)
         text = f"{text}\n{name} {condition}"
-        # Show equipped items (only for mobs with wearslots)
-        equip_text = self._get_visible_equipment()
-        if equip_text:
-            text = f"{text}\n{equip_text}"
+        # Kit, for mobs that wear any. The renderer lives on the wearslots
+        # mixin beside the equipment sheet, so both views answer visibility
+        # the same way.
+        if hasattr(self, "worn_summary"):
+            equip_text = self.worn_summary(looker)
+            if equip_text:
+                text = f"{text}\n{equip_text}"
         return text
-
-    def _get_visible_equipment(self):
-        """Return a formatted string of equipped items, or empty string."""
-        if not hasattr(self, "get_all_worn"):
-            return ""
-        worn = self.get_all_worn()
-        items = [item for item in worn.values() if item is not None]
-        if not items:
-            return ""
-        lines = [f"|w{self.key} is equipped with:|n"]
-        for item in items:
-            lines.append(f"  |g{item.key}|n")
-        return "\n".join(lines)
 
     # ================================================================== #
     #  Ticker Management
