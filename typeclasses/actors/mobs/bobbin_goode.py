@@ -17,6 +17,7 @@ from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.bandit_base import BobbinBandit
 from typeclasses.items.mob_items.mob_item import MobItem
+from utils.targeting.predicates import p_is_character
 
 
 class BobbinGoode(BobbinBandit):
@@ -78,7 +79,7 @@ class BobbinGoode(BobbinBandit):
 
     def at_new_arrival(self, arriving_obj):
         """Player entered the Common Fire — kick off the song chain."""
-        if not getattr(arriving_obj, "is_pc", False):
+        if not p_is_character(arriving_obj, self):
             return
         if not self._performance_can_start():
             return

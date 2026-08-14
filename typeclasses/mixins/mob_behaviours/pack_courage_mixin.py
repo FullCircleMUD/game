@@ -57,7 +57,7 @@ class PackCourageMixin:
             return
         if self.is_low_health:
             return
-        if not getattr(arriving_obj, "is_pc", False):
+        if not p_is_character(arriving_obj, self):
             return
 
         if self._has_pack_courage() or self._is_cornered():

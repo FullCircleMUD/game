@@ -36,7 +36,7 @@ class AggressiveMixin:
             return
         if self.is_low_health:
             return
-        if getattr(arriving_obj, "is_pc", False):
+        if p_is_character(arriving_obj, self):
             self._try_reach_and_attack(arriving_obj)
 
     def _try_reach_and_attack(self, target):

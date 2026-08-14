@@ -15,6 +15,7 @@ Composed into:
 from evennia.typeclasses.attributes import AttributeProperty
 
 from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+from utils.targeting.predicates import p_is_character
 
 
 class NFTPetMirrorMixin(NFTMirrorMixin):
@@ -271,7 +272,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         from evennia import search_object
         results = search_object(self.owner_key, exact=True)
         for obj in results:
-            if getattr(obj, "is_pc", False):
+            if p_is_character(obj, self):
                 return obj
         return None
 
