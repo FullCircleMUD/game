@@ -37,8 +37,8 @@ class ProceduralDungeonExit(ProceduralDungeonMixin, ExitVerticalAware):
         if getattr(traversing_object, "is_pet", False):
             if self.location:
                 self.location.msg_contents(
-                    f"An invisible barrier stops {traversing_object.key} "
-                    f"from entering."
+                    "An invisible barrier stops {blocked} from entering.",
+                    mapping={"blocked": traversing_object},
                 )
             return
         self.enter_dungeon(traversing_object)

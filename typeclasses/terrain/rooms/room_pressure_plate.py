@@ -124,6 +124,7 @@ class PressurePlateRoom(TrapMixin, RoomBase):
                 "You can move freely.|n"
             )
             self.msg_contents(
-                f"|g{victim.key} relaxes as the pressure plate is disarmed.|n",
+                "|g{victim} relaxes as the pressure plate is disarmed.|n",
                 exclude=[victim],
+                mapping={"victim": victim},
             )

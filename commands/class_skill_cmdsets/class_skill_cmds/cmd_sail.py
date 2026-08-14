@@ -194,8 +194,9 @@ class CmdSail(CmdSkillBase):
         def _arrive():
             caller.move_to(destination_room, quiet=True, move_type="teleport")
             destination_room.msg_contents(
-                f"{caller.key} arrives by ship.",
+                "{passenger} arrives by ship.",
                 exclude=[caller],
+                mapping={"passenger": caller},
             )
             ship.arrive_at_dock(destination_room)
 

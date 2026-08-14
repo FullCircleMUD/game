@@ -818,7 +818,10 @@ class LLMMixin:
         if interaction_type == "whisper":
             speaker.msg(f"{self.key} {response}")
         else:
-            self.location.msg_contents(f"{self.key} {response}", exclude=[])
+            self.location.msg_contents(
+                "{npc} {response}", exclude=[],
+                mapping={"npc": self, "response": response},
+            )
 
     def llm_fallback_response(self, speaker, interaction_type):
         """

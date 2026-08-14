@@ -171,8 +171,9 @@ class CmdTame(CmdSkillBase):
         )
         if caller.location:
             caller.location.msg_contents(
-                f"|y{caller.key} tames {target.key}!|n",
+                "|y{tamer} tames {animal}!|n",
                 exclude=[caller],
+                mapping={"tamer": caller, "animal": target},
             )
 
         # Remove the wild mob
@@ -200,9 +201,10 @@ class CmdTame(CmdSkillBase):
         )
         if caller.location:
             caller.location.msg_contents(
-                f"|y{caller.key} tries to tame {target.key}, but it "
-                f"backs away nervously.|n",
+                "|y{tamer} tries to tame {animal}, but it "
+                "backs away nervously.|n",
                 exclude=[caller],
+                mapping={"tamer": caller, "animal": target},
             )
 
         # XP reward — you learn even from failure

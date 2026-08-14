@@ -155,8 +155,9 @@ class CmdExplore(FCMCommandMixin, Command):
         def _arrive():
             caller.move_to(destination_room, quiet=True, move_type="teleport")
             destination_room.msg_contents(
-                f"{caller.key} arrives, looking weathered from their journey.",
+                "{traveller} arrives, looking weathered from their journey.",
                 exclude=[caller],
+                mapping={"traveller": caller},
             )
 
         _delayed_travel(caller, room, dest, _EXPLORE_MESSAGES, _arrive)

@@ -242,8 +242,10 @@ class CmdDisband(FCMCommandMixin, Command):
         )
         if caller.location:
             caller.location.msg_contents(
-                f"{caller.key} disbands their group.",
+                "{leader} disbands their group.",
                 exclude=[caller] + followers,
+                from_obj=caller,
+                mapping={"leader": caller},
             )
 
 

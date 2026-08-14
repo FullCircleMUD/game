@@ -72,7 +72,8 @@ class WearableNFTItem(DurabilityMixin, WearableMixin, BaseNFTItem):
 
         if owner and hasattr(owner, "location") and owner.location:
             owner.location.msg_contents(
-                f"{owner.key}'s {self.key} shatters!", exclude=[owner]
+                "{wearer}'s {item} shatters!", exclude=[owner],
+                from_obj=owner, mapping={"wearer": owner, "item": self},
             )
 
         # Reverse wear effects if currently equipped

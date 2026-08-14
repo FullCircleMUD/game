@@ -52,8 +52,9 @@ class CmdGtell(FCMCommandMixin, Command):
             caller.msg(f'|cYou tell yourself:|n "{message}"')
             if caller.location:
                 caller.location.msg_contents(
-                    f"{caller.key} mutters something to themselves.",
+                    "{speaker} mutters something to themselves.",
                     exclude=[caller],
+                    mapping={"speaker": caller},
                 )
             return
 

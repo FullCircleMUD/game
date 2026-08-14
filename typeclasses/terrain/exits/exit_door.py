@@ -107,7 +107,9 @@ class ExitDoor(
             other.is_open = True
             if other.location:
                 other.location.msg_contents(
-                    f"{other.key} opens from the other side."
+                    "{door} opens from the other side.",
+                    from_obj=other,
+                    mapping={"door": other},
                 )
 
     def at_close(self, closer):
@@ -117,7 +119,9 @@ class ExitDoor(
             other.is_open = False
             if other.location:
                 other.location.msg_contents(
-                    f"{other.key} closes from the other side."
+                    "{door} closes from the other side.",
+                    from_obj=other,
+                    mapping={"door": other},
                 )
 
     def at_unlock(self, character):

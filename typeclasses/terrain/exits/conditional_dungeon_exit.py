@@ -45,8 +45,8 @@ class ConditionalDungeonExit(ProceduralDungeonMixin, ConditionalRoutingExit):
         if getattr(traversing_object, "is_pet", False):
             if self.location:
                 self.location.msg_contents(
-                    f"An invisible barrier stops {traversing_object.key} "
-                    f"from entering."
+                    "An invisible barrier stops {blocked} from entering.",
+                    mapping={"blocked": traversing_object},
                 )
             return
         if self._check_condition(traversing_object):

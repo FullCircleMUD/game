@@ -96,8 +96,9 @@ class FCMCharacter(
                     )
                     if self.location:
                         self.location.msg_contents(
-                            f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
+                            "|r{wearer} is zapped by {item} and instantly lets go of it!|n",
                             exclude=[self],
+                            mapping={"wearer": self, "item": item},
                         )
         finally:
             self._checking_equipment = False

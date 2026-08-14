@@ -104,7 +104,7 @@ class CmdRecognise(CmdSkillBase):
                 caller.msg(result["first"])
             if result.get("third") and caller.location:
                 caller.location.msg_contents(
-                    result["third"], exclude=[caller],
+                    result["third"], exclude=[caller], from_obj=caller,
                 )
 
     # Mastery stubs — not used (func() overridden above)

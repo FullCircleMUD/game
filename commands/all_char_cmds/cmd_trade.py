@@ -276,8 +276,9 @@ class CmdTrade(FCMCommandMixin, Command):
             caller.msg(f"You accept the trade with {target.key}. Use |woffer|n to make an offer.")
             target.msg(f"{caller.key} accepts your trade. Use |woffer|n to make an offer.")
             caller.location.msg_contents(
-                f"{caller.key} and {target.key} begin trading.",
+                "{trader_a} and {trader_b} begin trading.",
                 exclude=[caller, target],
+                mapping={"trader_a": caller, "trader_b": target},
             )
             return
 
@@ -307,8 +308,9 @@ class CmdTrade(FCMCommandMixin, Command):
             caller.msg(f"You accept the trade with {target.key}. Use |woffer|n to make an offer.")
             target.msg(f"{caller.key} accepts your trade. Use |woffer|n to make an offer.")
             caller.location.msg_contents(
-                f"{caller.key} and {target.key} begin trading.",
+                "{trader_a} and {trader_b} begin trading.",
                 exclude=[caller, target],
+                mapping={"trader_a": caller, "trader_b": target},
             )
             return
 
@@ -470,8 +472,9 @@ class CmdTradeAccept(CmdTradeBase):
             caller.msg("|gTrade complete!|n")
             other.msg("|gTrade complete!|n")
             caller.location.msg_contents(
-                f"{handler.part_a.key} and {handler.part_b.key} complete a trade.",
+                "{trader_a} and {trader_b} complete a trade.",
                 exclude=[handler.part_a, handler.part_b],
+                mapping={"trader_a": handler.part_a, "trader_b": handler.part_b},
             )
         else:
             caller.msg("You accept the current offer. Waiting for the other party...")

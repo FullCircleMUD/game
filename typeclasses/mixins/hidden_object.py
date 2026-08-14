@@ -61,7 +61,9 @@ class HiddenObjectMixin(CharacterKeyMixin):
         # Broadcast discovery to room
         if self.location:
             self.location.msg_contents(
-                f"|y{finder.key} discovers {self.key} hidden nearby!|n"
+                "|y{finder} discovers something hidden nearby!|n",
+                from_obj=finder,
+                mapping={"finder": finder},
             )
 
     def is_hidden_visible_to(self, character):

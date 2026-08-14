@@ -45,7 +45,7 @@ class TestCmdSearch(EvenniaCommandTest):
     def test_search_finds_hidden_object(self, mock_roll):
         self._make_hidden_fixture(find_dc=5)
         # discover() broadcasts room msg first, so startswith matches that
-        self.call(CmdSearch(), "", "Char discovers hidden chest")
+        self.call(CmdSearch(), "", "Char discovers something hidden")
 
     @patch("utils.dice_roller.randint", return_value=1)
     def test_search_fails_high_dc(self, mock_roll):
@@ -55,7 +55,7 @@ class TestCmdSearch(EvenniaCommandTest):
     @patch("utils.dice_roller.randint", return_value=15)
     def test_search_discovers_object(self, mock_roll):
         obj = self._make_hidden_fixture(find_dc=5)
-        self.call(CmdSearch(), "", "Char discovers hidden chest")
+        self.call(CmdSearch(), "", "Char discovers something hidden")
         self.assertFalse(obj.is_hidden)
         self.assertIn(self.char1.key, obj.discovered_by)
 

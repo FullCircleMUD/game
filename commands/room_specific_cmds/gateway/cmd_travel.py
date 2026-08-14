@@ -42,8 +42,9 @@ def _delayed_travel(caller, room, dest, messages, on_arrive):
     caller.ndb.is_processing = True
     label = dest.get("label", "parts unknown")
     room.msg_contents(
-        f"{caller.key} sets off on their journey to {label}.",
+        f"{{traveller}} sets off on their journey to {label}.",
         exclude=[caller],
+        mapping={"traveller": caller},
     )
 
     def _tick(step):
@@ -317,8 +318,9 @@ class CmdTravel(FCMCommandMixin, Command):
         def _arrive():
             caller.move_to(destination_room, quiet=True, move_type="teleport")
             destination_room.msg_contents(
-                f"{caller.key} arrives from their journey.",
+                "{traveller} arrives from their journey.",
                 exclude=[caller],
+                mapping={"traveller": caller},
             )
 
         _delayed_travel(caller, room, dest, _TRAVEL_MESSAGES, _arrive)

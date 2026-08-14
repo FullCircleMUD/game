@@ -19,6 +19,7 @@ from utils.targeting.predicates import (
     p_actor_visible_to,
     p_can_perceive,
     p_is_character,
+    p_object_visible_to,
 )
 from utils.visibility import looker_is_blind
 
@@ -328,23 +329,32 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
     def msg_contents(self, text=None, exclude=None, from_obj=None, mapping=None,
                      raise_funcparse_errors=False, **kwargs):
         """
-        Override to filter room messages based on actor visibility.
+        Override to filter room messages by whether ``from_obj`` is
+        concealed from each recipient.
 
-        - HIDDEN actor: only recipients with true_sight see the message.
-        - INVISIBLE actor: only recipients with DETECT_INVIS see the message.
+        Both concealment axes are asked, because ``from_obj`` may be an
+        actor or an object:
 
-        Both rules come from ``p_actor_visible_to``, asked once per
-        recipient with the operands in messaging order — the sender is the
-        thing being seen, the recipient is the observer. Targeting asks the
-        same predicate the other way round.
+        - ``p_actor_visible_to`` — HIDDEN actors need ``true_sight``,
+          INVISIBLE actors need ``DETECT_INVIS``.
+        - ``p_object_visible_to`` — a door or fixture composing
+          ``HiddenObjectMixin`` / ``InvisibleObjectMixin``.
 
-        All 34+ existing callers pass from_obj=caller, so this works
-        automatically with zero caller changes.
+        Each predicate passes anything outside its own domain through
+        untouched, so an actor is gated only by the first and a door only
+        by the second.
+
+        Operands are in messaging order — ``from_obj`` is the thing being
+        seen, the recipient is the observer. Targeting asks the same
+        predicates the other way round.
         """
         if from_obj is not None:
             exclude = list(make_iter(exclude)) if exclude else []
             for obj in self.contents:
-                if obj not in exclude and not p_actor_visible_to(from_obj, obj):
+                if obj in exclude:
+                    continue
+                if not (p_actor_visible_to(from_obj, obj)
+                        and p_object_visible_to(from_obj, obj)):
                     exclude.append(obj)
 
         # Sleeping characters get a muffled message instead of the real content.
