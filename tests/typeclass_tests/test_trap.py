@@ -315,3 +315,138 @@ class TestTrapResetTimer(TrapTestBase):
             chest.trigger_trap(self.char1)
         timer_scripts = chest.scripts.get("trap_reset_timer")
         self.assertEqual(len(timer_scripts), 0)
+
+
+# ====================================================================== #
+#  Alarm tests
+# ====================================================================== #
+
+
+class TestTrapAlarm(TrapTestBase):
+    """
+    An alarm alerts the mobs in the room, and the alerting goes through
+    the same perception gate as an arrival.
+
+    The one thing an alarm changes is stealth: sneaking past one is what
+    it exists to prevent, so a HIDDEN victim is revealed before anyone is
+    told. Invisibility survives it — the noise says someone is here, it
+    does not make them visible.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.mob = create.create_object(
+            "typeclasses.actors.mob.CombatMob",
+            key="a sewer rat",
+            location=self.room1,
+            nohome=True,
+        )
+
+    def tearDown(self):
+        if self.mob.pk:
+            self.mob.delete()
+        super().tearDown()
+
+    def _spring(self):
+        """Trip an alarm trap, returning the mob-notify mock."""
+        chest = self._make_trapped_chest(alarm=True)
+        with patch.object(type(self.mob), "at_new_arrival") as mock_notify:
+            with patch("utils.dice_roller.DiceRoller.roll", return_value=1):
+                chest.trigger_trap(self.char1)
+        return mock_notify
+
+    def _room_lines(self):
+        """Trip an alarm trap, returning what the room was told."""
+        chest = self._make_trapped_chest(alarm=True)
+        with patch.object(type(self.room1), "msg_contents") as mock_room:
+            with patch("utils.dice_roller.DiceRoller.roll", return_value=1):
+                chest.trigger_trap(self.char1)
+        return [c[0][0] for c in mock_room.call_args_list]
+
+    # ── Who gets told ──
+
+    def test_the_alarm_alerts_mobs(self):
+        self.assertTrue(self._spring().called)
+
+    def test_the_victim_is_passed_to_the_mob(self):
+        self.assertEqual(self._spring().call_args[0][0], self.char1)
+
+    def test_a_silent_trap_alerts_nobody(self):
+        chest = self._make_trapped_chest(alarm=False)
+        with patch.object(type(self.mob), "at_new_arrival") as mock_notify:
+            with patch("utils.dice_roller.DiceRoller.roll", return_value=1):
+                chest.trigger_trap(self.char1)
+        self.assertFalse(mock_notify.called)
+
+    def test_the_victim_is_not_told_about_themselves(self):
+        """Mobs trip traps too, and must not alert themselves."""
+        chest = self._make_trapped_chest(alarm=True)
+        with patch.object(type(self.mob), "at_new_arrival") as mock_notify:
+            with patch("utils.dice_roller.DiceRoller.roll", return_value=1):
+                chest.trigger_trap(self.mob)
+        self.assertFalse(mock_notify.called)
+
+    # ── Stealth ──
+
+    def test_a_hidden_victim_is_revealed(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        self._spring()
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_a_revealed_victim_is_reported_to_mobs(self):
+        """Sneaking past an alarm trap is what it exists to prevent."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        self.assertTrue(self._spring().called)
+
+    def test_the_victim_is_told_they_were_given_away(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        chest = self._make_trapped_chest(alarm=True)
+        with patch.object(type(self.char1), "msg") as mock_msg:
+            with patch("utils.dice_roller.DiceRoller.roll", return_value=1):
+                chest.trigger_trap(self.char1)
+        said = " ".join(str(c[0][0]) for c in mock_msg.call_args_list if c[0])
+        self.assertIn("gives you away", said)
+
+    # ── Invisibility ──
+
+    def test_an_invisible_victim_is_not_reported_to_mobs(self):
+        """The noise says someone is here; it does not make them visible."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.assertFalse(self._spring().called)
+
+    def test_an_invisible_victim_stays_invisible(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+        self._spring()
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
+
+    def test_detect_invis_still_reports_an_invisible_victim(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.mob.add_condition(Condition.DETECT_INVIS)
+        self.assertTrue(self._spring().called)
+
+    # ── The alarm itself ──
+
+    def test_the_alarm_sounds_for_an_invisible_victim(self):
+        """Everyone knows someone is coming, even if nobody can see them."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+        lines = self._room_lines()
+        self.assertTrue(any("alarm sounds" in ln for ln in lines))
+
+    def test_the_alarm_sounds_for_a_visible_victim(self):
+        lines = self._room_lines()
+        self.assertTrue(any("alarm sounds" in ln for ln in lines))
