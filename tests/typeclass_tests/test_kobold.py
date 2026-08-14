@@ -68,14 +68,12 @@ class TestKoboldPackCourage(EvenniaTest):
             location=self.room1,
         )
         kobold2.is_alive = True
-        self.char1.is_pc = True
         self.kobold1.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_flees_when_alone(self, mock_delay):
         """Solo kobold should flee, not attack, when player arrives."""
-        self.char1.is_pc = True
         self.kobold1.at_new_arrival(self.char1)
         # Should NOT have scheduled an attack
         self.assertFalse(mock_delay.called)
@@ -91,7 +89,6 @@ class TestKoboldPackCourage(EvenniaTest):
             key="Dead End",
         )
         self.kobold1.location = dead_end
-        self.char1.is_pc = True
         self.char1.location = dead_end
         self.kobold1.at_new_arrival(self.char1)
         # Should attack — cornered, no exits
@@ -106,7 +103,6 @@ class TestKoboldPackCourage(EvenniaTest):
             location=self.room1,
         )
         kobold2.is_alive = True
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.kobold1.ai_wander()
         self.assertTrue(mock_delay.called)
@@ -114,7 +110,6 @@ class TestKoboldPackCourage(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_flees_when_alone(self, mock_delay):
         """ai_wander should flee if alone and player present."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.kobold1.ai_wander()
         self.assertFalse(mock_delay.called)

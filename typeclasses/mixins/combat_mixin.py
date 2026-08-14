@@ -112,9 +112,7 @@ class CombatMixin:
     def at_object_creation(self):
         super().at_object_creation()
         # Asked of self, because FCMCharacter composes this mixin too —
-        # a player must not pick up the mob combat cmdset. p_is_character
-        # rather than the is_pc flag: the flag is read with a default, so
-        # anything merely lacking it reads as "not a player", and the
+        # a player must not pick up the mob combat cmdset. The
         # predicate's lazy import is what lets a mixin ask about a
         # typeclass that composes it.
         if not p_is_character(self, self):

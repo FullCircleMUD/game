@@ -44,8 +44,6 @@ class FCMCharacter(
     BaseActor  # now includes EffectsManagerMixin + DamageResistanceMixin
     ):
 
-    is_pc = True  # Convention — distinguishes player characters from NPCs/mobs
-
     # point_buy, num_remorts, and bonus_*_per_level are in RemortMixin
 
     #########################################################
@@ -308,7 +306,7 @@ class FCMCharacter(
         # "arriving" anywhere, and the LLM call from any reactive NPC
         # in the start room (e.g. Rowan in The Harvest Moon) is a
         # blocking multi-second hit on the chargen finalisation.
-        if source_location is not None and self.location and getattr(self, "is_pc", False):
+        if source_location is not None and self.location:
             for obj in self.location.contents:
                 if obj != self and hasattr(obj, "at_llm_player_arrive"):
                     obj.at_llm_player_arrive(self)

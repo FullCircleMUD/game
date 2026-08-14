@@ -127,8 +127,8 @@ class TestTheAttempt(StreetUrchinTest):
         self.assertFalse(success.called or failure.called)
 
     def test_a_mob_is_not_robbed(self):
-        """The re-check is the second is_pc site — a mob that wandered in
-        where a player stood must not be lifted from."""
+        """The delayed re-check asks again who the mark is — a mob that
+        wandered in where a player stood must not be lifted from."""
         rat = create.create_object(
             "typeclasses.actors.mob.CombatMob",
             key="a sewer rat",

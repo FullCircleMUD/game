@@ -121,7 +121,6 @@ class TestPackCourageAggro(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_no_aggro_when_alone(self, mock_delay):
         """Solo mob should flee, not attack, on player arrival."""
-        self.char1.is_pc = True
         self.mob1.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
         # Should have fled
@@ -134,7 +133,6 @@ class TestPackCourageAggro(EvenniaTest):
             PackTestMob, key="a pack mob", location=self.room1,
         )
         mob2.is_alive = True
-        self.char1.is_pc = True
         self.mob1.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
@@ -146,7 +144,6 @@ class TestPackCourageAggro(EvenniaTest):
             key="Dead End",
         )
         self.mob1.location = dead_end
-        self.char1.is_pc = True
         self.char1.location = dead_end
         self.mob1.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
@@ -158,7 +155,6 @@ class TestPackCourageAggro(EvenniaTest):
             PackTestMob, key="a pack mob", location=self.room1,
         )
         mob2.is_alive = True
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.mob1.ai_wander()
         self.assertTrue(mock_delay.called)
@@ -166,7 +162,6 @@ class TestPackCourageAggro(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_flees_when_alone(self, mock_delay):
         """ai_wander should flee if alone and player present."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.mob1.ai_wander()
         self.assertFalse(mock_delay.called)

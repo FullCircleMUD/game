@@ -66,11 +66,9 @@ class TestGnollWarlordBehavior(EvenniaTest):
     def test_rampage_inherited(self, mock_execute):
         """Warlord should have rampage from Gnoll parent."""
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
         # Only char1 in the boss's room
-        self.char1.is_pc = True
         self.char1.hp = 30
         self.char1.location = self.room1
         self.char2.location = self.room2
@@ -87,7 +85,6 @@ class TestGnollWarlordBehavior(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_attacks_player(self, mock_delay):
         """Boss should attack players found in room."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.boss.ai_wander()
         self.assertTrue(mock_delay.called)

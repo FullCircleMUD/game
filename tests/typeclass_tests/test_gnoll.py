@@ -69,7 +69,6 @@ class TestGnollAggression(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_at_new_arrival_aggros_player(self, mock_delay):
         """Gnoll should schedule attack when a player enters."""
-        self.char1.is_pc = True
         self.gnoll.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
@@ -77,14 +76,12 @@ class TestGnollAggression(EvenniaTest):
     def test_no_aggro_when_low_health(self, mock_delay):
         """Gnoll should not aggro below 25% HP."""
         self.gnoll.hp = 5  # 12.5% — below 25% threshold
-        self.char1.is_pc = True
         self.gnoll.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_targets_player(self, mock_delay):
         """ai_wander should attack player in room."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.gnoll.ai_wander()
         self.assertTrue(mock_delay.called)
@@ -113,11 +110,9 @@ class TestGnollRampage(EvenniaTest):
         """at_kill should fire execute_attack on another player in room."""
         # victim (just killed)
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
         # next target (still alive)
-        self.char1.is_pc = True
         self.char1.hp = 30
         self.char1.location = self.room1
 
@@ -132,7 +127,6 @@ class TestGnollRampage(EvenniaTest):
     def test_no_rampage_when_no_targets(self, mock_execute):
         """at_kill should not fire if no living players in room."""
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
         # Move all test chars out of the room
@@ -149,7 +143,6 @@ class TestGnollRampage(EvenniaTest):
         self.gnoll.is_alive = False
 
         victim = MagicMock()
-        self.char1.is_pc = True
         self.char1.hp = 30
         self.char1.location = self.room1
 
@@ -161,14 +154,11 @@ class TestGnollRampage(EvenniaTest):
     def test_rampage_skips_dead_players(self, mock_execute):
         """Rampage should not target players at 0 HP."""
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
         # All chars in room are dead
-        self.char1.is_pc = True
         self.char1.hp = 0
         self.char1.location = self.room1
-        self.char2.is_pc = True
         self.char2.hp = 0
         self.char2.location = self.room1
 
@@ -197,7 +187,6 @@ class TestGnollRampagePerception(EvenniaTest):
         self.gnoll.hp = 40
 
         self.victim = MagicMock()
-        self.victim.is_pc = True
         self.victim.hp = 0
 
         # char1 is the only live rampage candidate in the room

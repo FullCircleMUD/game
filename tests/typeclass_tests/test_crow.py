@@ -118,7 +118,6 @@ class TestCrowPackBehavior(EvenniaTest):
             location=self.room1,
         )
         crow2.is_alive = True
-        self.char1.is_pc = True
         self.crow1.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
@@ -132,6 +131,5 @@ class TestCrowPackBehavior(EvenniaTest):
                 location=self.room1,
             )
             c.is_alive = True
-        self.char1.is_pc = True
         self.crow1.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)

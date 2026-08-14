@@ -3,7 +3,7 @@ Tests for utils.skill_xp.award_skill_xp helper.
 
 Covers the four guard branches:
 - SKILL_XP_ENABLED toggle
-- PvP-target block (target.is_pc)
+- PvP-target block (the target is a player character)
 - Non-positive amount short-circuit
 - Normal grant delegates to caller.at_gain_experience_points
 
@@ -49,9 +49,8 @@ class TestAwardSkillXP(TestCase):
         """Practising on another player earns nothing.
 
         spec= is what makes isinstance pass on a mock, and it has to:
-        the guard is a typeclass check, not a flag, so a bare mock
-        claiming is_pc=True is not a player as far as the rule is
-        concerned.
+        the guard asks what the target *is*, so only a mock shaped like
+        a character satisfies it.
         """
         from typeclasses.actors.character import FCMCharacter
 
@@ -66,8 +65,8 @@ class TestAwardSkillXP(TestCase):
             award_skill_xp(self.caller, 25, target=target)
         self.caller.at_gain_experience_points.assert_called_once_with(25)
 
-    def test_target_without_is_pc_attr_does_not_block(self):
-        # Bare object — no is_pc attribute → getattr default False → not blocked
+    def test_plain_object_target_does_not_block(self):
+        # Not a character by any reading — the guard lets it through
         class _Target:
             pass
         with self._enabled(True):
@@ -81,7 +80,6 @@ class TestAwardSkillXP(TestCase):
 
     def test_disabled_takes_precedence_over_other_args(self):
         target = MagicMock()
-        target.is_pc = False
         with self._enabled(False):
             award_skill_xp(self.caller, 100, target=target)
         self.caller.at_gain_experience_points.assert_not_called()

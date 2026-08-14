@@ -97,10 +97,8 @@ def _check_room_cleared(room):
 
     # Check for living mobs in this specific room.
     #
-    # "A living combat mob" says what this means; the older reading —
-    # has an is_alive attribute, and is not a player — was approximating
-    # it. Players and pets both fall out of the typeclass half, so no
-    # separate is_pc test is needed: BasePet derives from BaseNPC, not
+    # "A living combat mob" is the whole test. Players and pets both
+    # fall out of the typeclass half: BasePet derives from BaseNPC, not
     # CombatMob, so a player's pet standing in the room does not hold
     # the exits shut.
     #

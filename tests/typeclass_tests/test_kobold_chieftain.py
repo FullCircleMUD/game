@@ -69,7 +69,6 @@ class TestKoboldChieftainBehavior(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_attacks_player(self, mock_delay):
         """Boss should attack players found in room."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.boss.ai_wander()
         self.assertTrue(mock_delay.called)
