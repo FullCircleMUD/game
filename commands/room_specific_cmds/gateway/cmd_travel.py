@@ -8,6 +8,7 @@ Usage:
 
 from evennia import Command
 from evennia.utils import delay
+from utils.busy import check_busy, start_busy_ticks
 
 from commands.command import FCMCommandMixin
 
@@ -37,25 +38,21 @@ def _delayed_travel(caller, room, dest, messages, on_arrive):
     """
     Show staggered travel messages then call on_arrive().
 
-    Uses the same ndb.is_processing / delay() pattern as crafting.
+    The room announcement stays here rather than going through
+    ``start_busy_ticks``: setting off on a journey is observable, so it
+    resolves names per recipient without filtering out those who cannot
+    see the traveller.
     """
-    caller.ndb.is_processing = True
     label = dest.get("label", "parts unknown")
     room.msg_contents(
         f"{{traveller}} sets off on their journey to {label}.",
         exclude=[caller],
         mapping={"traveller": caller},
     )
-
-    def _tick(step):
-        if step < len(messages):
-            caller.msg(messages[step])
-            delay(TRAVEL_TICK_SECONDS, _tick, step + 1)
-        else:
-            caller.ndb.is_processing = False
-            on_arrive()
-
-    delay(TRAVEL_TICK_SECONDS, _tick, 0)
+    start_busy_ticks(
+        caller, len(messages), TRAVEL_TICK_SECONDS, on_arrive,
+        progress=lambda step, total: messages[step],
+    )
 
 
 # ── Condition validators ─────────────────────────────────────────────
@@ -291,8 +288,7 @@ class CmdTravel(FCMCommandMixin, Command):
 
     def _do_travel(self, caller, room, dest):
         """Validate conditions, consume costs, and teleport with delay."""
-        if caller.ndb.is_processing:
-            caller.msg("You are already busy. Wait until your current task finishes.")
+        if check_busy(caller):
             return
 
         conditions = dest.get("conditions", {})

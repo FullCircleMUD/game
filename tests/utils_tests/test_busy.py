@@ -42,12 +42,17 @@ class BusyTest(EvenniaTest):
         self.ran.append("acted")
 
     def _start(self, **kwargs):
-        """Start a busy action, returning the deferred completion callback."""
+        """
+        Start a busy action, returning a callable that fires its deferred
+        completion. ``delay`` is called as ``delay(interval, _tick, step)``,
+        so the captured callback is bound to the step it was scheduled with.
+        """
         with patch("utils.busy.delay") as mock_delay:
             self.started = start_busy(self.char1, 3, self._act, **kwargs)
         if not mock_delay.call_args:
             return None
-        return mock_delay.call_args[0][1]
+        args = mock_delay.call_args[0]
+        return lambda: args[1](*args[2:])
 
 
 class TestCheckBusy(BusyTest):
@@ -100,7 +105,8 @@ class TestTheLock(BusyTest):
                 3,
                 lambda: seen.append(self.char1.ndb.is_processing),
             )
-        mock_delay.call_args[0][1]()
+        args = mock_delay.call_args[0]
+        args[1](*args[2:])
         self.assertEqual(seen, [False])
 
 

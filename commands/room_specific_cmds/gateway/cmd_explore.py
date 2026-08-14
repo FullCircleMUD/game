@@ -19,6 +19,7 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
     _delayed_travel,
     _EXPLORE_MESSAGES,
 )
+from utils.busy import check_busy
 
 
 class CmdExplore(FCMCommandMixin, Command):
@@ -40,8 +41,7 @@ class CmdExplore(FCMCommandMixin, Command):
         caller = self.caller
         room = caller.location
 
-        if caller.ndb.is_processing:
-            caller.msg("You are already busy. Wait until your current task finishes.")
+        if check_busy(caller):
             return
 
         destinations = room.destinations if hasattr(room, "destinations") else []

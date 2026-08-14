@@ -22,6 +22,7 @@ ops/COMPLIANCE_LEGAL.md §9.5.
 
 from evennia import CmdSet, Command
 from evennia.utils import delay
+from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
@@ -182,10 +183,7 @@ class CmdTrain(FCMCommandMixin, Command):
             caller.msg("There is no trainer here.")
             return
 
-        if caller.ndb.is_processing:
-            caller.msg(
-                "You are already busy. Wait until your current task finishes."
-            )
+        if check_busy(caller):
             return
 
         if not args:
@@ -487,34 +485,28 @@ class CmdTrain(FCMCommandMixin, Command):
         caller.return_gold_to_sink(gold_cost)
 
         # ── Start training with progress bar ──
-        caller.ndb.is_processing = True
         num_ticks = max(1, training_time // _TICK_SECONDS)
         skill_display = skill_key.replace("_", " ")
 
-        caller.msg(f"You begin training {skill_display}...")
-        if caller.location:
-            caller.location.msg_contents(
-                f"{caller.key} begins training with {trainer.key}.",
-                exclude=[caller],
-                from_obj=caller,
-            )
-
-        def _tick(step):
-            if step < num_ticks:
-                filled = _BAR_WIDTH * step // num_ticks
-                bar = "#" * filled + "-" * (_BAR_WIDTH - filled)
-                caller.msg(f"Training {skill_display}... [{bar}]")
-                delay(_TICK_SECONDS, _tick, step + 1)
-            else:
-                bar = "#" * _BAR_WIDTH
-                caller.msg(f"Training {skill_display}... [{bar}] Done!")
-                _resolve_skill_training(
+        def _finish():
+            _resolve_skill_training(
                     caller, trainer, skill_key, is_general,
                     current, target, pts_cost,
-                )
-                caller.ndb.is_processing = False
+            )
 
-        delay(_TICK_SECONDS, _tick, 1)
+        start_busy_ticks(
+            caller, num_ticks, _TICK_SECONDS, _finish,
+            progress=lambda step, total: (
+                f"Training {skill_display}... "
+                f"[{progress_bar(step, total, _BAR_WIDTH)}]"
+            ),
+            done_msg=(
+                f"Training {skill_display}... "
+                f"[{progress_bar(1, 1, _BAR_WIDTH)}] Done!"
+            ),
+            self_msg=f"You begin training {skill_display}...",
+            room_msg=f"{caller.key} begins training with {trainer.key}.",
+        )
 
     # ── Weapon Training ──
 
@@ -622,33 +614,27 @@ class CmdTrain(FCMCommandMixin, Command):
         caller.return_gold_to_sink(gold_cost)
 
         # ── Start training with progress bar ──
-        caller.ndb.is_processing = True
         num_ticks = max(1, training_time // _TICK_SECONDS)
 
-        caller.msg(f"You begin training {weapon_display}...")
-        if caller.location:
-            caller.location.msg_contents(
-                f"{caller.key} begins training with {trainer.key}.",
-                exclude=[caller],
-                from_obj=caller,
-            )
-
-        def _tick(step):
-            if step < num_ticks:
-                filled = _BAR_WIDTH * step // num_ticks
-                bar = "#" * filled + "-" * (_BAR_WIDTH - filled)
-                caller.msg(f"Training {weapon_display}... [{bar}]")
-                delay(_TICK_SECONDS, _tick, step + 1)
-            else:
-                bar = "#" * _BAR_WIDTH
-                caller.msg(f"Training {weapon_display}... [{bar}] Done!")
-                _resolve_weapon_training(
+        def _finish():
+            _resolve_weapon_training(
                     caller, trainer, weapon_key,
                     current, target, pts_cost,
-                )
-                caller.ndb.is_processing = False
+            )
 
-        delay(_TICK_SECONDS, _tick, 1)
+        start_busy_ticks(
+            caller, num_ticks, _TICK_SECONDS, _finish,
+            progress=lambda step, total: (
+                f"Training {weapon_display}... "
+                f"[{progress_bar(step, total, _BAR_WIDTH)}]"
+            ),
+            done_msg=(
+                f"Training {weapon_display}... "
+                f"[{progress_bar(1, 1, _BAR_WIDTH)}] Done!"
+            ),
+            self_msg=f"You begin training {weapon_display}...",
+            room_msg=f"{caller.key} begins training with {trainer.key}.",
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════

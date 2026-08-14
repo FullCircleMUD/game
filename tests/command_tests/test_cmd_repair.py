@@ -89,7 +89,7 @@ class TestCmdRepairSuccess(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_repair_success(self, mock_delay):
         """Repair should consume resources, gold, and restore durability."""
@@ -107,7 +107,7 @@ class TestCmdRepairSuccess(EvenniaCommandTest):
         # Gold consumed: 2 (workshop fee)
         self.assertEqual(self.char1.get_gold(), 18)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_repair_shows_success_message(self, mock_delay):
         """Repair should show a success message."""
@@ -119,7 +119,7 @@ class TestCmdRepairSuccess(EvenniaCommandTest):
         result = self.call(CmdRepair(), "training longsword", inputs=["y"])
         self.assertIn("pristine condition", result)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_repair_zero_material_cost(self, mock_delay):
         """Recipe with 1 total material should have 0 repair resource cost."""
@@ -285,7 +285,7 @@ class TestCmdRepairValidation(EvenniaCommandTest):
             max_dur=50, cur_dur=25,
         )
         result = self.call(CmdRepair(), "training longsword")
-        self.assertIn("already busy", result.lower())
+        self.assertIn("you are busy", result.lower())
 
 
 # ── Repair Command — Cancellation ─────────────────────────────────────
@@ -364,7 +364,7 @@ class TestCmdRepairXP(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_xp_awarded_half_of_craft(self, mock_delay):
         """Repair should award 50% of craft XP."""
@@ -401,7 +401,7 @@ class TestCmdRepairProgress(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_progress_bar(self, mock_delay):
         """Repair should show progress bar messages."""
@@ -414,7 +414,7 @@ class TestCmdRepairProgress(EvenniaCommandTest):
         self.assertIn("Repairing Training Longsword...", result)
         self.assertIn("[##########] Done!", result)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_repair.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_is_processing_cleared(self, mock_delay):
         """ndb.is_processing should be cleared after repair completes."""

@@ -15,7 +15,7 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 
-PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+PATCH_DELAY = "utils.busy.delay"
 
 
 def _instant_delay(seconds, callback, *args, **kwargs):

@@ -21,6 +21,7 @@ Usage:
 
 from evennia import Command
 from evennia.utils import delay
+from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from commands.command import FCMCommandMixin
@@ -122,8 +123,7 @@ class CmdProcess(FCMCommandMixin, Command):
         room = caller.location
 
         # --- Busy check ---
-        if caller.ndb.is_processing:
-            caller.msg("You are already processing something. Wait until it finishes.")
+        if check_busy(caller):
             return
 
         recipes = room.recipes
@@ -256,39 +256,31 @@ class CmdProcess(FCMCommandMixin, Command):
         )
         total_output = output_amount * amount
 
-        # --- Lock and start processing ---
-        caller.ndb.is_processing = True
-        caller.msg(f"You begin to {verb} {input_desc}...")
-        caller.location.msg_contents_with_invis_alt(
-            f"{caller.key} begins working at the {room.processing_type}.",
-            f"The {room.processing_type} seems to be operating itself... "
-            f"making {out_name}.",
-            from_obj=caller,
+        # --- Lock, announce, and run the progress ticks ---
+        def _finish():
+            caller.receive_resource_from_reserve(output_resource, total_output)
+            caller.msg(
+                f"|gYou {verb} {input_desc} into "
+                f"{total_output} {out_name} for {total_gold} gold.|n"
+            )
+
+            # Award XP if configured
+            xp = room.process_xp
+            if xp and xp > 0:
+                caller.at_gain_experience_points(xp * amount)
+
+        start_busy_ticks(
+            caller, amount, PROCESS_DELAY_SECONDS, _finish,
+            progress=lambda step, total: (
+                f"Processing {out_name}... [{progress_bar(step, total)}]"
+            ),
+            done_msg=(
+                f"Processing {out_name}... [{progress_bar(1, 1)}] Done!"
+            ),
+            self_msg=f"You begin to {verb} {input_desc}...",
+            room_msg=f"{caller.key} begins working at the {room.processing_type}.",
+            room_alt_msg=(
+                f"The {room.processing_type} seems to be operating itself... "
+                f"making {out_name}."
+            ),
         )
-
-        # --- Chain delayed progress ticks ---
-        def _tick(step):
-            if step < amount:
-                caller.msg(f"Processing {out_name}... {step} of {amount}")
-                delay(PROCESS_DELAY_SECONDS, _tick, step + 1)
-            else:
-                # Final tick — produce output and send summary
-                caller.msg(f"Processing {out_name}... Done!")
-                caller.receive_resource_from_reserve(
-                    output_resource, total_output
-                )
-                caller.msg(
-                    f"|gYou {verb} {input_desc} into "
-                    f"{total_output} {out_name} for {total_gold} gold.|n"
-                )
-
-                # Award XP if configured
-                xp = room.process_xp
-                if xp and xp > 0:
-                    total_xp = xp * amount
-                    caller.at_gain_experience_points(total_xp)
-
-                caller.ndb.is_processing = False
-
-        # Start first tick
-        delay(PROCESS_DELAY_SECONDS, _tick, 1)

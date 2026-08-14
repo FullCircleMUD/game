@@ -265,7 +265,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         self.assertNotIn("Success chance", result)
         self.assertNotIn("non-refundable", result)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("commands.npc_cmds.cmdset_trainer._resolve_skill_training")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_general_skill_deducts_gold(
@@ -280,7 +280,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         # Default CHA 8 → mod -1 → 5% surcharge → BASIC costs 10
         self.assertEqual(self.char1.get_gold(), 990)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_general_skill_always_succeeds(self, mock_craft, mock_delay):
         """Training is deterministic — always advances mastery on completion."""
@@ -296,7 +296,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         # General skill points deducted (BASIC costs 1 point)
         self.assertEqual(self.char1.general_skill_pts_available, 9)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_no_failure_no_cooldown(self, mock_craft, mock_delay):
         """Training never fails — no cooldowns are ever set."""
@@ -310,7 +310,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         cooldowns = self.char1.db.training_cooldowns or {}
         self.assertEqual(cooldowns, {})
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_class_skill_success(self, mock_craft, mock_delay):
         """Training bash (warrior class skill) deducts class skill points."""
@@ -369,7 +369,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         """Can't train while already processing."""
         self.char1.ndb.is_processing = True
         result = self.call(CmdTrain(), "battleskills", obj=self.trainer)
-        self.assertIn("already busy", result)
+        self.assertIn("You are busy", result)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -423,7 +423,7 @@ class TestCmdTrainWeapon(EvenniaCommandTest):
         self.assertIn("cancelled", result)
         self.assertEqual(self.char1.get_gold(), 1000)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_weapon_always_succeeds(self, mock_craft, mock_delay):
         """Weapon training is deterministic — always advances mastery."""
@@ -438,7 +438,7 @@ class TestCmdTrainWeapon(EvenniaCommandTest):
         self.assertEqual(levels.get("long_sword"), MasteryLevel.BASIC.value)
         self.assertEqual(self.char1.weapon_skill_pts_available, 9)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_weapon_no_cooldown_after(self, mock_craft, mock_delay):
         """Weapon training never sets a cooldown."""
@@ -579,7 +579,7 @@ class TestChaDiscount(EvenniaCommandTest):
         self.trainer.trainer_class = "warrior"
         self.trainer.trainer_masteries = {"battleskills": 5}
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_high_cha_discount(self, mock_craft, mock_delay):
         """High CHA (20) gives 25% discount: 10 → 8 gold."""
@@ -591,7 +591,7 @@ class TestChaDiscount(EvenniaCommandTest):
         # 10 * (1 - 5 * 0.05) = 10 * 0.75 = 7.5 → 8
         self.assertEqual(self.char1.get_gold(), 992)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_low_cha_surcharge(self, mock_craft, mock_delay):
         """Low CHA (6) gives 10% surcharge: 10 → 11 gold."""

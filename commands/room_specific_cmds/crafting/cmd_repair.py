@@ -23,6 +23,7 @@ resets durability to max_durability. Awards 50% of craft XP.
 
 from evennia import Command
 from evennia.utils import delay
+from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from commands.command import FCMCommandMixin
@@ -74,10 +75,7 @@ class CmdRepair(FCMCommandMixin, Command):
         room = caller.location
 
         # --- Busy check ---
-        if caller.ndb.is_processing:
-            caller.msg(
-                "You are already busy. Wait until your current task finishes."
-            )
+        if check_busy(caller):
             return
 
         if not self.args:
@@ -251,48 +249,37 @@ class CmdRepair(FCMCommandMixin, Command):
         # --- Consume gold ---
         caller.return_gold_to_sink(total_gold)
 
-        # --- Lock and start repairing ---
-        caller.ndb.is_processing = True
+        # --- Lock, announce, and run the progress ticks ---
+        def _finish():
+            item.repair_to_full()
+            caller.msg(f"|gYou repair {item.key} to pristine condition!|n")
 
-        caller.location.msg_contents_with_invis_alt(
-            f"{caller.key} begins repairing at the {room.key}.",
-            f"Tools clatter at the {room.key} as unseen hands "
-            f"work on something...",
-            from_obj=caller,
+            # Award 50% of craft XP
+            base_xp = _CRAFT_XP_BY_MASTERY.get(recipe["min_mastery"].value, 5)
+            multiplier = room.craft_xp_multiplier or 1.0
+            xp = int(base_xp * multiplier) // 2
+            if xp > 0:
+                caller.at_gain_experience_points(xp)
+
+            caller.location.msg_contents_with_invis_alt(
+                f"{caller.key} finishes repairing at the {room.key}.",
+                f"The tools at the {room.key} clatter to a stop.",
+                from_obj=caller,
+            )
+
+        start_busy_ticks(
+            caller, num_ticks, REPAIR_TICK_SECONDS, _finish,
+            progress=lambda step, total: (
+                f"Repairing {item.key}... "
+                f"[{progress_bar(step, total, _BAR_WIDTH)}]"
+            ),
+            done_msg=(
+                f"Repairing {item.key}... "
+                f"[{progress_bar(1, 1, _BAR_WIDTH)}] Done!"
+            ),
+            room_msg=f"{caller.key} begins repairing at the {room.key}.",
+            room_alt_msg=(
+                f"Tools clatter at the {room.key} as unseen hands "
+                f"work on something..."
+            ),
         )
-
-        # --- Chain delayed progress ticks ---
-        def _tick(step):
-            if step < num_ticks:
-                filled = _BAR_WIDTH * step // num_ticks
-                bar = '#' * filled + '-' * (_BAR_WIDTH - filled)
-                caller.msg(f"Repairing {item.key}... [{bar}]")
-                delay(REPAIR_TICK_SECONDS, _tick, step + 1)
-            else:
-                bar = '#' * _BAR_WIDTH
-                caller.msg(f"Repairing {item.key}... [{bar}] Done!")
-
-                item.repair_to_full()
-
-                caller.msg(
-                    f"|gYou repair {item.key} to pristine condition!|n"
-                )
-
-                # Award 50% of craft XP
-                base_xp = _CRAFT_XP_BY_MASTERY.get(
-                    recipe["min_mastery"].value, 5
-                )
-                multiplier = room.craft_xp_multiplier or 1.0
-                xp = int(base_xp * multiplier) // 2
-                if xp > 0:
-                    caller.at_gain_experience_points(xp)
-
-                caller.location.msg_contents_with_invis_alt(
-                    f"{caller.key} finishes repairing at the {room.key}.",
-                    f"The tools at the {room.key} clatter to a stop.",
-                    from_obj=caller,
-                )
-                caller.ndb.is_processing = False
-
-        # Start first tick
-        delay(REPAIR_TICK_SECONDS, _tick, 1)

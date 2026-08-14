@@ -17,7 +17,7 @@ def _instant_delay(seconds, callback, *args, **kwargs):
     callback(*args, **kwargs)
 
 
-PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+PATCH_DELAY = "utils.busy.delay"
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 

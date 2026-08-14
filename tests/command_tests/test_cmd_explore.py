@@ -13,7 +13,7 @@ from commands.room_specific_cmds.gateway.cmd_explore import CmdExplore
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+PATCH_DELAY = "utils.busy.delay"
 
 
 def _instant_delay(seconds, callback, *args, **kwargs):

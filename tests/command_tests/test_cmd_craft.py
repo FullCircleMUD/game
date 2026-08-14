@@ -84,7 +84,7 @@ class TestCmdCraftSuccess(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -102,7 +102,7 @@ class TestCmdCraftSuccess(EvenniaCommandTest):
         mock_assign.assert_called_once_with("Training Longsword")
         mock_spawn.assert_called_once_with(TOKEN_ID, self.char1)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -117,7 +117,7 @@ class TestCmdCraftSuccess(EvenniaCommandTest):
         result = self.call(CmdCraft(), "training longsword", inputs=["y"])
         self.assertIn("You carve a Training Longsword!", result)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -268,7 +268,7 @@ class TestCmdCraftRefund(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
     def test_assign_failure_refunds(self, mock_assign, mock_delay):
@@ -284,7 +284,7 @@ class TestCmdCraftRefund(EvenniaCommandTest):
         self.assertEqual(self.char1.get_resource(7), 5)
         self.assertEqual(self.char1.get_gold(), 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
     def test_refund_clears_processing_flag(self, mock_assign, mock_delay):
@@ -317,7 +317,7 @@ class TestCmdCraftProgress(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -331,7 +331,7 @@ class TestCmdCraftProgress(EvenniaCommandTest):
         self.assertIn("[#####-----]", result)
         self.assertIn("[##########] Done!", result)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -344,7 +344,7 @@ class TestCmdCraftProgress(EvenniaCommandTest):
         # Woodshop → "Carving"
         self.assertIn("Carving Training Longsword...", result)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -356,7 +356,7 @@ class TestCmdCraftProgress(EvenniaCommandTest):
         self.call(CmdCraft(), "training longsword", inputs=["y"])
         self.assertFalse(self.char1.ndb.is_processing)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -398,7 +398,7 @@ class TestCmdCraftBusy(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
         result = self.call(CmdCraft(), "training longsword")
-        self.assertIn("already busy", result.lower())
+        self.assertIn("you are busy", result.lower())
         # Resources should NOT be consumed
         self.assertEqual(self.char1.get_resource(7), 5)
         self.assertEqual(self.char1.get_gold(), 20)
@@ -426,7 +426,7 @@ class TestCmdCraftXP(EvenniaCommandTest):
         _give_resources(self.char1, {7: 5})
         _give_gold(self.char1, 20)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -440,7 +440,7 @@ class TestCmdCraftXP(EvenniaCommandTest):
         # BASIC (mastery 1) = 5 XP, multiplier 1.0
         self.assertEqual(self.char1.experience_points, 5)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -455,7 +455,7 @@ class TestCmdCraftXP(EvenniaCommandTest):
         # BASIC (5) * 2.0 = 10
         self.assertEqual(self.char1.experience_points, 10)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
     def test_no_xp_on_failure(self, mock_assign, mock_delay):
@@ -676,7 +676,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
         _give_gold(self.char1, 50)
         _learn_cats_grace(self.char1)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -690,7 +690,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
 
         mock_assign.assert_called_once_with("Watery Potion of Cat's Grace")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -704,7 +704,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
 
         mock_assign.assert_called_once_with("Weak Potion of Cat's Grace")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -718,7 +718,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
 
         mock_assign.assert_called_once_with("Standard Potion of Cat's Grace")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -732,7 +732,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
 
         mock_assign.assert_called_once_with("Potent Potion of Cat's Grace")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -746,7 +746,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
 
         mock_assign.assert_called_once_with("Ascendant Potion of Cat's Grace")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -768,7 +768,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
 
         mock_assign.assert_called_once_with("Standard Potion of Life's Essence")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -791,7 +791,7 @@ class TestCmdCraftPotionMasteryRouting(EvenniaCommandTest):
         # Non-tiered recipe uses recipe name, NOT quality-prefixed
         mock_assign.assert_called_once_with("Training Longsword")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -849,7 +849,7 @@ class TestCmdCraftBlankWands(EvenniaCommandTest):
         _give_resources(self.char1, resources)
         _give_gold(self.char1, 100)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -865,7 +865,7 @@ class TestCmdCraftBlankWands(EvenniaCommandTest):
         mock_spawn.assert_called_once_with(TOKEN_ID, self.char1)
         self.assertEqual(self.char1.get_resource(7), 2)  # 3 - 1
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -880,7 +880,7 @@ class TestCmdCraftBlankWands(EvenniaCommandTest):
         mock_assign.assert_called_once_with("Apprentice's Wand")
         self.assertEqual(self.char1.get_resource(7), 2)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -895,7 +895,7 @@ class TestCmdCraftBlankWands(EvenniaCommandTest):
         mock_assign.assert_called_once_with("Wizard's Wand")
         self.assertEqual(self.char1.get_resource(41), 2)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -910,7 +910,7 @@ class TestCmdCraftBlankWands(EvenniaCommandTest):
         mock_assign.assert_called_once_with("Master's Wand")
         self.assertEqual(self.char1.get_resource(41), 2)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -1027,7 +1027,7 @@ class TestCmdCraftWandEnchant(EvenniaCommandTest):
         self.char1.mana_max = 100
         self.char1.mana = 100
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -1050,7 +1050,7 @@ class TestCmdCraftWandEnchant(EvenniaCommandTest):
         self.assertEqual(mock_item.key, "Wand of Magic Missile")
         mock_item.persist_wand_state.assert_called_once()
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -1088,7 +1088,7 @@ class TestCmdCraftWandEnchant(EvenniaCommandTest):
         ])
         self.assertEqual(remaining_blanks, original_blanks)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -1105,7 +1105,7 @@ class TestCmdCraftWandEnchant(EvenniaCommandTest):
         ]
         self.assertEqual(len(blanks), 0)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
