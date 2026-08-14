@@ -393,6 +393,17 @@ class BaseActor(
             return target.key
         return "someone"
 
+    def get_display_things(self, looker, **kwargs):
+        """Hide inventory from non-Builder lookers (staff/admin only).
+
+        Sits on BaseActor so it covers every actor — players, mobs, NPCs
+        and pets alike. Evennia's default renders the whole of contents,
+        which for an actor means worn equipment and carried loot both.
+        """
+        if looker and looker.locks.check_lockstring(looker, "perm(Builder)"):
+            return super().get_display_things(looker, **kwargs)
+        return ""
+
     # ================================================================== #
     #  Level — subclasses override get_level() for their progression
     # ================================================================== #
