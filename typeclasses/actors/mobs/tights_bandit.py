@@ -17,15 +17,31 @@ from typeclasses.actors.mob import CombatMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
+from utils.targeting.predicates import p_is_character
+from utils.visibility import looker_is_blind
 
 
-_GREETINGS = (
-    "calls out, \"Oi! Who's this then?\"",
+# Two pools, chosen on whether the bandit can actually see who came in.
+# The arrival itself is already filtered — a concealed player is never
+# announced, so nothing here fires for someone sneaking past. What is
+# left is the dark-camp case: the bandit hears someone, and half of the
+# old pool made no sense for that. A half-bow aimed at a person you
+# cannot see is nonsense; "Oi! Who's this then?" is exactly right.
+
+_GREETINGS_SEEN = (
     "raises a tankard. \"Welcome to the merriment, friend!\"",
     "squints over the firepit. \"You with the boss, or just passing?\"",
     "tugs at his ridiculous tights and gives a half-bow.",
     "grins. \"Mind the manifesto. The Friar will quiz you.\"",
     "sings, badly, half a verse of something Bobbin sings better.",
+)
+
+_GREETINGS_UNSEEN = (
+    "calls out, \"Oi! Who's this then?\"",
+    "peers into the dark. \"Someone there? Speak up.\"",
+    "gropes for his tankard. \"That you, or am I drunk again?\"",
+    "calls out, \"Show yourself, friend. Or don't, and see how that goes.\"",
+    "goes quiet, listening.",
 )
 
 
@@ -83,7 +99,7 @@ class TightsBandit(WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
 
     def at_new_arrival(self, arriving_obj):
         """Shout a greeting at arriving players, with a per-mob cooldown."""
-        if not getattr(arriving_obj, "is_pc", False):
+        if not p_is_character(arriving_obj, self):
             return
         if not self.is_alive or not self.location:
             return
@@ -97,5 +113,11 @@ class TightsBandit(WeaponMasteryMixin, HumanoidWearslotsMixin, CombatMob):
             return
         self.db.last_greeting_at = now
 
-        line = random.choice(_GREETINGS)
-        self.location.msg_contents(f"|c{self.key}|n {line}")
+        pool = (
+            _GREETINGS_UNSEEN if looker_is_blind(self) else _GREETINGS_SEEN
+        )
+        line = random.choice(pool)
+        # from_obj is what makes RoomBase.msg_contents apply visibility
+        # filtering — without it the shout reaches everyone regardless of
+        # whether they can perceive the bandit.
+        self.location.msg_contents(f"|c{self.key}|n {line}", from_obj=self)
