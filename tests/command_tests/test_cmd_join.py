@@ -90,6 +90,42 @@ class TestCmdJoin(EvenniaCommandTest):
         self.assertEqual(self.char1.ndb.combat_target, self.enemy)
 
     @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_join_breaks_concealment_via_the_free_attack(self, mock_ticker):
+        """
+        cmd_join breaks nothing itself — enter_combat's instigator attack
+        runs execute_attack, which does. This proves the delegation, so the
+        absence of a break in the command is not read as a gap.
+        """
+        from combat.combat_utils import enter_combat
+        from enums.condition import Condition
+
+        enter_combat(self.char2, self.enemy)
+        handler = self.char2.scripts.get("combat_handler")[0]
+        handler.queue_action({
+            "key": "attack", "target": self.enemy, "dt": 3, "repeat": True,
+        })
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char1.apply_sanctuary(60)
+
+        self.call(CmdJoin(), "Char2", caller=self.char1)
+
+        self.assertFalse(self.char1.has_condition(Condition.INVISIBLE))
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+        self.assertFalse(self.char1.has_condition(Condition.SANCTUARY))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_refused_join_costs_no_concealment(self, mock_ticker):
+        """An ally not in combat means no join, and no reveal (R5)."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+
+        self.call(CmdJoin(), "Char2", caller=self.char1)
+
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
     def test_join_already_fighting_same_target(self, mock_ticker):
         """Can't join if already fighting the same target."""
         from combat.combat_utils import enter_combat

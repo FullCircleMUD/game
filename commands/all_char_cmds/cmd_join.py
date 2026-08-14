@@ -12,7 +12,6 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from combat.combat_utils import enter_combat, fight_refusal_message
-from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_in_combat, p_same_height
 from utils.visibility import looker_is_blind
@@ -96,12 +95,12 @@ class CmdJoin(FCMCommandMixin, Command):
             caller.msg(f"You're already fighting {target.key}!")
             return
 
-        # Break stealth if hidden/invisible
-        if hasattr(caller, "has_condition"):
-            if caller.has_condition(Condition.HIDDEN):
-                caller.remove_condition(Condition.HIDDEN)
-            if caller.has_condition(Condition.INVISIBLE):
-                caller.break_invisibility()
+        # Concealment is not broken here. `enter_combat` below is passed
+        # instigator=caller, so it takes a free attack through
+        # `execute_attack`, which calls
+        # `break_conditions_from_hostile_action`. Breaking it here as well
+        # would cost the caller their concealment even when the join is
+        # refused a few lines down.
 
         caller.msg(f"|rYou join {ally.key}'s fight against {target.key}!|n")
 
@@ -110,6 +109,7 @@ class CmdJoin(FCMCommandMixin, Command):
             return
         if caller.location:
             caller.location.msg_contents(
-                f"|r{caller.key} joins the fight against {target.key}!|n",
+                "|r{joiner} joins the fight against {defender}!|n",
                 exclude=[caller],
+                mapping={"joiner": caller, "defender": target},
             )

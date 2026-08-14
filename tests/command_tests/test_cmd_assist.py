@@ -141,6 +141,36 @@ class TestAssistCombat(_AssistTestBase):
         )
 
     @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_assist_in_combat_breaks_concealment(self, mock_ticker):
+        """Assisting is taking part in the fight, so it ends concealment."""
+        from enums.condition import Condition
+
+        self._set_battleskills_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        enter_combat(self.char2, self.mob)
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char1.apply_sanctuary(60)
+
+        self.call(CmdAssist(), self.char2.key, caller=self.char1)
+
+        self.assertFalse(self.char1.has_condition(Condition.INVISIBLE))
+        self.assertFalse(self.char1.has_condition(Condition.SANCTUARY))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_failed_assist_costs_no_concealment(self, mock_ticker):
+        """A refused assist must not give the assister away (R5)."""
+        from enums.condition import Condition
+
+        self._set_battleskills_mastery(self.char1, MasteryLevel.BASIC)
+        enter_combat(self.char1, self.mob)
+        # char2 is not in combat, so the assist is refused.
+        self.char1.add_condition(Condition.INVISIBLE)
+
+        self.call(CmdAssist(), self.char2.key, caller=self.char1)
+
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
     def test_assist_skips_assister_attack(self, mock_ticker):
         """Assist costs the assister their next attack."""
         self._set_battleskills_mastery(self.char1, MasteryLevel.BASIC)
@@ -227,6 +257,17 @@ class TestAssistNonCombat(_AssistTestBase):
         result = self.call(CmdAssist(), self.char2.key, caller=self.char1)
         self.assertIn("next task", result)
         self.assertTrue(self.char2.db.non_combat_advantage)
+
+    def test_noncombat_assist_keeps_concealment(self):
+        """Helping with a skill check is not a hostile act."""
+        from enums.condition import Condition
+
+        self._set_battleskills_mastery(self.char1, MasteryLevel.BASIC)
+        self.char1.add_condition(Condition.INVISIBLE)
+
+        self.call(CmdAssist(), self.char2.key, caller=self.char1)
+
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
 
     def test_noncombat_assist_message(self):
         """Assist message includes target name."""

@@ -165,6 +165,26 @@ class CmdTaunt(CmdSkillBase):
                 caller.msg(f"{target.key} is not an enemy.")
                 return
 
+        # ── The target has to be able to see who is goading them ──
+        if not p_can_see(caller, target):
+            caller.msg(
+                f"{target.key} can't see you. How are you going to get "
+                f"them to attack you?"
+            )
+            return
+
+        # Taunt deliberately breaks no conditions, unlike every other way
+        # of starting a fight. The point of the skill is to make the *mob*
+        # the aggressor — out of combat that is what keeps the taunter off
+        # the hook when a crime or guard system asks who started it, and in
+        # combat it is how a tank pulls a mob off someone squishier. Ending
+        # the taunter's own concealment would undercut both.
+        #
+        # What it needs instead is the gate above: the target must be able
+        # to see the taunter for the goading to land. An invisible taunter
+        # facing a mob with DETECT_INVIS still works, and third parties who
+        # cannot see them hear the insults without learning who threw them.
+
         # ── Contested roll: CHA + mastery vs target WIS ──
         attacker_roll = dice.roll("1d20")
         cha_mod = caller.get_attribute_bonus(caller.charisma)
@@ -202,8 +222,9 @@ class CmdTaunt(CmdSkillBase):
                 )
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} taunts {target.key}, drawing its attention!|n",
+                        "|y{taunter} taunts {mob}, drawing its attention!|n",
                         exclude=[caller, target],
+                        mapping={"taunter": caller, "mob": target},
                     )
             else:
                 # Failure
@@ -241,8 +262,9 @@ class CmdTaunt(CmdSkillBase):
                 caller.msg(f"|r{target.key} attacks you!|n")
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} provokes {target.key} into attacking!|n",
+                        "|y{taunter} provokes {mob} into attacking!|n",
                         exclude=[caller, target],
+                        mapping={"taunter": caller, "mob": target},
                     )
             else:
                 # Failure — mob ignores, 5-minute cooldown

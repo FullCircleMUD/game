@@ -170,6 +170,11 @@ class CmdAssist(CmdSkillBase):
         if in_combat:
             rounds = ASSIST_ROUNDS[mastery]
             if self._do_assist_combat(target, rounds):
+                # Assisting in combat grants an ally advantage against every
+                # enemy, which is taking part in the fight. Out of combat it
+                # only helps with a skill check, so the branch below breaks
+                # nothing.
+                caller.break_conditions_from_hostile_action()
                 caller.msg(
                     f"|yYou assist {target.key}, giving them the edge! "
                     f"(+{rounds} round{'s' if rounds > 1 else ''} advantage)|n"

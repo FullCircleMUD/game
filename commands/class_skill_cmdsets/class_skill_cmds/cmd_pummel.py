@@ -198,6 +198,11 @@ class CmdPummel(CmdSkillBase):
             return
         caller.move = max(0, caller.move - PUMMEL_MOVE_COST)
 
+        # Concealment is not broken here. A pummeller is in combat by this
+        # point, so an auto-attack is running each round, and every one of
+        # them goes through `execute_attack`, which calls
+        # `break_conditions_from_hostile_action`.
+
         # ── Contested roll: STR + mastery vs target DEX ──
         attacker_roll = dice.roll("1d20")
         attacker_str = caller.get_attribute_bonus(caller.strength)
@@ -228,8 +233,9 @@ class CmdPummel(CmdSkillBase):
                 )
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} pummels {target.key}, stunning them!|n",
+                        "|y{pummeller} pummels {victim}, stunning them!|n",
                         exclude=[caller, target],
+                        mapping={"pummeller": caller, "victim": target},
                     )
             else:
                 # Target already stunned (anti-stacking)

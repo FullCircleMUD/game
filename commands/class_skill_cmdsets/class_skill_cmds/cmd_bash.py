@@ -200,6 +200,12 @@ class CmdBash(CmdSkillBase):
             return
         caller.move = max(0, caller.move - BASH_MOVE_COST)
 
+        # Concealment is not broken here. A basher is in combat by this
+        # point, so an auto-attack is running each round, and every one of
+        # them goes through `execute_attack`, which calls
+        # `break_conditions_from_hostile_action`. Anyone bashing is
+        # therefore already revealed, or is revealed within the round.
+
         # ── Contested roll: STR + mastery vs target STR ──
         attacker_roll = dice.roll("1d20")
         attacker_str = caller.get_attribute_bonus(caller.strength)
@@ -230,8 +236,9 @@ class CmdBash(CmdSkillBase):
                 )
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} bashes {target.key} to the ground!|n",
+                        "|y{basher} bashes {victim} to the ground!|n",
                         exclude=[caller, target],
+                        mapping={"basher": caller, "victim": target},
                     )
             else:
                 # Target already prone (anti-stacking)
@@ -264,8 +271,9 @@ class CmdBash(CmdSkillBase):
                 )
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} overextends a bash and falls to the ground!|n",
+                        "|y{basher} overextends a bash and falls to the ground!|n",
                         exclude=[caller, target],
+                        mapping={"basher": caller},
                     )
 
     # ── Mob fallback ──
