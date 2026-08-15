@@ -8,6 +8,7 @@ docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 
 from utils.targeting.predicates import (
     p_can_perceive,
+    p_can_see,
     p_in_combat,
     p_involved_with,
     p_is_character,
@@ -438,9 +439,13 @@ def resolve_attack_target_out_of_combat(caller, name, order=None, extra_predicat
     if order is None:
         order = ATTACK_OUT_OF_COMBAT_ORDER
 
+    # Picking a fight needs eyes — you have to know who you are
+    # attacking. ``p_object_visible_to`` beside it is the *object* axis,
+    # and no actor composes either concealment mixin, so it never fires
+    # on this path; ``p_can_see`` is what asks about the actor.
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_object_visible_to, *extra_predicates,
+        p_living, p_object_visible_to, p_can_see, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -515,9 +520,14 @@ def resolve_attack_target_in_combat(caller, name, order=None, extra_predicates=(
     if order is None:
         order = ATTACK_IN_COMBAT_ORDER
 
+    # Once the fight is on, perception is enough — you swing at what you
+    # can sense. Losing your light mid-fight does not disarm you, and
+    # fighting blind becomes something a character can be good at. The
+    # stricter ``p_can_see`` belongs to *starting* a fight, not
+    # continuing one.
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_object_visible_to, *extra_predicates,
+        p_living, p_object_visible_to, p_can_perceive, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -551,9 +561,15 @@ def resolve_friendly_target_in_combat(caller, name, extra_predicates=()):
 
     Returns the matched actor or None.
     """
+    # Sight, not perception. The attack resolver this delegates to
+    # relaxes to ``p_can_perceive`` so a fighter can swing at what they
+    # sense — but helping someone is the other way round: you have to
+    # pick the *right* person, and healing the wrong shape in the dark
+    # is not a mechanic. Predicates are additive, so this tightens the
+    # relaxed base back up.
     return resolve_attack_target_in_combat(
         caller, name, order=FRIENDLY_IN_COMBAT_ORDER,
-        extra_predicates=extra_predicates,
+        extra_predicates=(p_can_see,) + tuple(extra_predicates),
     )
 
 

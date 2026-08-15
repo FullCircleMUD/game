@@ -98,9 +98,12 @@ class CmdTaunt(CmdSkillBase):
         # ── Parse target ──
         target = None
         if self.args and self.args.strip():
+            # Filtering lives in the resolvers, not here: p_living, then
+            # p_can_see out of combat and p_can_perceive in it. The
+            # separate p_can_see check further down is a different
+            # question — whether the *target* can see the taunter.
             target, _ = resolve_target(
                 caller, self.args.strip(), "actor_hostile",
-                extra_predicates=(p_can_see,),
             )
             if not target:
                 return  # actor resolver already messaged

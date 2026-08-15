@@ -52,6 +52,11 @@ class CmdAttack(FCMCommandMixin, Command):
             else getattr(caller, "mob_weapon_type", "melee")
         )
 
+        # No sight predicate here on purpose. The resolvers own that
+        # decision now, and it differs by combat state: p_can_see to
+        # start a fight, p_can_perceive to continue one. Passing p_can_see
+        # here would tighten the in-combat case back up and take away
+        # fighting by sound.
         target, _ = resolve_target(caller, search_term, "actor_hostile")
 
         if target is None:

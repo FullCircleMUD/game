@@ -19,6 +19,14 @@ from utils.targeting.predicates import check_range, p_can_see
 from world.spells.registry import find_spell
 
 
+#: Target types that ``resolve_target`` sends to the four actor
+#: resolvers, which own the sight rule themselves. A spell with one of
+#: these must not be given a sight predicate here — doing so would
+#: override the in-combat relaxation to ``p_can_perceive`` and take away
+#: fighting by sound.
+_RESOLVER_ACTOR_TYPES = ("actor_hostile", "actor_any", "actor_friendly")
+
+
 class CmdCast(FCMCommandMixin, Command):
     """
     Cast a memorised spell.
@@ -95,10 +103,18 @@ class CmdCast(FCMCommandMixin, Command):
             )
             return
 
-        # Resolve target — requires_sight controls whether p_can_see
-        # is passed as an extra predicate. Actor types also get it
-        # so hidden/height-barrier-gated targets are filtered.
-        extra = (p_can_see,) if spell_match.requires_sight else ()
+        # Actor-targeting spells take their sight rule from the four
+        # resolvers — p_can_see to start a fight, p_can_perceive once in
+        # one, p_can_see either way for friendly intent — so nothing is
+        # passed here and requires_sight does not apply to them.
+        #
+        # Item-targeting spells go down walk_contents, which has no such
+        # rule, so requires_sight still decides there: Knock needs to see
+        # the lock, a sense-the-unseen spell does not.
+        extra = ()
+        if (spell_match.requires_sight
+                and spell_match.target_type not in _RESOLVER_ACTOR_TYPES):
+            extra = (p_can_see,)
         target, secondaries = resolve_target(
             caller, target_str, spell_match.target_type,
             aoe=spell_match.aoe,

@@ -20,7 +20,6 @@ Usage:
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
 from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
@@ -76,9 +75,10 @@ class CmdRecognise(CmdSkillBase):
             caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
+        # Filtering lives in the resolvers, not here: p_living, then
+        # p_can_see out of combat and p_can_perceive in it.
         target, _ = resolve_target(
             caller, self.args.strip(), "actor_hostile",
-            extra_predicates=(p_can_see,),
         )
         if not target:
             return  # actor resolver already messaged

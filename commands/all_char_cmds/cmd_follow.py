@@ -13,7 +13,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see, p_is_character
+from utils.targeting.predicates import p_is_character
 from utils.visibility import looker_is_blind
 
 
@@ -69,9 +69,11 @@ class CmdFollow(FCMCommandMixin, Command):
             caller.msg(f"It's too dark to see '{target_name}'.")
             return
 
+        # Filtering lives in the resolvers, not here: p_living, then
+        # p_can_see out of combat (picking a fight needs eyes) or
+        # p_can_perceive in combat (you swing at what you can sense).
         target, _ = resolve_target(
             caller, target_name, "actor_hostile",
-            extra_predicates=(p_can_see,),
         )
         if not target:
             return  # actor resolver already messaged

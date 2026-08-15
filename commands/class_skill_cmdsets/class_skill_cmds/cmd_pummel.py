@@ -29,7 +29,6 @@ from enums.size import size_value
 from enums.skills_enum import skills
 from utils.dice_roller import dice
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 PUMMEL_COOLDOWNS = {
@@ -101,9 +100,11 @@ class CmdPummel(CmdSkillBase):
             # in-combat/out-of-combat dispatch and sends its own refusal,
             # and it is the only place a predicate can be attached. You
             # cannot pick a fight with someone you cannot see.
+            # Filtering lives in the resolvers, not here: p_living, then
+            # p_can_see out of combat (picking a fight needs eyes) or
+            # p_can_perceive in combat (you swing at what you can sense).
             target, _ = resolve_target(
                 caller, search_term, "actor_hostile",
-                extra_predicates=(p_can_see,),
             )
             if target is None:
                 return

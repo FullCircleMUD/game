@@ -48,6 +48,15 @@ def _make_actor(
     actor.hp = hp
     actor.get_group_leader = MagicMock(return_value=leader)
     actor.is_hidden_visible_to = MagicMock(return_value=visible)
+    # A bare MagicMock answers has_condition() truthily, which would make
+    # every mock actor read as HIDDEN *and* INVISIBLE to the sight
+    # predicates the resolvers apply — and its location.is_dark() returns
+    # a truthy Mock, so any actor used as a *caller* would be standing in
+    # the dark. Both are answered here: concealment and darkness get
+    # their own tests, and these actors are simply present and sighted.
+    actor.has_condition = MagicMock(return_value=False)
+    actor.is_height_visible_to = MagicMock(return_value=True)
+    actor.location.is_dark = MagicMock(return_value=False)
     scripts = MagicMock()
     if combat_side is None:
         scripts.get = MagicMock(return_value=[])
@@ -96,11 +105,26 @@ def _make_hidden_item(visible):
     return SimpleNamespace(is_hidden_visible_to=lambda caller: visible)
 
 
+def _sighted(caller):
+    """Give a mock caller working eyes in a lit room.
+
+    ``p_can_see`` asks two things of the *caller*: that they are not
+    BLINDED, and that their room is not dark for them. A bare MagicMock
+    answers both the wrong way — truthy for the condition, and its
+    ``location.is_dark()`` returns a truthy Mock. Without this every
+    resolution comes back empty for reasons that have nothing to do
+    with what is being tested.
+    """
+    caller.has_condition = MagicMock(return_value=False)
+    caller.location.is_dark = MagicMock(return_value=False)
+    return caller
+
+
 def _make_caller(search_return=None):
     """A caller mock with a stubbed .search() method."""
     caller = MagicMock()
     caller.search.return_value = search_return
-    return caller
+    return _sighted(caller)
 
 
 def _make_gettable_item(key="sword"):
