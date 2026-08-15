@@ -117,16 +117,39 @@ class CmdZap(FCMCommandMixin, Command):
             caller.ndb._wand_caster_tier_override = None
             caller.ndb._wand_free_cast = False
 
-        # ── 5. Break invisibility / sanctuary on hostile zap ─
+        # ── 5. Break conditions on hostile zap ─
+        # A wand is as committing as a spell or a swing, so this ends
+        # everything a hostile act ends, with no exclusions. Messaging
+        # stays here because the seam deliberately sends none.
         if success and spell.target_type == "actor_hostile":
-            if (hasattr(caller, "break_invisibility")
-                    and caller.has_condition(Condition.INVISIBLE)):
-                caller.break_invisibility()
+            broken = []
+            if hasattr(caller, "break_conditions_from_hostile_action"):
+                broken = caller.break_conditions_from_hostile_action()
+
+            if Condition.INVISIBLE in broken:
                 caller.msg("|yYour invisibility fades as you zap.|n")
-            if (hasattr(caller, "break_sanctuary")
-                    and caller.has_condition(Condition.SANCTUARY)):
-                caller.break_sanctuary()
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|y{caster} shimmers into view!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
+            if Condition.HIDDEN in broken:
+                caller.msg("|yYou give away your hiding place as you zap.|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|y{caster} breaks from cover!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
+            if Condition.SANCTUARY in broken:
                 caller.msg("|WYour sanctuary fades as you zap an offensive spell!|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|W{caster}'s divine sanctuary fades!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
 
         # ── 6. Dispatch spell messages (same pattern as cast) ─
         if isinstance(result, str):

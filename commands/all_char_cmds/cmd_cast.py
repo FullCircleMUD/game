@@ -122,19 +122,40 @@ class CmdCast(FCMCommandMixin, Command):
             caller, target, spell_arg=spell_arg, secondaries=secondaries,
         )
 
-        # Break invisibility on offensive cast (no advantage — spells only)
+        # Casting at an enemy is a hostile act and ends everything a
+        # hostile act ends — no exclusions. The caster never passes
+        # through `execute_attack` on any spell path, so this is the
+        # only place it can happen for a cast. Messaging stays here
+        # because the seam deliberately sends none.
         if success and spell_match.target_type == "actor_hostile":
-            if (hasattr(caller, "break_invisibility")
-                    and caller.has_condition(Condition.INVISIBLE)):
-                caller.break_invisibility()
-                caller.msg("|yYour invisibility fades as you cast.|n")
+            broken = []
+            if hasattr(caller, "break_conditions_from_hostile_action"):
+                broken = caller.break_conditions_from_hostile_action()
 
-        # Break sanctuary on offensive cast
-        if success and spell_match.target_type == "actor_hostile":
-            if (hasattr(caller, "break_sanctuary")
-                    and caller.has_condition(Condition.SANCTUARY)):
-                caller.break_sanctuary()
+            if Condition.INVISIBLE in broken:
+                caller.msg("|yYour invisibility fades as you cast.|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|y{caster} shimmers into view!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
+            if Condition.HIDDEN in broken:
+                caller.msg("|yYou give away your hiding place as you cast.|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|y{caster} breaks from cover!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
+            if Condition.SANCTUARY in broken:
                 caller.msg("|WYour sanctuary fades as you cast an offensive spell!|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|W{caster}'s divine sanctuary fades!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
 
         if isinstance(result, str):
             # Validation failure — single string to caster only
