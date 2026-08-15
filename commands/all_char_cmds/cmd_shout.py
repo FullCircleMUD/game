@@ -101,12 +101,6 @@ class CmdShout(FCMCommandMixin, Command):
             caller.msg("You can't speak while silenced.")
             return
 
-        # --- Determine visibility ---
-        is_invisible = (
-            hasattr(caller, "has_condition")
-            and caller.has_condition(Condition.INVISIBLE)
-        )
-
         is_common = language == "common"
         lang_display = language.capitalize()
 
@@ -126,21 +120,11 @@ class CmdShout(FCMCommandMixin, Command):
             if getattr(obj, "position", None) == "sleeping":
                 continue
 
-            # Speaker name — can't identify if invisible or in the dark.
-            listener_in_dark = (
-                hasattr(room, "is_dark") and room.is_dark(obj)
-            )
-            if is_invisible:
-                if hasattr(obj, "has_condition") and obj.has_condition(
-                    Condition.DETECT_INVIS
-                ):
-                    speaker_name = caller.key
-                else:
-                    speaker_name = "Someone"
-            elif listener_in_dark:
-                speaker_name = "Someone"
-            else:
-                speaker_name = caller.key
+            # The shouter names themselves for this listener. A shout
+            # carries whether or not you can see who gave it — only the
+            # name changes, to the shouter's own unseen_name. Adjacent
+            # rooms need no equivalent: they never name anyone.
+            speaker_name = caller.get_display_name(obj)
 
             # Language comprehension
             understands = listener_understands(obj, language)

@@ -27,6 +27,9 @@ class TestCmdShout(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        # A bare test room is dark, which would mask every shouter as
+        # "Someone" and make the concealment tests prove nothing.
+        self.room1.always_lit = True
         self.char1.db.languages = {"common"}
         self.char2.db.languages = {"common"}
 
@@ -213,3 +216,73 @@ class TestCmdShout(EvenniaCommandTest):
         muffled = _muffle("secret meeting tonight at the tavern")
         expected_garble = garble(muffled, "dwarven")
         self.assertIn(expected_garble, combined)
+
+
+class TestCmdShoutSpeakerNaming(EvenniaCommandTest):
+    """A shout carries; whose throat it came from does not always."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        self.char1.db.languages = {"common"}
+        self.char2.db.languages = {"common"}
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _heard(self):
+        received = []
+        original_msg = self.char2.msg
+        original_has_account = type(self.char2).has_account
+        type(self.char2).has_account = property(lambda self_: True)
+        self.char2.msg = lambda text="", **kw: received.append(str(text))
+        self.call(CmdShout(), "help")
+        type(self.char2).has_account = original_has_account
+        self.char2.msg = original_msg
+        return " ".join(received)
+
+    def test_a_visible_shouter_is_named(self):
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_a_shouter_in_the_dark_is_anonymous(self):
+        self._darken()
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_a_blind_listener_cannot_name_the_shouter(self):
+        self.char2.add_condition(Condition.BLINDED)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_an_invisible_shouter_is_anonymous(self):
+        self.char1.add_condition(Condition.INVISIBLE)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_detect_invis_names_an_invisible_shouter(self):
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char2.add_condition(Condition.DETECT_INVIS)
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_a_hidden_shouter_is_anonymous(self):
+        """Only INVISIBLE was checked before, so hiding named you in full."""
+        self.char1.add_condition(Condition.HIDDEN)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_the_shout_still_carries_unnamed(self):
+        """The mask is on the name, not on the message."""
+        self._darken()
+        self.assertIn("help", self._heard())

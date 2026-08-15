@@ -124,12 +124,6 @@ class CmdSay(FCMCommandMixin, Command):
         if say_target and getattr(say_target, "afk", False):
             caller.msg(f"|y{say_target.key} is currently AFK.|n")
 
-        # --- Determine visibility ---
-        is_invisible = (
-            hasattr(caller, "has_condition")
-            and caller.has_condition(Condition.INVISIBLE)
-        )
-
         # --- Build language display ---
         is_common = language == "common"
         lang_display = language.capitalize()
@@ -155,20 +149,11 @@ class CmdSay(FCMCommandMixin, Command):
             if getattr(obj, "position", None) == "sleeping":
                 continue
 
-            # Determine the speaker name this listener sees.
-            # Can't see the speaker if invisible or if the room is dark.
-            listener_in_dark = (
-                hasattr(room, "is_dark") and room.is_dark(obj)
-            )
-            if is_invisible:
-                if hasattr(obj, "has_condition") and obj.has_condition(Condition.DETECT_INVIS):
-                    speaker_name = caller.key
-                else:
-                    speaker_name = "Someone"
-            elif listener_in_dark:
-                speaker_name = "Someone"
-            else:
-                speaker_name = caller.key
+            # The speaker names themselves for this listener. Voices carry
+            # to people who cannot see who is talking, so the line goes out
+            # either way and only the name changes — the speaker's own
+            # ``unseen_name`` when this listener cannot make them out.
+            speaker_name = caller.get_display_name(obj)
 
             # Determine if listener understands the language.
             understands = listener_understands(obj, language)
@@ -185,12 +170,14 @@ class CmdSay(FCMCommandMixin, Command):
 
             heard = speech if understands else garble(speech, language)
 
-            # Build the target display for this listener
+            # Build the target display for this listener. The person
+            # being spoken to names themselves the same way the speaker
+            # does — being addressed is not what gives you away.
             if say_target:
                 if obj == say_target:
                     listener_target = " to you"
                 else:
-                    listener_target = f" to {say_target.key}"
+                    listener_target = f" to {say_target.get_display_name(obj)}"
             else:
                 listener_target = ""
 

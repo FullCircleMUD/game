@@ -122,12 +122,6 @@ class CmdWhisper(FCMCommandMixin, Command):
         is_common = language == "common"
         lang_display = language.capitalize()
 
-        # --- Determine visibility ---
-        is_invisible = (
-            hasattr(caller, "has_condition")
-            and caller.has_condition(Condition.INVISIBLE)
-        )
-
         # --- Caller message ---
         target_names_display = ", ".join(r.key for r in receivers)
         if is_common:
@@ -147,22 +141,10 @@ class CmdWhisper(FCMCommandMixin, Command):
                 caller.msg(f"{recv.key} is asleep.")
                 continue
 
-            # Determine speaker name — can't identify if invisible or in the dark.
-            room = caller.location
-            listener_in_dark = (
-                room and hasattr(room, "is_dark") and room.is_dark(recv)
-            )
-            if is_invisible:
-                if hasattr(recv, "has_condition") and recv.has_condition(
-                    Condition.DETECT_INVIS
-                ):
-                    speaker_name = caller.key
-                else:
-                    speaker_name = "Someone"
-            elif listener_in_dark:
-                speaker_name = "Someone"
-            else:
-                speaker_name = caller.key
+            # The speaker names themselves for this receiver. A whisper in
+            # your ear from someone you cannot make out still arrives —
+            # only the name changes, to the speaker's own unseen_name.
+            speaker_name = caller.get_display_name(recv)
 
             # Determine if receiver understands the language
             understands = listener_understands(recv, language)
