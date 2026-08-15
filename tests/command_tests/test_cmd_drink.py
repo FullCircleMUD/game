@@ -114,7 +114,9 @@ class TestCmdDrinkSightless(CmdDrinkTestBase):
         """Call drink while sightless, returning (output, completion)."""
         with patch("utils.busy.delay") as mock_delay:
             out = self.call(CmdDrink(), args)
-        complete = mock_delay.call_args[0][1] if mock_delay.call_args else None
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
         return out, complete
 
     def test_a_dark_room_no_longer_blocks_the_drink(self):

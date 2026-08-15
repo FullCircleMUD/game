@@ -72,7 +72,9 @@ class TestCmdQuaff(EvenniaCommandTest):
         self.room1.natural_light = False
         with patch("utils.busy.delay") as mock_delay:
             out = self.call(CmdQuaff(), args)
-        complete = mock_delay.call_args[0][1] if mock_delay.call_args else None
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
         return out, complete
 
     def _finish(self, complete):

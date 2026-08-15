@@ -225,7 +225,9 @@ class TestHarvestRaceCondition(HarvestingTestBase):
 
         # Capture the callback that was passed to delay()
         self.assertTrue(mock_delay.called)
-        callback = mock_delay.call_args[0][1]
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0]
+        callback = lambda: delayed[1](*delayed[2:])
 
         # Simulate another player taking the last resource
         self.room1.db.resource_count = 0
@@ -334,7 +336,9 @@ class TestHarvestXP(HarvestingTestBase):
         self.room1.db.harvest_xp = 10
         self.char1.experience_points = 0
         self.call(CmdHarvest(), "", cmdstring="mine")
-        callback = mock_delay.call_args[0][1]
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0]
+        callback = lambda: delayed[1](*delayed[2:])
         self.room1.db.resource_count = 0
         callback()
         self.assertEqual(self.char1.experience_points, 0)
@@ -356,7 +360,9 @@ class TestHarvestBusyFlag(HarvestingTestBase):
     def test_busy_cleared_on_race_fail(self, mock_delay):
         """is_processing should be False even when race condition blocks harvest."""
         self.call(CmdHarvest(), "", cmdstring="mine")
-        callback = mock_delay.call_args[0][1]
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0]
+        callback = lambda: delayed[1](*delayed[2:])
         self.room1.db.resource_count = 0
         callback()
         self.assertFalse(self.char1.ndb.is_processing)
