@@ -73,6 +73,44 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
 
     # ── AI ──
     ai_tick_interval = AttributeProperty(10)
+
+    #: Whether this mob is alive. **Not redundant with ``hp``** — it
+    #: serves two purposes, and the first cannot be derived from hp at
+    #: all. Keep it.
+    #:
+    #: **1. The death latch.** It records that death has been
+    #: *processed*. ``die()`` zeroes hp itself, so afterwards hp cannot
+    #: distinguish "the death pipeline has already run" from "hp just
+    #: reached zero". Both ``die()`` implementations open by testing
+    #: this and returning early — see ``BaseMob.die`` below and
+    #: ``BasePet.die`` — which is what stops a mob corpsing twice and a
+    #: pet notifying its owner twice. ``BaseActor.take_damage`` folds it
+    #: into its ``already_dead`` guard alongside ``_dying``, the
+    #: character-side equivalent: mobs and pets latch on this flag,
+    #: characters latch on ``FCMCharacter._dying``, and the ``getattr``
+    #: defaults there let one guard serve both. ``Corren`` writes True
+    #: back when it refuses a death outright.
+    #:
+    #: **2. The mob liveness predicate.** Around two dozen sites read it
+    #: to decide whether a mob should act: the AI hooks in this class,
+    #: ``aggressive_mixin`` (which lists it as a required attribute of
+    #: its host in that module's header), ``pack_courage_mixin``,
+    #: ``rampage_mixin``, ``mob_followable_mixin``, the mob subclasses,
+    #: and ``at_server_startstop`` when deciding which mobs to restart.
+    #: Several ask it of *another* object — a wolf about a rabbit, an
+    #: urchin about a watchman — so this is a settled second role, not
+    #: drift to be tidied away.
+    #:
+    #: **Declared on mobs only.** A character has no ``is_alive``;
+    #: liveness for a PC is ``hp > 0``. Readers that may be handed
+    #: either kind of actor therefore need a ``getattr`` default, and
+    #: the default they choose decides what happens to characters. The
+    #: counter-attack trigger in ``combat_utils`` defaults it **False**
+    #: deliberately: ``initiate_attack`` engages by running the
+    #: ``attack`` command as the actor, so a mob answering a blow is the
+    #: AI acting, while a character answering one would be the server
+    #: typing for the player. Failing that test is how a PC is put into
+    #: combat on ``hold`` and left to choose. Do not "fix" it to True.
     is_alive = AttributeProperty(True)
 
     # ── Simple Combat ──
