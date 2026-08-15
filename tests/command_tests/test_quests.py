@@ -724,6 +724,131 @@ class TestWarriorInitiation(EvenniaCommandTest):
 
 
 # ═══════════════════════════════════════════════════════
+# TestInitiation — shared test-world guild quest
+# ═══════════════════════════════════════════════════════
+
+WHEAT = 1  # resource_id for wheat
+
+
+class TestTestInitiation(EvenniaCommandTest):
+    """Test the test_initiation quest — hold 1 wheat, no class granted."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def _make_thief_guildmaster(self):
+        """A thief guildmaster gated on test_initiation, with stats to match."""
+        self.guildmaster = create.create_object(
+            "typeclasses.actors.npcs.guildmaster.GuildmasterNPC",
+            key="Test Thief Guildmaster",
+            location=self.room1,
+        )
+        self.guildmaster.guild_class = "thief"
+        self.guildmaster.multi_class_quest_key = "test_initiation"
+        self.guildmaster.max_advance_level = 40
+        for ability in ("strength", "dexterity", "constitution",
+                        "intelligence", "wisdom", "charisma"):
+            setattr(self.char1, ability, 14)
+
+    def test_registered(self):
+        """Quest is in the registry under its key."""
+        quest_class = get_quest("test_initiation")
+        self.assertIsNotNone(quest_class)
+        self.assertEqual(quest_class.key, "test_initiation")
+
+    def test_can_accept_with_no_wheat(self):
+        """Acceptance is not gated on holding wheat — only progress is."""
+        quest_class = get_quest("test_initiation")
+        can, reason = quest_class.can_accept(self.char1)
+        self.assertTrue(can)
+
+    def test_can_accept_ignores_levels_and_classes(self):
+        """No level or class gate — any character may accept."""
+        self.char1.levels_to_spend = 0
+        self.char1.db.classes = {"warrior": {"level": 5}}
+        quest_class = get_quest("test_initiation")
+        can, reason = quest_class.can_accept(self.char1)
+        self.assertTrue(can)
+
+    def test_start_step_is_get_wheat(self):
+        """Quest starts on the get_wheat step."""
+        quest_class = get_quest("test_initiation")
+        quest = self.char1.quests.add(quest_class)
+        self.assertEqual(quest.current_step, "get_wheat")
+        self.assertFalse(quest.is_completed)
+
+    def test_progress_without_wheat_does_not_complete(self):
+        """Holding no wheat leaves the quest on its step."""
+        quest_class = get_quest("test_initiation")
+        quest = self.char1.quests.add(quest_class)
+        quest.progress()
+        self.assertFalse(quest.is_completed)
+        self.assertEqual(quest.current_step, "get_wheat")
+
+    def test_progress_with_wheat_completes(self):
+        """Holding 1 wheat completes the quest on progress."""
+        self.char1.db.resources = {WHEAT: 1}
+        quest_class = get_quest("test_initiation")
+        quest = self.char1.quests.add(quest_class)
+        quest.progress()
+        self.assertTrue(quest.is_completed)
+
+    def test_wheat_is_not_consumed(self):
+        """Completion leaves the wheat in the character's inventory."""
+        self.char1.db.resources = {WHEAT: 1}
+        quest_class = get_quest("test_initiation")
+        quest = self.char1.quests.add(quest_class)
+        quest.progress()
+        self.assertTrue(quest.is_completed)
+        self.assertEqual(self.char1.get_resource(WHEAT), 1)
+
+    def test_completion_grants_no_class(self):
+        """Unlike the real initiations, no class is granted and no level spent."""
+        self.char1.db.resources = {WHEAT: 1}
+        self.char1.levels_to_spend = 1
+        quest_class = get_quest("test_initiation")
+        quest = self.char1.quests.add(quest_class)
+        quest.progress()
+        self.assertTrue(quest.is_completed)
+        self.assertEqual(self.char1.db.classes or {}, {})
+        self.assertEqual(self.char1.levels_to_spend, 1)
+
+    def test_completion_unlocks_join(self):
+        """A completed quest satisfies the guildmaster's multiclass join gate."""
+        self._make_thief_guildmaster()
+        self.char1.db.resources = {WHEAT: 1}
+        self.char1.levels_to_spend = 1
+        self.char1.db.classes = {"warrior": {"level": 1}}
+
+        quest = self.char1.quests.add(get_quest("test_initiation"))
+        quest.progress()
+        self.assertTrue(quest.is_completed)
+
+        self.call(CmdJoin(), "", obj=self.guildmaster)
+        self.assertIn("thief", self.char1.db.classes or {})
+
+    def test_join_blocked_while_quest_incomplete(self):
+        """Without the wheat the quest stays open and join is refused."""
+        self._make_thief_guildmaster()
+        self.char1.levels_to_spend = 1
+        self.char1.db.classes = {"warrior": {"level": 1}}
+
+        self.char1.quests.add(get_quest("test_initiation"))
+
+        self.call(CmdJoin(), "", obj=self.guildmaster)
+        self.assertNotIn("thief", self.char1.db.classes or {})
+
+    def test_help_text_mentions_wheat(self):
+        """help() points the player at the wheat."""
+        quest_class = get_quest("test_initiation")
+        quest = self.char1.quests.add(quest_class)
+        self.assertIn("wheat", quest.help().lower())
+
+
+# ═══════════════════════════════════════════════════════
 # Guildmaster CmdQuest tests
 # ═══════════════════════════════════════════════════════
 
