@@ -158,10 +158,6 @@ class CmdPickpocket(CmdSkillBase):
         total = roll + total_bonus
         dc = 10 + target.effective_perception_bonus
 
-        # Always break HIDDEN after attempt
-        if is_hidden:
-            caller.remove_condition(Condition.HIDDEN)
-
         # Set cooldown
         if not caller.ndb.pickpocket_cooldowns:
             caller.ndb.pickpocket_cooldowns = {}
@@ -259,7 +255,20 @@ class CmdPickpocket(CmdSkillBase):
             )
 
     def _handle_failure(self, caller, target):
-        """Handle a failed pickpocket attempt."""
+        """
+        Handle a failed pickpocket attempt.
+
+        Getting caught is what costs the thief their concealment — a
+        clean lift does not, which is why this lives here and not above
+        the success/failure branch.
+
+        Sanctuary is excluded. A thief caught with their hand in someone
+        else's purse keeps divine protection, so the mob they just woke
+        up cannot touch them.
+        """
+        if hasattr(caller, "break_conditions_from_hostile_action"):
+            caller.break_conditions_from_hostile_action(Condition.SANCTUARY)
+
         target_name = target.get_display_name(caller)
         caller.msg(
             f"|rYour hand slips and you fail to steal anything from "
