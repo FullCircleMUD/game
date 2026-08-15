@@ -441,3 +441,59 @@ class TestBashXP(_BashTestBase):
         mock_roll.side_effect = [3, 18, 15]
         self.call(CmdBash(), self.mob.key, caller=self.char1)
         mock_award.assert_not_called()
+
+
+class TestBashNeedsSight(_BashTestBase):
+    """You cannot pick a fight with someone you cannot see."""
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.char1.move = 100
+        self._set_bash_mastery(self.char1, MasteryLevel.SKILLED)
+        self.mob = create.create_object(
+            "typeclasses.actors.mobs.dire_wolf.DireWolf",
+            key="dire wolf",
+            location=self.room1,
+        )
+        self.mob.hp = 30
+        self.mob.hp_max = 30
+
+    def tearDown(self):
+        handlers = self.mob.scripts.get("combat_handler")
+        if handlers:
+            for h in handlers:
+                h.stop()
+                h.delete()
+        self.mob.delete()
+        super().tearDown()
+
+    def test_a_visible_target_resolves(self):
+        result = self.call(CmdBash(), "dire wolf")
+        self.assertNotIn("There's no", result)
+
+    def test_a_hidden_target_does_not_resolve(self):
+        """Named correctly, but the predicate stack had nowhere to run."""
+        from enums.condition import Condition
+
+        self.mob.add_condition(Condition.HIDDEN)
+        self.call(CmdBash(), "dire wolf", "There's no 'dire wolf' here.")
+
+    def test_an_invisible_target_does_not_resolve(self):
+        from enums.condition import Condition
+
+        self.mob.add_condition(Condition.INVISIBLE)
+        self.call(CmdBash(), "dire wolf", "There's no 'dire wolf' here.")
+
+    def test_true_sight_finds_a_hidden_target(self):
+        from enums.condition import Condition
+
+        self.mob.add_condition(Condition.HIDDEN)
+        self.char1.apply_named_effect("true_sight")
+        result = self.call(CmdBash(), "dire wolf")
+        self.assertNotIn("There's no", result)
+
+    def test_a_target_in_the_dark_does_not_resolve(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        self.call(CmdBash(), "dire wolf", "There's no 'dire wolf' here.")

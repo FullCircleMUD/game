@@ -28,10 +28,8 @@ from enums.mastery_level import MasteryLevel
 from enums.size import size_value
 from enums.skills_enum import skills
 from utils.dice_roller import dice
-from utils.targeting.helpers import (
-    resolve_attack_target_in_combat,
-    resolve_attack_target_out_of_combat,
-)
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import p_can_see
 from .cmd_skill_base import CmdSkillBase
 
 PUMMEL_COOLDOWNS = {
@@ -99,12 +97,15 @@ class CmdPummel(CmdSkillBase):
         target = None
         if self.args and self.args.strip():
             search_term = self.args.strip()
-            if in_combat:
-                target = resolve_attack_target_in_combat(caller, search_term)
-            else:
-                target = resolve_attack_target_out_of_combat(caller, search_term)
+            # Through the front door: resolve_target runs the same
+            # in-combat/out-of-combat dispatch and sends its own refusal,
+            # and it is the only place a predicate can be attached. You
+            # cannot pick a fight with someone you cannot see.
+            target, _ = resolve_target(
+                caller, search_term, "actor_hostile",
+                extra_predicates=(p_can_see,),
+            )
             if target is None:
-                caller.msg(f"You don't see '{search_term}' here.")
                 return
         elif in_combat:
             # Default to current attack target
