@@ -29,6 +29,13 @@ class _PummelTestBase(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pummel resolves its target through the sight gate, so an unlit
+        # room means "no such person" and nothing below is being tested.
+        # A default RoomBase has natural light and no other source, which
+        # leaves its lighting to the game clock — and TIME_FACTOR turns
+        # that over once an hour, so darkness would arrive on its own
+        # schedule. Pin it lit; darkness has its own tests.
+        self.room1.always_lit = True
         self.char1.hp = 20
         self.char1.hp_max = 20
         self.char1.move = 100
