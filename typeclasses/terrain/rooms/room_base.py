@@ -19,6 +19,7 @@ from utils.targeting.predicates import (
     p_actor_visible_to,
     p_can_perceive,
     p_is_character,
+    p_living,
     p_object_visible_to,
 )
 from utils.visibility import looker_is_blind
@@ -186,32 +187,50 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         """True for outdoor rooms that get full weather descriptions + effects."""
         return not self.is_subterranean and not self.is_sheltered
 
+    @staticmethod
+    def _is_lit_source(obj):
+        """True if obj is a light source that is currently burning."""
+        return (getattr(obj, "is_light_source", False)
+                and getattr(obj, "is_lit", False))
+
     def _has_light_source_in_room(self):
-        """Check if any lit light source exists in the room contents."""
+        """
+        Check whether anything is lighting this room, for everyone in it.
+
+        Light does not care who owns it. A torch on the floor, a torch in
+        a hand and the light spell on someone's shoulder all light the
+        room for every occupant alike — four in a dungeon with one lantern
+        between them can all see.
+
+        The reach into an actor's contents is deliberately one level deep
+        and gated on ``p_living``. That excludes chests, sacks and dropped
+        packs, so a lantern shut inside one stays dark, and it excludes
+        corpses, so the torch on a body you just dropped has to be looted
+        before it lights anything. A lantern inside a backpack inside a
+        character does not count either, for the same reason as the chest.
+        """
         for obj in self.contents:
-            if getattr(obj, "is_light_source", False) and getattr(obj, "is_lit", False):
+            if self._is_lit_source(obj):
                 return True
             # Light spell on a character illuminates the room for everyone
             if hasattr(obj, "has_effect") and obj.has_effect("light_spell"):
                 return True
-        return False
-
-    def _looker_has_light(self, looker):
-        """Check if the looker carries or wears a lit light source."""
-        if not hasattr(looker, "contents"):
-            return False
-        for obj in looker.contents:
-            if getattr(obj, "is_light_source", False) and getattr(obj, "is_lit", False):
+            if p_living(obj, None) and any(
+                    self._is_lit_source(carried) for carried in obj.contents):
                 return True
         return False
 
-    def _dark_ignoring_darkvision(self, looker=None):
+    def _dark_ignoring_darkvision(self):
         """
-        Return True if this room lacks light for a looker without DARKVISION.
+        Return True if this room lacks light, for anyone without DARKVISION.
 
         Same checks as is_dark(), minus the looker's own DARKVISION —
         used both by is_dark() and by seeing_via_darkvision() to tell
         "genuinely lit" apart from "dark, but seen through darkvision".
+
+        Takes no looker: light is a property of the room, and the only
+        thing that varies by observer is darkvision, which is is_dark()'s
+        business.
         """
         # Permanently lit rooms are never dark
         if self.always_lit:
@@ -223,12 +242,10 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         if self.has_natural_light and get_time_of_day().is_light:
             return False
 
-        # Any lit fixture or dropped light source in the room
+        # Any light in the room — on the floor, in a hand, or on a
+        # shoulder. Carried light is genuine light, not vision, so it
+        # answers here rather than per-looker.
         if self._has_light_source_in_room():
-            return False
-
-        # Looker carrying a lit light source is genuine light, not vision
-        if looker and self._looker_has_light(looker):
             return False
 
         return True
@@ -240,11 +257,11 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         A room is NOT dark if any of:
             - It is permanently lit (always_lit)
             - It has natural light and the current phase is a light phase
-            - A lit light source exists in the room (lamp post, dropped torch)
-            - The looker carries a lit light source
+            - A lit light source exists in the room — a lamp post, a
+              dropped torch, or one carried by anyone standing in it
             - The looker has DARKVISION
         """
-        if not self._dark_ignoring_darkvision(looker):
+        if not self._dark_ignoring_darkvision():
             return False
 
         if (
@@ -268,7 +285,7 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
             return False
         return (
             looker.has_condition(Condition.DARKVISION)
-            and self._dark_ignoring_darkvision(looker)
+            and self._dark_ignoring_darkvision()
         )
 
     # Naming is UnseenNameMixin's job — see unseen_name above.
