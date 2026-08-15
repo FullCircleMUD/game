@@ -150,7 +150,22 @@ class TestCmdScoreCombat(EvenniaCommandTest):
     def test_score_shows_attacks(self):
         """Score body should show attacks per round."""
         result = self.call(CmdScore(), "")
-        self.assertIn("Att:", result)
+        self.assertIn("Att/rnd:", result)
+
+    def test_score_shows_perception(self):
+        """Score body should show the effective perception bonus."""
+        result = self.call(CmdScore(), "")
+        self.assertIn("Perc:", result)
+
+    def test_score_shows_hit_bonus(self):
+        """Score body should show the effective hit bonus."""
+        result = self.call(CmdScore(), "")
+        self.assertIn("Hit:", result)
+
+    def test_score_shows_damage_bonus(self):
+        """Score body should show the effective damage bonus."""
+        result = self.call(CmdScore(), "")
+        self.assertIn("Dam:", result)
 
 
 class TestCmdScoreFooter(EvenniaCommandTest):

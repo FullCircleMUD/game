@@ -109,6 +109,22 @@ class TestCmdStatsCombat(EvenniaCommandTest):
         result = self.call(CmdStats(), "")
         self.assertIn("Attacks/Round", result)
 
+    def test_shows_perception(self):
+        """Stats should display Perception with a WIS note."""
+        result = self.call(CmdStats(), "")
+        self.assertIn("Perception", result)
+        self.assertIn("WIS mod", result)
+
+    def test_shows_hit_bonus(self):
+        """Stats should display the hit bonus."""
+        result = self.call(CmdStats(), "")
+        self.assertIn("Hit Bonus", result)
+
+    def test_shows_damage_bonus(self):
+        """Stats should display the damage bonus."""
+        result = self.call(CmdStats(), "")
+        self.assertIn("Damage Bonus", result)
+
 
 class TestCmdStatsStructure(EvenniaCommandTest):
     """Test overall structure."""
@@ -133,6 +149,18 @@ class TestCmdStatsStructure(EvenniaCommandTest):
         self.assertIn("Ability Scores", result)
         self.assertIn("Vitals", result)
         self.assertIn("Combat", result)
+
+    def test_delta_shown_when_base_differs(self):
+        """A row whose effective value differs from base shows the delta."""
+        self.char1.total_hit_bonus = 3
+        result = self.call(CmdStats(), "")
+        self.assertIn("(-3)", result)
+
+    def test_no_delta_when_values_match(self):
+        """Mana Max has no effective modifier, so no delta is shown."""
+        result = self.call(CmdStats(), "")
+        mana_row = next(ln for ln in result.split("\n") if "Mana Max" in ln)
+        self.assertNotIn("(", mana_row)
 
     def test_no_resistances_or_conditions(self):
         """Stats should NOT show resistances or conditions (moved to score)."""

@@ -18,22 +18,30 @@ def _pad(s, width):
 
 
 _PIPE = "|c|||n"
-_W = 56  # inner width
+_W = 60  # inner width
 
 
 def _stat_row(label, base, effective, note=""):
-    """Build a row: | Label        Base   Effective  Note |"""
-    diff = ""
-    if isinstance(base, int) and isinstance(effective, int) and base != effective:
-        delta = effective - base
+    """Build a row: | Label        Base   Effective  (delta)  Note |
+
+    The delta is shown only when both values are numeric and differ:
+    green when the effective value is higher, red when it is lower.
+    """
+    base_str = str(base)
+    eff_str = str(effective)
+
+    try:
+        delta = int(effective) - int(base)
+    except (TypeError, ValueError):
+        delta = 0
+
+    if delta:
         sign = "+" if delta > 0 else ""
         color = "|g" if delta > 0 else "|r"
         diff = f" {color}({sign}{delta})|n"
-    elif isinstance(base, int) and isinstance(effective, int):
+    else:
         diff = ""
 
-    base_str = f"{base}" if base != "-" else "-"
-    eff_str = f"{effective}"
     note_str = f"  |x{note}|n" if note else ""
 
     cell = f" {_pad(label, 18)} {base_str:>5s}   {eff_str:>5s}{diff}{note_str}"
@@ -134,7 +142,27 @@ class CmdStats(FCMCommandMixin, Command):
 
         lines.append(_stat_row(
             "Attacks/Round",
-            "-", str(caller.attacks_per_round),
+            str(caller.attacks_per_round), str(caller.effective_attacks_per_round),
+            note="weapon mastery",
+        ))
+
+        wis_mod = caller.get_attribute_bonus(caller.wisdom)
+        lines.append(_stat_row(
+            "Perception",
+            str(caller.perception_bonus), str(caller.effective_perception_bonus),
+            note=f"WIS mod {'+' if wis_mod >= 0 else ''}{wis_mod}",
+        ))
+
+        lines.append(_stat_row(
+            "Hit Bonus",
+            str(caller.total_hit_bonus), str(caller.effective_hit_bonus),
+            note="ability + weapon",
+        ))
+
+        lines.append(_stat_row(
+            "Damage Bonus",
+            str(caller.total_damage_bonus), str(caller.effective_damage_bonus),
+            note="ability + weapon",
         ))
 
         lines.append(border)
