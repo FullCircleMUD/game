@@ -15,7 +15,13 @@ it (unless can_deactivate is False).
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -72,6 +78,8 @@ class CmdSwitch(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._switch(caller),
                 self_msg="You feel along in the dark, hunting for something to pull...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

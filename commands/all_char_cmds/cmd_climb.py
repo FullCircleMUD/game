@@ -16,7 +16,13 @@ Optional DEX check if the fixture has climb_dc > 0.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.dice_roller import dice
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -88,6 +94,8 @@ class CmdClimb(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._climb(caller, room, delta, sightless=True),
                 self_msg="You grope about in the dark, feeling for something to climb...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

@@ -13,7 +13,13 @@ the dark, and if a torch is lit the room isn't dark.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -56,6 +62,8 @@ class CmdLight(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._light(caller, query),
                 self_msg="You feel across your gear in the dark, searching by touch...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

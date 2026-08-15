@@ -23,7 +23,13 @@ from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.predicates import (
     p_can_perceive, p_is_container, p_is_open, p_is_openable, p_same_height,
 )
@@ -77,6 +83,8 @@ class CmdPut(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._put(caller),
                 self_msg="You fumble about in the dark, feeling for somewhere to put it...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

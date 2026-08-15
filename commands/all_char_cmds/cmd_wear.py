@@ -18,7 +18,13 @@ from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixi
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.items.wearables.wearable_nft_item import WearableNFTItem
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
@@ -71,6 +77,8 @@ class CmdWear(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._wear(caller, parsed),
                 self_msg="You fumble blindly through your pack, dressing by feel...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

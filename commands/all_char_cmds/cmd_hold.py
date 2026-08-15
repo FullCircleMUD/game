@@ -16,7 +16,13 @@ from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixi
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
 
@@ -64,6 +70,8 @@ class CmdHold(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._hold(caller, parsed),
                 self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

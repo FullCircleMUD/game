@@ -76,10 +76,31 @@ class TestCmdRead(EvenniaCommandTest):
         self.char1.add_condition(Condition.BLINDED)
         self.call(CmdRead(), "winnie", "It's too dark to read 'winnie'.")
 
-    def test_nobody_is_transported_when_refused(self):
+    def test_nobody_is_held_when_refused(self):
         self._darken()
         self.call(CmdRead(), "winnie")
-        self.assertFalse(self.char1.ndb.book_transport)
+        self.assertFalse(self.char1.ndb.is_processing)
+
+    def test_a_reader_is_held_by_the_lock(self):
+        self.call(CmdRead(), "winnie")
+        self.assertTrue(self.char1.ndb.is_processing)
+
+    def test_a_second_command_is_refused_in_the_book_s_wording(self):
+        """The generic "middle of a job" does not describe a book."""
+        from utils.busy import check_busy
+
+        self.call(CmdRead(), "winnie")
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        check_busy(self.char1)
+        self.assertIn("You are already lost in a book.", said)
+
+    def test_a_reader_cannot_walk_away(self):
+        self.call(CmdRead(), "winnie")
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        self.assertFalse(self.char1.at_pre_move(self.room2))
+        self.assertIn("You are lost in a book and can't move.", said)
 
     def test_darkvision_reads_normally(self):
         from enums.condition import Condition

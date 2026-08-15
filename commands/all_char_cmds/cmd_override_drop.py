@@ -23,7 +23,13 @@ from evennia.utils import utils
 from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
@@ -285,6 +291,8 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
                 fumble_seconds(),
                 lambda: self._do_drop_object(caller, search_term),
                 self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

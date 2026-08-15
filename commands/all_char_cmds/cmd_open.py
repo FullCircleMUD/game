@@ -12,7 +12,13 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from utils.direction_parser import parse_direction
 from utils.targeting.helpers import resolve_target
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.predicates import p_can_perceive, p_is_openable, p_same_height
 from utils.visibility import looker_is_blind
 
@@ -53,6 +59,8 @@ class CmdOpen(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._open(caller, target_str),
                 self_msg="You feel your way along in the dark, hunting for a catch...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

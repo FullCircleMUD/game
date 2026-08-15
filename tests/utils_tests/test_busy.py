@@ -14,6 +14,7 @@ from evennia.utils.test_resources import EvenniaTest
 
 from utils.busy import (
     BUSY_MESSAGE,
+    BUSY_MOVE_MESSAGE,
     FUMBLE_SECONDS_MAX,
     FUMBLE_SECONDS_MIN,
     check_busy,
@@ -72,6 +73,12 @@ class TestCheckBusy(BusyTest):
     def test_a_free_character_is_told_nothing(self):
         check_busy(self.char1)
         self.assertEqual(self.said, [])
+
+    def test_an_action_can_word_its_own_refusal(self):
+        self.char1.ndb.is_processing = True
+        self.char1.ndb.busy_msg = "You are lost in a book."
+        check_busy(self.char1)
+        self.assertEqual(self.said, ["You are lost in a book."])
 
 
 class TestTheLock(BusyTest):
@@ -149,11 +156,56 @@ class TestTheAnnouncement(BusyTest):
             self._start(room_msg="Char begins gathering.")
         self.assertEqual(mock_room.call_args[1]["from_obj"], self.char1)
 
+    def test_the_refusal_wording_is_held_with_the_lock(self):
+        self._start(busy_msg="You are lost in a book.")
+        self.assertEqual(self.char1.ndb.busy_msg, "You are lost in a book.")
+
+    def test_the_movement_refusal_is_held_with_the_lock(self):
+        self._start(busy_move_msg="You are lost in a book and can't move.")
+        self.assertEqual(
+            self.char1.ndb.busy_move_msg,
+            "You are lost in a book and can't move.",
+        )
+
+    def test_the_refusal_wording_does_not_outlive_the_action(self):
+        """Otherwise a book refuses the harvest that follows it."""
+        complete = self._start(
+            busy_msg="You are lost in a book.",
+            busy_move_msg="You are lost in a book and can't move.",
+        )
+        complete()
+        self.assertIsNone(self.char1.ndb.busy_msg)
+        self.assertIsNone(self.char1.ndb.busy_move_msg)
+
+    def test_an_action_that_supplies_none_falls_back(self):
+        self._start()
+        check_busy(self.char1)
+        self.assertIn(BUSY_MESSAGE, self.said)
+
     def test_a_silent_action_announces_nothing(self):
         with patch.object(self.char1.location, "msg_contents") as mock_room:
             self._start()
         self.assertEqual(self.said, [])
         mock_room.assert_not_called()
+
+
+class TestTheMovementRefusal(BusyTest):
+    """The other half of the lock — busy refuses movement too."""
+
+    def test_a_held_character_cannot_walk_away(self):
+        self._start()
+        self.assertFalse(self.char1.at_pre_move(self.room2))
+
+    def test_they_are_told_why_in_the_default_wording(self):
+        self._start()
+        self.char1.at_pre_move(self.room2)
+        self.assertIn(BUSY_MOVE_MESSAGE, self.said)
+
+    def test_an_action_can_word_its_own_movement_refusal(self):
+        self._start(busy_move_msg="You are lost in a book and can't move.")
+        self.char1.at_pre_move(self.room2)
+        self.assertIn("You are lost in a book and can't move.", self.said)
+        self.assertNotIn(BUSY_MOVE_MESSAGE, self.said)
 
 
 class TestFumbleSeconds(BusyTest):

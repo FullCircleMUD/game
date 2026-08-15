@@ -215,10 +215,8 @@ class FCMCharacter(
         if getattr(self, "afk", False) and move_type in ("move", "follow"):
             self.msg("|yReminder: You are currently flagged as AFK.|n")
         if self.ndb.is_processing:
-            self.msg("You can't leave in the middle of a job! Wait for it to finish.")
-            return False
-        if self.ndb.book_transport and move_type != "teleport":
-            self.msg("You are lost in a book and can't move.")
+            from utils.busy import BUSY_MOVE_MESSAGE
+            self.msg(self.ndb.busy_move_msg or BUSY_MOVE_MESSAGE)
             return False
         pos = getattr(self, "position", "standing")
         if pos not in ("standing", "fighting"):

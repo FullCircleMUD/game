@@ -14,7 +14,13 @@ holding a torch, the same way you can eat bread mid-combat.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from utils.busy import check_busy, fumble_seconds, start_busy
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -51,6 +57,8 @@ class CmdDrink(FCMCommandMixin, Command):
                 fumble_seconds(),
                 lambda: self._drink(caller, query),
                 self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 

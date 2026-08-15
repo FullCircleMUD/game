@@ -52,6 +52,10 @@ def _delayed_travel(caller, room, dest, messages, on_arrive):
     start_busy_ticks(
         caller, len(messages), TRAVEL_TICK_SECONDS, on_arrive,
         progress=lambda step, total: messages[step],
+        # A journey is the one held action where the stock wording is
+        # wrong twice over: it is not a job, and you are already leaving.
+        busy_msg="There is nothing to do out here but keep going.",
+        busy_move_msg="You are already on your way.",
     )
 
 

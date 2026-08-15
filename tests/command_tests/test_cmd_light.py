@@ -77,7 +77,9 @@ class TestCmdLight(EvenniaCommandTest):
         self.room1.natural_light = False
         with patch("utils.busy.delay") as mock_delay:
             out = self.call(CmdLight(), args)
-        complete = mock_delay.call_args[0][1] if mock_delay.call_args else None
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
         return out, complete
 
     def _finish(self, complete):
@@ -86,6 +88,29 @@ class TestCmdLight(EvenniaCommandTest):
         self.char1.msg = lambda text="", **kwargs: said.append(str(text))
         complete()
         return " ".join(said)
+
+    def test_a_search_by_touch_refuses_in_its_own_wording(self):
+        """The wiring, not the wording — assert against the constant."""
+        from utils.busy import BUSY_MESSAGE, FUMBLE_BUSY_MESSAGE, check_busy
+
+        self.torch.is_lit = False
+        self._light_blind()
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        check_busy(self.char1)
+        self.assertIn(FUMBLE_BUSY_MESSAGE, said)
+        self.assertNotIn(BUSY_MESSAGE, said)
+
+    def test_a_searcher_cannot_walk_off_and_lose_their_bearings(self):
+        from utils.busy import BUSY_MOVE_MESSAGE, FUMBLE_MOVE_MESSAGE
+
+        self.torch.is_lit = False
+        self._light_blind()
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        self.assertFalse(self.char1.at_pre_move(self.room2))
+        self.assertIn(FUMBLE_MOVE_MESSAGE, said)
+        self.assertNotIn(BUSY_MOVE_MESSAGE, said)
 
     def test_lighting_in_the_dark_announces_the_search(self):
         self.torch.is_lit = False
@@ -241,7 +266,9 @@ class TestCmdRefuel(EvenniaCommandTest):
         self.room1.natural_light = False
         with patch("utils.busy.delay") as mock_delay:
             out = self.call(CmdRefuel(), args)
-        complete = mock_delay.call_args[0][1] if mock_delay.call_args else None
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
         return out, complete
 
     def _finish(self, complete):
