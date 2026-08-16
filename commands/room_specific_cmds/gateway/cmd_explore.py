@@ -19,6 +19,7 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
     _delayed_travel,
     _EXPLORE_MESSAGES,
 )
+from utils.busy import check_busy
 
 
 class CmdExplore(FCMCommandMixin, Command):
@@ -40,8 +41,7 @@ class CmdExplore(FCMCommandMixin, Command):
         caller = self.caller
         room = caller.location
 
-        if caller.ndb.is_processing:
-            caller.msg("You are already busy. Wait until your current task finishes.")
+        if check_busy(caller):
             return
 
         destinations = room.destinations if hasattr(room, "destinations") else []
@@ -155,8 +155,9 @@ class CmdExplore(FCMCommandMixin, Command):
         def _arrive():
             caller.move_to(destination_room, quiet=True, move_type="teleport")
             destination_room.msg_contents(
-                f"{caller.key} arrives, looking weathered from their journey.",
+                "{traveller} arrives, looking weathered from their journey.",
                 exclude=[caller],
+                mapping={"traveller": caller},
             )
 
         _delayed_travel(caller, room, dest, _EXPLORE_MESSAGES, _arrive)

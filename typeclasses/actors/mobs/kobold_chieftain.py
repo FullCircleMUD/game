@@ -19,6 +19,7 @@ from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
 from typeclasses.items.mob_items.mob_item import MobItem
 from typeclasses.mixins.mob_abilities.weapon_mastery import WeaponMasteryMixin
 from typeclasses.mixins.wearslots.humanoid_wearslots import HumanoidWearslotsMixin
+from utils.targeting.predicates import p_is_character
 
 
 class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob):
@@ -54,12 +55,6 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
     attack_message = AttributeProperty("slashes at")
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(5)
-
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(6)
-
-    # ── Knowledge loot ──
-    spawn_scrolls_max = AttributeProperty({"skilled": 1})
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.3)  # fights to 30%
@@ -105,8 +100,7 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
             return
         if self.scripts.get("combat_handler"):
             return
-
-        players = self.ai.get_targets_in_room()
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             self._schedule_attack(random.choice(players))
 
@@ -122,6 +116,12 @@ class KoboldChieftain(WeaponMasteryMixin, HumanoidWearslotsMixin, AggressiveMob)
         # Boss doesn't flee — just stops being aggressive until healed
 
 
-def reset_chieftain_state(mob):
-    """Post-spawn hook: reset rally-cry flag on a JSON-spawned chieftain."""
-    mob.db.has_rallied = False
+# reset_chieftain_state — replaced by declarative attrs in YAML
+# (fcm-mobs/shard0/millholm/mine.yaml: rule 3, `attrs: {has_rallied:
+# False}`). The library stamps that attribute on every fresh spawn,
+# so the per-spawn reset is now expressed as data rather than as a
+# runtime hook.
+#
+# def reset_chieftain_state(mob):
+#     """Post-spawn hook: reset rally-cry flag on a JSON-spawned chieftain."""
+#     mob.db.has_rallied = False

@@ -221,6 +221,45 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
             "test_dungeon_1",
         )
 
+    def test_start_dungeon_records_entrance_on_character(self):
+        """Entering a dungeon must stamp the entrance room on the character
+        so reconnect can route to it if the dungeon room is gone."""
+        self.instance.start_dungeon([self.char1])
+        self.assertEqual(
+            self.char1.db.dungeon_entrance_room, self.room1
+        )
+
+    def test_remove_character_clears_dungeon_entrance(self):
+        """Leaving the dungeon clears the entrance attribute so a later
+        non-dungeon disconnect falls through to last_rent_location."""
+        self.instance.start_dungeon([self.char1])
+        self.assertIsNotNone(self.char1.db.dungeon_entrance_room)
+
+        self.instance.remove_character(self.char1)
+        self.assertIsNone(self.char1.db.dungeon_entrance_room)
+
+    def test_collapse_clears_dungeon_entrance(self):
+        """Collapse evacuates and clears entrance via remove_character."""
+        self.instance.start_dungeon([self.char1])
+        self.assertIsNotNone(self.char1.db.dungeon_entrance_room)
+
+        self.instance.collapse_instance()
+        self.assertIsNone(self.char1.db.dungeon_entrance_room)
+
+    def test_at_pre_puppet_restores_dungeon_entrance_over_rent(self):
+        """If the broken location was a dungeon room, restore to the
+        recorded dungeon entrance — beating last_rent_location."""
+        self.instance.start_dungeon([self.char1])
+        # Set a different rent location to confirm dungeon entrance wins.
+        self.char1.db.last_rent_location = self.room2
+
+        # Simulate the dungeon room being deleted out from under the char.
+        self.char1.location = None
+
+        self.char1.at_pre_puppet(self.account)
+
+        self.assertEqual(self.char1.location, self.room1)
+
     def test_first_room_has_exits(self):
         """First room should have at least one forward exit."""
         self.instance.start_dungeon([self.char1])
@@ -829,7 +868,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         self.char1.quests.add(RatCellarQuest)
         self.exit.condition_type = "quest_active"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room2)
@@ -838,7 +877,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         """quest_active condition not met — goes to alternate."""
         self.exit.condition_type = "quest_active"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.alt_room)
@@ -851,7 +890,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         quest.status = "completed"
         self.exit.condition_type = "quest_complete"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room2)
@@ -863,7 +902,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         self.char1.quests.add(RatCellarQuest)
         self.exit.condition_type = "quest_complete"
         self.exit.condition_key = "rat_cellar"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.alt_room)
@@ -873,7 +912,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         self.char1.tags.add("vip_access", category="player_flag")
         self.exit.condition_type = "has_tag"
         self.exit.condition_key = "vip_access"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.room2)
@@ -882,7 +921,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         """has_tag condition not met — goes to alternate."""
         self.exit.condition_type = "has_tag"
         self.exit.condition_key = "vip_access"
-        self.exit.alternate_destination_id = self.alt_room.id
+        self.exit.alternate_destination = self.alt_room
 
         self.exit.at_traverse(self.char1, self.room2)
         self.assertEqual(self.char1.location, self.alt_room)
@@ -891,7 +930,7 @@ class TestConditionalRoutingExit(EvenniaCommandTest):
         """Condition not met with no alternate — blocked."""
         self.exit.condition_type = "quest_active"
         self.exit.condition_key = "rat_cellar"
-        # No alternate_destination_id set
+        # No alternate_destination set
 
         self.exit.at_traverse(self.char1, self.room2)
         # Should still be in room1 (not moved)
@@ -930,7 +969,7 @@ class TestConditionalDungeonExitNoAlternate(EvenniaCommandTest):
         self.trigger.dungeon_template_id = "test_dungeon"
         self.trigger.condition_type = "quest_active"
         self.trigger.condition_key = "nonexistent_quest"
-        # No alternate_destination_id
+        # No alternate_destination
 
     def tearDown(self):
         _cleanup_instances()

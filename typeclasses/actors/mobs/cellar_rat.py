@@ -13,7 +13,13 @@ from evennia.utils.search import search_tag
 
 from enums.damage_type import DamageType
 from enums.size import Size
+from typeclasses.actors.mob import CombatMob
 from typeclasses.actors.mobs.aggressive_mob import AggressiveMob
+from utils.targeting.predicates import (
+    p_is_character,
+    p_is_typeclass,
+    p_living,
+)
 
 
 class CellarRat(AggressiveMob):
@@ -63,7 +69,8 @@ class CellarRat(AggressiveMob):
             return
         if self.scripts.get("combat_handler"):
             return
-        players = self.ai.get_targets_in_room()
+
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             import random
             self._schedule_attack(random.choice(players))
@@ -88,9 +95,17 @@ def _check_room_cleared(room):
     if not room.tags.has("not_clear", category="dungeon_room"):
         return  # already cleared
 
-    # Check for living mobs in this specific room
+    # Check for living mobs in this specific room.
+    #
+    # "A living combat mob" is the whole test. Players and pets both
+    # fall out of the typeclass half: BasePet derives from BaseNPC, not
+    # CombatMob, so a player's pet standing in the room does not hold
+    # the exits shut.
+    #
+    # No caller: this is a state question about the room, not a
+    # perception question, so there is no observer to pass.
     for obj in room.contents:
-        if hasattr(obj, "is_alive") and obj.is_alive and hasattr(obj, "is_pc") and not obj.is_pc:
+        if p_living(obj, None) and p_is_typeclass(CombatMob)(obj, None):
             return  # still mobs alive
 
     # All clear — remove the gate

@@ -12,7 +12,7 @@ Tests for CmdTrain — verifies the deterministic training system including:
 
 Compliance note: training is fully deterministic. There is no random
 failure roll. The player knows exactly what they will receive before
-paying. See design/COMPLIANCE.md and ops/COMPLIANCE_LEGAL.md §9.5.
+paying. See docs/compliance.md and ops/COMPLIANCE_LEGAL.md §9.5.
 
 Uses EvenniaCommandTest which provides self.call() with obj= for NPC commands.
 """
@@ -265,7 +265,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         self.assertNotIn("Success chance", result)
         self.assertNotIn("non-refundable", result)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("commands.npc_cmds.cmdset_trainer._resolve_skill_training")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_general_skill_deducts_gold(
@@ -280,7 +280,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         # Default CHA 8 → mod -1 → 5% surcharge → BASIC costs 10
         self.assertEqual(self.char1.get_gold(), 990)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_general_skill_always_succeeds(self, mock_craft, mock_delay):
         """Training is deterministic — always advances mastery on completion."""
@@ -296,7 +296,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         # General skill points deducted (BASIC costs 1 point)
         self.assertEqual(self.char1.general_skill_pts_available, 9)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_no_failure_no_cooldown(self, mock_craft, mock_delay):
         """Training never fails — no cooldowns are ever set."""
@@ -310,7 +310,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         cooldowns = self.char1.db.training_cooldowns or {}
         self.assertEqual(cooldowns, {})
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_class_skill_success(self, mock_craft, mock_delay):
         """Training bash (warrior class skill) deducts class skill points."""
@@ -369,7 +369,7 @@ class TestCmdTrainSkill(EvenniaCommandTest):
         """Can't train while already processing."""
         self.char1.ndb.is_processing = True
         result = self.call(CmdTrain(), "battleskills", obj=self.trainer)
-        self.assertIn("already busy", result)
+        self.assertIn("You are busy", result)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -423,7 +423,7 @@ class TestCmdTrainWeapon(EvenniaCommandTest):
         self.assertIn("cancelled", result)
         self.assertEqual(self.char1.get_gold(), 1000)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_weapon_always_succeeds(self, mock_craft, mock_delay):
         """Weapon training is deterministic — always advances mastery."""
@@ -438,7 +438,7 @@ class TestCmdTrainWeapon(EvenniaCommandTest):
         self.assertEqual(levels.get("long_sword"), MasteryLevel.BASIC.value)
         self.assertEqual(self.char1.weapon_skill_pts_available, 9)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_train_weapon_no_cooldown_after(self, mock_craft, mock_delay):
         """Weapon training never sets a cooldown."""
@@ -579,7 +579,7 @@ class TestChaDiscount(EvenniaCommandTest):
         self.trainer.trainer_class = "warrior"
         self.trainer.trainer_masteries = {"battleskills": 5}
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_high_cha_discount(self, mock_craft, mock_delay):
         """High CHA (20) gives 25% discount: 10 → 8 gold."""
@@ -591,7 +591,7 @@ class TestChaDiscount(EvenniaCommandTest):
         # 10 * (1 - 5 * 0.05) = 10 * 0.75 = 7.5 → 8
         self.assertEqual(self.char1.get_gold(), 992)
 
-    @patch("commands.npc_cmds.cmdset_trainer.delay")
+    @patch("utils.busy.delay")
     @patch("blockchain.xrpl.services.gold.GoldService.sink")
     def test_low_cha_surcharge(self, mock_craft, mock_delay):
         """Low CHA (6) gives 10% surcharge: 10 → 11 gold."""
@@ -601,3 +601,105 @@ class TestChaDiscount(EvenniaCommandTest):
         self.char1.charisma = 6
         self.call(CmdTrain(), "battleskills", obj=self.trainer, inputs=["y"])
         self.assertEqual(self.char1.get_gold(), 989)
+
+
+class TestTrainingGrantsKnowledge(EvenniaCommandTest):
+    """Advancing a divine school hands over that tier's spells on the spot.
+
+    The reconcile is what makes this work; see docs/knowledge-grants.md.
+    """
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.trainer = MagicMock()
+        self.trainer.key = "Brother Aldric"
+        self.trainer.trainer_class = "cleric"
+        self.char1.db.classes = {"cleric": {"level": 1, "skill_pts_available": 10}}
+        self.char1.db.spellbook = {}
+        self.char1.db.granted_spells = {}
+        self.char1.location = None
+
+    def _set_mastery(self, value):
+        self.char1.db.class_skill_mastery_levels = {
+            skills.DIVINE_HEALING.value: {
+                "mastery": value,
+                "classes": ["cleric"],
+            }
+        }
+
+    def _skilled_only_keys(self):
+        from world.spells.registry import get_spells_for_school
+        return {
+            key
+            for key, spell in get_spells_for_school(
+                skills.DIVINE_HEALING.value
+            ).items()
+            if spell.min_mastery == MasteryLevel.SKILLED
+        }
+
+    def test_advancing_to_skilled_grants_the_new_tier(self):
+        from commands.npc_cmds.cmdset_trainer import _resolve_skill_training
+        from world.grants import grant_spells
+
+        self._set_mastery(MasteryLevel.BASIC.value)
+        grant_spells(self.char1)
+        before = set(self.char1.db.granted_spells)
+
+        _resolve_skill_training(
+            self.char1, self.trainer, skills.DIVINE_HEALING.value,
+            is_general=False,
+            current=MasteryLevel.BASIC.value,
+            target=MasteryLevel.SKILLED.value,
+            pts_cost=1,
+        )
+
+        gained = set(self.char1.db.granted_spells) - before
+        self.assertEqual(gained, self._skilled_only_keys())
+
+    def test_player_is_told_what_they_gained(self):
+        from commands.npc_cmds.cmdset_trainer import _resolve_skill_training
+        from world.grants import grant_spells
+        from world.spells.registry import get_spell
+
+        self._set_mastery(MasteryLevel.BASIC.value)
+        grant_spells(self.char1)
+
+        sent = []
+        with patch.object(
+            type(self.char1), "msg", lambda s, text="", **kw: sent.append(str(text))
+        ):
+            _resolve_skill_training(
+                self.char1, self.trainer, skills.DIVINE_HEALING.value,
+                is_general=False,
+                current=MasteryLevel.BASIC.value,
+                target=MasteryLevel.SKILLED.value,
+                pts_cost=1,
+            )
+
+        joined = "\n".join(sent)
+        self.assertIn("advanced to SKILLED", joined)
+        for key in self._skilled_only_keys():
+            self.assertIn(get_spell(key).name, joined)
+
+    def test_no_grant_message_for_a_tier_with_no_new_spells(self):
+        """Weapon-style skills and empty tiers stay quiet."""
+        from commands.npc_cmds.cmdset_trainer import _resolve_skill_training
+        from world.grants import grant_spells
+
+        # EXPERT adds Mass Heal; training on to MASTER adds nothing.
+        self._set_mastery(MasteryLevel.EXPERT.value)
+        grant_spells(self.char1)
+        before = set(self.char1.db.granted_spells)
+
+        _resolve_skill_training(
+            self.char1, self.trainer, skills.DIVINE_HEALING.value,
+            is_general=False,
+            current=MasteryLevel.EXPERT.value,
+            target=MasteryLevel.MASTER.value,
+            pts_cost=1,
+        )
+
+        self.assertEqual(set(self.char1.db.granted_spells), before)

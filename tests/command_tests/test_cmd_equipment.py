@@ -11,7 +11,7 @@ string, not substring match.
 evennia test --settings settings tests.command_tests.test_cmd_equipment
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
@@ -115,6 +115,70 @@ class TestCmdWear(EvenniaCommandTest):
         """Trying to wear a weapon should suggest 'wield'."""
         _make_weapon("Iron Longsword", self.char1)
         self.call(CmdWear(), "Iron Longsword", "Use 'wield' for weapons.")
+
+    # --- Dressing by touch ---
+
+    def _blind(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+
+    def _wear_blind(self, args):
+        """Call wear while sightless, returning (output, completion)."""
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdWear(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def test_wearing_blind_announces_the_fumble(self):
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        self._blind()
+        out, _ = self._wear_blind("Iron Helmet")
+        self.assertIn("dressing by feel", out)
+
+    def test_wearing_blind_succeeds_after_the_fumble(self):
+        helmet = _make_wearable(
+            "Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1
+        )
+        self._blind()
+        _, complete = self._wear_blind("Iron Helmet")
+        complete()
+        self.assertTrue(self.char1.is_worn(helmet))
+
+    def test_nothing_goes_on_until_the_fumble_ends(self):
+        helmet = _make_wearable(
+            "Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1
+        )
+        self._blind()
+        self._wear_blind("Iron Helmet")
+        self.assertFalse(self.char1.is_worn(helmet))
+
+    def test_a_missing_item_is_searched_for_first(self):
+        """The search gives nothing away — you fumble, then find out."""
+        self._blind()
+        out, complete = self._wear_blind("Iron Helmet")
+        self.assertIn("dressing by feel", out)
+        self.assertNotIn("aren't carrying", out)
+        self.assertIn("aren't carrying 'Iron Helmet'", self._finish(complete))
+
+    def test_wearing_when_sighted_does_not_fumble(self):
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        result = self.call(CmdWear(), "Iron Helmet")
+        self.assertNotIn("fumble", result)
+
+    def test_wearing_is_refused_while_busy(self):
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        self.char1.ndb.is_processing = True
+        self.call(CmdWear(), "Iron Helmet", "You are busy.")
 
     def test_wear_holdable_rejected(self):
         """Trying to wear a holdable should suggest 'hold'."""
@@ -340,6 +404,64 @@ class TestCmdHold(EvenniaCommandTest):
         """Hold with no arguments should show error."""
         self.call(CmdHold(), "", "Hold what?")
 
+    # --- Holding by touch ---
+    #
+    # Your own pack is findable by feel, so darkness costs time rather
+    # than the action. The search runs before the outcome is known.
+
+    def _blind(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+
+    def _hold_blind(self, args):
+        """Call hold while sightless, returning (output, completion)."""
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdHold(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def test_hold_in_the_dark_announces_the_fumble(self):
+        self._blind()
+        _make_holdable("Iron Shield", self.char1)
+        out, _ = self._hold_blind("Iron Shield")
+        self.assertIn("fumble blindly through your pack", out)
+
+    def test_hold_in_the_dark_succeeds_after_the_fumble(self):
+        self._blind()
+        _make_holdable("Iron Shield", self.char1)
+        _, complete = self._hold_blind("Iron Shield")
+        complete()
+        self.assertEqual(
+            self.char1.get_slot(HumanoidWearSlot.HOLD).key, "Iron Shield"
+        )
+
+    def test_hold_in_the_dark_holds_nothing_until_the_fumble_ends(self):
+        self._blind()
+        _make_holdable("Iron Shield", self.char1)
+        self._hold_blind("Iron Shield")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HOLD))
+
+    def test_a_missing_item_is_searched_for_first(self):
+        """The search gives nothing away — you fumble, then find out."""
+        self._blind()
+        out, complete = self._hold_blind("Iron Shield")
+        self.assertIn("fumble blindly through your pack", out)
+        self.assertNotIn("aren't carrying", out)
+        complete()
+
+    def test_hold_when_sighted_does_not_fumble(self):
+        _make_holdable("Iron Shield", self.char1)
+        result = self.call(CmdHold(), "Iron Shield")
+        self.assertNotIn("fumble", result)
+
+    def test_hold_is_refused_while_busy(self):
+        _make_holdable("Iron Shield", self.char1)
+        self.char1.ndb.is_processing = True
+        self.call(CmdHold(), "Iron Shield", "You are busy.")
+
     def test_hold_item_not_in_inventory(self):
         """Hold a non-existent item should show command-layer error.
 
@@ -415,6 +537,76 @@ class TestCmdRemove(EvenniaCommandTest):
     def test_remove_no_args(self):
         """Remove with no arguments should show error."""
         self.call(CmdRemove(), "", "Remove what?")
+
+    # --- Undressing by touch ---
+    #
+    # It is your own gear on your own body, but getting it off in the
+    # dark is fiddlier than it sounds, so it costs the time.
+
+    def _blind(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+
+    def _remove_blind(self, args):
+        """Call remove while sightless, returning (output, completion)."""
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdRemove(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def _worn_helmet(self):
+        helmet = _make_wearable(
+            "Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1
+        )
+        self.char1.wear(helmet)
+        return helmet
+
+    def test_removing_blind_announces_the_search(self):
+        self._worn_helmet()
+        self._blind()
+        out, _ = self._remove_blind("Iron Helmet")
+        self.assertIn("working at the straps", out)
+
+    def test_removing_blind_succeeds_after_the_search(self):
+        helmet = self._worn_helmet()
+        self._blind()
+        _, complete = self._remove_blind("Iron Helmet")
+        complete()
+        self.assertFalse(self.char1.is_worn(helmet))
+
+    def test_nothing_comes_off_until_the_search_ends(self):
+        helmet = self._worn_helmet()
+        self._blind()
+        self._remove_blind("Iron Helmet")
+        self.assertTrue(self.char1.is_worn(helmet))
+
+    def test_an_unworn_item_is_searched_for_first(self):
+        """The search gives nothing away — you grope, then find out."""
+        self._blind()
+        out, complete = self._remove_blind("Iron Helmet")
+        self.assertIn("working at the straps", out)
+        self.assertNotIn("aren't wearing", out)
+        self.assertIn("aren't wearing 'Iron Helmet'", self._finish(complete))
+
+    def test_removing_when_sighted_does_not_search(self):
+        self._worn_helmet()
+        result = self.call(CmdRemove(), "Iron Helmet")
+        self.assertNotIn("working at the straps", result)
+
+    def test_removing_is_refused_while_busy(self):
+        self._worn_helmet()
+        self.char1.ndb.is_processing = True
+        self.call(CmdRemove(), "Iron Helmet", "You are busy.")
 
     def test_remove_item_not_found(self):
         """Removing a non-existent item should emit the nofound_string

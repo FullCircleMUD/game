@@ -118,6 +118,32 @@ class TestTauntGates(_TauntTestBase):
         result = self.call(CmdTaunt(), self.mob.key)
         self.assertIn("cooldown", result)
 
+    def test_blind_target_cannot_be_taunted(self):
+        """Goading needs the target to see who is doing it."""
+        from enums.condition import Condition
+
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        self.mob.add_condition(Condition.BLINDED)
+
+        result = self.call(CmdTaunt(), self.mob.key)
+
+        self.assertIn("can't see you", result)
+
+    def test_taunting_costs_no_concealment(self):
+        """
+        Taunt is the one way into a fight that leaves the taunter's own
+        conditions alone — the mob is meant to be the aggressor, and a
+        tank pulling aggro should not lose sanctuary for it.
+        """
+        from enums.condition import Condition
+
+        self._set_mastery(self.char1, MasteryLevel.BASIC)
+        self.char1.apply_sanctuary(60)
+
+        self.call(CmdTaunt(), self.mob.key)
+
+        self.assertTrue(self.char1.has_condition(Condition.SANCTUARY))
+
     def test_combat_not_allowed_in_room(self):
         """Taunt blocked in no-combat rooms."""
         self._set_mastery(self.char1, MasteryLevel.BASIC)

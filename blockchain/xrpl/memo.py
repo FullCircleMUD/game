@@ -2,7 +2,7 @@
 
 Builds structured memos for all game XRPL transactions. Each memo
 carries a type (operation category) and JSON payload for the
-operator's audit trail. See design/TREASURY.md for the full spec.
+operator's audit trail. See docs/treasury.md for the full spec.
 """
 
 import json

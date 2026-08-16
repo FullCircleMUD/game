@@ -90,33 +90,26 @@ class FamiliarMixin:
             )
             return False
 
-        # Check if exit is passable (closed doors etc.)
-        if hasattr(target_exit, "is_open") and not target_exit.is_open:
+        # Through the exit, not around it — the familiar is a physical thing
+        # moving through the world, so the door, height, size and trap gating
+        # all apply to it. It has no way to open a door in its path; being
+        # stopped by a closed one is the behaviour.
+        #
+        # Wording rides the seam so each room hears it once, only if the
+        # familiar actually gets there, and {name} resolves per recipient
+        # rather than being baked in.
+        moved = target_exit.at_traverse(
+            self, target_exit.destination,
+            msg_from="{name} scurries {direction}.",
+            msg_to="{name} scurries in {direction}.",
+        )
+
+        if not moved:
             caster.msg(
                 f"|w[Through {self.key}'s eyes]|n "
                 f"The way {canonical} is blocked."
             )
             return False
-
-        # Move the familiar
-        old_room = room
-        self.move_to(target_exit.destination, quiet=True, move_type="scout")
-
-        # Announce in old room
-        if old_room:
-            old_room.msg_contents(
-                f"{self.key} scurries {canonical}.",
-                exclude=[self],
-                from_obj=self,
-            )
-
-        # Announce in new room
-        if self.location and self.location != old_room:
-            self.location.msg_contents(
-                f"{self.key} arrives.",
-                exclude=[self],
-                from_obj=self,
-            )
 
         # Auto-look from new location
         self.remote_look(caster)

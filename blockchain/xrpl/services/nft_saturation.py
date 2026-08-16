@@ -57,6 +57,63 @@ def _players_at_or_above(distribution, min_level):
     return sum(count for level, count in distribution.items() if level >= min_level)
 
 
+# Character typeclass the saturation queries count. Kept as a constant so the
+# bulk read and any future caller cannot drift apart.
+_CHARACTER_TYPECLASS = "typeclasses.actors.character.FCMCharacter"
+
+
+def _character_attributes(character_keys, attr_names):
+    """Read named Attributes for many characters without materialising them.
+
+    Returns ``{character_key: {attr_name: value}}``. Characters with no row
+    for a requested attribute get ``{}`` for it, matching what ``char.db.x``
+    yields for an unset attribute.
+
+    Why not iterate characters and read ``char.db.x``: that materialises a
+    typeclass instance per character into this process's idmapper. This
+    service runs on the router, which is unscoped and therefore sees every
+    shard's characters — so the instance path would pull the whole cluster's
+    active population into the routing process's cache. The library forbids
+    exactly that (consumer-constraints.md: "Cross-shard reads must not pull
+    objects into the reader's idmapper. Use ``.values()`` queries returning
+    dicts, not typeclass instances.").
+
+    Two things worth knowing:
+
+    - ``values_list`` skips instance materialisation but does NOT escape the
+      tenancy WHERE clause. Called from a shard this would still see only that
+      shard's characters. Correct scoping comes from the script's role
+      assignment, not from this function.
+    - The category filter is load-bearing. ``char.db.x`` reads the attribute
+      with ``category=None``; without the filter a same-named attribute in
+      another category joins as an extra row and silently corrupts counts.
+
+    ``db_value`` is a ``PickledObjectField``, and its ``from_db_value`` decodes
+    on the way out — so values arrive as plain dicts needing no unwrapping.
+    (Plain ``dict``, note, rather than the ``_SaverDict`` write-back wrapper
+    the instance path returns; for a read-only aggregation that is preferable.)
+    """
+    from evennia.objects.models import ObjectDB
+
+    attrs = {key: {name: {} for name in attr_names} for key in character_keys}
+
+    rows = ObjectDB.objects.filter(
+        db_key__in=character_keys,
+        db_typeclass_path=_CHARACTER_TYPECLASS,
+        db_attributes__db_key__in=attr_names,
+        db_attributes__db_category__isnull=True,
+    ).values_list(
+        "db_key", "db_attributes__db_key", "db_attributes__db_value",
+    )
+
+    for char_key, attr_name, value in rows:
+        # A character whose key is not in the requested set cannot appear —
+        # db_key__in bounds the query — so setdefault is belt-and-braces only.
+        attrs.setdefault(char_key, {})[attr_name] = value if value is not None else {}
+
+    return attrs
+
+
 class NFTSaturationService:
     """Stateless service — all methods are static, called hourly."""
 
@@ -220,7 +277,6 @@ class NFTSaturationService:
             mapping item_key to number of active players who know it
             and have the mastery to cast/craft it.
         """
-        from evennia.objects.models import ObjectDB
         from world.recipes import RECIPES
         from world.spells.registry import SPELL_REGISTRY
 
@@ -230,16 +286,22 @@ class NFTSaturationService:
         if not active_character_keys:
             return spell_counts, recipe_counts
 
-        characters = ObjectDB.objects.filter(
-            db_key__in=active_character_keys,
-            db_typeclass_path="typeclasses.actors.character.FCMCharacter",
-        )
+        characters = _character_attributes(
+            active_character_keys,
+            (
+                "class_skill_mastery_levels",
+                "general_skill_mastery_levels",
+                "spellbook",
+                "granted_spells",
+                "recipe_book",
+            ),
+        ).values()
 
-        for char in characters:
-            class_levels = char.db.class_skill_mastery_levels or {}
+        for char_attrs in characters:
+            class_levels = char_attrs["class_skill_mastery_levels"] or {}
 
             # Learned spells (permanent) — only count if mastery sufficient
-            spellbook = char.db.spellbook or {}
+            spellbook = char_attrs["spellbook"] or {}
             for key in spellbook:
                 spell = SPELL_REGISTRY.get(key)
                 if not spell:
@@ -252,7 +314,7 @@ class NFTSaturationService:
                     spell_counts[key] += 1
 
             # Granted spells (class/quest abilities) — same mastery filter
-            granted = char.db.granted_spells or {}
+            granted = char_attrs["granted_spells"] or {}
             for key in granted:
                 if key in spellbook:
                     continue
@@ -267,8 +329,8 @@ class NFTSaturationService:
                     spell_counts[key] += 1
 
             # Recipes — only count if crafting mastery sufficient
-            general_levels = char.db.general_skill_mastery_levels or {}
-            recipe_book = char.db.recipe_book or {}
+            general_levels = char_attrs["general_skill_mastery_levels"] or {}
+            recipe_book = char_attrs["recipe_book"] or {}
             for key in recipe_book:
                 recipe = RECIPES.get(key)
                 if not recipe:
@@ -397,9 +459,9 @@ class NFTSaturationService:
     def get_active_players_7d_by_spell_school(active_character_keys):
         """Count active players per spell school per mastery level.
 
-        Iterates active characters and reads db.class_skill_mastery_levels,
-        filtering to spell school keys only (excludes combat class skills
-        like bash, stealth, etc.).
+        Reads class_skill_mastery_levels for the active characters, filtering
+        to spell school keys only (excludes combat class skills like bash,
+        stealth, etc.).
 
         Args:
             active_character_keys: set of character db_key strings
@@ -412,20 +474,17 @@ class NFTSaturationService:
             To get the denominator for a spell with min_mastery=N,
             sum counts for levels >= N.
         """
-        from evennia.objects.models import ObjectDB
-
         result = defaultdict(lambda: defaultdict(int))
 
         if not active_character_keys:
             return dict(result)
 
-        characters = ObjectDB.objects.filter(
-            db_key__in=active_character_keys,
-            db_typeclass_path="typeclasses.actors.character.FCMCharacter",
-        )
+        characters = _character_attributes(
+            active_character_keys, ("class_skill_mastery_levels",)
+        ).values()
 
-        for char in characters:
-            class_levels = char.db.class_skill_mastery_levels or {}
+        for char_attrs in characters:
+            class_levels = char_attrs["class_skill_mastery_levels"] or {}
             for skill_key, entry in class_levels.items():
                 if skill_key not in SPELL_SCHOOL_KEYS:
                     continue
@@ -459,21 +518,19 @@ class NFTSaturationService:
             To get the denominator for a recipe with min_mastery=N,
             sum counts for levels >= N.
         """
-        from evennia.objects.models import ObjectDB
-
         result = defaultdict(lambda: defaultdict(int))
 
         if not active_character_keys:
             return dict(result)
 
-        characters = ObjectDB.objects.filter(
-            db_key__in=active_character_keys,
-            db_typeclass_path="typeclasses.actors.character.FCMCharacter",
-        )
+        characters = _character_attributes(
+            active_character_keys,
+            ("general_skill_mastery_levels", "class_skill_mastery_levels"),
+        ).values()
 
-        for char in characters:
+        for char_attrs in characters:
             # General crafting skills (blacksmith, carpenter, etc.)
-            general_levels = char.db.general_skill_mastery_levels or {}
+            general_levels = char_attrs["general_skill_mastery_levels"] or {}
             for skill_key, mastery in general_levels.items():
                 if skill_key not in CRAFTING_SKILL_KEYS:
                     continue
@@ -482,7 +539,7 @@ class NFTSaturationService:
                     result[skill_key][mastery] += 1
 
             # Enchanting is a class skill but uses the recipe system
-            class_levels = char.db.class_skill_mastery_levels or {}
+            class_levels = char_attrs["class_skill_mastery_levels"] or {}
             for skill_key, entry in class_levels.items():
                 if skill_key not in CRAFTING_SKILL_KEYS:
                     continue

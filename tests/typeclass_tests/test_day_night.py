@@ -201,18 +201,18 @@ class TestDarkRoomRendering(EvenniaTest):
         self.assertIn("pitch black", desc)
 
     @patch("typeclasses.scripts.day_night_service.get_time_of_day")
-    def test_dark_room_characters_empty(self, mock_tod):
-        """Dark room doesn't show characters."""
+    def test_dark_room_characters_are_anonymous(self, mock_tod):
+        """Dark room shows that someone is there, without naming them."""
         mock_tod.return_value = TimeOfDay.NIGHT
         result = self.room1.get_display_characters(self.char1)
-        self.assertEqual(result, "")
+        self.assertEqual(result, "Someone is in the room.")
 
     @patch("typeclasses.scripts.day_night_service.get_time_of_day")
-    def test_dark_room_things_empty(self, mock_tod):
-        """Dark room doesn't show things."""
+    def test_dark_room_things_are_anonymous(self, mock_tod):
+        """Dark room collapses things to one unnamed line."""
         mock_tod.return_value = TimeOfDay.NIGHT
         result = self.room1.get_display_things(self.char1)
-        self.assertEqual(result, "")
+        self.assertEqual(result, "Several things are on the ground.")
 
     @patch("typeclasses.scripts.day_night_service.get_time_of_day")
     def test_lit_room_shows_normal_desc(self, mock_tod):
@@ -221,6 +221,82 @@ class TestDarkRoomRendering(EvenniaTest):
         self.room1.db.desc = "A sunny clearing."
         desc = self.room1.get_display_desc(self.char1)
         self.assertEqual(desc, "A sunny clearing.")
+
+
+class TestDarkvisionRoomTag(EvenniaTest):
+    """Test the (Dark) room-name tag shown to darkvision lookers."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_darkvision_looker_sees_dark_tag(self, mock_tod):
+        """A darkvision looker in a dark room sees a (Dark) tag on the room name."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.room1.return_appearance(self.char1)
+        self.assertIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_non_darkvision_looker_no_dark_tag(self, mock_tod):
+        """A non-darkvision looker in a dark room gets the Unknown shortcut, not a tag."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        result = self.room1.return_appearance(self.char1)
+        self.assertNotIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_darkvision_looker_no_tag_in_lit_room(self, mock_tod):
+        """A darkvision looker in a genuinely lit room sees no (Dark) tag."""
+        mock_tod.return_value = TimeOfDay.DAY
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.room1.return_appearance(self.char1)
+        self.assertNotIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_seeing_via_darkvision_true_in_dark_room(self, mock_tod):
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        self.assertTrue(self.room1.seeing_via_darkvision(self.char1))
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_seeing_via_darkvision_false_without_condition(self, mock_tod):
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.assertFalse(self.room1.seeing_via_darkvision(self.char1))
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_seeing_via_darkvision_false_in_lit_room(self, mock_tod):
+        mock_tod.return_value = TimeOfDay.DAY
+        self.char1.add_condition(Condition.DARKVISION)
+        self.assertFalse(self.room1.seeing_via_darkvision(self.char1))
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_darkvision_with_carried_light_no_dark_tag(self, mock_tod):
+        """A darkvision looker who also carries a lit torch sees no (Dark) tag —
+        they have genuine light, not just darkvision."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        light = create.create_object(key="torch", location=self.char1, nohome=True)
+        light.db.is_light_source = True
+        light.is_light_source = True
+        light.db.is_lit = True
+        light.is_lit = True
+
+        self.assertFalse(self.room1.seeing_via_darkvision(self.char1))
+        result = self.room1.return_appearance(self.char1)
+        self.assertNotIn("(Dark)", result)
+
+    @patch("typeclasses.scripts.day_night_service.get_time_of_day")
+    def test_dark_tag_combines_with_height_suffix(self, mock_tod):
+        """The (Dark) tag appends after, not instead of, the height suffix."""
+        mock_tod.return_value = TimeOfDay.NIGHT
+        self.char1.add_condition(Condition.DARKVISION)
+        self.char1.room_vertical_position = 1
+        result = self.room1.return_appearance(self.char1)
+        self.assertIn("(Flying)", result)
+        self.assertIn("(Dark)", result)
+        self.assertLess(result.index("(Flying)"), result.index("(Dark)"))
 
 
 class TestLightSourceMixin(EvenniaTest):
@@ -497,3 +573,57 @@ class TestDayNightService(EvenniaTest):
 
         DayNightService.at_repeat(service)
         service._broadcast_transition.assert_called_once_with(TimeOfDay.NIGHT)
+
+    @patch("typeclasses.scripts.day_night_service.SESSION_HANDLER")
+    def test_broadcast_messages_every_puppeted_session(self, mock_handler):
+        """Each connected session's puppet is messaged once."""
+        from typeclasses.scripts.day_night_service import DayNightService
+
+        first, second = MagicMock(), MagicMock()
+        sessions = []
+        for puppet in (first, second):
+            session = MagicMock()
+            session.get_puppet.return_value = puppet
+            sessions.append(session)
+        mock_handler.get_sessions.return_value = sessions
+
+        DayNightService._broadcast_transition(
+            MagicMock(spec=DayNightService), TimeOfDay.NIGHT
+        )
+
+        first.msg.assert_called_once()
+        second.msg.assert_called_once()
+
+    @patch("typeclasses.scripts.day_night_service.SESSION_HANDLER")
+    def test_broadcast_skips_sessions_without_a_puppet(self, mock_handler):
+        """OOC sessions have no puppet — skipped, not crashed on."""
+        from typeclasses.scripts.day_night_service import DayNightService
+
+        puppet = MagicMock()
+        ic_session = MagicMock()
+        ic_session.get_puppet.return_value = puppet
+        ooc_session = MagicMock()
+        ooc_session.get_puppet.return_value = None
+        mock_handler.get_sessions.return_value = [ooc_session, ic_session]
+
+        DayNightService._broadcast_transition(
+            MagicMock(spec=DayNightService), TimeOfDay.NIGHT
+        )
+
+        puppet.msg.assert_called_once()
+
+    @patch("typeclasses.scripts.day_night_service.SESSION_HANDLER")
+    def test_broadcast_is_a_noop_when_phase_has_no_message(self, mock_handler):
+        """A phase with no configured message sends nothing at all."""
+        from typeclasses.scripts.day_night_service import DayNightService
+
+        puppet = MagicMock()
+        session = MagicMock()
+        session.get_puppet.return_value = puppet
+        mock_handler.get_sessions.return_value = [session]
+
+        DayNightService._broadcast_transition(
+            MagicMock(spec=DayNightService), MagicMock()  # not in the message table
+        )
+
+        puppet.msg.assert_not_called()

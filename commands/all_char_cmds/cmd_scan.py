@@ -1,8 +1,8 @@
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from enums.condition import Condition
-from utils.targeting.predicates import p_height_visible_to
+from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 
 
 # Canonical scan directions — only follow cardinal + vertical exits
@@ -21,47 +21,50 @@ _DIR_ORDER = [
 _DISTANCE_LABELS = {1: "nearby", 2: "not far off", 3: "far off"}
 
 
-def _can_see_hidden(entity):
-    """Check if entity can see HIDDEN actors.
+def _can_scan_through(exit_obj, looker):
+    """True if *looker* can see past *exit_obj*.
 
-    Granted by the `true_sight` named effect, which both the True Sight
-    and Holy Sight spells apply.
+    A sight line, not a route. Exactly two things block one:
+
+    - **The door is shut.** Open means you can see through, closed means you
+      cannot. An exit with no door never obstructs anything.
+    - **The looker cannot see the exit.** Scanning past a hidden or
+      invisible door would report who is beyond a passage the looker does not
+      know exists — so concealment blocks the sight line whether the door
+      stands open or not.
+
+    Lock state is deliberately not read. A lock governs passage, not sight,
+    and every locked door is a shut one anyway — ``lock()`` refuses on an open
+    door, so an open-and-locked exit is a data anomaly rather than a case to
+    handle. The closed check covers every state that can legitimately occur;
+    consulting ``is_locked`` here would encode a rule about sight that does
+    not exist.
+
+    For the same reason ``open_exits()`` is wrong for scanning, and
+    ``p_is_open_exit`` on its own is too: both fold in questions about
+    whether you may *go* through.
+
+    Judged from the looker's perspective at any distance, matching how
+    ``_get_visible_characters`` treats characters rooms away.
     """
-    if not hasattr(entity, "has_effect"):
-        return False
-    return entity.has_effect("true_sight")
+    return getattr(exit_obj, "is_open", True) and p_can_see(exit_obj, looker)
 
 
 def _get_visible_characters(room, looker):
     """Return list of visible character names in *room* for *looker*.
 
-    Filters out the looker, hidden, and invisible characters.
-    Returns empty list if room is dark for the looker.
+    Filters out the looker and anyone they can't see — concealment
+    (HIDDEN / INVISIBLE) and height gating both come from ``p_can_see``.
+    Returns None if the room is dark for the looker.
     """
     if hasattr(room, "is_dark") and room.is_dark(looker):
         return None  # dark — can't see
 
-    characters = room.contents_get(content_type="character")
-    looker_has_detect = (
-        hasattr(looker, "has_condition")
-        and looker.has_condition(Condition.DETECT_INVIS)
-    )
-    see_hidden = _can_see_hidden(looker)
-
-    names = []
-    for char in characters:
-        if char == looker:
-            continue
-        if hasattr(char, "has_condition"):
-            if char.has_condition(Condition.HIDDEN) and not see_hidden:
-                continue
-            if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
-                continue
-        # Height-gated visibility — canopy mobs invisible to ground-level lookers
-        if not p_height_visible_to(char, looker):
-            continue
-        names.append(char.get_display_name(looker))
-    return names
+    return [
+        char.get_display_name(looker)
+        for char in room.contents_get(content_type="character")
+        if char != looker and p_can_see(char, looker)
+    ]
 
 
 class CmdScan(FCMCommandMixin, Command):
@@ -89,6 +92,13 @@ class CmdScan(FCMCommandMixin, Command):
             caller.msg("You have no location to scan from.")
             return
 
+        # Scanning is pure sight, so it needs working eyes. Being in an
+        # unlit room without darkvision and being blinded are the same
+        # state, and looker_is_blind covers both.
+        if looker_is_blind(caller):
+            caller.msg("You can't see a thing.")
+            return
+
         lines = []
         found_anything = False
 
@@ -104,8 +114,7 @@ class CmdScan(FCMCommandMixin, Command):
             if not direction or direction not in _SCAN_DIRECTIONS:
                 continue
 
-            # Don't scan through closed doors
-            if hasattr(exit_obj, "is_open") and not exit_obj.is_open:
+            if not _can_scan_through(exit_obj, caller):
                 continue
 
             dir_label = direction.capitalize()
@@ -121,8 +130,7 @@ class CmdScan(FCMCommandMixin, Command):
                     for ex in current_room.exits:
                         ex_dir = getattr(ex, "direction", None)
                         if ex_dir == direction:
-                            # Don't scan through closed doors
-                            if hasattr(ex, "is_open") and not ex.is_open:
+                            if not _can_scan_through(ex, caller):
                                 next_exit = None
                                 break
                             next_exit = ex

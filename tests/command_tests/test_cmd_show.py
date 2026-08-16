@@ -132,14 +132,61 @@ class TestCmdShow(EvenniaCommandTest):
             caller=self.char1,
         )
 
-    # ── Darkness ───────────────────────────────────────────────
+    # ── Sightlessness ──────────────────────────────────────────
+    #
+    # Pointing something out is a visual act with no version done by
+    # touch, so it refuses rather than costing time.
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _discovered_crevice(self):
+        """A hidden fixture the caller has already found."""
+        obj = self._make_hidden_fixture()
+        obj.discovered_by = set(obj.discovered_by) | {self.char1.key}
+        return obj
 
     def test_show_in_darkness(self):
         """Show in darkness should fail."""
-        self.room1.always_lit = False
-        self.room1.natural_light = False
+        self._make_hidden_fixture()
+        self._darken()
         self.call(
             CmdShow(), "hidden crevice to Char2",
-            "It's too dark to see anything.",
+            "It's too dark to make out 'hidden crevice'.",
             caller=self.char1,
         )
+
+    def test_the_refusal_does_not_claim_it_is_absent(self):
+        self._make_hidden_fixture()
+        self._darken()
+        result = self.call(
+            CmdShow(), "hidden crevice to Char2", caller=self.char1
+        )
+        self.assertNotIn("don't see", result.lower())
+
+    def test_a_blinded_character_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self._make_hidden_fixture()
+        self.char1.add_condition(Condition.BLINDED)
+        self.call(
+            CmdShow(), "hidden crevice to Char2",
+            "It's too dark to make out 'hidden crevice'.",
+            caller=self.char1,
+        )
+
+    def test_nothing_is_discovered_when_refused(self):
+        crevice = self._discovered_crevice()
+        self._darken()
+        self.call(CmdShow(), "hidden crevice to Char2", caller=self.char1)
+        self.assertNotIn(self.char2.key, set(crevice.discovered_by))
+
+    def test_darkvision_shows_normally(self):
+        from enums.condition import Condition
+
+        crevice = self._discovered_crevice()
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.call(CmdShow(), "hidden crevice to Char2", caller=self.char1)
+        self.assertIn(self.char2.key, set(crevice.discovered_by))

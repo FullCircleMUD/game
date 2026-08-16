@@ -55,85 +55,106 @@ class TestMobScrollRecipeTags(EvenniaTest):
         tags = mob.tags.get(category="spawn_recipes", return_list=True)
         self.assertNotIn("spawn_recipes", tags)
 
-    def test_kobold_recipe_load_has_recipe_tag(self):
-        """KoboldRecipeLoad variant gets spawn_recipes tag."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
-            key="a kobold",
-            location=self.room,
-        )
-        tags = mob.tags.get(category="spawn_recipes", return_list=True)
-        self.assertIn("spawn_recipes", tags)
+    # def test_kobold_recipe_load_has_recipe_tag(self):
+    #     """Obsolete: KoboldRecipeLoad collapsed onto Kobold. Recipe load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/mine.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
+    #         key="a kobold",
+    #         location=self.room,
+    #     )
+    #     tags = mob.tags.get(category="spawn_recipes", return_list=True)
+    #     self.assertIn("spawn_recipes", tags)
 
-    def test_kobold_base_has_no_scrolls_max(self):
-        """Base Kobold has no spawn_scrolls_max (empty dict)."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.Kobold",
-            key="a kobold",
-            location=self.room,
-        )
-        self.assertFalse(mob.spawn_scrolls_max)
+    # def test_kobold_base_has_no_scrolls_max(self):
+    #     """Obsolete: loot AttributeProperties were stripped from CombatMob
+    #     and concrete typeclasses — `spawn_scrolls_max` no longer exists
+    #     as an attribute on bare typeclass instances at all (AttributeError
+    #     instead of falsy). Equivalent guarantee (no scroll loot for a
+    #     plain Kobold spawn) is now upheld by the YAML rule shape: rules
+    #     omit the `spawn_scrolls_max` attr unless they declare it.
+    #     Library-side test coverage: SpawnAttrsContractTest in
+    #     libraries/evennia-mob-spawner/src/evennia_mob_spawner/tests.py."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.kobold.Kobold",
+    #         key="a kobold",
+    #         location=self.room,
+    #     )
+    #     self.assertFalse(mob.spawn_scrolls_max)
 
-    def test_kobold_recipe_load_recipes_max_is_basic(self):
-        """KoboldRecipeLoad variant gets basic tier dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
-            key="a kobold",
-            location=self.room,
-        )
-        expected = {"basic": 1}
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+    # def test_kobold_recipe_load_recipes_max_is_basic(self):
+    #     """Obsolete: KoboldRecipeLoad collapsed onto Kobold. Recipe load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/mine.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.kobold.KoboldRecipeLoad",
+    #         key="a kobold",
+    #         location=self.room,
+    #     )
+    #     expected = {"basic": 1}
+    #     self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
-    def test_gnoll_base_has_no_knowledge(self):
-        """Base Gnoll has no knowledge loot (moved to GnollRecipeLoad/GnollScrollLoad variants)."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll.Gnoll",
-            key="a gnoll",
-            location=self.room,
-        )
-        self.assertFalse(mob.spawn_scrolls_max)
-        self.assertFalse(mob.spawn_recipes_max)
+    # def test_gnoll_base_has_no_knowledge(self):
+    #     """Obsolete: loot AttributeProperties were stripped from CombatMob
+    #     and concrete typeclasses — `spawn_scrolls_max` / `spawn_recipes_max`
+    #     no longer exist as attributes on bare typeclass instances at all
+    #     (AttributeError instead of falsy). Equivalent guarantee (no
+    #     scroll/recipe loot for a plain Gnoll spawn) is upheld by the
+    #     YAML rule shape: rules omit those attrs unless declared."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll.Gnoll",
+    #         key="a gnoll",
+    #         location=self.room,
+    #     )
+    #     self.assertFalse(mob.spawn_scrolls_max)
+    #     self.assertFalse(mob.spawn_recipes_max)
 
-    def test_gnoll_recipe_load_has_basic_tier(self):
-        """GnollRecipeLoad variant gets basic tier recipe dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll.GnollRecipeLoad",
-            key="a gnoll raider",
-            location=self.room,
-        )
-        expected = {"basic": 1}
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+    # def test_gnoll_recipe_load_has_basic_tier(self):
+    #     """Obsolete: GnollRecipeLoad collapsed onto Gnoll. Recipe load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/southern.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll.GnollRecipeLoad",
+    #         key="a gnoll raider",
+    #         location=self.room,
+    #     )
+    #     expected = {"basic": 1}
+    #     self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
+    #
+    # def test_gnoll_scroll_load_has_basic_tier(self):
+    #     """Obsolete: GnollScrollLoad collapsed onto Gnoll. Scroll load
+    #     now declared per-rule in fcm-mobs/shard0/millholm/southern.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll.GnollScrollLoad",
+    #         key="a gnoll raider",
+    #         location=self.room,
+    #     )
+    #     expected = {"basic": 1}
+    #     self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
+    #
+    # def test_gnoll_warlord_has_skilled_tier(self):
+    #     """Obsolete: spawn_scrolls_max / spawn_recipes_max stripped from
+    #     GnollWarlord typeclass — loot now declared per-rule in
+    #     fcm-mobs/shard0/millholm/southern.yaml."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
+    #         key="Gnoll Warlord",
+    #         location=self.room,
+    #     )
+    #     expected = {"skilled": 1}
+    #     self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
+    #     self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
 
-    def test_gnoll_scroll_load_has_basic_tier(self):
-        """GnollScrollLoad variant gets basic tier scroll dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll.GnollScrollLoad",
-            key="a gnoll raider",
-            location=self.room,
-        )
-        expected = {"basic": 1}
-        self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
-
-    def test_gnoll_warlord_has_skilled_tier(self):
-        """GnollWarlord gets builder-set skilled tier dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.gnoll_warlord.GnollWarlord",
-            key="Gnoll Warlord",
-            location=self.room,
-        )
-        expected = {"skilled": 1}
-        self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
-        self.assertEqual(dict(mob.db.spawn_recipes_max), expected)
-
-    def test_kobold_chieftain_has_skilled_tier(self):
-        """KoboldChieftain gets builder-set skilled tier dict."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
-            key="Kobold Chieftain",
-            location=self.room,
-        )
-        expected = {"skilled": 1}
-        self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
+    # def test_kobold_chieftain_has_skilled_tier(self):
+    #     """Obsolete: spawn_scrolls_max stripped from KoboldChieftain
+    #     typeclass — loot now declared per-rule in
+    #     fcm-mobs/shard0/millholm/mine.yaml. Same pattern as the
+    #     test_gnoll_warlord_has_skilled_tier removal above."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
+    #         key="Kobold Chieftain",
+    #         location=self.room,
+    #     )
+    #     expected = {"skilled": 1}
+    #     self.assertEqual(dict(mob.db.spawn_scrolls_max), expected)
 
     def test_wolf_has_no_scroll_tag(self):
         """Wolf (no spawn_scrolls_max) should NOT get spawn_scrolls tag."""
@@ -155,14 +176,18 @@ class TestMobScrollRecipeTags(EvenniaTest):
         tags = mob.tags.get(category="spawn_recipes", return_list=True)
         self.assertNotIn("spawn_recipes", tags)
 
-    def test_wolf_has_empty_scrolls_max(self):
-        """Wolf should have empty spawn_scrolls_max (no knowledge loot)."""
-        mob = create.create_object(
-            "typeclasses.actors.mobs.wolf.Wolf",
-            key="a grey wolf",
-            location=self.room,
-        )
-        self.assertFalse(mob.spawn_scrolls_max)
+    # def test_wolf_has_empty_scrolls_max(self):
+    #     """Obsolete: loot AttributeProperties were stripped from CombatMob
+    #     and concrete typeclasses — `spawn_scrolls_max` no longer exists
+    #     as an attribute on a bare Wolf instance (AttributeError instead
+    #     of falsy). Equivalent guarantee (no scroll loot for a plain
+    #     Wolf spawn) is upheld by the YAML rule shape."""
+    #     mob = create.create_object(
+    #         "typeclasses.actors.mobs.wolf.Wolf",
+    #         key="a grey wolf",
+    #         location=self.room,
+    #     )
+    #     self.assertFalse(mob.spawn_scrolls_max)
 
     def test_base_combat_mob_no_scroll_tag(self):
         """Base CombatMob (empty dicts) should NOT get scroll/recipe tags."""

@@ -13,6 +13,7 @@ Usage:
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
+from utils.targeting.predicates import p_is_character
 
 
 class MountMixin:
@@ -74,7 +75,7 @@ class MountMixin:
             from evennia import search_object
             riders = [
                 o for o in search_object(rider_key, exact=True)
-                if getattr(o, "is_pc", False)
+                if p_is_character(o, self)
             ]
             for rider in riders:
                 rider.db.mounted_on = None

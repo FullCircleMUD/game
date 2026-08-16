@@ -53,11 +53,27 @@ class CmdRent(FCMCommandMixin, Command):
             from_obj=caller,
         )
 
-        account.msg(
-            account.at_look(
-                target=account.characters,
-                session=account.sessions.get()[0],
-            )
-        )
+        caller.db.last_rent_location = caller.location
         account.mark_graceful_logout()
-        account.unpuppet_object(session)
+
+        # Take the player off the playing surface. In monolith we just
+        # unpuppet locally and synthesise the OOC menu; in shard mode
+        # the player's session is on a shard process and has to be
+        # redirected back to the router (which is where the OOC menu
+        # lives). evennia_shards.handoff.redirect_to_router sends the
+        # shard_redirect OOB and the disconnect handler auto-unpuppets
+        # when the WebSocket closes.
+        from evennia_shards import ROLE_MONOLITH, get_role
+
+        if get_role() == ROLE_MONOLITH:
+            account.msg(
+                account.at_look(
+                    target=account.characters,
+                    session=account.sessions.get()[0],
+                )
+            )
+            account.unpuppet_object(session)
+        else:
+            from evennia_shards.handoff import redirect_to_router
+
+            redirect_to_router(account, session)

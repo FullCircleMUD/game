@@ -2,9 +2,10 @@ from evennia import DefaultScript, SESSION_HANDLER
 from evennia.utils import logger
 from enums.hunger_level import HungerLevel
 from enums.thirst_level import ThirstLevel
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 import math
 
-class RegenerationService(DefaultScript):
+class RegenerationService(HeartbeatMixin, DefaultScript):
     """
     A global timer script that runs every minute
     and depending on characters hunger state
@@ -27,25 +28,30 @@ class RegenerationService(DefaultScript):
         so it stays on a 60s cadence — preserves the original death timelines
         without needing a second script.
         """
-        # Tick counter lives on ndb — no need to persist across restarts.
-        # Worst case after a reboot, one degen fires up to 40s late.
-        self.ndb.tick_count = (self.ndb.tick_count or 0) + 1
-        run_degen = self.ndb.tick_count % 3 == 0
-        if run_degen:
-            self.ndb.tick_count = 0
+        try:
+            # Tick counter lives on ndb — no need to persist across restarts.
+            # Worst case after a reboot, one degen fires up to 40s late.
+            self.ndb.tick_count = (self.ndb.tick_count or 0) + 1
+            run_degen = self.ndb.tick_count % 3 == 0
+            if run_degen:
+                self.ndb.tick_count = 0
 
-        for session in SESSION_HANDLER.get_sessions():
-            try:
-                self._process_character(session, run_degen)
-            except Exception:
-                char = session.get_puppet()
-                logger.log_trace(f"Regen error for {char.key if char else 'unknown'}")
+            for session in SESSION_HANDLER.get_sessions():
+                try:
+                    self._process_character(session, run_degen)
+                except Exception:
+                    char = session.get_puppet()
+                    logger.log_trace(f"Regen error for {char.key if char else 'unknown'}")
 
-            # Regen active pets belonging to this character
-            try:
-                self._process_pets(session)
-            except Exception:
-                logger.log_trace("Pet regen error")
+                # Regen active pets belonging to this character
+                try:
+                    self._process_pets(session)
+                except Exception:
+                    logger.log_trace("Pet regen error")
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("regeneration_service: tick failed")
 
     def _process_character(self, session, run_degen):
         """Process regen/degen for a single character based on hunger AND thirst."""

@@ -19,10 +19,10 @@ the room is depleted.
 """
 
 from evennia import Command
-from evennia.utils import delay
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from commands.command import FCMCommandMixin
+from utils.busy import check_busy, start_busy
 
 
 # ── Easy-to-change delay for harvesting ──
@@ -74,9 +74,18 @@ class CmdHarvest(FCMCommandMixin, Command):
             caller.msg(f"You can't {canonical} here.")
             return
 
+        # --- Combat check ---
+        # A fight already underway blocks a new harvest. The reverse gate
+        # lives in CombatMixin._can_start_fight_now(), which reads the
+        # is_processing lock below — together they stop a player alternating
+        # between the two, while still letting an in-progress harvest finish
+        # when an aggro mob jumps them mid-action.
+        if getattr(caller, "is_in_combat", False):
+            caller.msg("How about you finish the fight first, oh patient one.")
+            return
+
         # --- Busy check (shared with process/craft) ---
-        if caller.ndb.is_processing:
-            caller.msg("You are busy. Wait until you finish what you're doing.")
+        if check_busy(caller):
             return
 
         # --- Height check ---
@@ -111,21 +120,11 @@ class CmdHarvest(FCMCommandMixin, Command):
         resource_name = rt["name"] if rt else f"Resource #{room.resource_id}"
         gerund = _GERUNDS.get(canonical, "gathering")
 
-        # --- Lock and start ---
-        caller.ndb.is_processing = True
-        caller.msg(f"You begin {gerund}...")
-        caller.location.msg_contents(
-            f"{caller.key} begins {gerund}.",
-            exclude=[caller],
-            from_obj=caller,
-        )
-
         # --- Delayed completion ---
         def _complete():
             # Re-check count at completion (another player may have taken the last one)
             if room.resource_count <= 0:
                 caller.msg(f"There is nothing left to {canonical}.")
-                caller.ndb.is_processing = False
                 return
 
             room.resource_count -= 1
@@ -137,6 +136,10 @@ class CmdHarvest(FCMCommandMixin, Command):
             if xp and xp > 0:
                 caller.at_gain_experience_points(xp)
 
-            caller.ndb.is_processing = False
-
-        delay(HARVEST_DELAY_SECONDS, _complete)
+        start_busy(
+            caller,
+            HARVEST_DELAY_SECONDS,
+            _complete,
+            self_msg=f"You begin {gerund}...",
+            room_msg=f"{caller.key} begins {gerund}.",
+        )

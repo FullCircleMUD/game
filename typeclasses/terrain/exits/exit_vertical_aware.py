@@ -13,7 +13,7 @@ Provides:
 All height features default to None — existing exits work identically.
 Builders override attributes only when height transitions are needed.
 
-See design/VERTICAL_MOVEMENT.md for full design and examples.
+See docs/vertical-movement.md for full design and examples.
 """
 
 from evennia import AttributeProperty
@@ -31,13 +31,15 @@ class _HeightAwareExitCommand(FCMCommandMixin, ExitCommand):
     exits from appearing in command disambiguation.
     """
 
-    def access(self, srcobj, access_type="cmd", default=False):
+    def access(self, srcobj, access_type="cmd", default=False, session=None):
         if access_type == "cmd" and self.obj:
             if hasattr(self.obj, "is_height_accessible"):
                 height = getattr(srcobj, "room_vertical_position", 0)
                 if not self.obj.is_height_accessible(height):
                     return False
-        return super().access(srcobj, access_type=access_type, default=default)
+        return super().access(
+            srcobj, access_type=access_type, default=default, session=session
+        )
 
 
 class ExitVerticalAware(ExitBase):
@@ -230,8 +232,24 @@ class ExitVerticalAware(ExitBase):
 
     # ── Traversal checks ───────────────────────────────────────────
 
-    def at_traverse(self, traversing_object, destination, **kwargs):
+    def at_traverse(self, traversing_object, destination,
+                    move_type="traverse", **kwargs):
+        """
+        Gate the traversal, then perform the move.
 
+        The move is done here rather than delegated to ``DefaultExit``,
+        which hardcodes ``move_type="traverse"`` and discards ``**kwargs``.
+        Callers that move an actor through an exit for a reason of their own
+        — fleeing, retreating, a mob wandering — need their ``move_type`` and
+        movement wording to reach ``move_to()``, because ``move_type`` gates
+        the in-combat block, movement point cost and the mount/pet size rules
+        in ``Character.at_pre_move``.
+
+        Returns:
+            bool: True if the move happened. Callers test truthiness — a gate
+            above this one (a closed door, wrong height) returns None, which
+            is falsy too.
+        """
         # --- Encumbrance check (before height/depth checks) ---
         if getattr(traversing_object, "is_encumbered", False):
             height = getattr(
@@ -336,14 +354,31 @@ class ExitVerticalAware(ExitBase):
                 traversing_object.msg(warning)
 
         # --- Set arrival height BEFORE movement ---
-        # Must be before move_to() so the destination room's display
-        # shows the correct height on arrival.
+        # Must be before move_to() so the destination room's display shows the
+        # correct height on arrival. Kept only if the move lands — a refusal
+        # further down (a room declining to receive, a failed save) would
+        # otherwise leave the character airborne in the room they never left.
+        previous_height = traversing_object.room_vertical_position
         if self.arrival_heights is not None:
             traversing_object.room_vertical_position = arrival_height
 
         # --- Movement ---
-        super().at_traverse(traversing_object, destination, **kwargs)
+        source_location = traversing_object.location
+        moved = traversing_object.move_to(
+            destination, move_type=move_type, exit_obj=self, **kwargs
+        )
+        if moved:
+            self.at_post_traverse(traversing_object, source_location)
+        else:
+            traversing_object.room_vertical_position = previous_height
+            if self.db.err_traverse:
+                traversing_object.msg(self.db.err_traverse)
+            else:
+                self.at_failed_traverse(traversing_object)
 
         # --- Post-movement fall ---
-        if will_fall and hasattr(traversing_object, "_check_fall"):
+        # Only a character who actually arrived can be in the air to fall from.
+        if moved and will_fall and hasattr(traversing_object, "_check_fall"):
             traversing_object._check_fall()
+
+        return moved

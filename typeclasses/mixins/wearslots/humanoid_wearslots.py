@@ -62,3 +62,29 @@ class HumanoidWearslotsMixin(BaseWearslotsMixin):
             bool — True if the item can be worn
         """
         return True
+
+    # ================================================================== #
+    #  Display
+    # ================================================================== #
+
+    def empty_slot_note(self, slot, looker=None):
+        """
+        Report the HOLD slot as consumed by a two-handed wielded weapon.
+
+        A two-handed weapon occupies only the WIELD slot, so HOLD is still
+        empty in the wearslots dict even though `hold` will refuse to use
+        it (see CmdHold). This tells the equipment display why.
+
+        Args:
+            slot: str — the wearslot name being rendered
+            looker: object or None — the character viewing
+
+        Returns:
+            str — the note, or "" for no note
+        """
+        if slot != HumanoidWearSlot.HOLD.value:
+            return ""
+        wielded = self.get_slot(HumanoidWearSlot.WIELD)
+        if not wielded or not getattr(wielded, "two_handed", False):
+            return ""
+        return f"{wielded.get_display_name(looker)} is two handed"

@@ -69,7 +69,6 @@ class TestKoboldChieftainBehavior(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_ai_wander_attacks_player(self, mock_delay):
         """Boss should attack players found in room."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         self.boss.ai_wander()
         self.assertTrue(mock_delay.called)
@@ -113,9 +112,12 @@ class TestKoboldChieftainBehavior(EvenniaTest):
         self.boss.ai_retreating()
         self.assertEqual(self.boss.location, self.room1)
 
-    def test_reset_chieftain_state_clears_rally_flag(self):
-        """The post-spawn hook resets has_rallied so a respawned chieftain can rally again."""
-        from typeclasses.actors.mobs.kobold_chieftain import reset_chieftain_state
-        self.boss.db.has_rallied = True
-        reset_chieftain_state(self.boss)
-        self.assertFalse(self.boss.db.has_rallied)
+    # def test_reset_chieftain_state_clears_rally_flag(self):
+    #     """Obsolete: reset_chieftain_state hook is replaced by the
+    #     declarative `attrs: {has_rallied: False}` stamp in
+    #     fcm-mobs/shard0/millholm/mine.yaml. The library stamps the
+    #     attribute on every fresh spawn; no runtime reset is required."""
+    #     from typeclasses.actors.mobs.kobold_chieftain import reset_chieftain_state
+    #     self.boss.db.has_rallied = True
+    #     reset_chieftain_state(self.boss)
+    #     self.assertFalse(self.boss.db.has_rallied)

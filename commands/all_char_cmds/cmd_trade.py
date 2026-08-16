@@ -29,6 +29,7 @@ from commands.command import FCMCommandMixin
 from typeclasses.actors.character import FCMCharacter
 from utils.targeting.helpers import resolve_character_in_room, resolve_target
 from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from utils.weight_check import check_can_carry, get_item_weight, get_gold_weight
 
 GOLD = settings.GOLD_DISPLAY
@@ -242,9 +243,12 @@ class CmdTrade(FCMCommandMixin, Command):
         if not room:
             return
 
-        # Darkness — can't see who you're trading with
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Trading is a face-to-face negotiation with someone you have to
+        # pick out of the room, so it refuses rather than costing time.
+        # Name who they asked for — "you don't see them here" reads as
+        # absent when they are standing right there.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.target_name}'.")
             return
 
         # Find target
@@ -272,8 +276,9 @@ class CmdTrade(FCMCommandMixin, Command):
             caller.msg(f"You accept the trade with {target.key}. Use |woffer|n to make an offer.")
             target.msg(f"{caller.key} accepts your trade. Use |woffer|n to make an offer.")
             caller.location.msg_contents(
-                f"{caller.key} and {target.key} begin trading.",
+                "{trader_a} and {trader_b} begin trading.",
                 exclude=[caller, target],
+                mapping={"trader_a": caller, "trader_b": target},
             )
             return
 
@@ -303,8 +308,9 @@ class CmdTrade(FCMCommandMixin, Command):
             caller.msg(f"You accept the trade with {target.key}. Use |woffer|n to make an offer.")
             target.msg(f"{caller.key} accepts your trade. Use |woffer|n to make an offer.")
             caller.location.msg_contents(
-                f"{caller.key} and {target.key} begin trading.",
+                "{trader_a} and {trader_b} begin trading.",
                 exclude=[caller, target],
+                mapping={"trader_a": caller, "trader_b": target},
             )
             return
 
@@ -367,10 +373,10 @@ class CmdOffer(CmdTradeBase):
             caller.msg("Offer what? Usage: offer <item> [and <amount> gold]")
             return
 
-        # Darkness — can't see what you're offering
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Same rule as opening the trade: you cannot lay goods out for
+        # someone you cannot see.
+        if looker_is_blind(caller):
+            caller.msg("It's too dark to lay anything out.")
             return
 
         # ── Parse gold clause ──
@@ -466,8 +472,9 @@ class CmdTradeAccept(CmdTradeBase):
             caller.msg("|gTrade complete!|n")
             other.msg("|gTrade complete!|n")
             caller.location.msg_contents(
-                f"{handler.part_a.key} and {handler.part_b.key} complete a trade.",
+                "{trader_a} and {trader_b} complete a trade.",
                 exclude=[handler.part_a, handler.part_b],
+                mapping={"trader_a": handler.part_a, "trader_b": handler.part_b},
             )
         else:
             caller.msg("You accept the current offer. Waiting for the other party...")

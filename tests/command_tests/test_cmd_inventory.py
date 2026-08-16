@@ -328,3 +328,95 @@ class TestInventoryEncumbrance(EvenniaCommandTest):
         _make_item("Sword", weight=3.0, location=self.char1)
         result = self.call(CmdInventory(), "")
         self.assertIn("3.0", result)
+
+
+class TestInventoryWithoutSight(EvenniaCommandTest):
+    """A pack gone through by feel: you know how much, not what."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+        self.room1.always_lit = True
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_sighted_character_reads_their_pack(self):
+        _make_item("Sword", location=self.char1)
+        result = self.call(CmdInventory(), "")
+        self.assertIn("Sword", result)
+        self.assertNotIn("Something", result)
+
+    def test_darkness_leaves_only_somethings(self):
+        _make_item("Sword", location=self.char1)
+        result = self.call(CmdInventory(), "")
+        self._darken()
+        result = self.call(CmdInventory(), "")
+        self.assertIn("Something", result)
+        self.assertNotIn("Sword", result)
+
+    def test_a_blinded_character_cannot_read_their_pack_in_a_lit_room(self):
+        """is_dark alone never asked this — a blind character read it fine."""
+        from enums.condition import Condition
+
+        _make_item("Sword", location=self.char1)
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdInventory(), "")
+        self.assertIn("Something", result)
+        self.assertNotIn("Sword", result)
+
+    def test_darkvision_reads_the_pack_in_the_dark(self):
+        from enums.condition import Condition
+
+        _make_item("Sword", location=self.char1)
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdInventory(), "")
+        self.assertIn("Sword", result)
+
+    def test_blindness_beats_darkvision(self):
+        from enums.condition import Condition
+
+        _make_item("Sword", location=self.char1)
+        self.char1.add_condition(Condition.DARKVISION)
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdInventory(), "")
+        self.assertIn("Something", result)
+        self.assertNotIn("Sword", result)
+
+    def test_the_count_survives_even_when_the_names_do_not(self):
+        for name in ("Sword", "Shield", "Rope"):
+            _make_item(name, location=self.char1)
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdInventory(), "")
+        self.assertEqual(result.count("Something"), 3)
+
+    def test_gold_is_hard_to_see(self):
+        from enums.condition import Condition
+
+        self.char1.db.gold = 50
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdInventory(), "")
+        self.assertIn("hard to see", result)
+        self.assertNotIn("50", result)
+
+    def test_a_concealed_item_reads_as_something_to_a_sighted_owner(self):
+        """Concealment masks per item; sight suppresses the whole list."""
+        _make_item("Sword", location=self.char1)
+        hidden = _make_item("Dagger", location=self.char1)
+        hidden.is_hidden = True
+        result = self.call(CmdInventory(), "")
+        self.assertIn("Sword", result)
+        self.assertIn("Something", result)
+        self.assertNotIn("Dagger", result)

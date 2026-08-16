@@ -106,11 +106,9 @@ several more options for customizing the Guest account system.
 """
 
 from evennia.accounts.accounts import DefaultAccount, DefaultGuest
-from evennia.commands.default.cmdset_account import AccountCmdSet
-from evennia.utils import evmenu
 from evennia.utils.utils import is_iter
 
-from evennia import AttributeProperty
+from evennia.typeclasses.attributes import AttributeProperty
 
 
 class Account(DefaultAccount):
@@ -264,12 +262,70 @@ Leave Character / Game      |gquit|n
 """.strip()
 
     def create_character(self, *args, **kwargs):
-        """Place new characters at The Harvest Moon inn instead of Limbo."""
-        if "location" not in kwargs:
-            inn = ObjectDB.objects.filter(db_key="The Harvest Moon").first()
-            if inn:
-                kwargs["location"] = inn
-        return super().create_character(*args, **kwargs)
+        """Player chargen: stow, set home to The Harvest Moon, derive shard_id.
+
+        Only called from chargen — NPCs/mobs/admin-spawned characters
+        do not go through ``Account.create_character`` so they keep
+        whatever home their typeclass / spawn pipeline assigns.
+
+        Three things happen after vanilla create_character returns:
+
+        1. **Stow** — ``location=None`` skips placing the character in
+           the world. They sit in "headless body" storage until first
+           IC. Vanilla ``DefaultCharacter.at_pre_puppet`` restores
+           ``self.location`` from ``prelogout_location`` (last seen)
+           with ``self.home`` as the fallback, so first IC lands at
+           the inn and subsequent IC at the last room.
+
+        2. **Overwrite home with The Harvest Moon** — vanilla
+           ``create_object`` defaults ``home`` to
+           ``settings.START_LOCATION`` (Limbo) before
+           ``at_object_creation`` fires, which makes
+           ``at_object_creation``'s guarded inn-search a no-op. We
+           overwrite here, after vanilla has finished. If the inn
+           isn't findable (world not built / tag missing) the vanilla
+           default stays. ``values_list`` keeps the read cheap;
+           ``db_home_id =`` + ``save`` bypasses the FK descriptor.
+
+        3. **Derive shard_id from home** — the evennia-shards library
+           wrapper would normally derive ``shard_id`` from the start
+           location, which is now ``None``. With home set to the inn
+           we can read the inn's shard the same way. Without this the
+           character ends up with ``shard_id=None`` and
+           ShardAwareCmdIC rejects with "no shard assignment" on first
+           IC.
+        """
+        from evennia_shards.tenancy import shard_context
+
+        kwargs.setdefault("location", None)
+        character, errs = super().create_character(*args, **kwargs)
+        if not character:
+            return character, errs
+
+        # 2. Overwrite the START_LOCATION default home with the inn.
+        with shard_context(None):
+            inn_pks = list(
+                ObjectDB.objects.filter(
+                    db_tags__db_key="harvest_moon_inn",
+                    db_tags__db_category="special_room",
+                ).values_list("pk", flat=True)[:1]
+            )
+        if inn_pks:
+            character.db_home_id = inn_pks[0]
+            character.save(update_fields=["db_home"])
+
+        # 3. Derive shard_id from home (now the inn, if found).
+        if not character.shard_id and character.db_home_id:
+            with shard_context(None):
+                rows = list(
+                    ObjectDB.objects.filter(pk=character.db_home_id)
+                    .values_list("shard_id", flat=True)[:1]
+                )
+            home_shard = rows[0] if rows else None
+            if home_shard and home_shard != "*":
+                character.shard_id = home_shard
+                character.save(update_fields=["shard_id"])
+        return character, errs
 
     def _build_subscription_line(self):
         """Build the subscription status line for the OOC menu."""
@@ -591,8 +647,63 @@ Leave Character / Game      |gquit|n
 
             grant_trial(self)
 
+    def _refresh_account_scoped_cache(self):
+        """Re-read this account's own objects from the database.
+
+        Under a split deployment the router and each shard are separate
+        processes with separate Evennia caches, and nothing reconciles
+        them. Account-scoped state is written on one and read on the other
+        — a deposit made in game on a shard is read out of game on the
+        router — so each side serves whatever it last loaded. Left alone,
+        an in-game deposit does not appear in the OOC bank until the router
+        restarts.
+
+        Refreshing at login rather than per read keeps the caches doing
+        their job. Scope is this account only: a whole-process flush would
+        evict every player's objects, and since ``ndb`` lives on the
+        instance that would destroy live state — a combat handler lost
+        because someone else logged in.
+
+        Covers arrival, not the whole session. A player sitting at the OOC
+        menu while a shard writes can still read stale values.
+        """
+        self._refresh_attributes(self)
+
+        bank = self.db.bank
+        if bank is not None:
+            self._refresh_attributes(bank)
+            # Fungibles are attributes on the bank, but deposited items are
+            # objects inside it, and contents is cached separately.
+            bank.contents_cache.init()
+
+        # The OOC menu renders level and class off the character, and those
+        # are written on a shard.
+        for character in self.characters or []:
+            self._refresh_attributes(character)
+
+    @staticmethod
+    def _refresh_attributes(obj):
+        """Force ``obj``'s attributes to be re-read from the database.
+
+        Two caches sit in front of an attribute value and both have to go.
+        ``AttributeHandler`` caches resolved values on the object, and the
+        underlying ``Attribute`` rows are themselves ``SharedMemoryModel``
+        instances held in the idmapper — so resetting the handler alone
+        just re-queries and gets the same stale rows back.
+
+        Evicting the ``Attribute`` rows rather than the owning object is
+        deliberate: flushing an object from the idmapper would leave any
+        held reference untouched while later lookups built a fresh one, and
+        ``ndb`` lives on the instance, so live state would split between
+        the two.
+        """
+        for attr in obj.db_attributes.all():
+            attr.flush_from_cache(force=True)
+        obj.attributes.reset_cache()
+
     def at_post_login(self, session=None, **kwargs):
         """Called after login. Backfills wallet + bank for the superuser."""
+        self._refresh_account_scoped_cache()
         super().at_post_login(session=session, **kwargs)
 
         from blockchain.xrpl.cosigner_ping import warm_cosigner
@@ -603,11 +714,33 @@ Leave Character / Game      |gquit|n
             self.msg(f"|y[Dev] Superuser wallet set to: {settings.SUPERUSER_XRPL_WALLET_ADDRESS}|n")
 
         if self.db.bank is None:
+            from evennia_shards import ROLE_MONOLITH, get_role
+
             bank = create_object(
                 "typeclasses.accounts.account_bank.AccountBank",
                 key=f"bank-{self.key}",
                 nohome=True,
             )
+            # Account banks are account-attached (1:1 with an account
+            # that lives on the router) and may be read/written from
+            # whichever shard the account is currently puppeting on.
+            # Stamping shard_id="*" makes the row a global asset that
+            # the multitenant auto-filter admits from every shard's scope.
+            #
+            # Skipped in monolith mode: evennia_shards isn't in
+            # INSTALLED_APPS there, so the shard_id column doesn't exist
+            # on ObjectDB and assigning to it would AttributeError.
+            #
+            # Why no bypass is needed: create_object runs on the router
+            # (unscoped tenant context), so the auto-stamp on insert is
+            # skipped and the row lands shard_id=NULL. The subsequent
+            # assignment to "*" then a save() is a legitimate first-stamp
+            # — the __setattr__ immutability check only flags an
+            # already-stamped row being re-stamped, which isn't this case.
+            if get_role() != ROLE_MONOLITH:
+                bank.shard_id = "*"
+                bank.save()
+                bank.flush_from_cache(force=True)
             bank.wallet_address = self.wallet_address
             self.db.bank = bank
             self.msg("|y[Dev] Bank created for account.|n")

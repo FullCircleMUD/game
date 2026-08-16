@@ -77,8 +77,10 @@ class PoisonDoTScript(DefaultScript):
         )
         if getattr(char, "location", None):
             char.location.msg_contents(
-                f"|g{char.key} shudders as poison courses through their veins.|n",
+                "|g{sufferer} shudders as poison courses through their veins.|n",
                 exclude=[char],
+                from_obj=char,
+                mapping={"sufferer": char},
             )
 
         self.db.remaining_ticks = remaining - 1

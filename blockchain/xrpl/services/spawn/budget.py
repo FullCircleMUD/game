@@ -21,8 +21,11 @@ class BudgetState:
     surplus_bank: int = 0   # carried from previous tick
     tick_direction: bool = True  # True = high→low, False = low→high
 
-    # Telemetry counters
-    spawned_this_hour: int = 0
+    # Telemetry counters. "Dispatched" rather than "placed": the planner
+    # counts what it handed to an executor, not what the executor managed to
+    # put down. Under sharding those differ — the executor may clamp to
+    # headroom that changed since the read, and does not report back.
+    dispatched_this_hour: int = 0
     dropped_this_hour: int = 0
 
     def reset_for_hour(self, total: int):
@@ -31,7 +34,7 @@ class BudgetState:
         self.remaining = total
         self.surplus_bank = 0
         self.tick_direction = True
-        self.spawned_this_hour = 0
+        self.dispatched_this_hour = 0
         self.dropped_this_hour = 0
 
     def effective_tick_budget(self, tick_amount: int) -> int:
@@ -59,9 +62,9 @@ class BudgetState:
         if surplus > 0:
             self.surplus_bank += surplus
 
-    def record_placed(self, amount: int):
-        """Record items actually placed this tick."""
-        self.spawned_this_hour += amount
+    def record_dispatched(self, amount: int):
+        """Record items handed to an executor this tick."""
+        self.dispatched_this_hour += amount
 
     def record_dropped(self, amount: int):
         """Record surplus dropped at end of hour."""

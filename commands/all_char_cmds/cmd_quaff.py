@@ -12,8 +12,16 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.potion_nft_item import PotionNFTItem
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdQuaff(FCMCommandMixin, Command):
@@ -44,18 +52,36 @@ class CmdQuaff(FCMCommandMixin, Command):
             caller.msg("Quaff what? Usage: quaff <potion>")
             return
 
-        # Darkness — can't identify items without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
             return
 
+        query = self.args.strip()
+
+        # No sight check — your own pack is found by touch. Sightlessness
+        # costs the time spent searching, and the search runs before the
+        # outcome is known, so the wrong bottle costs the same as the
+        # right one.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._quaff(caller, query),
+                self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
+            return
+
+        self._quaff(caller, query)
+
+    def _quaff(self, caller, query):
+        """Find the potion and drink it. Success or failure both."""
         item, _ = resolve_target(
-            caller, self.args.strip(), "items_inventory",
-            extra_predicates=(p_can_see,),
+            caller, query, "items_inventory",
+            extra_predicates=(p_can_perceive,),
         )
         if not item:
-            caller.msg(f"You aren't carrying '{self.args.strip()}'.")
+            caller.msg(f"You aren't carrying '{query}'.")
             return
 
         # Type check — must be a potion

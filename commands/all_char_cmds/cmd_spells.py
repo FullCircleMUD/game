@@ -9,7 +9,8 @@ Usage:
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from world.spells.registry import SPELL_REGISTRY
+from world.spells.registry import find_spell
+
 
 
 class CmdSpells(FCMCommandMixin, Command):
@@ -81,9 +82,8 @@ class CmdSpells(FCMCommandMixin, Command):
                 if hasattr(tier, "get"):
                     tier = tier.get("mastery", 0)
                 cost = spell.mana_cost.get(tier, "?")
-                alias_str = f" |c[{', '.join(spell.aliases)}]|n" if spell.aliases else ""
                 lines.append(
-                    f"  {spell.name}{alias_str} (mana: {cost}){mem_marker}{grant_marker}"
+                    f"  {spell.name} (mana: {cost}){mem_marker}{grant_marker}"
                 )
             lines.append("")
 
@@ -96,32 +96,22 @@ class CmdSpells(FCMCommandMixin, Command):
             caller.msg("You don't know any spells.")
             return
 
-        # Match by name or alias (case-insensitive)
-        query_lower = query.lower()
-        match = None
-        for key, spell in known.items():
-            if spell.name.lower() == query_lower or key == query_lower:
-                match = (key, spell)
-                break
-            if query_lower in [a.lower() for a in spell.aliases]:
-                match = (key, spell)
-                break
+        spell = find_spell(query.lower(), True, known)
 
-        if not match:
+        if not spell:
             caller.msg(
                 f"You don't know a spell called '{query}'. "
                 f"Type |wspells|n to see your spellbook."
             )
             return
 
-        spell_key, spell = match
+        spell_key = spell.key
         memorised = caller.get_memorised_spells()
 
         lines = []
 
         # Header
-        alias_str = f" [{', '.join(spell.aliases)}]" if spell.aliases else ""
-        lines.append(f"|w=== {spell.name}{alias_str} ===|n")
+        lines.append(f"|w=== {spell.name} ===|n")
         lines.append(
             f"|wSchool:|n {spell.school_key.replace('_', ' ').title()}"
         )

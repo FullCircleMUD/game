@@ -60,11 +60,14 @@ def _pretty(name):
     return name.replace("_", " ").title()
 
 
-# Column widths (visual characters, excluding border pipes)
-_C1 = 20   # Vitals (widened from 17 to fit "Thirst: Very Thirsty")
+# Column widths (visual characters, excluding border pipes).
+# _C1 + _C2 + _C3 + _C4 + 3 separator pipes must equal _INNER.
+_C1 = 20   # Vitals — fits "Thirst: Very Thirsty"
 _C2 = 15   # Abilities
-_C3 = 12   # Combat
-_C4 = 27   # Resistances / Vulnerabilities (narrowed from 30)
+_C3 = 13   # Combat — fits "Att/rnd:" plus a 3-wide value
+_C4 = 27   # Resistances / Vulnerabilities
+
+_INNER = _C1 + _C2 + _C3 + _C4 + 3  # 78 — box renders 80 columns wide
 
 
 _PIPE = "|c|||n"  # cyan literal pipe then reset: |c (cyan) + || (escaped pipe) + |n (reset)
@@ -82,10 +85,10 @@ def _row(c1, c2, c3, c4):
 
 
 def _header_line(left, right):
-    """Build a header row: left-aligned text, right-aligned text, 76 inner chars."""
+    """Build a header row: left-aligned text, right-aligned text, one space each side."""
     vis_left = _visible_len(left)
     vis_right = _visible_len(right)
-    gap = max(1, 76 - vis_left - vis_right)
+    gap = max(1, _INNER - 2 - vis_left - vis_right)
     return f"{_PIPE} {left}{' ' * gap}{right} {_PIPE}"
 
 
@@ -145,7 +148,10 @@ class CmdScore(FCMCommandMixin, Command):
         ac = caller.effective_ac
         crit = caller.effective_crit_threshold
         init = caller.effective_initiative
-        att = caller.attacks_per_round
+        att = caller.effective_attacks_per_round
+        perc = caller.effective_perception_bonus
+        hit = caller.effective_hit_bonus
+        dam = caller.effective_damage_bonus
 
         # Resistances / Vulnerabilities
         resistances_dict = getattr(caller, "damage_resistances", {})
@@ -223,7 +229,7 @@ class CmdScore(FCMCommandMixin, Command):
         levels_to_spend = caller.levels_to_spend
 
         # ── Build output ─────────────────────────────────────────
-        border = "|c+" + "=" * 76 + "+|n"
+        border = "|c+" + "=" * _INNER + "+|n"
         lines = [""]
         lines.append(border)
 
@@ -245,7 +251,6 @@ class CmdScore(FCMCommandMixin, Command):
         hp_c = _vital_color(hp, hp_max)
         mp_c = _vital_color(mp, mp_max)
         mv_c = _vital_color(mv, mv_max)
-        init_sign = "+" if init >= 0 else ""
 
         def _ab(i):
             """Format ability cell: NAME: score (modifier)."""
@@ -253,22 +258,28 @@ class CmdScore(FCMCommandMixin, Command):
             sign = "+" if mod >= 0 else ""
             return f" {name}: {score:2d} ({sign}{mod})"
 
+        def _cb(label, value, signed=False):
+            """Format a combat cell: label left, value right-aligned."""
+            if signed:
+                value = f"{'+' if value >= 0 else ''}{value}"
+            return f" {label + ':':<8s}{str(value):>3s}"
+
         lines.append(_row(
             f" {hp_c}HP: {hp:3d}/{hp_max:<3d}|n",
             _ab(0),
-            f" AC:  {ac:4d}",
+            _cb("AC", ac),
             right[0],
         ))
         lines.append(_row(
             f" {mp_c}MP: {mp:3d}/{mp_max:<3d}|n",
             _ab(1),
-            f" Crit: {crit:3d}",
+            _cb("Crit", crit),
             right[1],
         ))
         lines.append(_row(
             f" {mv_c}MV: {mv:3d}/{mv_max:<3d}|n",
             _ab(2),
-            f" Init: {init_sign}{init}",
+            _cb("Init", init, signed=True),
             right[2],
         ))
         pos = getattr(caller, "position", "standing").capitalize()
@@ -280,51 +291,53 @@ class CmdScore(FCMCommandMixin, Command):
         lines.append(_row(
             f" {pos_c}{pos}|n",
             _ab(3),
-            f" Att:  {att:3d}",
+            _cb("Att/rnd", att),
             right[3],
         ))
         lines.append(_row(
             f" {h_color}Hunger: {hunger_name}|n",
             _ab(4),
-            "",
+            _cb("Perc", perc, signed=True),
             right[4],
         ))
         lines.append(_row(
             f" {t_color}Thirst: {thirst_name}|n",
             _ab(5),
-            "",
+            _cb("Hit", hit, signed=True),
             right[5],
         ))
         lines.append(_row(
             f" {weight:.0f}/{max_cap:.0f} kg",
             "",
-            "",
+            _cb("Dam", dam, signed=True),
             right[6],
         ))
 
         lines.append(border)
 
         # ── Footer ───────────────────────────────────────────────
+        _FW = _INNER - 2  # footer text width, one space each side
+
         if cond_names:
             cond_str = "|wConditions:|n " + ", ".join(cond_names)
-            if _visible_len(cond_str) > 74:
-                cond_str = cond_str[:71] + "..."
+            if _visible_len(cond_str) > _FW:
+                cond_str = cond_str[:_FW - 3] + "..."
         else:
             cond_str = "|wConditions:|n None"
-        lines.append(f"{_PIPE} {_pad(cond_str, 74)} {_PIPE}")
+        lines.append(f"{_PIPE} {_pad(cond_str, _FW)} {_PIPE}")
 
         if effect_entries:
             eff_str = "|wActive Effects:|n " + ", ".join(effect_entries)
-            if _visible_len(eff_str) > 74:
-                eff_str = eff_str[:71] + "..."
+            if _visible_len(eff_str) > _FW:
+                eff_str = eff_str[:_FW - 3] + "..."
         else:
             eff_str = "|wActive Effects:|n None"
-        lines.append(f"{_PIPE} {_pad(eff_str, 74)} {_PIPE}")
+        lines.append(f"{_PIPE} {_pad(eff_str, _FW)} {_PIPE}")
 
         if levels_to_spend > 0:
             s = "s" if levels_to_spend > 1 else ""
             lvl_msg = f"|y{levels_to_spend} level{s} to spend -- visit a guildmaster!|n"
-            lines.append(f"{_PIPE} {_pad(lvl_msg, 74)} {_PIPE}")
+            lines.append(f"{_PIPE} {_pad(lvl_msg, _FW)} {_PIPE}")
 
         lines.append(border)
 

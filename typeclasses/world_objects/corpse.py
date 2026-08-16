@@ -20,13 +20,15 @@ from evennia.utils.utils import delay
 from enums.death_cause import DeathCause
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+from typeclasses.mixins.unseen_name import UnseenNameMixin
+from utils.targeting.predicates import p_can_see
 
 # Timer durations in seconds
 UNLOCK_DELAY = 300   # 5 minutes — after this, anyone can loot
 DESPAWN_DELAY = 600  # 10 minutes — corpse disappears
 
 
-class Corpse(HeightAwareMixin, FungibleInventoryMixin, DefaultObject):
+class Corpse(UnseenNameMixin, HeightAwareMixin, FungibleInventoryMixin, DefaultObject):
     """
     A corpse left behind when a character dies.
 
@@ -51,6 +53,15 @@ class Corpse(HeightAwareMixin, FungibleInventoryMixin, DefaultObject):
     # ------------------------------------------------------------------ #
 
     def get_display_name(self, looker=None, **kwargs):
+        """A corpse is named for whoever it was — unless it can't be seen.
+
+        Built rather than delegated to ``super()``, so the mixin's check
+        has to be repeated here or an unseen corpse would still name the
+        dead player.
+        """
+        if looker is not None and looker is not self:
+            if not p_can_see(self, looker):
+                return self.unseen_name
         return f"corpse of {self.owner_name}"
 
     def get_display_desc(self, looker, **kwargs):

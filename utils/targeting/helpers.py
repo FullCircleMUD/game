@@ -3,21 +3,63 @@
 Thin wrappers over ``caller.search`` that pre-filter candidate lists
 with FCM semantic predicates and then delegate string matching to
 Evennia. Helpers are added only when a real consumer needs them — see
-design/UNIFIED_SEARCH_SYSTEM.md and the Evennia-first rule in CLAUDE.md.
+docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 """
 
 from utils.targeting.predicates import (
+    p_can_perceive,
+    p_can_see,
     p_in_combat,
     p_involved_with,
     p_is_character,
     p_is_container,
+    p_is_open_exit,
     p_living,
     p_not_actor,
     p_not_exit,
+    p_object_visible_to,
     p_passes_lock,
     p_same_height_value,
-    p_visible_to,
 )
+
+_traversable = p_passes_lock("traverse")
+
+
+def open_exits(caller):
+    """Return the exits ``caller`` could actually leave the room through.
+
+    Three separate questions, one predicate each: the traverse lock and
+    height access, whether the exit is concealed from the caller, and
+    whether a door on it is open and unlocked. Exits are read from
+    ``room.exits``, Evennia's own filtered view — there is no "is an exit"
+    predicate because there is no need for one.
+
+    Deliberately ``p_can_perceive`` and not ``p_can_see``: a doorway is
+    found by touch, and a character in an unlit room would otherwise have
+    no exits at all and count as cornered. Realism would gate this on
+    sight; playability wins, because losing your light should not turn
+    every escape into a forced fight.
+
+    Selection only. The chosen exit's ``at_traverse`` is what enforces
+    passage and applies gates these predicates cannot see — encumbrance,
+    size, traps — so a caller picks from this list and then traverses,
+    never treating membership as permission.
+
+    Consumers: every path that chooses a way out. ``flee_from_combat`` and
+    ``retreat_group`` in ``combat/combat_utils.py``, and mob AI through
+    ``AIHandler.get_area_exits`` — which is itself reached by wandering,
+    fleeing, retreating and the cornered check.
+    """
+    room = getattr(caller, "location", None)
+    if not room:
+        return []
+    return [
+        ex for ex in room.exits
+        if ex.destination
+        and _traversable(ex, caller)
+        and p_can_perceive(ex, caller)
+        and p_is_open_exit(ex, caller)
+    ]
 
 
 def walk_contents(caller, source, *predicates):
@@ -33,10 +75,10 @@ def walk_contents(caller, source, *predicates):
     to evaluate what it actually needs to filter::
 
         # Room items — no actors, no exits, stealth-visible:
-        walk_contents(caller, room, p_not_actor, p_not_exit, p_visible_to)
+        walk_contents(caller, room, p_not_actor, p_not_exit, p_object_visible_to)
 
         # Room containers — same plus container check:
-        walk_contents(caller, room, p_not_actor, p_not_exit, p_visible_to, p_is_container)
+        walk_contents(caller, room, p_not_actor, p_not_exit, p_object_visible_to, p_is_container)
 
         # Inventory — no predicates needed (only items in contents):
         walk_contents(caller, caller)
@@ -188,7 +230,7 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
         1. p_not_character — exclude PCs, NPCs, mobs (also excludes
                              the caller, who is always a character)
         2. p_not_exit      — exclude exits
-        3. p_visible_to    — exclude hidden objects the caller has
+        3. p_object_visible_to    — exclude hidden objects the caller has
                              not discovered (HiddenObjectMixin)
 
     Filters explicitly NOT applied:
@@ -233,7 +275,7 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
     # nothing on the empty path until the short-circuit was
     # removed.
     candidates = walk_contents(
-        caller, source, p_not_actor, p_not_exit, p_visible_to,
+        caller, source, p_not_actor, p_not_exit, p_object_visible_to,
     )
     return caller.search(search_term, candidates=candidates, **kwargs)
 
@@ -269,7 +311,7 @@ def resolve_container(caller, name):
             continue
         candidates = walk_contents(
             caller, source,
-            p_not_actor, p_not_exit, p_visible_to, p_is_container,
+            p_not_actor, p_not_exit, p_object_visible_to, p_is_container,
         )
         if not candidates:
             continue
@@ -397,9 +439,13 @@ def resolve_attack_target_out_of_combat(caller, name, order=None, extra_predicat
     if order is None:
         order = ATTACK_OUT_OF_COMBAT_ORDER
 
+    # Picking a fight needs eyes — you have to know who you are
+    # attacking. ``p_object_visible_to`` beside it is the *object* axis,
+    # and no actor composes either concealment mixin, so it never fires
+    # on this path; ``p_can_see`` is what asks about the actor.
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_visible_to, *extra_predicates,
+        p_living, p_object_visible_to, p_can_see, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -474,9 +520,14 @@ def resolve_attack_target_in_combat(caller, name, order=None, extra_predicates=(
     if order is None:
         order = ATTACK_IN_COMBAT_ORDER
 
+    # Once the fight is on, perception is enough — you swing at what you
+    # can sense. Losing your light mid-fight does not disarm you, and
+    # fighting blind becomes something a character can be good at. The
+    # stricter ``p_can_see`` belongs to *starting* a fight, not
+    # continuing one.
     buckets = bucket_contents(
         caller, room, classify,
-        p_living, p_visible_to, *extra_predicates,
+        p_living, p_object_visible_to, p_can_perceive, *extra_predicates,
         order=order,
     )
     return _first_match_in_priority(caller, name, buckets, order)
@@ -510,9 +561,15 @@ def resolve_friendly_target_in_combat(caller, name, extra_predicates=()):
 
     Returns the matched actor or None.
     """
+    # Sight, not perception. The attack resolver this delegates to
+    # relaxes to ``p_can_perceive`` so a fighter can swing at what they
+    # sense — but helping someone is the other way round: you have to
+    # pick the *right* person, and healing the wrong shape in the dark
+    # is not a mechanic. Predicates are additive, so this tightens the
+    # relaxed base back up.
     return resolve_attack_target_in_combat(
         caller, name, order=FRIENDLY_IN_COMBAT_ORDER,
-        extra_predicates=extra_predicates,
+        extra_predicates=(p_can_see,) + tuple(extra_predicates),
     )
 
 
@@ -621,14 +678,14 @@ def _resolve_aoe_secondaries(caster, primary_target, aoe):
     if aoe == "unsafe_all_heights":
         # All living visible actors regardless of height.
         candidates = walk_contents(
-            caster, caster.location, p_living, p_visible_to,
+            caster, caster.location, p_living, p_object_visible_to,
         )
     else:
         # Living visible actors at the primary target's height.
         target_height = getattr(primary_target, "room_vertical_position", 0)
         height_pred = p_same_height_value(target_height)
         candidates = walk_contents(
-            caster, caster.location, p_living, p_visible_to, height_pred,
+            caster, caster.location, p_living, p_object_visible_to, height_pred,
         )
 
     # ── Bystander filter (non-PvP rooms, unsafe variants only) ──
@@ -1472,14 +1529,14 @@ def _resolve_all_room(caller, target_str, quiet=False):
     """Find any visible non-actor object in the room, including exits.
 
     Single-pass walk over ``room.contents`` via ``walk_contents`` with
-    ``(p_not_actor, p_visible_to)`` — includes exits, fixtures, loose
+    ``(p_not_actor, p_object_visible_to)`` — includes exits, fixtures, loose
     items, containers. Excludes actors.
 
     Used by ``items_inventory_then_room_all`` (room fallback) and
     ``items_room_all_then_inventory`` (room step, silent mode).
     """
     candidates = walk_contents(
-        caller, caller.location, p_not_actor, p_visible_to,
+        caller, caller.location, p_not_actor, p_object_visible_to,
     )
     if not candidates:
         if not quiet:

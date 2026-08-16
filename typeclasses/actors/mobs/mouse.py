@@ -48,8 +48,7 @@ class Mouse(CombatMob):
     damage_dice = AttributeProperty("1d1")
     attack_message = AttributeProperty("nibbles at")
 
-    # ── Loot — base variant carries nothing ──
-    loot_gold_max = AttributeProperty(0)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── XP override (lower than level*10 default — mice are tutorial fodder) ──
     xp_award = AttributeProperty(5)
@@ -70,7 +69,11 @@ class Mouse(CombatMob):
             self.wander()
 
 
-class MouseGold(Mouse):
-    """Mouse variant — carries 1 gold."""
-
-    loot_gold_max = AttributeProperty(1)
+# Pure-data loot-variant subclass retired — same key/desc as Mouse,
+# only differed in loot_gold_max default. Loot lives in YAML rules now
+# (fcm-mobs/shard0/millholm/farms.yaml uses the base Mouse typeclass
+# with per-rule spawn_gold_max + spawn_gold tag to express this variant).
+#
+# class MouseGold(Mouse):
+#     """Mouse variant — carries 1 gold."""
+#     loot_gold_max = AttributeProperty(1)

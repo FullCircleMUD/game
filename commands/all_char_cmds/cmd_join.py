@@ -11,10 +11,10 @@ Usage:
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from combat.combat_utils import enter_combat
-from enums.condition import Condition
+from combat.combat_utils import enter_combat, fight_refusal_message
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_in_combat, p_same_height
+from utils.visibility import looker_is_blind
 
 
 class CmdJoin(FCMCommandMixin, Command):
@@ -36,14 +36,23 @@ class CmdJoin(FCMCommandMixin, Command):
     def func(self):
         caller = self.caller
 
+        # ── Can this actor pick a fight right now? ──
+        ok, reason = caller._can_start_fight_now()
+        if not ok:
+            caller.msg(fight_refusal_message(reason))
+            return
+
         if not self.args or not self.args.strip():
             caller.msg("Join who? Usage: join <ally>")
             return
 
-        # Darkness — can't see who to join
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Stepping in beside one particular person means picking them
+        # out of a room full of people swinging at each other, so this
+        # needs eyes. It refuses rather than costing time: a three second
+        # grope while your ally takes hits is worse than being told no.
+        # Name who they asked for — "you don't see them" reads as absent.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
         ally, _ = resolve_target(
@@ -86,12 +95,12 @@ class CmdJoin(FCMCommandMixin, Command):
             caller.msg(f"You're already fighting {target.key}!")
             return
 
-        # Break stealth if hidden/invisible
-        if hasattr(caller, "has_condition"):
-            if caller.has_condition(Condition.HIDDEN):
-                caller.remove_condition(Condition.HIDDEN)
-            if caller.has_condition(Condition.INVISIBLE):
-                caller.break_invisibility()
+        # Concealment is not broken here. `enter_combat` below is passed
+        # instigator=caller, so it takes a free attack through
+        # `execute_attack`, which calls
+        # `break_conditions_from_hostile_action`. Breaking it here as well
+        # would cost the caller their concealment even when the join is
+        # refused a few lines down.
 
         caller.msg(f"|rYou join {ally.key}'s fight against {target.key}!|n")
 
@@ -100,6 +109,7 @@ class CmdJoin(FCMCommandMixin, Command):
             return
         if caller.location:
             caller.location.msg_contents(
-                f"|r{caller.key} joins the fight against {target.key}!|n",
+                "|r{joiner} joins the fight against {defender}!|n",
                 exclude=[caller],
+                mapping={"joiner": caller, "defender": target},
             )

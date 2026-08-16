@@ -82,33 +82,6 @@ class TestRareNFTDistributorExactMatchPOC(EvenniaTest):
     def create_script(self):
         pass
 
-    def test_exact_match_headroom(self):
-        """Target with matching key in spawn_nfts_max has headroom."""
-        dist = RareNFTDistributor()
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.spawn_nfts_max = {"TestUniqueWeapon.lightning_bolt": 1}
-        result = dist._get_max_for_key(target, "TestUniqueWeapon.lightning_bolt")
-        self.assertEqual(result, 1)
-
-    def test_wrong_key_no_headroom(self):
-        """Target without matching key has no headroom."""
-        dist = RareNFTDistributor()
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.spawn_nfts_max = {"TestUniqueWeapon.lightning_bolt": 1}
-        result = dist._get_max_for_key(target, "TestUniqueWeapon.frost_blade")
-        self.assertEqual(result, 0)
-
-    def test_no_max_attr_no_headroom(self):
-        """Target without spawn_nfts_max has no headroom."""
-        dist = RareNFTDistributor()
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.spawn_nfts_max = None
-        result = dist._get_max_for_key(target, "TestUniqueWeapon.lightning_bolt")
-        self.assertEqual(result, 0)
-
     def test_distributor_config(self):
         """RareNFTDistributor has correct tag and category."""
         dist = RareNFTDistributor()
@@ -173,12 +146,24 @@ class TestRareNFTPOCEndToEnd(EvenniaTest):
         self.assertEqual(bs.remaining, 0)  # all scheduled via delay()
 
     def test_apply_tick_places_items(self):
-        """_apply_tick on RareNFTDistributor places items on targets."""
-        target = MagicMock()
-        target.db = MagicMock()
-        target.db.spawn_nfts_max = {"TestUniqueWeapon.lightning_bolt": 1}
-        target.db.wearslots = None
-        target.contents = []
+        """A tick discovers a real tagged target, allocates to it, and places.
+
+        The only test in the suite that runs the whole decide-then-place path
+        rather than a piece of it. Uses a real object so the planner's tag
+        query and capacity read do genuine work; only the final placement is
+        mocked, since that would mint an NFT.
+        """
+        from evennia.utils import create
+
+        target = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key="Boss",
+            nohome=True,
+        )
+        target.tags.add("spawn_nfts", category="spawn_nfts")
+        target.attributes.add(
+            "spawn_nfts_max", {"TestUniqueWeapon.lightning_bolt": 1},
+        )
 
         dist = RareNFTDistributor()
         bs = BudgetState(
@@ -187,14 +172,17 @@ class TestRareNFTPOCEndToEnd(EvenniaTest):
         )
         bs.reset_for_hour(1)
 
-        with patch.object(dist, "_query_targets", return_value=[target]):
-            with patch.object(dist, "_place") as mock_place:
-                dist._apply_tick(
-                    "TestUniqueWeapon.lightning_bolt", 1, bs, True,
-                )
-                mock_place.assert_called_once_with(
-                    target, "TestUniqueWeapon.lightning_bolt", 1,
-                )
+        # Patched on the class, not the instance: the executor dispatches
+        # through its own distributor singletons rather than the caller's.
+        with patch.object(RareNFTDistributor, "_place") as mock_place:
+            dist._apply_tick("TestUniqueWeapon.lightning_bolt", 1, bs, True)
+
+        mock_place.assert_called_once()
+        placed_target, placed_key, placed_amount = mock_place.call_args[0]
+        self.assertEqual(placed_target.pk, target.pk)
+        self.assertEqual(placed_key, "TestUniqueWeapon.lightning_bolt")
+        self.assertEqual(placed_amount, 1)
+        self.assertEqual(bs.dispatched_this_hour, 1)
 
     def test_calculator_produces_correct_budget(self):
         """RareNFTCalculator returns spawn_rate=1 for POC config."""

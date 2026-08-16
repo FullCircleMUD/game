@@ -439,7 +439,7 @@ _NAMED_EFFECT_START_MESSAGES = {
     NamedEffect.INVISIBLE: "Your body shimmers and fades from sight.",
     NamedEffect.OFFENSIVE_STANCE: "You shift to an aggressive fighting stance!",
     NamedEffect.DEFENSIVE_STANCE: "You shift to a defensive fighting stance!",
-    NamedEffect.SUNDERED: "Your armour cracks and buckles under the blow!",
+    NamedEffect.SUNDERED: "Your defences crack and buckle under the blow!",
     NamedEffect.STAGGERED: "A crushing blow staggers you, throwing off your aim!",
     NamedEffect.RESIST_FIRE: "A shimmering ward of fire resistance surrounds you.",
     NamedEffect.RESIST_COLD: "A shimmering ward of cold resistance surrounds you.",
@@ -483,7 +483,10 @@ _NAMED_EFFECT_END_MESSAGES = {
     NamedEffect.INVISIBLE: "Your body shimmers back into view.",
     NamedEffect.OFFENSIVE_STANCE: "You return to your normal fighting stance.",
     NamedEffect.DEFENSIVE_STANCE: "You return to your normal fighting stance.",
-    NamedEffect.SUNDERED: "Your armour repairs itself from the damage.",
+    # Deliberately silent — sunder wears off at combat end, where a
+    # recovery message reads as out of context (often mid-death).
+    # Empty, not absent: a missing key falls back to a generated message.
+    NamedEffect.SUNDERED: "",
     NamedEffect.STAGGERED: "You recover your balance and steady your aim.",
     NamedEffect.RESIST_FIRE: "Your ward of fire resistance fades.",
     NamedEffect.RESIST_COLD: "Your ward of cold resistance fades.",
@@ -527,7 +530,7 @@ _NAMED_EFFECT_START_MESSAGES_THIRD_PERSON = {
     NamedEffect.INVISIBLE: "{name}'s body shimmers and fades from sight.",
     NamedEffect.OFFENSIVE_STANCE: "{name} shifts to an aggressive fighting stance!",
     NamedEffect.DEFENSIVE_STANCE: "{name} shifts to a defensive fighting stance!",
-    NamedEffect.SUNDERED: "{name}'s armour cracks and buckles under the blow!",
+    NamedEffect.SUNDERED: "{name}'s defences crack and buckle under the blow!",
     NamedEffect.STAGGERED: "{name} staggers from a crushing blow, thrown off balance!",
     NamedEffect.RESIST_FIRE: "A shimmering ward of fire resistance surrounds {name}.",
     NamedEffect.RESIST_COLD: "A shimmering ward of cold resistance surrounds {name}.",
@@ -598,7 +601,8 @@ _NAMED_EFFECT_END_MESSAGES_THIRD_PERSON = {
     NamedEffect.INVISIBLE: "{name}'s body shimmers back into view.",
     NamedEffect.OFFENSIVE_STANCE: "{name} returns to a normal fighting stance.",
     NamedEffect.DEFENSIVE_STANCE: "{name} returns to a normal fighting stance.",
-    NamedEffect.SUNDERED: "{name}'s armour repairs itself from the damage.",
+    # Deliberately silent — see the first-person end message above.
+    NamedEffect.SUNDERED: "",
     NamedEffect.STAGGERED: "{name} recovers their balance.",
     NamedEffect.RESIST_FIRE: "The shimmering ward around {name} fades.",
     NamedEffect.RESIST_COLD: "The shimmering ward around {name} fades.",

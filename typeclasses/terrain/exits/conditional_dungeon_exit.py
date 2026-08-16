@@ -7,7 +7,7 @@ room traversal with vertical checks).
 
 Composes ProceduralDungeonMixin with ConditionalRoutingExit.
 
-See design/EXIT_ARCHITECTURE.md and design/PROCEDURAL_DUNGEONS.md.
+See docs/exit-architecture.md and docs/procedural-dungeons.md.
 """
 
 from typeclasses.mixins.procedural_dungeon import ProceduralDungeonMixin
@@ -32,7 +32,7 @@ class ConditionalDungeonExit(ProceduralDungeonMixin, ConditionalRoutingExit):
         trigger.dungeon_template_id = "rat_cellar"
         trigger.condition_type = "quest_active"
         trigger.condition_key = "rat_cellar"
-        trigger.alternate_destination_id = empty_cellar.id
+        trigger.alternate_destination = empty_cellar
     """
 
     def at_traverse(self, traversing_object, target_location, **kwargs):
@@ -45,8 +45,8 @@ class ConditionalDungeonExit(ProceduralDungeonMixin, ConditionalRoutingExit):
         if getattr(traversing_object, "is_pet", False):
             if self.location:
                 self.location.msg_contents(
-                    f"An invisible barrier stops {traversing_object.key} "
-                    f"from entering."
+                    "An invisible barrier stops {blocked} from entering.",
+                    mapping={"blocked": traversing_object},
                 )
             return
         if self._check_condition(traversing_object):

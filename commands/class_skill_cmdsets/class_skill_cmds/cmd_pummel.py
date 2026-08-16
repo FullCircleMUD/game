@@ -18,15 +18,17 @@ Usage:
                         out of combat: flail awkwardly
 """
 
-from combat.combat_utils import enter_combat, get_actor_size, get_sides
+from combat.combat_utils import (
+    enter_combat,
+    fight_refusal_message,
+    get_actor_size,
+    get_sides,
+)
 from enums.mastery_level import MasteryLevel
 from enums.size import size_value
 from enums.skills_enum import skills
 from utils.dice_roller import dice
-from utils.targeting.helpers import (
-    resolve_attack_target_in_combat,
-    resolve_attack_target_out_of_combat,
-)
+from utils.targeting.helpers import resolve_target
 from .cmd_skill_base import CmdSkillBase
 
 PUMMEL_COOLDOWNS = {
@@ -63,6 +65,12 @@ class CmdPummel(CmdSkillBase):
     def func(self):
         caller = self.caller
 
+        # ── Can this actor pick a fight right now? ──
+        ok, reason = caller._can_start_fight_now()
+        if not ok:
+            caller.msg(fight_refusal_message(reason))
+            return
+
         # ── Mastery check ──
         if not (getattr(caller.db, "general_skill_mastery_levels", None)
                 or getattr(caller.db, "class_skill_mastery_levels", None)
@@ -88,12 +96,17 @@ class CmdPummel(CmdSkillBase):
         target = None
         if self.args and self.args.strip():
             search_term = self.args.strip()
-            if in_combat:
-                target = resolve_attack_target_in_combat(caller, search_term)
-            else:
-                target = resolve_attack_target_out_of_combat(caller, search_term)
+            # Through the front door: resolve_target runs the same
+            # in-combat/out-of-combat dispatch and sends its own refusal,
+            # and it is the only place a predicate can be attached. You
+            # cannot pick a fight with someone you cannot see.
+            # Filtering lives in the resolvers, not here: p_living, then
+            # p_can_see out of combat (picking a fight needs eyes) or
+            # p_can_perceive in combat (you swing at what you can sense).
+            target, _ = resolve_target(
+                caller, search_term, "actor_hostile",
+            )
             if target is None:
-                caller.msg(f"You don't see '{search_term}' here.")
                 return
         elif in_combat:
             # Default to current attack target
@@ -187,6 +200,11 @@ class CmdPummel(CmdSkillBase):
             return
         caller.move = max(0, caller.move - PUMMEL_MOVE_COST)
 
+        # Concealment is not broken here. A pummeller is in combat by this
+        # point, so an auto-attack is running each round, and every one of
+        # them goes through `execute_attack`, which calls
+        # `break_conditions_from_hostile_action`.
+
         # ── Contested roll: STR + mastery vs target DEX ──
         attacker_roll = dice.roll("1d20")
         attacker_str = caller.get_attribute_bonus(caller.strength)
@@ -217,8 +235,9 @@ class CmdPummel(CmdSkillBase):
                 )
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} pummels {target.key}, stunning them!|n",
+                        "|y{pummeller} pummels {victim}, stunning them!|n",
                         exclude=[caller, target],
+                        mapping={"pummeller": caller, "victim": target},
                     )
             else:
                 # Target already stunned (anti-stacking)

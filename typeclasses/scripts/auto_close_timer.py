@@ -35,5 +35,7 @@ class AutoCloseTimerScript(DefaultScript):
 
             if obj.location:
                 obj.location.msg_contents(
-                    f"|y{obj.key} swings shut.|n"
+                    "|y{door} swings shut.|n",
+                    from_obj=obj,
+                    mapping={"door": obj},
                 )

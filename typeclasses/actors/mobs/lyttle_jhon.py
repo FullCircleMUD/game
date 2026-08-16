@@ -53,7 +53,6 @@ class LyttleJhon(BobbinBandit):
     damage_dice = AttributeProperty("1d8")
     damage_type = AttributeProperty(DamageType.BLUDGEONING)
     attack_message = AttributeProperty("brings a heavy club down on")
-    loot_gold_max = AttributeProperty(4)
 
     default_weapon_masteries = {"club": MasteryLevel.SKILLED.value}
 

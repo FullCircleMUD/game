@@ -25,7 +25,7 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.dice_roller import dice
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 # Cooldown per target in seconds
@@ -69,15 +69,18 @@ class CmdPickpocket(CmdSkillBase):
         thing_name = parts[0].strip()
         target_name = parts[1].strip()
 
-        # Darkness — can't see whose pockets to pick
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Lifting something off a specific person needs eyes on both
+        # them and the pocket.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{target_name}'.")
             return
 
         # ── Find target ──
+        # Filtering lives in the resolvers, not here: p_living, then
+        # p_can_see out of combat (picking a fight needs eyes) or
+        # p_can_perceive in combat (you swing at what you can sense).
         target, _ = resolve_target(
             caller, target_name, "actor_hostile",
-            extra_predicates=(p_can_see,),
         )
         if not target:
             return  # actor resolver already messaged
@@ -155,10 +158,6 @@ class CmdPickpocket(CmdSkillBase):
 
         total = roll + total_bonus
         dc = 10 + target.effective_perception_bonus
-
-        # Always break HIDDEN after attempt
-        if is_hidden:
-            caller.remove_condition(Condition.HIDDEN)
 
         # Set cooldown
         if not caller.ndb.pickpocket_cooldowns:
@@ -257,7 +256,20 @@ class CmdPickpocket(CmdSkillBase):
             )
 
     def _handle_failure(self, caller, target):
-        """Handle a failed pickpocket attempt."""
+        """
+        Handle a failed pickpocket attempt.
+
+        Getting caught is what costs the thief their concealment — a
+        clean lift does not, which is why this lives here and not above
+        the success/failure branch.
+
+        Sanctuary is excluded. A thief caught with their hand in someone
+        else's purse keeps divine protection, so the mob they just woke
+        up cannot touch them.
+        """
+        if hasattr(caller, "break_conditions_from_hostile_action"):
+            caller.break_conditions_from_hostile_action(Condition.SANCTUARY)
+
         target_name = target.get_display_name(caller)
         caller.msg(
             f"|rYour hand slips and you fail to steal anything from "

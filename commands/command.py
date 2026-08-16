@@ -73,6 +73,6 @@ class FCMCommandMixin:
     def at_post_cmd(self):
         """Chain to parent at_post_cmd, then refresh OOB vitals panel."""
         super().at_post_cmd()
-        caller = self.caller
-        if hasattr(caller, "send_vitals_update"):
-            caller.send_vitals_update()
+        # caller = self.caller
+        # if hasattr(caller, "send_vitals_update"):
+        #     caller.send_vitals_update()

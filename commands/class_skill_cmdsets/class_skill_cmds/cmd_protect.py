@@ -18,7 +18,7 @@ from combat.combat_utils import get_sides, INTERCEPT_CHANCE
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 
@@ -80,23 +80,26 @@ class CmdProtect(CmdSkillBase):
                     protected.msg(f"|y{caller.key} is no longer protecting you.|n")
                 if caller.location:
                     caller.location.msg_contents(
-                        f"|y{caller.key} stops protecting {name}.|n",
+                        f"|y{{protector}} stops protecting {name}.|n",
                         exclude=[caller] + ([protected] if protected else []),
+                        from_obj=caller,
+                        mapping={"protector": caller},
                     )
             else:
                 caller.msg("You aren't protecting anyone.")
             return
 
-        # Darkness — can't see who you're protecting
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Standing over someone means picking them out of the room.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
         # ── Find target ──
+        # Filtering lives in the resolvers, not here: p_living, then
+        # p_can_see either way — you cannot step in front of a blow for
+        # someone you cannot pick out.
         target, _ = resolve_target(
             caller, self.args.strip(), "actor_friendly",
-            extra_predicates=(p_can_see,),
         )
         if not target:
             return  # actor resolver already messaged
@@ -124,8 +127,10 @@ class CmdProtect(CmdSkillBase):
             target.msg(f"|y{caller.key} is no longer protecting you.|n")
             if caller.location:
                 caller.location.msg_contents(
-                    f"|y{caller.key} stops protecting {target.key}.|n",
+                    "|y{protector} stops protecting {ally}.|n",
                     exclude=[caller, target],
+                    from_obj=caller,
+                    mapping={"protector": caller, "ally": target},
                 )
             return
 
@@ -148,8 +153,10 @@ class CmdProtect(CmdSkillBase):
         target.msg(f"|g{caller.key} moves to protect you!|n")
         if caller.location:
             caller.location.msg_contents(
-                f"|y{caller.key} moves to protect {target.key}!|n",
+                "|y{protector} moves to protect {ally}!|n",
                 exclude=[caller, target],
+                from_obj=caller,
+                mapping={"protector": caller, "ally": target},
             )
 
     # ── Mob fallback ──

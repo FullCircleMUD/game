@@ -52,7 +52,6 @@ class WilleScarlett(BobbinBandit):
     damage_dice = AttributeProperty("1d6")
     damage_type = AttributeProperty(DamageType.SLASHING)
     attack_message = AttributeProperty("flicks a blade in three quick passes at")
-    loot_gold_max = AttributeProperty(6)
 
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
 

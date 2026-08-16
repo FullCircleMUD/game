@@ -39,8 +39,7 @@ class Townfolk(LLMCombatMob):
     attack_delay_min = AttributeProperty(4)
     attack_delay_max = AttributeProperty(6)
 
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(2)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)  # flees early

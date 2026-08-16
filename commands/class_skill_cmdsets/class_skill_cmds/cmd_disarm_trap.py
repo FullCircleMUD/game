@@ -16,6 +16,7 @@ from enums.skills_enum import skills
 from utils.direction_parser import parse_direction
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_same_height
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 
@@ -38,8 +39,9 @@ class CmdDisarmTrap(CmdSkillBase):
         if not room:
             caller.msg("You have nowhere to disarm traps.")
             return
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Disarming needs to see the mechanism, not just find it.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
         target_str = self.args.strip()

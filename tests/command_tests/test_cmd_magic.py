@@ -36,6 +36,7 @@ def _create_scroll(char, token_id=TOKEN_ID, spell_key="magic_missile"):
     # Place directly in inventory bypassing at_post_move
     obj.db_location = char
     obj.save(update_fields=["db_location"])
+    char.contents_cache.init()  # the direct write bypasses the cache
     return obj
 
 
@@ -178,6 +179,7 @@ class TestCmdCast(EvenniaCommandTest):
 
     def setUp(self):
         super().setUp()
+        self.room1.always_lit = True
         _setup_mage(self.char1)
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.memorised_spells = {"magic_missile": True}
@@ -315,11 +317,23 @@ class TestCmdForget(EvenniaCommandTest):
     def test_forget_not_memorised(self):
         """Forget a spell that isn't memorised should fail."""
         self.char1.db.memorised_spells = {}
-        self.call(CmdForget(), "magic missile", "That spell isn't memorised.")
+        self.call(
+            CmdForget(), "magic missile",
+            "You don't have magic missile memorised.",
+        )
 
     def test_forget_unknown_spell(self):
-        """Forget a spell that doesn't exist should show error."""
-        self.call(CmdForget(), "baleful polymorph", "You don't know a spell")
+        """An unknown spell gives the same answer as an unmemorised one.
+
+        Only two outcomes matter to the player — it worked, or it wasn't
+        memorised — and the remedy is identical either way, so the command
+        deliberately does not distinguish "you never knew it" from "you
+        knew it but dropped it".
+        """
+        self.call(
+            CmdForget(), "baleful polymorph",
+            "You don't have baleful polymorph memorised.",
+        )
 
 
 # ================================================================== #
@@ -364,3 +378,84 @@ class TestCmdSpells(EvenniaCommandTest):
         """Spells command shows memory slot usage."""
         result = self.call(CmdSpells(), "")
         self.assertIn("Memory slots:", result)
+
+
+class TestCastBreaksConditions(EvenniaCommandTest):
+    """Casting at an enemy is a hostile act and ends everything."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        _setup_mage(self.char1)
+        self.char1.db.spellbook = {"magic_missile": True, "cure_light_wounds": True}
+        self.char1.db.memorised_spells = {
+            "magic_missile": True, "cure_light_wounds": True,
+        }
+        self.char2.hp = 100
+        self.char2.hp_max = 100
+
+    def _conceal(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char1.add_condition(Condition.SANCTUARY)
+
+    def _cast_hostile(self):
+        self.call(CmdCast(), f"'magic missile' {self.char2.key}")
+
+    def test_a_hostile_cast_ends_invisibility(self):
+        from enums.condition import Condition
+
+        self._conceal()
+        self._cast_hostile()
+        self.assertFalse(self.char1.has_condition(Condition.INVISIBLE))
+
+    def test_a_hostile_cast_ends_hiding(self):
+        """The gap this conversion closed — hiding survived a fire bolt."""
+        from enums.condition import Condition
+
+        self._conceal()
+        self._cast_hostile()
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_a_hostile_cast_ends_sanctuary(self):
+        from enums.condition import Condition
+
+        self._conceal()
+        self._cast_hostile()
+        self.assertFalse(self.char1.has_condition(Condition.SANCTUARY))
+
+    def test_a_friendly_cast_ends_nothing(self):
+        """Healing is not a hostile act — the gate is target_type."""
+        from enums.condition import Condition
+
+        self._conceal()
+        self.char1.hp = 10
+        self.call(CmdCast(), "'cure light wounds'")
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
+        self.assertTrue(self.char1.has_condition(Condition.HIDDEN))
+        self.assertTrue(self.char1.has_condition(Condition.SANCTUARY))
+
+    def test_the_room_is_told_the_caster_is_revealed(self):
+        said = []
+        self.char2.msg = lambda text="", **kwargs: said.append(str(text))
+        self._conceal()
+        self._cast_hostile()
+        joined = " ".join(said)
+        self.assertIn("shimmers into view", joined)
+        self.assertIn("breaks from cover", joined)
+        self.assertIn("sanctuary fades", joined)
+
+    def test_the_room_is_told_nothing_when_nothing_breaks(self):
+        said = []
+        self.char2.msg = lambda text="", **kwargs: said.append(str(text))
+        self._cast_hostile()
+        joined = " ".join(said)
+        self.assertNotIn("shimmers into view", joined)
+        self.assertNotIn("sanctuary fades", joined)

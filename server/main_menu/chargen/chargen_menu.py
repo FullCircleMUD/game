@@ -28,6 +28,7 @@ from enums.skills_enum import skills
 from enums.weapon_type import WeaponType
 from typeclasses.actors.races import get_race, get_available_races
 from typeclasses.actors.char_classes import get_char_class, get_available_char_classes
+from world.grants import reconcile_grants
 from world.recipes import get_recipe, get_recipes_for_skill
 from world.spells.registry import get_spell, get_spells_for_school
 
@@ -731,8 +732,7 @@ def _clear_skills_and_back_to_pointbuy(caller, raw_input, **kwargs):
                 "_weapon_items", "_class_skill_items", "_general_skill_items",
                 "_language_items", "_knowledge_queue",
                 "_current_knowledge_options", "_current_knowledge_type",
-                "_current_knowledge_skill", "_granted_spell_schools",
-                "_auto_granted_spells"):
+                "_current_knowledge_skill"):
         state.pop(key, None)
     return "node_point_buy"
 
@@ -909,24 +909,25 @@ def _build_knowledge_queue(state):
     Build list of skills that have BASIC-tier recipes or spells to offer.
 
     Returns list of (skill_enum, "recipe"|"spell", [(name, key), ...]) tuples.
-    Also cleans up orphaned selections from prior visits, and tracks which
-    spell schools belong to classes with grants_spells=True (for routing
-    starting spells to db.granted_spells vs db.spellbook in node_create).
+    Also cleans up orphaned selections from prior visits.
+
+    Only *choices* are queued. Classes with grants_spells=True (cleric,
+    paladin) receive their schools' spells from the grant engine instead
+    of picking one, so they never reach this UI — see world/grants.py.
     """
     queue = []
-    granted_spell_schools = set()
 
     # Determine if the selected class grants spells (e.g. cleric)
     charclass = get_char_class(state.get("class_key", ""))
     class_grants = charclass.grants_spells if charclass else False
 
-    # Auto-granted spells for classes with grants_spells=True (cleric, paladin).
-    # These classes receive ALL basic spells from their schools automatically
-    # and skip the interactive spell selection UI entirely.
-    auto_granted_spells = []
-
-    # Check selected class skills for spell schools
-    for skill_key in sorted(state.get("selected_class_skills", set())):
+    # Check selected class skills for spell schools. A class that is
+    # granted its spells never picks one, so it offers nothing here.
+    spell_school_keys = (
+        [] if class_grants
+        else sorted(state.get("selected_class_skills", set()))
+    )
+    for skill_key in spell_school_keys:
         try:
             skill_enum = skills(skill_key)
         except ValueError:
@@ -940,13 +941,7 @@ def _build_knowledge_queue(state):
             if sp.min_mastery == MasteryLevel.BASIC
         ]
         if basic_spells:
-            if class_grants:
-                # Auto-grant ALL basic spells — no user selection needed
-                granted_spell_schools.add(skill_key)
-                for _name, spell_key in basic_spells:
-                    auto_granted_spells.append(spell_key)
-            else:
-                queue.append((skill_enum, "spell", sorted(basic_spells)))
+            queue.append((skill_enum, "spell", sorted(basic_spells)))
 
     # Check selected general skills for crafting recipes
     for skill_key in sorted(state.get("selected_general_skills", set())):
@@ -962,10 +957,6 @@ def _build_knowledge_queue(state):
         ]
         if basic_recipes:
             queue.append((skill_enum, "recipe", sorted(basic_recipes)))
-
-    # Track which schools produce granted (temporary) vs learned (permanent) spells
-    state["_granted_spell_schools"] = granted_spell_schools
-    state["_auto_granted_spells"] = auto_granted_spells
 
     # Clean up orphaned selections (skill was deselected since last visit)
     valid_recipe_skills = {s.value for s, typ, _ in queue if typ == "recipe"}
@@ -1646,23 +1637,20 @@ def _apply_chargen_to_character(char, state):
             recipe_book[recipe_key] = True
         char.db.recipe_book = recipe_book
 
-    # 5e. Apply starting spells (learned vs granted based on class)
+    # 5e. Apply starting spells the player chose (mage schools — one per
+    #     school, learned permanently). Classes that are *granted* their
+    #     spells get them from the reconcile in 5f instead.
     starting_spells = state.get("selected_starting_spells", {})
-    granted_schools = state.get("_granted_spell_schools", set())
-    auto_granted = state.get("_auto_granted_spells", [])
-    spellbook = dict(char.db.spellbook or {})
-    granted = dict(char.db.granted_spells or {})
-    # User-selected spells (mage schools — one per school, learned)
-    for school_key, spell_key in starting_spells.items():
-        if school_key in granted_schools:
-            granted[spell_key] = True
-        else:
+    if starting_spells:
+        spellbook = dict(char.db.spellbook or {})
+        for spell_key in starting_spells.values():
             spellbook[spell_key] = True
-    # Auto-granted spells (cleric/paladin — all basic spells, granted)
-    for spell_key in auto_granted:
-        granted[spell_key] = True
-    char.db.spellbook = spellbook
-    char.db.granted_spells = granted
+        char.db.spellbook = spellbook
+
+    # 5f. Grant everything the mastery set above entitles this character to
+    #     (cleric/paladin domain spells, enchanting recipes). Runs last so
+    #     it sees the final mastery state.
+    reconcile_grants(char)
 
     # 6. Apply extra language selections (Common + racial already set by at_taking_race)
     extra_langs = state.get("selected_extra_languages", set())

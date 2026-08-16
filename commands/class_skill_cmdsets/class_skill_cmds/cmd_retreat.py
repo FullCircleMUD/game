@@ -20,26 +20,32 @@ Usage:
     ret                   — alias
 """
 
-import random
-
-from combat.combat_utils import get_sides
+from combat.combat_utils import RetreatWording, retreat_group
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
-from utils.dice_roller import dice
 from .cmd_skill_base import CmdSkillBase
 
-RETREAT_DC = 10
 
-
-def _get_open_exits(caller):
-    """Return exits the caller can traverse (filters closed/locked doors)."""
-    room = caller.location
-    if not room:
-        return []
-    return [
-        ex for ex in room.exits
-        if ex.destination and ex.access(caller, "traverse")
-    ]
+RETREAT_WORDING = RetreatWording(
+    to_leader=(
+        "|g*RETREAT* You lead the group in an orderly withdrawal {direction}!|n"
+    ),
+    in_room=(
+        "|y$You() $conj(lead) the group in an orderly retreat {direction}!|n"
+    ),
+    failed_to_leader=(
+        "|r*RETREAT FAILED* You try to organise a retreat but can't disengage!|n"
+    ),
+    failed_in_room=(
+        "|y$You() $conj(try) to order a retreat but the group can't disengage!|n"
+    ),
+    no_exits="|rYou try to retreat but there's nowhere to go!|n",
+    exhausted="You are too exhausted to lead a retreat.",
+    room_msgs={
+        "msg_from": "{name}'s group withdraws {direction} in good order.",
+        "msg_to": "{name}'s group arrives {direction}, withdrawing in good order.",
+    },
+)
 
 
 class CmdRetreat(CmdSkillBase):
@@ -90,95 +96,24 @@ class CmdRetreat(CmdSkillBase):
             caller.msg("Only the group leader can order a retreat.")
             return
 
-        # ── Determine exit ──
-        exits = _get_open_exits(caller)
-        if not exits:
-            caller.msg("|rYou try to retreat but there's nowhere to go!|n")
-            return
-
-        chosen = None
-        if self.args and self.args.strip():
-            direction = self.args.strip().lower()
-            for ex in exits:
-                if ex.key.lower() == direction:
-                    chosen = ex
-                    break
-            if not chosen:
-                caller.msg(f"You can't retreat '{direction}' — no exit found.")
-                return
-        else:
-            chosen = random.choice(exits)
-
-        direction_name = chosen.key
-
-        # ── Capture enemies before any movement ──
-        _, enemies = get_sides(caller)
-
-        # ── Movement cost ──
-        RETREAT_MOVE_COST = 2
-        if caller.move < RETREAT_MOVE_COST:
-            caller.msg("You are too exhausted to lead a retreat.")
-            return
-        caller.move = max(0, caller.move - RETREAT_MOVE_COST)
-
-        # ── Gather group members in combat in same room ──
-        group = [caller]
-        if hasattr(caller, "get_followers"):
-            for follower in caller.get_followers(same_room=True):
-                if follower.scripts.get("combat_handler"):
-                    group.append(follower)
-
-        # ── Single roll: d20 + INT mod + CHA mod + mastery bonus vs DC ──
-        roll = dice.roll("1d20")
-        int_mod = caller.get_attribute_bonus(caller.intelligence)
-        cha_mod = caller.get_attribute_bonus(caller.charisma)
-        total = roll + int_mod + cha_mod + mastery.bonus
-
-        if total >= RETREAT_DC:
-            # ── Success — everyone retreats ──
-            caller.msg(
-                f"|g*RETREAT* You lead the group in an orderly withdrawal {direction_name}!|n"
-            )
-            if caller.location:
-                caller.location.msg_contents(
-                    f"|y{caller.key} leads the group in an orderly retreat {direction_name}!|n",
-                    exclude=[caller],
-                )
-
-            # Stop combat for all group members first
-            for member in group:
-                member_handlers = member.scripts.get("combat_handler")
-                if member_handlers:
-                    member_handlers[0].stop_combat()
-
-            # Move all group members to the exit
-            destination = chosen.destination
-            for member in group:
-                member.move_to(destination)
-
-            # Check if remaining combatants should end combat
-            for enemy in enemies:
-                enemy_handlers = enemy.scripts.get("combat_handler")
-                if enemy_handlers:
-                    enemy_handlers[0]._check_stop_combat()
-        else:
-            # ── Failure — nobody moves, enemies get advantage on leader ──
-            for enemy in enemies:
-                enemy_handler = enemy.scripts.get("combat_handler")
-                if enemy_handler:
-                    enemy_handler[0].set_advantage(caller, rounds=1)
-
-            caller.msg(
-                f"|r*RETREAT FAILED* You try to organise a retreat but can't disengage!|n"
-            )
-            if caller.location:
-                caller.location.msg_contents(
-                    f"|y{caller.key} tries to order a retreat but the group can't disengage!|n",
-                    exclude=[caller],
-                )
+        # ── The withdrawal itself ──
+        retreat_group(
+            caller,
+            RETREAT_WORDING,
+            direction=self.args.strip() if self.args else None,
+            bonus=mastery.bonus,
+        )
 
     # ── Mob fallback ──
     def mob_func(self):
+        """Not implemented — mobs cannot order a retreat yet.
+
+        When implementing: call ``combat_utils.retreat_group()`` with wording
+        of your own rather than writing the process again. It already handles
+        exit choice, the leader's roll, the movement cost, gathering the
+        group, traversing, ending combat and cleaning up the enemies. Only
+        the words and the skill bonus differ.
+        """
         pass
 
     # Mastery stubs — not used (func overridden)

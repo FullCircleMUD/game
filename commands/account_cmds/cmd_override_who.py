@@ -13,11 +13,25 @@ class CmdWho(_CmdWho):
         who
 
     Shows online players with their character name, level, class, and race.
+    Only shows players connected to THIS process — not cluster-wide. A
+    player IC on a different shard won't appear here even though they
+    are online elsewhere; see docs/scaling.md's open TBD on cross-shard
+    presence.
     """
 
     help_category = "Communication"
 
     def func(self):
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role, get_shard_id
+
+        role = get_role()
+        if role == ROLE_MONOLITH:
+            process_label = "monolith"
+        elif role == ROLE_ROUTER:
+            process_label = "router"
+        else:
+            process_label = get_shard_id() or role
+
         account = self.account
         session_list = evennia.SESSION_HANDLER.get_sessions()
         session_list = sorted(session_list, key=lambda o: o.account.key)
@@ -89,6 +103,6 @@ class CmdWho(_CmdWho):
 
         is_one = count == 1
         self.msg(
-            "|wPlayers Online|n\n%s\n%s player%s online."
-            % (table, "One" if is_one else count, "" if is_one else "s")
+            "|wPlayers Online|n (this process: %s)\n%s\n%s player%s online."
+            % (process_label, table, "One" if is_one else count, "" if is_one else "s")
         )

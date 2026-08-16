@@ -8,6 +8,9 @@ and trap find_dc on trapped objects/exits/rooms.
 
 Failed searches trigger a 120-second cooldown to prevent spam.
 
+A searcher who cannot see does it by touch instead: the busy lock holds
+them for a few seconds and every roll is made at disadvantage.
+
 Usage:
     search
 """
@@ -18,7 +21,15 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.dice_roller import dice
+from utils.visibility import looker_is_blind
 
 _SEARCH_COOLDOWN = 120  # seconds after a failed search
 
@@ -48,9 +59,33 @@ class CmdSearch(FCMCommandMixin, Command):
             caller.msg("You have nowhere to search.")
             return
 
-        # Darkness — can't search what you can't see
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
+            return
+
+        # Searching without sight is slow, not impossible — you go over
+        # the place by hand. The time is spent before the outcome is
+        # known, so an empty room costs the same as one with something
+        # in it. Sightlessness, not darkness: a blind character in a lit
+        # room fumbles as much as a sighted one in the dark, and
+        # darkvision passes straight through.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._search(caller, sightless=True),
+                self_msg="You feel your way over the room in the dark, "
+                         "searching by touch...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
+            return
+
+        self._search(caller)
+
+    def _search(self, caller, sightless=False):
+        """Resolve the search. Reached directly, or after a blind fumble."""
+        room = caller.location
+        if not room:
             return
 
         # Cooldown after failed searches — same message to avoid leaking info
@@ -121,6 +156,13 @@ class CmdSearch(FCMCommandMixin, Command):
         has_dis = getattr(caller.db, "non_combat_disadvantage", False)
         caller.db.non_combat_advantage = False
         caller.db.non_combat_disadvantage = False
+
+        # Searching by touch is harder, expressed the way the game
+        # already expresses harder. Note the standing resolution rule:
+        # advantage and disadvantage cancel, so someone steadying a blind
+        # searcher's hands restores a normal roll rather than stacking.
+        if sightless:
+            has_dis = True
 
         # Roll against each hidden object
         for obj in hidden_objects:

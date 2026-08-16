@@ -106,6 +106,9 @@ def _make_map_item(char, map_key, surveyed=None):
     item.db.surveyed_points = set(surveyed) if surveyed else set()
     item.db_location = char
     item.save(update_fields=["db_location"])
+    # The direct db_location write bypasses move_to, so char's contents
+    # cache never learns about the item. Rebuild it from the database.
+    char.contents_cache.init()
     return item
 
 
@@ -975,6 +978,69 @@ class TestCmdSurveyScale(_RoomBaseMixin, EvenniaCommandTest):
             self.room1.id,
         )
         self.assertIn("center", self.district_map.surveyed_points)
+        self.assertIn("east", self.district_map.surveyed_points)
+
+    def test_closed_door_still_reveals_adjacent(self):
+        """A shut door does not stop you mapping the building behind it.
+
+        You are standing in the street looking at it, and the door itself
+        tells you a room is there. Landmarks announce themselves the same
+        way — the POI registry already draws the line between a smithy and
+        an anonymous residence.
+        """
+        for ex in self.room1.exits:
+            ex.delete()
+        door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="east", location=self.room1, destination=self.room2, nohome=True,
+        )
+        door.set_direction("east")
+        door.is_open = False
+
+        _finish_survey(
+            self.char1, [(self.district_map, "center")], self.room1.id,
+        )
+        self.assertIn("east", self.district_map.surveyed_points)
+
+    def test_undetected_door_does_not_reveal_adjacent(self):
+        """survey is not a secret-door detector.
+
+        With no visible doorway there is nothing to reason from, so mapping
+        through one would put a room — and its landmark symbol — onto the map
+        for a place the surveyor has no way of knowing exists.
+        """
+        for ex in self.room1.exits:
+            ex.delete()
+        door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="east", location=self.room1, destination=self.room2, nohome=True,
+        )
+        door.set_direction("east")
+        door.is_open = True
+        door.is_hidden = True
+
+        _finish_survey(
+            self.char1, [(self.district_map, "center")], self.room1.id,
+        )
+        self.assertIn("center", self.district_map.surveyed_points)
+        self.assertNotIn("east", self.district_map.surveyed_points)
+
+    def test_discovered_door_reveals_adjacent(self):
+        """Once found, it maps like any other doorway."""
+        for ex in self.room1.exits:
+            ex.delete()
+        door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="east", location=self.room1, destination=self.room2, nohome=True,
+        )
+        door.set_direction("east")
+        door.is_open = True
+        door.is_hidden = True
+        door.discover(self.char1)
+
+        _finish_survey(
+            self.char1, [(self.district_map, "center")], self.room1.id,
+        )
         self.assertIn("east", self.district_map.surveyed_points)
 
     def test_region_survey_does_not_reveal_adjacent(self):

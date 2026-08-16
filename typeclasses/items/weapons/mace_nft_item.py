@@ -103,9 +103,10 @@ class MaceMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|r*CRUSH* {wielder.key}'s mace punches through "
-                    f"{target.key}'s armour!|n",
+                    "|r*CRUSH* {wielder}'s mace punches through "
+                    "{target}'s armour!|n",
                     exclude=[wielder, target],
+                    mapping={"wielder": wielder, "target": target},
                 )
         return damage
 

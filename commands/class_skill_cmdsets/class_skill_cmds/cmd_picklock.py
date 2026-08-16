@@ -16,6 +16,7 @@ from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import (
     p_can_see, p_is_lockable, p_is_locked, p_same_height,
 )
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 
@@ -33,10 +34,10 @@ class CmdPicklock(CmdSkillBase):
             caller.msg("Pick the lock on what?")
             return
 
-        # Darkness
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Picking a lock needs eyes on the keyway, the same as using a
+        # key does.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
         target_str = self.args.strip()

@@ -12,10 +12,12 @@ enter the player economy.
 
 from evennia.objects.objects import DefaultObject
 from evennia.typeclasses.attributes import AttributeProperty
+
+from typeclasses.mixins.unseen_name import UnseenNameMixin
 from evennia.utils.search import search_object
 
 
-class MobItem(DefaultObject):
+class MobItem(UnseenNameMixin, DefaultObject):
     """
     Base class for all mob-only items (weapons, armour, consumables).
 

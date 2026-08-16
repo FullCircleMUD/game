@@ -36,7 +36,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
             self.exit = None
         # Create a single exit from room1 to room2
         self.exit1 = create.create_object(
-            "evennia.objects.objects.DefaultExit",
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
             key="north",
             location=self.room1,
             destination=self.room2,
@@ -53,7 +53,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
             self.exit1.delete()
         super().tearDown()
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_success_moves_to_random_exit(self, mock_ticker, mock_dice):
         """Successful flee moves character to exit destination."""
@@ -65,7 +65,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         self.assertIn("flee", result.lower())
         self.assertEqual(self.char1.location, self.room2)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_success_removes_combat_handler(self, mock_ticker, mock_dice):
         """Successful flee removes the combat handler."""
@@ -76,7 +76,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         self.call(CmdFlee(), "", caller=self.char1)
         self.assertFalse(self.char1.scripts.get("combat_handler"))
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_fail_stays_in_room(self, mock_ticker, mock_dice):
         """Failed flee keeps character in original room."""
@@ -89,7 +89,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         self.assertIn("can't escape", result)
         self.assertEqual(self.char1.location, self.room1)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_fail_enemies_get_advantage(self, mock_ticker, mock_dice):
         """Failed flee gives all enemies 1 round of advantage."""
@@ -119,7 +119,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         self.assertIn("nowhere to go", result)
         self.assertEqual(self.char1.location, self.room1)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_combat_ends_for_remaining(self, mock_ticker, mock_dice):
         """After flee, remaining side's combat ends if no enemies left."""
@@ -132,7 +132,7 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         # char2 should also have combat ended (no enemies left in room)
         self.assertFalse(self.char2.scripts.get("combat_handler"))
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_locked_exit_filtered(self, mock_ticker, mock_dice):
         """Exits that fail traverse check are filtered out."""
@@ -146,6 +146,148 @@ class TestCmdFleeInCombat(EvenniaCommandTest):
         result = self.call(CmdFlee(), "", caller=self.char1)
         self.assertIn("nowhere to go", result)
         self.assertEqual(self.char1.location, self.room1)
+
+
+class TestCmdFleeRoomMessages(EvenniaCommandTest):
+    """
+    Flee announces through the movement seam rather than writing its own room
+    message — so both rooms hear it, and the direction is a direction.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.allow_pvp = True
+        # These tests assert on names in room messages, so the watchers must be
+        # able to see. An unlit room redacts every name to "Someone".
+        self.room1.always_lit = True
+        self.room2.always_lit = True
+        for char in (self.char1, self.char2):
+            char.hp = 20
+            char.hp_max = 20
+        if self.exit:
+            self.exit.delete()
+            self.exit = None
+
+        # A real directional exit — its key is the destination's name, which is
+        # exactly what flee used to print at players.
+        self.exit1 = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="Room2",
+            location=self.room1,
+            destination=self.room2,
+            nohome=True,
+        )
+        self.exit1.direction = "north"
+        self.back = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="Room1",
+            location=self.room2,
+            destination=self.room1,
+            nohome=True,
+        )
+        self.back.direction = "south"
+
+        self.here = self._watcher("Bystander", self.room1)
+        self.there = self._watcher("Watcher", self.room2)
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for handler in handlers:
+                    handler.stop()
+                    handler.delete()
+        super().tearDown()
+
+    def _watcher(self, key, room):
+        watcher = create.create_object(
+            self.character_typeclass, key=key, location=room, home=room
+        )
+        watcher.msg = MagicMock()
+        return watcher
+
+    def _lines(self, watcher):
+        said = []
+        for args, kwargs in watcher.msg.call_args_list:
+            payload = kwargs.get("text", args[0] if args else None)
+            if isinstance(payload, tuple):
+                payload = payload[0]
+            if payload:
+                said.append(str(payload))
+        return said
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_announces_a_direction_not_an_exit_name(
+        self, mock_ticker, mock_dice
+    ):
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertIn("Char flees north!", self._lines(self.here))
+        for line in self._lines(self.here):
+            self.assertNotIn("Room2", line)
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_is_heard_on_arrival(self, mock_ticker, mock_dice):
+        """The destination room used to hear nothing at all."""
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertIn("Char flees in from the south!", self._lines(self.there))
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_announces_once(self, mock_ticker, mock_dice):
+        """One line, not the command's own plus the seam's."""
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        about_char = [ln for ln in self._lines(self.here) if ln.startswith("Char ")]
+        self.assertEqual(about_char, ["Char flees north!"])
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_flee_tells_the_fleeing_character_the_direction(
+        self, mock_ticker, mock_dice
+    ):
+        mock_dice.roll.return_value = 15
+        from combat.combat_utils import enter_combat
+
+        enter_combat(self.char1, self.char2)
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("You flee north!", result)
+
+    def test_panic_flee_keeps_its_own_wording(self):
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn(
+            "Char panics and flees north for no apparent reason!",
+            self._lines(self.here),
+        )
+
+    def test_panic_flee_is_heard_on_arrival(self):
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn(
+            "Char arrives from the south, in a blind panic.", self._lines(self.there)
+        )
 
 
 class TestCmdFleeOutOfCombat(EvenniaCommandTest):
@@ -168,7 +310,7 @@ class TestCmdFleeOutOfCombat(EvenniaCommandTest):
             self.exit = None
         # Create a single exit
         self.exit1 = create.create_object(
-            "evennia.objects.objects.DefaultExit",
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
             key="south",
             location=self.room1,
             destination=self.room2,
@@ -193,6 +335,161 @@ class TestCmdFleeOutOfCombat(EvenniaCommandTest):
         result = self.call(CmdFlee(), "", caller=self.char1)
         self.assertIn("nowhere to run", result)
         self.assertEqual(self.char1.location, self.room1)
+
+    def test_bolting_breaks_cover(self):
+        """Panic-running is not sneaking.
+
+        Without this the panic run leaves the room in plain terms and
+        then gets a stealth roll on the way into the next one.
+        """
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_the_bolter_is_told_they_broke_cover(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        result = self.call(CmdFlee(), "", caller=self.char1)
+        self.assertIn("break cover", result)
+
+    def test_cover_is_broken_even_with_nowhere_to_run(self):
+        """The panic is the tell, not the running."""
+        from enums.condition import Condition
+
+        self.exit1.delete()
+        self.exit1 = None
+        self.char1.add_condition(Condition.HIDDEN)
+        self.call(CmdFlee(), "", caller=self.char1)
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+
+class TestCmdFleeDoors(EvenniaCommandTest):
+    """Door state gates flee.
+
+    A door's closed/locked state lives on the door, not in its traverse
+    lock, so an exit passing ``access(caller, "traverse")`` says nothing
+    about whether it can actually be walked through.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.allow_pvp = True
+        for char in (self.char1, self.char2):
+            char.hp = 20
+            char.hp_max = 20
+        # Remove Evennia's default "out" exit so we control exits precisely
+        if self.exit:
+            self.exit.delete()
+            self.exit = None
+        # The only way out of room1 is a door, closed by default
+        self.door = create.create_object(
+            "typeclasses.terrain.exits.exit_door.ExitDoor",
+            key="a heavy oak door",
+            location=self.room1,
+            destination=self.room2,
+            nohome=True,
+        )
+        self.door.set_direction("north")
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        if self.door.pk:
+            self.door.delete()
+        super().tearDown()
+
+    def _enter_combat(self):
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_blocked_by_closed_door(self, mock_ticker, mock_dice):
+        """A closed door is not an escape route."""
+        mock_dice.roll.return_value = 15
+        self._enter_combat()
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertIn("nowhere to go", result)
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_blocked_by_locked_door(self, mock_ticker, mock_dice):
+        """A locked door is not an escape route either."""
+        mock_dice.roll.return_value = 15
+        self.door.is_locked = True
+        self._enter_combat()
+
+        result = self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertIn("nowhere to go", result)
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_goes_through_an_open_door(self, mock_ticker, mock_dice):
+        """An open door is a normal exit."""
+        mock_dice.roll.return_value = 15
+        self.door.is_open = True
+        self._enter_combat()
+
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, self.room2)
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_combat_flee_picks_the_open_exit(self, mock_ticker, mock_dice):
+        """With one closed door and one open exit, flee takes the open one."""
+        mock_dice.roll.return_value = 15
+        room3 = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase", key="Room3"
+        )
+        open_exit = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="south",
+            location=self.room1,
+            destination=room3,
+        )
+        # LIFO — the exit must go before the room it points at
+        self.addCleanup(room3.delete)
+        self.addCleanup(open_exit.delete)
+        self._enter_combat()
+
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, room3)
+
+    def test_panic_flee_blocked_by_closed_door(self):
+        """Out-of-combat panic run respects doors too."""
+        result = self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertIn("nowhere to run", result)
+
+    def test_panic_flee_goes_through_an_open_door(self):
+        self.door.is_open = True
+
+        self.call(CmdFlee(), "", caller=self.char1)
+
+        self.assertEqual(self.char1.location, self.room2)
 
 
 class TestCmdFleeBlockedByMovementEffects(EvenniaCommandTest):
@@ -222,7 +519,7 @@ class TestCmdFleeBlockedByMovementEffects(EvenniaCommandTest):
             self.exit.delete()
             self.exit = None
         self.exit1 = create.create_object(
-            "evennia.objects.objects.DefaultExit",
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
             key="north",
             location=self.room1,
             destination=self.room2,

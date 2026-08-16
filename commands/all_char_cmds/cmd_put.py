@@ -23,9 +23,17 @@ from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import (
-    p_can_see, p_is_container, p_is_open, p_is_openable, p_same_height,
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
 )
+from utils.targeting.predicates import (
+    p_can_perceive, p_is_container, p_is_open, p_is_openable, p_same_height,
+)
+from utils.visibility import looker_is_blind
 from utils.weight_check import get_gold_weight, get_resource_weight
 
 GOLD = settings.GOLD_DISPLAY
@@ -58,12 +66,32 @@ class CmdPut(FCMCommandMixin, Command):
             caller.msg("Put what where?")
             return
 
-        # Darkness — can't identify items or containers without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
             return
 
+        # No sight check on either half. Both the item and the container
+        # are found by feel, and a container in the room is the same
+        # chest ``open`` already lets you work by touch — gating them
+        # differently would have one chest behave two ways.
+        #
+        # One fumble covers the whole action rather than one per target,
+        # and it runs before the outcome is known, so a container that
+        # turns out to be closed costs the same as one that is not.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._put(caller),
+                self_msg="You fumble about in the dark, feeling for somewhere to put it...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
+            return
+
+        self._put(caller)
+
+    def _put(self, caller):
+        """Resolve both targets and move the goods. Success or failure both."""
         # ---------------------------------------------------------- #
         #  Split on " in " to separate item spec from container name
         # ---------------------------------------------------------- #
@@ -119,7 +147,7 @@ class CmdPut(FCMCommandMixin, Command):
         """
         container, _ = resolve_target(
             caller, name, "items_inventory_then_room_nonexit",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
         )
         if not container:
             caller.msg(f"You don't see '{name}' here.")
@@ -156,7 +184,7 @@ class CmdPut(FCMCommandMixin, Command):
         """Put an NFT by name into container."""
         obj, _ = resolve_target(
             caller, search_term, "items_inventory",
-            extra_predicates=(p_can_see,),
+            extra_predicates=(p_can_perceive,),
         )
         if not obj:
             caller.msg(f"You aren't carrying '{search_term}'.")

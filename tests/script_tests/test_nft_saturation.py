@@ -143,6 +143,31 @@ class TestGetKnowledgeCounts(EvenniaTest):
         self.assertEqual(spell_counts["shield"], 1)
         self.assertEqual(len(recipe_counts), 0)
 
+    def test_attributes_in_other_categories_are_ignored(self):
+        """Only category=None attributes count — what char.db.x reads.
+
+        The counts are gathered by joining through db_attributes rather than
+        by materialising each character, so a same-named attribute sitting in
+        another category would join as an extra row and inflate the count.
+        char.db.spellbook has never read those, and neither should this.
+        """
+        self.char1.db.spellbook = {"magic_missile": True}
+        self.char1.db.granted_spells = {}
+        self.char1.db.recipe_book = {}
+        self.char1.db.class_skill_mastery_levels = {
+            "evocation": {"mastery": 1, "classes": ["mage"]},
+        }
+        # A decoy in a different category. Invisible to char.db.spellbook.
+        self.char1.attributes.add(
+            "spellbook", {"shield": True}, category="somewhere_else"
+        )
+
+        spell_counts, _recipe_counts = NFTSaturationService.get_knowledge_counts(
+            {self.char1.key}
+        )
+        self.assertEqual(spell_counts["magic_missile"], 1)
+        self.assertEqual(spell_counts["shield"], 0)
+
     def test_character_with_recipes(self):
         self.char1.db.spellbook = {}
         self.char1.db.granted_spells = {}

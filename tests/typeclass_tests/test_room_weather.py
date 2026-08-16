@@ -4,6 +4,7 @@ Tests for room weather exposure properties and weather description lines.
 Covers:
     - is_subterranean, is_sheltered, is_weather_exposed properties
     - sheltered override via AttributeProperty
+    - subterranean override via AttributeProperty
     - Weather description lines in get_display_desc
 """
 
@@ -77,6 +78,41 @@ class TestWeatherExposure(EvenniaTest):
         self.room1.sheltered = False
         self.assertFalse(self.room1.is_sheltered)
         self.assertTrue(self.room1.is_weather_exposed)
+
+    def test_subterranean_override_true(self):
+        """Explicit subterranean=True on a forest room suppresses all weather."""
+        self.room1.set_terrain(TerrainType.FOREST.value)
+        self.room1.subterranean = True
+        self.assertTrue(self.room1.is_subterranean)
+        self.assertFalse(self.room1.is_weather_exposed)
+
+    def test_subterranean_override_false(self):
+        """Explicit subterranean=False on a dungeon room re-exposes weather."""
+        self.room1.set_terrain(TerrainType.DUNGEON.value)
+        self.room1.subterranean = False
+        self.assertFalse(self.room1.is_subterranean)
+        self.assertTrue(self.room1.is_weather_exposed)
+
+
+class TestPurgatoryDefaults(EvenniaTest):
+    """RoomPurgatory class-level overrides surface as the right room state."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_purgatory.RoomPurgatory"
+
+    def create_script(self):
+        pass
+
+    def test_purgatory_is_subterranean(self):
+        """Purgatory has no terrain tag but the class override forces it
+        subterranean — no weather, like being in a dungeon."""
+        self.assertTrue(self.room1.is_subterranean)
+        self.assertFalse(self.room1.is_weather_exposed)
+
+    def test_purgatory_is_always_lit(self):
+        self.assertTrue(self.room1.always_lit)
+
+    def test_purgatory_max_height_zero(self):
+        self.assertEqual(self.room1.max_height, 0)
 
 
 class TestWeatherDescLine(EvenniaTest):

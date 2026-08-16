@@ -13,7 +13,7 @@ Tests cover:
 
 from unittest.mock import MagicMock, patch
 
-from evennia.utils.test_resources import BaseEvenniaTest
+from evennia.utils.test_resources import BaseEvenniaTest, EvenniaTest
 
 from enums.abilities_enum import Ability
 from enums.mastery_level import MasteryLevel
@@ -58,6 +58,8 @@ from server.main_menu.chargen.chargen_menu import (
     node_name,
     node_confirm,
     node_create,
+    _build_knowledge_queue,
+    _apply_chargen_to_character,
 )
 
 
@@ -1613,3 +1615,73 @@ class TestCreateSkillApplication(BaseEvenniaTest):
         self.assertTrue(
             any("created successfully" in msg for msg in caller._messages)
         )
+
+
+# =======================================================================
+#  Cleric starting spells — pinned across the grant-engine refactor
+# =======================================================================
+
+class TestClericStartingSpells(EvenniaTest):
+    """A cleric leaves chargen holding exactly the BASIC spells of the
+    divine schools they selected.
+
+    This asserts the *outcome*, not the mechanism, so it holds both for
+    chargen's own auto-grant loop and for the grant engine that replaces
+    it. See docs/knowledge-grants.md.
+    """
+
+    def create_script(self):
+        pass
+
+    SCHOOLS = {"divine_healing", "divine_dominion"}
+
+    def _apply(self, schools=None):
+        state = _skill_state(race_key="human", class_key="cleric")
+        state["char_name"] = "Testcleric"
+        state["selected_weapon_skills"] = set()
+        state["selected_class_skills"] = set(
+            self.SCHOOLS if schools is None else schools
+        )
+        state["selected_general_skills"] = set()
+        state["selected_extra_languages"] = set()
+        # node_starting_knowledge runs this before the character is built
+        _build_knowledge_queue(state)
+        _apply_chargen_to_character(self.char1, state)
+        return self.char1
+
+    def _basic_keys_for(self, schools):
+        from enums.mastery_level import MasteryLevel as ML
+        from world.spells.registry import get_spells_for_school
+        keys = set()
+        for school in schools:
+            for key, spell in get_spells_for_school(school).items():
+                if spell.min_mastery == ML.BASIC:
+                    keys.add(key)
+        return keys
+
+    def test_granted_spells_are_exactly_the_basic_spells(self):
+        char = self._apply()
+        self.assertEqual(
+            set(char.db.granted_spells or {}),
+            self._basic_keys_for(self.SCHOOLS),
+        )
+
+    def test_no_spells_above_basic(self):
+        """Purify (SKILLED) and Hold (EXPERT) must not be granted at BASIC."""
+        char = self._apply()
+        granted = set(char.db.granted_spells or {})
+        self.assertNotIn("purify", granted)
+        self.assertNotIn("hold", granted)
+
+    def test_unselected_school_grants_nothing(self):
+        """A divine school left unselected sits at UNSKILLED and grants none."""
+        char = self._apply()
+        granted = set(char.db.granted_spells or {})
+        unselected = self._basic_keys_for({"divine_protection"})
+        self.assertTrue(unselected, "expected divine_protection to have BASIC spells")
+        self.assertFalse(granted & unselected)
+
+    def test_spellbook_stays_empty(self):
+        """Cleric spells are granted, never learned — spellbook is for mages."""
+        char = self._apply()
+        self.assertFalse(char.db.spellbook)

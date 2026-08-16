@@ -14,8 +14,16 @@ holding a torch, the same way you can eat bread mid-combat.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdDrink(FCMCommandMixin, Command):
@@ -36,16 +44,32 @@ class CmdDrink(FCMCommandMixin, Command):
         caller = self.caller
         query = self.args.strip()
 
-        # Darkness — can't identify items without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
             return
 
+        # Your own pack is found by touch, so being unable to see does
+        # not stop you drinking — it only slows you down. The search runs
+        # before the outcome is known, so an empty pack costs the same
+        # time as a full one.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._drink(caller, query),
+                self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
+            return
+
+        self._drink(caller, query)
+
+    def _drink(self, caller, query):
+        """Find the container and drink from it. Success or failure both."""
         if query:
             container, _ = resolve_target(
                 caller, query, "items_inventory",
-                extra_predicates=(p_can_see,),
+                extra_predicates=(p_can_perceive,),
             )
             if not container:
                 caller.msg(f"You aren't carrying '{query}'.")

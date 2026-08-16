@@ -91,3 +91,29 @@ class TestRemortReset(EvenniaTest):
         self.char1.at_remort(self.bank)
 
         self.assertEqual(self.char1.db.mounted_on, self.room1)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    @patch("blockchain.xrpl.services.gold.GoldService.unbank")
+    def test_remort_clears_granted_knowledge(self, *mocks):
+        """Granted spells and recipes are mastery-derived — remort clears
+        the mastery, so it must clear what the mastery justified.
+        """
+        self.char1.db.granted_spells = {"cure_wounds": True}
+        self.char1.db.granted_recipes = {"rogues_bandana": True}
+
+        self.char1.at_remort(self.bank)
+
+        self.assertFalse(self.char1.db.granted_spells)
+        self.assertFalse(self.char1.db.granted_recipes)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    @patch("blockchain.xrpl.services.gold.GoldService.unbank")
+    def test_remort_preserves_learned_knowledge(self, *mocks):
+        """Learned spells and recipes were paid for and survive remort."""
+        self.char1.db.spellbook = {"magic_missile": True}
+        self.char1.db.recipe_book = {"training_longsword": True}
+
+        self.char1.at_remort(self.bank)
+
+        self.assertTrue(self.char1.db.spellbook.get("magic_missile"))
+        self.assertTrue(self.char1.db.recipe_book.get("training_longsword"))

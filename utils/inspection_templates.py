@@ -21,6 +21,7 @@ from anywhere:
 
 from enums.mastery_level import MasteryLevel
 from enums.size import Size
+from utils.targeting.predicates import p_is_character
 
 
 # ================================================================== #
@@ -58,12 +59,10 @@ def inspect_actor(caster, target, tier):
     (on success or partial-success) or a string (on hard failure like
     PvP gate).
     """
-    from typeclasses.actors.character import FCMCharacter
-
-    is_pc = isinstance(target, FCMCharacter)
+    is_player = p_is_character(target, caster)
 
     # PvP room check for PCs
-    if is_pc and target != caster:
+    if is_player and target != caster:
         room = caster.location
         if not getattr(room, "allow_pvp", False):
             return (
@@ -88,7 +87,7 @@ def inspect_actor(caster, target, tier):
     # Build the inspection output
     lines = [f"|w--- Identify: {target.key} ---|n"]
 
-    if is_pc:
+    if is_player:
         _build_pc_header(target, lines)
     else:
         _build_mob_header(target, lines)
@@ -96,7 +95,7 @@ def inspect_actor(caster, target, tier):
     _build_vitals(target, lines)
     _build_ability_scores(target, lines)
 
-    if is_pc:
+    if is_player:
         _build_pc_combat(target, lines)
     else:
         _build_mob_combat(target, lines)
@@ -105,7 +104,7 @@ def inspect_actor(caster, target, tier):
     _build_conditions(target, lines)
     _build_effects(target, lines)
 
-    if is_pc:
+    if is_player:
         _build_memorised_spells(target, lines)
 
     identify_text = "\n".join(lines)

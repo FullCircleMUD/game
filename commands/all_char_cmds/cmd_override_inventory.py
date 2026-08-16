@@ -14,7 +14,8 @@ from collections import OrderedDict
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from utils.targeting.predicates import p_visible_to
+from utils.targeting.predicates import p_object_visible_to
+from utils.visibility import looker_is_blind
 
 
 class CmdInventory(FCMCommandMixin, Command):
@@ -46,9 +47,11 @@ class CmdInventory(FCMCommandMixin, Command):
         lines = []
         item_lines = []
 
-        # Darkness — can't identify items without sight
-        room = caller.location
-        is_dark = room and hasattr(room, "is_dark") and room.is_dark(caller)
+        # No sight, no identifying anything — you go through the pack by
+        # feel. Sightlessness rather than darkness: a blind character in
+        # a lit room is in the same position as a sighted one in the
+        # dark, and darkvision passes through either way.
+        sightless = looker_is_blind(caller)
 
         # --- Carried items (excluding worn/wielded/held) ---
         if hasattr(caller, "get_carried"):
@@ -57,7 +60,7 @@ class CmdInventory(FCMCommandMixin, Command):
             items = caller.contents
 
         if items:
-            if is_dark:
+            if sightless:
                 # Can feel items but not identify them
                 for _obj in items:
                     item_lines.append("  Something")
@@ -68,7 +71,7 @@ class CmdInventory(FCMCommandMixin, Command):
                 hidden_count = 0
 
                 for obj in items:
-                    if not p_visible_to(obj, caller):
+                    if not p_object_visible_to(obj, caller):
                         hidden_count += 1
                         continue
                     has_durability = getattr(obj, "max_durability", 0) > 0
@@ -118,7 +121,7 @@ class CmdInventory(FCMCommandMixin, Command):
                 if amount > 0:
                     rt = get_resource_type(res_id)
                     if rt:
-                        if is_dark:
+                        if sightless:
                             item_lines.append("  Something")
                         else:
                             label = (
@@ -140,7 +143,7 @@ class CmdInventory(FCMCommandMixin, Command):
         if hasattr(caller, "get_gold"):
             gold = caller.get_gold()
             if gold > 0:
-                if is_dark:
+                if sightless:
                     lines.append("\n|wGold:|n hard to see\n")
                 else:
                     lines.append(f"\n|wGold:|n {gold}\n")

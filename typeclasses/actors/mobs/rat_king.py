@@ -14,6 +14,7 @@ from evennia.utils.utils import delay
 from enums.damage_type import DamageType
 from enums.size import Size
 from typeclasses.actors.mob import CombatMob
+from utils.targeting.predicates import p_is_character
 
 
 class RatKing(CombatMob):
@@ -60,7 +61,7 @@ class RatKing(CombatMob):
         """Attack players on sight after a longer delay than regular rats."""
         if not self.is_alive or arriving_obj == self:
             return
-        if getattr(arriving_obj, "is_pc", False):
+        if p_is_character(arriving_obj, self):
             attack_delay = random.uniform(
                 self.attack_delay_min, self.attack_delay_max
             )
@@ -84,7 +85,8 @@ class RatKing(CombatMob):
             return
         if self.scripts.get("combat_handler"):
             return
-        players = self.ai.get_targets_in_room()
+
+        players = self.ai.get_targets_in_room(p_is_character)
         if players:
             target = random.choice(players)
             attack_delay = random.uniform(

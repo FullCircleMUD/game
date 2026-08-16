@@ -37,9 +37,13 @@ class RelockTimerScript(DefaultScript):
             if obj.location:
                 if was_open:
                     obj.location.msg_contents(
-                        f"|y{obj.key} clicks shut and locks itself.|n"
+                        "|y{door} clicks shut and locks itself.|n",
+                        from_obj=obj,
+                        mapping={"door": obj},
                     )
                 else:
                     obj.location.msg_contents(
-                        f"|y{obj.key} clicks locked.|n"
+                        "|y{door} clicks locked.|n",
+                        from_obj=obj,
+                        mapping={"door": obj},
                     )

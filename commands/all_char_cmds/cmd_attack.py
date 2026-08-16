@@ -8,7 +8,7 @@ participants, and starts staggered repeating attack tickers.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
-from combat.combat_utils import enter_combat
+from combat.combat_utils import enter_combat, fight_refusal_message
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import check_range
@@ -33,6 +33,12 @@ class CmdAttack(FCMCommandMixin, Command):
     def func(self):
         caller = self.caller
 
+        # ── Can this actor pick a fight right now? ──
+        ok, reason = caller._can_start_fight_now()
+        if not ok:
+            caller.msg(fight_refusal_message(reason))
+            return
+
         if not self.args or not self.args.strip():
             caller.msg("Attack what?")
             return
@@ -46,6 +52,11 @@ class CmdAttack(FCMCommandMixin, Command):
             else getattr(caller, "mob_weapon_type", "melee")
         )
 
+        # No sight predicate here on purpose. The resolvers own that
+        # decision now, and it differs by combat state: p_can_see to
+        # start a fight, p_can_perceive to continue one. Passing p_can_see
+        # here would tighten the in-combat case back up and take away
+        # fighting by sound.
         target, _ = resolve_target(caller, search_term, "actor_hostile")
 
         if target is None:

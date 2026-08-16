@@ -9,6 +9,8 @@ controls the compact ``[ Exits: n s e w ]`` line in the room display).
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.targeting.predicates import p_fits_through, p_object_visible_to
+from utils.visibility import looker_is_blind
 
 
 class CmdExits(FCMCommandMixin, Command):
@@ -43,26 +45,35 @@ class CmdExits(FCMCommandMixin, Command):
             caller.msg("You have no location.")
             return
 
-        # Darkness check
-        if hasattr(room, "is_dark") and room.is_dark(caller):
+        # This is a reading, not a groping — a sightless character gets
+        # nothing rather than a partial list. Note ``open_exits`` takes
+        # the opposite line for *choosing* a way out, on purpose: a
+        # doorway is found by touch, so losing your light must not leave
+        # you cornered. You can still flee through a door you cannot
+        # read the label of.
+        if looker_is_blind(caller):
             caller.msg("It's too dark to see any exits.")
             return
 
         exits = room.contents_get(content_type="exit")
 
-        # Filter visibility (hidden/invisible doors, etc.)
-        exits = [
-            ex for ex in exits
-            if not hasattr(ex, "is_visible_to") or ex.is_visible_to(caller)
-        ]
-
-        # Filter height-gated exits based on caller's vertical position
+        # Hidden or invisible doors, then ones the caller is at the wrong
+        # height to use.
         char_height = getattr(caller, "room_vertical_position", 0)
         exits = [
             ex for ex in exits
-            if not hasattr(ex, "is_height_accessible")
-            or ex.is_height_accessible(char_height)
+            if p_object_visible_to(ex, caller)
+            and (not hasattr(ex, "is_height_accessible")
+                 or ex.is_height_accessible(char_height))
         ]
+
+        # Size is labelled, not filtered. This command lists a locked door
+        # and says "(locked)" rather than hiding it, and the room display
+        # does no size filtering at all — so dropping a passage the caller
+        # cannot fit through would both break that idiom and leave the two
+        # views disagreeing with nothing to explain the difference. A player
+        # who can see the way exists can plan around it.
+        fits = p_fits_through(caller)
 
         if not exits:
             caller.msg("There are no obvious exits.")
@@ -125,6 +136,9 @@ class CmdExits(FCMCommandMixin, Command):
                 line = f"  |c{dir_label:<12}|n - {state} {desc}" if desc else f"  |c{dir_label:<12}|n - {state}"
             else:
                 line = f"  |c{dir_label:<12}|n - {dest_name}"
+
+            if not fits(ex, caller):
+                line = f"{line} |y(too small)|n"
 
             lines.append(line)
 

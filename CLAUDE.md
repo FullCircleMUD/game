@@ -1,12 +1,17 @@
 # CLAUDE.md
 
+> **Project-wide working rules and cross-repo context live in the FCM umbrella repo's `CLAUDE.md`**,
+> loaded automatically when you work from the umbrella root. If you opened this repo directly instead
+> of via the umbrella, relaunch from the umbrella root for the full context. This file holds only this
+> repo's specific instructions.
+
 Core rules, critical patterns, and an index into the full design/ops docs. Keep this file lean — it loads into every prompt. If a topic has a design doc, put detail there and leave only a pointer here.
 
 ## Project Overview
 
 **FullCircleMUD** — a text MUD built on Evennia (Python/Django) with real blockchain item ownership on **XRPL**. Domain: **fcmud.world**. This folder (`src/game/`) is the Evennia game module; run `evennia start` from `FCM/src/`.
 
-For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For CLI/setup see [ops/DEV_SETUP.md](../../ops/DEV_SETUP.md). For tests see [ops/TESTING.md](../../ops/TESTING.md) — **always `tee` multi-package test runs to a file; piping through `grep` eats tracebacks.**
+For folder structure see [ops/ARCHITECTURE.md](../../ops/DEVELOPMENT/ARCHITECTURE.md). For CLI/setup see [ops/DEV_SETUP.md](../../ops/DEVELOPMENT/DEV_SETUP.md). For tests see [ops/TESTING.md](../../ops/DEVELOPMENT/TESTING.md) — **always `tee` multi-package test runs to a file; piping through `grep` eats tracebacks.**
 
 ## Security Rules
 
@@ -16,7 +21,14 @@ For folder structure see [ops/ARCHITECTURE.md](../../ops/ARCHITECTURE.md). For C
 
 ## Development Approach
 
-**Evennia-first.** Before designing or implementing any solution, explore what Evennia already provides natively. Do not build something Evennia has already solved. Check `evennia/` in the venv (`src/venv/Lib/site-packages/evennia/`), search for existing helpers on `DefaultObject`/`DefaultCharacter`/`DefaultRoom`/`DefaultScript`, read the relevant Evennia manager or utility module, and understand how Evennia's sub-methods (e.g. `get_search_candidates`, `at_object_creation`, `at_post_move`) can be overridden or composed. Where Evennia provides partial functionality, prefer **thin wrappers, narrow overrides of sub-methods, and composition over reimplementation**. Build custom solutions only for the gaps Evennia doesn't cover, and document those gaps in the relevant design doc. See [design/UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) § What Evennia Already Provides for an example of this discipline applied.
+**Architectural decisions go to the user, not me.** Significant design and architectural choices belong to the user for explicit consensus. Present options with honest tradeoffs and let the user direct — never lock in a choice unilaterally, even if framed as a "recommendation" inside a plan or proposal. Two compounding risks make this load-bearing on a 15-repo project:
+
+1. **LLM context gap.** I cannot hold the whole project in context. The user remembers history, constraints, and prior decisions I have lost. That institutional memory is the value the human-in-the-loop provides.
+2. **Comprehension debt.** When I make decisions without the user going through the understanding process, the user accrues blind spots over their own codebase and can no longer fill the role above. The slow path of consensus is cheaper than the debt accrued by unilateral speed.
+
+How to apply: present options as options, not as "the design choice"; use AskUserQuestion when the call is non-trivial; if I'd normally pick a default, say "this is open — your call" instead. Trivial mechanical choices within an already-agreed approach (naming, formatting, comment phrasing, helper placement inside a file) are fine to make — the line is *does this shape the architecture or the user's mental model of it?* If yes, it's theirs. The recurring failure mode to watch for: a plan with a "Design choice" section that prescribes an option dressed in supporting rationale. That's unilateral even when it reads as analysis.
+
+**Evennia-first.** Before designing or implementing any solution, explore what Evennia already provides natively. Do not build something Evennia has already solved. Check `evennia/` in the venv (`src/venv/Lib/site-packages/evennia/`), search for existing helpers on `DefaultObject`/`DefaultCharacter`/`DefaultRoom`/`DefaultScript`, read the relevant Evennia manager or utility module, and understand how Evennia's sub-methods (e.g. `get_search_candidates`, `at_object_creation`, `at_post_move`) can be overridden or composed. Where Evennia provides partial functionality, prefer **thin wrappers, narrow overrides of sub-methods, and composition over reimplementation**. Build custom solutions only for the gaps Evennia doesn't cover, and document those gaps in the relevant design doc. See [docs/unified-search-system.md](../../docs/unified-search-system.md) § What Evennia Already Provides for an example of this discipline applied.
 
 ---
 
@@ -78,6 +90,36 @@ Cached stats (`armor_class`, `initiative_bonus`, `total_hit_bonus`, `total_damag
 Why Tier 3 exists: ability modifiers are context-dependent (finesse weapons use DEX, monks may use WIS, etc.). Caching them would require cascading recalculation on every ability score change. Computed-at-check-time is simpler and correct.
 
 Documented in code: `BaseActor._recalculate_stats()`, `BaseActor._accumulate_effect()`, `CarryingCapacityMixin`.
+
+### Actors move via `at_traverse()`, never `move_to()`
+
+**Every actor — player, mob, pet, familiar, mount — moves through an exit by calling
+`at_traverse()` on that exit.** `move_to()` does not know an exit exists and therefore cannot ask it
+anything, so a direct `move_to()` silently skips every gate the exit owns: door open/closed/locked,
+door hidden or invisible, encumbrance, height and depth compatibility, `max_size`, arrival height and
+fall warnings, tripwires and trap doors, dungeon tag cleanup and conditional routing.
+
+```python
+# WRONG — walks through closed doors, ignores height, never trips the tripwire
+caller.move_to(chosen.destination, move_type="flee", **FLEE_MESSAGES)
+
+# RIGHT — same kwargs, all gating applied
+chosen.at_traverse(caller, chosen.destination, move_type="flee", **FLEE_MESSAGES)
+```
+
+`at_traverse()` forwards `move_type` and `**kwargs` to `move_to()`, so nothing is lost. It returns
+`True` when the move happened; a gate above it returns `None`, so callers test truthiness.
+
+**Not covered by this rule:** objects (inventory transfers via get/drop/give/put/banking — no exit is
+involved), and teleports (`move_type="teleport"` — recall, purgatory, sailing, dungeon and tutorial
+transitions cross no threshold, so there is nothing to gate).
+
+**Exception process.** A direct `move_to()` on an actor requires all four: `at_traverse()` was tried
+and genuinely cannot work; a human discussed and agreed the exception for that specific callsite;
+every applicable check is reproduced at the callsite; and a comment states plainly why
+`at_traverse()` could not be used and where the checks now live. Without that evidence it is a
+defect, not a style choice. Full rationale in
+[docs/exit-architecture.md](../../docs/exit-architecture.md) § Moving actors through exits.
 
 ### Non-combat advantage/disadvantage — mandatory roll pattern
 
@@ -149,6 +191,14 @@ def func(self):
 
 **Y/N confirmations:** use `yield` in simple commands; use `get_input()` callbacks in async commands that `deferToThread` (`yield` is incompatible with deferred callbacks).
 
+### Non-blocking LLM NPC calls (`deferToThread`)
+
+`LLMMixin.llm_respond()` (`typeclasses/mixins/llm_mixin.py`) is the single entry point behind every NPC LLM interaction — `say`, `whisper`, room `arrive`/`leave`, and the `llm_decide` relevance check all funnel through it. The **entire** request — system-prompt assembly, memory/lore retrieval, and the chat completion itself — runs inside one `deferToThread` closure, not just the final API call. Vector-memory storage of the exchange (which also embeds) happens in that same closure; rolling-list storage (a `self.db` write) happens in the `_on_response` callback on the reactor thread.
+
+**Deliberate exception to the `self.db`-on-reactor-thread rule above:** prompt assembly reads `self.location`, `self.db.desc`, `self.tags`, `self.ndb`, etc., and this happens inside the worker thread along with the genuinely expensive work (`ai_memory` DB queries, OpenAI embedding calls for lore/memory search). Splitting those reads back onto the reactor thread would be more correct per the XRPL pattern, but was chosen against for simplicity — the reads are read-only NPC/room state with low practical concurrency risk. If this ever causes a real bug, split `_get_context_variables()` into a reactor-thread "local state" half and a worker-thread "lore/memory lookup" half instead of moving it back wholesale.
+
+**Why the whole thing had to move off-thread:** it originally only wrapped the final `LLMService.chat_completion()` call. Any NPC with `llm_use_lore=True` or `llm_use_vector_memory=True` (e.g. Rowan, Harlow) still made synchronous OpenAI embedding calls during prompt assembly — on the reactor thread, blocking every connected player, not just the arriving one. See [PERFORMANCE_DIAGNOSIS.md](../../ops/DEVELOPMENT/PERFORMANCE_DIAGNOSIS.md) for the worked example.
+
 ### Command Architecture
 
 Custom cmdsets merge on top of Evennia defaults via `commands/default_cmdsets.py`:
@@ -164,8 +214,6 @@ Custom cmdsets merge on top of Evennia defaults via `commands/default_cmdsets.py
 2. Import and `self.add(CmdMyCommand())` in `cmdset_character_custom.py`.
 3. Always add instances `()`, not bare class references.
 
-For help categories, OOC lock, and default overrides see [ops/HELP_CATEGORIES.md](../../ops/HELP_CATEGORIES.md).
-
 ### Key Evennia gotchas
 
 - Use `session.puppet` (not `session.puppets`) to get the character.
@@ -175,7 +223,7 @@ For help categories, OOC lock, and default overrides see [ops/HELP_CATEGORIES.md
 - `at_object_creation()` fires BEFORE `create_object()`'s `attributes` kwarg is applied — `AttributeProperty` values are `None` during this hook. Always create `nohome=True`, set attributes, then `move_to()` when hooks need kwargs or attributes.
 - `move_to(**kwargs)` forwards all kwargs to `at_post_move()` — use this to pass `tx_hash`.
 - Creating with `location=` triggers `at_post_move` immediately with no way to pass kwargs.
-- **NPCs need `call:true()` lock + `_EmptyNPCCmdSet` default** for command visibility. See [design/NPC_QUEST_SYSTEM.md](../../design/NPC_QUEST_SYSTEM.md).
+- **NPCs need `call:true()` lock + `_EmptyNPCCmdSet` default** for command visibility. See [docs/npc-quest-system.md](../../docs/npc-quest-system.md).
 
 ### Wallet address lookup
 
@@ -190,14 +238,14 @@ wallet = caller.account.attributes.get("wallet_address")
 
 ### Transaction model
 
-All on-chain XRPL transactions (import/export) are signed by players via Xaman wallet. The game server creates payloads and polls for results but never holds private keys or pays transaction fees. See [design/IMPORT_EXPORT.md](../../design/IMPORT_EXPORT.md).
+All on-chain XRPL transactions (import/export) are signed by players via Xaman wallet. The game server creates payloads and polls for results but never holds private keys or pays transaction fees. See [docs/import-export.md](../../docs/import-export.md).
 
 ---
 
 ## Coding Conventions
 
 - **Prefer enums over raw strings** for validation and typo prevention. When a field references a fixed set of values (ability scores, weapon types, alignments, damage types, skills, …), use the enum: `WeaponType.BATTLEAXE` not `"battleaxe"`, `Ability.STR` not `"strength"`, `skills.STEALTH.value` not `"stealth"`. Skill commands should set `skill = skills.ENUM.value` so renaming a skill in the enum propagates.
-- **All exits MUST be created through helpers** in `utils/exit_helpers.py`. Never use bare `create_object()` for exits in zone builders. If a new exit type isn't covered, create the helper first. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See [design/EXIT_ARCHITECTURE.md](../../design/EXIT_ARCHITECTURE.md) § Builder Helpers.
+- **All exits are authored in YAML** (`exits:` blocks on rooms in the fcm-world repo) and built by `wb_build` via the `evennia-world-builder` library. Runtime exit creation (procedural dungeons, conditional rebinds) MUST go through helpers in `utils/exit_helpers.py` — never bare `create_object()`. If a new exit type isn't covered by an existing helper, create the helper first. Available helpers: `connect_bidirectional_exit`, `connect_bidirectional_door_exit`, `connect_bidirectional_trapped_door_exit`, `connect_bidirectional_tripwire_exit`, `connect_oneway_loopback_exit`. See [docs/exit-architecture.md](../../docs/exit-architecture.md) § Builder Helpers and [docs/world-deployment.md](../../docs/world-deployment.md) for the authoring pipeline.
 
 ---
 
@@ -217,53 +265,52 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 
 | Topic | Doc |
 |---|---|
-| Unified search & targeting (scopes, predicates, resolvers, name matching) | [UNIFIED_SEARCH_SYSTEM.md](../../design/UNIFIED_SEARCH_SYSTEM.md) |
-| Combat, weapons, stealth, parry/riposte, height combat | [COMBAT_SYSTEM.md](../../design/COMBAT_SYSTEM.md) |
-| Effects, conditions, damage pipeline, DamageResistanceMixin | [EFFECTS_SYSTEM.md](../../design/EFFECTS_SYSTEM.md) |
-| Spells, schools, spellbooks, scrolls, recipe catalog | [SPELL_SKILL_DESIGN.md](../../design/SPELL_SKILL_DESIGN.md) |
-| Crafting, processing, enchanting, recipes | [CRAFTING_SYSTEM.md](../../design/CRAFTING_SYSTEM.md) |
-| NPCs, quests, trainers, guildmasters, shopkeepers | [NPC_QUEST_SYSTEM.md](../../design/NPC_QUEST_SYSTEM.md) |
-| NPC/mob class hierarchy, AI mixins, tier system | [NPC_MOB_ARCHITECTURE.md](../../design/NPC_MOB_ARCHITECTURE.md) |
-| Combat AI memory, strategy bot | [COMBAT_AI_MEMORY.md](../../design/COMBAT_AI_MEMORY.md) |
-| LLM NPC lore memory, embeddings | [LORE_MEMORY.md](../../design/LORE_MEMORY.md) |
-| Inventory, equipment, wearslots, weight, NFT ownership model, durability | [INVENTORY_EQUIPMENT.md](../../design/INVENTORY_EQUIPMENT.md) |
-| Economy, pricing, markets, spawn algorithms, SINK, reallocation | [ECONOMY.md](../../design/ECONOMY.md) |
-| Unified spawn system (resources / gold / rare NFTs / knowledge) | [UNIFIED_ITEM_SPAWN_SYSTEM.md](../../design/UNIFIED_ITEM_SPAWN_SYSTEM.md) |
-| Mob spawning (population, respawn, area tags, hooks) | [SPAWN_MOBS.md](../../design/SPAWN_MOBS.md) |
-| Economy telemetry, snapshots, velocity categories | [TELEMETRY.md](../../design/TELEMETRY.md) |
-| Treasury, fiscal discipline, vault architecture | [TREASURY.md](../../design/TREASURY.md) |
-| Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../design/SUBSCRIPTIONS.md) |
-| Import / export / wallet flow, deferToThread, replay protection | [IMPORT_EXPORT.md](../../design/IMPORT_EXPORT.md) |
-| Database architecture, 4-DB layout, pgvector | [DATABASE.md](../../design/DATABASE.md) |
-| World lore, zones, districts | [WORLD.md](../../design/WORLD.md) |
-| New player experience, tutorial, Millholm onboarding | [NEW_PLAYER_EXPERIENCE.md](../../design/NEW_PLAYER_EXPERIENCE.md) |
-| Inter-zone travel, sail, cartography mastery gates | [INTERZONE_TRAVEL.md](../../design/INTERZONE_TRAVEL.md) |
-| Intra-zone cartography, `survey` / `map` | [CARTOGRAPHY.md](../../design/CARTOGRAPHY.md) |
-| Procedural dungeons, instance lifecycle | [PROCEDURAL_DUNGEONS.md](../../design/PROCEDURAL_DUNGEONS.md) |
-| Vertical movement, flying, swimming, climbing | [VERTICAL_MOVEMENT.md](../../design/VERTICAL_MOVEMENT.md) |
-| Exit types, doors, traps, builder helpers | [EXIT_ARCHITECTURE.md](../../design/EXIT_ARCHITECTURE.md) |
-| Room architecture, banking / crafting / harvesting rooms | [ROOM_ARCHITECTURE.md](../../design/ROOM_ARCHITECTURE.md) |
-| World objects, fixtures, climbables, searchables | [WORLD_OBJECTS.md](../../design/WORLD_OBJECTS.md) |
-| Pets and mounts | [PETS_AND_MOUNTS.md](../../design/PETS_AND_MOUNTS.md) |
-| Alignment system | [ALIGNMENT_SYSTEM.md](../../design/ALIGNMENT_SYSTEM.md) |
-| Language system, garbling, racial languages | [LANGUAGE_SYSTEM.md](../../design/LANGUAGE_SYSTEM.md) |
-| Survival (hunger, thirst) | [SURVIVAL_SYSTEM.md](../../design/SURVIVAL_SYSTEM.md) |
-| Weapon damage scaling by tier × mastery | [WEAPON_DAMAGE_SCALING.md](../../design/WEAPON_DAMAGE_SCALING.md) |
-| Races, classes, point buy, remort | [CHARACTER_PROGRESSION.md](../../design/CHARACTER_PROGRESSION.md) |
-| Compliance strategy, token classification | [COMPLIANCE.md](../../design/COMPLIANCE.md) |
-| Website, markets page, frontend | [WEBSITE.md](../../design/WEBSITE.md) |
-| Connection transport, WebSocket-only rationale, telnet/SSH limitations | [CONNECTION_TRANSPORT.md](../../design/CONNECTION_TRANSPORT.md) |
+| Unified search & targeting (scopes, predicates, resolvers, name matching) | [UNIFIED_SEARCH_SYSTEM.md](../../docs/unified-search-system.md) |
+| Combat, weapons, stealth, parry/riposte, height combat | [COMBAT_SYSTEM.md](../../docs/combat-system.md) |
+| Effects, conditions, damage pipeline, DamageResistanceMixin | [EFFECTS_SYSTEM.md](../../docs/effects-system.md) |
+| Spells, schools, spellbooks, scrolls, recipe catalog | [SPELL_SKILL_DESIGN.md](../../docs/spell-skill-design.md) |
+| Crafting, processing, enchanting, recipes | [CRAFTING_SYSTEM.md](../../docs/crafting-system.md) |
+| NPCs, quests, trainers, guildmasters, shopkeepers | [NPC_QUEST_SYSTEM.md](../../docs/npc-quest-system.md) |
+| NPC/mob class hierarchy, AI mixins, tier system | [NPC_MOB_ARCHITECTURE.md](../../docs/npc-mob-architecture.md) |
+| Combat AI memory, strategy bot | [COMBAT_AI_MEMORY.md](../../docs/combat-ai-memory.md) |
+| LLM NPC lore memory, embeddings | [LORE_MEMORY.md](../../docs/lore-memory.md) |
+| Inventory, equipment, wearslots, weight, NFT ownership model, durability | [INVENTORY_EQUIPMENT.md](../../docs/inventory-equipment.md) |
+| Economy, pricing, markets, spawn algorithms, SINK, reallocation | [ECONOMY.md](../../docs/economy.md) |
+| Unified spawn system (resources / gold / rare NFTs / knowledge) | [UNIFIED_ITEM_SPAWN_SYSTEM.md](../../docs/unified-item-spawn-system.md) |
+| Mob spawning (population, respawn, area tags, hooks) | [SPAWN_MOBS.md](../../docs/spawn-mobs.md) |
+| Economy telemetry, snapshots, velocity categories | [TELEMETRY.md](../../docs/telemetry.md) |
+| Treasury, fiscal discipline, vault architecture | [TREASURY.md](../../docs/treasury.md) |
+| Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../docs/subscriptions.md) |
+| Import / export / wallet flow, deferToThread, replay protection | [IMPORT_EXPORT.md](../../docs/import-export.md) |
+| Database architecture, 4-DB layout, pgvector | [DATABASE.md](../../docs/database.md) |
+| World lore, zones, districts | [WORLD.md](../../docs/world.md) |
+| New player experience, tutorial, Millholm onboarding | [NEW_PLAYER_EXPERIENCE.md](../../docs/new-player-experience.md) |
+| Inter-zone travel, sail, cartography mastery gates | [INTERZONE_TRAVEL.md](../../docs/interzone-travel.md) |
+| Intra-zone cartography, `survey` / `map` | [CARTOGRAPHY.md](../../docs/cartography.md) |
+| Procedural dungeons, instance lifecycle | [PROCEDURAL_DUNGEONS.md](../../docs/procedural-dungeons.md) |
+| Vertical movement, flying, swimming, climbing | [VERTICAL_MOVEMENT.md](../../docs/vertical-movement.md) |
+| Exit types, doors, traps, builder helpers | [EXIT_ARCHITECTURE.md](../../docs/exit-architecture.md) |
+| Room architecture, banking / crafting / harvesting rooms | [ROOM_ARCHITECTURE.md](../../docs/room-architecture.md) |
+| World objects, fixtures, climbables, searchables | [WORLD_OBJECTS.md](../../docs/world-objects.md) |
+| Pets and mounts | [PETS_AND_MOUNTS.md](../../docs/pets-and-mounts.md) |
+| Alignment system | [ALIGNMENT_SYSTEM.md](../../docs/alignment-system.md) |
+| Language system, garbling, racial languages | [LANGUAGE_SYSTEM.md](../../docs/language-system.md) |
+| Survival (hunger, thirst) | [SURVIVAL_SYSTEM.md](../../docs/survival-system.md) |
+| Weapon damage scaling by tier × mastery | [WEAPON_DAMAGE_SCALING.md](../../docs/weapon-damage-scaling.md) |
+| Races, classes, point buy, remort | [CHARACTER_PROGRESSION.md](../../docs/character-progression.md) |
+| Compliance strategy, token classification | [COMPLIANCE.md](../../docs/compliance.md) |
+| Website, markets page, frontend | [WEBSITE.md](../../docs/website.md) |
+| Connection transport, WebSocket-only rationale, telnet/SSH limitations | [CONNECTION_TRANSPORT.md](../../docs/connection-transport.md) |
 
 ### Ops (`ops/`) — dev, runbooks, infra
 
 | Topic | Doc |
 |---|---|
-| Folder map / subsystem tree | [ARCHITECTURE.md](../../ops/ARCHITECTURE.md) |
-| Developer setup, venv, CLI, migrations | [DEV_SETUP.md](../../ops/DEV_SETUP.md) |
-| Running tests, base classes, common patterns | [TESTING.md](../../ops/TESTING.md) |
-| Help categories, OOC lock, default overrides | [HELP_CATEGORIES.md](../../ops/HELP_CATEGORIES.md) |
-| Deployment, Railway, branching, multisig | [DEPLOYMENT.md](../../ops/DEPLOYMENT.md) |
+| Folder map / subsystem tree | [ARCHITECTURE.md](../../ops/DEVELOPMENT/ARCHITECTURE.md) |
+| Developer setup, venv, CLI, migrations | [DEV_SETUP.md](../../ops/DEVELOPMENT/DEV_SETUP.md) |
+| Running tests, base classes, common patterns | [TESTING.md](../../ops/DEVELOPMENT/TESTING.md) |
+| Diagnosing slow operations — measure-bisect-pinpoint methodology | [PERFORMANCE_DIAGNOSIS.md](../../ops/DEVELOPMENT/PERFORMANCE_DIAGNOSIS.md) |
+| Deployment, Railway, branching, multisig | [DEPLOYMENT.md](../../ops/DEVELOPMENT/DEPLOYMENT.md) |
 | Compliance legal framework | [COMPLIANCE_LEGAL.md](../../ops/COMPLIANCE_LEGAL.md) |
 | Compliance website checklist | [COMPLIANCE_WEBSITE_CHECKLIST.md](../../ops/COMPLIANCE_WEBSITE_CHECKLIST.md) |
-| Release phasing (Pre-Alpha → Launch) | [DEVELOPMENT_PHASE_PLAN.md](../../ops/DEVELOPMENT_PHASE_PLAN.md) |
-| Backlog / in-progress / long-term | [PLANNING/](../../ops/PLANNING/) |
+| Release phasing (Pre-Alpha → Launch) | [DEVELOPMENT_PHASE_PLAN.md](../../ops/DEVELOPMENT/DEVELOPMENT_PHASE_PLAN.md) |

@@ -26,10 +26,17 @@ class CmdSyncNfts(Command):
     key = "sync_nfts"
     aliases = []
     locks = "cmd:id(1) and is_ooc()"
-    help_category = "Economy"
+    help_category = "Blockchain"
 
     def func(self):
         caller = self.caller
+
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            caller.msg("|rThis command can only be run OOC on the router.|n")
+            return
 
         caller.msg("|c--- XRPL NFT Sync ---|n")
         caller.msg("Querying vault wallet on-chain...")
@@ -56,8 +63,15 @@ def _on_sync_complete(caller, result):
     caller.msg(f"  Unchanged (already synced): {result['unchanged']}")
     if result['skipped']:
         caller.msg(f"  |ySkipped (no game ID in URI):|n {result['skipped']}")
-    if result.get('objects_patched'):
-        caller.msg(f"  |gEvennia objects patched:|n {result['objects_patched']}")
+
+    objects_patched = result.get('objects_patched')
+    if objects_patched is None:
+        caller.msg(
+            "  |gObject patch sweep dispatched to all shards|n "
+            "(async — check the server log for per-shard counts)"
+        )
+    elif objects_patched:
+        caller.msg(f"  |gEvennia objects patched:|n {objects_patched}")
     caller.msg("|c--- Sync Complete ---|n")
 
 

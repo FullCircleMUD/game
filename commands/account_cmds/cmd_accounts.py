@@ -13,7 +13,11 @@ class CmdAccounts(Command):
         accounts
 
     Shows every account with their ID, last login timestamp,
-    online status, and characters.
+    characters, and whether they have a session connected to
+    THIS process — not cluster-wide online status. A player IC
+    on a different shard shows as offline here even though they
+    are connected elsewhere; hop shards and re-run to check each
+    one, or see docs/scaling.md's open TBD on cross-shard presence.
     """
 
     key = "accounts"
@@ -22,6 +26,15 @@ class CmdAccounts(Command):
 
     def func(self):
         from evennia.accounts.models import AccountDB
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role, get_shard_id
+
+        role = get_role()
+        if role == ROLE_MONOLITH:
+            process_label = "monolith"
+        elif role == ROLE_ROUTER:
+            process_label = "router"
+        else:
+            process_label = get_shard_id() or role
 
         accounts = AccountDB.objects.all().order_by("-last_login")
 
@@ -30,6 +43,7 @@ class CmdAccounts(Command):
             return
 
         self.msg("|wAll Accounts|n")
+        self.msg(f"|c(Online = connected to this process: {process_label})|n")
         self.msg("|b" + "-" * 72 + "|n")
 
         for acct in accounts:
@@ -39,7 +53,7 @@ class CmdAccounts(Command):
             else:
                 login_str = "Never"
 
-            # Online status
+            # Online on this process only — see command docstring.
             online = "|g*|n " if acct.sessions.count() > 0 else "  "
 
             # Characters

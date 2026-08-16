@@ -425,7 +425,7 @@ class TestCmdCraftEnchantRubyIntegration(EvenniaCommandTest):
             self.call(CmdCraft(), "enchanted ruby", inputs=["y"])
         return item
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -442,7 +442,7 @@ class TestCmdCraftEnchantRubyIntegration(EvenniaCommandTest):
         )
         self.assertEqual(item.db.wear_effects, effects)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")
@@ -465,7 +465,7 @@ class TestCmdCraftEnchantRubyIntegration(EvenniaCommandTest):
         self.assertEqual(item.excluded_races, ["dwarf"])
         self.assertEqual(item.min_alignment_score, -299)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_craft.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.spawn_into")
     @patch("typeclasses.items.base_nft_item.BaseNFTItem.assign_to_blank_token")

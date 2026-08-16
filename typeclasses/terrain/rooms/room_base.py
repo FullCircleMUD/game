@@ -14,21 +14,21 @@ from enums.condition import Condition
 from enums.terrain_type import TerrainType
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.quest_tag import QuestTagMixin
-from utils.targeting.predicates import p_height_visible_to
+from typeclasses.mixins.unseen_name import UnseenNameMixin
+from utils.targeting.predicates import (
+    p_actor_visible_to,
+    p_can_perceive,
+    p_is_character,
+    p_living,
+    p_object_visible_to,
+)
+from utils.visibility import looker_is_blind
 
 
-def _can_see_hidden(entity):
-    """Check if entity can see HIDDEN actors/objects.
+class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
 
-    True Sight is the single-purpose effect that pierces physical
-    concealment (HIDDEN condition). Nothing else grants this.
-    """
-    if not hasattr(entity, "has_effect"):
-        return False
-    return entity.has_effect("true_sight")
-
-
-class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
+    #: A room you cannot see is not nowhere — it is somewhere unidentified.
+    unseen_name = AttributeProperty("Somewhere")
 
     allow_combat = AttributeProperty(True, autocreate=False)
     allow_pvp = AttributeProperty(False, autocreate=False)
@@ -58,6 +58,11 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
     # Weather shelter — None means "derive from terrain type"
     # True = sheltered (indoor building), False = exposed (outdoor)
     sheltered = AttributeProperty(None, autocreate=False)
+
+    # Weather suppression — None means "derive from terrain type"
+    # True = no weather at all (extra-planar / artificial sky / void),
+    # False = forced weather-eligible regardless of terrain.
+    subterranean = AttributeProperty(None, autocreate=False)
 
     # Terrain types that are naturally dark (no sunlight)
     _DARK_TERRAIN = {TerrainType.UNDERGROUND.value, TerrainType.DUNGEON.value}
@@ -149,7 +154,16 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
 
     @property
     def is_subterranean(self):
-        """True for underground/dungeon rooms — no weather at all."""
+        """
+        True for rooms with no weather at all.
+
+        If subterranean is explicitly set (True/False), use that.
+        Otherwise derive from terrain type: underground/dungeon = True,
+        everything else = False.
+        """
+        explicit = self.subterranean
+        if explicit is not None:
+            return bool(explicit)
         terrain = self.get_terrain()
         return terrain is not None and terrain in self._SUBTERRANEAN_TERRAIN
 
@@ -173,35 +187,50 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         """True for outdoor rooms that get full weather descriptions + effects."""
         return not self.is_subterranean and not self.is_sheltered
 
+    @staticmethod
+    def _is_lit_source(obj):
+        """True if obj is a light source that is currently burning."""
+        return (getattr(obj, "is_light_source", False)
+                and getattr(obj, "is_lit", False))
+
     def _has_light_source_in_room(self):
-        """Check if any lit light source exists in the room contents."""
+        """
+        Check whether anything is lighting this room, for everyone in it.
+
+        Light does not care who owns it. A torch on the floor, a torch in
+        a hand and the light spell on someone's shoulder all light the
+        room for every occupant alike — four in a dungeon with one lantern
+        between them can all see.
+
+        The reach into an actor's contents is deliberately one level deep
+        and gated on ``p_living``. That excludes chests, sacks and dropped
+        packs, so a lantern shut inside one stays dark, and it excludes
+        corpses, so the torch on a body you just dropped has to be looted
+        before it lights anything. A lantern inside a backpack inside a
+        character does not count either, for the same reason as the chest.
+        """
         for obj in self.contents:
-            if getattr(obj, "is_light_source", False) and getattr(obj, "is_lit", False):
+            if self._is_lit_source(obj):
                 return True
             # Light spell on a character illuminates the room for everyone
             if hasattr(obj, "has_effect") and obj.has_effect("light_spell"):
                 return True
-        return False
-
-    def _looker_has_light(self, looker):
-        """Check if the looker carries or wears a lit light source."""
-        if not hasattr(looker, "contents"):
-            return False
-        for obj in looker.contents:
-            if getattr(obj, "is_light_source", False) and getattr(obj, "is_lit", False):
+            if p_living(obj, None) and any(
+                    self._is_lit_source(carried) for carried in obj.contents):
                 return True
         return False
 
-    def is_dark(self, looker=None):
+    def _dark_ignoring_darkvision(self):
         """
-        Return True if this room is currently dark for the given looker.
+        Return True if this room lacks light, for anyone without DARKVISION.
 
-        A room is NOT dark if any of:
-            - It is permanently lit (always_lit)
-            - It has natural light and the current phase is a light phase
-            - A lit light source exists in the room (lamp post, dropped torch)
-            - The looker carries a lit light source
-            - The looker has DARKVISION
+        Same checks as is_dark(), minus the looker's own DARKVISION —
+        used both by is_dark() and by seeing_via_darkvision() to tell
+        "genuinely lit" apart from "dark, but seen through darkvision".
+
+        Takes no looker: light is a property of the room, and the only
+        thing that varies by observer is darkvision, which is is_dark()'s
+        business.
         """
         # Permanently lit rooms are never dark
         if self.always_lit:
@@ -213,59 +242,137 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         if self.has_natural_light and get_time_of_day().is_light:
             return False
 
-        # Any lit fixture or dropped light source in the room
+        # Any light in the room — on the floor, in a hand, or on a
+        # shoulder. Carried light is genuine light, not vision, so it
+        # answers here rather than per-looker.
         if self._has_light_source_in_room():
             return False
 
-        # Looker-specific checks
-        if looker:
-            if self._looker_has_light(looker):
-                return False
-            if (
-                hasattr(looker, "has_condition")
-                and looker.has_condition(Condition.DARKVISION)
-            ):
-                return False
+        return True
+
+    def is_dark(self, looker=None):
+        """
+        Return True if this room is currently dark for the given looker.
+
+        A room is NOT dark if any of:
+            - It is permanently lit (always_lit)
+            - It has natural light and the current phase is a light phase
+            - A lit light source exists in the room — a lamp post, a
+              dropped torch, or one carried by anyone standing in it
+            - The looker has DARKVISION
+        """
+        if not self._dark_ignoring_darkvision():
+            return False
+
+        if (
+            looker
+            and hasattr(looker, "has_condition")
+            and looker.has_condition(Condition.DARKVISION)
+        ):
+            return False
 
         return True
 
+    def seeing_via_darkvision(self, looker=None):
+        """
+        Return True if the room is dark but the looker sees it via DARKVISION.
+
+        Used to tag the room name (Dark) for darkvision lookers, so they
+        experience the darkness mechanic instead of it being invisible to
+        them, and can anticipate when non-darkvision companions can't see.
+        """
+        if not looker or not hasattr(looker, "has_condition"):
+            return False
+        return (
+            looker.has_condition(Condition.DARKVISION)
+            and self._dark_ignoring_darkvision()
+        )
+
+    # Naming is UnseenNameMixin's job — see unseen_name above.
+
     def at_object_receive(self, moved_obj, source_location, **kwargs):
-        """Fire quest events and notify mobs when something enters."""
+        """Fire quest events and tell the room something entered.
+
+        The single arrival dispatcher. Mobs hear it through
+        ``at_new_arrival`` and LLM NPCs through ``at_llm_player_arrive``;
+        both are the same event, so both are gated in the same place. A
+        second loop elsewhere is how one of them ends up unfiltered.
+
+        The notification is gated on perception, asked once per recipient
+        with the arriver as the thing being perceived. This is the push
+        side of the same question ``get_targets_in_room`` answers when a
+        mob looks around: without it, a mob attacks an invisible player
+        it walked past a moment ago without noticing.
+
+        ``p_can_perceive`` rather than ``p_can_see``, deliberately.
+        Concealment excludes — a hidden or invisible arrival is not
+        announced at all. Darkness does not: someone walking in makes
+        noise, so an unlit room still gets the notification. What a
+        recipient can work out about an arrival it cannot see is the
+        behaviour's problem, not the dispatcher's — which is why the
+        sight half lives in ``at_llm_player_arrive``, where an NPC that
+        cannot see chooses to challenge rather than greet.
+
+        The counters come with the predicate: a mob holding DETECT_INVIS
+        is still told about an invisible arrival, and one under
+        true_sight about a hidden one.
+
+        The LLM hook carries two extra conditions. ``source_location``
+        gates out initial placement during ``create_object()`` (chargen):
+        an instantiated character is not semantically "arriving", and a
+        reactive NPC in the start room would make a blocking multi-second
+        LLM call during chargen finalisation. ``p_is_character`` is
+        needed because this hook fires for anything entering, and a
+        dropped sword is not an arrival worth talking to.
+        """
         super().at_object_receive(moved_obj, source_location, **kwargs)
         if self.quest_tags and hasattr(moved_obj, "quests"):
             self.fire_quest_event(moved_obj, "enter_room")
 
-        # Notify mobs in this room about the new arrival
+        notify_llm = source_location is not None and p_is_character(
+            moved_obj, self
+        )
+
         for obj in self.contents:
-            if obj != moved_obj and hasattr(obj, "at_new_arrival"):
+            if obj is moved_obj:
+                continue
+            if not p_can_perceive(moved_obj, obj):
+                continue
+            if hasattr(obj, "at_new_arrival"):
                 obj.at_new_arrival(moved_obj)
+            if notify_llm and hasattr(obj, "at_llm_player_arrive"):
+                obj.at_llm_player_arrive(moved_obj)
 
     def msg_contents(self, text=None, exclude=None, from_obj=None, mapping=None,
                      raise_funcparse_errors=False, **kwargs):
         """
-        Override to filter room messages based on actor visibility.
+        Override to filter room messages by whether ``from_obj`` is
+        concealed from each recipient.
 
-        - HIDDEN actor: only recipients with true_sight see the message.
-        - INVISIBLE actor: only recipients with DETECT_INVIS see the message.
+        Both concealment axes are asked, because ``from_obj`` may be an
+        actor or an object:
 
-        All 34+ existing callers pass from_obj=caller, so this works
-        automatically with zero caller changes.
+        - ``p_actor_visible_to`` — HIDDEN actors need ``true_sight``,
+          INVISIBLE actors need ``DETECT_INVIS``.
+        - ``p_object_visible_to`` — a door or fixture composing
+          ``HiddenObjectMixin`` / ``InvisibleObjectMixin``.
+
+        Each predicate passes anything outside its own domain through
+        untouched, so an actor is gated only by the first and a door only
+        by the second.
+
+        Operands are in messaging order — ``from_obj`` is the thing being
+        seen, the recipient is the observer. Targeting asks the same
+        predicates the other way round.
         """
-        if from_obj and hasattr(from_obj, "has_condition"):
-            if from_obj.has_condition(Condition.HIDDEN):
-                # Only sight-capable recipients see messages from hidden actors
-                exclude = list(make_iter(exclude)) if exclude else []
-                for obj in self.contents:
-                    if obj not in exclude and not _can_see_hidden(obj):
-                        exclude.append(obj)
-            elif from_obj.has_condition(Condition.INVISIBLE):
-                exclude = list(make_iter(exclude)) if exclude else []
-                for obj in self.contents:
-                    if obj not in exclude and not (
-                        hasattr(obj, "has_condition")
-                        and obj.has_condition(Condition.DETECT_INVIS)
-                    ):
-                        exclude.append(obj)
+        if from_obj is not None:
+            exclude = list(make_iter(exclude)) if exclude else []
+            for obj in self.contents:
+                if obj in exclude:
+                    continue
+                if not (p_actor_visible_to(from_obj, obj)
+                        and p_object_visible_to(from_obj, obj)):
+                    exclude.append(obj)
 
         # Sleeping characters get a muffled message instead of the real content.
         # Collect sleepers, exclude them from the normal broadcast, then send
@@ -288,42 +395,51 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
             raise_funcparse_errors=raise_funcparse_errors, **kwargs
         )
 
-    def msg_contents_with_invis_alt(self, normal_msg, invis_msg, from_obj, exclude=None):
+    def msg_contents_with_invis_alt(self, normal_msg, invis_msg, from_obj,
+                                    exclude=None, mapping=None):
         """
-        Send room message with alternate text for invisible actors.
+        Send a room message with alternate text for those who can't see the actor.
 
-        - HIDDEN from_obj: only true_sight recipients see normal_msg.
-        - INVISIBLE from_obj: DETECT_INVIS recipients see normal_msg,
-          others see invis_msg. from_obj is always excluded.
-        - Normal: standard msg_contents with from_obj.
+        Recipients who can see ``from_obj`` get ``normal_msg``; those who
+        cannot get ``invis_msg``. ``from_obj`` is always excluded.
+
+        What an observer receives depends only on **whether** they can see
+        the actor, never on **why** they can't — hidden and invisible
+        produce the same experience, and a future concealment cause gets
+        the same treatment for free. ``p_actor_visible_to`` is the
+        single source of that answer.
+
+        Both messages go through ``super().msg_contents``, so each keeps
+        its funcparser handling ($You() / $conj()). That matters for the
+        alt: ``get_display_name`` already renders the actor as "Someone"
+        for anyone who can't see them, so a caller can pass the *same*
+        template as both arguments and get correct anonymised grammar
+        without authoring a second string.
         """
         exclude = list(make_iter(exclude)) if exclude else []
         if from_obj and from_obj not in exclude:
             exclude.append(from_obj)
 
-        if from_obj and hasattr(from_obj, "has_condition"):
-            if from_obj.has_condition(Condition.HIDDEN):
-                # Only sight-capable recipients see messages from hidden actors
-                for obj in self.contents:
-                    if obj in exclude:
-                        continue
-                    if _can_see_hidden(obj):
-                        obj.msg(normal_msg)
-                return
-            if from_obj.has_condition(Condition.INVISIBLE):
-                for obj in self.contents:
-                    if obj in exclude:
-                        continue
-                    if (
-                        hasattr(obj, "has_condition")
-                        and obj.has_condition(Condition.DETECT_INVIS)
-                    ):
-                        obj.msg(normal_msg)
-                    else:
-                        obj.msg(invis_msg)
-                return
+        unseeing = []
+        if from_obj is not None:
+            unseeing = [
+                obj for obj in self.contents
+                if obj not in exclude
+                and not p_actor_visible_to(from_obj, obj)
+            ]
 
-        super().msg_contents(normal_msg, exclude=exclude, from_obj=from_obj)
+        if unseeing:
+            seeing = [obj for obj in self.contents if obj not in exclude
+                      and obj not in unseeing]
+            super().msg_contents(
+                invis_msg, exclude=exclude + seeing, from_obj=from_obj,
+                mapping=mapping,
+            )
+
+        super().msg_contents(
+            normal_msg, exclude=exclude + unseeing, from_obj=from_obj,
+            mapping=mapping,
+        )
 
     def return_appearance(self, looker, **kwargs):
         """
@@ -355,66 +471,74 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
 
         ignore_brief = kwargs.get("ignore_brief", False)
 
-        # ── Dark room shortcut ─────────────────────────────────────
-        if self.is_dark(looker):
-            parts = []
-            header = self.get_display_header(looker, **kwargs)
-            if header:
-                parts.append(header)
-            parts.append("|cUnknown|n")
-            parts.append(self.get_display_desc(looker, **kwargs))
-            footer = self.get_display_footer(looker, **kwargs)
-            if footer:
-                parts.append(footer)
-            return f"\n{self.format_appearance(chr(10).join(parts), looker, **kwargs)}"
-
-        # ── Room name (cyan) with vertical position suffix ─────────
-        char_height = looker.room_vertical_position
-        base_name = self.get_display_name(looker, **kwargs)
-        extra = self.get_extra_display_name_info(looker, **kwargs)
-        if extra:
-            base_name = f"{base_name} {extra}"
-
-        if char_height == 0 and self.max_depth < 0:
-            formatted_name = f"{base_name}   (Swimming)"
-        elif char_height < 0:
-            formatted_name = f"{base_name}   (Underwater)"
-        elif char_height > 0:
-            formatted_name = f"{base_name}   (Flying)"
-        else:
-            formatted_name = base_name
-
         parts = []
         header = self.get_display_header(looker, **kwargs)
         if header:
             parts.append(header)
+
+        # Sight is a property of the looker, so it is asked once here and
+        # the sections below share the answer.
+        sighted = not looker_is_blind(looker)
+
+        # ── Room name (cyan) ───────────────────────────────────────
+        # Always shown. get_display_name anonymises it for itself, so an
+        # unseen room names itself "Somewhere" — or whatever its own
+        # unseen_name says. Only the decorations are sight-only: where
+        # you are standing, and the darkvision tag.
+        char_height = looker.room_vertical_position
+        formatted_name = self.get_display_name(looker, **kwargs)
+
+        if sighted:
+            extra = self.get_extra_display_name_info(looker, **kwargs)
+            if extra:
+                formatted_name = f"{formatted_name} {extra}"
+
+            if char_height == 0 and self.max_depth < 0:
+                formatted_name = f"{formatted_name}   (Swimming)"
+            elif char_height < 0:
+                formatted_name = f"{formatted_name}   (Underwater)"
+            elif char_height > 0:
+                formatted_name = f"{formatted_name}   (Flying)"
+
+            if self.seeing_via_darkvision(looker):
+                formatted_name = f"{formatted_name}   (Dark)"
+
         parts.append(f"|c{formatted_name}|n")
 
-        # ── Description (default color) — respect brief mode ────────
-        show_desc = ignore_brief or not getattr(looker, "brief_mode", False)
-        if show_desc:
-            desc = self.get_display_desc(looker, **kwargs)
-            # Add height prefix only when vert_descriptions didn't provide
-            # a height-specific description (those already describe the
-            # scene from the correct perspective).
-            has_vert_desc = (
-                self.vert_descriptions
-                and (char_height in self.vert_descriptions
-                     or str(char_height) in self.vert_descriptions)
-            )
-            if not has_vert_desc:
-                if char_height < 0:
-                    desc = f"Swimming underwater you can dimly perceive above you:\n{desc}"
-                elif char_height > 0:
-                    desc = f"Flying you can see below you:\n{desc}"
-            if desc:
-                parts.append(f"|n{desc}")
+        # ── Description, exits — sight only ────────────────────────
+        # The description names and describes the place, and you cannot
+        # pick out a doorway across an unlit room. Things and characters
+        # follow below for everyone — each anonymises for itself, so an
+        # unlit room reads as shapes you cannot identify, not as empty.
+        if sighted:
+            # ── Description (default color) — respect brief mode ────
+            show_desc = ignore_brief or not getattr(looker, "brief_mode", False)
+            if show_desc:
+                desc = self.get_display_desc(looker, **kwargs)
+                # Add height prefix only when vert_descriptions didn't
+                # provide a height-specific description (those already
+                # describe the scene from the correct perspective).
+                has_vert_desc = (
+                    self.vert_descriptions
+                    and (char_height in self.vert_descriptions
+                         or str(char_height) in self.vert_descriptions)
+                )
+                if not has_vert_desc:
+                    if char_height < 0:
+                        desc = f"Swimming underwater you can dimly perceive above you:\n{desc}"
+                    elif char_height > 0:
+                        desc = f"Flying you can see below you:\n{desc}"
+                if desc:
+                    parts.append(f"|n{desc}")
 
-        # ── Auto-exits (cyan, compact) ─────────────────────────────
-        if getattr(looker, "auto_exits", True):
-            exits_str = self.get_display_exits(looker, **kwargs)
-            if exits_str:
-                parts.append(f"|c{exits_str}|n")
+            # ── Auto-exits (cyan, compact) ─────────────────────────
+            # Sight only: you cannot pick out a doorway across an unlit
+            # room, even though open_exits still lets you grope your way
+            # through one.
+            if getattr(looker, "auto_exits", True):
+                exits_str = self.get_display_exits(looker, **kwargs)
+                if exits_str:
+                    parts.append(f"|c{exits_str}|n")
 
         # ── Things/objects (green) ─────────────────────────────────
         things_str = self.get_display_things(looker, **kwargs)
@@ -558,7 +682,7 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         # Filter hidden/invisible exits and closed doors
         exits = [
             ex for ex in exits
-            if (not hasattr(ex, "is_visible_to") or ex.is_visible_to(looker))
+            if p_object_visible_to(ex, looker)
             and (not hasattr(ex, "is_open") or ex.is_open)
         ]
 
@@ -595,51 +719,52 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         Get the 'characters' component of the object description. Called by `return_appearance`.
 
         Filters out HIDDEN and INVISIBLE characters based on looker's conditions.
-        Returns empty string in dark rooms or when no visible characters.
-        """
-        if self.is_dark(looker):
-            return ""
+        Returns empty string when no characters can be perceived.
 
+        Lighting is not this method's decision. A looker who cannot see
+        still perceives that bodies are present, so every perceived
+        character is rendered — each through ``get_display_name``, which
+        anonymises to "Someone" when the looker is blind or the room is
+        dark for them. What is withheld alongside the name is everything
+        else that would identify them: the room description, the
+        alignment aura, and the height and concealment tags.
+        """
         characters = self.filter_visible(
             self.contents_get(content_type="character"), looker, **kwargs
         )
 
-        # Filter hidden/invisible characters
-        visible = []
-        looker_has_detect = (
-            hasattr(looker, "has_condition")
-            and looker.has_condition(Condition.DETECT_INVIS)
-        )
-        for char in characters:
-            if not hasattr(char, "has_condition"):
-                visible.append(char)
-                continue
-            if char.has_condition(Condition.HIDDEN):
-                if not _can_see_hidden(looker):
-                    continue
-            if char.has_condition(Condition.INVISIBLE) and not looker_has_detect:
-                continue
-            visible.append(char)
-
-        # Filter by height-gated visibility
-        visible = [
-            char for char in visible
-            if p_height_visible_to(char, looker)
-        ]
+        # Concealment (HIDDEN / INVISIBLE) and height gating are one
+        # question — whether this looker can perceive that character.
+        visible = [char for char in characters if p_can_perceive(char, looker)]
 
         if not visible:
             return ""
 
-        # Check if looker can see alignment auras
+        # Sight is a property of the looker, not of any one character, so
+        # it is the same answer for everyone here — asked once rather than
+        # once per candidate, since is_dark scans the room to answer it.
+        sighted = not looker_is_blind(looker)
+
+        # Check if looker can see alignment auras. Sighted, because an
+        # aura tells you what someone is — the same identifying detail the
+        # anonymised name is withholding.
         looker_detects_alignment = (
-            hasattr(looker, "has_effect")
+            sighted
+            and hasattr(looker, "has_effect")
             and looker.has_effect("detect_alignment")
         )
 
         lines = []
         for char in visible:
-            # Use room_description if available, otherwise fall back to name
-            if hasattr(char, "get_room_description"):
+            # Three distinct renderings. A looker who cannot see gets the
+            # anonymised name and a verb of its own; one who can gets the
+            # room description, or the plain name where there is none.
+            if not sighted:
+                # No "else" — unseen_name is settable, so this has to read
+                # for "A mysterious presence" as well as for "Someone".
+                name = char.get_display_name(looker, **kwargs)
+                line = f"{name} is in the room."
+            elif hasattr(char, "get_room_description"):
                 line = char.get_room_description()
             else:
                 line = char.get_display_name(looker, **kwargs)
@@ -652,16 +777,20 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
                     line = f"|Y(Good)|n {line}"
                 else:
                     line = f"|w(Neutral)|n {line}"
-            # Append height tags
-            char_height = getattr(char, "room_vertical_position", 0)
-            if char_height > 0:
-                line += " (Flying)"
-            elif char_height < 0:
-                line += " (Underwater)"
-            elif self.max_depth < 0:
-                line += " (Swimming)"
-            # Append visibility tags
-            if hasattr(char, "has_condition"):
+            # Append height tags. Where someone is standing is something
+            # you can see, so a looker who cannot gets none of it.
+            if sighted:
+                char_height = getattr(char, "room_vertical_position", 0)
+                if char_height > 0:
+                    line += " (Flying)"
+                elif char_height < 0:
+                    line += " (Underwater)"
+                elif self.max_depth < 0:
+                    line += " (Swimming)"
+            # Append visibility tags. These say how you are managing to
+            # perceive someone concealed — meaningless to a looker who is
+            # not perceiving them by sight at all.
+            if sighted and hasattr(char, "has_condition"):
                 if char.has_condition(Condition.INVISIBLE):
                     line += " (invisible)"
                 if char.has_condition(Condition.HIDDEN):
@@ -674,52 +803,70 @@ class RoomBase(QuestTagMixin, FungibleInventoryMixin, DefaultRoom):
         Get the 'things' component of the object description. Called by `return_appearance`.
 
         Filters out hidden/invisible objects based on looker's discovery
-        state and conditions. Returns empty string in dark rooms or when
-        no visible objects.
-        """
-        if self.is_dark(looker):
-            return ""
+        state and conditions. Returns empty string when nothing can be
+        perceived.
 
+        Lighting is not this method's decision — see get_display_characters.
+        """
         # sort and handle same-named things
         things = self.filter_visible(self.contents_get(content_type="object"), looker, **kwargs)
 
-        # Filter hidden/invisible objects
-        things = [
-            thing for thing in things
-            if not hasattr(thing, "is_visible_to") or thing.is_visible_to(looker)
-        ]
+        # Concealment (hidden / invisible mixins) and height gating are
+        # one question — whether this looker can perceive that object.
+        things = [thing for thing in things if p_can_perceive(thing, looker)]
 
-        # Filter by height-gated visibility
-        things = [
-            thing for thing in things
-            if p_height_visible_to(thing, looker)
-        ]
+        # Sight is a property of the looker, so it is the same answer for
+        # everything here — asked once rather than once per candidate.
+        sighted = not looker_is_blind(looker)
 
         # Separate items with ground descriptions (full sentences) from
-        # bare-name items (grouped and comma-separated).
+        # bare-name items (grouped and comma-separated). A ground
+        # description names and describes the item, so a looker who cannot
+        # see gets none of them — everything falls through to the
+        # anonymising name instead.
         ground_sentences = []
         bare_things = []
         for thing in things:
-            gdesc = getattr(thing, "ground_description", "")
+            gdesc = getattr(thing, "ground_description", "") if sighted else ""
             if gdesc:
                 ground_sentences.append(gdesc)
             else:
                 bare_things.append(thing)
 
-        grouped_things = defaultdict(list)
-        for thing in bare_things:
-            grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
+        if not sighted:
+            # Collapsed rather than one line each: item counts vary far
+            # more than character counts, and a room of twelve dropped
+            # things would otherwise repeat itself twelve times. The
+            # singular keeps the item's own word, so a settable
+            # unseen_name still reads ("A strange shape is on the ground.").
+            if not bare_things:
+                thing_names = ""
+            elif len(bare_things) == 1:
+                # Capitalised here rather than in unseen_name, which stays
+                # lowercase so it still reads mid-sentence ("you bump into
+                # something"). Any settable word gets the same treatment.
+                name = bare_things[0].get_display_name(looker, **kwargs)
+                name = name[0].upper() + name[1:] if name else name
+                thing_names = f"{name} is on the ground."
+            else:
+                thing_names = "Several things are on the ground."
+        else:
+            grouped_things = defaultdict(list)
+            for thing in bare_things:
+                grouped_things[thing.get_display_name(looker, **kwargs)].append(thing)
 
-        thing_names = []
-        for thingname, thinglist in sorted(grouped_things.items()):
-            nthings = len(thinglist)
-            thing = thinglist[0]
-            singular, plural = thing.get_numbered_name(nthings, looker, key=thingname)
-            thing_names.append(singular if nthings == 1 else plural)
-        thing_names = iter_to_str(thing_names, endsep=_(", and"))
+            names = []
+            for thingname, thinglist in sorted(grouped_things.items()):
+                nthings = len(thinglist)
+                thing = thinglist[0]
+                singular, plural = thing.get_numbered_name(nthings, looker, key=thingname)
+                names.append(singular if nthings == 1 else plural)
+            thing_names = iter_to_str(names, endsep=_(", and"))
 
-        # Append any fungibles (gold, resources) visible in the room
-        fungible_display = self.get_room_fungible_display()
+        # Append any fungibles (gold, resources) visible in the room.
+        # Sighted only — loose coin on the floor is spotted by eye, and
+        # the display names and counts it besides.
+        fungible_display = self.get_room_fungible_display() if sighted else ""
 
         parts = []
         if ground_sentences:

@@ -46,6 +46,9 @@ def _mock_enemy(hp=100, name="Enemy"):
     enemy.key = name
     enemy.take_damage.return_value = 5
     enemy.location = MagicMock()
+    # A bare MagicMock answers every has_condition() truthily, which reads
+    # as both HIDDEN and INVISIBLE to the visibility predicates.
+    enemy.has_condition.return_value = False
     return enemy
 
 
@@ -55,6 +58,7 @@ def _mock_dying_enemy(name="DyingEnemy"):
     enemy.hp = 100
     enemy.key = name
     enemy.location = MagicMock()
+    enemy.has_condition.return_value = False
 
     def take_damage_and_die(*args, **kwargs):
         enemy.hp = 0
@@ -364,6 +368,9 @@ class TestGreatswordExecutioner(EvenniaTest):
         )
         self.mock_dmg_bonus = patcher.start()
         self.addCleanup(patcher.stop)
+        # Executioner only picks enemies the wielder can see, and a bare
+        # test room is dark.
+        self.room1.always_lit = True
 
     def _setup_handler(self, executioner_used=False):
         """Create a real CombatHandler on char1."""

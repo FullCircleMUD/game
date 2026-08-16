@@ -1,9 +1,9 @@
 """
 Rabbit — skittish prey that flees on sight but fights when cornered.
 
-Behavioural opposite of Mouse: when a character/wolf/dire-wolf enters
-the room, the rabbit flees 4-5 seconds later. If caught and attacked,
-it stands and fights for its 7 HP rather than fleeing combat.
+Behavioural opposite of Mouse: when a player character or an aggressive
+mob enters the room, the rabbit flees 2-3 seconds later. If caught and
+attacked, it stands and fights for its 7 HP rather than fleeing combat.
 
 Three indistinguishable variants share the same key/desc:
 - Rabbit — carries 1 gold
@@ -17,7 +17,10 @@ from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.utils import delay
 
 from enums.size import Size
+from typeclasses.actors.character import FCMCharacter
 from typeclasses.actors.mob import CombatMob
+from typeclasses.mixins.aggressive_mixin import AggressiveMixin
+from utils.targeting.predicates import p_is_typeclass
 
 
 class Rabbit(CombatMob):
@@ -48,8 +51,7 @@ class Rabbit(CombatMob):
     damage_dice = AttributeProperty("1d2")
     attack_message = AttributeProperty("nips at")
 
-    # ── Loot — base variant carries 1 gold ──
-    loot_gold_max = AttributeProperty(1)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── XP override ──
     xp_award = AttributeProperty(15)
@@ -62,23 +64,21 @@ class Rabbit(CombatMob):
         if not self.is_alive or arriving_obj == self:
             return
 
-        if self._is_threat(arriving_obj):
+        if all(p(arriving_obj, self) for p in THREAT_PREDICATES):
             delay(
-                random.uniform(4, 5),
+                random.uniform(2, 3),
                 self._flee_reaction,
             )
 
-    def _is_threat(self, obj):
-        """Return True if obj is something the rabbit should flee from."""
-        if getattr(obj, "is_pc", False):
-            return True
-        # Flee from wolves/dire wolves but not other rabbits
-        if isinstance(obj, CombatMob) and not isinstance(obj, Rabbit):
-            return True
-        return False
-
     def _flee_reaction(self):
-        """Execute the flee — move to an adjacent room if threats remain."""
+        """
+        Execute the flee — move to an adjacent room if threats remain.
+
+        Both callers check for a threat before scheduling this, but they
+        schedule it on a 2-3 second delay, so the check runs again here.
+        The threat may have walked back out in the meantime, or the
+        rabbit may have been pulled into combat while the timer ran.
+        """
         if not self.is_alive or not self.location:
             return
 
@@ -86,10 +86,7 @@ class Rabbit(CombatMob):
         if self.scripts.get("combat_handler"):
             return
 
-        threats = [
-            obj for obj in self.location.contents
-            if obj != self and self._is_threat(obj)
-        ]
+        threats = self.ai.get_targets_in_room(THREAT_PREDICATES)
         if not threats:
             return
 
@@ -111,13 +108,10 @@ class Rabbit(CombatMob):
             return
 
         # Check for threats — if any, schedule flee
-        threats = [
-            obj for obj in self.location.contents
-            if obj != self and self._is_threat(obj)
-        ]
+        threats = self.ai.get_targets_in_room(THREAT_PREDICATES)
         if threats:
             delay(
-                random.uniform(4, 5),
+                random.uniform(2, 3),
                 self._flee_reaction,
             )
             return
@@ -127,14 +121,25 @@ class Rabbit(CombatMob):
             self.wander()
 
 
-class RabbitRich(Rabbit):
-    """Rabbit variant — carries 2 gold."""
+#: What a rabbit flees from: player characters, and mobs that attack on
+#: sight. A mob being a ``CombatMob`` is not enough — mice, butterflies
+#: and owls are all combat-capable and none of them hunt rabbits.
+THREAT_PREDICATES = (
+    p_is_typeclass(FCMCharacter, AggressiveMixin),
+)
 
-    loot_gold_max = AttributeProperty(2)
 
-
-class RabbitFat(Rabbit):
-    """Rabbit variant — carries 1 animal fat instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    loot_resources = AttributeProperty({45: 1})  # 1 animal fat
+# Pure-data loot-variant subclasses retired — same key/desc as Rabbit,
+# only differed in loot_* defaults. Loot lives in YAML rules now
+# (fcm-mobs/shard0/millholm/farms.yaml uses the base Rabbit typeclass
+# with per-rule attrs + tags to express the rich / fat variants).
+#
+# class RabbitRich(Rabbit):
+#     """Rabbit variant — carries 2 gold."""
+#     loot_gold_max = AttributeProperty(2)
+#
+#
+# class RabbitFat(Rabbit):
+#     """Rabbit variant — carries 1 animal fat instead of gold."""
+#     loot_gold_max = AttributeProperty(0)
+#     loot_resources = AttributeProperty({45: 1})  # 1 animal fat

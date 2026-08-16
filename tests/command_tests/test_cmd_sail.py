@@ -15,7 +15,7 @@ from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from typeclasses.terrain.rooms.room_gateway import RoomGateway
 
-PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+PATCH_DELAY = "utils.busy.delay"
 
 
 def _instant_delay(seconds, callback, *args, **kwargs):
@@ -402,6 +402,7 @@ class TestCheckBoatLevel(EvenniaCommandTest):
         ship.db.ship_tier = tier
         ship.db_location = self.char1
         ship.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
         return ship
 
     def test_check_passes(self):

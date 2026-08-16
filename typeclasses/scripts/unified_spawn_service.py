@@ -13,18 +13,29 @@ within a single hour.
 from datetime import datetime, timezone
 
 from evennia import DefaultScript
+from evennia.utils import logger
 from twisted.internet import threads
+
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 TICK_INTERVAL_SECONDS = 60
 SLOT_MINUTE = 10  # fires at HH:10
 
 
-class UnifiedSpawnScript(DefaultScript):
+class UnifiedSpawnScript(HeartbeatMixin, DefaultScript):
     """
     Global persistent script for the unified item spawn system.
 
-    Created once via at_server_startstop._ensure_global_scripts().
+    Registered for router and monolith roles only — see the _SCRIPTS table
+    in server/conf/at_server_startstop.py. Deciding how much the world needs
+    and which targets receive it requires seeing every shard's rows, which
+    only the unscoped router does.
+
+    Shards run no spawn script at all. They receive placements as bus
+    messages and carry them out through the message handler, which is a
+    Twisted LoopingCall started in at_server_start() rather than a script —
+    one less thing to check is running.
     """
 
     def at_script_creation(self):
@@ -44,14 +55,20 @@ class UnifiedSpawnScript(DefaultScript):
         set_spawn_service(self._service)
 
     def at_repeat(self):
-        now = datetime.now(timezone.utc)
-        if now.minute != SLOT_MINUTE:
-            return
-        hour_bucket = now.replace(minute=0, second=0, microsecond=0)
-        if self.db.last_run_hour == hour_bucket:
-            return
-        if not hasattr(self, "_service"):
-            return
-        self.db.last_run_hour = hour_bucket
+        self.record_repeat()
+        try:
+            now = datetime.now(timezone.utc)
+            if now.minute != SLOT_MINUTE:
+                return
+            hour_bucket = now.replace(minute=0, second=0, microsecond=0)
+            if self.db.last_run_hour == hour_bucket:
+                return
+            if not hasattr(self, "_service"):
+                return
+            self.db.last_run_hour = hour_bucket
 
-        threads.deferToThread(self._service.run_hourly_cycle)
+            threads.deferToThread(self._service.run_hourly_cycle)
+
+            self.record_work()
+        except Exception:
+            logger.log_trace("unified_spawn_service: tick failed")

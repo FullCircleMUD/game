@@ -60,6 +60,18 @@ PROGRESSION = {
     39: {"weapon_skill_pts": 1, "class_skill_pts": 1, "general_skill_pts": 0, "hp_gain": 8, "mana_gain": 4, "move_gain": 5},
     40: {"weapon_skill_pts": 2, "class_skill_pts": 2, "general_skill_pts": 1, "hp_gain": 8, "mana_gain": 4, "move_gain": 5},
     #  Total       weapon:65  class:66  general:18  hp:320  mana:160 move:200
+    
+    # class still needs to be rebalances
+
+    #   weapon    
+    #   class     
+    #   general   
+    #    in weapons -  in class -  in general
+
+    # mage      12/82/41 = 135
+    # warrior   75/50/16 = 141
+    # thief     41/50/50 = 141
+    # cleric.   41/70/25 = 136
 }
 
 

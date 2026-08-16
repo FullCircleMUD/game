@@ -211,9 +211,10 @@ class UnarmedWeapon:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|y*STUN* {wielder.key}'s blow stuns {target.key} "
+                f"|y*STUN* {{wielder}}'s blow stuns {{target}} "
                 f"for {rounds} round{'s' if rounds > 1 else ''}!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
     def _apply_prone(self, wielder, target, rounds):
@@ -230,9 +231,10 @@ class UnarmedWeapon:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|y*KNOCKDOWN* {wielder.key} knocks {target.key} to the ground "
+                f"|y*KNOCKDOWN* {{wielder}} knocks {{target}} to the ground "
                 f"for {rounds} round{'s' if rounds > 1 else ''}!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
     def at_crit(self, wielder, target, damage, damage_type):

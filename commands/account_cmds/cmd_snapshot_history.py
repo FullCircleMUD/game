@@ -52,6 +52,13 @@ class CmdSnapshotHistory(Command):
     help_category = "Economy"
 
     def func(self):
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            self.msg("|rThis command can only be run OOC on the router.|n")
+            return
+
         args = self.args.strip().lower().split()
 
         if not args:

@@ -128,6 +128,9 @@ class BolaMixin:
                 "success_third": "{name} strains against the bola and tears free!",
                 "fail_third": "{name} struggles against the bola but cannot break free!",
             },
+            # The bola is wrapped around their legs where the room can see
+            # it, so the struggle stays visible even when they are not.
+            save_third_anonymous=True,
         )
         if not applied:
             # Already entangled (anti-stacking)

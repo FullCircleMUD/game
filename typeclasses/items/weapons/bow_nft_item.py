@@ -129,9 +129,10 @@ class BowMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|B*SLOWING SHOT* {wielder.key}'s arrow pins "
-                    f"{target.key}'s movement!|n",
+                    "|B*SLOWING SHOT* {wielder}'s arrow pins "
+                    "{target}'s movement!|n",
                     exclude=[wielder, target],
+                    mapping={"wielder": wielder, "target": target},
                 )
 
 

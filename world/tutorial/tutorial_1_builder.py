@@ -571,8 +571,11 @@ def _phase_4(state):
         "counter, alongside a jug of water.",
         "|wTutorial: Eating & Hunger|n\n\n"
         "Your character gets hungry over time. Hunger levels:\n"
-        "  |gFULL|n → SATED → PECKISH → |yHUNGRY|n → |rSTARVING|n\n\n"
-        "When STARVING, you take periodic damage! Keep fed.\n\n"
+        "  |gFULL|n → |gSATISFIED|n → |gNOURISHED|n → |gCONTENT|n → "
+        "|gPECKISH|n → |yHUNGRY|n → |rFAMISHED|n → |rSTARVING|n\n\n"
+        "At |yHUNGRY|n your health regeneration stops. At |rFAMISHED|n "
+        "and |rSTARVING|n you take periodic damage to HP, mana, and "
+        "movement — keep fed!\n\n"
         "  |weat bread|n — Eat bread to restore hunger.\n"
         "  |whunger|n — Check your current hunger level.\n"
         "  |wscore|n — Also shows hunger level.\n\n"
@@ -587,12 +590,14 @@ def _phase_4(state):
         "  Check your hunger: |whunger|n\n"
         "  Move |weast|n when ready.",
         guide_context=(
-            "Explain hunger. Characters get hungry over time: FULL → "
-            "SATED → PECKISH → HUNGRY → STARVING. Starving causes "
-            "damage! |weat bread|n restores hunger. |whunger|n checks "
-            "level. Suggest picking up bread and eating it. Mention "
-            "bread comes from wheat→flour→bread chain — Tutorial 2 "
-            "covers the economics."
+            "Explain hunger. Characters get hungry over time through "
+            "eight levels: FULL → SATISFIED → NOURISHED → CONTENT → "
+            "PECKISH → HUNGRY → FAMISHED → STARVING. At HUNGRY health "
+            "regeneration stops; at FAMISHED and STARVING the character "
+            "takes damage to HP, mana, and movement. |weat bread|n "
+            "restores hunger. |whunger|n checks level. Suggest picking "
+            "up bread and eating it. Mention bread comes from "
+            "wheat→flour→bread chain — Tutorial 2 covers the economics."
         ),
     )
     _connect(rooms["rest"], rooms["pantry"], "east")
@@ -697,14 +702,14 @@ def _phase_5(state):
         "  |wDrinking:|n     drink, refill, score (thirst level)\n\n"
         "For more info on any topic, use |whelp <topic>|n.\n"
         "For a list of all help topics, use |whelp|n.\n\n"
-        "|yMove |weast|y to return to the Tutorial Hub and "
+        "|yMove |wdown|y to return to the Tutorial Hub and "
         "receive your graduation reward!|n",
         guide_context=(
             "Congratulate the player! They've learned the survival basics: "
             "movement, looking, inventory, equipment, flying, swimming, "
             "light, combat, resting/posture, eating, and drinking. "
             "Mention |whelp <topic>|n "
-            "for more info. Tell them to head |weast|n for their graduation "
+            "for more info. Tell them to head |wdown|n for their graduation "
             "reward. Mention Tutorials 2 (economics) and 3 (growth & social) "
             "are available from the hub."
         ),
@@ -726,7 +731,7 @@ def _phase_5(state):
                 ("tutorial_instance_id", instance.id),
             ],
         )
-        exit_to_hub.set_direction("east")
+        exit_to_hub.set_direction("down")
         exit_to_hub.tags.add(tag, category="tutorial_exit")
 
 

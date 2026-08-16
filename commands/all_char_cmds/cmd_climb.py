@@ -16,8 +16,16 @@ Optional DEX check if the fixture has climb_dc > 0.
 from evennia import Command
 
 from commands.command import FCMCommandMixin
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.dice_roller import dice
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdClimb(FCMCommandMixin, Command):
@@ -73,16 +81,33 @@ class CmdClimb(FCMCommandMixin, Command):
         if not room:
             return
 
-        # Darkness — can't climb what you can't see
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
             return
 
+        # Climbing is done by touch as much as by sight, so being unable
+        # to see does not prevent it — it costs the time spent finding
+        # the thing by feel. The search runs before the outcome is known,
+        # so a room with nothing climbable costs the same as one with.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._climb(caller, room, delta, sightless=True),
+                self_msg="You grope about in the dark, feeling for something to climb...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
+            return
+
+        self._climb(caller, room, delta, sightless=False)
+
+    def _climb(self, caller, room, delta, sightless):
+        """Find something to climb and climb it. Success or failure both."""
         # ── Find climbable fixtures ──
         climbables = [
             obj for obj in room.contents
             if getattr(obj, "climbable_heights", None)
-            and p_can_see(obj, caller)
+            and p_can_perceive(obj, caller)
         ]
         if not climbables:
             caller.msg("There's nothing climbable here.")
@@ -101,7 +126,7 @@ class CmdClimb(FCMCommandMixin, Command):
             # caller.search returns a list in quiet mode
             if isinstance(target, list):
                 target = target[0]
-            if not p_can_see(target, caller):
+            if not p_can_perceive(target, caller):
                 caller.msg(
                     f"You don't see '{self.target_name}' here."
                 )
@@ -111,6 +136,14 @@ class CmdClimb(FCMCommandMixin, Command):
                 return
         elif len(climbables) == 1:
             target = climbables[0]
+            if sightless:
+                caller.msg(f"You grope about until you find {target.key}.")
+        elif sightless:
+            caller.msg(
+                "You grope about, but there's more than one thing here "
+                "to climb and you can't tell them apart. Name one."
+            )
+            return
         else:
             names = ", ".join(obj.key for obj in climbables)
             caller.msg(
@@ -159,10 +192,10 @@ class CmdClimb(FCMCommandMixin, Command):
                 )
                 caller.msg(f"|r{fail_msg}|n")
                 room.msg_contents(
-                    f"{caller.key} tries to climb {target.key} "
-                    f"but slips back.",
+                    "{climber} tries to climb {structure} but slips back.",
                     exclude=[caller],
                     from_obj=caller,
+                    mapping={"climber": caller, "structure": target},
                 )
                 return
 
@@ -173,17 +206,18 @@ class CmdClimb(FCMCommandMixin, Command):
             msg = (
                 target.climb_up_msg or "You climb upwards."
             )
-            third = (
-                f"{caller.key} climbs up {target.key}."
-            )
+            third = "{climber} climbs up {structure}."
         else:
             msg = (
                 target.climb_down_msg or "You climb downwards."
             )
-            third = (
-                f"{caller.key} climbs down {target.key}."
-            )
+            third = "{climber} climbs down {structure}."
 
         caller.msg(msg)
-        room.msg_contents(third, exclude=[caller], from_obj=caller)
+        room.msg_contents(
+            third,
+            exclude=[caller],
+            from_obj=caller,
+            mapping={"climber": caller, "structure": target},
+        )
         caller.msg(caller.at_look(caller.location))

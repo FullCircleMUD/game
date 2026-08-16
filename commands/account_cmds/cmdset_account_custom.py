@@ -34,18 +34,13 @@ from commands.account_cmds.cmd_botlist import CmdBotList
 from commands.account_cmds.cmd_botreset import CmdBotReset
 from commands.account_cmds.cmd_wipe_spawns import CmdWipeSpawns
 from commands.account_cmds.cmd_spawn_report_items import CmdSpawnReportItems
-from commands.account_cmds.cmd_spawn_report_mobs import CmdSpawnReportMobs
 from commands.account_cmds.cmd_spawn_report_resources import CmdSpawnReportResources
 from commands.account_cmds.cmd_services import CmdServices
-from commands.account_cmds.cmd_svc_diag import CmdSvcDiag
 from commands.account_cmds.cmd_run_saturation import CmdRunSaturation
 from commands.account_cmds.cmd_run_spawns import CmdRunSpawns
 from commands.account_cmds.cmd_run_telemetry import CmdRunTelemetry
 from commands.account_cmds.cmd_broadcast import CmdBroadcast
 from commands.account_cmds.cmd_subscribe import CmdSubscribe
-from commands.account_cmds.cmd_rebuild_world import CmdRebuildWorld
-from commands.account_cmds.cmd_rebuild_test import CmdRebuildTest
-from commands.account_cmds.cmd_rebuild_zone import CmdRebuildZone
 from commands.account_cmds.cmd_accounts import CmdAccounts
 from commands.account_cmds.cmd_snapshot_history import CmdSnapshotHistory
 
@@ -93,16 +88,11 @@ class CmdSetAccountCustom(CmdSet):
         self.add(CmdBotReset())
         self.add(CmdWipeSpawns())
         self.add(CmdSpawnReportItems())
-        self.add(CmdSpawnReportMobs())
         self.add(CmdSpawnReportResources())
         self.add(CmdServices())
-        self.add(CmdSvcDiag())
         self.add(CmdRunSaturation())
         self.add(CmdRunSpawns())
         self.add(CmdRunTelemetry())
         self.add(CmdBroadcast())
-        self.add(CmdRebuildWorld())
-        self.add(CmdRebuildTest())
-        self.add(CmdRebuildZone())
         self.add(CmdAccounts())
         self.add(CmdSnapshotHistory())

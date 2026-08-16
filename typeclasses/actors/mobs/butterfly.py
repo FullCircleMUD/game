@@ -45,9 +45,6 @@ class Butterfly(FlyingMixin, CombatMob):
     damage_dice = AttributeProperty("1d1")
     attack_message = AttributeProperty("flutters at")
 
-    # ── No loot ──
-    loot_gold_max = AttributeProperty(0)
-
     # ── XP override (atmospheric kill, not a fight) ──
     xp_award = AttributeProperty(5)
 

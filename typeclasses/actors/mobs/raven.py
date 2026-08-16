@@ -10,10 +10,16 @@ onto the defender's side when one is attacked.
 The leader is structurally distinct (different typeclass) but visually
 identical — same key, same desc — so players cannot single it out.
 
-Loot variants share the same key/desc as the base raven so players
-can't tell what's about to drop. Distribution is set in the spawn JSON
-(1 leader + 5 base + 1 scroll + 1 recipe = 6 raven loads with gold,
-1 scroll, 1 recipe).
+Loot is data, not behaviour: scroll / recipe variants are expressed
+per-rule in YAML (`spawn_scrolls_max`, `spawn_recipes_max`) and share
+the base `Raven` typeclass. The legacy `RavenScrollLoad` /
+`RavenRecipeLoad` subclasses are commented out below.
+
+Per-spawn AI state ("idle" — these ravens are peaceful perchers, not
+wanderers) is also expressed per-rule in YAML via
+`attrs: {ai_state: idle}`, honoured by the updated
+`CombatMob.start_ai()` which respects a pre-existing `ai_state`
+attribute. No post-spawn hook is required.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty
@@ -58,8 +64,6 @@ class RavenFlockLeader(FlyingMixin, CombatMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
 
-    loot_gold_max = AttributeProperty(3)
-
     max_per_room = AttributeProperty(0)
     ai_tick_interval = AttributeProperty(10)
 
@@ -87,8 +91,6 @@ class Raven(MobFollowableMixin, FlyingMixin, CombatMob):
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
 
-    loot_gold_max = AttributeProperty(3)
-
     max_per_room = AttributeProperty(0)
     ai_tick_interval = AttributeProperty(10)
 
@@ -97,15 +99,18 @@ class Raven(MobFollowableMixin, FlyingMixin, CombatMob):
         _set_raven_stats(self)
 
 
-class RavenScrollLoad(Raven):
-    """Loot variant — drops a skilled-tier scroll instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    spawn_scrolls_max = AttributeProperty({"skilled": 1})
-
-
-class RavenRecipeLoad(Raven):
-    """Loot variant — drops a skilled-tier recipe instead of gold."""
-
-    loot_gold_max = AttributeProperty(0)
-    spawn_recipes_max = AttributeProperty({"skilled": 1})
+# RavenScrollLoad / RavenRecipeLoad — collapsed onto Raven.
+# Loot now lives in YAML (fcm-mobs/shard0/millholm/southern.yaml).
+#
+# class RavenScrollLoad(Raven):
+#     """Loot variant — drops a skilled-tier scroll instead of gold."""
+#
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_scrolls_max = AttributeProperty({"skilled": 1})
+#
+#
+# class RavenRecipeLoad(Raven):
+#     """Loot variant — drops a skilled-tier recipe instead of gold."""
+#
+#     loot_gold_max = AttributeProperty(0)
+#     spawn_recipes_max = AttributeProperty({"skilled": 1})

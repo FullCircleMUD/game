@@ -9,6 +9,8 @@ Non-PC actors automatically receive CmdSetMobCombat (attack, dodge, flee)
 at creation. PCs keep their existing command pipeline via CmdSetCharacterCustom.
 """
 
+from utils.targeting.predicates import p_is_character
+
 
 class CombatMixin:
     """
@@ -46,6 +48,25 @@ class CombatMixin:
         """True if below aggro_hp_threshold (default 50%)."""
         threshold = getattr(self, "aggro_hp_threshold", 0.5)
         return self.hp_fraction < threshold
+
+    # ── Fight initiation gate ──
+
+    def _can_start_fight_now(self):
+        """
+        Whether this actor may *start* a fight right now.
+
+        Returns ``(True, None)`` when nothing blocks it, otherwise
+        ``(False, reason)`` where reason is a short key. Callers turn the key
+        into their own wording — being jumped mid-harvest should not read like
+        a refused command — with `combat_utils.fight_refusal_message()` as the
+        default phrasing.
+
+        Blockers are additive: anything that should stop an actor picking a
+        fight belongs here rather than in each combat command.
+        """
+        if self.ndb.is_processing:
+            return False, "busy"
+        return True, None
 
     # ── Combat entry/exit ──
 
@@ -90,7 +111,11 @@ class CombatMixin:
 
     def at_object_creation(self):
         super().at_object_creation()
-        if not getattr(self, "is_pc", False):
+        # Asked of self, because FCMCharacter composes this mixin too —
+        # a player must not pick up the mob combat cmdset. The
+        # predicate's lazy import is what lets a mixin ask about a
+        # typeclass that composes it.
+        if not p_is_character(self, self):
             # Override call:true() from BaseNPC — mob commands shouldn't
             # merge into nearby players' command pools.
             self.locks.add("call:false()")

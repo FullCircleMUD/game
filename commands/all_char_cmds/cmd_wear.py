@@ -18,9 +18,17 @@ from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixi
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.items.wearables.wearable_nft_item import WearableNFTItem
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdWear(FCMCommandMixin, Command):
@@ -57,12 +65,27 @@ class CmdWear(FCMCommandMixin, Command):
             caller.msg("Wear what?")
             return
 
-        # Darkness — can't identify items without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if check_busy(caller):
             return
 
+        # No sight check — your own pack is found by touch, and dressing
+        # in the dark only takes longer. The search runs before the
+        # outcome is known.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._wear(caller, parsed),
+                self_msg="You fumble blindly through your pack, dressing by feel...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
+            return
+
+        self._wear(caller, parsed)
+
+    def _wear(self, caller, parsed):
+        """Find the item and put it on. Success or failure both."""
         # Bulk: wear all equippables in one pass
         if parsed.type == "all":
             return self._wear_all(caller)
@@ -73,13 +96,13 @@ class CmdWear(FCMCommandMixin, Command):
         elif parsed.type == "item":
             item, _ = resolve_target(
                 caller, parsed.search_term, "items_inventory",
-                extra_predicates=(p_can_see,),
+                extra_predicates=(p_can_perceive,),
             )
             if not item:
                 # Check if already worn — specific error vs "not carrying"
                 worn, _ = resolve_target(
                     caller, parsed.search_term, "items_equipped",
-                    extra_predicates=(p_can_see,),
+                    extra_predicates=(p_can_perceive,),
                 )
                 if worn:
                     caller.msg(f"You must remove {worn.key} first.")
@@ -135,7 +158,7 @@ class CmdWear(FCMCommandMixin, Command):
         for obj in list(caller.contents):
             if not isinstance(obj, WearableNFTItem):
                 continue
-            if not p_can_see(obj, caller):
+            if not p_can_perceive(obj, caller):
                 continue
             if caller.is_worn(obj):
                 continue

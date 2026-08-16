@@ -25,6 +25,14 @@ class TestCombatHeight(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Attack resolves its target through the sight gate, so an unlit
+        # room means "no such person" and the height gate below is never
+        # reached. A default RoomBase has natural light and no other
+        # source, which leaves its lighting to the game clock — and
+        # TIME_FACTOR turns that over once an hour, so darkness would
+        # arrive on its own schedule. Pin it lit; darkness has its own
+        # tests.
+        self.room1.always_lit = True
         self.room1.max_height = 5
         self.char1.hp = 50
         self.char1.hp_max = 50
@@ -501,7 +509,7 @@ class TestFleeHeight(EvenniaCommandTest):
                     h.delete()
         super().tearDown()
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_auto_succeeds_vs_ranged_only(self, mock_ticker, mock_dice):
         """Flee auto-succeeds when all enemies are at different height (ranged only)."""
@@ -534,7 +542,7 @@ class TestFleeHeight(EvenniaCommandTest):
         self.assertIn("flee", result.lower())
         self.assertNotIn("can't escape", result)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_requires_check_vs_melee(self, mock_ticker, mock_dice):
         """Flee requires DEX check when enemy is in melee range (same height)."""
@@ -551,7 +559,7 @@ class TestFleeHeight(EvenniaCommandTest):
         result = self.call(CmdFlee(), "", caller=self.char1)
         self.assertIn("can't escape", result)
 
-    @patch("commands.all_char_cmds.cmd_flee.dice")
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
     def test_flee_auto_succeeds_flying_vs_grounded_melee(self, mock_ticker, mock_dice):
         """Flying player auto-succeeds flee vs grounded melee enemy."""

@@ -14,10 +14,12 @@ Query the current season from anywhere:
 
 from datetime import datetime
 
-from evennia import DefaultScript, ObjectDB
+from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from evennia.utils.gametime import gametime
 
 from enums.season import Season
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 # How often (real seconds) the service checks for season transitions.
@@ -56,11 +58,14 @@ def get_season():
     return Season.from_day(get_day_of_year())
 
 
-class SeasonService(DefaultScript):
+class SeasonService(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that tracks season transitions.
 
-    Created once via at_server_startstop._ensure_global_scripts().
+    Global script registration lives in server/conf/at_server_startstop.py.
+    One ScriptDB row is shared cluster-wide, but each Server process
+    attaches its own ticker — under a sharded deployment the script runs
+    once per process, not once overall.
     """
 
     def at_script_creation(self):
@@ -77,21 +82,32 @@ class SeasonService(DefaultScript):
 
     def at_repeat(self):
         """Check for season transition and broadcast if one occurred."""
-        current_season = get_season()
-        last_season = self.ndb.last_season
+        try:
+            current_season = get_season()
+            last_season = self.ndb.last_season
 
-        if current_season != last_season:
-            self.ndb.last_season = current_season
-            self._broadcast_transition(current_season)
+            if current_season != last_season:
+                self.ndb.last_season = current_season
+                self._broadcast_transition(current_season)
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("season_service: tick failed")
 
     def _broadcast_transition(self, season):
-        """Send the transition message to all connected player characters."""
+        """Send the transition message to all connected player characters.
+
+        Walks SESSION_HANDLER rather than querying ObjectDB. The sessions
+        are an in-memory dict belonging to this process, so this reaches
+        exactly the players connected here — which under sharding is the
+        set this process should be messaging. The objects are the same
+        instances a query would return (one per pk, via the idmapper).
+        """
         msg = _TRANSITION_MESSAGES.get(season)
         if not msg:
             return
 
-        for char in ObjectDB.objects.filter(
-            db_typeclass_path__contains="Character"
-        ):
-            if char.has_account and char.sessions.count():
+        for session in SESSION_HANDLER.get_sessions():
+            char = session.get_puppet()
+            if char:
                 char.msg(msg)

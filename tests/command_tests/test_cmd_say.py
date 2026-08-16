@@ -32,6 +32,9 @@ class TestCmdSay(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        # A bare test room is dark, which would mask every speaker as
+        # "Someone" and make the concealment tests prove nothing.
+        self.room1.always_lit = True
         # Both characters know Common by default.
         self.char1.db.languages = {"common"}
         self.char2.db.languages = {"common"}
@@ -209,3 +212,107 @@ class TestCmdSay(EvenniaCommandTest):
         combined = " ".join(str(m) for m in received)
         self.assertIn(self.char1.key, combined)
         self.assertNotIn("Someone", combined)
+
+
+class TestCmdSaySpeakerNaming(EvenniaCommandTest):
+    """A voice carries; the name attached to it does not always."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        self.char1.db.languages = {"common"}
+        self.char2.db.languages = {"common"}
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _heard(self):
+        """Say something and return what char2 received, joined."""
+        received = []
+        with patch.object(type(self.char2), "has_account", True):
+            self.char2.msg = lambda text="", **kwargs: received.append(str(text))
+            self.call(CmdSay(), "hello")
+        return " ".join(received)
+
+    def test_a_visible_speaker_is_named(self):
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_a_speaker_in_the_dark_is_anonymous(self):
+        self._darken()
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_a_blind_listener_cannot_name_the_speaker(self):
+        """is_dark alone never asked this — a blind listener got the name."""
+        self.char2.add_condition(Condition.BLINDED)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_a_hidden_speaker_is_anonymous(self):
+        """Only INVISIBLE was checked before, so hiding named you in full."""
+        self.char1.add_condition(Condition.HIDDEN)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_true_sight_names_a_hidden_speaker(self):
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.apply_named_effect("true_sight")
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_detect_invis_does_not_pierce_the_dark(self):
+        """Detecting invisibility is not seeing in the dark."""
+        self._darken()
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char2.add_condition(Condition.DETECT_INVIS)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_the_speech_still_reaches_an_unsighted_listener(self):
+        """The mask is on the name, not on the message."""
+        self._darken()
+        self.assertIn("hello", self._heard())
+
+    def test_a_concealed_target_is_not_named_to_the_room(self):
+        """Being spoken to is not what gives you away."""
+        from evennia.utils import create
+
+        bob = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Bob",
+            location=self.room1,
+            nohome=True,
+        )
+        bob.add_condition(Condition.HIDDEN)
+        received = []
+        with patch.object(type(self.char2), "has_account", True):
+            self.char2.msg = lambda text="", **kwargs: received.append(str(text))
+            self.call(CmdSay(), "to Bob hello")
+        heard = " ".join(received)
+        self.assertNotIn("Bob", heard)
+        self.assertIn("Someone", heard)
+
+    def test_a_visible_target_is_named(self):
+        from evennia.utils import create
+
+        create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Bob",
+            location=self.room1,
+            nohome=True,
+        )
+        received = []
+        with patch.object(type(self.char2), "has_account", True):
+            self.char2.msg = lambda text="", **kwargs: received.append(str(text))
+            self.call(CmdSay(), "to Bob hello")
+        self.assertIn("Bob", " ".join(received))

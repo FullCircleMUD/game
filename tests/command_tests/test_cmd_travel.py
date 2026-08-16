@@ -17,7 +17,7 @@ def _instant_delay(seconds, callback, *args, **kwargs):
     callback(*args, **kwargs)
 
 
-PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+PATCH_DELAY = "utils.busy.delay"
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
@@ -57,6 +57,43 @@ class TestCmdTravel(EvenniaCommandTest):
         """No destinations configured → error."""
         self._set_destinations([])
         self.call(CmdTravel(), "", "This gateway has no destinations configured.")
+
+    def _hold_on_the_road(self):
+        """Set off on a journey and stay in it — the delay never fires."""
+        self._delay_patcher.stop()
+        self._set_destinations([
+            {
+                "key": "dest",
+                "label": "Destination",
+                "destination": self.dest_room,
+                "travel_description": "You travel there.",
+                "conditions": {},
+                "hidden": False,
+            },
+        ])
+        with patch(PATCH_DELAY):
+            self.call(CmdTravel(), "")
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        return said
+
+    def test_a_journey_refuses_in_its_own_wording(self):
+        """A journey is not a job — assert the stock wording is replaced."""
+        from utils.busy import BUSY_MESSAGE, check_busy
+
+        said = self._hold_on_the_road()
+        check_busy(self.char1)
+        self.assertTrue(said)
+        self.assertNotIn(BUSY_MESSAGE, said)
+
+    def test_a_traveller_is_not_told_they_cannot_leave(self):
+        """They are already leaving — the stock refusal contradicts itself."""
+        from utils.busy import BUSY_MOVE_MESSAGE
+
+        said = self._hold_on_the_road()
+        self.assertFalse(self.char1.at_pre_move(self.room2))
+        self.assertTrue(said)
+        self.assertNotIn(BUSY_MOVE_MESSAGE, said)
 
     def test_travel_single_dest_no_conditions(self):
         """Single destination, no conditions → auto-travel."""

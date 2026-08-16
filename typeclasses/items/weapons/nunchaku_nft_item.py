@@ -164,9 +164,10 @@ class NunchakuMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|y*STUN* {wielder.key}'s nunchaku strikes stun {target.key} "
+                f"|y*STUN* {{wielder}}'s nunchaku strikes stun {{target}} "
                 f"for {rounds} round{'s' if rounds > 1 else ''}!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
     def _apply_prone(self, wielder, target, rounds):
@@ -185,9 +186,10 @@ class NunchakuMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|y*KNOCKDOWN* {wielder.key}'s nunchaku sends {target.key} sprawling "
+                f"|y*KNOCKDOWN* {{wielder}}'s nunchaku sends {{target}} sprawling "
                 f"for {rounds} round{'s' if rounds > 1 else ''}!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
 

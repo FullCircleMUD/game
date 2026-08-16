@@ -125,7 +125,7 @@ class SpawnService:
                 )
                 continue
             except Exception:
-                logger.log_trace(
+                logger.exception(
                     f"SpawnService: calculator error for ({item_type}, {type_key})"
                 )
                 continue
@@ -234,7 +234,7 @@ class SpawnService:
                     ).update(
                         spawn_budget=bs.total,
                         spawn_quest_debt=bs.quest_debt,
-                        spawn_placed=bs.spawned_this_hour,
+                        spawn_placed=bs.dispatched_this_hour,
                         spawn_dropped=bs.dropped_this_hour,
                     )
             elif item_type == "gold":
@@ -244,7 +244,7 @@ class SpawnService:
                 ).update(
                     spawn_budget=bs.total,
                     spawn_quest_debt=bs.quest_debt,
-                    spawn_placed=bs.spawned_this_hour,
+                    spawn_placed=bs.dispatched_this_hour,
                     spawn_dropped=bs.dropped_this_hour,
                 )
             elif item_type == "knowledge":
@@ -253,7 +253,7 @@ class SpawnService:
                 ).update(
                     spawn_budget=bs.total,
                     spawn_quest_debt=bs.quest_debt,
-                    spawn_placed=bs.spawned_this_hour,
+                    spawn_placed=bs.dispatched_this_hour,
                     spawn_dropped=bs.dropped_this_hour,
                 )
 

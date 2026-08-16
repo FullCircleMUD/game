@@ -5,6 +5,8 @@ and auto-follow on exit traversal.
 evennia test --settings settings tests.command_tests.test_cmd_follow
 """
 
+from unittest.mock import MagicMock
+
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
 
@@ -14,6 +16,7 @@ from commands.all_char_cmds.cmd_follow import (
     CmdNofollow,
     CmdGroup,
 )
+from enums.condition import Condition
 
 
 class TestCmdFollow(EvenniaCommandTest):
@@ -315,3 +318,83 @@ class TestAutoFollow(EvenniaCommandTest):
         self.char2.move_to(self.room2, move_type="traverse")
         self.assertEqual(self.char1.location, self.room2)
         self.assertEqual(self.char2.location, self.room2)
+
+
+class TestCmdFollowSight(EvenniaCommandTest):
+    """
+    Choosing who to follow means picking them out of the room, so it
+    needs working eyes. An established link is not re-checked here and
+    so survives the lamp going out.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.char1.following = None
+        self.char1.nofollow = False
+        self.char2.following = None
+        self.char2.nofollow = False
+
+    def _darken(self):
+        # has_natural_light is a read-only property derived from this.
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def test_a_lit_room_follows_normally(self):
+        self.call(CmdFollow(), "Char2")
+        self.assertEqual(self.char1.following, self.char2)
+
+    def test_a_dark_room_names_who_you_tried_to_follow(self):
+        self._darken()
+        result = self.call(CmdFollow(), "Char2")
+        self.assertIn("too dark to see 'Char2'", result)
+        self.assertIsNone(self.char1.following)
+
+    def test_a_blinded_character_cannot_start_following(self):
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdFollow(), "Char2")
+        self.assertIn("too dark", result)
+        self.assertIsNone(self.char1.following)
+
+    def test_darkvision_restores_it(self):
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.call(CmdFollow(), "Char2")
+        self.assertEqual(self.char1.following, self.char2)
+
+    def test_an_established_link_survives_the_dark(self):
+        """Only starting to follow is gated."""
+        self.call(CmdFollow(), "Char2")
+        self._darken()
+        self.assertEqual(self.char1.following, self.char2)
+
+    def test_an_invisible_target_cannot_be_followed(self):
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.call(CmdFollow(), "Char2")
+        self.assertIsNone(self.char1.following)
+
+    def test_detect_invis_restores_an_invisible_target(self):
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        self.call(CmdFollow(), "Char2")
+        self.assertEqual(self.char1.following, self.char2)
+
+    def test_the_leader_is_told_by_a_name_they_can_resolve(self):
+        """A blind leader must not be handed the follower's real name."""
+        self.char2.add_condition(Condition.BLINDED)
+        self.char2.msg = MagicMock()
+        self.call(CmdFollow(), "Char2")
+
+        said = " ".join(
+            str(kwargs.get("text", args[0] if args else ""))
+            for args, kwargs in self.char2.msg.call_args_list
+        )
+        self.assertIn("starts following you", said)
+        self.assertNotIn(self.char1.key, said)

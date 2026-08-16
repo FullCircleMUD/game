@@ -10,6 +10,8 @@ from unittest.mock import patch
 from evennia.utils.test_resources import EvenniaTest, EvenniaCommandTest
 from evennia.utils import create
 
+from enums.condition import Condition
+from enums.named_effect import NamedEffect
 from enums.time_of_day import TimeOfDay
 from commands.all_char_cmds.cmd_override_look import CmdLook
 
@@ -322,3 +324,328 @@ class TestRoomDescription(EvenniaTest):
         # Should have newlines between characters, not commas
         self.assertIn("\n", chars_section)
         self.assertNotIn(", and", chars_section)
+
+
+class TestDisplayCharactersUnsighted(EvenniaTest):
+    """
+    A looker who cannot see still perceives that bodies are present. They
+    get an anonymised line and none of the detail that would identify who
+    is standing there.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.char2.location = self.room1
+
+    def _darken(self):
+        # has_natural_light is a read-only property derived from this.
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _section(self):
+        return self.room1.get_display_characters(self.char1)
+
+    # ── The room is not empty ──────────────────────────────────────────
+
+    def test_a_dark_room_still_reports_someone(self):
+        """The premise: bodies present, identity withheld — not an empty room."""
+        self._darken()
+        self.assertIn("Someone is in the room.", self._section())
+
+    def test_a_blind_looker_still_reports_someone(self):
+        self.char1.add_condition(Condition.BLINDED)
+        self.assertIn("Someone is in the room.", self._section())
+
+    def test_the_real_name_is_withheld(self):
+        self._darken()
+        self.assertNotIn(self.char2.key, self._section())
+
+    def test_an_empty_dark_room_reports_nothing(self):
+        self.char2.location = self.room2
+        self._darken()
+        self.assertEqual(self._section(), "")
+
+    def test_one_line_per_body(self):
+        char3 = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Gandalf",
+            location=self.room1,
+            nohome=True,
+        )
+        self._darken()
+        self.assertEqual(self._section().count("is in the room."), 2)
+
+    # ── The word is content ────────────────────────────────────────────
+
+    def test_the_placeholder_is_settable(self):
+        """unseen_name is an AttributeProperty, so content can reword it."""
+        self.char2.unseen_name = "A mysterious presence"
+        self._darken()
+        self.assertIn("A mysterious presence is in the room.", self._section())
+
+    # ── Identifying detail is withheld with the name ───────────────────
+
+    def test_the_room_description_is_withheld(self):
+        self.char2.room_description = "leans against the bar, whistling."
+        self._darken()
+        self.assertNotIn("whistling", self._section())
+
+    def test_the_room_description_is_shown_when_sighted(self):
+        self.char2.room_description = "leans against the bar, whistling."
+        self.assertIn("whistling", self._section())
+
+    def test_height_tags_are_withheld(self):
+        self.char2.room_vertical_position = 2
+        self._darken()
+        self.assertNotIn("(Flying)", self._section())
+
+    def test_height_tags_are_shown_when_sighted(self):
+        self.char2.room_vertical_position = 2
+        self.assertIn("(Flying)", self._section())
+
+    def test_concealment_tags_are_withheld(self):
+        """Only a looker who can see is told how they are seeing them."""
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        self._darken()
+        self.assertNotIn("(invisible)", self._section())
+
+    def test_concealment_tags_are_shown_when_sighted(self):
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        self.assertIn("(invisible)", self._section())
+
+    def test_the_alignment_aura_is_withheld(self):
+        self.char2.alignment_score = -500
+        self.char1.apply_named_effect(NamedEffect.DETECT_ALIGNMENT, duration=300)
+        self._darken()
+        self.assertNotIn("(Evil)", self._section())
+
+    # ── Darkvision is not blindness ────────────────────────────────────
+
+    def test_darkvision_gets_the_full_rendering(self):
+        self.char2.room_description = "leans against the bar, whistling."
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        section = self._section()
+        self.assertIn("whistling", section)
+        self.assertNotIn("is in the room.", section)
+
+
+class TestDisplayThingsUnsighted(EvenniaTest):
+    """
+    Items are shapes you can make out but not identify. Collapsed rather
+    than one line each, since a room can hold many more things than
+    people.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        # EvenniaTest seeds room1 with obj/obj2 — clear them so each test
+        # controls exactly what is on the ground.
+        self.obj1.location = self.room2
+        self.obj2.location = self.room2
+
+    def _darken(self):
+        # has_natural_light is a read-only property derived from this.
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _thing(self, key="a brass key"):
+        return create.create_object(
+            "typeclasses.world_objects.base_world_item.WorldItem",
+            key=key,
+            location=self.room1,
+            nohome=True,
+        )
+
+    def _section(self):
+        return self.room1.get_display_things(self.char1)
+
+    # ── The room is not empty ──────────────────────────────────────────
+
+    def test_one_thing_in_the_dark(self):
+        self._thing()
+        self._darken()
+        self.assertEqual(self._section(), "Something is on the ground.")
+
+    def test_several_things_collapse(self):
+        self._thing("a brass key")
+        self._thing("a rusty dagger")
+        self._thing("a clay pot")
+        self._darken()
+        self.assertEqual(
+            self._section(), "Several things are on the ground."
+        )
+
+    def test_a_blind_looker_gets_the_same(self):
+        self._thing()
+        self.char1.add_condition(Condition.BLINDED)
+        self.assertEqual(self._section(), "Something is on the ground.")
+
+    def test_an_empty_dark_room_reports_nothing(self):
+        self._darken()
+        self.assertEqual(self._section(), "")
+
+    def test_the_real_name_is_withheld(self):
+        self._thing()
+        self._darken()
+        self.assertNotIn("brass key", self._section())
+
+    # ── The word is content ────────────────────────────────────────────
+
+    def test_the_singular_keeps_the_items_own_word(self):
+        thing = self._thing()
+        thing.unseen_name = "A strange shape"
+        self._darken()
+        self.assertEqual(self._section(), "A strange shape is on the ground.")
+
+    # ── Identifying detail is withheld ─────────────────────────────────
+
+    def test_ground_descriptions_are_withheld(self):
+        thing = self._thing()
+        thing.ground_description = "A brass key glints among the rushes."
+        self._darken()
+        section = self._section()
+        self.assertNotIn("glints", section)
+        self.assertEqual(section, "Something is on the ground.")
+
+    def test_ground_descriptions_are_shown_when_sighted(self):
+        thing = self._thing()
+        thing.ground_description = "A brass key glints among the rushes."
+        self.assertIn("glints", self._section())
+
+    # ── The sighted path is untouched ──────────────────────────────────
+
+    def test_sighted_still_groups_and_lists(self):
+        self._thing("brass key")
+        self._thing("brass key")
+        section = self._section()
+        self.assertIn("two brass keys", section)
+
+    def test_darkvision_gets_the_full_rendering(self):
+        self._thing()
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        section = self._section()
+        self.assertIn("brass key", section)
+        self.assertNotIn("on the ground.", section)
+
+
+class TestReturnAppearanceUnsighted(EvenniaTest):
+    """
+    The assembled room, for a looker who cannot see. The premise this
+    whole seam exists for: bodies and shapes you cannot identify, not an
+    empty room.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.db.desc = "A grassy field under open sky."
+        self.room1.always_lit = True
+        self.obj1.location = self.room2
+        self.obj2.location = self.room2
+        self.char2.location = self.room1
+
+    def _darken(self):
+        # has_natural_light is a read-only property derived from this.
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _thing(self, key="a brass key"):
+        return create.create_object(
+            "typeclasses.world_objects.base_world_item.WorldItem",
+            key=key,
+            location=self.room1,
+            nohome=True,
+        )
+
+    def _look(self):
+        return self.room1.return_appearance(self.char1, ignore_brief=True)
+
+    # ── What a dark room shows ─────────────────────────────────────────
+
+    def test_the_room_is_somewhere(self):
+        self._darken()
+        self.assertIn("Somewhere", self._look())
+
+    def test_the_room_name_is_withheld(self):
+        self._darken()
+        self.assertNotIn(self.room1.key, self._look())
+
+    def test_the_description_is_withheld(self):
+        self._darken()
+        self.assertNotIn("grassy field", self._look())
+
+    def test_bodies_are_reported(self):
+        """The premise — an occupied dark room does not read as empty."""
+        self._darken()
+        self.assertIn("Someone is in the room.", self._look())
+
+    def test_things_are_reported(self):
+        self._thing()
+        self._darken()
+        self.assertIn("Something is on the ground.", self._look())
+
+    def test_no_names_leak_anywhere(self):
+        self._thing()
+        self._darken()
+        result = self._look()
+        self.assertNotIn(self.char2.key, result)
+        self.assertNotIn("brass key", result)
+
+    # ── A blind looker takes the same path in a lit room ───────────────
+
+    def test_a_blind_looker_in_a_lit_room_is_treated_the_same(self):
+        """Was the inconsistency: full room render, anonymised occupants."""
+        self._thing()
+        self.char1.add_condition(Condition.BLINDED)
+        result = self._look()
+        self.assertIn("Somewhere", result)
+        self.assertNotIn("grassy field", result)
+        self.assertIn("Someone is in the room.", result)
+        self.assertIn("Something is on the ground.", result)
+
+    # ── Sighted is untouched ───────────────────────────────────────────
+
+    def test_a_lit_room_shows_everything(self):
+        self._thing()
+        result = self._look()
+        self.assertIn(self.room1.key, result)
+        self.assertIn("grassy field", result)
+        self.assertIn(self.char2.key, result)
+        self.assertIn("brass key", result)
+
+    def test_darkvision_shows_everything(self):
+        self._thing()
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self._look()
+        self.assertIn("grassy field", result)
+        self.assertIn(self.char2.key, result)
+        self.assertIn("brass key", result)
+
+    def test_darkvision_is_tagged_as_dark(self):
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        self.assertIn("(Dark)", self._look())

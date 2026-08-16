@@ -8,10 +8,53 @@ Each social defines message variants for:
 
 Room messages use Evennia's $You()/$conj() substitution.
 Direct messages use {actor}/{target} placeholders.
+
+**Never format a name into a room message yourself.** Leave `{target}` in
+the template — cmd_social passes the target through `mapping=`, so each
+recipient resolves it via `get_display_name()` and a concealed target
+reads as "Someone" to anyone who can't see them. Substituting the name
+first would leak it to the whole room off the actor's view.
+
+
+ADDING A SOCIAL: the "silent" flag
+==================================
+
+    "silent": False     — the social produces something an observer who
+                          cannot see the actor would still notice
+    (omitted)           — defaults True: purely visual, perceived only by
+                          those who can see the actor
+
+The test is **perceptibility, not contact**: does it make a sound, move
+an object, or produce contact obvious enough to notice? A bow disturbs
+nothing, so it is silent. A slap makes a noise, so it is not. A poke is
+too subtle to count.
+
+What the flag drives, in `CmdSocialBase`:
+
+  - silent      → observers who can't see the actor get nothing at all
+  - not silent  → they still get the message, with the actor rendered as
+                  "Someone" by `get_display_name`. No separate text is
+                  authored — the same template is passed as both the
+                  normal and the alternate message, and the funcparser
+                  conjugates it correctly either way.
+
+The flag does NOT govern whether the social breaks hiding. Every social
+does, silent or not: socials exist to engage the room, and engaging with
+the room is incompatible with hiding from it. Magical invisibility is
+unaffected.
+
+Currently non-silent (17 of 48): applaud, cackle, cheer, chuckle, clap,
+cry, gasp, giggle, groan, growl, hug, laugh, sigh, slap, snicker, thank,
+yawn.
+
+See docs/combat-system.md § Stealth & HIDDEN Condition for the
+concealment rules, and docs/room-architecture.md § Visibility Filtering
+for the messaging seams.
 """
 
 SOCIALS = {
     "applaud": {
+        "silent": False,
         "no_target_self": "You give a round of applause.",
         "no_target_room": "$You() $conj(give) a round of applause.",
         "target_self": "You applaud {target}'s performance.",
@@ -48,6 +91,7 @@ SOCIALS = {
         "self_room": "$You() $conj(bow) to $pron(yourself)... how odd.",
     },
     "cackle": {
+        "silent": False,
         "no_target_self": "You throw back your head and cackle with glee!",
         "no_target_room": "$You() $conj(throw) back $pron(their) head and $conj(cackle) with glee!",
         "target_self": "You cackle gleefully at {target}.",
@@ -55,6 +99,7 @@ SOCIALS = {
         "target_victim": "{actor} cackles gleefully at you.",
     },
     "cheer": {
+        "silent": False,
         "no_target_self": "You cheer enthusiastically!",
         "no_target_room": "$You() $conj(cheer) enthusiastically!",
         "target_self": "You cheer for {target}!",
@@ -64,6 +109,7 @@ SOCIALS = {
         "self_room": "$You() $conj(cheer) for $pron(yourself).",
     },
     "chuckle": {
+        "silent": False,
         "no_target_self": "You chuckle softly.",
         "no_target_room": "$You() $conj(chuckle) softly.",
         "target_self": "You chuckle at {target}.",
@@ -71,6 +117,7 @@ SOCIALS = {
         "target_victim": "{actor} chuckles at you.",
     },
     "clap": {
+        "silent": False,
         "no_target_self": "You clap your hands together.",
         "no_target_room": "$You() $conj(clap) $pron(their) hands together.",
         "target_self": "You clap for {target}.",
@@ -96,6 +143,7 @@ SOCIALS = {
         "target_victim": "{actor} cringes away from you.",
     },
     "cry": {
+        "silent": False,
         "no_target_self": "You burst into tears.",
         "no_target_room": "$You() $conj(burst) into tears.",
         "target_self": "You cry on {target}'s shoulder.",
@@ -150,6 +198,7 @@ SOCIALS = {
         "target_victim": "{actor} frowns at you.",
     },
     "gasp": {
+        "silent": False,
         "no_target_self": "You gasp in astonishment!",
         "no_target_room": "$You() $conj(gasp) in astonishment!",
         "target_self": "You gasp at {target}.",
@@ -157,6 +206,7 @@ SOCIALS = {
         "target_victim": "{actor} gasps at you.",
     },
     "giggle": {
+        "silent": False,
         "no_target_self": "You giggle.",
         "no_target_room": "$You() $conj(giggle).",
         "target_self": "You giggle at {target}.",
@@ -178,6 +228,7 @@ SOCIALS = {
         "target_victim": "{actor} grins mischievously at you.",
     },
     "groan": {
+        "silent": False,
         "no_target_self": "You groan loudly.",
         "no_target_room": "$You() $conj(groan) loudly.",
         "target_self": "You groan at {target}.",
@@ -192,6 +243,7 @@ SOCIALS = {
         "target_victim": "{actor} grovels before you.",
     },
     "growl": {
+        "silent": False,
         "no_target_self": "You growl menacingly.",
         "no_target_room": "$You() $conj(growl) menacingly.",
         "target_self": "You growl at {target}.",
@@ -209,6 +261,7 @@ SOCIALS = {
         "self_room": "$You() $conj(high) $conj(five) $pron(yourself).",
     },
     "hug": {
+        "silent": False,
         "no_target_self": "You hug yourself.",
         "no_target_room": "$You() $conj(hug) $pron(yourself).",
         "target_self": "You hug {target} warmly.",
@@ -225,6 +278,7 @@ SOCIALS = {
         "self_room": "$You() $conj(kiss) the back of $pron(their) hand.",
     },
     "laugh": {
+        "silent": False,
         "aliases": ["lol"],
         "no_target_self": "You fall down laughing!",
         "no_target_room": "$You() $conj(fall) down laughing!",
@@ -327,6 +381,7 @@ SOCIALS = {
         "target_victim": "{actor} shrugs at you.",
     },
     "sigh": {
+        "silent": False,
         "no_target_self": "You sigh deeply.",
         "no_target_room": "$You() $conj(sigh) deeply.",
         "target_self": "You sigh at {target}.",
@@ -334,6 +389,7 @@ SOCIALS = {
         "target_victim": "{actor} sighs at you.",
     },
     "slap": {
+        "silent": False,
         "no_target_self": "You need to slap someone specific.",
         "no_target_room": None,
         "target_self": "You slap {target}!",
@@ -357,6 +413,7 @@ SOCIALS = {
         "target_victim": "{actor} smirks at you.",
     },
     "snicker": {
+        "silent": False,
         "no_target_self": "You snicker softly.",
         "no_target_room": "$You() $conj(snicker) softly.",
         "target_self": "You snicker at {target}.",
@@ -364,6 +421,7 @@ SOCIALS = {
         "target_victim": "{actor} snickers at you.",
     },
     "thank": {
+        "silent": False,
         "aliases": ["thanks"],
         "no_target_self": "You thank everyone.",
         "no_target_room": "$You() $conj(thank) everyone.",
@@ -386,6 +444,7 @@ SOCIALS = {
         "target_victim": "{actor} winks at you.",
     },
     "yawn": {
+        "silent": False,
         "no_target_self": "You yawn widely.",
         "no_target_room": "$You() $conj(yawn) widely.",
         "target_self": "You yawn at {target}. How rude.",

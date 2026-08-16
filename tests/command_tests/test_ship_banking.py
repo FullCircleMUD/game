@@ -57,6 +57,7 @@ class ShipBankingTestBase(EvenniaCommandTest):
             self.ship.set_world_location(self.room2)  # berthed at room2
         self.ship.db_location = self.char1
         self.ship.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
 
 
 class TestShipBankingRoundTrip(ShipBankingTestBase):

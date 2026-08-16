@@ -1,12 +1,12 @@
 """
-Tests for CmdServices — consolidated global service script command.
+Tests for CmdServices — role-scoped service script report + reset.
 
 Key behaviours under test:
-- Status report lists all scripts (both global and pipeline)
+- Status report lists only scripts declared for get_role() on this process
+- Report shows running/last_repeat/last_work per script
 - The targeted form rejects unknown script keys with a clear error
+- A script not valid for this role cannot be resolved as a reset target
 - The ``force`` keyword bypasses the Y/N confirmation
-- Pipeline scripts are reset as a group: targeting any one of the
-  three triggers all three
 - Per-actor scripts (combat handlers, dungeon instances, etc.) are
   unreachable because they are not in the registry
 - Partial name matching resolves short aliases
@@ -18,13 +18,8 @@ from unittest.mock import patch, MagicMock
 
 from evennia.utils.test_resources import EvenniaCommandTest
 
-from commands.account_cmds.cmd_services import (
-    CmdServices,
-    _ALL_SCRIPTS,
-    _BY_KEY,
-    _PIPELINE_KEYS,
-    _resolve_name,
-)
+from commands.account_cmds.cmd_services import CmdServices, _resolve_name
+from server.conf.at_server_startstop import _SCRIPTS, _select_scripts
 
 
 class TestServicesRegistry(EvenniaCommandTest):
@@ -32,24 +27,6 @@ class TestServicesRegistry(EvenniaCommandTest):
 
     def create_script(self):
         pass
-
-    def test_pipeline_keys_derived_from_registry(self):
-        """_PIPELINE_KEYS is derived from _ALL_SCRIPTS."""
-        derived = {
-            key for key, _, is_pipeline in _ALL_SCRIPTS if is_pipeline
-        }
-        self.assertEqual(_PIPELINE_KEYS, derived)
-
-    def test_pipeline_includes_all_three_scripts(self):
-        """The full pipeline trio is in the registry."""
-        self.assertIn("telemetry_aggregator_service", _PIPELINE_KEYS)
-        self.assertIn("nft_saturation_service", _PIPELINE_KEYS)
-        self.assertIn("unified_spawn_service", _PIPELINE_KEYS)
-        self.assertEqual(len(_PIPELINE_KEYS), 3)
-
-    def test_all_scripts_present(self):
-        """Both global and pipeline scripts are in _ALL_SCRIPTS."""
-        self.assertEqual(len(_ALL_SCRIPTS), 11)
 
     def test_per_actor_scripts_not_in_registry(self):
         """
@@ -64,40 +41,68 @@ class TestServicesRegistry(EvenniaCommandTest):
             "tutorial_instance",
             "effect_timer",
         ]
+        keys = {key for key, _path, _roles, _tags in _SCRIPTS}
         for name in forbidden:
-            self.assertNotIn(name, _BY_KEY, f"{name} must not be resettable")
+            self.assertNotIn(name, keys, f"{name} must not be resettable")
 
 
 class TestServicesNameResolution(EvenniaCommandTest):
-    """Partial name matching and short aliases."""
+    """Partial name matching and short aliases, scoped to a role."""
 
     def create_script(self):
         pass
 
+    def setUp(self):
+        super().setUp()
+        self.monolith_entries = _select_scripts(role="monolith")
+        self.shard_entries = _select_scripts(role="shard")
+
     def test_exact_match(self):
         self.assertEqual(
-            _resolve_name("survival_service"), "survival_service"
+            _resolve_name("survival_service", self.monolith_entries),
+            "survival_service",
         )
 
     def test_short_alias_spawn(self):
         self.assertEqual(
-            _resolve_name("spawn"), "unified_spawn_service"
+            _resolve_name("spawn", self.monolith_entries),
+            "unified_spawn_service",
         )
 
     def test_short_alias_regen(self):
         self.assertEqual(
-            _resolve_name("regen"), "regeneration_service"
+            _resolve_name("regen", self.monolith_entries),
+            "regeneration_service",
         )
 
     def test_partial_match(self):
         self.assertEqual(
-            _resolve_name("telemetry"), "telemetry_aggregator_service"
+            _resolve_name("telemetry", self.monolith_entries),
+            "telemetry_aggregator_service",
         )
 
     def test_unknown_returns_none(self):
-        self.assertIsNone(_resolve_name("definitely_not_a_real_script"))
+        self.assertIsNone(
+            _resolve_name("definitely_not_a_real_script", self.monolith_entries)
+        )
+
+    def test_router_only_script_unresolvable_on_shard(self):
+        """
+        unified_spawn_service is router/monolith-only — a shard's entry
+        list must not contain it, so it can never resolve as a target
+        there. This is the structural fix for the double-ticker risk.
+        """
+        self.assertIsNone(
+            _resolve_name("unified_spawn_service", self.shard_entries)
+        )
+
+    def test_game_role_script_unresolvable_on_router(self):
+        """survival_service (GAME_ROLES) must not resolve on a router."""
+        router_entries = _select_scripts(role="router")
+        self.assertIsNone(_resolve_name("survival_service", router_entries))
 
 
+@patch("commands.account_cmds.cmd_services.get_role", return_value="monolith")
 @patch("commands.account_cmds.cmd_services.threads.deferToThread",
        lambda func, *a, **kw: MagicMock())
 class TestServicesArgParsing(EvenniaCommandTest):
@@ -106,7 +111,7 @@ class TestServicesArgParsing(EvenniaCommandTest):
     def create_script(self):
         pass
 
-    def test_no_args_shows_report(self):
+    def test_no_args_shows_report(self, _mock_role):
         """Bare ``services`` shows the status report."""
         result = self.call(
             CmdServices(),
@@ -115,7 +120,18 @@ class TestServicesArgParsing(EvenniaCommandTest):
         )
         self.assertIn("Service Report", result)
 
-    def test_unknown_script_rejected(self):
+    def test_report_lists_role_scoped_scripts(self, _mock_role):
+        result = self.call(
+            CmdServices(),
+            "",
+            caller=self.account,
+        )
+        self.assertIn("survival_service", result)
+        self.assertIn("RUNNING", result)
+        self.assertIn("LAST REPEAT", result)
+        self.assertIn("LAST WORK", result)
+
+    def test_unknown_script_rejected(self, _mock_role):
         """An unknown script key returns an error and lists registry."""
         result = self.call(
             CmdServices(),
@@ -125,7 +141,7 @@ class TestServicesArgParsing(EvenniaCommandTest):
         self.assertIn("Unknown service", result)
         self.assertIn("regeneration_service", result)
 
-    def test_combat_handler_rejected_as_unknown(self):
+    def test_combat_handler_rejected_as_unknown(self, _mock_role):
         result = self.call(
             CmdServices(),
             "reset combat_handler",
@@ -133,18 +149,8 @@ class TestServicesArgParsing(EvenniaCommandTest):
         )
         self.assertIn("Unknown service", result)
 
-    def test_force_keyword_bypasses_prompt(self):
-        """``services reset all force`` triggers immediate reset."""
-        with patch.object(CmdServices, "_do_reset_all") as mock_do:
-            self.call(
-                CmdServices(),
-                "reset all force",
-                caller=self.account,
-            )
-            mock_do.assert_called_once()
-
-    def test_targeted_force_bypasses_prompt(self):
-        """``services reset survival_service force`` triggers immediate reset."""
+    def test_force_keyword_bypasses_prompt(self, _mock_role):
+        """``services reset <name> force`` triggers immediate reset."""
         with patch.object(CmdServices, "_do_reset_targeted") as mock_do:
             self.call(
                 CmdServices(),
@@ -154,9 +160,17 @@ class TestServicesArgParsing(EvenniaCommandTest):
             mock_do.assert_called_once()
             args, _ = mock_do.call_args
             self.assertEqual(args[0], "survival_service")
-            self.assertFalse(args[1])
 
-    def test_invalid_subcommand(self):
+    def test_multiple_names_rejected(self, _mock_role):
+        """Only a single target name is accepted — no 'reset all'."""
+        result = self.call(
+            CmdServices(),
+            "reset survival_service regeneration_service",
+            caller=self.account,
+        )
+        self.assertIn("Usage", result)
+
+    def test_invalid_subcommand(self, _mock_role):
         """Non-reset subcommand shows usage."""
         result = self.call(
             CmdServices(),
@@ -166,66 +180,28 @@ class TestServicesArgParsing(EvenniaCommandTest):
         self.assertIn("Usage", result)
 
 
+@patch("commands.account_cmds.cmd_services.get_role", return_value="shard")
 @patch("commands.account_cmds.cmd_services.threads.deferToThread",
        lambda func, *a, **kw: MagicMock())
-class TestServicesPipelineGrouping(EvenniaCommandTest):
-    """
-    Targeting any pipeline script must reset all three together
-    so the staggered offsets are preserved.
-    """
+class TestServicesRoleGating(EvenniaCommandTest):
+    """A router-only script must be structurally unreachable from a shard."""
 
     def create_script(self):
         pass
 
-    def test_targeting_telemetry_marks_pipeline(self):
-        with patch.object(CmdServices, "_do_reset_targeted") as mock_do:
-            self.call(
-                CmdServices(),
-                "reset telemetry_aggregator_service force",
-                caller=self.account,
-            )
-            mock_do.assert_called_once()
-            args, _ = mock_do.call_args
-            self.assertEqual(args[0], "telemetry_aggregator_service")
-            self.assertTrue(args[1])
+    def test_router_only_script_rejected_on_shard(self, _mock_role):
+        result = self.call(
+            CmdServices(),
+            "reset unified_spawn_service",
+            caller=self.account,
+        )
+        self.assertIn("Unknown service", result)
 
-    def test_targeting_saturation_marks_pipeline(self):
-        with patch.object(CmdServices, "_do_reset_targeted") as mock_do:
-            self.call(
-                CmdServices(),
-                "reset nft_saturation_service force",
-                caller=self.account,
-            )
-            mock_do.assert_called_once()
-            args, _ = mock_do.call_args
-            self.assertTrue(args[1])
-
-    def test_targeting_spawn_marks_pipeline(self):
-        with patch.object(CmdServices, "_do_reset_targeted") as mock_do:
-            self.call(
-                CmdServices(),
-                "reset unified_spawn_service force",
-                caller=self.account,
-            )
-            mock_do.assert_called_once()
-            args, _ = mock_do.call_args
-            self.assertTrue(args[1])
-
-    def test_pipeline_worker_calls_reset_pipeline(self):
-        cmd = CmdServices()
-        with patch(
-            "commands.account_cmds.cmd_services._reset_pipeline"
-        ) as mock_pipe:
-            cmd._reset_targeted_worker("nft_saturation_service", True)
-            mock_pipe.assert_called_once()
-
-    def test_non_pipeline_worker_calls_reset_one(self):
-        cmd = CmdServices()
-        with patch(
-            "commands.account_cmds.cmd_services._reset_one"
-        ) as mock_one, patch(
-            "commands.account_cmds.cmd_services._reset_pipeline"
-        ) as mock_pipe:
-            cmd._reset_targeted_worker("survival_service", False)
-            mock_one.assert_called_once_with("survival_service")
-            mock_pipe.assert_not_called()
+    def test_report_omits_router_only_scripts_on_shard(self, _mock_role):
+        result = self.call(
+            CmdServices(),
+            "",
+            caller=self.account,
+        )
+        self.assertNotIn("unified_spawn_service", result)
+        self.assertIn("survival_service", result)

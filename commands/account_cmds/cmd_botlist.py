@@ -21,6 +21,11 @@ class CmdBotList(Command):
     - Wallet address (configured vs actual)
     - Number of characters
     - Character names and levels
+
+    Account existence and wallet are always accurate (AccountDB is
+    global). Character detail is scoped to THIS process — a bot's
+    character resident on a different shard won't show up here. See
+    docs/scaling.md's open TBD on cross-shard presence.
     """
 
     key = "botlist"
@@ -29,6 +34,13 @@ class CmdBotList(Command):
 
     def func(self):
         from evennia.accounts.models import AccountDB
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role, get_shard_id
+
+        role = get_role()
+        if role in (ROLE_MONOLITH, ROLE_ROUTER):
+            header = "Bots in the Game"
+        else:
+            header = f"Bots on {get_shard_id() or role}"
 
         usernames = getattr(settings, "BOT_ACCOUNT_USERNAMES", [])
         wallets = getattr(settings, "BOT_WALLET_ADDRESSES", {})
@@ -37,7 +49,7 @@ class CmdBotList(Command):
             self.msg("No bot accounts configured in BOT_ACCOUNT_USERNAMES.")
             return
 
-        self.msg("|wBot Account Status|n")
+        self.msg(f"|w{header}|n")
         self.msg("|b" + "-" * 62 + "|n")
 
         for name in usernames:

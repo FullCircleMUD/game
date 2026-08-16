@@ -20,7 +20,7 @@ Usage:
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 
@@ -70,14 +70,15 @@ class CmdRecognise(CmdSkillBase):
         if not room:
             return
 
-        # Darkness — can't see what you're studying
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Recognising a creature is studying what it looks like.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return
 
+        # Filtering lives in the resolvers, not here: p_living, then
+        # p_can_see out of combat and p_can_perceive in it.
         target, _ = resolve_target(
             caller, self.args.strip(), "actor_hostile",
-            extra_predicates=(p_can_see,),
         )
         if not target:
             return  # actor resolver already messaged
@@ -103,7 +104,7 @@ class CmdRecognise(CmdSkillBase):
                 caller.msg(result["first"])
             if result.get("third") and caller.location:
                 caller.location.msg_contents(
-                    result["third"], exclude=[caller],
+                    result["third"], exclude=[caller], from_obj=caller,
                 )
 
     # Mastery stubs — not used (func() overridden above)

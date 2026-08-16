@@ -42,6 +42,7 @@ class CmdExitDungeon(FCMCommandMixin, Command):
         except ScriptDB.DoesNotExist:
             # Stale tag — clean up
             caller.tags.remove(instance_tag, category="dungeon_character")
+            caller.attributes.remove("dungeon_entrance_room")
             caller.msg("Your dungeon instance no longer exists.")
             return
 

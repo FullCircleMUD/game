@@ -8,14 +8,8 @@ Supports at-or-below tier filtering for scrolls and recipes.
 import logging
 
 from blockchain.xrpl.services.spawn.distributors.base import BaseDistributor
-from blockchain.xrpl.services.spawn.headroom import count_nfts
 
 logger = logging.getLogger("evennia")
-
-# Tier hierarchy for at-or-below filtering.
-TIER_ORDER = ["basic", "skilled", "expert", "master", "gm"]
-TIER_RANK = {tier: i for i, tier in enumerate(TIER_ORDER)}
-
 
 def _resolve_nft_item_type_name(type_key):
     """Resolve a SPAWN_CONFIG type_key to an NFTItemType.name.
@@ -45,36 +39,6 @@ class ScrollDistributor(BaseDistributor):
     category = "scrolls"
     max_attr_name = "spawn_scrolls_max"
 
-    def _get_max_for_key(self, target, type_key):
-        """Get available slots for a scroll at its tier using at-or-below.
-
-        A scroll can be placed in any slot of its tier or higher.
-        Returns the number of open slots that accept this scroll's tier.
-        """
-        from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
-
-        # Look up the scroll's tier from config
-        cfg_key = ("knowledge", type_key)
-        cfg = SPAWN_CONFIG.get(cfg_key, {})
-        scroll_tier = cfg.get("tier", "basic")
-        scroll_rank = TIER_RANK.get(scroll_tier, 0)
-
-        # Get per-tier max dict
-        max_dict = getattr(target.db, self.max_attr_name, None)
-        if not max_dict:
-            return 0
-
-        # Sum slots at scroll's tier or higher (at-or-below: scroll fits
-        # in any slot of equal or higher tier)
-        total_slots = 0
-        for tier, max_count in dict(max_dict).items():
-            tier_rank = TIER_RANK.get(tier, 0)
-            if tier_rank >= scroll_rank and max_count > 0:
-                total_slots += max_count
-
-        # Subtract current scrolls already placed
-        current_scrolls = count_nfts(target, "scrolls")
-        return max(0, total_slots - current_scrolls)
 
     def _place(self, target, type_key, amount):
         """Place scroll NFTs on a target.
@@ -93,7 +57,7 @@ class ScrollDistributor(BaseDistributor):
                 token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
                 BaseNFTItem.spawn_into(token_id, target)
             except Exception:
-                logger.log_trace(
+                logger.exception(
                     f"ScrollDistributor: failed to place {type_key} on {target}"
                 )
                 raise
@@ -106,27 +70,6 @@ class RecipeDistributor(BaseDistributor):
     category = "recipes"
     max_attr_name = "spawn_recipes_max"
 
-    def _get_max_for_key(self, target, type_key):
-        """Get available slots for a recipe at its tier using at-or-below."""
-        from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
-
-        cfg_key = ("knowledge", type_key)
-        cfg = SPAWN_CONFIG.get(cfg_key, {})
-        recipe_tier = cfg.get("tier", "basic")
-        recipe_rank = TIER_RANK.get(recipe_tier, 0)
-
-        max_dict = getattr(target.db, self.max_attr_name, None)
-        if not max_dict:
-            return 0
-
-        total_slots = 0
-        for tier, max_count in dict(max_dict).items():
-            tier_rank = TIER_RANK.get(tier, 0)
-            if tier_rank >= recipe_rank and max_count > 0:
-                total_slots += max_count
-
-        current_recipes = count_nfts(target, "recipes")
-        return max(0, total_slots - current_recipes)
 
     def _place(self, target, type_key, amount):
         """Place recipe NFTs on a target."""
@@ -141,7 +84,7 @@ class RecipeDistributor(BaseDistributor):
                 token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
                 BaseNFTItem.spawn_into(token_id, target)
             except Exception:
-                logger.log_trace(
+                logger.exception(
                     f"RecipeDistributor: failed to place {type_key} on {target}"
                 )
                 raise
@@ -163,7 +106,7 @@ class RareNFTDistributor(BaseDistributor):
                 token_id = BaseNFTItem.assign_to_blank_token(type_key)
                 BaseNFTItem.spawn_into(token_id, target)
             except Exception:
-                logger.log_trace(
+                logger.exception(
                     f"RareNFTDistributor: failed to place {type_key} on {target}"
                 )
                 raise

@@ -16,6 +16,7 @@ This is a standalone command (not a recipe through cmd_craft) because:
 
 from evennia import Command
 from evennia.utils import delay
+from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.models import NFTGameState
 from commands.command import FCMCommandMixin
@@ -64,10 +65,7 @@ class CmdInset(FCMCommandMixin, Command):
         room = caller.location
 
         # --- Busy check ---
-        if caller.ndb.is_processing:
-            caller.msg(
-                "You are already busy. Wait until your current task finishes."
-            )
+        if check_busy(caller):
             return
 
         if not self.args or " in " not in self.args:
@@ -214,95 +212,86 @@ class CmdInset(FCMCommandMixin, Command):
         # --- Consume the gem (delete → NFTService → RESERVE) ---
         gem.delete()
 
-        # --- Lock and start insetting ---
-        caller.ndb.is_processing = True
+        # --- Lock, announce, and run the progress ticks ---
+        def _finish():
+            try:
+                # Transfer gem effects → weapon.wear_effects (extend)
+                weapon.wear_effects = (
+                    list(weapon.wear_effects or []) + gem_effects
+                )
 
-        caller.location.msg_contents_with_invis_alt(
-            f"{caller.key} begins carefully setting a gem at the {room.key}.",
-            f"Tiny tools seem to move on their own at the {room.key}, "
-            f"setting something into place...",
-            from_obj=caller,
+                # Transfer gem restrictions → weapon ItemRestrictionMixin
+                # fields. Lists are unioned (deduplicated); alignment
+                # bounds take the more restrictive value.
+                _merge_list_field(weapon, "required_classes", gem_restrictions)
+                _merge_list_field(weapon, "excluded_classes", gem_restrictions)
+                _merge_list_field(weapon, "required_races",   gem_restrictions)
+                _merge_list_field(weapon, "excluded_races",   gem_restrictions)
+                _merge_min_bound(weapon, "min_alignment_score", gem_restrictions)
+                _merge_max_bound(weapon, "max_alignment_score", gem_restrictions)
+
+                weapon.is_inset = True
+
+                # Generate LLM name
+                new_name = name_generator.generate_inset_name(
+                    weapon.key, gem_effects, caller
+                )
+                weapon.key = new_name
+
+                # Persist updated fields to NFTGameState metadata so the
+                # weapon survives despawn/respawn. Uses the same field
+                # names as ItemRestrictionMixin / WearableMixin —
+                # no custom keys.
+                nft = NFTGameState.objects.get(
+                    nftoken_id=str(weapon.token_id),
+                )
+                nft.metadata["name"] = new_name
+                nft.metadata["wear_effects"] = weapon.wear_effects
+                nft.metadata["required_classes"] = list(weapon.required_classes or [])
+                nft.metadata["excluded_classes"] = list(weapon.excluded_classes or [])
+                nft.metadata["required_races"]   = list(weapon.required_races or [])
+                nft.metadata["excluded_races"]   = list(weapon.excluded_races or [])
+                nft.metadata["min_alignment_score"] = weapon.min_alignment_score
+                nft.metadata["max_alignment_score"] = weapon.max_alignment_score
+                nft.metadata["is_inset"] = True
+                nft.save(update_fields=["metadata", "updated_at"])
+
+            except Exception as err:
+                caller.msg(f"|rInsetting failed: {err}|n")
+                return
+
+            caller.msg(
+                f"|gYou inset the gem into the weapon, "
+                f"creating |w{new_name}|g!|n"
+            )
+
+            # Award XP
+            multiplier = room.craft_xp_multiplier or 1.0
+            xp = int(INSET_XP * multiplier)
+            if xp > 0:
+                caller.at_gain_experience_points(xp)
+
+            caller.location.msg_contents_with_invis_alt(
+                f"{caller.key} finishes gem setting at the {room.key}.",
+                f"The tools at the {room.key} clatter to a stop. "
+                f"A newly enhanced weapon gleams on the workbench.",
+                from_obj=caller,
+            )
+
+        start_busy_ticks(
+            caller, INSET_TICKS, INSET_TICK_SECONDS, _finish,
+            progress=lambda step, total: (
+                f"Insetting... [{progress_bar(step, total, _BAR_WIDTH)}]"
+            ),
+            done_msg=(
+                f"Insetting... [{progress_bar(1, 1, _BAR_WIDTH)}] Done!"
+            ),
+            room_msg=f"{caller.key} begins carefully setting a gem at the {room.key}.",
+            room_alt_msg=(
+                f"Tiny tools seem to move on their own at the {room.key}, "
+                f"setting something into place..."
+            ),
         )
-
-        # --- Chain delayed progress ticks ---
-        def _tick(step):
-            if step < INSET_TICKS:
-                filled = _BAR_WIDTH * step // INSET_TICKS
-                bar = '#' * filled + '-' * (_BAR_WIDTH - filled)
-                caller.msg(f"Insetting {gem_effects[0].get('stat', gem_effects[0].get('condition', 'gem'))}... [{bar}]")
-                delay(INSET_TICK_SECONDS, _tick, step + 1)
-            else:
-                bar = '#' * _BAR_WIDTH
-                caller.msg(f"Insetting... [{bar}] Done!")
-
-                try:
-                    # Transfer gem effects → weapon.wear_effects (extend)
-                    weapon.wear_effects = (
-                        list(weapon.wear_effects or []) + gem_effects
-                    )
-
-                    # Transfer gem restrictions → weapon ItemRestrictionMixin
-                    # fields. Lists are unioned (deduplicated); alignment
-                    # bounds take the more restrictive value.
-                    _merge_list_field(weapon, "required_classes", gem_restrictions)
-                    _merge_list_field(weapon, "excluded_classes", gem_restrictions)
-                    _merge_list_field(weapon, "required_races",   gem_restrictions)
-                    _merge_list_field(weapon, "excluded_races",   gem_restrictions)
-                    _merge_min_bound(weapon, "min_alignment_score", gem_restrictions)
-                    _merge_max_bound(weapon, "max_alignment_score", gem_restrictions)
-
-                    weapon.is_inset = True
-
-                    # Generate LLM name
-                    new_name = name_generator.generate_inset_name(
-                        weapon.key, gem_effects, caller
-                    )
-                    weapon.key = new_name
-
-                    # Persist updated fields to NFTGameState metadata so the
-                    # weapon survives despawn/respawn. Uses the same field
-                    # names as ItemRestrictionMixin / WearableMixin —
-                    # no custom keys.
-                    nft = NFTGameState.objects.get(
-                        nftoken_id=str(weapon.token_id),
-                    )
-                    nft.metadata["name"] = new_name
-                    nft.metadata["wear_effects"] = weapon.wear_effects
-                    nft.metadata["required_classes"] = list(weapon.required_classes or [])
-                    nft.metadata["excluded_classes"] = list(weapon.excluded_classes or [])
-                    nft.metadata["required_races"]   = list(weapon.required_races or [])
-                    nft.metadata["excluded_races"]   = list(weapon.excluded_races or [])
-                    nft.metadata["min_alignment_score"] = weapon.min_alignment_score
-                    nft.metadata["max_alignment_score"] = weapon.max_alignment_score
-                    nft.metadata["is_inset"] = True
-                    nft.save(update_fields=["metadata", "updated_at"])
-
-                except Exception as err:
-                    caller.msg(f"|rInsetting failed: {err}|n")
-                    caller.ndb.is_processing = False
-                    return
-
-                caller.msg(
-                    f"|gYou inset the gem into the weapon, "
-                    f"creating |w{new_name}|g!|n"
-                )
-
-                # Award XP
-                multiplier = room.craft_xp_multiplier or 1.0
-                xp = int(INSET_XP * multiplier)
-                if xp > 0:
-                    caller.at_gain_experience_points(xp)
-
-                caller.location.msg_contents_with_invis_alt(
-                    f"{caller.key} finishes gem setting at the {room.key}.",
-                    f"The tools at the {room.key} clatter to a stop. "
-                    f"A newly enhanced weapon gleams on the workbench.",
-                    from_obj=caller,
-                )
-                caller.ndb.is_processing = False
-
-        # Start first tick
-        delay(INSET_TICK_SECONDS, _tick, 1)
 
 
 def _merge_list_field(weapon, field, gem_restrictions):

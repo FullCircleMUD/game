@@ -13,7 +13,7 @@ from evennia import Command
 from evennia.utils import delay
 
 from commands.command import FCMCommandMixin
-from world.spells.registry import get_spell, SPELL_REGISTRY
+from world.spells.registry import find_spell
 
 
 # ── Memorisation delay configuration ──
@@ -56,7 +56,7 @@ class CmdMemorise(FCMCommandMixin, Command):
             return
 
         # Find the spell by name/key
-        spell_match = self._find_spell(self.args.strip())
+        spell_match = find_spell(self.args.strip(), True)
         if not spell_match:
             caller.msg("You don't know a spell by that name.")
             return
@@ -119,26 +119,6 @@ class CmdMemorise(FCMCommandMixin, Command):
 
         delay(MEMORISE_TICK_SECONDS, _tick, 1)
 
-    def _find_spell(self, args):
-        """Find a spell by name, key, or alias (case insensitive)."""
-        args_lower = args.lower()
-        # Exact match on name, key, or alias
-        for spell_key, spell_obj in SPELL_REGISTRY.items():
-            if spell_obj.name.lower() == args_lower:
-                return spell_obj
-            if spell_key.replace("_", " ") == args_lower:
-                return spell_obj
-            for alias in getattr(spell_obj, "aliases", []):
-                if alias.lower() == args_lower:
-                    return spell_obj
-        # Substring fallback
-        for spell_key, spell_obj in SPELL_REGISTRY.items():
-            if args_lower in spell_obj.name.lower():
-                return spell_obj
-            if args_lower in spell_key.replace("_", " "):
-                return spell_obj
-        return None
-
 
 class CmdForget(FCMCommandMixin, Command):
     """
@@ -167,31 +147,14 @@ class CmdForget(FCMCommandMixin, Command):
             caller.msg("Forget what? Usage: forget <spell>")
             return
 
+        spell_name = self.args.strip()
+
         # Find the spell by name/key
-        spell_match = self._find_spell(self.args.strip())
+        spell_match = find_spell(spell_name, True, caller.get_memorised_spells())
+
         if not spell_match:
-            caller.msg("You don't know a spell by that name.")
+            caller.msg(f"You don't have {spell_name} memorised.")
             return
 
         success, msg = caller.forget_spell(spell_match.key)
         caller.msg(msg)
-
-    def _find_spell(self, args):
-        """Find a spell by name, key, or alias (case insensitive)."""
-        args_lower = args.lower()
-        # Exact match on name, key, or alias
-        for spell_key, spell_obj in SPELL_REGISTRY.items():
-            if spell_obj.name.lower() == args_lower:
-                return spell_obj
-            if spell_key.replace("_", " ") == args_lower:
-                return spell_obj
-            for alias in getattr(spell_obj, "aliases", []):
-                if alias.lower() == args_lower:
-                    return spell_obj
-        # Substring fallback
-        for spell_key, spell_obj in SPELL_REGISTRY.items():
-            if args_lower in spell_obj.name.lower():
-                return spell_obj
-            if args_lower in spell_key.replace("_", " "):
-                return spell_obj
-        return None

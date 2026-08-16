@@ -65,51 +65,86 @@ class AIHandler:
 
     # ── Target helpers ──
 
-    def get_targets_in_room(self, target_filter=None):
+    def get_targets_in_room(self, *predicates):
         """
-        Return potential targets in the mob's current room.
+        Return everything in the room this mob can perceive.
+
+        Perception is the floor. ``p_can_perceive`` always applies and the
+        supplied predicates narrow the result further — they can never
+        widen it. A concealed actor is returned only when the mob holds
+        the counter that reveals them: the ``true_sight`` effect for
+        HIDDEN, the ``DETECT_INVIS`` condition for INVISIBLE.
+
+        The mob decides what it *cares* about by passing predicates; it
+        does not decide what it can *perceive*. Callers narrow with
+        targeting-library predicates rather than filtering the returned
+        list, so filtering stays uniform and debuggable across every
+        call site::
+
+            self.ai.get_targets_in_room(p_is_character)
+            self.ai.get_targets_in_room(p_is_character, p_living,
+                                        p_excluding(victim))
 
         Args:
-            target_filter: callable(obj) -> bool. If None, returns PCs.
+            *predicates: ``(obj, caller) -> bool``, the targeting-library
+                predicate shape. Prefer an existing library predicate;
+                where none fits, add one rather than filtering inline.
+                Accepts them loose or as a single list, so a mob can hold
+                a named predicate stack as an attribute and pass it whole.
         """
-        if not self.obj.location:
-            return []
-        if target_filter:
-            return [
-                obj for obj in self.obj.location.contents
-                if obj != self.obj and target_filter(obj)
-            ]
-        # Default: player characters only
+        from utils.targeting.helpers import walk_contents
+        from utils.targeting.predicates import p_can_perceive
+
+        if len(predicates) == 1 and isinstance(predicates[0], (list, tuple)):
+            predicates = tuple(predicates[0])
+
+        mob = self.obj
+        # Caller predicates lead: they are typically cheap isinstance
+        # checks, so they short-circuit most candidates before p_can_perceive
+        # does its method calls.
         return [
-            obj for obj in self.obj.location.contents
-            if getattr(obj, "is_pc", False)
+            obj
+            for obj in walk_contents(mob, mob.location, *predicates, p_can_perceive)
+            if obj is not mob
         ]
 
     # ── Movement helpers ──
 
     def get_area_exits(self):
         """
-        Return exits leading to rooms tagged with the mob's area_tag.
+        Return the exits this mob can actually use, within its area.
 
-        Uses the 'mob_area' tag category. If the mob has no area_tag,
-        returns all traversable exits (no restriction).
+        Two questions in sequence. Can the mob go that way at all —
+        ``open_exits`` answers that, applying the traverse lock and height
+        access, whether the mob can see the exit, and whether a door on it is
+        open and unlocked. Then, should it: exits are narrowed to rooms
+        sharing the mob's ``mob_area`` tag so populations stay in their zone.
+        A mob with no area tag is unrestricted and gets the first answer.
+
+        Every mob movement decision reaches this — ``wander``,
+        ``flee_to_random_room``, ``_flee_from_threat``, ``_is_cornered`` and
+        the wounded retreats — so a mob will not wander through a closed door,
+        and a mob boxed in by one counts as cornered and turns to fight.
+
+        Selection only. ``at_traverse`` on the chosen exit is what enforces
+        passage, and applies gates these predicates cannot see (encumbrance,
+        size, traps).
         """
+        from utils.targeting.helpers import open_exits
+
         mob = self.obj
-        area_tags = mob.tags.get(category="mob_area", return_list=True)
-        area_tag = area_tags[0] if area_tags else None
         if not mob.location:
             return []
 
-        all_exits = [
-            exi for exi in mob.location.exits
-            if exi.access(mob, "traverse") and exi.destination
-        ]
+        usable = open_exits(mob)
 
+        area_tags = mob.tags.get(category="mob_area", return_list=True)
+        area_tag = area_tags[0] if area_tags else None
         if not area_tag:
-            return all_exits
+            return usable
 
         return [
-            exi for exi in all_exits
+            exi for exi in usable
             if area_tag in (
                 exi.destination.tags.get(
                     category="mob_area", return_list=True

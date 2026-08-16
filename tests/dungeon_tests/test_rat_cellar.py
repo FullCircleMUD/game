@@ -262,7 +262,7 @@ class TestConditionalDungeonExit(EvenniaCommandTest):
         trigger.dungeon_template_id = "rat_cellar"
         trigger.condition_type = "quest_active"
         trigger.condition_key = "rat_cellar"
-        trigger.alternate_destination_id = self.fallback_room.id
+        trigger.alternate_destination = self.fallback_room
 
         # Traverse
         trigger.at_traverse(self.char1, self.room1)
@@ -285,7 +285,7 @@ class TestConditionalDungeonExit(EvenniaCommandTest):
         trigger.dungeon_template_id = "rat_cellar"
         trigger.condition_type = "quest_active"
         trigger.condition_key = "rat_cellar"
-        trigger.alternate_destination_id = self.fallback_room.id
+        trigger.alternate_destination = self.fallback_room
 
         trigger.at_traverse(self.char1, self.room1)
 
@@ -314,7 +314,7 @@ class TestConditionalDungeonExit(EvenniaCommandTest):
         trigger.dungeon_template_id = "rat_cellar"
         trigger.condition_type = "quest_active"
         trigger.condition_key = "rat_cellar"
-        trigger.alternate_destination_id = self.fallback_room.id
+        trigger.alternate_destination = self.fallback_room
 
         trigger.at_traverse(self.char1, self.room1)
 

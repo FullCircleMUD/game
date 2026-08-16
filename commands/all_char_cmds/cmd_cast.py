@@ -16,7 +16,15 @@ from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import check_range, p_can_see
-from world.spells.registry import SPELL_REGISTRY
+from world.spells.registry import find_spell
+
+
+#: Target types that ``resolve_target`` sends to the four actor
+#: resolvers, which own the sight rule themselves. A spell with one of
+#: these must not be given a sight predicate here — doing so would
+#: override the in-combat relaxation to ``p_can_perceive`` and take away
+#: fighting by sound.
+_RESOLVER_ACTOR_TYPES = ("actor_hostile", "actor_any", "actor_friendly")
 
 
 class CmdCast(FCMCommandMixin, Command):
@@ -72,16 +80,7 @@ class CmdCast(FCMCommandMixin, Command):
             caller.msg("Cast what? Usage: cast '<spell>' [target]")
             return
 
-        # Look up spell by name or key (underscores as spaces)
-        spell_match = None
-        spell_name_lower = spell_name.lower()
-        for spell_key, spell_obj in SPELL_REGISTRY.items():
-            if spell_obj.name.lower() == spell_name_lower:
-                spell_match = spell_obj
-                break
-            if spell_key.replace("_", " ") == spell_name_lower:
-                spell_match = spell_obj
-                break
+        spell_match = find_spell(spell_name.lower())
 
         if not spell_match:
             caller.msg("You don't know a spell by that name.")
@@ -104,10 +103,18 @@ class CmdCast(FCMCommandMixin, Command):
             )
             return
 
-        # Resolve target — requires_sight controls whether p_can_see
-        # is passed as an extra predicate. Actor types also get it
-        # so hidden/height-barrier-gated targets are filtered.
-        extra = (p_can_see,) if spell_match.requires_sight else ()
+        # Actor-targeting spells take their sight rule from the four
+        # resolvers — p_can_see to start a fight, p_can_perceive once in
+        # one, p_can_see either way for friendly intent — so nothing is
+        # passed here and requires_sight does not apply to them.
+        #
+        # Item-targeting spells go down walk_contents, which has no such
+        # rule, so requires_sight still decides there: Knock needs to see
+        # the lock, a sense-the-unseen spell does not.
+        extra = ()
+        if (spell_match.requires_sight
+                and spell_match.target_type not in _RESOLVER_ACTOR_TYPES):
+            extra = (p_can_see,)
         target, secondaries = resolve_target(
             caller, target_str, spell_match.target_type,
             aoe=spell_match.aoe,
@@ -131,19 +138,40 @@ class CmdCast(FCMCommandMixin, Command):
             caller, target, spell_arg=spell_arg, secondaries=secondaries,
         )
 
-        # Break invisibility on offensive cast (no advantage — spells only)
+        # Casting at an enemy is a hostile act and ends everything a
+        # hostile act ends — no exclusions. The caster never passes
+        # through `execute_attack` on any spell path, so this is the
+        # only place it can happen for a cast. Messaging stays here
+        # because the seam deliberately sends none.
         if success and spell_match.target_type == "actor_hostile":
-            if (hasattr(caller, "break_invisibility")
-                    and caller.has_condition(Condition.INVISIBLE)):
-                caller.break_invisibility()
-                caller.msg("|yYour invisibility fades as you cast.|n")
+            broken = []
+            if hasattr(caller, "break_conditions_from_hostile_action"):
+                broken = caller.break_conditions_from_hostile_action()
 
-        # Break sanctuary on offensive cast
-        if success and spell_match.target_type == "actor_hostile":
-            if (hasattr(caller, "break_sanctuary")
-                    and caller.has_condition(Condition.SANCTUARY)):
-                caller.break_sanctuary()
+            if Condition.INVISIBLE in broken:
+                caller.msg("|yYour invisibility fades as you cast.|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|y{caster} shimmers into view!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
+            if Condition.HIDDEN in broken:
+                caller.msg("|yYou give away your hiding place as you cast.|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|y{caster} breaks from cover!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
+            if Condition.SANCTUARY in broken:
                 caller.msg("|WYour sanctuary fades as you cast an offensive spell!|n")
+                if caller.location:
+                    caller.location.msg_contents(
+                        "|W{caster}'s divine sanctuary fades!|n",
+                        exclude=[caller],
+                        mapping={"caster": caller},
+                    )
 
         if isinstance(result, str):
             # Validation failure — single string to caster only

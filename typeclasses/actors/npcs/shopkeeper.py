@@ -33,6 +33,7 @@ class ShopkeeperNPC(BaseNPC):
         execute_buy(caller, quote) -> dict
         execute_sell(caller, quote) -> dict
         list_inventory() -> list[dict]
+        quote_hint() -> str
 
     The ``inventory`` attribute is declared here but its element type
     is subclass-defined (``int`` resource_id for resource shops,
@@ -79,9 +80,10 @@ class ShopkeeperNPC(BaseNPC):
     def list_inventory(self):
         """Return a list of ``{name, item_key, buy_price, sell_price}`` dicts.
 
-        Used by ``CmdShopList`` to render the browse output without any
+        Used by ``CmdShopList`` to render the list output without any
         knowledge of resource vs NFT shops. Prices may be omitted (``None``)
-        if the subclass only supplies them at quote time.
+        if the subclass only supplies them at quote time — both shipped
+        subclasses do exactly that, so ``list`` shows names alone.
         """
         raise NotImplementedError
 

@@ -1,7 +1,7 @@
 """
 Weapon damage lookup tables — material tier + mastery level = damage dice.
 
-See design/WEAPON_DAMAGE_SCALING.md for the full design rationale.
+See docs/weapon-damage-scaling.md for the full design rationale.
 
 Usage:
     from world.damage_tables import get_damage_dice

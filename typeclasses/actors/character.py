@@ -44,8 +44,6 @@ class FCMCharacter(
     BaseActor  # now includes EffectsManagerMixin + DamageResistanceMixin
     ):
 
-    is_pc = True  # Convention — distinguishes player characters from NPCs/mobs
-
     # point_buy, num_remorts, and bonus_*_per_level are in RemortMixin
 
     #########################################################
@@ -98,8 +96,9 @@ class FCMCharacter(
                     )
                     if self.location:
                         self.location.msg_contents(
-                            f"|r{self.key} is zapped by {item.key} and instantly lets go of it!|n",
+                            "|r{wearer} is zapped by {item} and instantly lets go of it!|n",
                             exclude=[self],
+                            mapping={"wearer": self, "item": item},
                         )
         finally:
             self._checking_equipment = False
@@ -216,10 +215,8 @@ class FCMCharacter(
         if getattr(self, "afk", False) and move_type in ("move", "follow"):
             self.msg("|yReminder: You are currently flagged as AFK.|n")
         if self.ndb.is_processing:
-            self.msg("You can't leave in the middle of a job! Wait for it to finish.")
-            return False
-        if self.ndb.book_transport and move_type != "teleport":
-            self.msg("You are lost in a book and can't move.")
+            from utils.busy import BUSY_MOVE_MESSAGE
+            self.msg(self.ndb.busy_move_msg or BUSY_MOVE_MESSAGE)
             return False
         pos = getattr(self, "position", "standing")
         if pos not in ("standing", "fighting"):
@@ -294,22 +291,35 @@ class FCMCharacter(
             # Surfaced or on land — stop any running timer
             self.stop_breath_timer()
 
-        # HIDDEN movement check — stealth vs best perceiver on room entry
-        if self.has_condition(Condition.HIDDEN) and self.location:
+        # HIDDEN check for followers only. Every other move resolves
+        # stealth in BaseActor.announce_move_to, before anything is said,
+        # so the room reacts to what the arriver turned out to be.
+        # Followers travel with quiet=True and Evennia skips both announce
+        # hooks on a quiet move, so that seam never runs for them — and
+        # without a check here a hidden character could follow a group
+        # across the map without rolling once.
+        #
+        # Resolving it after the arrival is the right shape for a group
+        # anyway: the room hears about the party, then notices the extra
+        # body a moment later.
+        if (move_type == "follow"
+                and self.has_condition(Condition.HIDDEN)
+                and self.location):
             self._check_hidden_on_entry()
 
         # Passive trap detection on room entry
         if self.location:
             self._check_traps_on_entry()
 
-        # Notify LLM NPCs of player arrival
-        if self.location and getattr(self, "is_pc", False):
-            for obj in self.location.contents:
-                if obj != self and hasattr(obj, "at_llm_player_arrive"):
-                    obj.at_llm_player_arrive(self)
+        # Arrivals are announced by RoomBase.at_object_receive, which fires
+        # earlier in move_to and gates both the mob and LLM hooks on
+        # perception. Everything left in this method is the mover's own
+        # bookkeeping — its move points, its lungs, its map, its followers.
+        # Telling other people something happened belongs to the room; a
+        # second loop here is how one of the two hooks ended up unfiltered.
 
         # District map auto-creation for cartographers
-        if self.location and getattr(self, "is_pc", False):
+        if self.location:
             self._check_map_autocreation()
 
         # Don't cascade followers on follow moves or teleports.
@@ -323,11 +333,16 @@ class FCMCharacter(
         # Collect ALL followers in the chain (direct + indirect) who are
         # in the source room, and move them all with move_type="follow"
         # so they don't trigger further cascades.
+        # Followers move quietly: the leader's own announce already told both
+        # rooms the party left and arrived, so a pair per follower would say
+        # the same thing five more times. Their signal is the direct message.
+        direction = getattr(exit_obj, "direction", None)
+        suffix = f" {direction}" if direction else ""
         all_followers = self.get_followers(same_room=False)
         for f in all_followers:
             if f.location == source_location:
-                f.msg(f"You follow {self.get_display_name(f)}.")
-                f.move_to(self.location, move_type="follow")
+                f.msg(f"You follow {self.get_display_name(f)}{suffix}.")
+                f.move_to(self.location, move_type="follow", quiet=True)
 
     # ── HIDDEN movement check ──
 
@@ -622,9 +637,13 @@ class FCMCharacter(
             return True
 
     def _wimpy_flee(self):
-        """Auto-flee when HP drops below wimpy threshold during combat."""
-        import random
-        from combat.combat_utils import get_sides
+        """Auto-flee when HP drops below the wimpy threshold during combat.
+
+        Wimpy is a convenience, not a better escape: it saves typing ``flee``
+        fast enough, and nothing more. So it runs the same process, rolls the
+        same check, and can fail the same way — see ``flee_from_combat``.
+        """
+        from combat.combat_utils import FleeWording, flee_from_combat
 
         if self.wimpy_threshold <= 0 or self.hp <= 0:
             return
@@ -635,44 +654,18 @@ class FCMCharacter(
         if not handler:
             return
 
-        # Find open exits
-        room = self.location
-        if not room:
-            return
-        exits = [
-            ex for ex in room.exits
-            if ex.destination and ex.access(self, "traverse")
-        ]
-        if not exits:
-            self.msg("|rYou try to flee but there's nowhere to go!|n")
-            return
-
-        chosen = random.choice(exits)
-        direction = chosen.key
-
-        # Capture enemies before stopping combat
-        _, enemies = get_sides(self)
-
-        # Stop combat before moving
-        handler.stop_combat()
-
-        self.msg(f"|rYour wimpy threshold is reached — you flee {direction}!|n")
-        if room:
-            room.msg_contents(
-                f"$You() $conj(panic) and $conj(flee) {direction}!",
-                from_obj=self,
-                exclude=[self],
-            )
-
-        self.move_to(chosen.destination)
-
-        # Clean up combat for remaining enemies
-        for enemy in enemies:
-            enemy_handler = (enemy.get_combat_handler()
-                             if hasattr(enemy, "get_combat_handler")
-                             else None)
-            if enemy_handler:
-                enemy_handler._check_stop_combat()
+        flee_from_combat(self, handler, FleeWording(
+            to_actor="|rYour wimpy threshold is reached — you flee {direction}!|n",
+            failed_to_actor=(
+                "|rYour wimpy threshold is reached but you can't break away!|n"
+            ),
+            failed_in_room="$You() $conj(try) to run but cannot escape!",
+            no_exits="|rYou try to flee but there's nowhere to go!|n",
+            room_msgs={
+                "msg_from": "{name} panics and flees {direction}!",
+                "msg_to": "{name} arrives {direction}, panicking!",
+            },
+        ))
 
     def die(self, cause="unknown", killer=None):
         """
@@ -718,7 +711,7 @@ class FCMCharacter(
           transferred onto the corpse; corpse tagged `dungeon_corpse` to keep
           the instance alive; character receives a `dungeon_pending` tag
           which drives the redirect-on-re-entry flow. See
-          design/PROCEDURAL_DUNGEONS.md § Death and Corpse Recovery.
+          docs/procedural-dungeons.md § Death and Corpse Recovery.
         """
         from typeclasses.world_objects.corpse import Corpse
 
@@ -767,6 +760,7 @@ class FCMCharacter(
             corpse.tags.add(instance_key, category="dungeon_corpse")
             # Convert dungeon_character → dungeon_pending on the player
             self.tags.remove(instance_key, category="dungeon_character")
+            self.attributes.remove("dungeon_entrance_room")
             self.tags.add(instance_key, category="dungeon_pending")
             # Transfer full inventory onto the corpse
             self._transfer_inventory_to_corpse(corpse)
@@ -783,6 +777,7 @@ class FCMCharacter(
             dungeon_tag = self.tags.get(category="dungeon_character")
             if dungeon_tag:
                 self.tags.remove(dungeon_tag, category="dungeon_character")
+                self.attributes.remove("dungeon_entrance_room")
             defeat_msg = "|yYou have been defeated!|n"
 
         corpse.start_timers()
@@ -959,6 +954,22 @@ class FCMCharacter(
         except ObjectDB.DoesNotExist:
             return None
 
+    def _get_limbo_pk(self):
+        """Return Limbo's pk (#2) if the row exists, else None.
+
+        Pk-only counterpart to ``_get_limbo()`` — uses ``values_list``
+        so the row is never instantiated. Safe to call from any shard:
+        a cross-shard Limbo row will still return its pk without
+        tripping the ``from_db`` chokepoint, because no instance is
+        constructed.
+        """
+        from evennia import ObjectDB
+
+        rows = list(
+            ObjectDB.objects.filter(pk=2).values_list("pk", flat=True)[:1]
+        )
+        return rows[0] if rows else None
+
     def _find_purgatory(self):
         """Find the purgatory room."""
         from evennia import ObjectDB
@@ -969,12 +980,6 @@ class FCMCharacter(
         if results.exists():
             return results.first()
         return None
-
-    def get_display_things(self, looker, **kwargs):
-        """Hide inventory from non-Builder lookers (staff/admin only)."""
-        if looker and looker.locks.check_lockstring(looker, "perm(Builder)"):
-            return super().get_display_things(looker, **kwargs)
-        return ""
 
     def at_object_creation(self):
         """
@@ -1067,10 +1072,21 @@ class FCMCharacter(
         except Exception:
             home_gone = True
 
-        if home_gone or self.home is None:
+        if home_gone or self.db_home_id is None:
             from evennia.utils.search import search_tag
-            inn_rooms = search_tag("harvest_moon_inn", category="special_room")
-            self.home = inn_rooms[0] if inn_rooms else self._get_limbo()
+            # values_list reads pks without instantiating any row —
+            # avoids the from_db chokepoint on cross-shard rooms.
+            # The fallback chain is unchanged: inn → Limbo. Writing
+            # db_home_id directly bypasses the FK descriptor's load,
+            # so the target row's shard is irrelevant for this write.
+            inn_pks = list(
+                search_tag("harvest_moon_inn", category="special_room")
+                .values_list("pk", flat=True)[:1]
+            )
+            new_home_pk = inn_pks[0] if inn_pks else self._get_limbo_pk()
+            if new_home_pk is not None:
+                self.db_home_id = new_home_pk
+                self.save(update_fields=["db_home"])
 
         # Fix location — dangling FK to a deleted room
         try:
@@ -1081,7 +1097,50 @@ class FCMCharacter(
             loc = None
 
         if loc is None:
-            fallback = self.home or self._get_limbo()
+            # Fallback priority (per rent/quit/disconnect rules):
+            #   dungeon_entrance_room — if the broken location was a
+            #     procedural-dungeon room, return to that dungeon's entrance
+            #     (a static world room). Set on dungeon entry, cleared on
+            #     any exit, so a value here means "they were inside when
+            #     things went wrong."
+            #   last_rent_location — wherever they last rented.
+            #   home — Evennia plumbing, last resort.
+            dungeon_entrance = None
+            try:
+                candidate = self.db.dungeon_entrance_room
+                if candidate is not None and candidate.pk:
+                    dungeon_entrance = candidate
+            except Exception:
+                dungeon_entrance = None
+
+            rent_loc = None
+            try:
+                candidate = self.db.last_rent_location
+                if candidate is not None and candidate.pk:
+                    rent_loc = candidate
+            except Exception:
+                rent_loc = None
+
+            # self.home and _get_limbo() both dereference an FK that
+            # may point to a foreign-shard row (e.g. after cross-shard
+            # move the home pk was rewritten unscoped, or Limbo #2 lives
+            # on shard0). Either trip the from_db chokepoint. Wrap each
+            # so a refused load is treated as "not available" rather
+            # than raising out of the puppet flow.
+            home_obj = None
+            try:
+                home_obj = self.home
+            except Exception:
+                home_obj = None
+            limbo_obj = None
+            try:
+                limbo_obj = self._get_limbo()
+            except Exception:
+                limbo_obj = None
+
+            fallback = (
+                dungeon_entrance or rent_loc or home_obj or limbo_obj
+            )
             if fallback:
                 self.location = fallback
                 self.location.at_object_receive(self, None)
@@ -1090,7 +1149,26 @@ class FCMCharacter(
 
     def at_post_puppet(self, **kwargs):
         """Called after player connects to this character."""
-        super().at_post_puppet(**kwargs)
+        # Distinguish an explicit @ic entry (where vanilla Evennia
+        # messaging — "You become X" + "X has entered the game"
+        # broadcast — is appropriate) from a mid-game cross-shard
+        # arrival (where that same messaging reads as noise, since the
+        # player was already in a body on the previous shard).
+        #
+        # evennia_shards.ShardAwareCmdIC sets the
+        # ``_shards_via_ic_command`` Attribute on the character before
+        # redirecting from the router. We honour and clear it here.
+        via_ic = self.attributes.get("_shards_via_ic_command", default=False)
+        if via_ic:
+            super().at_post_puppet(**kwargs)
+            self.attributes.remove("_shards_via_ic_command")
+        else:
+            # Limited messaging for cross-shard arrivals (e.g. @tel):
+            # skip "You become X" and the room-contents broadcast, but
+            # still show the room so the player lands cleanly.
+            if self.location is not None:
+                self.msg((self.at_look(self.location), {"type": "look"}), options=None)
+            self.account.db._last_puppet = self
         # Safety net: clear double-death guard on login
         self._dying = False
         # Reconnect-to-state: record this as the account's active puppet
@@ -1105,20 +1183,76 @@ class FCMCharacter(
             from blockchain.xrpl.services.telemetry import TelemetryService
 
             TelemetryService.record_session_start(self.account.id, self.key)
+        # Reconcile mastery-derived knowledge. Normally a no-op, so a
+        # routine login is silent. It earns its place when the game gains
+        # a spell or recipe a character already has the mastery for —
+        # they pick it up here, with no migration. See world/grants.py.
+        from world.grants import format_gains, reconcile_grants
+
+        for line in format_gains(reconcile_grants(self)):
+            self.msg(line)
+
         # Backfill respawn_location and home for characters created before
         # these defaults existed, or created before the world was built.
-        if not self.respawn_location:
+        #
+        # Uses values_list pk projection plus a local-shard filter so the
+        # global search_tag queryset never instantiates a foreign-shard
+        # row (which would trip the from_db chokepoint and noisily raise
+        # inside this post-hook). Scoping to the local shard (plus the
+        # global "*" sentinel) also keeps the assignment safe: writing a
+        # cross-shard pk into respawn_location's Attribute store or
+        # db_home_id would trip any later read of those fields.
+        from evennia_shards import ROLE_MONOLITH, get_role, get_shard_id
+
+        _role = get_role()
+
+        # Reading self.respawn_location dereferences an AttributeProperty
+        # whose pickled value may store a cross-shard ObjectDB reference
+        # (e.g. respawn was set on shard0 then the character cross-shard-
+        # moved to shard1 — the Attribute payload still pickles shard0's
+        # cemetery row). Unpickle triggers from_db on that row, and the
+        # chokepoint refuses. Wrap the existence check so a refused load
+        # is treated as "no usable respawn set" — the search block below
+        # then writes a fresh local-shard pk, overwriting the stale one.
+        try:
+            has_respawn = self.respawn_location is not None
+        except Exception:
+            has_respawn = False
+
+        if not has_respawn:
+            from evennia.utils.search import search_tag
+            from evennia.objects.models import ObjectDB
+
+            cemetery_qs = search_tag(
+                "millholm_cemetery", category="special_room"
+            )
+            if _role != ROLE_MONOLITH:
+                cemetery_qs = cemetery_qs.filter(
+                    shard_id__in=[get_shard_id(), "*"]
+                )
+            cemetery_pks = list(
+                cemetery_qs.values_list("pk", flat=True)[:1]
+            )
+            if cemetery_pks:
+                # pk is guaranteed local (or global "*"), so this load
+                # is chokepoint-safe.
+                self.respawn_location = ObjectDB.objects.get(
+                    pk=cemetery_pks[0]
+                )
+        if not self.db_home_id or self.db_home_id == 2:  # 2 = Limbo
             from evennia.utils.search import search_tag
 
-            cemetery_rooms = search_tag("millholm_cemetery", category="special_room")
-            if cemetery_rooms:
-                self.respawn_location = cemetery_rooms[0]
-        if not self.home or self.home.id == 2:  # 2 = Limbo
-            from evennia.utils.search import search_tag
-
-            inn_rooms = search_tag("harvest_moon_inn", category="special_room")
-            if inn_rooms:
-                self.home = inn_rooms[0]
+            inn_qs = search_tag(
+                "harvest_moon_inn", category="special_room"
+            )
+            if _role != ROLE_MONOLITH:
+                inn_qs = inn_qs.filter(
+                    shard_id__in=[get_shard_id(), "*"]
+                )
+            inn_pks = list(inn_qs.values_list("pk", flat=True)[:1])
+            if inn_pks:
+                self.db_home_id = inn_pks[0]
+                self.save(update_fields=["db_home"])
 
         # Safety net: if stuck in purgatory (e.g. server crash lost the timer),
         # reschedule the release so they don't wait forever.
@@ -1219,7 +1353,7 @@ class FCMCharacter(
                 )
 
         # Send initial vitals for the split webclient panel
-        self.send_vitals_update()
+        # self.send_vitals_update()
 
     # ── Prompt ──────────────────────────────────────────────────────
 

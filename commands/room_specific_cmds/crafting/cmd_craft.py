@@ -25,6 +25,7 @@ difficulty (mastery level).
 
 from evennia import Command
 from evennia.utils import delay
+from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from blockchain.xrpl.services.enchantment import EnchantmentService
@@ -199,10 +200,7 @@ class CmdCraft(FCMCommandMixin, Command):
         room = caller.location
 
         # --- Busy check ---
-        if caller.ndb.is_processing:
-            caller.msg(
-                "You are already busy. Wait until your current task finishes."
-            )
+        if check_busy(caller):
             return
 
         if not self.args:
@@ -520,8 +518,7 @@ class CmdCraft(FCMCommandMixin, Command):
         if wand_mana_cost > 0:
             caller.mana -= wand_mana_cost
 
-        # --- Lock and start crafting ---
-        caller.ndb.is_processing = True
+        # --- Item type selection ---
         # Wand recipes use a generic "Enchanted Wand" NFTItemType with
         # per-instance spell_key + charges metadata. Other recipes
         # default to using the recipe name as the NFTItemType name.
@@ -534,92 +531,85 @@ class CmdCraft(FCMCommandMixin, Command):
                 f"{PotionQuality(mastery).prefix} {recipe['name']}"
             )
 
-        caller.location.msg_contents_with_invis_alt(
-            f"{caller.key} begins crafting at the {room.key}.",
-            f"Tools seem to fly around the {room.key} on their own, "
-            f"apparently making something...",
-            from_obj=caller,
+        # --- Lock, announce, and run the progress ticks ---
+        def _finish():
+            try:
+                token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
+                item = BaseNFTItem.spawn_into(token_id, caller)
+
+                # Apply pre-disclosed enchantment outcome to the gem
+                # using the standard item field names: wear_effects
+                # (same array every other item uses) and
+                # ItemRestrictionMixin fields (required_classes etc.).
+                # No custom storage; on inset these merge into the
+                # weapon's same fields.
+                if slot_outcome and item:
+                    item.db.wear_effects = slot_outcome.get("wear_effects", [])
+                    for field, value in (
+                        slot_outcome.get("restrictions") or {}
+                    ).items():
+                        setattr(item, field, value)
+
+                # Apply wand binding (Phase 2) — bind the spell and
+                # install charges. Dual-persist into mirror metadata.
+                if item and recipe.get("_wand_spell_key"):
+                    item.spell_key = recipe["_wand_spell_key"]
+                    item.charges_max = recipe["_wand_charges"]
+                    item.charges_remaining = recipe["_wand_charges"]
+                    item.key = recipe["name"]  # "Wand of Fireball"
+                    persist = getattr(item, "persist_wand_state", None)
+                    if persist is not None:
+                        persist()
+            except Exception as err:
+                # Refund on spawn failure
+                for res_id, needed in ingredients.items():
+                    caller.receive_resource_from_reserve(res_id, needed)
+                caller.receive_gold_from_reserve(total_gold)
+                # Refund pre-paid wand mana
+                if wand_mana_cost > 0:
+                    caller.mana += wand_mana_cost
+                # Best-effort refund of consumed NFT items
+                for nft_name in consumed_nft_info:
+                    try:
+                        tid = BaseNFTItem.assign_to_blank_token(nft_name)
+                        BaseNFTItem.spawn_into(tid, caller)
+                    except Exception:
+                        caller.msg(
+                            f"|rFailed to refund {nft_name}.|n"
+                        )
+                caller.msg(f"|rCrafting failed: {err}|n")
+                return
+
+            display_name = item.key if item else recipe["name"]
+            caller.msg(f"|gYou {verb} a {display_name}!|n")
+
+            # Award XP based on recipe mastery, scaled by room multiplier
+            base_xp = _CRAFT_XP_BY_MASTERY.get(recipe["min_mastery"].value, 5)
+            multiplier = room.craft_xp_multiplier or 1.0
+            xp = int(base_xp * multiplier)
+            if xp > 0:
+                caller.at_gain_experience_points(xp)
+
+            caller.location.msg_contents_with_invis_alt(
+                f"{caller.key} finishes crafting at the {room.key}.",
+                f"The tools at the {room.key} clatter to a stop. "
+                f"A newly crafted item sits on the workbench.",
+                from_obj=caller,
+            )
+
+        start_busy_ticks(
+            caller, num_ticks, CRAFT_TICK_SECONDS, _finish,
+            progress=lambda step, total: (
+                f"{gerund} {recipe['name']}... "
+                f"[{progress_bar(step, total, _BAR_WIDTH)}]"
+            ),
+            done_msg=(
+                f"{gerund} {recipe['name']}... "
+                f"[{progress_bar(1, 1, _BAR_WIDTH)}] Done!"
+            ),
+            room_msg=f"{caller.key} begins crafting at the {room.key}.",
+            room_alt_msg=(
+                f"Tools seem to fly around the {room.key} on their own, "
+                f"apparently making something..."
+            ),
         )
-
-        # --- Chain delayed progress ticks ---
-        def _tick(step):
-            if step < num_ticks:
-                filled = _BAR_WIDTH * step // num_ticks
-                bar = '#' * filled + '-' * (_BAR_WIDTH - filled)
-                caller.msg(f"{gerund} {recipe['name']}... [{bar}]")
-                delay(CRAFT_TICK_SECONDS, _tick, step + 1)
-            else:
-                # Final tick — spawn item
-                bar = '#' * _BAR_WIDTH
-                caller.msg(f"{gerund} {recipe['name']}... [{bar}] Done!")
-
-                try:
-                    token_id = BaseNFTItem.assign_to_blank_token(item_type_name)
-                    item = BaseNFTItem.spawn_into(token_id, caller)
-
-                    # Apply pre-disclosed enchantment outcome to the gem
-                    # using the standard item field names: wear_effects
-                    # (same array every other item uses) and
-                    # ItemRestrictionMixin fields (required_classes etc.).
-                    # No custom storage; on inset these merge into the
-                    # weapon's same fields.
-                    if slot_outcome and item:
-                        item.db.wear_effects = slot_outcome.get("wear_effects", [])
-                        for field, value in (
-                            slot_outcome.get("restrictions") or {}
-                        ).items():
-                            setattr(item, field, value)
-
-                    # Apply wand binding (Phase 2) — bind the spell and
-                    # install charges. Dual-persist into mirror metadata.
-                    if item and recipe.get("_wand_spell_key"):
-                        item.spell_key = recipe["_wand_spell_key"]
-                        item.charges_max = recipe["_wand_charges"]
-                        item.charges_remaining = recipe["_wand_charges"]
-                        item.key = recipe["name"]  # "Wand of Fireball"
-                        persist = getattr(item, "persist_wand_state", None)
-                        if persist is not None:
-                            persist()
-                except Exception as err:
-                    # Refund on spawn failure
-                    for res_id, needed in ingredients.items():
-                        caller.receive_resource_from_reserve(res_id, needed)
-                    caller.receive_gold_from_reserve(total_gold)
-                    # Refund pre-paid wand mana
-                    if wand_mana_cost > 0:
-                        caller.mana += wand_mana_cost
-                    # Best-effort refund of consumed NFT items
-                    for nft_name in consumed_nft_info:
-                        try:
-                            tid = BaseNFTItem.assign_to_blank_token(nft_name)
-                            BaseNFTItem.spawn_into(tid, caller)
-                        except Exception:
-                            caller.msg(
-                                f"|rFailed to refund {nft_name}.|n"
-                            )
-                    caller.msg(f"|rCrafting failed: {err}|n")
-                    caller.ndb.is_processing = False
-                    return
-
-                display_name = item.key if item else recipe["name"]
-                caller.msg(f"|gYou {verb} a {display_name}!|n")
-
-                # Award XP based on recipe mastery, scaled by room multiplier
-                base_xp = _CRAFT_XP_BY_MASTERY.get(recipe["min_mastery"].value, 5)
-                multiplier = room.craft_xp_multiplier or 1.0
-                xp = int(base_xp * multiplier)
-                if xp > 0:
-                    caller.at_gain_experience_points(xp)
-
-                caller.location.msg_contents_with_invis_alt(
-                    f"{caller.key} finishes crafting at the {room.key}.",
-                    f"The tools at the {room.key} clatter to a stop. "
-                    f"A newly crafted item sits on the workbench.",
-                    from_obj=caller,
-                )
-                caller.ndb.is_processing = False
-
-        # Show initial empty progress bar immediately, then start delayed ticks
-        bar = '-' * _BAR_WIDTH
-        caller.msg(f"{gerund} {recipe['name']}... [{bar}]")
-        delay(CRAFT_TICK_SECONDS, _tick, 1)

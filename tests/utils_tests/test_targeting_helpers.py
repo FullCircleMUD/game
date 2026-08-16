@@ -22,7 +22,7 @@ from utils.targeting.helpers import (
     resolve_target,
     walk_contents,
 )
-from utils.targeting.predicates import p_not_actor, p_not_exit, p_visible_to
+from utils.targeting.predicates import p_not_actor, p_not_exit, p_object_visible_to
 
 
 def _make_actor(
@@ -48,6 +48,15 @@ def _make_actor(
     actor.hp = hp
     actor.get_group_leader = MagicMock(return_value=leader)
     actor.is_hidden_visible_to = MagicMock(return_value=visible)
+    # A bare MagicMock answers has_condition() truthily, which would make
+    # every mock actor read as HIDDEN *and* INVISIBLE to the sight
+    # predicates the resolvers apply — and its location.is_dark() returns
+    # a truthy Mock, so any actor used as a *caller* would be standing in
+    # the dark. Both are answered here: concealment and darkness get
+    # their own tests, and these actors are simply present and sighted.
+    actor.has_condition = MagicMock(return_value=False)
+    actor.is_height_visible_to = MagicMock(return_value=True)
+    actor.location.is_dark = MagicMock(return_value=False)
     scripts = MagicMock()
     if combat_side is None:
         scripts.get = MagicMock(return_value=[])
@@ -96,11 +105,26 @@ def _make_hidden_item(visible):
     return SimpleNamespace(is_hidden_visible_to=lambda caller: visible)
 
 
+def _sighted(caller):
+    """Give a mock caller working eyes in a lit room.
+
+    ``p_can_see`` asks two things of the *caller*: that they are not
+    BLINDED, and that their room is not dark for them. A bare MagicMock
+    answers both the wrong way — truthy for the condition, and its
+    ``location.is_dark()`` returns a truthy Mock. Without this every
+    resolution comes back empty for reasons that have nothing to do
+    with what is being tested.
+    """
+    caller.has_condition = MagicMock(return_value=False)
+    caller.location.is_dark = MagicMock(return_value=False)
+    return caller
+
+
 def _make_caller(search_return=None):
     """A caller mock with a stubbed .search() method."""
     caller = MagicMock()
     caller.search.return_value = search_return
-    return caller
+    return _sighted(caller)
 
 
 def _make_gettable_item(key="sword"):
@@ -157,17 +181,17 @@ class TestWalkContents(EvenniaTest):
     # ── Source edge cases ─────────────────────────────────────────
 
     def test_source_is_none_returns_empty_list(self):
-        result = walk_contents(None, None, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, None, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [])
 
     def test_source_without_contents_returns_empty_list(self):
         source = SimpleNamespace()  # no .contents attribute
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [])
 
     def test_source_with_empty_contents_returns_empty_list(self):
         source = SimpleNamespace(contents=[])
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [])
 
     # ── Predicate composition ─────────────────────────────────────
@@ -187,16 +211,16 @@ class TestWalkContents(EvenniaTest):
         a = _make_item("a")
         b = _make_item("b")
         source = SimpleNamespace(contents=[a, b])
-        # p_not_actor, p_not_exit, p_visible_to filters out
+        # p_not_actor, p_not_exit, p_object_visible_to filters out
         # actors/exits/hidden — plain SimpleNamespace items pass all three.
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         self.assertEqual(result, [a, b])
 
     def test_first_predicate_filters_out_object(self):
         item = _make_item("sword")
         character = _make_character()
         source = SimpleNamespace(contents=[item, character])
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
         # Character filtered by p_not_actor (first predicate)
         self.assertEqual(result, [item])
 
@@ -204,8 +228,8 @@ class TestWalkContents(EvenniaTest):
         visible = _make_item("sword")
         hidden = _make_hidden_item(visible=False)
         source = SimpleNamespace(contents=[visible, hidden])
-        result = walk_contents(None, source, p_not_actor, p_not_exit, p_visible_to)
-        # Hidden item filtered by p_visible_to (last predicate)
+        result = walk_contents(None, source, p_not_actor, p_not_exit, p_object_visible_to)
+        # Hidden item filtered by p_object_visible_to (last predicate)
         self.assertEqual(result, [visible])
 
     # ── Short-circuit eval ───────────────────────────────────────
@@ -507,7 +531,7 @@ class TestResolveItemInSource(EvenniaTest):
     # ── Filter exclusions ─────────────────────────────────────────
     #
     # These three tests assert that the base item predicates
-    # (p_not_actor, p_not_exit, p_visible_to) filter the named
+    # (p_not_actor, p_not_exit, p_object_visible_to) filter the named
     # object OUT of the candidate list. After filtering, candidates
     # is empty and the helper delegates to caller.search with
     # candidates=[] (which fires any nofound_string or default
@@ -932,7 +956,7 @@ class TestResolveAttackTargetOutOfCombat(EvenniaTest):
         result = resolve_attack_target_out_of_combat(caller, "goblin")
         self.assertIs(result, stranger_goblin)
 
-    # ── p_living / p_visible_to filter correctly ─────────────────
+    # ── p_living / p_object_visible_to filter correctly ─────────────────
 
     def test_dead_stranger_is_filtered(self):
         caller = self._caller()

@@ -66,6 +66,84 @@ class TestCmdLight(EvenniaCommandTest):
         self.char1.remove(self.torch)
         self.call(CmdLight(), "torch", "You aren't wearing 'torch'.")
 
+    # --- Lighting by touch ---
+    #
+    # An equipped torch is found by feel, so darkness costs the time
+    # spent searching rather than the action.
+
+    def _light_blind(self, args="torch"):
+        """Call light while sightless, returning (output, completion)."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdLight(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def test_a_search_by_touch_refuses_in_its_own_wording(self):
+        """The wiring, not the wording — assert against the constant."""
+        from utils.busy import BUSY_MESSAGE, FUMBLE_BUSY_MESSAGE, check_busy
+
+        self.torch.is_lit = False
+        self._light_blind()
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        check_busy(self.char1)
+        self.assertIn(FUMBLE_BUSY_MESSAGE, said)
+        self.assertNotIn(BUSY_MESSAGE, said)
+
+    def test_a_searcher_cannot_walk_off_and_lose_their_bearings(self):
+        from utils.busy import BUSY_MOVE_MESSAGE, FUMBLE_MOVE_MESSAGE
+
+        self.torch.is_lit = False
+        self._light_blind()
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        self.assertFalse(self.char1.at_pre_move(self.room2))
+        self.assertIn(FUMBLE_MOVE_MESSAGE, said)
+        self.assertNotIn(BUSY_MOVE_MESSAGE, said)
+
+    def test_lighting_in_the_dark_announces_the_search(self):
+        self.torch.is_lit = False
+        out, _ = self._light_blind()
+        self.assertIn("feel across your gear", out)
+
+    def test_lighting_in_the_dark_succeeds_after_the_search(self):
+        self.torch.is_lit = False
+        _, complete = self._light_blind()
+        complete()
+        self.assertTrue(self.torch.is_lit)
+
+    def test_nothing_is_lit_until_the_search_ends(self):
+        self.torch.is_lit = False
+        self._light_blind()
+        self.assertFalse(self.torch.is_lit)
+
+    def test_a_missing_item_is_searched_for_first(self):
+        """The search gives nothing away — you grope, then find out."""
+        out, complete = self._light_blind("banana")
+        self.assertIn("feel across your gear", out)
+        self.assertNotIn("aren't wearing", out)
+        self.assertIn("aren't wearing 'banana'", self._finish(complete))
+
+    def test_lighting_when_sighted_does_not_search(self):
+        self.torch.is_lit = False
+        result = self.call(CmdLight(), "torch")
+        self.assertNotIn("feel across your gear", result)
+
+    def test_lighting_is_refused_while_busy(self):
+        self.char1.ndb.is_processing = True
+        self.call(CmdLight(), "torch", "You are busy.")
+
 
 class TestCmdExtinguish(EvenniaCommandTest):
     """Test the 'extinguish' command."""
@@ -176,3 +254,61 @@ class TestCmdRefuel(EvenniaCommandTest):
             self.assertIn("refuel", result.lower())
             self.assertEqual(self.lantern.fuel_remaining, self.lantern.max_fuel)
             mock_consume.assert_called_once_with(1, 1)
+
+    # --- Refuelling by touch ---
+    #
+    # The lantern is in your own pack or on your own belt, so darkness
+    # costs the time spent finding it rather than the action.
+
+    def _refuel_blind(self, args="lantern"):
+        """Call refuel while sightless, returning (output, completion)."""
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdRefuel(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def test_refuelling_in_the_dark_announces_the_fumble(self):
+        self.lantern.fuel_remaining = 10
+        out, _ = self._refuel_blind()
+        self.assertIn("then pour by touch", out)
+
+    @patch("commands.all_char_cmds.cmd_refuel.FUEL_RESOURCE_ID", 1)
+    def test_refuelling_in_the_dark_succeeds_after_the_fumble(self):
+        self.lantern.fuel_remaining = 10
+        with patch.object(self.char1, "get_resource", return_value=5), \
+             patch.object(self.char1, "return_resource_to_sink"):
+            _, complete = self._refuel_blind()
+            complete()
+        self.assertEqual(self.lantern.fuel_remaining, self.lantern.max_fuel)
+
+    def test_nothing_is_poured_until_the_fumble_ends(self):
+        self.lantern.fuel_remaining = 10
+        self._refuel_blind()
+        self.assertEqual(self.lantern.fuel_remaining, 10)
+
+    def test_a_missing_item_is_searched_for_first(self):
+        """The search gives nothing away — you fumble, then find out."""
+        out, complete = self._refuel_blind("banana")
+        self.assertIn("then pour by touch", out)
+        self.assertNotIn("aren't carrying", out)
+        self.assertIn("aren't carrying 'banana'", self._finish(complete))
+
+    def test_refuelling_when_sighted_does_not_fumble(self):
+        self.lantern.fuel_remaining = 10
+        result = self.call(CmdRefuel(), "lantern")
+        self.assertNotIn("fumble", result)
+
+    def test_refuelling_is_refused_while_busy(self):
+        self.char1.ndb.is_processing = True
+        self.call(CmdRefuel(), "lantern", "You are busy.")

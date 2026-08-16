@@ -74,8 +74,10 @@ class CmdDodge(CmdSkillBase):
             self.caller.msg("|yYou clumsily try to dodge!|n")
             if self.caller.location:
                 self.caller.location.msg_contents(
-                    f"|y{self.caller.key} stumbles around, trying to dodge!|n",
+                    "|y{dodger} stumbles around, trying to dodge!|n",
                     exclude=[self.caller],
+                    from_obj=self.caller,
+                    mapping={"dodger": self.caller},
                 )
 
     def basic_func(self):
@@ -83,8 +85,10 @@ class CmdDodge(CmdSkillBase):
             self.caller.msg("|yYou dodge, weaving defensively!|n")
             if self.caller.location:
                 self.caller.location.msg_contents(
-                    f"|y{self.caller.key} weaves defensively, trying to dodge!|n",
+                    "|y{dodger} weaves defensively, trying to dodge!|n",
                     exclude=[self.caller],
+                    from_obj=self.caller,
+                    mapping={"dodger": self.caller},
                 )
 
     def skilled_func(self):
@@ -106,6 +110,8 @@ class CmdDodge(CmdSkillBase):
         if self._do_dodge():
             if self.caller.location:
                 self.caller.location.msg_contents(
-                    f"|y{self.caller.key} dodges, leaping and twisting "
-                    f"in the air, making it hard to hit!|n",
+                    "|y{dodger} dodges, leaping and twisting "
+                    "in the air, making it hard to hit!|n",
+                    from_obj=self.caller,
+                    mapping={"dodger": self.caller},
                 )

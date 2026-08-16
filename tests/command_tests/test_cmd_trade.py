@@ -278,7 +278,11 @@ class TestTradeStatus(EvenniaCommandTest):
 
 
 class TestTradeDarkness(EvenniaCommandTest):
-    """Darkness blocks trade initiation and offers."""
+    """
+    Trading is a face-to-face negotiation with someone you have to pick
+    out of the room, so sightlessness refuses it rather than costing
+    time. Darkness and blindness are one rule.
+    """
 
     room_typeclass = _ROOM
     character_typeclass = _CHAR
@@ -295,6 +299,30 @@ class TestTradeDarkness(EvenniaCommandTest):
     def test_trade_initiation_blocked_in_dark(self):
         """Cannot initiate a trade in darkness."""
         self.call(CmdTrade(), self.char2.key, "It's too dark", caller=self.char1)
+
+    def test_the_refusal_names_who_they_asked_for(self):
+        result = self.call(CmdTrade(), self.char2.key, caller=self.char1)
+        self.assertIn(
+            f"too dark to make out '{self.char2.key.lower()}'", result.lower()
+        )
+
+    def test_the_refusal_does_not_claim_they_are_absent(self):
+        result = self.call(CmdTrade(), self.char2.key, caller=self.char1)
+        self.assertNotIn("don't see a character", result.lower())
+
+    def test_a_blinded_trader_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self.room1.always_lit = True
+        self.char1.add_condition(Condition.BLINDED)
+        self.call(CmdTrade(), self.char2.key, "It's too dark", caller=self.char1)
+
+    def test_darkvision_trades_normally(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdTrade(), self.char2.key, caller=self.char1)
+        self.assertNotIn("too dark", result.lower())
 
     def test_offer_blocked_in_dark(self):
         """Cannot make an offer in darkness."""

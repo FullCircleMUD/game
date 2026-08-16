@@ -13,18 +13,24 @@ within a single hour (e.g. after a reload mid-slot).
 from datetime import datetime, timezone
 
 from evennia import DefaultScript
+from evennia.utils import logger
 from twisted.internet import threads
+
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 TICK_INTERVAL_SECONDS = 60
 SLOT_MINUTE = 0  # fires at HH:00
 
 
-class TelemetryAggregatorScript(DefaultScript):
+class TelemetryAggregatorScript(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that takes hourly economy snapshots at HH:00.
 
-    Created once via at_server_startstop._ensure_global_scripts().
+    Global script registration lives in server/conf/at_server_startstop.py.
+    One ScriptDB row is shared cluster-wide, but each Server process
+    attaches its own ticker — under a sharded deployment the script runs
+    once per process, not once overall.
     """
 
     def at_script_creation(self):
@@ -36,14 +42,20 @@ class TelemetryAggregatorScript(DefaultScript):
         self.repeats = 0
 
     def at_repeat(self):
-        now = datetime.now(timezone.utc)
-        if now.minute != SLOT_MINUTE:
-            return
-        hour_bucket = now.replace(minute=0, second=0, microsecond=0)
-        if self.db.last_run_hour == hour_bucket:
-            return
-        self.db.last_run_hour = hour_bucket
+        self.record_repeat()
+        try:
+            now = datetime.now(timezone.utc)
+            if now.minute != SLOT_MINUTE:
+                return
+            hour_bucket = now.replace(minute=0, second=0, microsecond=0)
+            if self.db.last_run_hour == hour_bucket:
+                return
+            self.db.last_run_hour = hour_bucket
 
-        from blockchain.xrpl.services.telemetry import TelemetryService
+            from blockchain.xrpl.services.telemetry import TelemetryService
 
-        threads.deferToThread(TelemetryService.take_snapshot)
+            threads.deferToThread(TelemetryService.take_snapshot)
+
+            self.record_work()
+        except Exception:
+            logger.log_trace("telemetry_aggregator_service: tick failed")

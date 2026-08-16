@@ -15,6 +15,9 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
 from commands.all_char_cmds.socials_data import SOCIALS
+from utils.targeting.helpers import walk_contents
+from utils.targeting.predicates import p_can_perceive, p_can_see
+from utils.visibility import looker_is_blind
 
 
 class CmdSocialBase(FCMCommandMixin, Command):
@@ -29,6 +32,70 @@ class CmdSocialBase(FCMCommandMixin, Command):
     help_category = "Socials"
     social_data = None  # set by factory
 
+    #: Whether this social makes no sound. Silent socials are purely
+    #: visual — an observer who can't see the actor perceives nothing at
+    #: all. Non-silent socials (fart, whistle, cackle) still reach them,
+    #: with the actor's name replaced by "Someone".
+    #:
+    #: Defaults True, so a social only declares ``"silent": False`` in
+    #: SOCIALS when it is audible.
+    silent = True
+
+    def _break_hiding(self, caller):
+        """Interacting with the room gives up physical concealment.
+
+        Socials exist to engage the people around you, and engaging with
+        the room is incompatible with hiding from it. That holds whether
+        or not anyone perceived the social — the act of interacting is
+        what costs you the hiding place, not being noticed doing it.
+
+        Magical invisibility is unaffected: it doesn't depend on staying
+        still or out of sight.
+
+        Called only once the social is certain to happen — a mistyped or
+        unresolvable target must not cost the actor their concealment.
+        """
+        if hasattr(caller, "has_condition") and caller.has_condition(
+            Condition.HIDDEN
+        ):
+            caller.remove_condition(Condition.HIDDEN)
+
+    @staticmethod
+    def _name_for(obj, looker):
+        """What ``looker`` may call ``obj`` — its unseen name if unseen."""
+        if hasattr(obj, "get_display_name"):
+            return obj.get_display_name(looker)
+        return obj.key
+
+    def _send_to_room(self, caller, room_msg, exclude, mapping=None):
+        """Broadcast the room line, respecting what observers can perceive.
+
+        A silent social is purely visual, so ``msg_contents`` dropping
+        everyone who can't see the actor is the whole answer.
+
+        A non-silent one still reaches them — they hear the laugh, or see
+        the target flinch. The same template is passed as both arguments
+        because ``get_display_name`` renders the actor as "Someone" for
+        anyone who can't see them, so the anonymised line conjugates
+        itself.
+
+        ``mapping`` carries the target through to ``msg_contents``, which
+        resolves it per recipient via ``get_display_name``. The target
+        must NOT be pre-substituted into the string — that would name a
+        concealed target to the whole room off the caller's view of them.
+        """
+        if not caller.location:
+            return
+        if self.silent:
+            caller.location.msg_contents(
+                room_msg, from_obj=caller, exclude=exclude, mapping=mapping
+            )
+        else:
+            caller.location.msg_contents_with_invis_alt(
+                room_msg, room_msg, from_obj=caller, exclude=exclude,
+                mapping=mapping,
+            )
+
     def func(self):
         caller = self.caller
         data = self.social_data
@@ -36,31 +103,50 @@ class CmdSocialBase(FCMCommandMixin, Command):
             caller.msg("Something went wrong with that social.")
             return
 
-        # ── Guards ──
-        if hasattr(caller, "has_condition") and caller.has_condition(
-            Condition.HIDDEN
-        ):
-            caller.msg("You can't do that while hidden.")
-            return
-
+        # Concealment does not stop you acting — it stops others perceiving
+        # you. HIDDEN and INVISIBLE are both handled downstream, in
+        # _send_to_room and the victim message, on the same rule: what an
+        # observer receives depends on whether they can see you, never on
+        # why they can't.
         args = self.args.strip() if self.args else ""
 
         # ── No target ──
         if not args:
             self_msg = data.get("no_target_self")
             room_msg = data.get("no_target_room")
+            # Committed — nothing left that can fail.
+            self._break_hiding(caller)
             if self_msg:
                 caller.msg(self_msg)
-            if room_msg and caller.location:
-                caller.location.msg_contents(
-                    room_msg, from_obj=caller, exclude=[caller]
-                )
+            if room_msg:
+                self._send_to_room(caller, room_msg, exclude=[caller])
             return
 
         # ── Find target ──
-        target = caller.search(args)
+        # Singling one person out of a room is what sight is for, so
+        # targeting needs p_can_see rather than p_can_perceive. Without
+        # it a character in the dark could name someone they had no way
+        # of identifying. Untargeted socials are unaffected — you can
+        # laugh in the dark, you just cannot laugh *at* someone.
+        #
+        # The caller is always a candidate: p_can_see would reject their
+        # own concealed or unlit self, and "bow self" must keep working.
+        candidates = walk_contents(caller, caller.location, p_can_see)
+        if caller not in candidates:
+            candidates.append(caller)
+        target = caller.search(args, candidates=candidates, quiet=True)
+        target = target[0] if isinstance(target, list) and target else target
         if not target:
+            # Say why. "You don't see 'bob' here" reads as absent when
+            # bob is standing right there and the lights are out.
+            if looker_is_blind(caller):
+                caller.msg(f"It's too dark to make out '{args}'.")
+            else:
+                caller.msg(f"You don't see '{args}' here.")
             return
+
+        # Target resolved — the social will happen, so concealment goes.
+        self._break_hiding(caller)
 
         # ── Self-target ──
         if target == caller:
@@ -70,36 +156,44 @@ class CmdSocialBase(FCMCommandMixin, Command):
                 caller.msg(self_msg)
             elif data.get("no_target_self"):
                 caller.msg(data["no_target_self"])
-            if room_msg and caller.location:
-                caller.location.msg_contents(
-                    room_msg, from_obj=caller, exclude=[caller]
-                )
+            if room_msg:
+                self._send_to_room(caller, room_msg, exclude=[caller])
             return
 
         # ── Targeted ──
-        actor_name = caller.key
-        target_name = target.get_display_name(caller) if hasattr(
-            target, "get_display_name"
-        ) else target.key
+        # Two audiences, two renderings of the same two names. The caller
+        # knows who they are and who they picked; the target is told only
+        # what they can make out for themselves.
+        target_name = self._name_for(target, caller)
+        actor_name_to_victim = self._name_for(caller, target)
 
         self_msg = data.get("target_self")
         room_msg = data.get("target_room")
         victim_msg = data.get("target_victim")
 
         if self_msg:
-            caller.msg(self_msg.format(actor=actor_name, target=target_name))
+            caller.msg(self_msg.format(actor=caller.key, target=target_name))
 
         if victim_msg and hasattr(target, "msg"):
-            target.msg(victim_msg.format(actor=actor_name, target=target_name))
+            # A silent social the target can't perceive never happened as
+            # far as they are concerned; an audible one still reaches
+            # them. Either way the actor is named by get_display_name, so
+            # it reads as the actor's unseen name whenever the target
+            # can't make them out — concealed, blinded or in the dark.
+            if p_can_perceive(caller, target) or not self.silent:
+                target.msg(
+                    victim_msg.format(
+                        actor=actor_name_to_victim, target=target_name
+                    )
+                )
 
-        if room_msg and caller.location:
-            # Room message uses $You()/$conj() — substitute {target} with
-            # the target's display name for the room.
-            formatted_room = room_msg.replace("{target}", target_name)
-            caller.location.msg_contents(
-                formatted_room,
-                from_obj=caller,
-                exclude=[caller, target],
+        if room_msg:
+            # {target} is left in the template and resolved per recipient
+            # by msg_contents, so a concealed target reads as "Someone" to
+            # anyone who can't see them.
+            self._send_to_room(
+                caller, room_msg, exclude=[caller, target],
+                mapping={"target": target},
             )
 
 
@@ -111,6 +205,7 @@ def _make_social_cmd(name, data):
     class _Cmd(CmdSocialBase):
         key = name
         social_data = data
+        silent = data.get("silent", True)
 
     _Cmd.aliases = aliases
     _Cmd.__name__ = f"CmdSocial_{name.title()}"

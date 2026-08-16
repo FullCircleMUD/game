@@ -37,8 +37,12 @@ class TestCrowStats(EvenniaTest):
         self.assertEqual(self.crow.base_armor_class, 13)
         self.assertEqual(self.crow.size, "tiny")
 
-    def test_no_loot(self):
-        self.assertEqual(self.crow.loot_gold_max, 1)
+    # Disabled: Crow loot lives in YAML (mob-spawner rules) now, not on
+    # the typeclass. The crow.loot_gold_max AttributeProperty was stripped
+    # alongside CombatMob's at_object_creation derivation. Loot exposure
+    # is verified in the mob-spawner library tests.
+    # def test_no_loot(self):
+    #     self.assertEqual(self.crow.loot_gold_max, 1)
 
     def test_pack_courage_threshold(self):
         """Needs 2+ allies (3 total) to attack."""
@@ -114,7 +118,6 @@ class TestCrowPackBehavior(EvenniaTest):
             location=self.room1,
         )
         crow2.is_alive = True
-        self.char1.is_pc = True
         self.crow1.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
@@ -128,6 +131,5 @@ class TestCrowPackBehavior(EvenniaTest):
                 location=self.room1,
             )
             c.is_alive = True
-        self.char1.is_pc = True
         self.crow1.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)

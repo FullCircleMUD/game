@@ -199,21 +199,29 @@ class TestPickpocketSuccess(EvenniaCommandTest):
         self.assertIn("deftly lift", result)
         self.assertTrue(mock_roll.call_args.kwargs.get("advantage"))
 
-    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
-    def test_hidden_broken_on_success(self, mock_roll):
-        """HIDDEN should break even on successful pickpocket."""
-        mock_roll.return_value = 20
-        self.char1.add_condition(Condition.HIDDEN)
-
+    def _lift_a_gem(self):
         item = create.create_object(
             "typeclasses.world_objects.base_world_item.WorldItem",
             key="gem",
             location=self.char2,
         )
         _pre_case(self.char1, self.char2, items_visible={item.id: True})
-
         self.call(CmdPickpocket(), "gem from Char2")
-        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    def test_hidden_survives_a_clean_lift(self, mock_roll):
+        """A successful theft is not a hostile act — nothing gives you away."""
+        mock_roll.return_value = 20
+        self.char1.add_condition(Condition.HIDDEN)
+        self._lift_a_gem()
+        self.assertTrue(self.char1.has_condition(Condition.HIDDEN))
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    def test_invisibility_survives_a_clean_lift(self, mock_roll):
+        mock_roll.return_value = 20
+        self.char1.add_condition(Condition.INVISIBLE)
+        self._lift_a_gem()
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
 
 
 # ── Failure ───────────────────────────────────────────────────────
@@ -261,6 +269,26 @@ class TestPickpocketFailure(EvenniaCommandTest):
 
         self.call(CmdPickpocket(), "gold from Char2")
         self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    def test_invisibility_broken_on_failure(self, mock_roll):
+        """Getting caught costs the thief every layer of concealment."""
+        mock_roll.return_value = 1
+        self.char1.add_condition(Condition.INVISIBLE)
+        _pre_case(self.char1, self.char2, gold_visible=True)
+
+        self.call(CmdPickpocket(), "gold from Char2")
+        self.assertFalse(self.char1.has_condition(Condition.INVISIBLE))
+
+    @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
+    def test_sanctuary_survives_getting_caught(self, mock_roll):
+        """Excluded deliberately — the mob you woke up still cannot touch you."""
+        mock_roll.return_value = 1
+        self.char1.add_condition(Condition.SANCTUARY)
+        _pre_case(self.char1, self.char2, gold_visible=True)
+
+        self.call(CmdPickpocket(), "gold from Char2")
+        self.assertTrue(self.char1.has_condition(Condition.SANCTUARY))
 
     @patch("utils.dice_roller.DiceRoller.roll_with_advantage_or_disadvantage")
     def test_sets_cooldown(self, mock_roll):

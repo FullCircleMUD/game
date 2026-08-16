@@ -7,8 +7,9 @@ paragraph with a 1-second pause between each) and teleports the player
 to the book's destination zone. Saves the current room as the player's
 recall location.
 
-While reading, the player is locked in place — movement and re-reading
-are blocked until the transport completes.
+While reading, the player is held by the busy lock — movement and any
+other action are refused until the transport completes, in the book's
+own wording rather than the generic "in the middle of a job".
 
 Usage:
     read <book name>
@@ -20,12 +21,13 @@ Example:
 import re
 
 from evennia import Command
-from evennia.utils import delay
 
 from commands.command import FCMCommandMixin
 from typeclasses.world_objects.library_book import LibraryBook
+from utils.busy import check_busy, start_busy_ticks
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_see, p_same_height
+from utils.visibility import looker_is_blind
 
 
 PARAGRAPH_PAUSE = 1.0
@@ -70,22 +72,26 @@ class CmdRead(FCMCommandMixin, Command):
             caller.msg("Read what? Usage: |wread <book name>|n")
             return
 
-        if caller.ndb.book_transport:
-            caller.msg("You are already lost in a book.")
+        if check_busy(caller):
             return
 
         room = caller.location
         if not room:
             return
 
-        # Darkness — can't read without sight
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        query = self.args.strip()
+
+        # Reading is the one thing that has no version done by touch, so
+        # this refuses rather than costing time. Name what they asked for
+        # — "you don't see that here" reads as absent when the book is on
+        # the shelf in front of them.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to read '{query}'.")
             return
 
         # Broad targeting — find whatever the player named in the room
         book, _ = resolve_target(
-            caller, self.args.strip(), "items_room_fixed_nonexit",
+            caller, query, "items_room_fixed_nonexit",
             extra_predicates=(p_can_see,),
         )
         if not book:
@@ -109,32 +115,27 @@ class CmdRead(FCMCommandMixin, Command):
         paragraphs = _split_paragraphs(desc)
 
         caller.db.book_return_location = room
-        caller.ndb.book_transport = True
 
         if not paragraphs:
             self._transport(caller, destination)
             return
 
-        caller.msg(f"\n{paragraphs[0]}\n")
-        for i, paragraph in enumerate(paragraphs[1:], start=1):
-            delay(PARAGRAPH_PAUSE * i, self._show_paragraph, caller, paragraph)
+        def _paragraph(step, total):
+            # A blank line opens the passage, then one paragraph per tick.
+            return f"\n{paragraphs[step]}\n" if step == 0 else f"{paragraphs[step]}\n"
 
-        delay(
-            PARAGRAPH_PAUSE * len(paragraphs),
-            self._transport,
+        start_busy_ticks(
             caller,
-            destination,
+            len(paragraphs),
+            PARAGRAPH_PAUSE,
+            lambda: self._transport(caller, destination),
+            progress=_paragraph,
+            busy_msg="You are already lost in a book.",
+            busy_move_msg="You are lost in a book and can't move.",
         )
 
     @staticmethod
-    def _show_paragraph(caller, paragraph):
-        if not caller.ndb.book_transport:
-            return
-        caller.msg(f"{paragraph}\n")
-
-    @staticmethod
     def _transport(caller, destination):
-        caller.ndb.book_transport = False
         if not caller.location:
             return
         followers = caller.get_followers(same_room=True)

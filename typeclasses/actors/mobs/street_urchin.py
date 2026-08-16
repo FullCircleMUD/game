@@ -27,6 +27,7 @@ from enums.mastery_level import MasteryLevel
 from enums.size import Size
 from typeclasses.actors.mob import CombatMob
 from utils.dice_roller import dice
+from utils.targeting.predicates import p_is_character
 
 
 # Subterfuge mastery bonus at SKILLED
@@ -46,8 +47,7 @@ class StreetUrchin(CombatMob):
     attack_delay_min = AttributeProperty(3)
     attack_delay_max = AttributeProperty(5)
 
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(5)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)  # flees early
@@ -86,7 +86,7 @@ class StreetUrchin(CombatMob):
 
     def at_new_arrival(self, arriving_obj):
         """When a player enters, schedule a pickpocket attempt."""
-        if not getattr(arriving_obj, "is_pc", False):
+        if not p_is_character(arriving_obj, self):
             return
         if not self.is_alive:
             return
@@ -103,7 +103,7 @@ class StreetUrchin(CombatMob):
             return
         if target.location != self.location:
             return  # player left the room
-        if not getattr(target, "is_pc", False):
+        if not p_is_character(target, self):
             return
         if getattr(target, "hp", 0) <= 0:
             return

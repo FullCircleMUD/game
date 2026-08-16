@@ -100,7 +100,7 @@ class TestWimpyFlee(EvenniaCommandTest):
             self.exit = None
         # Create controlled exit
         self.exit1 = create.create_object(
-            "evennia.objects.objects.DefaultExit",
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
             key="north",
             location=self.room1,
             destination=self.room2,
@@ -117,8 +117,10 @@ class TestWimpyFlee(EvenniaCommandTest):
             self.exit1.delete()
         super().tearDown()
 
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_wimpy_triggers_flee(self, mock_ticker):
+    def test_wimpy_triggers_flee(self, mock_ticker, mock_dice):
+        mock_dice.roll.return_value = 15  # clears FLEE_DC
         """HP below wimpy threshold in combat triggers auto-flee."""
         from combat.combat_utils import enter_combat
         enter_combat(self.char1, self.char2)
@@ -181,8 +183,10 @@ class TestWimpyFlee(EvenniaCommandTest):
         # Still in combat (couldn't flee)
         self.assertTrue(self.char1.scripts.get("combat_handler"))
 
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_wimpy_ends_enemy_combat(self, mock_ticker):
+    def test_wimpy_ends_enemy_combat(self, mock_ticker, mock_dice):
+        mock_dice.roll.return_value = 15  # clears FLEE_DC
         """Wimpy flee cleans up combat for remaining enemies."""
         from combat.combat_utils import enter_combat
         enter_combat(self.char1, self.char2)
@@ -194,8 +198,10 @@ class TestWimpyFlee(EvenniaCommandTest):
         # char2 should also have combat ended (no enemies left)
         self.assertFalse(self.char2.scripts.get("combat_handler"))
 
+    @patch("combat.combat_utils.dice")
     @patch("combat.combat_handler.TICKER_HANDLER")
-    def test_wimpy_via_take_damage(self, mock_ticker):
+    def test_wimpy_via_take_damage(self, mock_ticker, mock_dice):
+        mock_dice.roll.return_value = 15  # clears FLEE_DC
         """take_damage() triggers wimpy flee when HP drops below threshold."""
         from combat.combat_utils import enter_combat
         enter_combat(self.char1, self.char2)
@@ -207,3 +213,27 @@ class TestWimpyFlee(EvenniaCommandTest):
 
         self.assertEqual(self.char1.location, self.room2)
         self.assertFalse(self.char1.scripts.get("combat_handler"))
+
+    @patch("combat.combat_utils.dice")
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_wimpy_can_fail_its_check(self, mock_ticker, mock_dice):
+        """Wimpy is automated flee, not a better one — it rolls and can fail.
+
+        A failed wimpy costs the action and hands every enemy a round of
+        advantage, exactly as a typed flee does.
+        """
+        mock_dice.roll.return_value = 1  # cannot clear FLEE_DC
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        self.char1.dexterity = 8  # -1 modifier
+
+        self.char1.wimpy_threshold = 15
+        self.char1.hp = 10
+        self.char1._wimpy_flee()
+
+        self.assertEqual(self.char1.location, self.room1)
+        self.assertTrue(self.char1.scripts.get("combat_handler"))
+
+        enemy_handler = self.char2.scripts.get("combat_handler")
+        self.assertTrue(enemy_handler)
+        self.assertTrue(enemy_handler[0].has_advantage(self.char1))

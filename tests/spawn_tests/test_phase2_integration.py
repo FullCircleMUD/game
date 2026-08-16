@@ -62,59 +62,97 @@ class TestRoomHarvestingSpawnTags(EvenniaTest):
         )
         self.assertEqual(room.db.spawn_resources_max, {6: 5})
 
-
-class TestCombatMobSpawnTags(EvenniaTest):
-    """CombatMob gets spawn_resources tag when it has loot_resources."""
-
-    def create_script(self):
-        pass
-
-    def setUp(self):
-        super().setUp()
-        self.room = create.create_object(
-            "typeclasses.terrain.rooms.room_base.RoomBase",
-            key="Forest",
+    def test_wb_at_post_build_resyncs_dict_after_late_attribute_application(self):
+        """Simulates wb_build's lifecycle: at_object_post_creation fires with
+        typeclass defaults, then the library applies YAML attributes via
+        obj.attributes.add(), then it invokes wb_at_post_build (which recalls
+        at_object_post_creation) so spawn_resources_max is re-derived from
+        the now-correct attribute state. Verifies idempotency too — the
+        second write replaces the first; only one Attribute row exists.
+        """
+        room = create.create_object(
+            "typeclasses.terrain.rooms.room_harvesting.RoomHarvesting",
+            key="Late Override Mine",
         )
+        # at_object_post_creation has fired with defaults.
+        self.assertEqual(room.db.spawn_resources_max, {1: 10})
 
-    def test_wolf_has_spawn_resources_tag(self):
-        """Wolf (loot_resources={8:1}) should have spawn_resources tag."""
-        wolf = create.create_object(
-            "typeclasses.actors.mobs.wolf.Wolf",
-            key="a grey wolf",
-            location=self.room,
-        )
-        tags = wolf.tags.get(category="spawn_resources", return_list=True)
-        self.assertIn("spawn_resources", tags)
+        # Library applies YAML attributes post-create_object — the dict is
+        # NOT updated yet; that's the gap wb_at_post_build closes.
+        room.attributes.add("resource_id", 19)
+        room.attributes.add("resource_count_max", 5)
+        self.assertEqual(room.db.spawn_resources_max, {1: 10})
 
-    def test_wolf_spawn_resources_max(self):
-        """Wolf's spawn_resources_max should match loot_resources."""
-        wolf = create.create_object(
-            "typeclasses.actors.mobs.wolf.Wolf",
-            key="a grey wolf",
-            location=self.room,
-        )
-        max_dict = wolf.db.spawn_resources_max
-        self.assertIsNotNone(max_dict)
-        self.assertEqual(max_dict, {8: 1})
+        # Library invokes the post-build hook — dict now reflects YAML values.
+        room.wb_at_post_build()
+        self.assertEqual(room.db.spawn_resources_max, {19: 5})
 
-    def test_mob_without_loot_no_tag(self):
-        """CombatMob with empty loot_resources should NOT get spawn_resources tag."""
-        mob = create.create_object(
-            "typeclasses.actors.mob.CombatMob",
-            key="a ghost",
-            location=self.room,
+        # Idempotency check — only one Attribute row exists for the key.
+        matches = room.attributes.get(
+            "spawn_resources_max", return_obj=True, return_list=True,
         )
-        tags = mob.tags.get(category="spawn_resources", return_list=True)
-        self.assertNotIn("spawn_resources", tags)
+        self.assertEqual(len(matches), 1)
 
-    def test_mob_without_loot_no_max_attr(self):
-        """CombatMob with empty loot_resources should NOT have spawn_resources_max."""
-        mob = create.create_object(
-            "typeclasses.actors.mob.CombatMob",
-            key="a ghost",
-            location=self.room,
-        )
-        self.assertIsNone(mob.db.spawn_resources_max)
+
+# Disabled: CombatMob no longer derives spawn_* tags / spawn_*_max attrs
+# from typeclass loot_* defaults at creation time. Loot lives in YAML
+# (mob-spawner rules) under the project principle "loot is data, not
+# typeclass behaviour". The runtime tag-stamping path is now covered
+# by the evennia-mob-spawner library tests (SpawnIdentityTagTest,
+# YamlDeclaredTagsTest).
+#
+# class TestCombatMobSpawnTags(EvenniaTest):
+#     """CombatMob gets spawn_resources tag when it has loot_resources."""
+#
+#     def create_script(self):
+#         pass
+#
+#     def setUp(self):
+#         super().setUp()
+#         self.room = create.create_object(
+#             "typeclasses.terrain.rooms.room_base.RoomBase",
+#             key="Forest",
+#         )
+#
+#     def test_wolf_has_spawn_resources_tag(self):
+#         """Wolf (loot_resources={8:1}) should have spawn_resources tag."""
+#         wolf = create.create_object(
+#             "typeclasses.actors.mobs.wolf.Wolf",
+#             key="a grey wolf",
+#             location=self.room,
+#         )
+#         tags = wolf.tags.get(category="spawn_resources", return_list=True)
+#         self.assertIn("spawn_resources", tags)
+#
+#     def test_wolf_spawn_resources_max(self):
+#         """Wolf's spawn_resources_max should match loot_resources."""
+#         wolf = create.create_object(
+#             "typeclasses.actors.mobs.wolf.Wolf",
+#             key="a grey wolf",
+#             location=self.room,
+#         )
+#         max_dict = wolf.db.spawn_resources_max
+#         self.assertIsNotNone(max_dict)
+#         self.assertEqual(max_dict, {8: 1})
+#
+#     def test_mob_without_loot_no_tag(self):
+#         """CombatMob with empty loot_resources should NOT get spawn_resources tag."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mob.CombatMob",
+#             key="a ghost",
+#             location=self.room,
+#         )
+#         tags = mob.tags.get(category="spawn_resources", return_list=True)
+#         self.assertNotIn("spawn_resources", tags)
+#
+#     def test_mob_without_loot_no_max_attr(self):
+#         """CombatMob with empty loot_resources should NOT have spawn_resources_max."""
+#         mob = create.create_object(
+#             "typeclasses.actors.mob.CombatMob",
+#             key="a ghost",
+#             location=self.room,
+#         )
+#         self.assertIsNone(mob.db.spawn_resources_max)
 
 
 class TestUnifiedSpawnScript(EvenniaTest):

@@ -161,9 +161,10 @@ class SaiMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|y*DISARM* {wielder.key}'s sai catches "
-                f"{attacker.key}'s {weapon_name} and wrenches it free!|n",
+                f"|y*DISARM* {{defender}}'s sai catches "
+                f"{{disarmed}}'s {weapon_name} and wrenches it free!|n",
                 exclude=[wielder, attacker],
+                mapping={"defender": wielder, "disarmed": attacker},
             )
 
 

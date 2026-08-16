@@ -202,6 +202,46 @@ class EffectsManagerMixin:
         """Break SANCTUARY on offensive action. Returns True if had sanctuary."""
         return self.break_effect(NamedEffect.SANCTUARY)
 
+    def break_conditions_from_hostile_action(self, *excluded):
+        """
+        End every condition a hostile action ends, and report which ones.
+
+        The set is ``HOSTILE_ACTION_BREAKS`` in ``enums/condition.py`` — the
+        single place a condition joins it. Every call site inherits an
+        addition there, so the set cannot drift out of step between paths.
+
+        Pass conditions as ``excluded`` where a call site genuinely needs a
+        subset; the omission then reads at the site that makes it.
+
+        Two removal paths, chosen per condition rather than declared:
+        ``break_effect`` where a named effect manages the condition, so its
+        timer stops and its stat changes reverse; a plain ``remove_condition``
+        where none does. HIDDEN is the standing example of the second — it is
+        a bare condition, and ``break_effect`` reports that by returning False.
+
+        Sends no messages, matching ``break_effect``: what to say depends on
+        what the actor just did, which only the caller knows. Callers that
+        message, or that grant advantage for having been concealed, drive it
+        off the return value rather than re-reading state that is now gone.
+
+        Args:
+            *excluded: Condition members to leave alone.
+
+        Returns:
+            list — the conditions actually broken, in set order. Empty if
+            the actor held none of them.
+        """
+        from enums.condition import HOSTILE_ACTION_BREAKS
+
+        broken = []
+        for condition in HOSTILE_ACTION_BREAKS:
+            if condition in excluded or not self.has_condition(condition):
+                continue
+            if not self.break_effect(condition.value):
+                self.remove_condition(condition)
+            broken.append(condition)
+        return broken
+
     # ================================================================== #
     #  Layer 2 — Stat Effect Dispatch (backward compatible)
     # ================================================================== #
@@ -294,7 +334,8 @@ class EffectsManagerMixin:
     def apply_named_effect(self, key, source=None, effects=None,
                            condition=_UNSET, duration=None,
                            duration_type=_UNSET, messages=None,
-                           save_dc=None, save_stat=None, save_messages=None):
+                           save_dc=None, save_stat=None, save_messages=None,
+                           save_third_anonymous=False):
         """
         Apply a tracked, named effect with optional condition, stats, and lifecycle.
 
@@ -321,6 +362,15 @@ class EffectsManagerMixin:
                 fail — first-person message on save failure ({roll}, {dc})
                 success_third — third-person template ({name}, {roll}, {dc})
                 fail_third — third-person template ({name}, {roll}, {dc})
+            save_third_anonymous: bool — whether the third-person save
+                messages still reach observers who cannot see this actor.
+                False (the default) suppresses them, so an effect applied
+                by someone else never reveals a concealed character —
+                a save fires every round, which would otherwise make any
+                lasting effect a detector. Set True where the effect has
+                a physical prop the room can see regardless of who is
+                wearing it (a bola around the legs); those observers get
+                the line with the name rendered as "Someone".
 
         Returns True if applied, False if already active (anti-stacking).
         """
@@ -369,6 +419,10 @@ class EffectsManagerMixin:
             "save_dc": save_dc,
             "save_stat": save_stat,
             "save_messages": dict(save_messages) if save_messages else {},
+            # True = observers who cannot see this actor still get the
+            # third-person save line, with the name rendered as "Someone".
+            # False = they get nothing at all. See apply_named_effect().
+            "save_third_anonymous": save_third_anonymous,
         }
         effects_dict = dict(self.active_effects)
         effects_dict[key] = record
@@ -550,10 +604,7 @@ class EffectsManagerMixin:
                             self.msg(msg.format(roll=save_roll, dc=save_dc))
                         third = save_msgs.get("success_third", "")
                         if third and getattr(self, "location", None):
-                            self.location.msg_contents(
-                                third.format(name=self.key, roll=save_roll, dc=save_dc),
-                                exclude=[self],
-                            )
+                            self._msg_save_third(third, save_roll, save_dc, record)
                         expired.append(key)
                         continue
                     else:
@@ -563,10 +614,7 @@ class EffectsManagerMixin:
                             self.msg(msg.format(roll=save_roll, dc=save_dc))
                         third = save_msgs.get("fail_third", "")
                         if third and getattr(self, "location", None):
-                            self.location.msg_contents(
-                                third.format(name=self.key, roll=save_roll, dc=save_dc),
-                                exclude=[self],
-                            )
+                            self._msg_save_third(third, save_roll, save_dc, record)
 
                 # Copy the record to avoid mutating _SaverDict internals
                 updated = dict(record)
@@ -579,6 +627,35 @@ class EffectsManagerMixin:
         # Remove expired effects (handles stat reversal + messaging)
         for key in expired:
             self.remove_named_effect(key)
+
+    def _msg_save_third(self, template, save_roll, save_dc, record):
+        """
+        Broadcast a third-person save message to the rest of the room.
+
+        The template's ``{name}`` is deliberately left unsubstituted and
+        passed through ``mapping=`` instead, so each recipient resolves it
+        via ``get_display_name`` and one observer's view of this actor is
+        never rendered for the whole room.
+
+        Who receives it depends on the effect's ``save_third_anonymous``
+        flag. False (the default) passes ``from_obj``, so anyone who
+        cannot see this actor is dropped. True omits it, so they receive
+        the line with the name rendered as "Someone".
+
+        Args:
+            template: str — the ``*_third`` template, with ``{name}``,
+                ``{roll}`` and ``{dc}`` placeholders.
+            save_roll: int — the roll made.
+            save_dc: int — the DC rolled against.
+            record: dict — the effect record, read for the flag.
+        """
+        anonymous = record.get("save_third_anonymous", False)
+        self.location.msg_contents(
+            template.format(name="{name}", roll=save_roll, dc=save_dc),
+            exclude=[self],
+            from_obj=None if anonymous else self,
+            mapping={"name": self},
+        )
 
     def clear_combat_effects(self):
         """
@@ -712,12 +789,13 @@ class EffectsManagerMixin:
         )
 
     def apply_entangled(self, duration_rounds, source=None, save_dc=None,
-                        save_stat="strength", save_messages=None, messages=None):
+                        save_stat="strength", save_messages=None, messages=None,
+                        save_third_anonymous=False):
         """Apply ENTANGLED with optional save-each-round escape."""
         return self.apply_named_effect(
             NamedEffect.ENTANGLED, duration=duration_rounds, source=source,
             save_dc=save_dc, save_stat=save_stat, save_messages=save_messages,
-            messages=messages,
+            messages=messages, save_third_anonymous=save_third_anonymous,
         )
 
     def apply_blurred(self, duration_rounds):

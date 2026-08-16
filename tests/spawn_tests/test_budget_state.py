@@ -15,7 +15,7 @@ class TestBudgetState(EvenniaTest):
         bs = BudgetState(item_type="resource", type_key=1)
         bs.quest_debt = 5
         bs.surplus_bank = 3
-        bs.spawned_this_hour = 10
+        bs.dispatched_this_hour = 10
         bs.dropped_this_hour = 2
 
         bs.reset_for_hour(50)
@@ -23,7 +23,7 @@ class TestBudgetState(EvenniaTest):
         self.assertEqual(bs.total, 50)
         self.assertEqual(bs.remaining, 50)
         self.assertEqual(bs.surplus_bank, 0)
-        self.assertEqual(bs.spawned_this_hour, 0)
+        self.assertEqual(bs.dispatched_this_hour, 0)
         self.assertEqual(bs.dropped_this_hour, 0)
         # Quest debt preserved across hours
         self.assertEqual(bs.quest_debt, 5)
@@ -104,12 +104,12 @@ class TestBudgetState(EvenniaTest):
         bs.bank_surplus(3)
         self.assertEqual(bs.surplus_bank, 8)
 
-    def test_record_placed(self):
-        """record_placed accumulates."""
+    def test_record_dispatched(self):
+        """record_dispatched accumulates."""
         bs = BudgetState(item_type="resource", type_key=1)
-        bs.record_placed(5)
-        bs.record_placed(3)
-        self.assertEqual(bs.spawned_this_hour, 8)
+        bs.record_dispatched(5)
+        bs.record_dispatched(3)
+        self.assertEqual(bs.dispatched_this_hour, 8)
 
     def test_record_dropped(self):
         """record_dropped accumulates."""

@@ -2,8 +2,9 @@
 RampageMixin — on-kill chain attack for mobs.
 
 When a mob with this mixin slays a target it immediately attacks the
-next living player in the room, bypassing the normal attack delay.
-Follows the same pattern as the greatsword's executioner mechanic.
+next living player it can perceive in the room, bypassing the normal
+attack delay. Follows the same pattern as the greatsword's executioner
+mechanic.
 
 Usage:
     class Gnoll(RampageMixin, AggressiveMob):
@@ -15,6 +16,8 @@ Usage:
 import random
 
 from evennia.typeclasses.attributes import AttributeProperty
+
+from utils.targeting.predicates import p_excluding, p_is_character, p_living
 
 
 class RampageMixin:
@@ -29,20 +32,21 @@ class RampageMixin:
         if not self.is_alive or not self.location:
             return
 
-        targets = [
-            obj for obj in self.location.contents
-            if obj != victim
-            and getattr(obj, "is_pc", False)
-            and getattr(obj, "hp", 0) > 0
-        ]
+        targets = self.ai.get_targets_in_room(
+            p_is_character, p_living, p_excluding(victim)
+        )
         if not targets:
             return
 
         target = random.choice(targets)
 
+        # Names travel as mapping entries so msg_contents resolves each
+        # one per recipient — a concealed target reads as "Someone" to
+        # anyone who cannot see them.
         self.location.msg_contents(
-            self.rampage_message.format(name=self.key, target=target.key),
+            self.rampage_message,
             from_obj=self,
+            mapping={"name": self, "target": target},
         )
 
         from combat.combat_utils import execute_attack

@@ -58,6 +58,11 @@ class TestSocialTargeted(EvenniaCommandTest):
     def create_script(self):
         pass
 
+    def setUp(self):
+        super().setUp()
+        # Targeting needs sight, and a bare test room is unlit.
+        self.room1.always_lit = True
+
     def test_target_self_msg(self):
         """With target: caller sees targeted first-person message."""
         result = self.call(CmdTestBow(), "Char2", caller=self.char1)
@@ -90,18 +95,30 @@ class TestSocialGuards(EvenniaCommandTest):
         result = self.call(CmdTestBow(), "", caller=self.char1)
         self.assertIn("dreams", result.lower())
 
-    def test_hidden_blocked(self):
-        """Hidden characters can't use socials."""
+    def test_hidden_social_proceeds_and_breaks_hiding(self):
+        """Hiding doesn't block a social — performing one gives you away."""
         from enums.condition import Condition
 
-        # Directly set condition ref count to avoid messaging
-        conds = dict(self.char1.conditions)
-        conds[Condition.HIDDEN.value] = 1
-        self.char1.conditions = conds
+        self.char1.add_condition(Condition.HIDDEN)
         result = self.call(CmdTestBow(), "", caller=self.char1)
-        self.assertIn("hidden", result.lower())
-        conds[Condition.HIDDEN.value] = 0
-        self.char1.conditions = conds
+        self.assertIn("You bow gracefully", result)
+        self.assertFalse(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_unresolvable_target_keeps_hiding(self):
+        """A social that never happens must not cost you your concealment."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.HIDDEN)
+        self.call(CmdTestBow(), "nosuchperson", caller=self.char1)
+        self.assertTrue(self.char1.has_condition(Condition.HIDDEN))
+
+    def test_invisibility_survives_a_social(self):
+        """Magical concealment doesn't depend on staying out of sight."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.call(CmdTestBow(), "", caller=self.char1)
+        self.assertTrue(self.char1.has_condition(Condition.INVISIBLE))
 
 
 class TestSocialsList(EvenniaCommandTest):
@@ -186,3 +203,292 @@ class TestSocialNoRoomMsg(EvenniaCommandTest):
         CmdComfort = _make_social_cmd("comfort", SOCIALS["comfort"])
         result = self.call(CmdComfort(), "", caller=self.char1)
         self.assertIn("comfort someone", result.lower())
+
+
+class TestSocialTargetVisibility(EvenniaCommandTest):
+    """Socials can only target what the caller can see."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        # Targeting needs sight, and a bare test room is unlit.
+        self.room1.always_lit = True
+
+    def test_cannot_target_invisible_character(self):
+        from enums.condition import Condition
+        self.char2.add_condition(Condition.INVISIBLE)
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertNotIn("bow before", result.lower())
+
+    def test_can_target_invisible_with_detect_invis(self):
+        from enums.condition import Condition
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertIn("bow before", result.lower())
+
+    def test_cannot_target_hidden_character(self):
+        from enums.condition import Condition
+        self.char2.add_condition(Condition.HIDDEN)
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertNotIn("bow before", result.lower())
+
+    def test_can_target_hidden_with_true_sight(self):
+        from enums.condition import Condition
+        self.char2.add_condition(Condition.HIDDEN)
+        self.char1.apply_true_sight(duration_seconds=300)
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertIn("bow before", result.lower())
+
+    def test_invisible_caller_can_still_target_self(self):
+        """Concealment must not stop you socialling at yourself."""
+        from enums.condition import Condition
+        self.char1.add_condition(Condition.INVISIBLE)
+        result = self.call(CmdTestBow(), self.char1.key, caller=self.char1)
+        self.assertIn("yourself", result.lower())
+
+
+class TestSocialSilentModality(EvenniaCommandTest):
+    """Silent socials vanish for observers who can't see the actor.
+
+    Non-silent ones still reach them, anonymised to "Someone" by
+    get_display_name rather than by any authored alternate string.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from evennia.utils import create
+        from enums.condition import Condition
+        self.char3 = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Char3", location=self.room1, home=self.room1, nohome=False,
+        )
+        self.room1.always_lit = True
+        # Actor is invisible to everyone; char2 and char3 lack DETECT_INVIS.
+        self.char1.add_condition(Condition.INVISIBLE)
+
+    def _observer_text(self, cmd, args=""):
+        """Run the social and return what the uninvolved observer saw."""
+        from unittest.mock import patch
+        with patch.object(self.char3, "msg") as mock_msg:
+            self.call(cmd, args, caller=self.char1)
+            if not mock_msg.call_args:
+                return None
+            first = mock_msg.call_args[0]
+            text = first[0] if first else mock_msg.call_args[1].get("text")
+            return text[0] if isinstance(text, (tuple, list)) else text
+
+    # ── Silent (default) ────────────────────────────────────────
+
+    def test_silent_social_hidden_from_observer(self):
+        """A bow from an unseen actor reaches nobody."""
+        self.assertIsNone(self._observer_text(CmdTestBow()))
+
+    def test_silent_social_target_told_nothing(self):
+        from unittest.mock import patch
+        with patch.object(self.char2, "msg") as mock_msg:
+            self.call(CmdTestBow(), "Char2", caller=self.char1)
+            mock_msg.assert_not_called()
+
+    # ── Non-silent ──────────────────────────────────────────────
+
+    def test_non_silent_social_reaches_observer_anonymised(self):
+        """A laugh carries, but the actor isn't named."""
+        CmdLaugh = _make_social_cmd("laugh", SOCIALS["laugh"])
+        text = self._observer_text(CmdLaugh())
+        self.assertIsNotNone(text)
+        self.assertIn("Someone", text)
+        self.assertNotIn(self.char1.key, text)
+
+    def test_non_silent_social_target_told_anonymously(self):
+        from unittest.mock import patch
+        CmdLaugh = _make_social_cmd("laugh", SOCIALS["laugh"])
+        with patch.object(self.char2, "msg") as mock_msg:
+            self.call(CmdLaugh(), "Char2", caller=self.char1)
+            mock_msg.assert_called()
+            sent = " ".join(str(c) for c in mock_msg.call_args[0])
+            self.assertIn("Someone", sent)
+            self.assertNotIn(self.char1.key, sent)
+
+    def test_seeing_observer_still_gets_the_name(self):
+        """DETECT_INVIS means normal attribution, not the anonymised line."""
+        from enums.condition import Condition
+        self.char3.add_condition(Condition.DETECT_INVIS)
+        CmdLaugh = _make_social_cmd("laugh", SOCIALS["laugh"])
+        text = self._observer_text(CmdLaugh())
+        self.assertIsNotNone(text)
+        self.assertIn(self.char1.key, text)
+
+
+class TestSocialSilentFlagData(EvenniaCommandTest):
+    """The silent flag flows from SOCIALS data to the generated command."""
+
+    def create_script(self):
+        pass
+
+    def test_default_is_silent(self):
+        self.assertTrue(_make_social_cmd("bow", SOCIALS["bow"]).silent)
+
+    def test_declared_non_silent(self):
+        self.assertFalse(_make_social_cmd("laugh", SOCIALS["laugh"]).silent)
+
+
+class TestSocialTargetNameNotLeaked(EvenniaCommandTest):
+    """A concealed target isn't named to the room by someone who can see them."""
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from evennia.utils import create
+        from enums.condition import Condition
+        self.char3 = create.create_object(
+            "typeclasses.actors.character.FCMCharacter",
+            key="Char3", location=self.room1, home=self.room1, nohome=False,
+        )
+        self.room1.always_lit = True
+        # char2 is concealed; char1 can see them, char3 cannot.
+        self.char2.add_condition(Condition.INVISIBLE)
+        self.char1.add_condition(Condition.DETECT_INVIS)
+
+    def _observer_text(self):
+        from unittest.mock import patch
+        with patch.object(self.char3, "msg") as mock_msg:
+            self.call(CmdTestBow(), "Char2", caller=self.char1)
+            if not mock_msg.call_args:
+                return None
+            args = mock_msg.call_args[0]
+            text = args[0] if args else mock_msg.call_args[1].get("text")
+            return text[0] if isinstance(text, (tuple, list)) else text
+
+    def test_concealed_target_not_named_to_room(self):
+        text = self._observer_text()
+        self.assertIsNotNone(text)
+        self.assertNotIn(self.char2.key, text)
+        self.assertIn("Someone", text)
+
+    def test_visible_target_still_named(self):
+        from enums.condition import Condition
+        self.char3.add_condition(Condition.DETECT_INVIS)
+        text = self._observer_text()
+        self.assertIsNotNone(text)
+        self.assertIn(self.char2.key, text)
+
+
+class TestSocialInTheDark(EvenniaCommandTest):
+    """
+    Darkness costs you the ability to single someone out, nothing else.
+
+    Untargeted socials are unaffected — you can laugh in the dark, you
+    just cannot laugh *at* someone you cannot make out.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        self.char2.location = self.room1
+
+    def test_a_targeted_social_is_refused(self):
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_the_refusal_says_it_is_the_dark(self):
+        """Not 'you don't see them here' — they are standing right there."""
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertNotIn("don't see", result.lower())
+
+    def test_an_untargeted_social_still_works(self):
+        result = self.call(CmdTestBow(), "", caller=self.char1)
+        self.assertIn("You bow gracefully.", result)
+
+    def test_a_self_target_still_works(self):
+        result = self.call(CmdTestBow(), "Char", caller=self.char1)
+        self.assertIn("how odd", result.lower())
+
+    def test_a_blinded_caller_is_refused_the_same_way(self):
+        from enums.condition import Condition
+
+        self.room1.always_lit = True
+        self.char1.add_condition(Condition.BLINDED)
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertIn("too dark to make out", result.lower())
+
+    def test_darkvision_restores_targeting(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdTestBow(), "Char2", caller=self.char1)
+        self.assertIn("You bow before", result)
+
+
+class TestSocialVictimNaming(EvenniaCommandTest):
+    """
+    The victim is told who did it only as far as they can make them out.
+
+    The case that matters: the actor can see (darkvision) and the target
+    cannot, so targeting succeeds but the actor must not be named.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from enums.condition import Condition
+
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+        self.char2.location = self.room1
+        self.char1.add_condition(Condition.DARKVISION)
+
+    def _victim_text(self):
+        from unittest.mock import patch
+
+        with patch.object(self.char2, "msg") as mock_msg:
+            self.call(CmdTestBow(), "Char2", caller=self.char1)
+            if not mock_msg.call_args:
+                return None
+            args = mock_msg.call_args[0]
+            text = args[0] if args else mock_msg.call_args[1].get("text")
+            return text[0] if isinstance(text, (tuple, list)) else text
+
+    def test_the_actor_is_not_named_to_a_victim_in_the_dark(self):
+        text = self._victim_text()
+        self.assertIsNotNone(text)
+        self.assertNotIn(self.char1.key, text)
+
+    def test_the_victim_is_told_something_happened(self):
+        text = self._victim_text()
+        self.assertIn(self.char1.unseen_name, text)
+
+    def test_a_victim_who_can_see_is_told_who(self):
+        from enums.condition import Condition
+
+        self.char2.add_condition(Condition.DARKVISION)
+        text = self._victim_text()
+        self.assertIn(self.char1.key, text)

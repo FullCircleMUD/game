@@ -33,6 +33,7 @@ from utils.targeting.helpers import (
     resolve_target,
 )
 from utils.targeting.predicates import p_can_see, p_same_height
+from utils.visibility import looker_is_blind
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -80,10 +81,13 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
                 caller.msg("Usage: give <item> to <target>")
                 return
 
-        # Darkness — can't identify items or people without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Handing something over means putting it into a particular
+        # person's hands, so this refuses rather than costing time —
+        # there is no point groping through your pack for an item you
+        # have nobody to give it to. Name who they asked for: "you don't
+        # see them here" reads as absent when they are standing there.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.rhs}'.")
             return
 
         # ---------------------------------------------------------- #

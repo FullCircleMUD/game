@@ -11,7 +11,6 @@ Used by:
 """
 
 import asyncio
-import logging
 import re
 
 from django.conf import settings
@@ -23,8 +22,6 @@ from xrpl.models.requests import AccountNFTs
 from decimal import Decimal
 
 from blockchain.xrpl.models import NFTGameState, FungibleGameState, CurrencyType
-
-logger = logging.getLogger("evennia")
 
 # URI pattern: https://nft.fcmud.world/{game_id}
 _NFT_URI_PATTERN = re.compile(r"/(\d+)$")
@@ -152,8 +149,12 @@ def sync_nfts():
             existing_by_id[nftoken_id] = new_row
             created += 1
 
-    # Patch live Evennia objects that still hold placeholder token_ids
-    objects_patched = _patch_evennia_objects(chain_nfts)
+    # Tell every shard to reconcile its own objects against the mirror
+    # we just brought up to date. No data computed here — each shard
+    # checks its own resident items locally (nft_token_patch.py).
+    from blockchain.xrpl.services.nft_token_patch import dispatch_patch_sweep
+
+    objects_patched = dispatch_patch_sweep()
 
     return {
         "updated": updated,
@@ -163,52 +164,6 @@ def sync_nfts():
         "on_chain_count": len(chain_nfts),
         "objects_patched": objects_patched,
     }
-
-
-
-def _patch_evennia_objects(chain_nfts):
-    """
-    Find spawned BaseNFTItem objects with placeholder token_ids and
-    update them to the real 64-char XRPL NFToken ID.
-
-    A placeholder token_id is a short numeric string (e.g. "150") that
-    was set when the object was spawned before sync_nfts replaced the
-    DB row's nftoken_id with the real on-chain value.
-    """
-    from typeclasses.items.base_nft_item import BaseNFTItem
-    from evennia.objects.models import ObjectDB
-
-    # Build uri_id → real nftoken_id mapping
-    uri_to_nftoken = {}
-    for nft in chain_nfts:
-        game_id = _extract_game_id(nft.get("URI"))
-        if game_id is not None:
-            uri_to_nftoken[str(game_id)] = nft["NFTokenID"]
-
-    if not uri_to_nftoken:
-        return 0
-
-    patched = 0
-    for obj in ObjectDB.objects.get_by_attribute("token_id"):
-        if not isinstance(obj, BaseNFTItem):
-            continue
-        token_id = obj.token_id
-        if token_id is None:
-            continue
-        token_str = str(token_id)
-        # Skip if already a real 64-char hex ID
-        if len(token_str) == 64:
-            continue
-        real_id = uri_to_nftoken.get(token_str)
-        if real_id:
-            obj.token_id = real_id
-            patched += 1
-            logger.info(
-                f"NFT sync: patched #{obj.id} token_id "
-                f"{token_str} → {real_id[:16]}..."
-            )
-
-    return patched
 
 
 # ================================================================== #

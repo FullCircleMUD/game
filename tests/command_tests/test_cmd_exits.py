@@ -242,3 +242,99 @@ class TestCmdExits(EvenniaCommandTest):
         north_idx = result.index("North")
         south_idx = result.index("South")
         self.assertLess(north_idx, south_idx)
+
+
+class TestCmdExitsSightAndSize(EvenniaCommandTest):
+    """Reading the exits needs eyes; the list only offers ways you fit."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        self.dest = create.create_object(
+            "typeclasses.terrain.rooms.room_base.RoomBase",
+            key="Town Square",
+            nohome=True,
+        )
+        for ex in self.room1.contents_get(content_type="exit"):
+            ex.delete()
+        self.gate = create.create_object(
+            "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware",
+            key="north",
+            location=self.room1,
+            destination=self.dest,
+            nohome=True,
+        )
+        self.gate.direction = "north"
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    # ── Sight ────────────────────────────────────────────────────
+
+    def test_a_dark_room_shows_no_exits(self):
+        self._darken()
+        self.call(CmdExits(), "", "It's too dark to see any exits.")
+
+    def test_a_blinded_reader_is_refused_in_a_lit_room(self):
+        """is_dark alone never asked this — a blind character read the list."""
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+        self.call(CmdExits(), "", "It's too dark to see any exits.")
+
+    def test_darkvision_reads_the_exits_in_the_dark(self):
+        from enums.condition import Condition
+
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
+        result = self.call(CmdExits(), "")
+        self.assertNotIn("too dark", result)
+
+    def test_a_blinded_reader_is_refused_even_with_darkvision(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.DARKVISION)
+        self.char1.add_condition(Condition.BLINDED)
+        self.call(CmdExits(), "", "It's too dark to see any exits.")
+
+    # ── Size ─────────────────────────────────────────────────────
+
+    def test_an_exit_you_fit_through_is_listed(self):
+        from enums.size import Size
+
+        self.gate.max_size = Size.LARGE.value
+        self.char1.size = Size.MEDIUM.value
+        result = self.call(CmdExits(), "")
+        self.assertIn("North", result)
+
+    def test_an_exit_too_small_is_listed_and_labelled(self):
+        """Labelled, not hidden — the same way a locked door is."""
+        from enums.size import Size
+
+        self.gate.max_size = Size.SMALL.value
+        self.char1.size = Size.HUGE.value
+        result = self.call(CmdExits(), "")
+        self.assertIn("North", result)
+        self.assertIn("too small", result)
+
+    def test_an_exit_you_fit_through_carries_no_label(self):
+        from enums.size import Size
+
+        self.gate.max_size = Size.LARGE.value
+        self.char1.size = Size.MEDIUM.value
+        result = self.call(CmdExits(), "")
+        self.assertNotIn("too small", result)
+
+    def test_an_exit_with_no_size_limit_admits_anyone(self):
+        from enums.size import Size
+
+        self.char1.size = Size.GARGANTUAN.value
+        result = self.call(CmdExits(), "")
+        self.assertIn("North", result)

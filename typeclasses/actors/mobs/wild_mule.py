@@ -39,9 +39,6 @@ class WildMule(CombatMob):
     # ── Behaviour — passive ──
     is_aggressive = AttributeProperty(False)
 
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(0)
-
     def at_object_creation(self):
         super().at_object_creation()
         self.db.desc = (

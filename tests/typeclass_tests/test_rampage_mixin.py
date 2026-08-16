@@ -41,10 +41,8 @@ class TestRampageMixin(EvenniaTest):
     def test_rampage_attacks_next_player(self, mock_execute):
         """at_kill should fire execute_attack on another player in room."""
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
-        self.char1.is_pc = True
         self.char1.hp = 30
         self.char1.location = self.room1
         self.char2.location = self.room2  # only char1 is valid target
@@ -56,7 +54,6 @@ class TestRampageMixin(EvenniaTest):
     def test_no_rampage_when_no_targets(self, mock_execute):
         """at_kill should not fire if no living players in room."""
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
         self.char1.location = self.room2
@@ -70,7 +67,6 @@ class TestRampageMixin(EvenniaTest):
         """Dead mob should not rampage."""
         self.mob.is_alive = False
         victim = MagicMock()
-        self.char1.is_pc = True
         self.char1.hp = 30
         self.char1.location = self.room1
 
@@ -81,13 +77,10 @@ class TestRampageMixin(EvenniaTest):
     def test_rampage_skips_dead_players(self, mock_execute):
         """Rampage should not target players at 0 HP."""
         victim = MagicMock()
-        victim.is_pc = True
         victim.hp = 0
 
-        self.char1.is_pc = True
         self.char1.hp = 0
         self.char1.location = self.room1
-        self.char2.is_pc = True
         self.char2.hp = 0
         self.char2.location = self.room1
 

@@ -147,7 +147,7 @@ class TestInsetSuccess(EvenniaCommandTest):
         _give_jeweller_skill(self.char1)
         _give_gold(self.char1, 50)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_gem_consumed(self, mock_nft_cls, mock_delay):
@@ -163,7 +163,7 @@ class TestInsetSuccess(EvenniaCommandTest):
         # Gem should be deleted
         self.assertNotIn(gem, self.char1.contents)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_gem_effects_extend_weapon_wear_effects(self, mock_nft_cls, mock_delay):
@@ -181,7 +181,7 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.assertEqual(weapon.wear_effects, original + effects)
         self.assertTrue(weapon.is_inset)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_gem_restrictions_transfer_to_weapon_mixin_fields(self, mock_nft_cls, mock_delay):
@@ -199,7 +199,7 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.assertEqual(list(weapon.required_races), ["dwarf"])
         self.assertEqual(weapon.min_alignment_score, 300)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_wear_effects_extended(self, mock_nft_cls, mock_delay):
@@ -219,7 +219,7 @@ class TestInsetSuccess(EvenniaCommandTest):
             original_effects + gem_effects
         )
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_weapon_renamed(self, mock_nft_cls, mock_delay):
@@ -234,7 +234,7 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertEqual(weapon.key, "LLMName")
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_gold_consumed(self, mock_nft_cls, mock_delay):
@@ -249,7 +249,7 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertEqual(self.char1.get_gold(), 45)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_metadata_saved(self, mock_nft_cls, mock_delay):
@@ -269,7 +269,7 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.assertTrue(mock_nft.metadata["is_inset"])
         mock_nft.save.assert_called_once()
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_xp_awarded(self, mock_nft_cls, mock_delay):
@@ -285,7 +285,7 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertEqual(self.char1.experience_points, 10)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_success_message(self, mock_nft_cls, mock_delay):
@@ -302,7 +302,7 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertIn("LLMName", result)
 
-    @patch("commands.room_specific_cmds.crafting.cmd_inset.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
     def test_processing_cleared(self, mock_nft_cls, mock_delay):
@@ -438,7 +438,7 @@ class TestInsetValidation(EvenniaCommandTest):
         result = self.call(
             CmdInset(), f"{gem.key} in {weapon.key}"
         )
-        self.assertIn("already busy", result)
+        self.assertIn("You are busy", result)
         self.char1.ndb.is_processing = False
 
     def test_weapon_wielded(self):

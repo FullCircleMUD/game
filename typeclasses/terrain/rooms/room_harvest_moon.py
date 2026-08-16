@@ -1,11 +1,12 @@
 from typeclasses.terrain.rooms.room_inn import RoomInn
+from utils.targeting.predicates import p_is_character
 
 
 class RoomHarvestMoon(RoomInn):
 
     def at_object_receive(self, moved_obj, source_location, **kwargs):
         super().at_object_receive(moved_obj, source_location, **kwargs)
-        if moved_obj.has_account:
+        if p_is_character(moved_obj, self):
             self._check_rat_quest_defeat(moved_obj)
 
     def _check_rat_quest_defeat(self, character):

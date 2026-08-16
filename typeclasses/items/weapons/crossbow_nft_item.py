@@ -122,9 +122,10 @@ class CrossbowMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|y*KNOCKBACK* {wielder.key}'s crossbow bolt slams "
-                    f"{target.key} to the ground!|n",
+                    "|y*KNOCKBACK* {wielder}'s crossbow bolt slams "
+                    "{target} to the ground!|n",
                     exclude=[wielder, target],
+                    mapping={"wielder": wielder, "target": target},
                 )
 
 

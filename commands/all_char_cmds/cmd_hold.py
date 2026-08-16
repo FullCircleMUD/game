@@ -16,7 +16,15 @@ from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixi
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.busy import (
+    FUMBLE_BUSY_MESSAGE,
+    FUMBLE_MOVE_MESSAGE,
+    check_busy,
+    fumble_seconds,
+    start_busy,
+)
+from utils.targeting.predicates import p_can_perceive
+from utils.visibility import looker_is_blind
 
 
 class CmdHold(FCMCommandMixin, Command):
@@ -44,24 +52,39 @@ class CmdHold(FCMCommandMixin, Command):
             caller.msg("Hold what?")
             return
 
+        if check_busy(caller):
+            return
+
         parsed = parse_item_args(self.args)
         if not parsed:
             caller.msg("Hold what?")
             return
 
-        # Darkness — can't identify items without sight
-        room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # No sight check — it is your own pack, and you know what is in it
+        # by feel. Sightlessness costs time, not the action: the search
+        # runs before the outcome is known, so a character who is not
+        # carrying the item still spends it before hearing so.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._hold(caller, parsed),
+                self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+            )
             return
 
-        # Find the item
+        self._hold(caller, parsed)
+
+    def _hold(self, caller, parsed):
+        """Resolve the item and hold it. The outcome, success or failure."""
         if parsed.type == "token_id":
             item = self._find_by_token_id(caller, parsed.token_id)
         elif parsed.type == "item":
             item, _ = resolve_target(
                 caller, parsed.search_term, "items_inventory",
-                extra_predicates=(p_can_see,),
+                extra_predicates=(p_can_perceive,),
             )
             if not item:
                 caller.msg(f"You aren't carrying '{parsed.search_term}'.")

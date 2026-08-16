@@ -61,8 +61,58 @@ class TestCmdQuaff(EvenniaCommandTest):
         )
         self.call(CmdQuaff(), "sword", "sword is not a potion.")
 
-    def test_quaff_in_darkness(self):
-        """Quaffing in darkness should fail."""
+    # --- Quaffing by touch ---
+    #
+    # Your own pack is found by feel, so darkness costs the time spent
+    # searching rather than the action.
+
+    def _quaff_blind(self, args="healing potion"):
+        """Call quaff while sightless, returning (output, completion)."""
         self.room1.always_lit = False
         self.room1.natural_light = False
-        self.call(CmdQuaff(), "healing potion", "It's too dark to see anything.")
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdQuaff(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def _potions_left(self):
+        from typeclasses.items.consumables.potion_nft_item import PotionNFTItem
+
+        return [o for o in self.char1.contents if isinstance(o, PotionNFTItem)]
+
+    def test_quaffing_in_the_dark_announces_the_fumble(self):
+        out, _ = self._quaff_blind()
+        self.assertIn("fumble blindly through your pack", out)
+
+    def test_quaffing_in_the_dark_succeeds_after_the_fumble(self):
+        _, complete = self._quaff_blind()
+        complete()
+        self.assertEqual(self._potions_left(), [])
+
+    def test_nothing_is_drunk_until_the_fumble_ends(self):
+        self._quaff_blind()
+        self.assertEqual(len(self._potions_left()), 1)
+
+    def test_a_missing_potion_is_searched_for_first(self):
+        """The search gives nothing away — you fumble, then find out."""
+        out, complete = self._quaff_blind("banana")
+        self.assertIn("fumble blindly through your pack", out)
+        self.assertNotIn("aren't carrying", out)
+        self.assertIn("aren't carrying 'banana'", self._finish(complete))
+
+    def test_quaffing_when_sighted_does_not_fumble(self):
+        result = self.call(CmdQuaff(), "healing potion")
+        self.assertNotIn("fumble", result)
+
+    def test_quaffing_is_refused_while_busy(self):
+        self.char1.ndb.is_processing = True
+        self.call(CmdQuaff(), "healing potion", "You are busy.")

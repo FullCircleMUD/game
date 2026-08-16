@@ -17,7 +17,7 @@ Usage:
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 ASSIST_ROUNDS = {
@@ -58,14 +58,18 @@ class CmdAssist(CmdSkillBase):
         if not room:
             return None
 
-        # Darkness — can't see who you're assisting
-        if hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        # Stepping in beside someone means picking them out of the
+        # room, so this refuses rather than costing time. Name who they
+        # asked for — "you don't see them" reads as absent.
+        if looker_is_blind(caller):
+            caller.msg(f"It's too dark to make out '{self.args.strip()}'.")
             return None
 
+        # Filtering lives in the resolvers, not here: p_living, then
+        # p_can_see either way — helping someone means picking the right
+        # person, in or out of a fight.
         target, _ = resolve_target(
             caller, self.args.strip(), "actor_friendly",
-            extra_predicates=(p_can_see,),
         )
         if not target:
             return None  # actor resolver already messaged
@@ -167,6 +171,11 @@ class CmdAssist(CmdSkillBase):
         if in_combat:
             rounds = ASSIST_ROUNDS[mastery]
             if self._do_assist_combat(target, rounds):
+                # Assisting in combat grants an ally advantage against every
+                # enemy, which is taking part in the fight. Out of combat it
+                # only helps with a skill check, so the branch below breaks
+                # nothing.
+                caller.break_conditions_from_hostile_action()
                 caller.msg(
                     f"|yYou assist {target.key}, giving them the edge! "
                     f"(+{rounds} round{'s' if rounds > 1 else ''} advantage)|n"

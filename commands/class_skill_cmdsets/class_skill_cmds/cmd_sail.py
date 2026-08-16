@@ -23,6 +23,7 @@ from commands.room_specific_cmds.gateway.cmd_travel import (
     _SEA_MESSAGES,
 )
 from .cmd_skill_base import CmdSkillBase
+from utils.busy import check_busy
 
 
 def _get_qualifying_ships(character, min_tier):
@@ -72,8 +73,7 @@ class CmdSail(CmdSkillBase):
         caller = self.caller
         room = caller.location
 
-        if caller.ndb.is_processing:
-            caller.msg("You are already busy. Wait until your current task finishes.")
+        if check_busy(caller):
             return
 
         destinations = getattr(room, "destinations", None)
@@ -194,8 +194,9 @@ class CmdSail(CmdSkillBase):
         def _arrive():
             caller.move_to(destination_room, quiet=True, move_type="teleport")
             destination_room.msg_contents(
-                f"{caller.key} arrives by ship.",
+                "{passenger} arrives by ship.",
                 exclude=[caller],
+                mapping={"passenger": caller},
             )
             ship.arrive_at_dock(destination_room)
 

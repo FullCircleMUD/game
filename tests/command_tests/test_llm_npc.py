@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from commands.all_char_cmds.cmd_say import CmdSay
+from enums.condition import Condition
 
 
 def _immediate_call_later(delay, fn, *args, **kwargs):
@@ -37,6 +38,9 @@ class TestLLMMixin(EvenniaCommandTest):
         self.account.attributes.add("wallet_address", WALLET_A)
         self.char1.db.languages = {"common"}
         self.char2.db.languages = {"common"}
+        # A bare test room has no light source and reads as dark, which
+        # would send every arrival down the blind-challenge path.
+        self.room1.always_lit = True
 
     def _create_llm_npc(self, **kwargs):
         """Create an LLMRoleplayNPC in the test room."""
@@ -212,6 +216,94 @@ class TestLLMMixin(EvenniaCommandTest):
         npc.at_llm_player_arrive(self.char1)
         mock_respond.assert_not_called()
 
+    # --- Blind arrival challenge ---
+    #
+    # An arrival is identified by sight alone — nobody has spoken yet. A
+    # sightless NPC has no name to greet, so it challenges instead of
+    # calling the LLM with nothing to work with.
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_dark_room_arrival_makes_no_llm_call(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        self._darken()
+        npc.at_llm_player_arrive(self.char1)
+        mock_respond.assert_not_called()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_blinded_npc_arrival_makes_no_llm_call(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        npc.at_llm_player_arrive(self.char1)
+        mock_respond.assert_not_called()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_darkvision_npc_still_calls_the_llm(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.DARKVISION)
+        self._darken()
+        npc.at_llm_player_arrive(self.char1)
+        mock_respond.assert_called_once()
+
+    def test_blind_arrival_speaks_a_challenge(self):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        spoken = mock_say.call_args[0][0]
+        self.assertTrue(
+            any(line in spoken for line in npc._BLIND_CHALLENGES),
+            f"no challenge line found in: {spoken}",
+        )
+
+    def test_blind_challenge_names_nobody(self):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        # Both the lit and the dark rendering of the line
+        for rendered in mock_say.call_args[0]:
+            self.assertNotIn(self.char1.key, rendered)
+
+    def test_a_custom_challenge_pool_is_used(self):
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.llm_blind_challenges = ["Who goes there, damn you?"]
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        self.assertIn("Who goes there, damn you?", mock_say.call_args[0][0])
+
+    def test_a_disabled_arrive_hook_challenges_nobody(self):
+        npc = self._create_llm_npc()
+        npc.add_condition(Condition.BLINDED)
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc.at_llm_player_arrive(self.char1)
+        mock_say.assert_not_called()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_speech_still_reaches_the_llm_when_blind(self, mock_respond):
+        """A voice identifies a person — blindness must not mute conversation."""
+        npc = self._create_llm_npc(llm_hook_arrive=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch(
+            "twisted.internet.reactor.callLater", side_effect=_immediate_call_later
+        ):
+            npc.at_llm_say_heard(self.char1, "hello there")
+        mock_respond.assert_called_once()
+
+    @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
+    def test_whisper_still_reaches_the_llm_when_blind(self, mock_respond):
+        npc = self._create_llm_npc(llm_hook_whisper=True)
+        npc.add_condition(Condition.BLINDED)
+        with patch(
+            "twisted.internet.reactor.callLater", side_effect=_immediate_call_later
+        ):
+            npc.at_llm_whisper_received(self.char1, "secret message")
+        mock_respond.assert_called_once()
+
     # --- Non-common language ignored ---
 
     @patch("typeclasses.mixins.llm_mixin.LLMMixin.llm_respond")
@@ -262,6 +354,102 @@ class TestLLMMixin(EvenniaCommandTest):
         self.assertTrue(len(npc.db.llm_conversation_history) > 0)
         npc.clear_llm_memory()
         self.assertEqual(len(npc.db.llm_conversation_history), 0)
+
+    # --- Presence guard (speaker left before the response arrived) ---
+
+    def test_speaker_in_room_is_still_here(self):
+        """A speaker who stayed put reads as present."""
+        npc = self._create_llm_npc()
+        self.assertTrue(npc._speaker_still_here(self.char1))
+
+    def test_speaker_who_left_room_is_not_here(self):
+        """A speaker who walked out fails the check."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        self.assertFalse(npc._speaker_still_here(self.char1))
+
+    def test_logged_out_speaker_is_not_here(self):
+        """at_post_unpuppet takes the character off the grid entirely."""
+        npc = self._create_llm_npc()
+        self.char1.location = None
+        self.assertFalse(npc._speaker_still_here(self.char1))
+
+    def test_npc_speaker_is_still_here(self):
+        """An NPC speaker has no session and must not be treated as absent."""
+        npc = self._create_llm_npc()
+        other = self._create_llm_npc(key="Mara")
+        self.assertTrue(npc._speaker_still_here(other))
+
+    def test_departed_speaker_gets_snub_not_response(self):
+        """The LLM line is withheld and a snub goes out instead."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
+        mock_snub.assert_called_once_with(self.char1)
+        mock_say.assert_not_called()
+
+    def test_logged_out_speaker_gets_snub(self):
+        """Renting or quitting mid-call is snubbed like walking out."""
+        npc = self._create_llm_npc()
+        self.char1.location = None
+        with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
+        mock_snub.assert_called_once_with(self.char1)
+        mock_say.assert_not_called()
+
+    def test_present_speaker_still_hears_response(self):
+        """The guard must not suppress the normal case."""
+        npc = self._create_llm_npc()
+        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+            npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
+        mock_say.assert_called_once()
+
+    def test_leave_reaction_exempt_from_presence_check(self):
+        """A leave reaction is aimed at someone already gone."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_response(self.char1, "Come back soon!", "leave")
+        mock_snub.assert_not_called()
+        mock_say.assert_called_once()
+
+    def test_snub_emits_a_social_and_a_comment(self):
+        """The snub is a room social followed by a spoken line."""
+        npc = self._create_llm_npc()
+        self.char1.location = self.room2
+        with patch.object(npc.location, "msg_contents") as mock_room, patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_snub(self.char1)
+        mock_room.assert_called_once()
+        mock_say.assert_called_once()
+
+    def test_snub_comment_fills_speaker_name(self):
+        """{name} in a comment resolves to the departed speaker."""
+        npc = self._create_llm_npc()
+        npc.llm_snub_comments = ["Nice to see you too {name}"]
+        self.char1.location = self.room2
+        with patch.object(npc.location, "msg_contents"), patch.object(
+            npc, "_msg_room_dark_aware"
+        ) as mock_say:
+            npc._deliver_snub(self.char1)
+        self.assertIn(self.char1.key, mock_say.call_args[0][0])
+
+    def test_snub_uses_only_targetless_socials(self):
+        """Every default snub social must have a no-target room variant."""
+        from commands.all_char_cmds.socials_data import SOCIALS
+        from typeclasses.mixins.llm_mixin import LLMMixin
+
+        for key in LLMMixin._SNUB_SOCIALS:
+            self.assertIn(key, SOCIALS)
+            self.assertIn("no_target_room", SOCIALS[key])
 
     # --- Response sanitization ---
 

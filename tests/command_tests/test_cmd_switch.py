@@ -4,6 +4,8 @@ Tests for CmdSwitch — pull/push/turn/flip switchable fixtures.
 evennia test --settings settings tests.command_tests.test_cmd_switch
 """
 
+from unittest.mock import patch
+
 from evennia.utils import create
 from evennia.utils.test_resources import EvenniaCommandTest
 
@@ -73,9 +75,75 @@ class TestCmdSwitch(EvenniaCommandTest):
         result = self.call(CmdSwitch(), "lever")
         self.assertIn("don't see", result)
 
-    def test_darkness_blocks(self):
-        """pull in darkness should error."""
+    # --- Finding a lever by touch ---
+    #
+    # A lever is found by running your hands along the wall, so darkness
+    # costs the time spent hunting rather than the action.
+
+    def _darken(self):
         self.room1.always_lit = False
         self.room1.natural_light = False
+
+    def _pull_blind(self, args="lever"):
+        """Call pull while sightless, returning (output, completion)."""
+        self._darken()
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdSwitch(), args)
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0] if mock_delay.call_args else None
+        complete = (lambda: delayed[1](*delayed[2:])) if delayed else None
+        return out, complete
+
+    def _finish(self, complete):
+        """Run the deferred completion, collecting what the caller hears."""
+        said = []
+        self.char1.msg = lambda text="", **kwargs: said.append(str(text))
+        complete()
+        return " ".join(said)
+
+    def test_pulling_in_the_dark_announces_the_search(self):
+        out, _ = self._pull_blind()
+        self.assertIn("hunting for something to pull", out)
+
+    def test_pulling_in_the_dark_succeeds_after_the_search(self):
+        _, complete = self._pull_blind()
+        complete()
+        self.assertTrue(self.lever.is_activated)
+
+    def test_nothing_is_pulled_until_the_search_ends(self):
+        self._pull_blind()
+        self.assertFalse(self.lever.is_activated)
+
+    def test_a_bare_wall_is_searched_first(self):
+        """The search gives nothing away — you grope, then find out."""
+        self.lever.delete()
+        out, complete = self._pull_blind()
+        self.assertIn("hunting for something to pull", out)
+        self.assertNotIn("don't see", out)
+        self.assertIn("don't see", self._finish(complete))
+
+    def test_a_blinded_character_searches_too(self):
+        from enums.condition import Condition
+
+        self.char1.add_condition(Condition.BLINDED)
+        with patch("utils.busy.delay") as mock_delay:
+            out = self.call(CmdSwitch(), "lever")
+        self.assertIn("hunting for something to pull", out)
+        self.assertTrue(mock_delay.called)
+
+    def test_darkvision_pulls_normally(self):
+        from enums.condition import Condition
+
+        self._darken()
+        self.char1.add_condition(Condition.DARKVISION)
         result = self.call(CmdSwitch(), "lever")
-        self.assertIn("too dark", result)
+        self.assertNotIn("hunting for something", result)
+        self.assertTrue(self.lever.is_activated)
+
+    def test_pulling_when_sighted_does_not_search(self):
+        result = self.call(CmdSwitch(), "lever")
+        self.assertNotIn("hunting for something", result)
+
+    def test_pulling_is_refused_while_busy(self):
+        self.char1.ndb.is_processing = True
+        self.call(CmdSwitch(), "lever", "You are busy.")

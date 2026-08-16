@@ -12,10 +12,12 @@ Query the current phase from anywhere:
 """
 
 
-from evennia import DefaultScript, ObjectDB
+from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from evennia.utils.gametime import gametime
 
 from enums.time_of_day import TimeOfDay
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 # How often (real seconds) the service checks for phase transitions.
@@ -46,7 +48,7 @@ def get_time_of_day():
     return TimeOfDay.from_hour(get_game_hour())
 
 
-class DayNightService(DefaultScript):
+class DayNightService(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that tracks day/night phase transitions.
 
@@ -67,21 +69,32 @@ class DayNightService(DefaultScript):
 
     def at_repeat(self):
         """Check for phase transition and broadcast if one occurred."""
-        current_phase = get_time_of_day()
-        last_phase = self.ndb.last_phase
+        try:
+            current_phase = get_time_of_day()
+            last_phase = self.ndb.last_phase
 
-        if current_phase != last_phase:
-            self.ndb.last_phase = current_phase
-            self._broadcast_transition(current_phase)
+            if current_phase != last_phase:
+                self.ndb.last_phase = current_phase
+                self._broadcast_transition(current_phase)
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("day_night_service: tick failed")
 
     def _broadcast_transition(self, phase):
-        """Send the transition message to all connected player characters."""
+        """Send the transition message to all connected player characters.
+
+        Walks SESSION_HANDLER rather than querying ObjectDB. The sessions
+        are an in-memory dict belonging to this process, so this reaches
+        exactly the players connected here — which under sharding is the
+        set this process should be messaging. The objects are the same
+        instances a query would return (one per pk, via the idmapper).
+        """
         msg = _TRANSITION_MESSAGES.get(phase)
         if not msg:
             return
 
-        for char in ObjectDB.objects.filter(
-            db_typeclass_path__contains="Character"
-        ):
-            if char.has_account and char.sessions.count():
+        for session in SESSION_HANDLER.get_sessions():
+            char = session.get_puppet()
+            if char:
                 char.msg(msg)

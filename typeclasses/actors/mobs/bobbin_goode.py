@@ -17,6 +17,7 @@ from enums.damage_type import DamageType
 from enums.mastery_level import MasteryLevel
 from typeclasses.actors.mobs.bandit_base import BobbinBandit
 from typeclasses.items.mob_items.mob_item import MobItem
+from utils.targeting.predicates import p_is_character
 
 
 class BobbinGoode(BobbinBandit):
@@ -60,7 +61,6 @@ class BobbinGoode(BobbinBandit):
 
     damage_dice = AttributeProperty("1d6")
     attack_message = AttributeProperty("flourishes a blade and slashes at")
-    loot_gold_max = AttributeProperty(8)
 
     default_weapon_masteries = {"shortsword": MasteryLevel.SKILLED.value}
 
@@ -79,7 +79,7 @@ class BobbinGoode(BobbinBandit):
 
     def at_new_arrival(self, arriving_obj):
         """Player entered the Common Fire — kick off the song chain."""
-        if not getattr(arriving_obj, "is_pc", False):
+        if not p_is_character(arriving_obj, self):
             return
         if not self._performance_can_start():
             return
@@ -109,9 +109,11 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f"|c{self.key}|n stands by the fire with eyes shut and one hand "
-            f"on his heart, plainly mid-performance — he has not yet noticed "
-            f"your arrival."
+            "|c{singer}|n stands by the fire with eyes shut and one hand "
+            "on his heart, plainly mid-performance — he has not yet noticed "
+            "your arrival.",
+            from_obj=self,
+            mapping={"singer": self},
         )
         delay(2, self._song_line_1)
 
@@ -119,8 +121,9 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f'|c{self.key}|n sings, |y"♪ We\'re men! We\'re |Mmen|y in '
-            f'|Mtights|y! ♪"|n'
+            '|c{singer}|n sings, |y"♪ We\'re men! We\'re |Mmen|y in '
+            '|Mtights|y! ♪"|n',
+            mapping={"singer": self},
         )
         delay(3, self._song_line_2)
 
@@ -128,8 +131,9 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f'|c{self.key}|n sings, |y"♪ We roam around the forest looking '
-            f'for— uh— |MFIGHTS|y! ♪"|n'
+            '|c{singer}|n sings, |y"♪ We roam around the forest looking '
+            'for— uh— |MFIGHTS|y! ♪"|n',
+            mapping={"singer": self},
         )
         delay(4, self._song_line_3)
 
@@ -137,9 +141,10 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f'|c{self.key}|n sings, |y"♪ We rob from the rich, and we— well, '
-            f'we mostly *keep* it actually — NO WAIT — give to the |MPOOR|y, '
-            f'that\'s |Mright|y! ♪"|n'
+            '|c{singer}|n sings, |y"♪ We rob from the rich, and we— well, '
+            'we mostly *keep* it actually — NO WAIT — give to the |MPOOR|y, '
+            'that\'s |Mright|y! ♪"|n',
+            mapping={"singer": self},
         )
         delay(4, self._song_line_4)
 
@@ -147,8 +152,9 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f'|c{self.key}|n sings, |y"♪ We may look like sissies but— "|n '
-            f'|x...the verse trails off.|n'
+            '|c{singer}|n sings, |y"♪ We may look like sissies but— "|n '
+            '|x...the verse trails off.|n',
+            mapping={"singer": self},
         )
         delay(2, self._notice_player)
 
@@ -156,9 +162,11 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f"|c{self.key}|n opens his eyes mid-pose, sees he has an audience, "
-            f"and his face flushes a deep, betrayed pink. He drops the heroic "
-            f"stance, clears his throat, and adjusts his cap."
+            "|c{singer}|n opens his eyes mid-pose, sees he has an audience, "
+            "and his face flushes a deep, betrayed pink. He drops the heroic "
+            "stance, clears his throat, and adjusts his cap.",
+            from_obj=self,
+            mapping={"singer": self},
         )
         delay(1, self._introduce)
 
@@ -166,6 +174,7 @@ class BobbinGoode(BobbinBandit):
         if not self._song_continues():
             return
         self.location.msg_contents(
-            f'|c{self.key}|n says, "Ah — friend! I, ah — I didn\'t see you '
-            f'come in. Bobbin Goode, at your service. Welcome to the camp."'
+            '|c{singer}|n says, "Ah — friend! I, ah — I didn\'t see you '
+            'come in. Bobbin Goode, at your service. Welcome to the camp."',
+            mapping={"singer": self},
         )

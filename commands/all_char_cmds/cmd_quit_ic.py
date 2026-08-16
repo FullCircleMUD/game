@@ -3,7 +3,9 @@ Quit command for characters (IC).
 
 Quitting always dumps all equipment into an abandoned pack on the
 ground (with a timed owner-only loot lock), then sends the character
-to their home room before unpuppeting.
+back to the inn where they last rented before unpuppeting. If the
+character has never rented, they fall back to their home room (the
+starter inn).
 
 Players who want a safe logout should use ``rent`` at an inn instead.
 
@@ -24,8 +26,8 @@ class CmdQuitIC(FCMCommandMixin, Command):
         quit
 
     Quitting drops all your belongings into an abandoned pack
-    on the ground and sends your character home. Anyone can loot
-    the pack after a short time.
+    on the ground and sends your character back to the inn where
+    you last rented. Anyone can loot the pack after a short time.
 
     Use |wrent|n at an inn for a safe logout.
     """
@@ -57,7 +59,7 @@ class CmdQuitIC(FCMCommandMixin, Command):
             "\n|r--- WARNING ---|n"
             "\nQuitting will:"
             "\n  - Drop all your equipment into an abandoned pack here"
-            "\n  - Send your character to their home room"
+            "\n  - Send your character back to the inn where you last rented"
             "\n  - Anyone can loot the pack after a short time"
             "\n\n|yVisit an inn and use |wrent|y to log out safely.|n"
             "\n\nAre you sure you want to quit? Y/[N]"
@@ -69,17 +71,31 @@ class CmdQuitIC(FCMCommandMixin, Command):
 
         room = caller.location
         self._create_quit_drop(caller, room)
-        self._send_home(caller)
+        self._send_to_last_rent_location(caller)
 
-        # Return to OOC account menu
-        account.msg(
-            account.at_look(
-                target=account.characters,
-                session=account.sessions.get()[0],
-            )
-        )
         account.mark_graceful_logout()
-        account.unpuppet_object(session)
+
+        # Take the player off the playing surface. In monolith we just
+        # unpuppet locally and synthesise the OOC menu; in shard mode
+        # the player's session is on a shard process and has to be
+        # redirected back to the router (where the OOC menu lives).
+        # evennia_shards.handoff.redirect_to_router sends the
+        # shard_redirect OOB and the disconnect handler auto-unpuppets
+        # when the WebSocket closes.
+        from evennia_shards import ROLE_MONOLITH, get_role
+
+        if get_role() == ROLE_MONOLITH:
+            account.msg(
+                account.at_look(
+                    target=account.characters,
+                    session=account.sessions.get()[0],
+                )
+            )
+            account.unpuppet_object(session)
+        else:
+            from evennia_shards.handoff import redirect_to_router
+
+            redirect_to_router(account, session)
 
     def _create_quit_drop(self, caller, room):
         """Unequip everything, create a QuitDrop, move gear into it."""
@@ -143,8 +159,15 @@ class CmdQuitIC(FCMCommandMixin, Command):
             "|rYour belongings have been dropped on the ground.|n"
         )
 
-    def _send_home(self, caller):
-        """Move the character to their home room."""
-        destination = caller.home
+    def _send_to_last_rent_location(self, caller):
+        """Move the character to the inn where they last rented.
+
+        If they've never rented (e.g. fresh character), fall back to
+        ``caller.home`` (auto-backfilled to the starter inn).
+        """
+        rent_loc = caller.db.last_rent_location
+        if rent_loc is None or not rent_loc.pk:
+            rent_loc = None
+        destination = rent_loc or caller.home
         if destination:
             caller.move_to(destination, quiet=True, move_type="teleport")

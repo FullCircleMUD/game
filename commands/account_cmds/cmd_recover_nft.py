@@ -33,7 +33,7 @@ class CmdRecoverNft(Command):
 
     key = "recover_nft"
     locks = "cmd:id(1) and is_ooc()"
-    help_category = "Economy"
+    help_category = "Blockchain"
 
     def func(self):
         caller = self.caller
@@ -43,6 +43,13 @@ class CmdRecoverNft(Command):
             return
 
         wallet = self.args.strip()
+
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        role = get_role()
+        if role not in (ROLE_MONOLITH, ROLE_ROUTER):
+            caller.msg("|rThis command can only be run OOC on the router.|n")
+            return
 
         caller.msg(f"|cQuerying wallet {wallet} for orphaned NFTs...|n")
         d = threads.deferToThread(_find_orphans, wallet)

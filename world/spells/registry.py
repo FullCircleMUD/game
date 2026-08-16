@@ -45,3 +45,24 @@ def get_spells_for_school(school):
 def list_spell_keys():
     """List all registered spell keys."""
     return list(SPELL_REGISTRY.keys())
+
+
+def find_spell(args, fuzzy=False, spells=SPELL_REGISTRY):
+    """Find a spell by name, key, or alias (case insensitive)."""
+    args_lower = args.lower()
+    # Exact match on name, key, or alias
+    for spell_key, spell_obj in spells.items():
+        if spell_obj.name.lower() == args_lower:
+            return spell_obj
+        if spell_key.replace("_", " ") == args_lower:
+            return spell_obj
+
+    if fuzzy:    
+        # Substring fallback
+        for spell_key, spell_obj in spells.items():
+            if args_lower in spell_obj.name.lower():
+                return spell_obj
+            if args_lower in spell_key.replace("_", " "):
+                return spell_obj
+            
+    return None

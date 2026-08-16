@@ -41,8 +41,7 @@ class Footpad(StabAbility, WeaponMasteryMixin, HumanoidWearslotsMixin, Aggressiv
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
 
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(5)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.5)  # flees at half health
@@ -100,8 +99,7 @@ class FootpadBoss(
     attack_delay_min = AttributeProperty(2)
     attack_delay_max = AttributeProperty(4)
 
-    # ── Gold loot ──
-    loot_gold_max = AttributeProperty(5)
+    # ── Loot lives in YAML (mob-spawner rules) ──
 
     # ── Behavior ──
     aggro_hp_threshold = AttributeProperty(0.25)

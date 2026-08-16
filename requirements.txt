@@ -2,9 +2,21 @@
 # Usage:
 #   python -m venv venv && source venv/bin/activate
 #   pip install -r requirements.txt
+#
+# Working on one of the FCM libraries? Overlay an editable install on top
+# afterwards, and pip will replace the pinned wheel with your checkout:
+#   pip install -e ../libraries/evennia-world-builder
 
-# Evennia MUD framework
-evennia
+# Evennia MUD framework.
+#
+# Pinned rather than floating: evennia-shards patches Evennia internals
+# (at_post_login, create_character, WebSocketClient.onOpen) and keeps a
+# register of every patch to re-diff on upgrade. A floating version would
+# make that upgrade happen during a Railway rebuild instead of during a
+# deliberate test run. 6.1.0 is the version the library suites pass against.
+# Bumping is a decision, not a side effect — re-diff the register first:
+# libraries/evennia-shards/docs/library-integration-risks.md
+evennia==6.1.0
 
 # LLM integration (OpenRouter API, OpenAI-compatible + embeddings)
 openai
@@ -26,3 +38,28 @@ psycopg2-binary
 
 # Parse DATABASE_URL into Django DATABASES format
 dj-database-url
+
+# Bundled SQLite, macOS only. Apple's /usr/lib/libsqlite3.dylib runs
+# sqlite3_initialize() through libdispatch, which cannot survive the fork
+# twistd uses to daemonize — so `evennia start` hangs silently on the
+# child's first SQLite call. settings.py swaps this in ahead of any
+# sqlite3 import. The marker means pip skips it on Linux (Railway runs
+# Postgres and never loads SQLite at all).
+# See libraries/evennia-shards/docs/deployment-topology.md § macOS.
+sqlean.py; sys_platform == "darwin"
+
+# ── FCM libraries ──────────────────────────────────────────────────
+# Installed from PyPI, not from ../libraries/. Railway clones only this
+# repo, so a relative path to a sibling checkout does not resolve there.
+# Pinned so all three deployed services build from identical library code.
+# evennia-yaml-reader arrives transitively via the two builders.
+
+# Declarative YAML world authoring — the wb_build admin command.
+evennia-world-builder==0.1.0
+
+# Declarative YAML mob spawning — the ms_load admin command.
+evennia-mob-spawner==0.1.0
+
+# Split-deployment / horizontal sharding. Dormant in monolith mode;
+# activated by SHARDS_ROLE in settings_router.py / settings_shard0.py.
+evennia-shards==0.1.0

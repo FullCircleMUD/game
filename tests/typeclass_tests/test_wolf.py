@@ -9,6 +9,8 @@ from unittest.mock import patch, MagicMock
 from evennia.utils import create
 from evennia.utils.test_resources import EvenniaTest
 
+from utils.targeting.predicates import p_is_character
+
 
 class TestWolfAggression(EvenniaTest):
     """Wolf should be aggressive to both players and rabbits."""
@@ -43,7 +45,6 @@ class TestWolfAggression(EvenniaTest):
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_at_new_arrival_aggros_player(self, mock_delay):
         """Wolf should schedule attack when a player enters."""
-        self.char1.is_pc = True
         self.wolf.at_new_arrival(self.char1)
         self.assertTrue(mock_delay.called)
 
@@ -63,7 +64,6 @@ class TestWolfAggression(EvenniaTest):
     def test_no_aggro_when_low_health(self, mock_delay):
         """Wolf should not aggro when below HP threshold."""
         self.wolf.hp = 1  # well below 50%
-        self.char1.is_pc = True
         self.wolf.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
@@ -71,14 +71,12 @@ class TestWolfAggression(EvenniaTest):
     def test_no_aggro_when_dead(self, mock_delay):
         """Dead wolf should not aggro."""
         self.wolf.is_alive = False
-        self.char1.is_pc = True
         self.wolf.at_new_arrival(self.char1)
         self.assertFalse(mock_delay.called)
 
     @patch("typeclasses.mixins.aggressive_mixin.delay")
     def test_players_prioritised_over_rabbits_in_wander(self, mock_delay):
         """ai_wander should target players before rabbits."""
-        self.char1.is_pc = True
         self.char1.location = self.room1
         rabbit = create.create_object(
             "typeclasses.actors.mobs.rabbit.Rabbit",
@@ -91,7 +89,7 @@ class TestWolfAggression(EvenniaTest):
         self.assertTrue(mock_delay.called)
         target = mock_delay.call_args[0][2]
         self.assertNotEqual(target, rabbit)
-        self.assertTrue(getattr(target, "is_pc", False))
+        self.assertTrue(p_is_character(target, self.wolf))
 
 
 class TestMaxPerRoom(EvenniaTest):

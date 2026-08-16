@@ -181,9 +181,10 @@ class LanceMixin:
         )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|r*LANCE STRIKE* {wielder.key}'s mounted charge "
-                f"knocks {target.key} to the ground!|n",
+                "|r*LANCE STRIKE* {wielder}'s mounted charge "
+                "knocks {target} to the ground!|n",
                 exclude=[wielder, target],
+                mapping={"wielder": wielder, "target": target},
             )
 
 

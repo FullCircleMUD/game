@@ -14,12 +14,14 @@ Skips:
 """
 
 from evennia import DefaultScript, SESSION_HANDLER
+from evennia.utils import logger
 from django.conf import settings
 from enums.hunger_level import HungerLevel
 from enums.thirst_level import ThirstLevel
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
-class SurvivalService(DefaultScript):
+class SurvivalService(HeartbeatMixin, DefaultScript):
     """
     Global timer that decrements every survival meter on every puppeted
     character once per tick. See module docstring for the design rationale.
@@ -38,18 +40,23 @@ class SurvivalService(DefaultScript):
 
     def at_repeat(self):
         """Called every `interval` seconds."""
-        for session in SESSION_HANDLER.get_sessions():
-            char = session.get_puppet()
-            if not char:
-                continue
+        try:
+            for session in SESSION_HANDLER.get_sessions():
+                char = session.get_puppet()
+                if not char:
+                    continue
 
-            # Superuser is exempt from all survival decay
-            account = char.account
-            if account and account.is_superuser:
-                continue
+                # Superuser is exempt from all survival decay
+                account = char.account
+                if account and account.is_superuser:
+                    continue
 
-            self._tick_hunger(char)
-            self._tick_thirst(char)
+                self._tick_hunger(char)
+                self._tick_thirst(char)
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("survival_service: tick failed")
 
     @staticmethod
     def _tick_hunger(char):

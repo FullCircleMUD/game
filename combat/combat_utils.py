@@ -4,6 +4,8 @@ Combat utility functions — attack resolution, combat entry, side detection.
 execute_attack()  — full attack resolution with all weapon hooks
 enter_combat()    — shared entry point for all combat-initiating actions
 get_sides()       — ally/enemy detection from a combatant's perspective
+
+fight_refusal_message() — default wording for a _can_start_fight_now() refusal
 """
 
 import random
@@ -15,6 +17,7 @@ from enums.mastery_level import MasteryLevel
 from enums.unused_for_reference.damage_type import DamageType
 from rules.damage_descriptors import get_descriptor, get_miss_verb
 from utils.dice_roller import dice
+from utils.movement_messages import FLEE_MESSAGES
 
 
 # ================================================================== #
@@ -28,6 +31,23 @@ INTERCEPT_CHANCE = {
     MasteryLevel.MASTER: 70,
     MasteryLevel.GRANDMASTER: 80,
 }
+
+
+# ================================================================== #
+#  Fight initiation refusals
+# ================================================================== #
+
+# Default wording per reason key returned by
+# CombatMixin._can_start_fight_now(). A call site that wants its own voice
+# for a given reason writes it inline instead of using this.
+FIGHT_REFUSALS = {
+    "busy": "You are busy. Finish what you're doing first.",
+}
+
+
+def fight_refusal_message(reason):
+    """Default player-facing wording for a _can_start_fight_now() refusal."""
+    return FIGHT_REFUSALS.get(reason, "You can't do that right now.")
 
 
 # ================================================================== #
@@ -208,11 +228,18 @@ def _check_reach_counters(attacker, target, target_allies=None):
             f"|y*REACH COUNTER* {ally.key} strikes at you "
             f"from behind {target.key}!|n"
         )
+        # Announced before the counter resolves, so a concealed ally is
+        # still concealed here and reads as "Someone" to anyone who cannot
+        # see them. The `execute_attack` below ends that — it calls
+        # `break_conditions_from_hostile_action` — which is the intended
+        # order: the room learns a spear came out of nowhere, then learns
+        # whose it was.
         if attacker.location:
             attacker.location.msg_contents(
-                f"|y*REACH COUNTER* {ally.key} strikes at {attacker.key} "
-                f"from behind {target.key}!|n",
+                "|y*REACH COUNTER* {ally} strikes at {attacker} "
+                "from behind {ward}!|n",
                 exclude=[ally, attacker],
+                mapping={"ally": ally, "attacker": attacker, "ward": target},
             )
         execute_attack(ally, attacker, _is_riposte=True)
 
@@ -266,29 +293,33 @@ def execute_attack(attacker, target, _is_riposte=False,
     weapon = weapon_override if weapon_override else get_weapon(attacker)
     defender_weapon = get_weapon(target)
 
-    # Break invisibility on auto-attack (mid-combat edge case)
-    if (hasattr(attacker, "break_invisibility")
-            and attacker.has_condition(Condition.INVISIBLE)):
-        attacker.break_invisibility()
-        handler = attacker.scripts.get("combat_handler")
-        if handler:
-            handler[0].set_advantage(target, rounds=1)
-
-    # Sanctuary: target is protected — attack blocked entirely
+    # Sanctuary: target is protected — attack blocked entirely. Checked
+    # before the attacker's own conditions break, so a blocked attack costs
+    # them nothing.
     if (hasattr(target, "has_condition")
             and target.has_condition(Condition.SANCTUARY)):
         attacker.msg(f"|W{target.key} is protected by a divine sanctuary!|n")
         return
 
-    # Sanctuary: attacker loses it on offensive action (attack still proceeds)
-    if (hasattr(attacker, "has_condition")
-            and attacker.has_condition(Condition.SANCTUARY)):
-        attacker.break_sanctuary()
+    # Attacking ends concealment and sanctuary alike. This is the catch-all
+    # for every path into an attack — mob attacks, auto-attack ticks,
+    # ripostes and reach counters — as well as the commands.
+    broken = []
+    if hasattr(attacker, "break_conditions_from_hostile_action"):
+        broken = attacker.break_conditions_from_hostile_action()
+
+    if Condition.INVISIBLE in broken:
+        handler = attacker.scripts.get("combat_handler")
+        if handler:
+            handler[0].set_advantage(target, rounds=1)
+
+    if Condition.SANCTUARY in broken:
         attacker.msg("|WYour sanctuary fades as you take an offensive action!|n")
         if attacker.location:
             attacker.location.msg_contents(
-                f"|W{attacker.key}'s divine sanctuary fades!|n",
+                "|W{caster}'s divine sanctuary fades!|n",
                 exclude=[attacker],
+                mapping={"caster": attacker},
             )
 
     # --- Height reachability check (height can change mid-combat) ---
@@ -370,10 +401,17 @@ def execute_attack(attacker, target, _is_riposte=False,
                 target.msg(
                     f"|gYou parry {attacker.key}'s attack with {defender_weapon.key}!|n"
                 )
+                # Nothing breaks here, deliberately. Parrying is a reaction
+                # to being attacked, and being attacked never reveals you
+                # (R3) — otherwise any targeted command becomes a free
+                # reveal and `cmd_search` is bypassed. A concealed defender
+                # who only parries stays concealed; one whose weapon grants
+                # a riposte gives themselves away below, by striking back.
                 if attacker.location:
                     attacker.location.msg_contents(
-                        f"|y{target.key} skillfully parries {attacker.key}'s attack!|n",
+                        "|y{defender} skillfully parries {attacker}'s attack!|n",
                         exclude=[attacker, target],
+                        mapping={"defender": target, "attacker": attacker},
                     )
 
                 # --- 3b. Disarm-on-parry (sai) ---
@@ -388,10 +426,16 @@ def execute_attack(attacker, target, _is_riposte=False,
                         and getattr(attacker, "hp", 0) > 0):
                     target.msg(f"|g*RIPOSTE* You strike back at {attacker.key}!|n")
                     attacker.msg(f"|y*RIPOSTE* {target.key} strikes back!|n")
+                    # Announced before the counter resolves, so a concealed
+                    # defender still reads as "Someone" here. The
+                    # `execute_attack` below ends that — striking back is
+                    # the defender's own hostile act, where parrying was
+                    # not.
                     if attacker.location:
                         attacker.location.msg_contents(
-                            f"|y*RIPOSTE* {target.key} counter-attacks {attacker.key}!|n",
+                            "|y*RIPOSTE* {defender} counter-attacks {attacker}!|n",
                             exclude=[attacker, target],
+                            mapping={"defender": target, "attacker": attacker},
                         )
                     execute_attack(target, attacker, _is_riposte=True)
 
@@ -448,9 +492,13 @@ def execute_attack(attacker, target, _is_riposte=False,
             crit_was_resisted = True
             if attacker.location:
                 helmet = target.get_slot("HEAD") if hasattr(target, "get_slot") else None
-                helmet_name = helmet.key if helmet else "helmet"
+                # Nobody acts here — the defender's equipment does its job,
+                # so there is nothing to break. Both names resolve per
+                # recipient; the helmet falls back to a bare word when the
+                # slot is empty and the crit immunity came from elsewhere.
                 attacker.location.msg_contents(
-                    f"|c{target.key}'s {helmet_name} deflects the critical blow!|n",
+                    "|c{defender}'s {helm} deflects the critical blow!|n",
+                    mapping={"defender": target, "helm": helmet or "helmet"},
                 )
 
         # --- 7. Crit hooks (only if not downgraded) ---
@@ -490,11 +538,21 @@ def execute_attack(attacker, target, _is_riposte=False,
                 f"|r*PROTECT* You throw yourself in front of {target.key}, "
                 f"intercepting {attacker.key}'s attack!|n"
             )
+            # Nothing breaks here. Intercepting is defensive — the protector
+            # takes the blow rather than dealing one — so it sits with parry
+            # rather than with riposte. They cannot be HIDDEN in any case,
+            # since `cmd_protect` needs a combat handler and hiding is
+            # refused in combat; invisibility and sanctuary survive.
             if attacker.location:
                 attacker.location.msg_contents(
-                    f"|y{protector.key} leaps in front of {target.key}, "
-                    f"intercepting {attacker.key}'s attack!|n",
+                    "|y{protector} leaps in front of {ward}, "
+                    "intercepting {attacker}'s attack!|n",
                     exclude=[attacker, target, protector],
+                    mapping={
+                        "protector": protector,
+                        "ward": target,
+                        "attacker": attacker,
+                    },
                 )
             target = protector  # swap for damage, durability, kill check
 
@@ -547,9 +605,10 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"with their {weapon_name}{punct}|n"
                 )
                 attacker.location.msg_contents(
-                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key} "
+                    f"|r{crit_prefix}{{attacker}} {third_verb} {{defender}} "
                     f"with their {weapon_name}{punct}|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
             else:
                 # Natural attack — use damage descriptor system
@@ -565,8 +624,9 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"|r{crit_prefix}{attacker.key} {third_verb} you{punct}|n"
                 )
                 attacker.location.msg_contents(
-                    f"|r{crit_prefix}{attacker.key} {third_verb} {target_key}{punct}|n",
+                    f"|r{crit_prefix}{{attacker}} {third_verb} {{defender}}{punct}|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
 
         # --- 9c. Apply damage (subtracts HP, triggers die/death) ---
@@ -605,8 +665,9 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"|y{attacker.key} {third_miss} at you but misses.|n"
                 )
                 attacker.location.msg_contents(
-                    f"|y{attacker.key} {third_miss} at {target.key} but misses.|n",
+                    f"|y{{attacker}} {third_miss} at {{defender}} but misses.|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
             else:
                 atk_msg = getattr(attacker, "attack_message", "attacks")
@@ -617,8 +678,9 @@ def execute_attack(attacker, target, _is_riposte=False,
                     f"|y{attacker.key} {atk_msg} you but misses.|n"
                 )
                 attacker.location.msg_contents(
-                    f"|y{attacker.key} {atk_msg} {target.key} but misses.|n",
+                    f"|y{{attacker}} {atk_msg} {{defender}} but misses.|n",
                     exclude=[attacker, target],
+                    mapping={"attacker": attacker, "defender": target},
                 )
 
     # --- 13. Post-attack hook (always fires) ---
@@ -1003,3 +1065,303 @@ def get_sides(combatant):
 
     buckets = bucket_contents(combatant, room, classify, p_living)
     return buckets.get("allies", []), buckets.get("enemies", [])
+
+
+# ================================================================== #
+#  Flee — one implementation for every way of leaving a fight
+# ================================================================== #
+
+#: DC for the flee check. d20 + DEX modifier must meet or beat it.
+FLEE_DC = 10
+
+
+class FleeWording:
+    """What a caller says when it flees. The only thing that varies.
+
+    Fleeing is fleeing however it is triggered — typed by a player, fired
+    automatically at a wimpy threshold, or compelled by the frightened
+    effect. All of them pick an open exit, roll the same check, and take
+    the same consequences. Only the words differ, so they are the only
+    parameter.
+
+    ``to_actor`` and ``failed_to_actor`` are shown to the fleeing actor.
+    ``room_msgs`` is passed through the movement seam, so the wording
+    reaches both rooms and redacts per recipient. ``failed_in_room`` is a
+    funcparser template — the actor stayed put, so no movement is involved.
+    """
+
+    def __init__(self, to_actor, failed_to_actor, failed_in_room,
+                 no_exits, room_msgs=None):
+        self.to_actor = to_actor
+        self.failed_to_actor = failed_to_actor
+        self.failed_in_room = failed_in_room
+        self.no_exits = no_exits
+        self.room_msgs = room_msgs if room_msgs is not None else FLEE_MESSAGES
+
+
+def _threatened_in_melee(actor, enemies):
+    """True if any enemy present could land a melee blow on the actor.
+
+    An actor nobody can reach escapes without rolling — there is nothing
+    to disengage from.
+    """
+    for enemy in enemies:
+        if enemy.location != actor.location:
+            continue
+        weapon = get_weapon(enemy)
+        wtype = getattr(weapon, "weapon_type", "melee") if weapon else "melee"
+        if wtype == "melee" and can_reach_target(enemy, actor, weapon):
+            return True
+    return False
+
+
+def flee_from_combat(actor, handler, wording):
+    """Attempt to flee combat through a random open exit.
+
+    The single implementation behind every flee in the game. Callers supply
+    only their wording; the process — exit choice, the check, the move, the
+    consequences of failing — is identical for a player typing ``flee``, a
+    wimpy threshold firing, and a frightened creature compelled to run.
+
+    Args:
+        actor: the combatant leaving.
+        handler: their ``CombatHandler``.
+        wording (FleeWording): what to say.
+
+    Returns:
+        bool: True if the actor left the room.
+
+    A failed flee costs the action and gives every enemy one round of
+    advantage, so fleeing is a gamble rather than a free exit — which is
+    what makes the frightened effect worth casting either way.
+    """
+    from utils.targeting.helpers import open_exits
+
+    # Held in place? Refuse before any side effect — broadcast, stop_combat, move.
+    _, block_msg = actor.get_movement_blocking_effect()
+    if block_msg:
+        actor.msg(f"|rYou try to flee — {block_msg}|n")
+        return False
+
+    exits = open_exits(actor)
+    if not exits:
+        actor.msg(wording.no_exits)
+        return False
+
+    # Capture enemies before any movement changes rooms
+    _, enemies = get_sides(actor)
+
+    dex_mod = actor.get_attribute_bonus(actor.dexterity)
+    roll = dice.roll("1d20") + dex_mod
+
+    if _threatened_in_melee(actor, enemies) and roll < FLEE_DC:
+        for enemy in enemies:
+            enemy_handlers = enemy.scripts.get("combat_handler")
+            if enemy_handlers:
+                enemy_handlers[0].set_advantage(actor, rounds=1)
+
+        actor.msg(wording.failed_to_actor)
+        if actor.location:
+            actor.location.msg_contents(
+                wording.failed_in_room, from_obj=actor, exclude=[actor],
+            )
+        return False
+
+    chosen = random.choice(exits)
+    direction = getattr(chosen, "direction", None) or chosen.key
+
+    # Pets come too, so gather them while still in the room being left —
+    # get_followers(same_room=True) finds nothing once the actor has gone.
+    source_room = actor.location
+    pets = [
+        f for f in actor.get_followers(same_room=True)
+        if getattr(f, "is_pet", False) and f.location == source_room
+    ] if hasattr(actor, "get_followers") else []
+
+    actor.msg(wording.to_actor.format(direction=direction))
+
+    # Through the exit, not around it — door, height, size and trap gating
+    # all live in at_traverse. The rooms hear about it through the movement
+    # seam, so a quiet caller can silence it and blind onlookers get
+    # "Someone".
+    if not chosen.at_traverse(
+        actor, chosen.destination, move_type="flee", **wording.room_msgs
+    ):
+        # The exit refused and said why. Still in the fight.
+        return False
+
+    handler.stop_combat()
+
+    # Pets follow through the same exit, so one too large for it stays
+    # behind. They move quietly — the owner's announce covers the group.
+    for f in pets:
+        if hasattr(f, "exit_combat"):
+            f.exit_combat()
+        chosen.at_traverse(f, chosen.destination, move_type="flee", quiet=True)
+
+    for enemy in enemies:
+        enemy_handlers = enemy.scripts.get("combat_handler")
+        if enemy_handlers:
+            enemy_handlers[0]._check_stop_combat()
+
+    return True
+
+
+# ================================================================== #
+#  Retreat — an ordered group withdrawal
+# ================================================================== #
+
+#: DC for the retreat check. One roll by the leader, for the whole group.
+RETREAT_DC = 10
+
+#: Movement points the leader spends organising the withdrawal.
+RETREAT_MOVE_COST = 2
+
+
+class RetreatWording:
+    """What a caller says when it leads a retreat. See ``FleeWording``.
+
+    ``{direction}`` is available in every template. ``in_room`` and
+    ``failed_in_room`` are funcparser templates spoken from the leader, so
+    ``$You()`` resolves per recipient. ``room_msgs`` carries the group
+    through the movement seam.
+    """
+
+    def __init__(self, to_leader, in_room, failed_to_leader, failed_in_room,
+                 no_exits, exhausted, room_msgs=None):
+        self.to_leader = to_leader
+        self.in_room = in_room
+        self.failed_to_leader = failed_to_leader
+        self.failed_in_room = failed_in_room
+        self.no_exits = no_exits
+        self.exhausted = exhausted
+        self.room_msgs = room_msgs if room_msgs is not None else FLEE_MESSAGES
+
+
+def retreat_group(leader, wording, direction=None, bonus=0):
+    """Lead a coordinated withdrawal — the whole group leaves together.
+
+    The group counterpart to ``flee_from_combat``, and deliberately the same
+    shape: pick from ``open_exits``, roll once, traverse, stop combat, clean
+    up the enemies. Callers supply wording only.
+
+    Where it differs from fleeing, and why:
+
+    - **One roll for everyone.** A retreat is organised, so the leader's
+      INT + CHA + skill bonus decides it for the group rather than each
+      member rolling their own.
+    - **The direction can be chosen.** Fleeing is blind panic; retreating is
+      a decision, so a caller may name the way out.
+    - **It costs the leader movement points.** Organising a withdrawal is
+      work that panicking is not.
+    - **Followers are group members, not baggage.** Anyone following the
+      leader who is *also in combat* retreats with them — where a flee takes
+      only pets.
+
+    Args:
+        leader: the combatant ordering it. Must be in combat.
+        wording (RetreatWording): what to say.
+        direction (str): optional exit to leave by; random when omitted.
+        bonus (int): skill bonus added to the leader's roll.
+
+    Returns:
+        bool: True if the group left the room.
+    """
+    from enums.size import size_value
+    from utils.targeting.helpers import open_exits
+    from utils.targeting.predicates import p_fits_through
+
+    # Gather the group before choosing, because the choice depends on it.
+    # Followers are unreachable by same_room once the leader has gone, so
+    # this has to happen first either way.
+    source_room = leader.location
+    group = [leader]
+    if hasattr(leader, "get_followers"):
+        group += [
+            f for f in leader.get_followers(same_room=True)
+            if f.location == source_room and f.scripts.get("combat_handler")
+        ]
+
+    # The leader picks the way out, so it is their perception that decides
+    # what counts as an exit — they are the one pointing. But everyone has to
+    # get through it, so the widest member sets the size limit. Choosing an
+    # exit someone cannot fit would strand them: combat stops for the whole
+    # group, and they would be left alone in the room, out of the fight.
+    biggest = max(group, key=lambda m: size_value(getattr(m, "size", Size.MEDIUM)))
+    fits = p_fits_through(biggest)
+    exits = [ex for ex in open_exits(leader) if fits(ex, leader)]
+    if not exits:
+        leader.msg(wording.no_exits)
+        return False
+
+    if direction:
+        wanted = direction.strip().lower()
+        chosen = next(
+            (ex for ex in exits
+             if wanted in (getattr(ex, "direction", "") or "").lower()
+             or wanted == ex.key.lower()),
+            None,
+        )
+        if not chosen:
+            leader.msg(f"You can't retreat '{wanted}' — no exit found.")
+            return False
+    else:
+        chosen = random.choice(exits)
+
+    heading = getattr(chosen, "direction", None) or chosen.key
+
+    # Capture enemies before any movement changes rooms
+    _, enemies = get_sides(leader)
+
+    if leader.move < RETREAT_MOVE_COST:
+        leader.msg(wording.exhausted)
+        return False
+    leader.move = max(0, leader.move - RETREAT_MOVE_COST)
+
+    int_mod = leader.get_attribute_bonus(leader.intelligence)
+    cha_mod = leader.get_attribute_bonus(leader.charisma)
+    total = dice.roll("1d20") + int_mod + cha_mod + bonus
+
+    if total < RETREAT_DC:
+        for enemy in enemies:
+            enemy_handlers = enemy.scripts.get("combat_handler")
+            if enemy_handlers:
+                enemy_handlers[0].set_advantage(leader, rounds=1)
+
+        leader.msg(wording.failed_to_leader)
+        if leader.location:
+            leader.location.msg_contents(
+                wording.failed_in_room, from_obj=leader, exclude=[leader],
+            )
+        return False
+
+    leader.msg(wording.to_leader.format(direction=heading))
+    if source_room:
+        source_room.msg_contents(
+            wording.in_room.format(direction=heading),
+            from_obj=leader,
+            exclude=[leader],
+        )
+
+    for member in group:
+        member_handlers = member.scripts.get("combat_handler")
+        if member_handlers:
+            member_handlers[0].stop_combat()
+
+    # Through the exit, not around it. The leader's announce covers the group,
+    # so members move quietly.
+    moved_any = False
+    for member in group:
+        quiet = member is not leader
+        if chosen.at_traverse(
+            member, chosen.destination, move_type="flee", quiet=quiet,
+            **({} if quiet else wording.room_msgs),
+        ):
+            moved_any = True
+
+    for enemy in enemies:
+        enemy_handlers = enemy.scripts.get("combat_handler")
+        if enemy_handlers:
+            enemy_handlers[0]._check_stop_combat()
+
+    return moved_any

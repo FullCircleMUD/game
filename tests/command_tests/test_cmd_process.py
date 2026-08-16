@@ -65,7 +65,7 @@ class ProcessingTestBase(EvenniaCommandTest):
 class TestProcessBasic(ProcessingTestBase):
     """Test basic single-input resource processing."""
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_process_one(self, mock_delay):
         """Processing 1 wheat + 1 gold should produce 1 flour."""
@@ -79,7 +79,7 @@ class TestProcessBasic(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(2), 1)
         self.assertEqual(self.char1.get_gold(), 9)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_process_amount(self, mock_delay):
         """Processing 3 should consume 3 inputs and produce 3 outputs."""
@@ -92,7 +92,7 @@ class TestProcessBasic(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(2), 3)
         self.assertEqual(self.char1.get_gold(), 7)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_process_all(self, mock_delay):
         """'process all' should process as many as possible."""
@@ -105,7 +105,7 @@ class TestProcessBasic(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(2), 3)
         self.assertEqual(self.char1.get_gold(), 0)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_process_all_resource_bottleneck(self, mock_delay):
         """'all' should be limited by available resources."""
@@ -178,7 +178,7 @@ class TestProcessMultiInput(ProcessingTestBase):
             {"inputs": {2: 1, 6: 1}, "output": 3, "amount": 1, "cost": 1},
         ]
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_bake_one(self, mock_delay):
         """Baking 1 should consume 1 flour + 1 wood + 1 gold → 1 bread."""
@@ -191,7 +191,7 @@ class TestProcessMultiInput(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(3), 1)  # bread
         self.assertEqual(self.char1.get_gold(), 9)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_bake_all(self, mock_delay):
         """'all' should be limited by the scarcest input."""
@@ -227,7 +227,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
             {"inputs": {24: 1, 26: 1}, "output": 32, "amount": 1, "cost": 1},  # Copper + Tin → Bronze
         ]
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_smelt_by_output_name(self, mock_delay):
         """'smelt iron ingot' should find the iron recipe by output name."""
@@ -238,7 +238,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(4), 4)
         self.assertEqual(self.char1.get_resource(5), 1)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_smelt_alloy_by_output_name(self, mock_delay):
         """'smelt bronze' should find the alloy recipe by output name."""
@@ -250,7 +250,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(26), 2)  # tin ingot
         self.assertEqual(self.char1.get_resource(32), 1)  # bronze
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_smelt_with_amount(self, mock_delay):
         """'smelt copper ingot 3' should process 3."""
@@ -262,7 +262,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(23), 2)
         self.assertEqual(self.char1.get_resource(24), 3)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_smelt_all_with_name(self, mock_delay):
         """'smelt tin ingot all' should process max."""
@@ -299,7 +299,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
         result = self.call(CmdProcess(), "all")
         self.assertIn("Specify", result)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_per_recipe_cost(self, mock_delay):
         """Recipe-level cost should override room default."""
@@ -312,7 +312,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
         self.assertIn("3 gold", result)
         self.assertEqual(self.char1.get_gold(), 7)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_cost_defaults_to_room(self, mock_delay):
         """Recipe without 'cost' key should use room's process_cost."""
@@ -332,7 +332,7 @@ class TestMultiRecipeProcessing(ProcessingTestBase):
 class TestProcessProgress(ProcessingTestBase):
     """Test progress messages during processing delay."""
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_progress_single(self, mock_delay):
         """Processing 1 should show 'Done!'."""
@@ -341,18 +341,18 @@ class TestProcessProgress(ProcessingTestBase):
         result = self.call(CmdProcess(), "")
         self.assertIn("Done!", result)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_progress_multiple(self, mock_delay):
         """Processing 3 should show progress ticks."""
         _give_resources(self.char1, {1: 3})
         _give_gold(self.char1, 3)
         result = self.call(CmdProcess(), "3")
-        self.assertIn("1 of 3", result)
-        self.assertIn("2 of 3", result)
+        self.assertIn("[----------]", result)
+        self.assertIn("[######----]", result)
         self.assertIn("Done!", result)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_is_processing_cleared(self, mock_delay):
         """ndb.is_processing should be cleared after completion."""
@@ -373,7 +373,7 @@ class TestProcessBusy(ProcessingTestBase):
         _give_resources(self.char1, {1: 5})
         _give_gold(self.char1, 10)
         result = self.call(CmdProcess(), "")
-        self.assertIn("already processing", result.lower())
+        self.assertIn("you are busy", result.lower())
         # Resources should NOT be consumed
         self.assertEqual(self.char1.get_resource(1), 5)
         self.assertEqual(self.char1.get_gold(), 10)
@@ -406,7 +406,7 @@ class TestRatesCommand(ProcessingTestBase):
 class TestProcessXP(ProcessingTestBase):
     """Test XP awarded on successful processing."""
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_xp_awarded(self, mock_delay):
         """Should award process_xp on successful processing."""
@@ -417,7 +417,7 @@ class TestProcessXP(ProcessingTestBase):
         self.call(CmdProcess(), "")
         self.assertEqual(self.char1.experience_points, 5)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_xp_scales_with_amount(self, mock_delay):
         """XP should scale with amount processed."""
@@ -428,7 +428,7 @@ class TestProcessXP(ProcessingTestBase):
         self.call(CmdProcess(), "4")
         self.assertEqual(self.char1.experience_points, 12)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_no_xp_when_zero(self, mock_delay):
         """Should not show XP message when process_xp is 0."""
@@ -472,7 +472,7 @@ class TestSubstringDisambiguation(ProcessingTestBase):
             {"inputs": {40: 1}, "output": 41, "amount": 1, "cost": 3},   # Ironwood → Ironwood Timber
         ]
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_saw_timber_picks_plain_timber(self, mock_delay):
         """'saw timber' must hit the Wood → Timber recipe, not Ironwood Timber."""
@@ -487,7 +487,7 @@ class TestSubstringDisambiguation(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(40), 2)  # ironwood untouched
         self.assertEqual(self.char1.get_resource(41), 0)  # no ironwood timber
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_saw_ironwood_picks_ironwood(self, mock_delay):
         """'saw ironwood' should resolve uniquely to the Ironwood recipe."""
@@ -498,7 +498,7 @@ class TestSubstringDisambiguation(ProcessingTestBase):
         self.assertEqual(self.char1.get_resource(40), 1)
         self.assertEqual(self.char1.get_resource(41), 1)
 
-    @patch("commands.room_specific_cmds.processing.cmd_process.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_saw_ironwood_timber_picks_ironwood(self, mock_delay):
         """Full name 'ironwood timber' is an exact match for the ironwood recipe."""

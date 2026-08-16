@@ -86,7 +86,7 @@ class TestGetWeather(EvenniaTest):
         from typeclasses.scripts.weather_service import get_weather
 
         service = MagicMock()
-        service.db.zone_weather = {}
+        service.ndb.zone_weather = {}
         with patch("typeclasses.scripts.weather_service.GLOBAL_SCRIPTS") as mock_gs:
             mock_gs.weather_service = service
             result = get_weather("unknown_zone")
@@ -97,7 +97,7 @@ class TestGetWeather(EvenniaTest):
         from typeclasses.scripts.weather_service import get_weather
 
         service = MagicMock()
-        service.db.zone_weather = {"millholm": Weather.STORM.value}
+        service.ndb.zone_weather = {"millholm": Weather.STORM.value}
         with patch("typeclasses.scripts.weather_service.GLOBAL_SCRIPTS") as mock_gs:
             mock_gs.weather_service = service
             result = get_weather("millholm")

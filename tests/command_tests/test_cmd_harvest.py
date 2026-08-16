@@ -11,7 +11,7 @@ immediately (no actual waiting in tests).
 evennia test --settings settings tests.command_tests.test_cmd_harvest
 """
 
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 
 from evennia.utils.test_resources import EvenniaCommandTest
 from evennia.utils import create
@@ -56,7 +56,7 @@ class HarvestingTestBase(EvenniaCommandTest):
 class TestHarvestBasic(HarvestingTestBase):
     """Test basic single-resource harvesting."""
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_mine_one(self, mock_delay):
         """Mining should produce 1 Iron Ore and decrement room count."""
@@ -64,14 +64,14 @@ class TestHarvestBasic(HarvestingTestBase):
         self.assertIn("Iron Ore", result)
         self.assertEqual(self.room1.db.resource_count, 9)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_mine_adds_to_inventory(self, mock_delay):
         """Character should have the resource after mining."""
         self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertEqual(self.char1.get_resource(4), 1)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_mine_last_one(self, mock_delay):
         """Mining the last resource should succeed and leave count at 0."""
@@ -104,7 +104,7 @@ class TestHarvestValidation(HarvestingTestBase):
         result = self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertIn("ground", result.lower())
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_underwater_resource(self, mock_delay):
         """Character at correct depth should be able to harvest underwater."""
@@ -114,7 +114,7 @@ class TestHarvestValidation(HarvestingTestBase):
         result = self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertIn("Iron Ore", result)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_flying_resource(self, mock_delay):
         """Character at correct flying height should be able to harvest."""
@@ -146,6 +146,43 @@ class TestHarvestValidation(HarvestingTestBase):
         self.assertEqual(self.room1.db.resource_count, 10)
 
 
+# ── Combat Lockout ────────────────────────────────────────────────
+
+class TestHarvestInCombat(HarvestingTestBase):
+    """No new harvest may begin while a fight is underway."""
+
+    def _in_combat(self):
+        """Report char1 as in combat without standing up the handler."""
+        return patch.object(
+            type(self.char1), "is_in_combat",
+            new_callable=PropertyMock, return_value=True,
+        )
+
+    def test_combat_rejected(self):
+        """Harvesting during a fight is refused and takes nothing."""
+        with self._in_combat():
+            result = self.call(CmdHarvest(), "", cmdstring="mine")
+        self.assertIn("finish the fight first", result.lower())
+        self.assertEqual(self.room1.db.resource_count, 10)
+        self.assertEqual(self.char1.get_resource(4), 0)
+
+    def test_combat_does_not_set_busy_lock(self):
+        """A refused harvest must not leave the busy lock held."""
+        with self._in_combat():
+            self.call(CmdHarvest(), "", cmdstring="mine")
+        self.assertFalse(self.char1.ndb.is_processing)
+
+    @patch("utils.busy.delay",
+           side_effect=_instant_delay)
+    def test_harvest_allowed_once_combat_ends(self, mock_delay):
+        """The lockout is combat state only — it lifts when the fight does."""
+        with self._in_combat():
+            self.call(CmdHarvest(), "", cmdstring="mine")
+        result = self.call(CmdHarvest(), "", cmdstring="mine")
+        self.assertIn("Iron Ore", result)
+        self.assertEqual(self.room1.db.resource_count, 9)
+
+
 # ── Tool Requirement ──────────────────────────────────────────────
 
 class TestHarvestTool(HarvestingTestBase):
@@ -158,7 +195,7 @@ class TestHarvestTool(HarvestingTestBase):
         self.assertIn("need a pickaxe", result.lower())
         self.assertEqual(self.room1.db.resource_count, 10)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_required_tool_present(self, mock_delay):
         """Should succeed if required tool is in inventory."""
@@ -167,7 +204,7 @@ class TestHarvestTool(HarvestingTestBase):
         result = self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertIn("Iron Ore", result)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_no_tool_required(self, mock_delay):
         """Should succeed when no tool is required (default)."""
@@ -180,7 +217,7 @@ class TestHarvestTool(HarvestingTestBase):
 class TestHarvestRaceCondition(HarvestingTestBase):
     """Test race condition where count reaches 0 between start and completion."""
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay")
+    @patch("utils.busy.delay")
     def test_count_zero_at_completion(self, mock_delay):
         """If count drops to 0 during delay, completion should fail gracefully."""
         # Start the harvest (count=10, passes initial check)
@@ -188,7 +225,9 @@ class TestHarvestRaceCondition(HarvestingTestBase):
 
         # Capture the callback that was passed to delay()
         self.assertTrue(mock_delay.called)
-        callback = mock_delay.call_args[0][1]
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0]
+        callback = lambda: delayed[1](*delayed[2:])
 
         # Simulate another player taking the last resource
         self.room1.db.resource_count = 0
@@ -274,7 +313,7 @@ class TestHarvestDescriptions(HarvestingTestBase):
 class TestHarvestXP(HarvestingTestBase):
     """Test XP awarded on successful harvest."""
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_xp_awarded(self, mock_delay):
         """Should award harvest_xp on successful harvest."""
@@ -283,7 +322,7 @@ class TestHarvestXP(HarvestingTestBase):
         self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertEqual(self.char1.experience_points, 10)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_no_xp_when_zero(self, mock_delay):
         """Should not show XP message when harvest_xp is 0."""
@@ -291,13 +330,15 @@ class TestHarvestXP(HarvestingTestBase):
         result = self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertNotIn("XP", result)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay")
+    @patch("utils.busy.delay")
     def test_no_xp_on_race_fail(self, mock_delay):
         """Should not award XP when race condition blocks harvest."""
         self.room1.db.harvest_xp = 10
         self.char1.experience_points = 0
         self.call(CmdHarvest(), "", cmdstring="mine")
-        callback = mock_delay.call_args[0][1]
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0]
+        callback = lambda: delayed[1](*delayed[2:])
         self.room1.db.resource_count = 0
         callback()
         self.assertEqual(self.char1.experience_points, 0)
@@ -308,23 +349,25 @@ class TestHarvestXP(HarvestingTestBase):
 class TestHarvestBusyFlag(HarvestingTestBase):
     """Test that busy flag is properly managed."""
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_busy_cleared_on_success(self, mock_delay):
         """is_processing should be False after successful harvest."""
         self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertFalse(self.char1.ndb.is_processing)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay")
+    @patch("utils.busy.delay")
     def test_busy_cleared_on_race_fail(self, mock_delay):
         """is_processing should be False even when race condition blocks harvest."""
         self.call(CmdHarvest(), "", cmdstring="mine")
-        callback = mock_delay.call_args[0][1]
+        # delay(interval, _tick, step) — the callback is bound to its step
+        delayed = mock_delay.call_args[0]
+        callback = lambda: delayed[1](*delayed[2:])
         self.room1.db.resource_count = 0
         callback()
         self.assertFalse(self.char1.ndb.is_processing)
 
-    @patch("commands.room_specific_cmds.harvesting.cmd_harvest.delay",
+    @patch("utils.busy.delay",
            side_effect=_instant_delay)
     def test_busy_set_during_delay(self, mock_delay):
         """is_processing should be True while harvesting (verified via mock)."""

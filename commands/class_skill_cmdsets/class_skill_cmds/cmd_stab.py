@@ -17,12 +17,12 @@ Usage:
     bs <target>         — alias
 """
 
-from combat.combat_utils import enter_combat, get_weapon
+from combat.combat_utils import enter_combat, fight_refusal_message, get_weapon
 from enums.condition import Condition
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
-from utils.targeting.predicates import p_can_see
+from utils.visibility import looker_is_blind
 from .cmd_skill_base import CmdSkillBase
 
 STAB_COOLDOWNS = {
@@ -65,6 +65,12 @@ class CmdStab(CmdSkillBase):
     def func(self):
         caller = self.caller
 
+        # ── Can this actor pick a fight right now? ──
+        ok, reason = caller._can_start_fight_now()
+        if not ok:
+            caller.msg(fight_refusal_message(reason))
+            return
+
         # ── Mastery check ──
         if not (getattr(caller.db, "general_skill_mastery_levels", None)
                 or getattr(caller.db, "class_skill_mastery_levels", None)
@@ -84,17 +90,20 @@ class CmdStab(CmdSkillBase):
         if handlers:
             handler = handlers[0]
 
-        # Darkness — can't aim for vitals you can't see
+        # Aiming for vitals needs to see them. No target name to quote
+        # — stab falls back to the current combat target.
         room = caller.location
-        if room and hasattr(room, "is_dark") and room.is_dark(caller):
-            caller.msg("It's too dark to see anything.")
+        if looker_is_blind(caller):
+            caller.msg("It's too dark to see where to strike.")
             return
 
         target = None
         if self.args and self.args.strip():
+            # Filtering lives in the resolvers, not here: p_living, then
+            # p_can_see out of combat (picking a fight needs eyes) or
+            # p_can_perceive in combat (you swing at what you can sense).
             target, _ = resolve_target(
                 caller, self.args.strip(), "actor_hostile",
-                extra_predicates=(p_can_see,),
             )
             if not target:
                 return  # actor resolver already messaged

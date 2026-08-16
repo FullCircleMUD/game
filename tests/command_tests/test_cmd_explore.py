@@ -13,7 +13,7 @@ from commands.room_specific_cmds.gateway.cmd_explore import CmdExplore
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-PATCH_DELAY = "commands.room_specific_cmds.gateway.cmd_travel.delay"
+PATCH_DELAY = "utils.busy.delay"
 
 
 def _instant_delay(seconds, callback, *args, **kwargs):
@@ -131,6 +131,7 @@ class TestCmdExplore(EvenniaCommandTest):
         route_map.route_key = f"{self.room1.key}:hidden_cove"
         route_map.db_location = self.char1
         route_map.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()  # the direct write bypasses the cache
 
         self.call(CmdExplore(), "", "There's nothing new to discover")
 

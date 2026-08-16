@@ -26,6 +26,61 @@ put secret game- or server-specific settings in secret_settings.py.
 
 import json
 import os
+import sys
+
+# ── macOS only: use a bundled, non-Apple SQLite build ────────────────
+#
+# macOS ships /usr/lib/libsqlite3.dylib, which runs sqlite3_initialize()
+# through libdispatch. libdispatch cannot survive fork(), and twistd
+# daemonizes with a double fork and never exec()s — so once any SQLite
+# connection has been opened, every SQLite call in the daemonized child
+# blocks forever on a dispatch queue nothing will service. There is no
+# exception, no timeout and nothing in any log: `evennia start` just
+# prints "Server starting  ..." and never returns.
+#
+# A connection is always open by then: evennia._init() imports
+# evennia/utils/gametime.py, which runs a ServerConfig query at module
+# scope.
+#
+# sqlean.py ships a statically-linked SQLite, so Apple's library is never
+# loaded. This must run before anything imports sqlite3 — once the stdlib
+# module is cached, Django's backend gets Apple's build regardless.
+#
+# Lives here rather than in settings_common_shard_config.py because this
+# file is the one every role loads (monolith directly; router and shards
+# through the cascade), and monolith forks too.
+#
+# Inert off-platform: Railway runs Linux on Postgres, where the marker
+# excludes the package and this block is skipped.
+# See libraries/evennia-shards/docs/deployment-topology.md § macOS.
+if sys.platform == "darwin":
+    try:
+        import sqlean
+        import sqlean.dbapi2
+
+        # sqlean's DBAPI predates Connection.getlimit(), which Django 6
+        # calls when sizing bulk_create batches. Its Connection is an
+        # immutable C type, so the method goes on a subclass installed
+        # via connect(factory=...).
+        class _FCMSQLiteConnection(sqlean.dbapi2.Connection):
+            def getlimit(self, category):
+                return 999  # SQLite's conservative historical default
+
+        _sqlean_connect = sqlean.dbapi2.connect
+
+        def _connect(*args, **kwargs):
+            kwargs.setdefault("factory", _FCMSQLiteConnection)
+            return _sqlean_connect(*args, **kwargs)
+
+        sqlean.dbapi2.connect = _connect
+        sqlean.connect = _connect
+        sqlean.SQLITE_LIMIT_VARIABLE_NUMBER = 9
+        sqlean.dbapi2.SQLITE_LIMIT_VARIABLE_NUMBER = 9
+
+        sys.modules["sqlite3"] = sqlean
+        sys.modules["sqlite3.dbapi2"] = sqlean.dbapi2
+    except ImportError:
+        pass
 
 import dj_database_url
 
@@ -38,6 +93,8 @@ INSTALLED_APPS = INSTALLED_APPS + [
     "ai_memory",
     "subscriptions",
     "django.contrib.sitemaps",
+    "evennia_world_builder",
+    "evennia_mob_spawner",
 ]
 
 WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
@@ -59,7 +116,7 @@ WEBSOCKET_CLIENT_URL = os.environ.get(
 # DATABASE_URL controls the backend:
 #   - Set (Railway/production): PostgreSQL for all 3 databases
 #   - Not set (local dev): SQLite files, zero config
-# See design/DATABASE.md for full architecture documentation.
+# See docs/database.md for full architecture documentation.
 _DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if _DATABASE_URL:
@@ -145,6 +202,9 @@ BASE_ACCOUNT_TYPECLASS = "typeclasses.accounts.accounts.Account"
 # Typeclass for character objects linked to an account (fallback)
 BASE_CHARACTER_TYPECLASS = "typeclasses.actors.character.FCMCharacter"
 
+# overrides the evennia default whcih points to typeclasses.scripts.Script 
+# which has been deleted (and is just a thin wrapper of DefaultScript anyway)
+BASE_SCRIPT_TYPECLASS = "evennia.DefaultScript"
 
 # this means a new account doesn;t auto generate a new character
 AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
@@ -211,7 +271,9 @@ SUBSCRIPTION_BYPASS_SUPERUSER = True
 ######################################################################
 
 # Public-facing website URL — used for in-game ToS links and compliance notices.
-GAME_WEBSITE_URL = "https://fcmud.world"
+# Overridable so a non-production environment points players at its own site
+# rather than sending them to production for the terms they agreed to there.
+GAME_WEBSITE_URL = os.environ.get("GAME_WEBSITE_URL", "https://fcmud.world")
 
 # NFT image base URL — convention: {base_url}{prototype_key}.png
 NFT_IMAGE_BASE_URL = "https://njqdijnpujooixoehbms.supabase.co/storage/v1/object/public/FCMImages/"
@@ -280,6 +342,26 @@ TIME_FACTOR = 24
 # a fixed starting date (e.g. int(datetime(2026, 1, 1).timestamp())).
 TIME_GAME_EPOCH = None
 
+# Derive game time from wall clock rather than from accumulated uptime.
+#
+# Evennia's other mode tracks uptime in a per-process module global that every
+# Server process writes back to a single ServerConfig row every 60 seconds. That
+# is safe with one process and unsafe with several: under sharding the router and
+# each shard overwrite one another every minute, and a process that reloads can
+# read a lower total than it held — moving game time backwards. Seasons running
+# backwards have no narrative cover.
+#
+# Wall-clock mode bypasses that accumulator entirely. Every term is a settings
+# constant, a database constant written once at creation, or the OS clock — so
+# all processes agree with no coordination and nothing to persist per tick.
+#
+# What it costs: game time advances while the server is down.
+#
+# Turning this off is NOT a one-line reversal under sharding — it reintroduces
+# the multi-writer race, and would first require making the accumulator
+# single-writer. See docs/scaling.md § Game time for that design.
+TIME_IGNORE_DOWNTIMES = True
+
 # Survival upkeep cycle (hunger today, thirst + future meters tomorrow)
 SURVIVAL_TICK_INTERVAL = 1200  # IN SECONDS - ONCE EVERY 20 MINUTES = 3 X PER GAME DAY
 HUNGER_TICK_INTERVAL = SURVIVAL_TICK_INTERVAL  # back-compat alias for forage cooldown / older imports
@@ -330,6 +412,37 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [  # type: ignore[index]
     'web.middleware.analytics.google_analytics_context',
 ]
 
+
+# ── Typeclasses ──────────────────────────────────────────────────────
+# Exits built without an explicit typeclass (@dig, @open, @tunnel) get
+# the same base every authored exit uses, so they inherit the height,
+# size and encumbrance gating rather than bypassing the exit chain.
+BASE_EXIT_TYPECLASS = "typeclasses.terrain.exits.exit_vertical_aware.ExitVerticalAware"
+
+
+# ── World builder ────────────────────────────────────────────────────
+# Reads YAML world content from the FullCircleMUD/fcm-world repo.
+# WORLDBUILDER_GITHUB_PAT is the secret — set it in secret_settings.local
+# (or the WORLDBUILDER_GITHUB_PAT env var on Railway). The reader kwargs
+# dict is composed at the bottom of this file, AFTER secret_settings is
+# loaded, so the PAT override propagates.
+WORLDBUILDER_READER = "evennia_yaml_reader.github.GitHubReader"
+WORLDBUILDER_REPO = os.environ.get("WORLDBUILDER_REPO", "FullCircleMUD/fcm-world")
+WORLDBUILDER_REF = os.environ.get("WORLDBUILDER_REF", "main")
+WORLDBUILDER_GITHUB_PAT = os.environ.get("WORLDBUILDER_GITHUB_PAT", "")
+
+# ── Mob spawner ──────────────────────────────────────────────────────
+# Reads YAML mob spawn rules from the FullCircleMUD/fcm-mobs repo.
+# MOB_SPAWNER_GITHUB_PAT is the secret — set it in secret_settings.local
+# (or the MOB_SPAWNER_GITHUB_PAT env var on Railway). The reader kwargs
+# dict is composed at the bottom of this file, AFTER secret_settings is
+# loaded, so the PAT override propagates.
+MOB_SPAWNER_READER = "evennia_yaml_reader.github.GitHubReader"
+MOB_SPAWNER_REPO = os.environ.get("MOB_SPAWNER_REPO", "FullCircleMUD/fcm-mobs")
+MOB_SPAWNER_REF = os.environ.get("MOB_SPAWNER_REF", "main")
+MOB_SPAWNER_GITHUB_PAT = os.environ.get("MOB_SPAWNER_GITHUB_PAT", "")
+
+
 ######################################################################
 # Local development overrides.
 #
@@ -364,3 +477,19 @@ if not os.environ.get("DATABASE_URL"):
                     globals()[_attr] = getattr(_mod, _attr)
         except Exception as _err:  # pragma: no cover
             print(f"secret_settings.local failed to load: {_err}")
+
+# Compose world-builder reader kwargs after secret_settings has loaded
+# so any override of WORLDBUILDER_GITHUB_PAT / REPO / REF takes effect.
+WORLDBUILDER_READER_KWARGS = {
+    "repo": WORLDBUILDER_REPO,
+    "ref": WORLDBUILDER_REF,
+    "pat": WORLDBUILDER_GITHUB_PAT,
+}
+
+# Compose mob-spawner reader kwargs after secret_settings has loaded
+# so any override of MOB_SPAWNER_GITHUB_PAT / REPO / REF takes effect.
+MOB_SPAWNER_READER_KWARGS = {
+    "repo": MOB_SPAWNER_REPO,
+    "ref": MOB_SPAWNER_REF,
+    "pat": MOB_SPAWNER_GITHUB_PAT,
+}

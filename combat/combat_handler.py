@@ -12,6 +12,8 @@ from evennia import TICKER_HANDLER
 from evennia.scripts.scripts import DefaultScript
 from evennia.typeclasses.attributes import AttributeProperty
 
+from utils.targeting.predicates import p_is_character
+
 
 def _broadcast_height_change(actor, old_height, new_height):
     """Broadcast a message when an actor changes height mid-combat."""
@@ -206,8 +208,10 @@ class CombatHandler(DefaultScript):
                     # --- Height reachability check ---
                     from combat.height_utils import can_reach_target
                     if not can_reach_target(self.obj, target, weapon):
-                        is_pc = getattr(self.obj, "is_pc", False)
-                        if not is_pc:
+                        # Mobs reposition to reach; players are left to
+                        # sort out their own height. Asked of the handler's
+                        # owner, so p_is_character takes it as both operands.
+                        if not p_is_character(self.obj, self.obj):
                             # Step 1: Try to match current target's height
                             old_height = self.obj.room_vertical_position
                             matched = (
@@ -251,6 +255,7 @@ class CombatHandler(DefaultScript):
                                 f"|B{self.obj.key} moves sluggishly, "
                                 f"slowed by magic.|n",
                                 exclude=[self.obj],
+                                from_obj=self.obj,
                             )
 
                     # --- Main hand attacks ---
@@ -281,11 +286,23 @@ class CombatHandler(DefaultScript):
                                         hit_modifier=offhand_penalty,
                                     )
                 elif not height_blocked:
-                    # Target gone or dead — auto-retarget next enemy
+                    # Target gone or dead — auto-retarget next enemy.
+                    #
+                    # Candidates must satisfy the same conditions as the
+                    # attack guard above. get_sides() reads the room's
+                    # contents cache, which can list an object whose
+                    # location has since moved elsewhere; retargeting to
+                    # one would fail the guard again on the next tick and
+                    # every tick after, with no way out of the branch.
                     from combat.combat_utils import get_sides
                     _, remaining_enemies = get_sides(self.obj)
-                    if remaining_enemies:
-                        new_target = remaining_enemies[0]
+                    new_target = next(
+                        (enemy for enemy in remaining_enemies
+                         if getattr(enemy, "hp", 0) > 0
+                         and enemy.location == self.obj.location),
+                        None,
+                    )
+                    if new_target:
                         self.obj.msg(
                             f"|yYou turn to attack "
                             f"{new_target.get_display_name(self.obj)}!|n"
@@ -293,7 +310,7 @@ class CombatHandler(DefaultScript):
                         action["target"] = new_target
                         self.obj.ndb.combat_target = new_target
                     else:
-                        # No enemies left — end combat immediately
+                        # No valid enemies left — end combat immediately
                         self.stop_combat()
                         return
 
@@ -449,54 +466,26 @@ class CombatHandler(DefaultScript):
     # ================================================================== #
 
     def _frightened_flee(self):
-        """Attempt to flee through a random exit while frightened."""
-        import random
-        from evennia.objects.objects import DefaultExit
+        """Flee this round because the frightened effect compels it.
 
-        actor = self.obj
-        room = actor.location
-        if not room:
-            return
+        Fear compels the attempt, not the escape — this is the same flee
+        everyone else makes, with the same check and the same cost for
+        failing. That is what makes the effect worth casting either way: the
+        target either leaves the fight, or wastes its turn and hands every
+        enemy a round of advantage.
+        """
+        from combat.combat_utils import FleeWording, flee_from_combat
 
-        # Find open exits
-        exits = [
-            ex for ex in room.exits
-            if isinstance(ex, DefaultExit)
-            and not (hasattr(ex, "is_open") and not ex.is_open)
-        ]
-
-        if not exits:
-            actor.msg("|rYou cower in terror, unable to flee!|n")
-            if room:
-                room.msg_contents(
-                    f"{actor.key} cowers in terror, unable to flee!",
-                    exclude=[actor],
-                    from_obj=actor,
-                )
-            return
-
-        chosen = random.choice(exits)
-        direction = chosen.key
-
-        actor.msg(f"|rBlind with terror, you flee {direction}!|n")
-        if room:
-            room.msg_contents(
-                f"{actor.key} flees {direction} in terror!",
-                exclude=[actor],
-                from_obj=actor,
-            )
-
-        # Stop combat before moving
-        from combat.combat_utils import get_sides
-        _, enemies = get_sides(actor)
-        self.stop_combat()
-        actor.move_to(chosen.destination, move_type="flee")
-
-        # Check if remaining combatants should end combat
-        for enemy in enemies:
-            enemy_handlers = enemy.scripts.get("combat_handler")
-            if enemy_handlers:
-                enemy_handlers[0]._check_stop_combat()
+        flee_from_combat(self.obj, self, FleeWording(
+            to_actor="|rBlind with terror, you flee {direction}!|n",
+            failed_to_actor="|rYou cower in terror, unable to escape!|n",
+            failed_in_room="$You() $conj(cower) in terror, unable to escape!",
+            no_exits="|rYou cower in terror, unable to flee!|n",
+            room_msgs={
+                "msg_from": "{name} flees {direction} in terror!",
+                "msg_to": "{name} arrives {direction}, wild with terror!",
+            },
+        ))
 
     # ================================================================== #
     #  Combat End Detection

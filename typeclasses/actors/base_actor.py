@@ -11,9 +11,20 @@ from enums.skills_enum import skills
 from typeclasses.mixins.effects_manager import EffectsManagerMixin
 from typeclasses.mixins.damage_resistance import DamageResistanceMixin
 from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
+from typeclasses.mixins.unseen_name import UnseenNameMixin
 
 
-class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, DefaultCharacter):
+class BaseActor(
+    UnseenNameMixin,
+    HeightAwareMixin,
+    EffectsManagerMixin,
+    DamageResistanceMixin,
+    DefaultCharacter,
+):
+
+    #: Actors are people until a typeclass or spawn rule says otherwise.
+    #: CombatMob sets "something" — most mobs are animals.
+    unseen_name = AttributeProperty("Someone")
 
     # ── Size — unified across all actors ──
     # Stored as string for Evennia serialization (dbserialize can't handle
@@ -22,6 +33,164 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # size is the active value, rebuilt from base_size by _recalculate_stats().
     base_size = AttributeProperty(Size.MEDIUM.value)
     size = AttributeProperty(Size.MEDIUM.value)
+
+    # ── Movement messages ──
+    # The single seam for inter-room movement text. Everything lives here
+    # rather than in exit hooks because move_to() gates these two methods on
+    # quiet= — a message emitted from at_traverse()/at_post_traverse() is
+    # unconditional and cannot be silenced. See docs/movement-messages.md.
+
+    def _movement_subject(self, party):
+        """The actor, or their party when others are moving with them."""
+        return "{name}'s party" if party else "{name}"
+
+    def _announce_movement(self, room, text, move_type, direction=None, extra=None):
+        """
+        Emit a movement line to a room, with the mover excluded.
+
+        ``text`` is a template, never a finished string. ``{name}`` is bound to
+        the mover as an object, so Evennia resolves it through
+        get_display_name() once per recipient — that is what redacts it to
+        "Someone" for anyone who cannot see. A caller that formats a name in
+        itself has already lost that.
+
+        ``extra`` lets a caller add placeholders of its own. It is merged
+        first, so the seam's own keys always win and ``{name}`` cannot be
+        rebound to something that skips the per-recipient resolution.
+        """
+        mapping = dict(extra or {})
+        mapping.update({"name": self, "direction": direction or ""})
+        room.msg_contents(
+            (text, {"type": move_type}),
+            exclude=(self,),
+            from_obj=self,
+            mapping=mapping,
+        )
+
+    def announce_move_from(
+        self, destination, msg=None, mapping=None, move_type="move", **kwargs
+    ):
+        """
+        Tell the room being left that this actor is going, and which way.
+
+        A caller may supply its own wording as ``msg_from``, and extra
+        placeholders as ``msg_mapping``. Templates get ``{name}`` and
+        ``{direction}`` — here the bare direction travelled, e.g. "north".
+        """
+        from utils.movement_messages import followers_in, resolve_rule
+
+        location = self.location
+        if not location:
+            return
+        if msg:
+            return super().announce_move_from(
+                destination, msg=msg, mapping=mapping, move_type=move_type, **kwargs
+            )
+
+        exit_obj = kwargs.get("exit_obj")
+        direction = getattr(exit_obj, "direction", None)
+        extra = kwargs.get("msg_mapping")
+
+        # A caller that knows something the seam cannot see says so directly.
+        override = kwargs.get("msg_from")
+        if override:
+            self._announce_movement(location, override, move_type, direction, extra)
+            return
+
+        # A group is one event, so the party moves under the leader's verb —
+        # a mixed walking/flying party still reads as a single line.
+        rule = resolve_rule(self, location)
+        subject = self._movement_subject(followers_in(self, location))
+
+        if direction:
+            text = f"{subject} {rule.departure} {{direction}}{rule.end}"
+        else:
+            text = f"{subject} {rule.departure}{rule.end}"
+        self._announce_movement(location, text, move_type, direction, extra)
+
+    def announce_move_to(
+        self, source_location, msg=None, mapping=None, move_type="move", **kwargs
+    ):
+        """
+        Tell the room being entered that this actor has arrived, and from where.
+
+        A caller may supply its own wording as ``msg_to``, and extra
+        placeholders as ``msg_mapping``. Templates get ``{name}`` and
+        ``{direction}`` — here the whole arrival phrase, e.g. "from the south"
+        or "from below", since that is what reads naturally on this side.
+        """
+        from utils.exit_helpers import OPPOSITES
+        from utils.movement_messages import arrival_phrase, followers_in, resolve_rule
+
+        destination = self.location
+
+        # Stealth resolves before anything is said. The roll is against the
+        # occupants of the room being entered, so it is a question about
+        # crossing the threshold, and everything downstream reads the
+        # answer: a revealed actor passes the visibility filter on the
+        # arrival message, and at_object_receive — which Evennia calls
+        # after this — announces them to the mobs. Resolve it afterwards
+        # and a failed roll leaves someone standing in plain sight that
+        # nothing in the room was ever told about.
+        #
+        # This seam is skipped on a quiet move, which is how followers
+        # travel — that case is checked in FCMCharacter.at_post_move,
+        # guarded on move_type == "follow". One roll per move either way.
+        if source_location and destination and hasattr(
+            self, "_check_hidden_on_entry"
+        ) and self.has_condition(Condition.HIDDEN):
+            self._check_hidden_on_entry()
+
+        if msg or not source_location or not destination:
+            # No source means this wasn't a move through the world (creation,
+            # or straight into an inventory) — vanilla handles those.
+            return super().announce_move_to(
+                source_location,
+                msg=msg,
+                mapping=mapping,
+                move_type=move_type,
+                **kwargs,
+            )
+
+        # The exit leading back the way they came names the direction they
+        # arrived from. Two rooms can be joined more than once — a staircase
+        # and a passage, say — so prefer the way back that pairs with the exit
+        # actually used, or arriving by the stairs reports the corridor.
+        # Failing that take any way back (links need not be symmetrical), and
+        # failing that invert the exit traversed, which is all a one-way exit
+        # leaves us.
+        travelled = getattr(kwargs.get("exit_obj"), "direction", None)
+        opposite = OPPOSITES.get(travelled) if travelled else None
+
+        ways_back = [
+            obj
+            for obj in destination.contents
+            if obj.location is destination and obj.destination is source_location
+        ]
+        paired = next(
+            (obj for obj in ways_back if getattr(obj, "direction", None) == opposite),
+            None,
+        )
+        reciprocal = paired or (ways_back[0] if ways_back else None)
+        direction = getattr(reciprocal, "direction", None) or opposite
+
+        phrase = arrival_phrase(direction) if direction else ""
+        extra = kwargs.get("msg_mapping")
+
+        override = kwargs.get("msg_to")
+        if override:
+            self._announce_movement(destination, override, move_type, phrase, extra)
+            return
+
+        # Followers have not cascaded yet — they are still in the source room.
+        rule = resolve_rule(self, destination)
+        subject = self._movement_subject(followers_in(self, source_location))
+
+        if phrase:
+            text = f"{subject} {rule.arrival} {{direction}}{rule.end}"
+        else:
+            text = f"{subject} {rule.arrival}{rule.end}"
+        self._announce_movement(destination, text, move_type, phrase, extra)
 
     def at_object_creation(self):
         super().at_object_creation()
@@ -100,17 +269,17 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
     # Core Stats
     #########################################################
 
-    hp = AttributeProperty(1)           # Current hit points
-    base_hp_max = AttributeProperty(2)  # Natural max HP (race + class levels, no equipment/spells)
-    hp_max = AttributeProperty(2)       # Effective max HP (base + equipment/spell bonuses)
+    hp = AttributeProperty(5)           # Current hit points
+    base_hp_max = AttributeProperty(5)  # Natural max HP (race + class levels, no equipment/spells)
+    hp_max = AttributeProperty(5)       # Effective max HP (base + equipment/spell bonuses)
 
-    mana = AttributeProperty(0)
-    base_mana_max = AttributeProperty(1)  # Natural max mana (race + class levels)
-    mana_max = AttributeProperty(1)
+    mana = AttributeProperty(5)
+    base_mana_max = AttributeProperty(5)  # Natural max mana (race + class levels)
+    mana_max = AttributeProperty(5)
 
-    move = AttributeProperty(2)
-    base_move_max = AttributeProperty(3)  # Natural max move (race + class levels)
-    move_max = AttributeProperty(3)
+    move = AttributeProperty(80)
+    base_move_max = AttributeProperty(80)  # Natural max move (race + class levels)
+    move_max = AttributeProperty(80)
 
     # what the actors base AC is
     # WITHOUT DEXTERITY or other modifiers armour, spells, or anything else
@@ -223,6 +392,17 @@ class BaseActor(HeightAwareMixin, EffectsManagerMixin, DamageResistanceMixin, De
         if target:
             return target.key
         return "someone"
+
+    def get_display_things(self, looker, **kwargs):
+        """Hide inventory from non-Builder lookers (staff/admin only).
+
+        Sits on BaseActor so it covers every actor — players, mobs, NPCs
+        and pets alike. Evennia's default renders the whole of contents,
+        which for an actor means worn equipment and carried loot both.
+        """
+        if looker and looker.locks.check_lockstring(looker, "perm(Builder)"):
+            return super().get_display_things(looker, **kwargs)
+        return ""
 
     # ================================================================== #
     #  Level — subclasses override get_level() for their progression

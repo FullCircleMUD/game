@@ -26,6 +26,9 @@ class TestCmdWhisper(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        # A bare test room is dark, which would mask every speaker as
+        # "Someone" and make the concealment tests prove nothing.
+        self.room1.always_lit = True
         self.char1.db.languages = {"common"}
         self.char2.db.languages = {"common"}
 
@@ -146,3 +149,75 @@ class TestCmdWhisper(EvenniaCommandTest):
         """Invalid language switch should show error."""
         result = self.call(CmdWhisper(), "Char2 = hello", cmdstring="whisper/xx")
         self.assertIn("Unknown language switch", result)
+
+
+class TestCmdWhisperSpeakerNaming(EvenniaCommandTest):
+    """A whisper in your ear arrives; who gave it does not always."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        self.char1.db.languages = {"common"}
+        self.char2.db.languages = {"common"}
+
+    def _darken(self):
+        self.room1.always_lit = False
+        self.room1.natural_light = False
+
+    def _heard(self):
+        received = []
+        original = self.char2.msg
+        self.char2.msg = lambda text="", **kw: received.append(str(text))
+        self.call(CmdWhisper(), "Char2 = psst")
+        self.char2.msg = original
+        return " ".join(received)
+
+    def test_a_visible_whisperer_is_named(self):
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_a_whisperer_in_the_dark_is_anonymous(self):
+        self._darken()
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_a_blind_receiver_cannot_name_the_whisperer(self):
+        self.char2.add_condition(Condition.BLINDED)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_an_invisible_whisperer_is_anonymous(self):
+        self.char1.add_condition(Condition.INVISIBLE)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_detect_invis_names_an_invisible_whisperer(self):
+        self.char1.add_condition(Condition.INVISIBLE)
+        self.char2.add_condition(Condition.DETECT_INVIS)
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_a_hidden_whisperer_is_anonymous(self):
+        """Only INVISIBLE was checked before, so hiding named you in full."""
+        self.char1.add_condition(Condition.HIDDEN)
+        heard = self._heard()
+        self.assertIn("Someone", heard)
+        self.assertNotIn(self.char1.key, heard)
+
+    def test_true_sight_names_a_hidden_whisperer(self):
+        self.char1.add_condition(Condition.HIDDEN)
+        self.char2.apply_named_effect("true_sight")
+        self.assertIn(self.char1.key, self._heard())
+
+    def test_the_whisper_still_arrives_unnamed(self):
+        """The mask is on the name, not on the message."""
+        self._darken()
+        self.assertIn("psst", self._heard())

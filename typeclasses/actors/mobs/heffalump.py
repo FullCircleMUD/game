@@ -43,10 +43,6 @@ class Heffalump(AggressiveMob):
     aggro_hp_threshold = AttributeProperty(0.2)
     max_per_room = AttributeProperty(1)
 
-    # ── Loot ──
-    loot_gold_max = AttributeProperty(15)
-    spawn_scrolls_max = AttributeProperty({"skilled": 1})
-
     # ── AI timing — short tick = fast aggro ──
     ai_tick_interval = AttributeProperty(3)
 

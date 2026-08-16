@@ -3,17 +3,17 @@ CmdRecall — return to the library from a book zone.
 
 Teleports the player back to the room they were in when they read a
 library book. Clears the saved return location after use. Flavour
-text is paced over a couple of seconds, with movement locked while
-the recall is in progress.
+text is paced over a couple of seconds on the busy lock, so movement
+and every other action are refused while the recall is in progress.
 
 Usage:
     recall
 """
 
 from evennia import Command
-from evennia.utils import delay
 
 from commands.command import FCMCommandMixin
+from utils.busy import check_busy, start_busy_ticks
 
 
 PARAGRAPH_PAUSE = 1.0
@@ -44,8 +44,7 @@ class CmdRecall(FCMCommandMixin, Command):
     def func(self):
         caller = self.caller
 
-        if caller.ndb.book_transport:
-            caller.msg("You are already recalling.")
+        if check_busy(caller):
             return
 
         return_location = caller.db.book_return_location
@@ -53,28 +52,23 @@ class CmdRecall(FCMCommandMixin, Command):
             caller.msg("You have nowhere to recall to.")
             return
 
-        caller.ndb.book_transport = True
+        def _paragraph(step, total):
+            # A blank line opens the passage, then one line per tick.
+            return (f"\n{RECALL_PARAGRAPHS[step]}\n" if step == 0
+                    else f"{RECALL_PARAGRAPHS[step]}\n")
 
-        caller.msg(f"\n{RECALL_PARAGRAPHS[0]}\n")
-        for i, paragraph in enumerate(RECALL_PARAGRAPHS[1:], start=1):
-            delay(PARAGRAPH_PAUSE * i, self._show_paragraph, caller, paragraph)
-
-        delay(
-            PARAGRAPH_PAUSE * len(RECALL_PARAGRAPHS),
-            self._transport,
+        start_busy_ticks(
             caller,
-            return_location,
+            len(RECALL_PARAGRAPHS),
+            PARAGRAPH_PAUSE,
+            lambda: self._transport(caller, return_location),
+            progress=_paragraph,
+            busy_msg="You are already recalling.",
+            busy_move_msg="The world is fading around you — you can't move.",
         )
 
     @staticmethod
-    def _show_paragraph(caller, paragraph):
-        if not caller.ndb.book_transport:
-            return
-        caller.msg(f"{paragraph}\n")
-
-    @staticmethod
     def _transport(caller, destination):
-        caller.ndb.book_transport = False
         if not caller.location:
             return
         followers = caller.get_followers(same_room=True)

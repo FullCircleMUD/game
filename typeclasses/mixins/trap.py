@@ -280,16 +280,36 @@ class TrapMixin:
         return getattr(self, "location", None)
 
     def _trigger_alarm(self, victim, room):
-        """Alert CombatMobs in the room about the trap trigger."""
+        """Alert mobs in the room that someone tripped the alarm.
+
+        An alarm gives away a hiding victim's position — sneaking past
+        one is what it exists to prevent — so HIDDEN is stripped before
+        anyone is told, through the same path a failed stealth roll on
+        room entry uses. Invisibility is untouched: the noise says
+        someone is here, it does not make them visible, and a mob is
+        never handed a target it cannot perceive.
+
+        The alarm itself sounds either way. Everyone knows someone is
+        coming; only the mobs that can perceive the victim get to act
+        on who.
+        """
+        from enums.condition import Condition
+        from utils.targeting.predicates import p_can_perceive
+
+        if victim.has_condition(Condition.HIDDEN):
+            victim.remove_condition(Condition.HIDDEN)
+            victim.msg("|rThe alarm gives you away!|n")
+
         for obj in room.contents:
-            if obj == victim:
+            if obj is victim or not hasattr(obj, "at_new_arrival"):
                 continue
-            if hasattr(obj, "at_new_arrival"):
-                obj.at_new_arrival(victim)
-        if room:
-            room.msg_contents(
-                f"|yAn alarm sounds from {self.trap_description}!|n"
-            )
+            if not p_can_perceive(victim, obj):
+                continue
+            obj.at_new_arrival(victim)
+
+        room.msg_contents(
+            f"|yAn alarm sounds from {self.trap_description}!|n"
+        )
 
     def _start_trap_reset_timer(self):
         """Start a TrapResetScript if trap_reset_seconds > 0."""

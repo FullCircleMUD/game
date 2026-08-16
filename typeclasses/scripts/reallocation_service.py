@@ -6,17 +6,23 @@ RESERVE, making consumed assets available for re-spawning.
 """
 
 from evennia import DefaultScript
+from evennia.utils import logger
+
+from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
 
 # How often (real seconds) the reallocation runs.
 TICK_INTERVAL_SECONDS = 86400  # 24 hours
 
 
-class ReallocationServiceScript(DefaultScript):
+class ReallocationServiceScript(HeartbeatMixin, DefaultScript):
     """
     Global persistent script that periodically drains SINK → RESERVE.
 
-    Created once via at_server_startstop._ensure_global_scripts().
+    Global script registration lives in server/conf/at_server_startstop.py.
+    One ScriptDB row is shared cluster-wide, but each Server process
+    attaches its own ticker — under a sharded deployment the script runs
+    once per process, not once overall.
     """
 
     def at_script_creation(self):
@@ -29,6 +35,11 @@ class ReallocationServiceScript(DefaultScript):
 
     def at_repeat(self):
         """Drain SINK → RESERVE."""
-        from blockchain.xrpl.services.reallocation import reallocate_sinks
+        try:
+            from blockchain.xrpl.services.reallocation import reallocate_sinks
 
-        reallocate_sinks()
+            reallocate_sinks()
+
+            self.record_heartbeat()
+        except Exception:
+            logger.log_trace("reallocation_service: tick failed")

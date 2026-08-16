@@ -46,8 +46,6 @@ class BaseNPC(BaseActor):
     individual NPCs that need it (e.g. pickpocketable NPCs).
     """
 
-    is_pc = False  # Evennia convention — marks as non-player
-
     # ── Identity ──
     level = AttributeProperty(1)            # NPC level (preset, not earned)
     is_immortal = AttributeProperty(True)   # Service NPCs can't be killed

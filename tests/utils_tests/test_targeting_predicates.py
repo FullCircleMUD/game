@@ -12,19 +12,28 @@ from enums.size import Size
 from evennia.objects.objects import DefaultCharacter, DefaultExit
 from evennia.utils.test_resources import EvenniaTest
 
+from enums.condition import Condition
+
 from utils.targeting.predicates import (
+    p_actor_visible_to,
+    p_can_perceive,
     p_can_see,
     p_different_height,
+    p_excluding,
     p_height_visible_to,
     p_in_combat,
     p_involved_with,
     p_is_character,
+    p_is_typeclass,
+    p_larger_than,
     p_living,
     p_not_actor,
     p_not_exit,
+    p_not_typeclass,
+    p_object_visible_to,
     p_passes_lock,
     p_same_height,
-    p_visible_to,
+    p_smaller_than,
 )
 
 
@@ -91,19 +100,19 @@ class TestPredicates(EvenniaTest):
         exit_obj = MagicMock(spec=DefaultExit)
         self.assertFalse(p_not_exit(exit_obj, caller=None))
 
-    # ── p_visible_to ──────────────────────────────────────────────
+    # ── p_object_visible_to ──────────────────────────────────────────────
 
-    def test_p_visible_to_true_when_no_mixin(self):
+    def test_p_object_visible_to_true_when_no_mixin(self):
         obj = SimpleNamespace()
-        self.assertTrue(p_visible_to(obj, caller=None))
+        self.assertTrue(p_object_visible_to(obj, caller=None))
 
-    def test_p_visible_to_true_when_mixin_returns_true(self):
+    def test_p_object_visible_to_true_when_mixin_returns_true(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: True)
-        self.assertTrue(p_visible_to(obj, caller=None))
+        self.assertTrue(p_object_visible_to(obj, caller=None))
 
-    def test_p_visible_to_false_when_mixin_returns_false(self):
+    def test_p_object_visible_to_false_when_mixin_returns_false(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
-        self.assertFalse(p_visible_to(obj, caller=None))
+        self.assertFalse(p_object_visible_to(obj, caller=None))
 
     # ── p_living ──────────────────────────────────────────────────
 
@@ -289,17 +298,131 @@ class TestPredicates(EvenniaTest):
         looker = SimpleNamespace(room_vertical_position=0)
         self.assertTrue(p_height_visible_to(obj, looker))
 
-    # ── p_can_see (composite) ────────────────────────────────────
+    # ── p_object_visible_to: both object mixins ─────────────────────────
 
-    def test_p_can_see_true_when_both_pass(self):
+    def test_p_object_visible_to_false_when_invisible_object(self):
+        """An invisible object is filtered out for a caller who can't see it."""
+        obj = SimpleNamespace(is_invis_visible_to=lambda caller: False)
+        self.assertFalse(p_object_visible_to(obj, caller=None))
+
+    def test_p_object_visible_to_true_when_invisible_object_perceived(self):
+        obj = SimpleNamespace(is_invis_visible_to=lambda caller: True)
+        self.assertTrue(p_object_visible_to(obj, caller=None))
+
+    def test_p_object_visible_to_requires_both_object_mixins(self):
+        """Fixtures and doors carry both mixins — each must pass."""
+        both_ok = SimpleNamespace(
+            is_hidden_visible_to=lambda caller: True,
+            is_invis_visible_to=lambda caller: True,
+        )
+        hidden_fails = SimpleNamespace(
+            is_hidden_visible_to=lambda caller: False,
+            is_invis_visible_to=lambda caller: True,
+        )
+        invis_fails = SimpleNamespace(
+            is_hidden_visible_to=lambda caller: True,
+            is_invis_visible_to=lambda caller: False,
+        )
+        self.assertTrue(p_object_visible_to(both_ok, caller=None))
+        self.assertFalse(p_object_visible_to(hidden_fails, caller=None))
+        self.assertFalse(p_object_visible_to(invis_fails, caller=None))
+
+    def test_p_object_visible_to_raising_mixin_does_not_hide_object(self):
+        """A mixin that raises is skipped, not treated as a refusal."""
+        def _boom(caller):
+            raise RuntimeError("broken mixin")
+
+        self.assertTrue(p_object_visible_to(SimpleNamespace(is_hidden_visible_to=_boom), None))
+
+    def test_p_object_visible_to_raising_mixin_does_not_mask_the_other(self):
+        """One gate erroring must not let a failing second gate through."""
+        def _boom(caller):
+            raise RuntimeError("broken mixin")
+
+        obj = SimpleNamespace(
+            is_hidden_visible_to=_boom,
+            is_invis_visible_to=lambda caller: False,
+        )
+        self.assertFalse(p_object_visible_to(obj, None))
+
+    # ── p_actor_visible_to ───────────────────────────────────
+    #
+    # Two independent concealment gates, each with its own counter:
+    #   HIDDEN    (physical) is pierced ONLY by the true_sight effect
+    #   INVISIBLE (magical)  is pierced ONLY by the DETECT_INVIS condition
+    #
+    # True Sight's own mechanics text is explicit that it "does NOT ...
+    # see invisible entities", so an actor under both conditions requires
+    # the observer to hold both counters. The gates compose; neither
+    # short-circuits the other.
+
+    @staticmethod
+    def _concealed(*conditions):
+        """A fake actor reporting the given conditions."""
+        return SimpleNamespace(has_condition=lambda c: c in conditions)
+
+    @staticmethod
+    def _observer(true_sight=False, detect_invis=False):
+        """A fake observer with the given piercing capabilities."""
+        return SimpleNamespace(
+            has_effect=lambda key: true_sight and key == "true_sight",
+            has_condition=lambda c: detect_invis and c == Condition.DETECT_INVIS,
+        )
+
+    def test_p_actor_visible_to_true_without_has_condition(self):
+        """Items and fixtures have no conditions — they pass through."""
+        self.assertTrue(p_actor_visible_to(SimpleNamespace(), self._observer()))
+
+    def test_p_actor_visible_to_true_when_unconcealed(self):
+        self.assertTrue(p_actor_visible_to(self._concealed(), self._observer()))
+
+    def test_p_actor_visible_to_hidden_needs_true_sight(self):
+        obj = self._concealed(Condition.HIDDEN)
+        self.assertFalse(p_actor_visible_to(obj, self._observer()))
+        self.assertTrue(p_actor_visible_to(obj, self._observer(true_sight=True)))
+
+    def test_p_actor_visible_to_hidden_not_pierced_by_detect_invis(self):
+        """DETECT_INVIS is the wrong counter for physical concealment."""
+        obj = self._concealed(Condition.HIDDEN)
+        self.assertFalse(p_actor_visible_to(obj, self._observer(detect_invis=True)))
+
+    def test_p_actor_visible_to_invisible_needs_detect_invis(self):
+        obj = self._concealed(Condition.INVISIBLE)
+        self.assertFalse(p_actor_visible_to(obj, self._observer()))
+        self.assertTrue(p_actor_visible_to(obj, self._observer(detect_invis=True)))
+
+    def test_p_actor_visible_to_invisible_not_pierced_by_true_sight(self):
+        """True Sight explicitly does not see invisible entities."""
+        obj = self._concealed(Condition.INVISIBLE)
+        self.assertFalse(p_actor_visible_to(obj, self._observer(true_sight=True)))
+
+    def test_p_actor_visible_to_both_needs_both_counters(self):
+        """An actor hidden AND invisible requires both counters to be seen.
+
+        Each gate must be pierced by its own counter — holding one does
+        not excuse the other.
+        """
+        obj = self._concealed(Condition.HIDDEN, Condition.INVISIBLE)
+        self.assertFalse(p_actor_visible_to(obj, self._observer()))
+        self.assertFalse(p_actor_visible_to(obj, self._observer(true_sight=True)))
+        self.assertFalse(p_actor_visible_to(obj, self._observer(detect_invis=True)))
+        self.assertTrue(
+            p_actor_visible_to(
+                obj, self._observer(true_sight=True, detect_invis=True)
+            )
+        )
+
+    # ── p_can_perceive (composite) ────────────────────────────────────
+
+    def test_p_can_perceive_true_when_both_pass(self):
         obj = SimpleNamespace()  # no hidden mixin, no height mixin
-        self.assertTrue(p_can_see(obj, caller=None))
+        self.assertTrue(p_can_perceive(obj, caller=None))
 
-    def test_p_can_see_false_when_hidden(self):
+    def test_p_can_perceive_false_when_hidden(self):
         obj = SimpleNamespace(is_hidden_visible_to=lambda caller: False)
-        self.assertFalse(p_can_see(obj, caller=None))
+        self.assertFalse(p_can_perceive(obj, caller=None))
 
-    def test_p_can_see_false_when_height_gated(self):
+    def test_p_can_perceive_false_when_height_gated(self):
         room = SimpleNamespace(visibility_up_barrier=(1, "small"))
         obj = SimpleNamespace(
             room_vertical_position=1, size="tiny", location=room,
@@ -307,7 +430,7 @@ class TestPredicates(EvenniaTest):
         from typeclasses.mixins.height_aware_mixin import HeightAwareMixin
         obj.is_height_visible_to = HeightAwareMixin.is_height_visible_to.__get__(obj)
         looker = SimpleNamespace(room_vertical_position=0)
-        self.assertFalse(p_can_see(obj, looker))
+        self.assertFalse(p_can_perceive(obj, looker))
 
     # ── p_involved_with ──────────────────────────────────────────
 
@@ -381,3 +504,157 @@ class TestPredicates(EvenniaTest):
         # No get_group_leader, so caster_leader defaults to caster itself.
         pred = p_involved_with(caster)
         self.assertTrue(pred(caster, caster))
+
+    # ── p_is_typeclass ────────────────────────────────────────────
+
+    def test_p_is_typeclass_matches_the_named_class(self):
+        char = MagicMock(spec=DefaultCharacter)
+        self.assertTrue(p_is_typeclass(DefaultCharacter)(char, caller=None))
+
+    def test_p_is_typeclass_rejects_a_different_class(self):
+        exit_obj = MagicMock(spec=DefaultExit)
+        self.assertFalse(p_is_typeclass(DefaultCharacter)(exit_obj, caller=None))
+
+    def test_p_is_typeclass_accepts_several_classes(self):
+        pred = p_is_typeclass(DefaultCharacter, DefaultExit)
+        self.assertTrue(pred(MagicMock(spec=DefaultCharacter), caller=None))
+        self.assertTrue(pred(MagicMock(spec=DefaultExit), caller=None))
+        self.assertFalse(pred(SimpleNamespace(), caller=None))
+
+    def test_p_is_typeclass_matches_subclasses(self):
+        """isinstance semantics — a subclass of the named class passes."""
+        self.assertTrue(p_is_typeclass(DefaultCharacter)(self.char1, caller=None))
+
+    def test_p_is_typeclass_with_no_classes_matches_nothing(self):
+        self.assertFalse(p_is_typeclass()(SimpleNamespace(), caller=None))
+
+    # ── p_not_typeclass ───────────────────────────────────────────
+
+    def test_p_not_typeclass_rejects_the_named_class(self):
+        char = MagicMock(spec=DefaultCharacter)
+        self.assertFalse(p_not_typeclass(DefaultCharacter)(char, caller=None))
+
+    def test_p_not_typeclass_admits_a_different_class(self):
+        exit_obj = MagicMock(spec=DefaultExit)
+        self.assertTrue(p_not_typeclass(DefaultCharacter)(exit_obj, caller=None))
+
+    def test_p_not_typeclass_rejects_subclasses(self):
+        self.assertFalse(p_not_typeclass(DefaultCharacter)(self.char1, caller=None))
+
+    def test_p_not_typeclass_with_no_classes_admits_everything(self):
+        self.assertTrue(p_not_typeclass()(SimpleNamespace(), caller=None))
+
+    def test_the_pair_is_exactly_inverse(self):
+        """Whatever one admits, the other rejects."""
+        subjects = [
+            MagicMock(spec=DefaultCharacter),
+            MagicMock(spec=DefaultExit),
+            SimpleNamespace(),
+            self.char1,
+        ]
+        positive = p_is_typeclass(DefaultCharacter)
+        negative = p_not_typeclass(DefaultCharacter)
+        for subject in subjects:
+            self.assertNotEqual(
+                positive(subject, caller=None), negative(subject, caller=None)
+            )
+
+    # ── p_larger_than / p_smaller_than ────────────────────────────
+
+    def test_p_larger_than_matches_a_bigger_object(self):
+        rabbit = SimpleNamespace(size=Size.TINY)
+        wolf = SimpleNamespace(size=Size.MEDIUM)
+        self.assertTrue(p_larger_than(rabbit)(wolf, caller=None))
+
+    def test_p_larger_than_rejects_a_smaller_object(self):
+        wolf = SimpleNamespace(size=Size.MEDIUM)
+        rabbit = SimpleNamespace(size=Size.TINY)
+        self.assertFalse(p_larger_than(wolf)(rabbit, caller=None))
+
+    def test_p_larger_than_is_strict_about_equals(self):
+        a = SimpleNamespace(size=Size.MEDIUM)
+        b = SimpleNamespace(size=Size.MEDIUM)
+        self.assertFalse(p_larger_than(a)(b, caller=None))
+
+    def test_p_smaller_than_matches_a_smaller_object(self):
+        wolf = SimpleNamespace(size=Size.MEDIUM)
+        rabbit = SimpleNamespace(size=Size.TINY)
+        self.assertTrue(p_smaller_than(wolf)(rabbit, caller=None))
+
+    def test_p_smaller_than_is_strict_about_equals(self):
+        a = SimpleNamespace(size=Size.MEDIUM)
+        b = SimpleNamespace(size=Size.MEDIUM)
+        self.assertFalse(p_smaller_than(a)(b, caller=None))
+
+    def test_equal_sizes_pass_neither(self):
+        """The wolf's rule: bigger = flee, smaller = hunt, equal = ignore."""
+        a = SimpleNamespace(size=Size.LARGE)
+        b = SimpleNamespace(size=Size.LARGE)
+        self.assertFalse(p_larger_than(a)(b, caller=None))
+        self.assertFalse(p_smaller_than(a)(b, caller=None))
+
+    def test_size_predicates_accept_raw_strings(self):
+        """size_value takes enum members or raw strings."""
+        rabbit = SimpleNamespace(size="tiny")
+        ogre = SimpleNamespace(size="huge")
+        self.assertTrue(p_larger_than(rabbit)(ogre, caller=None))
+        self.assertTrue(p_smaller_than(ogre)(rabbit, caller=None))
+
+    def test_a_sizeless_object_counts_as_medium(self):
+        rabbit = SimpleNamespace(size=Size.TINY)
+        unsized = SimpleNamespace()
+        self.assertTrue(p_larger_than(rabbit)(unsized, caller=None))
+
+    def test_an_unrecognised_size_fails_the_comparison(self):
+        """Rather than guessing — neither predicate claims a result."""
+        rabbit = SimpleNamespace(size=Size.TINY)
+        nonsense = SimpleNamespace(size="enormous")
+        self.assertFalse(p_larger_than(rabbit)(nonsense, caller=None))
+        self.assertFalse(p_smaller_than(rabbit)(nonsense, caller=None))
+
+    def test_the_pair_composes_to_carve_out_an_exception(self):
+        """The rabbit's rule: any actor, but not one of my own kind."""
+        stack = (
+            p_is_typeclass(DefaultCharacter),
+            p_not_typeclass(DefaultExit),
+        )
+
+        def passes(obj):
+            return all(p(obj, None) for p in stack)
+
+        self.assertTrue(passes(MagicMock(spec=DefaultCharacter)))
+        self.assertFalse(passes(MagicMock(spec=DefaultExit)))
+        self.assertFalse(passes(SimpleNamespace()))
+
+    # ── p_excluding ───────────────────────────────────────────────
+
+    def test_p_excluding_rejects_the_named_object(self):
+        victim = SimpleNamespace()
+        self.assertFalse(p_excluding(victim)(victim, caller=None))
+
+    def test_p_excluding_admits_everything_else(self):
+        victim = SimpleNamespace()
+        other = SimpleNamespace()
+        self.assertTrue(p_excluding(victim)(other, caller=None))
+
+    def test_p_excluding_accepts_several_objects(self):
+        a, b, c = SimpleNamespace(), SimpleNamespace(), SimpleNamespace()
+        pred = p_excluding(a, b)
+        self.assertFalse(pred(a, caller=None))
+        self.assertFalse(pred(b, caller=None))
+        self.assertTrue(pred(c, caller=None))
+
+    def test_p_excluding_is_identity_not_equality(self):
+        """A typeclass defining __eq__ must not smuggle an object past."""
+
+        class AlwaysEqual:
+            def __eq__(self, other):
+                return True
+
+        excluded = AlwaysEqual()
+        impostor = AlwaysEqual()
+        self.assertFalse(p_excluding(excluded)(excluded, caller=None))
+        self.assertTrue(p_excluding(excluded)(impostor, caller=None))
+
+    def test_p_excluding_with_nothing_admits_everything(self):
+        self.assertTrue(p_excluding()(SimpleNamespace(), caller=None))

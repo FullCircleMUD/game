@@ -36,9 +36,14 @@ from typeclasses.mixins.combat_mixin import CombatMixin
 from typeclasses.mixins.followable import FollowableMixin
 from typeclasses.mixins.fungible_inventory import FungibleInventoryMixin
 from typeclasses.mixins.llm_mixin import LLMMixin
+from typeclasses.mixins.loot_mob_mixin import LootMobMixin
 
 
-class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, BaseNPC):
+class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, FollowableMixin, LootMobMixin, BaseNPC):
+
+    #: Most mobs are animals — a wolf in the dark is "something", not
+    #: "Someone". Humanoid mobs set this back, in code or from a spawn rule.
+    unseen_name = AttributeProperty("something")
     """
     Base class for killable mobs with AI behavior.
 
@@ -68,6 +73,44 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
 
     # ── AI ──
     ai_tick_interval = AttributeProperty(10)
+
+    #: Whether this mob is alive. **Not redundant with ``hp``** — it
+    #: serves two purposes, and the first cannot be derived from hp at
+    #: all. Keep it.
+    #:
+    #: **1. The death latch.** It records that death has been
+    #: *processed*. ``die()`` zeroes hp itself, so afterwards hp cannot
+    #: distinguish "the death pipeline has already run" from "hp just
+    #: reached zero". Both ``die()`` implementations open by testing
+    #: this and returning early — see ``BaseMob.die`` below and
+    #: ``BasePet.die`` — which is what stops a mob corpsing twice and a
+    #: pet notifying its owner twice. ``BaseActor.take_damage`` folds it
+    #: into its ``already_dead`` guard alongside ``_dying``, the
+    #: character-side equivalent: mobs and pets latch on this flag,
+    #: characters latch on ``FCMCharacter._dying``, and the ``getattr``
+    #: defaults there let one guard serve both. ``Corren`` writes True
+    #: back when it refuses a death outright.
+    #:
+    #: **2. The mob liveness predicate.** Around two dozen sites read it
+    #: to decide whether a mob should act: the AI hooks in this class,
+    #: ``aggressive_mixin`` (which lists it as a required attribute of
+    #: its host in that module's header), ``pack_courage_mixin``,
+    #: ``rampage_mixin``, ``mob_followable_mixin``, the mob subclasses,
+    #: and ``at_server_startstop`` when deciding which mobs to restart.
+    #: Several ask it of *another* object — a wolf about a rabbit, an
+    #: urchin about a watchman — so this is a settled second role, not
+    #: drift to be tidied away.
+    #:
+    #: **Declared on mobs only.** A character has no ``is_alive``;
+    #: liveness for a PC is ``hp > 0``. Readers that may be handed
+    #: either kind of actor therefore need a ``getattr`` default, and
+    #: the default they choose decides what happens to characters. The
+    #: counter-attack trigger in ``combat_utils`` defaults it **False**
+    #: deliberately: ``initiate_attack`` engages by running the
+    #: ``attack`` command as the actor, so a mob answering a blow is the
+    #: AI acting, while a character answering one would be the server
+    #: typing for the player. Failing that test is how a PC is put into
+    #: combat on ``hold`` and left to choose. Do not "fix" it to True.
     is_alive = AttributeProperty(True)
 
     # ── Simple Combat ──
@@ -117,27 +160,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     # from wandering into a room that already has one of them.
     max_per_room = AttributeProperty(0)
 
-    # ── Loot resources ──
-    # Dict of {resource_id (int): max_amount (int)} defining which resources
-    # this mob can carry as loot. The spawn system fills mobs up to these
-    # caps over time. On death, all resources transfer to the corpse.
-    # Override in subclasses (e.g. Wolf: {8: 1} for 1 hide).
-    loot_resources = AttributeProperty({})
-
-    # ── Gold loot ──
-    # Max gold this mob can carry as loot. 0 = no gold.
-    # Override in intelligent mob subclasses (kobolds, gnolls, etc.).
-    # Animals (wolves, rabbits) should not carry gold.
-    loot_gold_max = AttributeProperty(0)
-
-    # ── Knowledge loot ──
-    # Per-tier max dicts for scroll/recipe capacity. Empty = no scrolls/recipes.
-    # Override in intelligent mob subclasses with explicit tier dicts, e.g.:
-    #   spawn_scrolls_max = AttributeProperty({"basic": 1})
-    # At-or-below filtering: a "basic" slot accepts basic-tier scrolls only,
-    # a "skilled" slot accepts basic or skilled, etc.
-    spawn_scrolls_max = AttributeProperty({})
-    spawn_recipes_max = AttributeProperty({})
+    # ── Loot ──
+    # Loot lives in the spawn rule YAML (mob-spawner library), not on the
+    # typeclass. Each rule that wants its mob to drop loot declares the
+    # runtime values directly: spawn_resources_max / spawn_gold_max /
+    # spawn_scrolls_max / spawn_recipes_max as `attrs`, plus the matching
+    # spawn_* tags so the unified-spawn distributor finds the mob.
+    # No typeclass defaults, no derivation at creation time.
 
     # ── XP override ──
     # Optional per-mob XP award. When None, _die uses level * 10 (default
@@ -152,24 +181,6 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         # by BaseNPC.at_object_creation() conditional hasattr checks.
         if self.location:
             self.spawn_room_id = self.location.id
-
-        # Unified spawn system: tag for target pooling, max dict for headroom.
-        if self.loot_resources:
-            self.tags.add("spawn_resources", category="spawn_resources")
-            self.db.spawn_resources_max = dict(self.loot_resources)
-
-        # Gold loot: plain int capacity.
-        if self.loot_gold_max > 0:
-            self.tags.add("spawn_gold", category="spawn_gold")
-            self.db.spawn_gold_max = self.loot_gold_max
-
-        # Knowledge loot: builder-set per-tier max dicts.
-        if self.spawn_scrolls_max:
-            self.tags.add("spawn_scrolls", category="spawn_scrolls")
-            self.db.spawn_scrolls_max = dict(self.spawn_scrolls_max)
-        if self.spawn_recipes_max:
-            self.tags.add("spawn_recipes", category="spawn_recipes")
-            self.db.spawn_recipes_max = dict(self.spawn_recipes_max)
 
     # ================================================================== #
     #  Appearance — HP condition when looked at
@@ -200,34 +211,32 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         condition = self.get_condition_text()
         name = self.get_display_name(looker)
         text = f"{text}\n{name} {condition}"
-        # Show equipped items (only for mobs with wearslots)
-        equip_text = self._get_visible_equipment()
-        if equip_text:
-            text = f"{text}\n{equip_text}"
+        # Kit, for mobs that wear any. The renderer lives on the wearslots
+        # mixin beside the equipment sheet, so both views answer visibility
+        # the same way.
+        if hasattr(self, "worn_summary"):
+            equip_text = self.worn_summary(looker)
+            if equip_text:
+                text = f"{text}\n{equip_text}"
         return text
-
-    def _get_visible_equipment(self):
-        """Return a formatted string of equipped items, or empty string."""
-        if not hasattr(self, "get_all_worn"):
-            return ""
-        worn = self.get_all_worn()
-        items = [item for item in worn.values() if item is not None]
-        if not items:
-            return ""
-        lines = [f"|w{self.key} is equipped with:|n"]
-        for item in items:
-            lines.append(f"  |g{item.key}|n")
-        return "\n".join(lines)
 
     # ================================================================== #
     #  Ticker Management
     # ================================================================== #
 
     def start_ai(self):
-        """Register with TICKER_HANDLER to start the AI loop."""
+        """Register with TICKER_HANDLER to start the AI loop.
+
+        Defaults the AI to ``"wander"`` on first start, but respects a
+        pre-existing ``ai_state`` attribute. This lets spawn rules
+        declare a non-default initial state (e.g. ``ai_state: idle``
+        for stationary NPCs) and lets mobs resume their last-known
+        state across server restarts.
+        """
         if not self.is_alive:
             return
-        self.ai.set_state("wander")
+        if not self.attributes.has("ai_state", category="ai_state"):
+            self.ai.set_state("wander")
         TICKER_HANDLER.add(
             interval=self.ai_tick_interval,
             callback=self.ai_tick,
@@ -303,13 +312,13 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         else:
             exi = self.ai.pick_random_exit()
         if exi:
-            self.move_to(exi.destination, quiet=False)
+            exi.at_traverse(self, exi.destination)
 
     def flee_to_random_room(self):
         """Flee to any adjacent room within the mob's area."""
         exi = self.ai.pick_random_exit()
         if exi:
-            self.move_to(exi.destination, quiet=False)
+            exi.at_traverse(self, exi.destination, move_type="flee")
 
     def retreat_to_spawn(self):
         """Move directly to spawn room (teleport, for retreat behavior)."""
@@ -343,8 +352,10 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     def die(self, cause="unknown", killer=None):
         """
         Handle mob death: stop AI, clean up combat, create corpse,
-        award XP to killer, then delete. The ZoneSpawnScript handles
-        respawning a fresh object after the rule's death_cooldown_seconds.
+        award XP to killer, then delete. The mob-spawner library
+        observes the population change at its next tick and starts
+        any death_cooldown_seconds clock from that observation
+        (decision #5: observation, not callback).
         """
         if not self.is_alive:
             return  # already dead
@@ -394,15 +405,20 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         if room:
             self._create_corpse(room, cause)
 
-        # Notify the ZoneSpawnScript so rules using `death_cooldown_seconds`
-        # can start the clock from kill time rather than spawn time.
-        rule_id = self.db.spawn_rule_id
-        zone_key = self.db.spawn_zone_key
-        if rule_id and zone_key:
-            from evennia import ScriptDB
-            scripts = ScriptDB.objects.filter(db_key=f"zone_spawn_{zone_key}")
-            if scripts.exists():
-                scripts.first().on_mob_death(rule_id)
+        # SUSPECTED DEAD — pending confirmation before deletion.
+        # ZoneSpawnScript callback-based death notification, replaced by
+        # the mob-spawner library's observation-based death detection
+        # (it counts living mobs each tick and infers deaths via delta).
+        # Mobs spawned by the new system never had spawn_rule_id /
+        # spawn_zone_key stamped on them, so this block was already a
+        # silent no-op for them; commenting out now to make that explicit.
+        # rule_id = self.db.spawn_rule_id
+        # zone_key = self.db.spawn_zone_key
+        # if rule_id and zone_key:
+        #     from evennia import ScriptDB
+        #     scripts = ScriptDB.objects.filter(db_key=f"zone_spawn_{zone_key}")
+        #     if scripts.exists():
+        #         scripts.first().on_mob_death(rule_id)
 
         self.delete()
 

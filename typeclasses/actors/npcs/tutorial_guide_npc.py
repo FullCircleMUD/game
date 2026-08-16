@@ -35,6 +35,16 @@ class TutorialGuideNPC(LLMRoleplayNPC):
             "slung over one shoulder. Pip bounces on the balls of their "
             "feet, eager to show you around."
         )
+        # The tutorial is instructional UI, not an NPC noticing you, so a
+        # player experimenting with hide must still get the lesson. Rather
+        # than exempt Pip from the arrival dispatcher's perception gate,
+        # give him the counters that pass it: true_sight beats HIDDEN,
+        # DETECT_INVIS beats INVISIBLE. duration=None is permanent.
+        #
+        # It also keeps a concealed player from dropping out of his
+        # conversation context, which builds {nearby_characters} through
+        # the same predicate.
+        self.apply_true_sight(duration_seconds=None, detect_invis=True)
 
     def at_llm_player_arrive(self, player):
         """Show hardcoded tutorial instructions on room entry."""

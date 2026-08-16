@@ -35,6 +35,7 @@ from enums.mastery_level import MasteryLevel
 from enums.size import Size
 from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
 from utils.dice_roller import dice
+from utils.targeting.predicates import p_can_see
 
 # Cascading cleave chances by mastery — each entry is % for Nth additional enemy
 _GREATSWORD_CLEAVE_CHANCES = {
@@ -134,9 +135,10 @@ class GreatswordMixin:
             )
             if wielder.location:
                 wielder.location.msg_contents(
-                    f"|r{wielder.key}'s greatsword cleaves into "
-                    f"{cleave_target.key} for {actual} damage!|n",
+                    f"|r{{wielder}}'s greatsword cleaves into "
+                    f"{{victim}} for {actual} damage!|n",
                     exclude=[wielder, cleave_target],
+                    mapping={"wielder": wielder, "victim": cleave_target},
                 )
 
             # Check for kill — potential executioner trigger
@@ -164,9 +166,14 @@ class GreatswordMixin:
         if not handler or handler[0].executioner_used:
             return
 
-        # Find a living enemy to strike
+        # Find a living enemy the wielder can see to strike. No player
+        # choice — the pick is automatic — but a concealed enemy is not
+        # in the list to be picked from.
         _, enemies = get_sides(wielder)
-        alive_enemies = [e for e in enemies if getattr(e, "hp", 0) > 0]
+        alive_enemies = [
+            e for e in enemies
+            if getattr(e, "hp", 0) > 0 and p_can_see(e, wielder)
+        ]
         if not alive_enemies:
             return
 
@@ -177,11 +184,16 @@ class GreatswordMixin:
             f"|r*EXECUTIONER* You strike at {new_target.key} "
             f"with renewed fury!|n"
         )
+        new_target.msg(
+            f"|r*EXECUTIONER* {wielder.get_display_name(new_target)} "
+            f"strikes at you with renewed fury!|n"
+        )
         if wielder.location:
             wielder.location.msg_contents(
-                f"|r*EXECUTIONER* {wielder.key} strikes at "
-                f"{new_target.key} with renewed fury!|n",
-                exclude=[wielder],
+                "|r*EXECUTIONER* {wielder} strikes at "
+                "{victim} with renewed fury!|n",
+                exclude=[wielder, new_target],
+                mapping={"wielder": wielder, "victim": new_target},
             )
 
         execute_attack(wielder, new_target)

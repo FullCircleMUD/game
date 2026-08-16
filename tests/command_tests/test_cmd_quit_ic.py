@@ -37,8 +37,8 @@ class TestCmdQuitIC(EvenniaCommandTest):
             result = self.call(CmdQuitIC(), "", inputs=["n"])
             self.assertIn("Quit cancelled", result)
 
-    @patch("commands.all_char_cmds.cmd_quit_ic.CmdQuitIC._send_home")
-    def test_quit_creates_quit_drop(self, mock_send_home):
+    @patch("commands.all_char_cmds.cmd_quit_ic.CmdQuitIC._send_to_last_rent_location")
+    def test_quit_creates_quit_drop(self, mock_send):
         """Quit with confirmation should create a QuitDrop in the room."""
         # Give character gold via db attribute (bypasses service layer)
         self.char1.db.gold = 50
@@ -61,8 +61,8 @@ class TestCmdQuitIC(EvenniaCommandTest):
             f"{self.char1.key}'s abandoned pack",
         )
 
-    @patch("commands.all_char_cmds.cmd_quit_ic.CmdQuitIC._send_home")
-    def test_quit_no_drop_when_empty(self, mock_send_home):
+    @patch("commands.all_char_cmds.cmd_quit_ic.CmdQuitIC._send_to_last_rent_location")
+    def test_quit_no_drop_when_empty(self, mock_send):
         """Quit should not create a QuitDrop if character has nothing."""
         self.char1.db.gold = 0
         self.char1.db.resources = {}
@@ -80,3 +80,33 @@ class TestCmdQuitIC(EvenniaCommandTest):
             if isinstance(obj, QuitDrop)
         ]
         self.assertEqual(len(quit_drops), 0)
+
+    def test_quit_sends_to_last_rent_location(self):
+        """When the character has rented before, quit teleports them to
+        that inn (NOT to home, which is just Evennia plumbing)."""
+        self.char1.db.last_rent_location = self.room2
+        self.char1.home = self.room1  # deliberately not the rent location
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+        for obj in list(self.char1.contents):
+            obj.delete()
+
+        with patch.object(self.char1.scripts, "get", return_value=[]):
+            self.call(CmdQuitIC(), "", inputs=["y"])
+
+        self.assertEqual(self.char1.location, self.room2)
+
+    def test_quit_falls_back_to_home_when_never_rented(self):
+        """A character who has never rented falls back to home (the starter
+        inn after at_post_puppet backfill)."""
+        self.char1.attributes.remove("last_rent_location")
+        self.char1.home = self.room2
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+        for obj in list(self.char1.contents):
+            obj.delete()
+
+        with patch.object(self.char1.scripts, "get", return_value=[]):
+            self.call(CmdQuitIC(), "", inputs=["y"])
+
+        self.assertEqual(self.char1.location, self.room2)
