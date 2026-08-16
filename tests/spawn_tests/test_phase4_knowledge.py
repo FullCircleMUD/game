@@ -11,6 +11,7 @@ Covers:
 evennia test --settings settings tests.spawn_tests.test_phase4_knowledge
 """
 
+from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from evennia.utils import create
@@ -311,8 +312,17 @@ class TestResolveNFTItemTypeName(EvenniaTest):
     def create_script(self):
         pass
 
+    @patch("blockchain.xrpl.services.spawn.config.SPAWN_CONFIG", {
+        ("knowledge", "scroll_test"): {"prototype_key": "test_scroll"},
+    })
     def test_returns_none_for_unknown_type_key(self):
-        """Unknown type_key returns None."""
+        """Unknown type_key returns None.
+
+        The config is patched with a *different* entry on purpose. Without it
+        this test passes whenever the config is empty, which is exactly the
+        state it should be catching — every key resolves to None then, so the
+        assertion holds for the wrong reason.
+        """
         from blockchain.xrpl.services.spawn.distributors.nft import (
             _resolve_nft_item_type_name,
         )
@@ -359,3 +369,61 @@ class TestResolveNFTItemTypeName(EvenniaTest):
         )
         result = _resolve_nft_item_type_name("scroll_no_proto")
         self.assertIsNone(result)
+
+
+# ================================================================== #
+#  The real SPAWN_CONFIG is populated, not just a patched one
+# ================================================================== #
+
+
+class TestRealSpawnConfigIsPopulated(TestCase):
+    """The knowledge entries must exist in the *real* SPAWN_CONFIG.
+
+    Every other knowledge test patches SPAWN_CONFIG with a hand-built dict, so
+    none of them can tell whether anything populates the real one. That is a
+    live hazard rather than a hypothetical: the entries are generated from the
+    registries by populate_knowledge_config(), and a process that never calls
+    it sees only the hand-written resource and gold keys. Shards run no spawn
+    script, so importing the distributor module is what populates them there.
+
+    No database — this is an import-and-assert, so it is safe to run while
+    another suite holds the test databases.
+    """
+
+    def test_importing_distributors_populates_knowledge_entries(self):
+        """Importing the distributor module fills in the knowledge keys."""
+        import blockchain.xrpl.services.spawn.distributors.nft  # noqa: F401
+        from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
+
+        knowledge_keys = [k for k in SPAWN_CONFIG if k[0] == "knowledge"]
+        self.assertTrue(
+            knowledge_keys,
+            "SPAWN_CONFIG has no ('knowledge', ...) entries. Nothing called "
+            "populate_knowledge_config(), so every scroll and recipe "
+            "placement will resolve to None and silently place nothing.",
+        )
+
+    def test_knowledge_entries_carry_a_prototype_key(self):
+        """Each knowledge entry must carry the prototype_key placement needs."""
+        import blockchain.xrpl.services.spawn.distributors.nft  # noqa: F401
+        from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
+
+        missing = [
+            key for key, cfg in SPAWN_CONFIG.items()
+            if key[0] == "knowledge" and not cfg.get("prototype_key")
+        ]
+        self.assertEqual(missing, [], f"knowledge entries with no prototype_key: {missing}")
+
+    def test_a_known_spell_resolves_through_the_real_config(self):
+        """A spell from the registry is reachable without patching anything."""
+        import blockchain.xrpl.services.spawn.distributors.nft  # noqa: F401
+        from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
+        from world.spells.registry import SPELL_REGISTRY
+
+        spell_key = next(
+            key for key, spell in SPELL_REGISTRY.items()
+            if getattr(spell, "min_mastery", None) is not None
+        )
+        cfg = SPAWN_CONFIG.get(("knowledge", f"scroll_{spell_key}"))
+        self.assertIsNotNone(cfg, f"scroll_{spell_key} missing from SPAWN_CONFIG")
+        self.assertEqual(cfg["prototype_key"], f"{spell_key}_scroll")

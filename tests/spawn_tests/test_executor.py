@@ -269,8 +269,9 @@ class TestEntryIsolation(EvenniaTest):
 
 
 class TestRealPlacement(EvenniaTest):
-    """One test that does not patch _place, so the whole path runs — the
-    resource route is used because it needs no NFT minting."""
+    """Tests that do not patch _place, so the whole path runs. The resource
+    route needs no NFT minting; the scroll route does, and is covered
+    separately in TestRealScrollPlacement below."""
 
     databases = "__all__"
 
@@ -298,3 +299,78 @@ class TestRealPlacement(EvenniaTest):
         placed = execute([_placement("resources", RESOURCE_ID, room.pk, 50)])
         self.assertEqual(placed, 2)
         self.assertEqual(room.attributes.get("resource_count"), 10)
+
+
+# ================================================================== #
+#  A scroll placement produces a real object
+# ================================================================== #
+
+
+SCROLL_TYPE_KEY = "scroll_magic_missile"
+SCROLL_TYPECLASS_FRAGMENT = "spell_scroll_nft_item"
+
+
+class TestRealScrollPlacement(EvenniaTest):
+    """The knowledge route, end to end, with nothing patched.
+
+    Every other scroll test stops at a patched ``_place``, so the chain from
+    type_key through SPAWN_CONFIG, NFTItemType, the RESERVE pool and the
+    Evennia prototype registry was never exercised. A break anywhere along it
+    is silent: ``_place`` returns without raising, and the executor counts the
+    placement as done, so the budget looks spent and no object exists.
+
+    Uses seeded data rather than fixtures, so it fails the same way production
+    would: the item types and the 200 blank RESERVE tokens both come from the
+    initial migration, and the prototype comes from PROTOTYPE_MODULES.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def _scroll_count(self, target):
+        return len([
+            obj for obj in target.contents
+            if SCROLL_TYPECLASS_FRAGMENT in obj.typeclass_path
+        ])
+
+    def test_scroll_placement_creates_an_object_on_the_target(self):
+        """A scroll placement puts a real scroll in the target's contents."""
+        target = _make_target("Strongbox", spawn_scrolls_max={"basic": 1})
+
+        placed = execute([_placement("scrolls", SCROLL_TYPE_KEY, target.pk, 1)])
+
+        self.assertEqual(placed, 1)
+        self.assertEqual(
+            self._scroll_count(target), 1,
+            "executor reported the scroll as placed but nothing was created — "
+            "the resolve/mint/spawn chain broke silently",
+        )
+
+    def test_scroll_placement_marks_the_token_spawned(self):
+        """The mirror row moves out of RESERVE, so saturation can see it."""
+        from blockchain.xrpl.models import NFTGameState
+
+        target = _make_target("Strongbox", spawn_scrolls_max={"basic": 1})
+        execute([_placement("scrolls", SCROLL_TYPE_KEY, target.pk, 1)])
+
+        spawned = NFTGameState.objects.filter(
+            location=NFTGameState.LOCATION_SPAWNED,
+            item_type__prototype_key="magic_missile_scroll",
+        )
+        self.assertEqual(
+            spawned.count(), 1,
+            "no NFTGameState row reached SPAWNED — unlearned_copies stays 0 "
+            "and the item is re-budgeted every cycle",
+        )
+
+    def test_full_target_gets_no_scroll(self):
+        """Capacity is respected on the knowledge route, not just fungibles."""
+        target = _make_target("Strongbox", spawn_scrolls_max={"basic": 1})
+        execute([_placement("scrolls", SCROLL_TYPE_KEY, target.pk, 1)])
+
+        placed = execute([_placement("scrolls", SCROLL_TYPE_KEY, target.pk, 1)])
+
+        self.assertEqual(placed, 0)
+        self.assertEqual(self._scroll_count(target), 1)

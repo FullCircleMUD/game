@@ -8,6 +8,18 @@ Supports at-or-below tier filtering for scrolls and recipes.
 import logging
 
 from blockchain.xrpl.services.spawn.distributors.base import BaseDistributor
+from blockchain.xrpl.services.spawn.config import (
+    SPAWN_CONFIG,
+    populate_knowledge_config,
+)
+
+# The scroll and recipe entries are generated from the spell and recipe
+# registries rather than written into the SPAWN_CONFIG literal, so something
+# has to call this before the config is read. SpawnService does it on the
+# router; shards run no spawn script but are the processes that actually
+# place items, so it must also happen here. Module level, so it runs once per
+# process on import rather than on every placement.
+populate_knowledge_config(SPAWN_CONFIG)
 
 logger = logging.getLogger("evennia")
 
@@ -17,8 +29,6 @@ def _resolve_nft_item_type_name(type_key):
     Reads the prototype_key from config, then looks up the NFTItemType
     by prototype_key to get its display name (used by assign_to_blank_token).
     """
-    from blockchain.xrpl.services.spawn.config import SPAWN_CONFIG
-
     cfg = SPAWN_CONFIG.get(("knowledge", type_key), {})
     prototype_key = cfg.get("prototype_key")
     if not prototype_key:
