@@ -17,16 +17,20 @@ Cascade:
             -> settings.py
 """
 
+import os
+
 from server.conf.settings_common_shard_config import *  # noqa: F401, F403
 
 from evennia_shards import ROLE_ROUTER, get_router_shard_id
 
-SHARDS_ROLE = ROLE_ROUTER
+# Environment first, file default second — see settings_shard0.py.
+SHARDS_ROLE = os.environ.get("SHARDS_ROLE", ROLE_ROUTER)
 
 # Library mandate: the router's SHARD_ID equals get_router_shard_id()
 # (the constant "router"). Derive from the accessor rather than the
 # literal so any future rename in evennia_shards propagates here for
-# free.
+# free. Not env-overridable — the library requires this exact value,
+# so there is nothing a deployment could usefully set it to.
 SHARD_ID = get_router_shard_id()
 
 # Manual character selection at the OOC menu — the player types
@@ -40,7 +44,8 @@ AUTO_PUPPET_ON_LOGIN = True
 
 # Localhost ports. On Railway these are overridden by the platform's
 # $PORT env var (already handled in base settings.py).
-WEBSERVER_PORTS = [(4001, 4005)]
+if not os.environ.get("PORT"):
+    WEBSERVER_PORTS = [(4001, 4005)]
 WEBSOCKET_CLIENT_PORT = 4002
 AMP_PORT = 4006
 

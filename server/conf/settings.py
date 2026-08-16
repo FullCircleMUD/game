@@ -271,7 +271,9 @@ SUBSCRIPTION_BYPASS_SUPERUSER = True
 ######################################################################
 
 # Public-facing website URL — used for in-game ToS links and compliance notices.
-GAME_WEBSITE_URL = "https://fcmud.world"
+# Overridable so a non-production environment points players at its own site
+# rather than sending them to production for the terms they agreed to there.
+GAME_WEBSITE_URL = os.environ.get("GAME_WEBSITE_URL", "https://fcmud.world")
 
 # NFT image base URL — convention: {base_url}{prototype_key}.png
 NFT_IMAGE_BASE_URL = "https://njqdijnpujooixoehbms.supabase.co/storage/v1/object/public/FCMImages/"
