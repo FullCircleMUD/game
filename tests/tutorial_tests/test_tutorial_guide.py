@@ -115,7 +115,7 @@ class TestPipTeachesConcealedPlayers(EvenniaTest):
     A player experimenting with hide must still get the lesson.
 
     The tutorial is instructional UI rather than an NPC noticing you, but
-    it is delivered through the arrival hook, which the room dispatcher
+    it is delivered through the arrival hook, which ``at_post_move``
     gates on perception. Rather than exempt Pip from that gate, he holds
     the counters that pass it — so nothing in the dispatcher knows he is
     a special case.
@@ -148,7 +148,7 @@ class TestPipTeachesConcealedPlayers(EvenniaTest):
             type(self.guide), "at_llm_player_arrive"
         ) as mock_teach:
             self.char1.location = self.tutorial_room
-            self.tutorial_room.at_object_receive(self.char1, self.elsewhere)
+            self.char1.at_post_move(self.elsewhere)
         return mock_teach
 
     def test_pip_holds_true_sight(self):
@@ -187,7 +187,7 @@ class TestPipTeachesConcealedPlayers(EvenniaTest):
         self.char1.add_condition(Condition.HIDDEN)
         with patch.object(type(self.char1), "msg") as mock_msg:
             self.char1.location = self.tutorial_room
-            self.tutorial_room.at_object_receive(self.char1, self.elsewhere)
+            self.char1.at_post_move(self.elsewhere)
         said = " ".join(str(c[0][0]) for c in mock_msg.call_args_list if c[0])
         self.assertIn("Movement basics", said)
 

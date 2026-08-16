@@ -18,7 +18,6 @@ from typeclasses.mixins.unseen_name import UnseenNameMixin
 from utils.targeting.predicates import (
     p_actor_visible_to,
     p_can_perceive,
-    p_is_character,
     p_living,
     p_object_visible_to,
 )
@@ -293,10 +292,8 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
     def at_object_receive(self, moved_obj, source_location, **kwargs):
         """Fire quest events and tell the room something entered.
 
-        The single arrival dispatcher. Mobs hear it through
-        ``at_new_arrival`` and LLM NPCs through ``at_llm_player_arrive``;
-        both are the same event, so both are gated in the same place. A
-        second loop elsewhere is how one of them ends up unfiltered.
+        The mob arrival dispatcher. Mobs hear it through
+        ``at_new_arrival``.
 
         The notification is gated on perception, asked once per recipient
         with the arriver as the thing being perceived. This is the push
@@ -317,21 +314,19 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         is still told about an invisible arrival, and one under
         true_sight about a hidden one.
 
-        The LLM hook carries two extra conditions. ``source_location``
-        gates out initial placement during ``create_object()`` (chargen):
-        an instantiated character is not semantically "arriving", and a
-        reactive NPC in the start room would make a blocking multi-second
-        LLM call during chargen finalisation. ``p_is_character`` is
-        needed because this hook fires for anything entering, and a
-        dropped sword is not an arrival worth talking to.
+        The LLM NPC half of the same event —
+        ``at_llm_player_arrive`` — is dispatched from
+        ``FCMCharacter.at_post_move`` instead, behind an identical
+        ``p_can_perceive`` gate. Evennia calls this hook *before*
+        ``at_post_move``, and ``at_post_move`` is where the arriving
+        player's ``look`` happens, so a greeting sent from here prints
+        above the room the player just walked into. The two hooks are
+        the same event and the gate must stay identical in both places
+        — change one, change the other.
         """
         super().at_object_receive(moved_obj, source_location, **kwargs)
         if self.quest_tags and hasattr(moved_obj, "quests"):
             self.fire_quest_event(moved_obj, "enter_room")
-
-        notify_llm = source_location is not None and p_is_character(
-            moved_obj, self
-        )
 
         for obj in self.contents:
             if obj is moved_obj:
@@ -340,8 +335,6 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
                 continue
             if hasattr(obj, "at_new_arrival"):
                 obj.at_new_arrival(moved_obj)
-            if notify_llm and hasattr(obj, "at_llm_player_arrive"):
-                obj.at_llm_player_arrive(moved_obj)
 
     def msg_contents(self, text=None, exclude=None, from_obj=None, mapping=None,
                      raise_funcparse_errors=False, **kwargs):

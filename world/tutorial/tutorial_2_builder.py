@@ -117,15 +117,17 @@ def _phase_1(state):
     rooms = state["rooms"]
     first_run = state["first_run"]
 
-    # ----- ROOM 1: Harvest Field -----
+    # ----- ROOM 1: Tutorial 2 Harvest Field -----
+    # The first room of each tutorial names its tutorial, so the player
+    # can see which one they are in without a separate banner line.
     rooms["harvest"] = _room(
-        "The Harvest Field",
+        "Tutorial 2 The Harvest Field",
         "Golden stalks of wheat sway gently in the breeze across a "
         "sun-drenched field. A well-worn path leads east toward a "
         "cluster of workshops.",
         "|wTutorial: Harvesting|n\n\n"
         "  |wharvest|n — Gather resources from the land.\n"
-        "  |winventory|n (|wi|n) — Check what you've gathered.\n\n"
+        "  |winventory|n (|winv|n) — Check what you've gathered.\n\n"
         "Different areas yield different resources. This field has wheat.\n\n"
         "|yPractice:|n\n"
         "  Type |wharvest|n a few times to gather wheat.\n"

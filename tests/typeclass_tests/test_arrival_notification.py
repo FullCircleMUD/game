@@ -177,12 +177,18 @@ class TestTheAggressiveMob(ArrivalNotificationTest):
 
 
 class LLMArrivalTest(EvenniaTest):
-    """The same dispatcher, the other hook.
+    """The same event, the other hook.
 
-    ``at_llm_player_arrive`` used to be fired from a second loop in
-    ``FCMCharacter.at_post_move`` with no perception gate at all, so an
-    invisible player was greeted by name. It now rides the room
-    dispatcher alongside ``at_new_arrival``, behind the same predicate.
+    ``at_llm_player_arrive`` is dispatched from
+    ``FCMCharacter.at_post_move``, not from the room. Evennia calls
+    ``at_object_receive`` before ``at_post_move``, and ``at_post_move``
+    is where the arriving player's ``look`` happens — a greeting sent
+    from the room prints above the room the player just walked into.
+
+    Moving it costs a second loop, so the gate is duplicated: these
+    tests exist to prove the copy still refuses a concealed arrival.
+    An earlier version of that second loop had no gate at all, and an
+    invisible player was greeted by name.
     """
 
     room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
@@ -215,14 +221,19 @@ class LLMArrivalTest(EvenniaTest):
     _UNSET = object()
 
     def _arrive(self, source=_UNSET, mover=None):
-        """Walk something into the NPC's room, returning the hook mock."""
+        """Walk something into the NPC's room, returning the hook mock.
+
+        Drives ``at_post_move`` on the mover, which is where the hook is
+        dispatched from. A non-character mover runs its own
+        ``at_post_move``, which does not dispatch — that is the gate.
+        """
         mover = mover or self.char1
         source = self.room2 if source is self._UNSET else source
         with patch.object(
             type(self.npc), "at_llm_player_arrive"
         ) as mock_hook:
             mover.location = self.room1
-            self.room1.at_object_receive(mover, source)
+            mover.at_post_move(source)
         return mock_hook
 
 
@@ -296,7 +307,7 @@ class TestBlindNPCStillChallenges(LLMArrivalTest):
             type(self.npc), "_deliver_blind_challenge"
         ) as mock_challenge:
             self.char1.location = self.room1
-            self.room1.at_object_receive(self.char1, self.room2)
+            self.char1.at_post_move(self.room2)
         return mock_challenge
 
     def test_a_blinded_npc_challenges(self):

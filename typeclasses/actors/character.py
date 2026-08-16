@@ -311,12 +311,40 @@ class FCMCharacter(
         if self.location:
             self._check_traps_on_entry()
 
-        # Arrivals are announced by RoomBase.at_object_receive, which fires
-        # earlier in move_to and gates both the mob and LLM hooks on
-        # perception. Everything left in this method is the mover's own
-        # bookkeeping — its move points, its lungs, its map, its followers.
-        # Telling other people something happened belongs to the room; a
-        # second loop here is how one of the two hooks ended up unfiltered.
+        # LLM NPC arrival greeting. Mob reactions stay in
+        # RoomBase.at_object_receive; only this half lives here, because
+        # only this half is text the arriving player reads. Evennia calls
+        # at_object_receive before at_post_move, and super() above is
+        # where the player's look happens — so a greeting dispatched from
+        # the room prints above the room the player just walked into and
+        # reads as belonging to the room they left.
+        #
+        # The gate travels with the hook and must stay identical to the
+        # room's: p_can_perceive, so a hidden or invisible arrival is not
+        # greeted by name. source_location screens out initial placement
+        # during create_object() (chargen) — an instantiated character is
+        # not semantically "arriving", and a reactive NPC in the start
+        # room would make a blocking multi-second LLM call during chargen
+        # finalisation. The room also tests p_is_character because its
+        # hook fires for anything entering; here the mover is an
+        # FCMCharacter by definition, so that gate is already satisfied.
+        #
+        # Placed before the follower-cascade returns below: teleports
+        # return early there, and a teleport into a tutorial room is
+        # exactly the arrival that needs greeting.
+        if source_location is not None and self.location:
+            from utils.targeting.predicates import p_can_perceive
+
+            for obj in self.location.contents:
+                if obj is self:
+                    continue
+                if not p_can_perceive(self, obj):
+                    continue
+                if hasattr(obj, "at_llm_player_arrive"):
+                    obj.at_llm_player_arrive(self)
+
+        # Everything else in this method is the mover's own bookkeeping —
+        # its move points, its lungs, its map, its followers.
 
         # District map auto-creation for cartographers
         if self.location:

@@ -124,7 +124,7 @@ class TestTutorialInstanceScript(EvenniaTest):
 
         # Character should be in a tutorial room
         self.assertIsNotNone(self.char1.location)
-        self.assertEqual(self.char1.location.key, "Welcome Hall")
+        self.assertEqual(self.char1.location.key, "Tutorial 1 Welcome Hall")
 
         # Should have tagged rooms
         rooms = list(search_tag(script.instance_key, category="tutorial_room"))

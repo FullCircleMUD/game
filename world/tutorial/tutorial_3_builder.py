@@ -140,9 +140,11 @@ def _phase_1(state):
     rooms = state["rooms"]
     tag = state["tag"]
 
-    # ----- ROOM 1: Shortcut Workshop -----
+    # ----- ROOM 1: Tutorial 3 Shortcut Workshop -----
+    # The first room of each tutorial names its tutorial, so the player
+    # can see which one they are in without a separate banner line.
     rooms["aliases"] = _room(
-        "The Shortcut Workshop",
+        "Tutorial 3 The Shortcut Workshop",
         "A cozy workshop filled with scrolls and parchment. A large "
         "slate board dominates one wall, covered in examples of command "
         "shortcuts. A stone fountain bubbles quietly in the corner, "

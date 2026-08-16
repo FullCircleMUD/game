@@ -146,9 +146,11 @@ def _phase_1(state):
     rooms = state["rooms"]
     tag = state["tag"]
 
-    # ----- ROOM 1: Welcome Hall -----
+    # ----- ROOM 1: Tutorial 1 Welcome Hall -----
+    # The first room of each tutorial names its tutorial, so the player
+    # can see which one they are in without a separate banner line.
     rooms["welcome"] = _room(
-        "Welcome Hall",
+        "Tutorial 1 Welcome Hall",
         "You stand in a spacious stone hall with high arched ceilings. "
         "Torches line the walls, casting warm light across the flagstone "
         "floor. A shimmering portal behind you leads back to the hub, "
@@ -243,7 +245,7 @@ def _phase_1(state):
         "  |wget <item>|n — Pick up an item from the room.\n"
         "  |wget all|n — Pick up everything in the room.\n"
         "  |wdrop <item>|n — Drop an item from your inventory.\n"
-        "  |winventory|n (|wi|n) — See what you're carrying.\n"
+        "  |winventory|n (|winv|n) — See what you're carrying.\n"
         "  |wget gold|n — Pick up gold coins.\n"
         "  |wget <amount> gold|n — Pick up a specific amount of gold.\n"
         "  |wget all gold|n — Pick up all gold in the room.\n"
@@ -534,9 +536,11 @@ def _phase_4(state):
         "  |wwake|n  — Wake from sleeping back to resting.\n\n"
         "You cannot change posture while in combat.\n\n"
         "|yWhere you sleep matters:|n\n"
-        "  |gWilderness|n is safe — rest or sleep freely.\n"
-        "  |gInn bedrooms|n boost sleeping regen to |g5x|n. Rent a "
-        "room at an inn when you need a quick recovery.\n"
+        "  |gWilderness|n is safe — rest or sleep freely, but beware of "
+        "aggressive mobs.\n"
+        "  |gInn bedrooms|n boost sleeping regen to |g5x|n. Sleep in an "
+        "inn's bedroom when you need a quick recovery (sleeping is "
+        "separate from renting to exit the game).\n"
         "  |rTown streets|n are risky. A street urchin may pickpocket "
         "you while you sleep — and they have an easier time of it, and "
         "take more gold, from a sleeping target.\n"
@@ -552,8 +556,10 @@ def _phase_4(state):
             "regen), |wsit|n is normal regen and mostly flavour, "
             "|wrest|n gives 2x regen, |wsleep|n gives 3x regen, "
             "|wwake|n wakes to resting. No posture changes during "
-            "combat. Where you sleep matters: wilderness safe, inn "
-            "bedrooms boost sleeping to 5x, town streets are risky "
+            "combat. Where you sleep matters: wilderness is safe from "
+            "theft but aggressive mobs still roam it, inn bedrooms boost "
+            "sleeping to 5x and sleeping there is separate from renting "
+            "a room to exit the game, town streets are risky "
             "(street urchins get advantage on pickpocket attempts and "
             "take more from sleeping victims), and shops/guilds/civic "
             "buildings block sleep entirely. Suggest they try |wrest|n, "
@@ -753,7 +759,7 @@ def build_tutorial_1(instance):
     """
     Build all Tutorial 1 rooms synchronously (tests / fallback).
 
-    Returns the first room (Welcome Hall).
+    Returns the first room (Tutorial 1 Welcome Hall).
     """
     state = _init_state(instance)
     for _msg, fn in _PHASES:

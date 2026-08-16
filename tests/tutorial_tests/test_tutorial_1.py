@@ -91,7 +91,7 @@ class TestTutorial1Rooms(EvenniaTest):
         super().tearDown()
 
     def test_welcome_hall_exists(self):
-        self.assertIn("Welcome Hall", self.rooms)
+        self.assertIn("Tutorial 1 Welcome Hall", self.rooms)
 
     def test_observation_chamber_exists(self):
         self.assertIn("Observation Chamber", self.rooms)

@@ -24,7 +24,7 @@ class CmdInventory(FCMCommandMixin, Command):
 
     Usage:
         inventory
-        inv / i
+        inv
         inventory id  — show NFT token IDs and resource IDs
 
     Shows items you are carrying (excluding equipped items),

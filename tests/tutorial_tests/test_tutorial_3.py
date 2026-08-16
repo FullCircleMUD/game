@@ -120,35 +120,35 @@ class TestTutorial3Rooms(EvenniaTest):
         super().tearDown()
 
     def test_shortcut_workshop_exists(self):
-        self.assertIn("The Shortcut Workshop", self.rooms)
+        self.assertIn("Tutorial 3 The Shortcut Workshop", self.rooms)
 
     def test_shortcut_workshop_has_fountain(self):
         """Shortcut Workshop should have a fountain fixture."""
-        room = self.rooms["The Shortcut Workshop"]
+        room = self.rooms["Tutorial 3 The Shortcut Workshop"]
         fountains = [obj for obj in room.contents if "fountain" in obj.key.lower()]
         self.assertEqual(len(fountains), 1)
 
     def test_shortcut_workshop_has_dummy(self):
         """Shortcut Workshop should have a practice dummy."""
-        room = self.rooms["The Shortcut Workshop"]
+        room = self.rooms["Tutorial 3 The Shortcut Workshop"]
         dummies = [obj for obj in room.contents if "dummy" in obj.key.lower()]
         self.assertEqual(len(dummies), 1)
 
     def test_shortcut_workshop_has_backpack(self):
         """Shortcut Workshop should have a backpack."""
-        room = self.rooms["The Shortcut Workshop"]
+        room = self.rooms["Tutorial 3 The Shortcut Workshop"]
         backpacks = [obj for obj in room.contents if "backpack" in obj.key.lower()]
         self.assertEqual(len(backpacks), 1)
 
     def test_shortcut_workshop_has_canteen(self):
         """Shortcut Workshop should have a canteen."""
-        room = self.rooms["The Shortcut Workshop"]
+        room = self.rooms["Tutorial 3 The Shortcut Workshop"]
         canteens = [obj for obj in room.contents if "canteen" in obj.key.lower()]
         self.assertEqual(len(canteens), 1)
 
     def test_shortcut_workshop_has_slate_board(self):
         """Shortcut Workshop should have a slate board."""
-        room = self.rooms["The Shortcut Workshop"]
+        room = self.rooms["Tutorial 3 The Shortcut Workshop"]
         boards = [obj for obj in room.contents if "slate" in obj.key.lower()]
         self.assertEqual(len(boards), 1)
 

@@ -97,7 +97,7 @@ class TestTutorial2Rooms(EvenniaTest):
         super().tearDown()
 
     def test_harvest_field_exists(self):
-        self.assertIn("The Harvest Field", self.rooms)
+        self.assertIn("Tutorial 2 The Harvest Field", self.rooms)
 
     def test_woodlot_exists(self):
         self.assertIn("The Woodlot", self.rooms)
@@ -131,16 +131,16 @@ class TestTutorial2Rooms(EvenniaTest):
             )
 
     def test_harvest_field_resource_id(self):
-        room = self.rooms["The Harvest Field"]
+        room = self.rooms["Tutorial 2 The Harvest Field"]
         self.assertEqual(room.resource_id, 1)  # Wheat
 
     def test_harvest_field_harvest_command(self):
-        room = self.rooms["The Harvest Field"]
+        room = self.rooms["Tutorial 2 The Harvest Field"]
         self.assertEqual(room.harvest_command, "harvest")
 
     def test_harvest_field_has_resources(self):
         """First run should have resources."""
-        room = self.rooms["The Harvest Field"]
+        room = self.rooms["Tutorial 2 The Harvest Field"]
         self.assertEqual(room.resource_count, 50)
 
     def test_woodlot_resource_id(self):

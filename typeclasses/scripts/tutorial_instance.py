@@ -116,7 +116,7 @@ class TutorialInstanceScript(DefaultScript):
 
         if immediate:
             first_room = self._build_sync(chunk_num)
-            self._on_tutorial_ready(character, first_room, title)
+            self._on_tutorial_ready(character, first_room)
             return
 
         # Async chunked build — the entering player gets friendly progress
@@ -128,7 +128,7 @@ class TutorialInstanceScript(DefaultScript):
 
         def _on_complete(first_room):
             character.ndb.tutorial_building = False
-            self._on_tutorial_ready(character, first_room, title)
+            self._on_tutorial_ready(character, first_room)
 
         self._build_chunked(chunk_num, character, _on_complete)
 
@@ -157,13 +157,17 @@ class TutorialInstanceScript(DefaultScript):
             from world.tutorial.tutorial_3_builder import build_tutorial_3_chunked
             build_tutorial_3_chunked(self, character, on_complete)
 
-    def _on_tutorial_ready(self, character, first_room, title):
-        """Finalise spin-up: teleport the player and show the room."""
+    def _on_tutorial_ready(self, character, first_room):
+        """Finalise spin-up: teleport the player in.
+
+        The move already shows the room — Evennia's ``at_post_move``
+        runs a ``look``. Announcing the tutorial by name here as well
+        printed the description a second time, so the first room of each
+        tutorial carries the tutorial number in its own key instead.
+        """
         if character.pk is None or first_room is None:
             return
         character.move_to(first_room, quiet=True, move_type="teleport")
-        character.msg(f"|c=== {title} ===|n")
-        character.msg(first_room.db.desc or "")
 
     # ------------------------------------------------------------------ #
     #  Collapse / cleanup
