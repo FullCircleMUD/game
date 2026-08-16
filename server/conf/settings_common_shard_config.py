@@ -67,3 +67,22 @@ SHARD_URLS = {
 # docs/connection-transport.md), but make it explicit here so the
 # requirement is visible to anyone reading just the shard cascade.
 TELNET_ENABLED = False
+
+# Tickets don't record the address they were issued to, because on Railway
+# no process can observe it. Traffic reaches a container through Railway's
+# proxy, so a shard sees a private 100.64.0.0/10 address rather than the
+# player's — never the one the router recorded, so every redirect was
+# refused with "Ticket rejected: IP mismatch".
+#
+# The library resolves the real address from x-forwarded-for, but only when
+# the immediate peer is listed in Evennia's UPSTREAM_IPS, which is an
+# exact-match list and so can't express a proxy drawn from a range.
+#
+# What this costs: tickets stay single-use and short-lived, so the loss is
+# only protection against replay from a second address — which was never
+# available here anyway.
+#
+# Deployment-wide rather than per-role: the router records the address and
+# the shard checks it, so the two must agree. One line in the shared file
+# makes disagreement impossible.
+SHARDS_TICKET_BIND_IP = False
