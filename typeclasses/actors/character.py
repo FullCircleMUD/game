@@ -1518,13 +1518,32 @@ class FCMCharacter(
             )
         )
 
-    def at_post_unpuppet(self, account, session=None, **kwargs):
-        """Called after player disconnects from this character."""
+    def at_post_unpuppet(self, account=None, session=None, **kwargs):
+        """Called after player disconnects from this character.
+
+        ``account`` is optional because Evennia's link-dead sweep passes
+        ``None``: once a minute it finds objects still tagged
+        ``puppeted`` with no sessions left and runs the unpuppet hooks
+        for them, having no account to hand.
+
+        Read the account off the character when the argument is absent.
+        On a clean quit the argument is the account and ``self.account``
+        is already gone — ``unpuppet_object`` clears it just before
+        calling this. The sweep is the reverse: it fires *because* that
+        clean path never ran, so ``self.account`` is still set.
+
+        Getting the account matters rather than skipping the telemetry:
+        an unclosed ``PlayerSession`` row keeps that character inside
+        ``get_active_player_count_7d`` forever, and that count is the
+        denominator saturation divides by.
+        """
         super().at_post_unpuppet(account, session=session, **kwargs)
         # Telemetry: record session end
-        from blockchain.xrpl.services.telemetry import TelemetryService
+        acct = account or self.account
+        if acct:
+            from blockchain.xrpl.services.telemetry import TelemetryService
 
-        TelemetryService.record_session_end(account.id, self.key)
+            TelemetryService.record_session_end(acct.id, self.key)
 
     def at_gain_experience_points(self, experience_gained):
 
