@@ -62,4 +62,7 @@ evennia-mob-spawner==0.1.0
 
 # Split-deployment / horizontal sharding. Dormant in monolith mode;
 # activated by SHARDS_ROLE in settings_router.py / settings_shard0.py.
-evennia-shards==0.1.0
+# 0.1.1 is the first wheel to carry the library's static assets — 0.1.0
+# shipped Python only, so the webclient's shard_redirect.js 404'd and
+# cross-shard redirects were received but never acted on.
+evennia-shards==0.1.1
