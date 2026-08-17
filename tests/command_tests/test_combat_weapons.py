@@ -1280,3 +1280,224 @@ class TestRapierMastery(EvenniaCommandTest):
         self.assertEqual(self.char1.hp, initial_hp1)
         # char2 should have taken damage (attack hit)
         self.assertLess(self.char2.hp, 50)
+
+
+# ================================================================== #
+#  Universal Parry Tests — staff parries every physical attack type
+# ================================================================== #
+
+
+class TestUniversalParry(EvenniaCommandTest):
+    """
+    Staff sets `universal_parry`, so it parries armed melee, unarmed,
+    animal (no weapon object) and missile attacks. Every other weapon
+    parries armed melee only.
+    """
+
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.allow_combat = True
+        self.room1.allow_pvp = True
+        self.char1.hp = 50
+        self.char1.hp_max = 50
+        self.char2.hp = 50
+        self.char2.hp_max = 50
+
+    def tearDown(self):
+        for char in (self.char1, self.char2):
+            handlers = char.scripts.get("combat_handler")
+            if handlers:
+                for h in handlers:
+                    h.stop()
+                    h.delete()
+        for obj in list(self.char1.contents) + list(self.char2.contents):
+            if hasattr(obj, "weapon_type_key"):
+                obj.delete()
+        super().tearDown()
+
+    def _equip(self, char, typeclass, skill_key, mastery_level):
+        """Create a weapon, equip it on char, and set the matching mastery."""
+        from enums.unused_for_reference.damage_type import DamageType
+        weapon = create.create_object(typeclass, key="Test Weapon", location=char)
+        weapon.material = "iron"
+        weapon.damage_type = DamageType.BLUDGEONING
+        weapon.max_durability = 100
+        weapon.durability = 100
+        char.db.weapon_skill_mastery_levels = {skill_key: mastery_level.value}
+        wearslots = dict(char.db.wearslots or {})
+        wearslots["WIELD"] = weapon
+        char.db.wearslots = wearslots
+        return weapon
+
+    def _equip_staff(self, char, mastery_level):
+        return self._equip(
+            char,
+            "typeclasses.items.weapons.staff_nft_item.StaffNFTItem",
+            "staff",
+            mastery_level,
+        )
+
+    def _equip_longsword(self, char, mastery_level):
+        return self._equip(
+            char,
+            "typeclasses.items.weapons.longsword_nft_item.LongswordNFTItem",
+            "long_sword",
+            mastery_level,
+        )
+
+    def _equip_bow(self, char, mastery_level):
+        return self._equip(
+            char,
+            "typeclasses.items.weapons.bow_nft_item.BowNFTItem",
+            "bow",
+            mastery_level,
+        )
+
+    def _arm_defender(self, parries=1):
+        """Put char2 in combat with one parry available. Returns the handler."""
+        from combat.combat_utils import enter_combat
+        enter_combat(self.char1, self.char2)
+        handler = self.char2.scripts.get("combat_handler")[0]
+        handler.parries_remaining = parries
+        return handler
+
+    # ── Staff: the new cases ──────────────────────────────────────── #
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_staff_parries_unarmed_attacker(self, mock_ticker):
+        """Staff parries a bare-handed attacker."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        self._equip_staff(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.side_effect = [10, 25]
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2)
+
+        self.assertEqual(self.char2.hp, 50)
+        self.assertEqual(handler.parries_remaining, 0)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_staff_parries_animal_attacker(self, mock_ticker):
+        """Staff parries an animal attack, where the attacker has no weapon."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        staff = self._equip_staff(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        def _weapon_for(actor):
+            return None if actor is self.char1 else staff
+
+        with patch("combat.combat_utils.get_weapon", side_effect=_weapon_for), \
+                patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.side_effect = [10, 25]
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2)
+
+        self.assertEqual(self.char2.hp, 50)
+        self.assertEqual(handler.parries_remaining, 0)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_staff_parries_missile_attack(self, mock_ticker):
+        """Staff parries an incoming bow shot."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        self._equip_bow(self.char1, MasteryLevel.BASIC)
+        self._equip_staff(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.side_effect = [10, 25]
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2)
+
+        self.assertEqual(self.char2.hp, 50)
+        self.assertEqual(handler.parries_remaining, 0)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_staff_parries_armed_melee(self, mock_ticker):
+        """Staff still parries ordinary armed melee."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        self._equip_longsword(self.char1, MasteryLevel.BASIC)
+        self._equip_staff(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.side_effect = [10, 25]
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2)
+
+        self.assertEqual(self.char2.hp, 50)
+        self.assertEqual(handler.parries_remaining, 0)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_universal_parry_does_not_apply_to_riposte(self, mock_ticker):
+        """A riposte is unparryable even against a staff — no recursion."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        self._equip_staff(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.return_value = 20
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2, _is_riposte=True)
+
+        self.assertEqual(handler.parries_remaining, 1)
+        self.assertLess(self.char2.hp, 50)
+
+    # ── Non-universal weapons: what they must NOT parry ───────────── #
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_longsword_does_not_parry_missile_attack(self, mock_ticker):
+        """A longsword cannot block an arrow — only the staff can."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        self._equip_bow(self.char1, MasteryLevel.BASIC)
+        self._equip_longsword(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        with patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.side_effect = [20, 25]
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2)
+
+        self.assertLess(self.char2.hp, 50)
+        self.assertEqual(handler.parries_remaining, 1)
+
+    @patch("combat.combat_handler.TICKER_HANDLER")
+    def test_longsword_does_not_parry_animal_attacker(self, mock_ticker):
+        """A longsword cannot block a claw or bite."""
+        from enums.mastery_level import MasteryLevel
+        from combat.combat_utils import execute_attack
+
+        sword = self._equip_longsword(self.char2, MasteryLevel.SKILLED)
+        handler = self._arm_defender()
+
+        def _weapon_for(actor):
+            return None if actor is self.char1 else sword
+
+        with patch("combat.combat_utils.get_weapon", side_effect=_weapon_for), \
+                patch("combat.combat_utils.dice") as mock_dice:
+            mock_dice.roll_with_advantage_or_disadvantage.side_effect = [20, 25]
+            mock_dice.roll.return_value = 5
+            execute_attack(self.char1, self.char2)
+
+        self.assertLess(self.char2.hp, 50)
+        self.assertEqual(handler.parries_remaining, 1)

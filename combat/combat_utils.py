@@ -365,12 +365,18 @@ def execute_attack(attacker, target, _is_riposte=False,
     total_ac = target.effective_ac + hook_ac_mod
 
     # --- 3. Parry check ---
-    # Parry only works against melee weapon attacks (not unarmed/animal/missile).
+    # Parry works against armed melee attacks only. A defender whose weapon
+    # sets `universal_parry` (staff) also parries unarmed attacks, animal
+    # attacks (no weapon object at all), and missile attacks.
     # Riposte attacks cannot be parried (prevents infinite recursion).
     from typeclasses.items.weapons.unarmed_weapon import UnarmedWeapon
     parried = False
-    if (weapon and defender_weapon and not _is_riposte
-            and not isinstance(weapon, UnarmedWeapon)):
+    universal_parry = getattr(defender_weapon, "universal_parry", False)
+    armed_melee = (weapon
+                   and not isinstance(weapon, UnarmedWeapon)
+                   and getattr(weapon, "weapon_type", "melee") == "melee")
+    if (defender_weapon and not _is_riposte
+            and (universal_parry or armed_melee)):
         defender_handler = target.scripts.get("combat_handler")
         if defender_handler and defender_handler[0].parries_remaining > 0:
             # Roll parry: d20 + DEX mod + mastery hit bonus
