@@ -333,6 +333,17 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         if self.location == spawn_room:
             return
 
+        # Who we were fighting, read before the move — once we have left
+        # the room there is no way to ask. Same shape as flee_from_combat,
+        # which is the only other way out of a fight that isn't death.
+        handlers = self.scripts.get("combat_handler")
+        handler = handlers[0] if handlers else None
+        if handler:
+            from combat.combat_utils import get_sides
+            _, enemies = get_sides(self)
+        else:
+            enemies = []
+
         if self.location:
             self.location.msg_contents(
                 f"{self.key} retreats, wounded!",
@@ -344,6 +355,18 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
                 f"{self.key} arrives, looking wounded.",
                 from_obj=self, exclude=[self],
             )
+
+        # Retreating leaves the fight, so the handler has to go with it —
+        # otherwise the mob heals up at the den and wanders off still
+        # position="fighting" with a live handler attached. Each enemy is
+        # then asked to re-check; _check_stop_combat only ends anything if
+        # the room has no enemies left, so a wider brawl carries on.
+        if handler:
+            handler.stop_combat()
+            for enemy in enemies:
+                enemy_handlers = enemy.scripts.get("combat_handler")
+                if enemy_handlers:
+                    enemy_handlers[0]._check_stop_combat()
 
     # ================================================================== #
     #  Death & Respawn
