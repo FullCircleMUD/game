@@ -58,7 +58,7 @@ sqlean.py; sys_platform == "darwin"
 evennia-world-builder==0.1.0
 
 # Declarative YAML mob spawning — the ms_load admin command.
-evennia-mob-spawner==0.1.0
+evennia-mob-spawner==0.1.1
 
 # Split-deployment / horizontal sharding. Dormant in monolith mode;
 # activated by SHARDS_ROLE in settings_router.py / settings_shard0.py.
