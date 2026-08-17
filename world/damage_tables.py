@@ -34,7 +34,7 @@ DAMAGE_TABLES = {
         "steel":      {U: "1d2", B: "1d5", S: "1d6", E: "1d7", M: "2d4", G: "2d5"},
         "adamantine": {U: "1d3", B: "1d6", S: "1d7", E: "2d4", M: "2d5", G: "2d6"},
     },
-    # ── d6 Base (Shortsword, Handaxe, Sai, Nunchaku) ──
+    # ── d6 Base (Shortsword, Handaxe, Sai, Nunchaku, Staff) ──
     "d6": {
         "wood":       {U: "1d2", B: "1d4", S: "1d5", E: "1d6", M: "1d7", G: "2d4"},
         "bronze":     {U: "1d2", B: "1d5", S: "1d6", E: "1d7", M: "2d4", G: "2d5"},
@@ -42,7 +42,7 @@ DAMAGE_TABLES = {
         "steel":      {U: "1d3", B: "1d7", S: "2d4", E: "2d5", M: "2d6", G: "2d7"},
         "adamantine": {U: "1d4", B: "2d4", S: "2d5", E: "2d6", M: "2d7", G: "4d4"},
     },
-    # ── d8 Base (Longsword, Rapier, Mace, Spear, Staff, Bow, Crossbow, Lance, Ninjato) ──
+    # ── d8 Base (Longsword, Rapier, Mace, Spear, Bow, Crossbow, Lance, Ninjato) ──
     "d8": {
         "wood":       {U: "1d3", B: "1d6", S: "1d7", E: "1d8", M: "1d10", G: "2d6"},
         "bronze":     {U: "1d3", B: "1d7", S: "1d8", E: "1d10", M: "2d6", G: "2d7"},

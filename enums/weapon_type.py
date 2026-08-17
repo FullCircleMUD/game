@@ -156,7 +156,7 @@ _WEAPON_DESCRIPTIONS = {
     ),
     # ── Bludgeoning ──
     WeaponType.STAFF: (
-        "A two-handed wooden pole (d8). The best defensive weapon — highest "
+        "A two-handed wooden pole (d6). The best defensive weapon — highest "
         "parry count (up to 4 at GM) and the only weapon that parries ALL "
         "attack types (melee, unarmed, animal, missile). Parry advantage at "
         "EXPERT+, riposte at MASTER+."
