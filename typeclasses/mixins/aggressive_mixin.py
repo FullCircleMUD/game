@@ -99,6 +99,13 @@ class AggressiveMixin:
 
     def _execute_attack(self, target):
         """Start combat if target is still valid."""
+        # Existence before state, for both sides. The delay outlives whatever
+        # scheduled it, so either party can be deleted before it fires — a mob
+        # killed mid-countdown, a corpse-less despawn, a target that logged
+        # out. Reading an AttributeProperty off a deleted row does not return
+        # a default; it tries to write one back and raises on the missing id.
+        if not self.pk or not getattr(target, "pk", None):
+            return
         if not self.is_alive or not self.location:
             return
         if self.is_low_health:
