@@ -57,6 +57,7 @@ class TestCmdLearnSuccess(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.position = "sitting"
         _give_carpenter_skill(self.char1)
         self.recipe_item = _create_recipe_item(self.char1)
 
@@ -107,6 +108,7 @@ class TestCmdLearnFailures(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.position = "sitting"
         self.recipe_item = _create_recipe_item(self.char1)
 
     def test_learn_insufficient_skill(self):
@@ -144,6 +146,7 @@ class TestCmdLearnCancel(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.position = "sitting"
         _give_carpenter_skill(self.char1)
         self.recipe_item = _create_recipe_item(self.char1)
 
@@ -172,6 +175,7 @@ class TestCmdLearnEdgeCases(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.position = "sitting"
 
     def test_no_args(self):
         """Learn with no arguments should show usage."""
@@ -180,6 +184,24 @@ class TestCmdLearnEdgeCases(EvenniaCommandTest):
     def test_no_recipe_items(self):
         """Learn when carrying no recipe items should show message."""
         self.call(CmdLearn(), "recipe", "You aren't carrying any recipe scrolls.")
+
+    def test_must_be_sitting(self):
+        """Standing, resting and fighting are all refused."""
+        _create_recipe_item(self.char1)
+        for position in ("standing", "resting", "fighting"):
+            self.char1.position = position
+            self.call(CmdLearn(), "recipe", "You must sit down")
+
+    def test_refused_while_asleep(self):
+        """A sleeping character is turned away by the sleep gate."""
+        self.char1.position = "sleeping"
+        self.call(CmdLearn(), "recipe", "In your dreams")
+
+    def test_refused_while_busy(self):
+        """Learn while busy with another action should fail."""
+        _create_recipe_item(self.char1)
+        self.char1.ndb.is_processing = True
+        self.call(CmdLearn(), "recipe", "You are busy")
 
     def test_wrong_name(self):
         """Learn with non-matching name should show error."""

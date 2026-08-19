@@ -13,6 +13,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.crafting_recipe_nft_item import CraftingRecipeNFTItem
+from utils.busy import check_busy
 
 
 class CmdLearn(FCMCommandMixin, Command):
@@ -26,20 +27,30 @@ class CmdLearn(FCMCommandMixin, Command):
         learn recipe
         learn training longsword recipe
 
-    The recipe scroll is consumed when successfully learned.
+    You must be sitting. The recipe scroll is consumed when successfully
+    learned.
     """
 
     key = "learn"
     aliases = []
     locks = "cmd:all()"
     help_category = "Crafting"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def func(self):
         caller = self.caller
 
         if not self.args:
             caller.msg("Learn from what? Usage: learn <recipe item>")
+            return
+
+        # Sitting only — studying a recipe needs a seat. Standing, resting
+        # and fighting are all refused by this one check.
+        if caller.position != "sitting":
+            caller.msg("You must sit down before you can learn a recipe.")
+            return
+
+        if check_busy(caller):
             return
 
         # Search inventory for CraftingRecipeNFTItem matching the args

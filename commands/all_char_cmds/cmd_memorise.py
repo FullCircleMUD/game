@@ -10,16 +10,15 @@ Memorise has a timed delay with progress bar. Forget is instant.
 """
 
 from evennia import Command
-from evennia.utils import delay
 
 from commands.command import FCMCommandMixin
+from utils.busy import check_busy, progress_bar, start_busy_ticks
 from world.spells.registry import find_spell
 
 
 # ── Memorisation delay configuration ──
 MEMORISE_TICK_SECONDS = 2
 MEMORISE_NUM_TICKS = 3
-_BAR_WIDTH = 10
 
 
 class CmdMemorise(FCMCommandMixin, Command):
@@ -34,7 +33,7 @@ class CmdMemorise(FCMCommandMixin, Command):
         memorise magic missile
         memorize cure wounds
 
-    Memorisation takes a few seconds. You must know the spell
+    Memorisation takes a few seconds. You must be sitting, know the spell
     (in your spellbook) and have a free memory slot.
     """
 
@@ -42,7 +41,7 @@ class CmdMemorise(FCMCommandMixin, Command):
     aliases = ["memorize"]
     locks = "cmd:all()"
     help_category = "Magic"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def func(self):
         caller = self.caller
@@ -51,8 +50,13 @@ class CmdMemorise(FCMCommandMixin, Command):
             caller.msg("Memorise what? Usage: memorise <spell>")
             return
 
-        if getattr(caller.ndb, "is_memorising", False):
-            caller.msg("You are already memorising a spell.")
+        # Sitting only — a spellbook needs a lap. Standing, resting,
+        # sleeping and fighting are all refused by this one check.
+        if caller.position != "sitting":
+            caller.msg("You must sit down before you can memorise a spell.")
+            return
+
+        if check_busy(caller):
             return
 
         # Find the spell by name/key
@@ -100,24 +104,27 @@ class CmdMemorise(FCMCommandMixin, Command):
             )
             return
 
-        # Start memorisation with delay
-        caller.ndb.is_memorising = True
-        caller.msg(f"You begin memorising {spell_match.name}...")
+        def _complete():
+            # Getting up loses your place — the seat is the whole point.
+            if caller.position != "sitting":
+                caller.msg(
+                    f"You lost your place in the passage on {spell_match.name}."
+                )
+                return
+            success, msg = caller.memorise_spell(spell_match.key)
+            caller.msg(msg)
 
-        def _tick(step):
-            if step < MEMORISE_NUM_TICKS:
-                filled = _BAR_WIDTH * step // MEMORISE_NUM_TICKS
-                bar = "#" * filled + "-" * (_BAR_WIDTH - filled)
-                caller.msg(f"Memorising... [{bar}]")
-                delay(MEMORISE_TICK_SECONDS, _tick, step + 1)
-            else:
-                bar = "#" * _BAR_WIDTH
-                caller.msg(f"Memorising... [{bar}]")
-                caller.ndb.is_memorising = False
-                success, msg = caller.memorise_spell(spell_match.key)
-                caller.msg(msg)
-
-        delay(MEMORISE_TICK_SECONDS, _tick, 1)
+        start_busy_ticks(
+            caller,
+            MEMORISE_NUM_TICKS,
+            MEMORISE_TICK_SECONDS,
+            _complete,
+            progress=lambda step, total: f"Memorising... [{progress_bar(step, total)}]",
+            done_msg=f"Memorising... [{progress_bar(1, 1)}]",
+            self_msg=f"You begin memorising {spell_match.name}...",
+            busy_msg="You are deep in your spellbook. Finish first.",
+            busy_move_msg="You would lose your place. Finish memorising first.",
+        )
 
 
 class CmdForget(FCMCommandMixin, Command):

@@ -22,6 +22,14 @@ def _instant_delay(seconds, callback, *args, **kwargs):
     callback(*args, **kwargs)
 
 
+def _stand_up_then_tick(char):
+    """Mock for utils.delay that stands the character up mid-memorisation."""
+    def _delay(seconds, callback, *args, **kwargs):
+        char.position = "standing"
+        callback(*args, **kwargs)
+    return _delay
+
+
 # ── Memorise Command — Validation ──────────────────────────────────
 
 class TestCmdMemoriseValidation(EvenniaCommandTest):
@@ -41,6 +49,7 @@ class TestCmdMemoriseValidation(EvenniaCommandTest):
         self.char1.db.classes = {"mage": {"level": 4}}
         self.char1.intelligence = 14
         self.char1.wisdom = 10
+        self.char1.position = "sitting"
 
     def test_no_args(self):
         """Memorise with no arguments should show usage."""
@@ -77,7 +86,7 @@ class TestCmdMemoriseValidation(EvenniaCommandTest):
         }
 
         with patch(
-            "commands.all_char_cmds.cmd_memorise.delay",
+            "utils.busy.delay",
             side_effect=_instant_delay,
         ):
             result = self.call(CmdMemorise(), "magic missile")
@@ -89,10 +98,45 @@ class TestCmdMemoriseValidation(EvenniaCommandTest):
 
         self.call(CmdMemorise(), "magic missile", "Magic Missile is already memorised")
 
-    def test_already_memorising(self):
-        """Memorise while already memorising should fail."""
-        self.char1.ndb.is_memorising = True
-        self.call(CmdMemorise(), "magic missile", "You are already memorising")
+    def test_cap_reached(self):
+        """Memorise with every slot full should fail before the delay."""
+        with patch.object(
+            type(self.char1), "get_memorisation_cap", return_value=1,
+        ):
+            self.char1.db.memorised_spells = {"cure_wounds": True}
+            self.call(CmdMemorise(), "magic missile", "You can only memorise 1 spell")
+
+    def test_already_busy(self):
+        """Memorise while busy with another action should fail."""
+        self.char1.ndb.is_processing = True
+        self.call(CmdMemorise(), "magic missile", "You are busy")
+
+    def test_must_be_sitting(self):
+        """Standing, resting and fighting are all refused."""
+        for position in ("standing", "resting", "fighting"):
+            self.char1.position = position
+            self.call(CmdMemorise(), "magic missile", "You must sit down")
+
+    def test_refused_while_asleep(self):
+        """A sleeping character is turned away by the sleep gate."""
+        self.char1.position = "sleeping"
+        self.call(CmdMemorise(), "magic missile", "In your dreams")
+
+    def test_memorising_holds_the_busy_lock(self):
+        """A memorising character reads as busy to other commands."""
+        with patch("utils.busy.delay"):
+            self.call(CmdMemorise(), "magic missile")
+        self.assertTrue(self.char1.ndb.is_processing)
+
+    def test_standing_up_loses_the_spell(self):
+        """Getting up before the last tick abandons the memorisation."""
+        with patch(
+            "utils.busy.delay",
+            side_effect=_stand_up_then_tick(self.char1),
+        ):
+            result = self.call(CmdMemorise(), "magic missile")
+        self.assertIn("lost your place", result)
+        self.assertEqual(self.char1.db.memorised_spells, {})
 
 
 # ── Memorise Command — Granted Spells ──────────────────────────────
@@ -114,11 +158,12 @@ class TestCmdMemoriseGranted(EvenniaCommandTest):
         self.char1.db.classes = {"cleric": {"level": 4}}
         self.char1.wisdom = 14
         self.char1.intelligence = 10
+        self.char1.position = "sitting"
 
     def test_memorise_granted_spell(self):
         """A granted spell should be memorisable."""
         with patch(
-            "commands.all_char_cmds.cmd_memorise.delay",
+            "utils.busy.delay",
             side_effect=_instant_delay,
         ):
             result = self.call(CmdMemorise(), "cure wounds")

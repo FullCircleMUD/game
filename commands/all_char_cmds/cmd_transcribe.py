@@ -13,6 +13,7 @@ from evennia import Command
 
 from commands.command import FCMCommandMixin
 from typeclasses.items.consumables.spell_scroll_nft_item import SpellScrollNFTItem
+from utils.busy import check_busy
 
 
 class CmdTranscribe(FCMCommandMixin, Command):
@@ -26,20 +27,30 @@ class CmdTranscribe(FCMCommandMixin, Command):
         transcribe scroll
         transcribe magic missile scroll
 
-    The spell scroll is consumed when successfully transcribed.
+    You must be sitting. The spell scroll is consumed when successfully
+    transcribed.
     """
 
     key = "transcribe"
     aliases = ["trans"]
     locks = "cmd:all()"
     help_category = "Magic"
-    allow_while_sleeping = True
+    allow_while_sleeping = False
 
     def func(self):
         caller = self.caller
 
         if not self.args:
             caller.msg("Transcribe what? Usage: transcribe <scroll>")
+            return
+
+        # Sitting only — copying a scroll needs a steady hand. Standing,
+        # resting and fighting are all refused by this one check.
+        if caller.position != "sitting":
+            caller.msg("You must sit down before you can transcribe a scroll.")
+            return
+
+        if check_busy(caller):
             return
 
         # Search inventory for SpellScrollNFTItem matching the args

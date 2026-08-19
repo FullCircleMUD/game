@@ -82,6 +82,7 @@ class TestCmdTranscribeSuccess(EvenniaCommandTest):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
         _setup_mage(self.char1)
+        self.char1.position = "sitting"
         self.scroll = _create_scroll(self.char1)
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
@@ -111,6 +112,7 @@ class TestCmdTranscribeFailures(EvenniaCommandTest):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
         _setup_mage(self.char1)
+        self.char1.position = "sitting"
 
     def test_no_args(self):
         """Transcribe with no args should show usage."""
@@ -119,6 +121,24 @@ class TestCmdTranscribeFailures(EvenniaCommandTest):
     def test_no_scrolls(self):
         """Transcribe with no spell scrolls in inventory."""
         self.call(CmdTranscribe(), "scroll", "You aren't carrying any spell scrolls.")
+
+    def test_must_be_sitting(self):
+        """Standing, resting and fighting are all refused."""
+        _create_scroll(self.char1)
+        for position in ("standing", "resting", "fighting"):
+            self.char1.position = position
+            self.call(CmdTranscribe(), "scroll", "You must sit down")
+
+    def test_refused_while_asleep(self):
+        """A sleeping character is turned away by the sleep gate."""
+        self.char1.position = "sleeping"
+        self.call(CmdTranscribe(), "scroll", "In your dreams")
+
+    def test_refused_while_busy(self):
+        """Transcribe while busy with another action should fail."""
+        _create_scroll(self.char1)
+        self.char1.ndb.is_processing = True
+        self.call(CmdTranscribe(), "scroll", "You are busy")
 
     def test_wrong_name(self):
         """Transcribe with non-matching name."""
@@ -154,6 +174,7 @@ class TestCmdTranscribeCancel(EvenniaCommandTest):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
         _setup_mage(self.char1)
+        self.char1.position = "sitting"
         self.scroll = _create_scroll(self.char1)
 
     @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
@@ -258,6 +279,7 @@ class TestCmdMemorise(EvenniaCommandTest):
         _setup_mage(self.char1)
         self.char1.db.spellbook = {"magic_missile": True}
         self.char1.db.memorised_spells = {}
+        self.char1.position = "sitting"
 
     def test_no_args(self):
         """Memorise with no args shows usage."""
