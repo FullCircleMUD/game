@@ -634,11 +634,21 @@ Leave Character / Game      |gquit|n
         # `evennia migrate` before Limbo exists, so the bank objects would
         # steal early dbref slots (#2, #3) that Evennia expects for Limbo.
         if not self.is_superuser:
-            bank = create_object(
-                "typeclasses.accounts.account_bank.AccountBank",
-                key=f"bank-{self.key}",
-                nohome=True,       # no physical home location needed
-            )
+            from evennia_shards import allow_unstamped_insert
+
+            # Accounts are created on the router, which runs unscoped, so
+            # the row lands shard_id=NULL and the library's guard refuses
+            # it by default. The bank stamps itself "*" in
+            # AccountBank.at_object_creation, so the row is repaired
+            # immediately — the sanctioned case for the opt-in. Without
+            # this the guard's exception aborts account creation entirely
+            # and the player sees only "error creating the Account".
+            with allow_unstamped_insert():
+                bank = create_object(
+                    "typeclasses.accounts.account_bank.AccountBank",
+                    key=f"bank-{self.key}",
+                    nohome=True,       # no physical home location needed
+                )
             bank.wallet_address = self.wallet_address
             self.db.bank = bank   # stores the dbref, auto-resolves on access
 
