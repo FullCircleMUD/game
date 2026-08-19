@@ -43,41 +43,40 @@ def display_class_skills(caller, skills, classes_data):
             caller.msg("\nYou have no class skills available.")
             return
 
-        # Sum class skill points across all classes
-        total_class_pts = sum(
-            cls.get("skill_pts_available", 0)
-            for cls in (classes_data or {}).values()
-        )
+        # Skill points are held per class, so each class gets its own section.
+        for class_name, class_data in (classes_data or {}).items():
 
-        caller.msg(f"\n|c--- Class Skills (|w{total_class_pts}|c pts available) ---|n")
+            pts_available = class_data.get("skill_pts_available", 0)
 
-        table = evtable.EvTable(
-            "Class Skill",
-            "Mastery",
-            "Classes",
-            border="header"
-        )
+            caller.msg(
+                f"\n|c--- {class_name.capitalize()} Class Skills "
+                f"(|w{pts_available}|c pts available) ---|n"
+            )
 
-        for skill_name in sorted(skills.keys()):
+            table = evtable.EvTable(
+                "Class Skill",
+                "Mastery",
+                border="header"
+            )
 
-            skill_data = skills[skill_name]
+            for skill_name in sorted(skills.keys()):
 
-            mastery_value = skill_data["mastery"]
-            classes_array = skill_data["classes"]
+                skill_data = skills[skill_name]
 
-            classes_string = ""
-            for cl in classes_array:
-                classes_string += f"{cl} "
+                if class_name not in skill_data["classes"]:
+                    continue
 
-            try:
-                mastery_enum = MasteryLevel(mastery_value)
-                mastery_name = mastery_enum.name
-            except ValueError:
-                mastery_name = "ERROR"
+                mastery_value = skill_data["mastery"]
 
-            table.add_row(skill_name.capitalize(), mastery_name, classes_string)
+                try:
+                    mastery_enum = MasteryLevel(mastery_value)
+                    mastery_name = mastery_enum.name
+                except ValueError:
+                    mastery_name = "ERROR"
 
-        caller.msg(str(table))
+                table.add_row(skill_name.capitalize(), mastery_name)
+
+            caller.msg(str(table))
 
 def display_weapon_skills(caller, skills, pts_available):
 

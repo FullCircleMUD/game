@@ -665,9 +665,7 @@ def _resolve_skill_training(
         if entry is None:
             entry = {
                 "mastery": target,
-                "classes": [
-                    (trainer.trainer_class or "").capitalize()
-                ],
+                "classes": [trainer.trainer_class or ""],
             }
         else:
             entry["mastery"] = target

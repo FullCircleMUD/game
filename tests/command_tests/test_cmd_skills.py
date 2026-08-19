@@ -60,7 +60,7 @@ class TestCmdSkills(EvenniaCommandTest):
         self.assertIn("EXPERT", result)
 
     def test_class_skills_displayed(self):
-        """Class skills should show mastery and classes."""
+        """Class skills should show mastery under their own class heading."""
         self.char1.db.general_skill_mastery_levels = {}
         self.char1.db.class_skill_mastery_levels = {
             "fireball": {
@@ -69,10 +69,39 @@ class TestCmdSkills(EvenniaCommandTest):
             },
         }
         self.char1.db.weapon_skill_mastery_levels = {}
+        self.char1.db.classes = {"mage": {"level": 1, "skill_pts_available": 4}}
         result = self.call(CmdSkills(), "")
+        self.assertIn("Mage Class Skills", result)
         self.assertIn("Fireball", result)
         self.assertIn("SKILLED", result)
-        self.assertIn("mage", result)
+
+    def test_class_skills_split_by_class(self):
+        """Each class gets its own heading, points, and skill list."""
+        self.char1.db.general_skill_mastery_levels = {}
+        self.char1.db.class_skill_mastery_levels = {
+            "fireball": {
+                "mastery": MasteryLevel.SKILLED.value,
+                "classes": ["mage"],
+            },
+            "bash": {
+                "mastery": MasteryLevel.BASIC.value,
+                "classes": ["warrior"],
+            },
+        }
+        self.char1.db.weapon_skill_mastery_levels = {}
+        self.char1.db.classes = {
+            "warrior": {"level": 1, "skill_pts_available": 2},
+            "mage": {"level": 1, "skill_pts_available": 4},
+        }
+        result = self.call(CmdSkills(), "")
+        self.assertIn("Warrior Class Skills", result)
+        self.assertIn("Mage Class Skills", result)
+        self.assertIn("2 pts available", result)
+        self.assertIn("4 pts available", result)
+
+        warrior_section = result.split("Warrior Class Skills")[1].split("Mage Class Skills")[0]
+        self.assertIn("Bash", warrior_section)
+        self.assertNotIn("Fireball", warrior_section)
 
     def test_skills_alias_sk(self):
         """'sk' alias should work."""
