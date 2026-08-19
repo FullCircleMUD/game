@@ -29,6 +29,13 @@ class _BashTestBase(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pin the light for every subclass. Targeting runs through
+        # p_can_perceive, which folds in RoomBase.is_dark — an unpinned
+        # fixture room follows the world clock, so during a dark phase
+        # targets resolve to "There's no 'Char2' here". TestBashNeedsSight
+        # overrides this deliberately; it is the one class here that is
+        # actually about darkness.
+        self.room1.always_lit = True
         self.char1.hp = 20
         self.char1.hp_max = 20
         self.char1.move = 100

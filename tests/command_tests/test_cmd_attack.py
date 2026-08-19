@@ -38,6 +38,13 @@ class TestCmdAttack(EvenniaCommandTest):
         super().setUp()
         # Enable combat in the room
         self.room1.allow_combat = True
+        # Pin the light. Targeting runs through p_can_perceive, which
+        # folds in RoomBase.is_dark — and an unpinned fixture room falls
+        # back to "natural light, lit during light phases", i.e. the
+        # world clock. During a dark phase every target resolves to
+        # "There's no 'Char2' here." and these tests fail on the time of
+        # day rather than on anything they mean to assert.
+        self.room1.always_lit = True
         # Give characters enough HP
         self.char1.hp = 20
         self.char1.hp_max = 20
@@ -129,6 +136,13 @@ class TestCannotStartFightWhileBusy(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pin the light. Targeting runs through p_can_perceive, which
+        # folds in RoomBase.is_dark — and an unpinned fixture room falls
+        # back to "natural light, lit during light phases", i.e. the
+        # world clock. During a dark phase every target resolves to
+        # "There's no 'Char2' here." and these tests fail on the time of
+        # day rather than on anything they mean to assert.
+        self.room1.always_lit = True
         self.char1.hp = 20
         self.char1.hp_max = 20
         self.char2.hp = 20
@@ -202,6 +216,13 @@ class TestCmdDodge(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pin the light. Targeting runs through p_can_perceive, which
+        # folds in RoomBase.is_dark — and an unpinned fixture room falls
+        # back to "natural light, lit during light phases", i.e. the
+        # world clock. During a dark phase every target resolves to
+        # "There's no 'Char2' here." and these tests fail on the time of
+        # day rather than on anything they mean to assert.
+        self.room1.always_lit = True
         self.room1.allow_pvp = True  # PvP needed so PCs can be enemies
         self.char1.hp = 20
         self.char1.hp_max = 20
@@ -296,6 +317,13 @@ class TestCombatHandler(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pin the light. Targeting runs through p_can_perceive, which
+        # folds in RoomBase.is_dark — and an unpinned fixture room falls
+        # back to "natural light, lit during light phases", i.e. the
+        # world clock. During a dark phase every target resolves to
+        # "There's no 'Char2' here." and these tests fail on the time of
+        # day rather than on anything they mean to assert.
+        self.room1.always_lit = True
         self.char1.hp = 20
         self.char1.hp_max = 20
         self.char2.hp = 20
@@ -421,6 +449,13 @@ class TestCombatUtils(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pin the light. Targeting runs through p_can_perceive, which
+        # folds in RoomBase.is_dark — and an unpinned fixture room falls
+        # back to "natural light, lit during light phases", i.e. the
+        # world clock. During a dark phase every target resolves to
+        # "There's no 'Char2' here." and these tests fail on the time of
+        # day rather than on anything they mean to assert.
+        self.room1.always_lit = True
         self.char1.hp = 50
         self.char1.hp_max = 50
         self.char2.hp = 50
@@ -702,6 +737,13 @@ class TestCmdSkillBaseMasteryBranch(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.room1.allow_combat = True
+        # Pin the light. Targeting runs through p_can_perceive, which
+        # folds in RoomBase.is_dark — and an unpinned fixture room falls
+        # back to "natural light, lit during light phases", i.e. the
+        # world clock. During a dark phase every target resolves to
+        # "There's no 'Char2' here." and these tests fail on the time of
+        # day rather than on anything they mean to assert.
+        self.room1.always_lit = True
         self.char1.hp = 20
         self.char1.hp_max = 20
         self.char2.hp = 20
