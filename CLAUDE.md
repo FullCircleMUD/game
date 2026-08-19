@@ -214,6 +214,25 @@ Custom cmdsets merge on top of Evennia defaults via `commands/default_cmdsets.py
 2. Import and `self.add(CmdMyCommand())` in `cmdset_character_custom.py`.
 3. Always add instances `()`, not bare class references.
 
+**Posture and sleep gates — class attributes on `FCMCommandMixin`, never an inline check.**
+Both are enforced in `at_pre_cmd()`, so a wrongly-posed character never reaches `func()`.
+
+```python
+class CmdMemorise(FCMCommandMixin, Command):
+    allow_while_sleeping = False   # the default; True opts out of the sleep gate
+    required_position = "sitting"  # or a tuple: ("sitting", "resting")
+    position_error_msg = "You must sit down before you can memorise a spell."
+```
+
+`required_position = None` (the default) means any pose will do, which is right for nearly
+every command — `look`, `say` and `inventory` work sitting, standing or fighting. Only name a
+pose where the body position is genuinely part of the action. `position_error_msg` is optional;
+without it the refusal is generated from the pose names. The sleep gate answers first, so a
+sleeping character gets the sleep message rather than the posture one.
+
+Because `"fighting"` is a position, `required_position = "standing"` also refuses during
+combat.
+
 ### Key Evennia gotchas
 
 - Use `session.puppet` (not `session.puppets`) to get the character.

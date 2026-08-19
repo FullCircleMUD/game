@@ -36,18 +36,14 @@ class CmdLearn(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Crafting"
     allow_while_sleeping = False
+    required_position = "sitting"
+    position_error_msg = "You must sit down before you can learn a recipe."
 
     def func(self):
         caller = self.caller
 
         if not self.args:
             caller.msg("Learn from what? Usage: learn <recipe item>")
-            return
-
-        # Sitting only — studying a recipe needs a seat. Standing, resting
-        # and fighting are all refused by this one check.
-        if caller.position != "sitting":
-            caller.msg("You must sit down before you can learn a recipe.")
             return
 
         if check_busy(caller):

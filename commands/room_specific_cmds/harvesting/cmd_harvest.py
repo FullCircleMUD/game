@@ -60,9 +60,10 @@ class CmdHarvest(FCMCommandMixin, Command):
 
     key = "harvest"
     aliases = ["chop", "mine", "forage", "gather", "pick"]
-    
+
     locks = "cmd:all()"
     help_category = "Gathering"
+    required_position = "standing"
 
     def func(self):
         caller = self.caller

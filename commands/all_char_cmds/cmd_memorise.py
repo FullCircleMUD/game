@@ -42,18 +42,14 @@ class CmdMemorise(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Magic"
     allow_while_sleeping = False
+    required_position = "sitting"
+    position_error_msg = "You must sit down before you can memorise a spell."
 
     def func(self):
         caller = self.caller
 
         if not self.args:
             caller.msg("Memorise what? Usage: memorise <spell>")
-            return
-
-        # Sitting only — a spellbook needs a lap. Standing, resting,
-        # sleeping and fighting are all refused by this one check.
-        if caller.position != "sitting":
-            caller.msg("You must sit down before you can memorise a spell.")
             return
 
         if check_busy(caller):

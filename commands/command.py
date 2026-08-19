@@ -38,12 +38,41 @@ class FCMCommandMixin:
 
     Subclasses that should work while sleeping set:
         allow_while_sleeping = True
+
+    Subclasses that demand a posture set one pose or several:
+        required_position = "sitting"
+        required_position = ("sitting", "resting")
+
+    and may replace the refusal wording with:
+        position_error_msg = "You must sit down to read a book."
     """
 
     allow_while_sleeping = False
 
+    # The poses a command will accept, as a string or a tuple of them.
+    # None means any pose will do, which is right for nearly every
+    # command — look, say and inventory work sitting, standing or
+    # fighting. Only the commands that genuinely need a body position
+    # name one.
+    required_position = None
+    position_error_msg = None
+
+    def _position_refusal(self):
+        """The line a wrongly-posed character gets, or None if posed right."""
+        required = self.required_position
+        if not required:
+            return None
+        if isinstance(required, str):
+            required = (required,)
+        if getattr(self.caller, "position", None) in required:
+            return None
+        if self.position_error_msg:
+            return self.position_error_msg
+        poses = " or ".join(f"|w{pose}|n" for pose in required)
+        return f"You must be {poses} to do that."
+
     def at_pre_cmd(self):
-        """Block commands while sleeping unless explicitly allowed."""
+        """Block commands while sleeping or wrongly posed."""
         if (
             not self.allow_while_sleeping
             and getattr(self.caller, "position", None) == "sleeping"
@@ -51,6 +80,11 @@ class FCMCommandMixin:
             self.caller.msg(
                 "In your dreams or what? Try |wstand|n or |wwake|n."
             )
+            return True  # abort command
+
+        refusal = self._position_refusal()
+        if refusal:
+            self.caller.msg(refusal)
             return True  # abort command
         from twisted.internet import reactor
 

@@ -36,18 +36,14 @@ class CmdTranscribe(FCMCommandMixin, Command):
     locks = "cmd:all()"
     help_category = "Magic"
     allow_while_sleeping = False
+    required_position = "sitting"
+    position_error_msg = "You must sit down before you can transcribe a scroll."
 
     def func(self):
         caller = self.caller
 
         if not self.args:
             caller.msg("Transcribe what? Usage: transcribe <scroll>")
-            return
-
-        # Sitting only — copying a scroll needs a steady hand. Standing,
-        # resting and fighting are all refused by this one check.
-        if caller.position != "sitting":
-            caller.msg("You must sit down before you can transcribe a scroll.")
             return
 
         if check_busy(caller):

@@ -137,6 +137,14 @@ class TestHarvestValidation(HarvestingTestBase):
         result = self.call(CmdHarvest(), "", cmdstring="mine")
         self.assertIn("swim down", result.lower())
 
+    def test_must_be_standing(self):
+        """Sitting or resting is refused — harvesting is done on your feet."""
+        for position in ("sitting", "resting"):
+            self.char1.position = position
+            result = self.call(CmdHarvest(), "", cmdstring="mine")
+            self.assertIn("must be", result.lower())
+        self.assertEqual(self.room1.db.resource_count, 10)
+
     def test_busy_rejected(self):
         """Should reject if already processing/harvesting."""
         self.char1.ndb.is_processing = True
