@@ -12,8 +12,8 @@ DireWolf in dire_wolf.py (used only by test fixtures). They are separate
 typeclasses with different stats and behavior.
 
 Per-quadrant den_room_tag is set via the spawn rule's `attrs` field — each
-of the four quadrants (NE/NW/SE/SW) has its own den room tagged in
-world/game_world/zones/millholm/southern.py.
+of the four quadrants (NE/NW/SE/SW) has its own den room, tagged by the
+spawn rules in fcm-mobs/shard0/millholm/southern.yaml.
 """
 
 from evennia.typeclasses.attributes import AttributeProperty

@@ -15,16 +15,7 @@ Usage:
                                    with live/heartbeat status
     services reset <name>       — reset one (Y/N prompt)
     services reset <name> force — skip the prompt
-
-The former "reset zone <key>" / "reset zones all" subcommands are
-SUSPECTED DEAD — they operated on the retired ZoneSpawnScript and are
-commented out below pending confirmation before deletion. Mob
-populations are now managed by the evennia-mob-spawner library
-(`ms_load` / `ms_status` / `ms_restart` / `ms_stop` / `ms_delete`).
 """
-
-# import glob   # SUSPECTED DEAD: only used by zone-script discovery
-# import os     # SUSPECTED DEAD: only used by zone-script discovery
 
 from evennia import Command, GLOBAL_SCRIPTS, create_script, logger
 from evennia.utils.evmenu import get_input
@@ -32,70 +23,6 @@ from evennia_shards import get_role
 from twisted.internet import threads
 
 from server.conf.at_server_startstop import _select_scripts
-# SUSPECTED DEAD — pending confirmation before deletion.
-# from typeclasses.scripts.zone_spawn_script import ZoneSpawnScript
-
-
-# ----------------------------------------------------------------- #
-# Zone spawn script discovery — SUSPECTED DEAD, pending confirmation
-# before deletion. Mob populations now via evennia-mob-spawner.
-# ----------------------------------------------------------------- #
-
-# _SPAWNS_DIR = os.path.normpath(
-#     os.path.join(os.path.dirname(__file__), "..", "..", "world", "spawns")
-# )
-#
-#
-# def _discover_zone_keys():
-#     """Enumerate zone_keys from world/spawns/*.json filenames."""
-#     return sorted(
-#         os.path.splitext(os.path.basename(p))[0]
-#         for p in glob.glob(os.path.join(_SPAWNS_DIR, "*.json"))
-#     )
-#
-#
-# def _get_zone_script(zone_key):
-#     """Look up a ZoneSpawnScript by zone_key, or return None."""
-#     return ZoneSpawnScript.objects.filter(db_key=f"zone_spawn_{zone_key}").first()
-#
-#
-# def _running_zone_keys():
-#     """Return zone_keys for every ZoneSpawnScript currently in the DB."""
-#     keys = []
-#     for script in ZoneSpawnScript.objects.all():
-#         key = script.key or ""
-#         if key.startswith("zone_spawn_"):
-#             keys.append(key[len("zone_spawn_"):])
-#     return keys
-#
-#
-# def _format_age(seconds):
-#     """Render an elapsed-time span in a compact form."""
-#     if seconds is None:
-#         return "never"
-#     seconds = int(seconds)
-#     if seconds < 60:
-#         return f"{seconds}s ago"
-#     if seconds < 3600:
-#         return f"{seconds // 60}m ago"
-#     if seconds < 86400:
-#         return f"{seconds // 3600}h ago"
-#     return f"{seconds // 86400}d ago"
-#
-#
-# def _reset_zone(zone_key):
-#     """Stop, delete, and recreate a single zone spawn script."""
-#     script = _get_zone_script(zone_key)
-#     if script:
-#         try:
-#             script.stop()
-#         except Exception as exc:
-#             logger.log_err(f"services: stop(zone_spawn_{zone_key}) failed: {exc}")
-#         try:
-#             script.delete()
-#         except Exception as exc:
-#             logger.log_err(f"services: delete(zone_spawn_{zone_key}) failed: {exc}")
-#     ZoneSpawnScript.create_for_zone(zone_key)
 
 
 # ----------------------------------------------------------------- #
@@ -223,14 +150,6 @@ class CmdServices(Command):
         force = any(t.lower() == "force" for t in tokens)
         non_force = [t for t in tokens if t.lower() != "force"]
 
-        # SUSPECTED DEAD — pending confirmation before deletion.
-        # Zone-script arms `reset zone <key>` / `reset zones all` are
-        # commented out; ZoneSpawnScript is retired. Mob populations
-        # are now managed via the evennia-mob-spawner ms_* commands.
-        # if non_force and non_force[0].lower() in ("zone", "zones"):
-        #     self._handle_zone_reset(non_force, force)
-        #     return
-
         if len(non_force) != 1:
             self.msg("Usage: services reset <name> [force]")
             return
@@ -247,116 +166,6 @@ class CmdServices(Command):
 
         typeclass_path = dict(entries)[resolved]
         self._reset_targeted(resolved, typeclass_path, force)
-
-    # ─────────────────────────────────────────────────────────────── #
-    # Zone-script reset — SUSPECTED DEAD, pending confirmation before
-    # deletion. ZoneSpawnScript is retired; mob populations now via
-    # evennia-mob-spawner (ms_load / ms_status / ms_restart / ms_stop).
-    # ─────────────────────────────────────────────────────────────── #
-
-    # def _handle_zone_reset(self, tokens, force):
-    #     """Parse and dispatch `reset zone <key>` or `reset zones all`."""
-    #     head = tokens[0].lower()
-    #     zone_keys = _discover_zone_keys()
-    #
-    #     if head == "zones":
-    #         if len(tokens) < 2 or tokens[1].lower() != "all":
-    #             self.msg("Usage: services reset zones all [force]")
-    #             return
-    #         self._reset_zones_all(zone_keys, force)
-    #         return
-    #
-    #     # head == "zone"
-    #     if len(tokens) < 2:
-    #         self.msg(
-    #             "Usage: services reset zone <zone_key> [force]\n"
-    #             "Available zones:\n  " + "\n  ".join(zone_keys)
-    #         )
-    #         return
-    #
-    #     requested = tokens[1]
-    #     if requested in zone_keys:
-    #         zone_key = requested
-    #     else:
-    #         matches = [z for z in zone_keys if requested in z]
-    #         if len(matches) == 1:
-    #             zone_key = matches[0]
-    #         else:
-    #             self.msg(
-    #                 f"|rUnknown zone: {requested}|n\n"
-    #                 "Available zones:\n  " + "\n  ".join(zone_keys)
-    #             )
-    #             return
-    #
-    #     self._reset_zone_targeted(zone_key, force)
-    #
-    # def _reset_zone_targeted(self, zone_key, force):
-    #     script = _get_zone_script(zone_key)
-    #     status = "|gRUNNING|n" if script else "|rMISSING|n"
-    #     self.msg(f"|c--- zone_spawn_{zone_key} ---|n\n  {status}")
-    #
-    #     if force:
-    #         self.msg("|y(force — no confirmation)|n")
-    #         self._do_reset_zone(zone_key)
-    #         return
-    #
-    #     def _on_confirm(caller, _, result):
-    #         answer = (result or "").strip().lower()
-    #         if answer in ("n", "no"):
-    #             caller.msg("Reset cancelled.")
-    #             return False
-    #         self._do_reset_zone(zone_key)
-    #         return False
-    #
-    #     get_input(
-    #         self.account if hasattr(self, "account") else self.caller,
-    #         f"\nReset zone_spawn_{zone_key}? [Y]/N? ",
-    #         _on_confirm,
-    #     )
-    #
-    # def _do_reset_zone(self, zone_key):
-    #     d = threads.deferToThread(_reset_zone, zone_key)
-    #     d.addCallback(lambda _: self.msg(f"|gzone_spawn_{zone_key} reset.|n"))
-    #     d.addErrback(
-    #         lambda f: self.msg(f"|rReset failed: {f.getErrorMessage()}|n")
-    #     )
-    #
-    # def _reset_zones_all(self, zone_keys, force):
-    #     self.msg(
-    #         f"|yResetting all {len(zone_keys)} zone spawn scripts:|n "
-    #         + ", ".join(zone_keys)
-    #     )
-    #
-    #     if force:
-    #         self.msg("|y(force — no confirmation)|n")
-    #         self._do_reset_zones_all(zone_keys)
-    #         return
-    #
-    #     def _on_confirm(caller, _, result):
-    #         answer = (result or "").strip().lower()
-    #         if answer in ("n", "no"):
-    #             caller.msg("Reset cancelled.")
-    #             return False
-    #         self._do_reset_zones_all(zone_keys)
-    #         return False
-    #
-    #     get_input(
-    #         self.account if hasattr(self, "account") else self.caller,
-    #         f"\nReset all {len(zone_keys)} zone spawn scripts? [Y]/N? ",
-    #         _on_confirm,
-    #     )
-    #
-    # def _do_reset_zones_all(self, zone_keys):
-    #     def _worker():
-    #         for zone_key in zone_keys:
-    #             _reset_zone(zone_key)
-    #         return True
-    #
-    #     d = threads.deferToThread(_worker)
-    #     d.addCallback(lambda _: self.msg(f"|g{len(zone_keys)} zone scripts reset.|n"))
-    #     d.addErrback(
-    #         lambda f: self.msg(f"|rReset failed: {f.getErrorMessage()}|n")
-    #     )
 
     # ─────────────────────────────────────────────────────────────── #
     # Status report

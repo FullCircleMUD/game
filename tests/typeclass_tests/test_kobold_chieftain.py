@@ -112,12 +112,24 @@ class TestKoboldChieftainBehavior(EvenniaTest):
         self.boss.ai_retreating()
         self.assertEqual(self.boss.location, self.room1)
 
-    # def test_reset_chieftain_state_clears_rally_flag(self):
-    #     """Obsolete: reset_chieftain_state hook is replaced by the
-    #     declarative `attrs: {has_rallied: False}` stamp in
-    #     fcm-mobs/shard0/millholm/mine.yaml. The library stamps the
-    #     attribute on every fresh spawn; no runtime reset is required."""
-    #     from typeclasses.actors.mobs.kobold_chieftain import reset_chieftain_state
-    #     self.boss.db.has_rallied = True
-    #     reset_chieftain_state(self.boss)
-    #     self.assertFalse(self.boss.db.has_rallied)
+    def test_rally_fires_without_any_spawn_time_reset(self):
+        """A fresh mob rallies on its own — nothing has to clear the flag.
+
+        Replaces a commented-out test for `reset_chieftain_state`, and the
+        `attrs: {has_rallied: False}` YAML stamp that replaced *it*. Both
+        were unnecessary: an unset attr is falsy, and a mob is deleted on
+        death, so every spawn starts clean. The YAML stamp was worse than
+        unnecessary — `has_rallied` has no AttributeProperty, so it never
+        reached `.db` and the spawner logged a WARN on every spawn.
+        """
+        fresh = create.create_object(
+            "typeclasses.actors.mobs.kobold_chieftain.KoboldChieftain",
+            key="the Kobold Chieftain",
+            location=self.room1,
+        )
+        self.assertFalse(fresh.db.has_rallied)
+
+        fresh.hp = fresh.hp_max // 4  # below 50%
+        fresh.at_combat_tick(None)
+
+        self.assertTrue(fresh.db.has_rallied)

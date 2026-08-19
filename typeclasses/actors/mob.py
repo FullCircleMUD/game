@@ -428,21 +428,6 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         if room:
             self._create_corpse(room, cause)
 
-        # SUSPECTED DEAD — pending confirmation before deletion.
-        # ZoneSpawnScript callback-based death notification, replaced by
-        # the mob-spawner library's observation-based death detection
-        # (it counts living mobs each tick and infers deaths via delta).
-        # Mobs spawned by the new system never had spawn_rule_id /
-        # spawn_zone_key stamped on them, so this block was already a
-        # silent no-op for them; commenting out now to make that explicit.
-        # rule_id = self.db.spawn_rule_id
-        # zone_key = self.db.spawn_zone_key
-        # if rule_id and zone_key:
-        #     from evennia import ScriptDB
-        #     scripts = ScriptDB.objects.filter(db_key=f"zone_spawn_{zone_key}")
-        #     if scripts.exists():
-        #         scripts.first().on_mob_death(rule_id)
-
         self.delete()
 
     def _create_corpse(self, room, cause):

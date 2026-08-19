@@ -571,9 +571,9 @@ def _restart_mob_tickers():
     """
     Find all living CombatMobs and restart their AI tickers.
 
-    Dead mobs are deleted in `die()`; the ZoneSpawnScript handles
-    spawning fresh replacements on its own clock, so there is no
-    restart-time respawn work to do.
+    Dead mobs are deleted in `die()`; evennia-mob-spawner observes the
+    population drop on its next tick and spawns replacements on its own
+    clock, so there is no restart-time respawn work to do.
 
     Per-role behaviour:
       - router: skip entirely. The router doesn't own game-world mobs.

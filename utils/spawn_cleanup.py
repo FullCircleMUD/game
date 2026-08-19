@@ -6,8 +6,8 @@ that were placed by the spawn system. Returns everything to RESERVE.
 Player-owned items (on characters and in account banks) are never touched.
 
 Called by the superuser ``wipe_spawns`` command. NOT called on server
-restart — spawned loot survives restarts and is only cleared manually
-or by ``soft_deploy_world`` (which does its own zone-level cleanup).
+restart — spawned loot survives restarts and is only cleared manually,
+or by ``wb_build``, which cleans by ``wb_deployment_file`` tag.
 
 Usage:
     from utils.spawn_cleanup import clear_spawned_items
