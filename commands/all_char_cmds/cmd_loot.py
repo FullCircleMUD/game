@@ -5,11 +5,13 @@ Available everywhere. Owner can always loot their own corpse.
 Others can loot after the 5-minute owner-only lock expires.
 
 Usage:
-    loot                     — list lootable corpses and their contents
-    loot <item>              — take an NFT item from a corpse
-    loot gold [amount]       — take gold from a corpse
-    loot <resource> [amount] — take a resource from a corpse
-    loot all                 — take everything from a corpse
+    loot / loot all — take everything from every corpse you can reach
+
+Selection (which corpses the character can see and reach) is separate
+from the looting itself, so a targeted form only needs its matching step
+added. `_match_corpse`, `_loot_item`, `_loot_gold` and `_loot_resource`
+are that step and are not yet reached — the grammar for naming a corpse
+versus an item is still undecided.
 """
 
 from django.conf import settings
@@ -21,6 +23,7 @@ from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
 from typeclasses.world_objects.corpse import Corpse
 from utils.item_parse import parse_item_args
+from utils.targeting.predicates import p_can_see, p_same_height
 from utils.weight_check import (
     check_can_carry, get_item_weight, get_gold_weight, get_resource_weight,
 )
@@ -30,14 +33,19 @@ GOLD = settings.GOLD_DISPLAY
 
 class CmdLoot(FCMCommandMixin, Command):
     """
-    Loot all corpses in the room.
+    Loot the corpses around you.
 
     Usage:
         loot
+        loot all
 
-    Takes everything (items, gold, resources) from every lootable
-    corpse in the room. You can only loot your own corpse for the
-    first 5 minutes. After that, anyone can loot it.
+    Takes everything — items, gold and resources — from every corpse you
+    can reach. You can only loot your own corpse for the first 5 minutes;
+    after that, anyone can.
+
+    You must be able to see a corpse to loot it, and be at the same height
+    as it: a corpse on the ground cannot be looted from the air, nor one
+    at depth from the surface.
     """
 
     key = "loot"
@@ -48,27 +56,119 @@ class CmdLoot(FCMCommandMixin, Command):
         caller = self.caller
         room = caller.location
 
-        # Find corpses in the room
-        corpses = [obj for obj in room.contents if isinstance(obj, Corpse)]
-        if not corpses:
+        if not room:
             caller.msg("There are no corpses here.")
             return
 
-        # Loot everything from every lootable corpse
+        reachable, out_of_reach = self._select_corpses(caller, room)
+
+        if not reachable and not out_of_reach:
+            caller.msg("There are no corpses here.")
+            return
+
+        args = (self.args or "").strip()
+
+        # ── Targeted looting — the seam, not yet wired ──
+        #
+        # Selection above already does the work any targeted form needs:
+        # it returns the corpses this character can see and reach. What is
+        # missing is the step after — matching a name and moving part of a
+        # corpse's contents. `_match_corpse`, `_loot_item`, `_loot_gold`
+        # and `_loot_resource` are that step, already in this file and
+        # currently unreached.
+        #
+        # The grammar is undecided, which is why nothing is wired: naming
+        # a corpse and naming an item are both plausible readings of
+        # `loot <x>`, and they are ambiguous with each other unless a
+        # `from` separates them (`loot <item> from <corpse>`,
+        # `loot all from <corpse>`). That is a design decision, not a
+        # missing implementation, so the message below stays neutral about
+        # which form will eventually exist.
+        if args and args.lower() != "all":
+            caller.msg(
+                "Only |wloot all|n is supported for now — it takes "
+                "everything you can reach."
+            )
+            return
+
+        # ── loot / loot all ──
+        if not reachable:
+            caller.msg(self._out_of_reach_message(caller, out_of_reach))
+            return
+
+        # Loot everything from every corpse the owner-lock allows.
         looted_anything = False
-        for corpse in corpses:
+        for corpse in reachable:
             if not corpse.can_loot(caller):
                 continue
             if self._loot_all(caller, corpse):
                 looted_anything = True
 
-        locked_corpses = [c for c in corpses if not c.can_loot(caller)]
+        locked_corpses = [c for c in reachable if not c.can_loot(caller)]
         if not looted_anything and locked_corpses:
             caller.msg("The corpses here are still protected.")
         elif not looted_anything:
             caller.msg("There is nothing to loot on the corpses in the room.")
         elif locked_corpses:
             caller.msg("Some corpses are still protected and were not looted.")
+
+        if out_of_reach:
+            caller.msg(self._out_of_reach_message(caller, out_of_reach))
+
+    # ------------------------------------------------------------------ #
+    #  Corpse selection — sight and reach
+    # ------------------------------------------------------------------ #
+    #
+    # Deliberately separate from the looting itself. Selection answers
+    # "which corpses can this character act on at all", and knows nothing
+    # about what is then taken from them. A future `loot <item>` filters
+    # the reachable list by name and reuses this unchanged, rather than
+    # re-deriving sight and height rules of its own.
+
+    def _select_corpses(self, caller, room):
+        """Split the room's corpses into (reachable, out_of_reach).
+
+        Two gates, and they fail differently on purpose:
+
+        - **Sight** (``p_can_see``) — folds in blindness, room darkness and
+          concealment. A corpse the caller cannot see is dropped from both
+          lists entirely. Reporting it as out of reach would announce that
+          a corpse is there, which is exactly what not seeing it should
+          withhold.
+        - **Height** (``p_same_height``) — a corpse on the ground is not
+          lootable from the air, and one at depth is not lootable from the
+          surface. This one the caller *can* see, so it is reported.
+
+        Matches the gating every other object-handling command applies —
+        get, put, give, open, close, lock, unlock, read.
+        """
+        height_ok = p_same_height(caller)
+
+        reachable = []
+        out_of_reach = []
+        for obj in room.contents:
+            if not isinstance(obj, Corpse):
+                continue
+            if not p_can_see(obj, caller):
+                continue  # unseen — say nothing at all
+            if height_ok(obj, caller):
+                reachable.append(obj)
+            else:
+                out_of_reach.append(obj)
+
+        return reachable, out_of_reach
+
+    @staticmethod
+    def _out_of_reach_message(caller, corpses):
+        """Name the corpses the caller can see but cannot reach."""
+        names = [c.get_display_name(caller) for c in corpses]
+        if len(names) == 1:
+            listed = names[0]
+        elif len(names) == 2:
+            listed = f"{names[0]} or {names[1]}"
+        else:
+            listed = f"{', '.join(names[:-1])} or {names[-1]}"
+        return f"You cannot reach {listed} from here."
 
     # ------------------------------------------------------------------ #
     #  List corpses
