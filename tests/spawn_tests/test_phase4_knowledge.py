@@ -17,6 +17,19 @@ from unittest.mock import patch, MagicMock
 from evennia.utils import create
 from evennia.utils.test_resources import EvenniaTest
 
+# Import the distributor here, before any test patches SPAWN_CONFIG.
+#
+# nft.py binds SPAWN_CONFIG at import and calls populate_knowledge_config()
+# on it at import. Every other import of it in this file sits inside an
+# @patch that swaps SPAWN_CONFIG for a small fake — so if one of those runs
+# first, nft.py binds the fake, fills the fake, and keeps pointing at it
+# after the patch lifts. The real SPAWN_CONFIG then never gets its
+# knowledge entries, and TestRealSpawnConfigIsPopulated fails.
+#
+# Importing at module scope means the binding always happens against the
+# real dict. Remove this and the module passes or fails on test order.
+import blockchain.xrpl.services.spawn.distributors.nft  # noqa: F401,E402
+
 
 # ================================================================== #
 #  Mob tag/attribute registration
@@ -305,14 +318,22 @@ class TestPopulateKnowledgeConfig(EvenniaTest):
 
 
 class TestResolveNFTItemTypeName(EvenniaTest):
-    """Test prototype_key → NFTItemType.name resolution."""
+    """Test prototype_key → NFTItemType.name resolution.
+
+    These patch ``distributors.nft.SPAWN_CONFIG``, not
+    ``config.SPAWN_CONFIG``. That looks like the wrong target and is not:
+    nft.py does ``from ...config import SPAWN_CONFIG``, so it holds its own
+    reference. Patching the attribute on ``config`` rebinds it there and
+    leaves nft.py still pointing at the original dict, so the function under
+    test never sees the fake at all.
+    """
 
     databases = "__all__"
 
     def create_script(self):
         pass
 
-    @patch("blockchain.xrpl.services.spawn.config.SPAWN_CONFIG", {
+    @patch("blockchain.xrpl.services.spawn.distributors.nft.SPAWN_CONFIG", {
         ("knowledge", "scroll_test"): {"prototype_key": "test_scroll"},
     })
     def test_returns_none_for_unknown_type_key(self):
@@ -329,7 +350,7 @@ class TestResolveNFTItemTypeName(EvenniaTest):
         result = _resolve_nft_item_type_name("scroll_nonexistent_spell")
         self.assertIsNone(result)
 
-    @patch("blockchain.xrpl.services.spawn.config.SPAWN_CONFIG", {
+    @patch("blockchain.xrpl.services.spawn.distributors.nft.SPAWN_CONFIG", {
         ("knowledge", "scroll_test"): {"prototype_key": "test_scroll"},
     })
     def test_returns_none_when_nft_item_type_missing(self):
@@ -340,7 +361,7 @@ class TestResolveNFTItemTypeName(EvenniaTest):
         result = _resolve_nft_item_type_name("scroll_test")
         self.assertIsNone(result)
 
-    @patch("blockchain.xrpl.services.spawn.config.SPAWN_CONFIG", {
+    @patch("blockchain.xrpl.services.spawn.distributors.nft.SPAWN_CONFIG", {
         ("knowledge", "scroll_test"): {"prototype_key": "test_scroll"},
     })
     def test_returns_name_when_item_type_exists(self):
@@ -359,7 +380,7 @@ class TestResolveNFTItemTypeName(EvenniaTest):
         result = _resolve_nft_item_type_name("scroll_test")
         self.assertEqual(result, "Scroll of Test")
 
-    @patch("blockchain.xrpl.services.spawn.config.SPAWN_CONFIG", {
+    @patch("blockchain.xrpl.services.spawn.distributors.nft.SPAWN_CONFIG", {
         ("knowledge", "scroll_no_proto"): {"calculator": "knowledge"},
     })
     def test_returns_none_for_missing_prototype_key(self):
