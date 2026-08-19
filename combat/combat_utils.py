@@ -402,10 +402,10 @@ def execute_attack(attacker, target, _is_riposte=False,
 
                 # Three-perspective parry messages
                 attacker.msg(
-                    f"|y{target.key} parries your attack with {defender_weapon.key}!|n"
+                    f"|y{target.key} parries your attack with their {defender_weapon.key}!|n"
                 )
                 target.msg(
-                    f"|gYou parry {attacker.key}'s attack with {defender_weapon.key}!|n"
+                    f"|gYou parry {attacker.key}'s attack with your {defender_weapon.key}!|n"
                 )
                 # Nothing breaks here, deliberately. Parrying is a reaction
                 # to being attacked, and being attacked never reveals you
