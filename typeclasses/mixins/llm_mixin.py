@@ -679,7 +679,11 @@ class LLMMixin:
             return
         custom = self.llm_thinking_emote
         phrase = custom if custom else random.choice(self._THINKING_PHRASES)
-        self.location.msg_contents(f"|c{self.key}|n {phrase}", from_obj=self)
+        # The NPC is named through mapping, so each observer gets
+        # get_display_name() — "Someone" for anyone who cannot see them.
+        self.location.msg_contents(
+            "|c{npc}|n " + phrase, from_obj=self, mapping={"npc": self}
+        )
 
     def _emote_and_respond(self, speaker, message, interaction_type):
         """Deferred helper: send thinking emote then kick off llm_respond."""
@@ -722,10 +726,7 @@ class LLMMixin:
         comment = random.choice(
             self.llm_snub_comments or self._SNUB_COMMENTS
         ).format(name=speaker.key)
-        self._msg_room_dark_aware(
-            f'|c{self.key} says:|n "{comment}"',
-            f'|cSomeone says:|n "{comment}"',
-        )
+        self._say_to_room(comment)
 
     def _deliver_blind_challenge(self):
         """
@@ -739,10 +740,7 @@ class LLMMixin:
             return
 
         line = random.choice(self.llm_blind_challenges or self._BLIND_CHALLENGES)
-        self._msg_room_dark_aware(
-            f'|c{self.key} says:|n "{line}"',
-            f'|cSomeone says:|n "{line}"',
-        )
+        self._say_to_room(line)
 
     def _deliver_response(self, speaker, response_text, interaction_type):
         """
@@ -777,33 +775,31 @@ class LLMMixin:
             # Whisper back to the speaker (only they see it)
             speaker.msg(f'|c{self.key} whispers to you:|n "{clean}"')
         elif interaction_type in ("arrive", "leave"):
-            # Ambient reaction — per-listener dark-awareness
-            self._msg_room_dark_aware(
-                f'|c{self.key} says:|n "{clean}"',
-                f'|cSomeone says:|n "{clean}"',
-            )
+            # Ambient reaction — spoken to the room at large
+            self._say_to_room(clean)
         else:
             # Say — respond to the room, directed at speaker
-            self._msg_room_dark_aware(
-                f'|c{self.key} says to {speaker.key}:|n "{clean}"',
-                f'|cSomeone says:|n "{clean}"',
-            )
+            self._say_to_room(clean, to=speaker)
 
-    def _msg_room_dark_aware(self, lit_msg, dark_msg):
+    def _say_to_room(self, text, to=None):
         """
-        Send a message to all room occupants, using ``dark_msg`` for
-        listeners who can't see in the dark.
+        Speak, the way a player speaks.
+
+        Routed through the ``say`` command rather than messaging the room
+        directly, so NPC speech gets everything player speech gets: deaf
+        and sleeping listeners skipped, the speaker named by what each
+        listener can actually see, and language garbling. The command
+        reaches the NPC through ``CmdSetNPCSpeech``.
+
+        Args:
+            text (str): what is said.
+            to (Object, optional): who it is said to. Everyone in the room
+                still hears it — being addressed only changes the wording.
         """
-        room = self.location
-        if not room:
+        if not self.location:
             return
-        for obj in room.contents:
-            if not obj.has_account:
-                continue
-            if hasattr(room, "is_dark") and room.is_dark(obj):
-                obj.msg(dark_msg)
-            else:
-                obj.msg(lit_msg)
+        target = f"to {to.key} " if to else ""
+        self.execute_cmd(f"say {target}{text}")
 
     def _deliver_fallback(self, speaker, interaction_type):
         """Deliver a hardcoded fallback when LLM is unavailable."""

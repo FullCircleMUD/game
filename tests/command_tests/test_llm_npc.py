@@ -251,7 +251,7 @@ class TestLLMMixin(EvenniaCommandTest):
     def test_blind_arrival_speaks_a_challenge(self):
         npc = self._create_llm_npc(llm_hook_arrive=True)
         npc.add_condition(Condition.BLINDED)
-        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+        with patch.object(npc, "_say_to_room") as mock_say:
             npc.at_llm_player_arrive(self.char1)
         spoken = mock_say.call_args[0][0]
         self.assertTrue(
@@ -262,7 +262,7 @@ class TestLLMMixin(EvenniaCommandTest):
     def test_blind_challenge_names_nobody(self):
         npc = self._create_llm_npc(llm_hook_arrive=True)
         npc.add_condition(Condition.BLINDED)
-        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+        with patch.object(npc, "_say_to_room") as mock_say:
             npc.at_llm_player_arrive(self.char1)
         # Both the lit and the dark rendering of the line
         for rendered in mock_say.call_args[0]:
@@ -272,14 +272,14 @@ class TestLLMMixin(EvenniaCommandTest):
         npc = self._create_llm_npc(llm_hook_arrive=True)
         npc.llm_blind_challenges = ["Who goes there, damn you?"]
         npc.add_condition(Condition.BLINDED)
-        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+        with patch.object(npc, "_say_to_room") as mock_say:
             npc.at_llm_player_arrive(self.char1)
         self.assertIn("Who goes there, damn you?", mock_say.call_args[0][0])
 
     def test_a_disabled_arrive_hook_challenges_nobody(self):
         npc = self._create_llm_npc()
         npc.add_condition(Condition.BLINDED)
-        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+        with patch.object(npc, "_say_to_room") as mock_say:
             npc.at_llm_player_arrive(self.char1)
         mock_say.assert_not_called()
 
@@ -385,7 +385,7 @@ class TestLLMMixin(EvenniaCommandTest):
         npc = self._create_llm_npc()
         self.char1.location = self.room2
         with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
-            npc, "_msg_room_dark_aware"
+            npc, "_say_to_room"
         ) as mock_say:
             npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
         mock_snub.assert_called_once_with(self.char1)
@@ -396,7 +396,7 @@ class TestLLMMixin(EvenniaCommandTest):
         npc = self._create_llm_npc()
         self.char1.location = None
         with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
-            npc, "_msg_room_dark_aware"
+            npc, "_say_to_room"
         ) as mock_say:
             npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
         mock_snub.assert_called_once_with(self.char1)
@@ -405,7 +405,7 @@ class TestLLMMixin(EvenniaCommandTest):
     def test_present_speaker_still_hears_response(self):
         """The guard must not suppress the normal case."""
         npc = self._create_llm_npc()
-        with patch.object(npc, "_msg_room_dark_aware") as mock_say:
+        with patch.object(npc, "_say_to_room") as mock_say:
             npc._deliver_response(self.char1, "Welcome to the inn!", "arrive")
         mock_say.assert_called_once()
 
@@ -414,7 +414,7 @@ class TestLLMMixin(EvenniaCommandTest):
         npc = self._create_llm_npc()
         self.char1.location = self.room2
         with patch.object(npc, "_deliver_snub") as mock_snub, patch.object(
-            npc, "_msg_room_dark_aware"
+            npc, "_say_to_room"
         ) as mock_say:
             npc._deliver_response(self.char1, "Come back soon!", "leave")
         mock_snub.assert_not_called()
@@ -425,7 +425,7 @@ class TestLLMMixin(EvenniaCommandTest):
         npc = self._create_llm_npc()
         self.char1.location = self.room2
         with patch.object(npc.location, "msg_contents") as mock_room, patch.object(
-            npc, "_msg_room_dark_aware"
+            npc, "_say_to_room"
         ) as mock_say:
             npc._deliver_snub(self.char1)
         mock_room.assert_called_once()
@@ -437,7 +437,7 @@ class TestLLMMixin(EvenniaCommandTest):
         npc.llm_snub_comments = ["Nice to see you too {name}"]
         self.char1.location = self.room2
         with patch.object(npc.location, "msg_contents"), patch.object(
-            npc, "_msg_room_dark_aware"
+            npc, "_say_to_room"
         ) as mock_say:
             npc._deliver_snub(self.char1)
         self.assertIn(self.char1.key, mock_say.call_args[0][0])
@@ -515,3 +515,74 @@ class TestSayLLMIntegration(EvenniaCommandTest):
             speaker=self.char1, message="hello world", language="common",
             target=None,
         )
+
+
+class TestNPCSpeechGoesThroughSay(EvenniaCommandTest):
+    """An NPC speaking runs the same command a player runs."""
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.char1.db.languages = {"common"}
+        self.char1.position = "standing"
+        self.room1.always_lit = True
+        from evennia.utils.create import create_object
+
+        self.npc = create_object(
+            "typeclasses.actors.npcs.llm_roleplay_npc.LLMRoleplayNPC",
+            key="TestNPC",
+            location=self.room1,
+        )
+
+    def _heard_by_char1(self, text, to=None):
+        """
+        Return everything char1 was sent while the NPC spoke.
+
+        ``say`` speaks only to played characters, and a test character
+        holds no session, so char1's has_account is stood up for the
+        duration — char2 stays unplayed so only char1's lines are caught.
+        """
+        heard = []
+        with patch.object(
+            type(self.char1), "has_account", new_callable=lambda: property(
+                lambda char: char is self.char1
+            )
+        ), patch.object(
+            type(self.char1), "msg",
+            new=lambda char, text=None, **kw: heard.append(str(text)),
+        ):
+            self.npc._say_to_room(text, to=to)
+        return " ".join(heard)
+
+    def test_undirected_speech_reaches_the_room(self):
+        """A plain line is heard by everyone present."""
+        self.assertIn("the forge is cold", self._heard_by_char1("the forge is cold"))
+
+    def test_directed_speech_names_the_listener(self):
+        """Speech aimed at someone reads as spoken to them."""
+        heard = self._heard_by_char1("your sword is ready", to=self.char1)
+        self.assertIn("says to you", heard)
+        self.assertIn("your sword is ready", heard)
+
+    def test_a_sleeper_hears_nothing(self):
+        """The reason for the change — say skips sleeping listeners."""
+        self.char1.position = "sleeping"
+        self.assertEqual(self._heard_by_char1("wake up", to=self.char1), "")
+
+    def test_the_npc_copy_is_closed_to_players(self):
+        """A service NPC merges its cmdset into nearby players — this one
+        must not give them a second `say`."""
+        npc_say = None
+        for cmdset in self.npc.cmdset.all():
+            for cmd in cmdset.commands:
+                if cmd.key == "say":
+                    npc_say = cmd
+        self.assertIsNotNone(npc_say)
+        self.assertFalse(npc_say.access(self.char1, "cmd"))
+        self.assertTrue(npc_say.access(self.npc, "cmd"))

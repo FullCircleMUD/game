@@ -64,6 +64,11 @@ class BaseNPC(BaseActor):
         # Replace the inherited character CmdSet with an empty one so player
         # commands (stats, skills, look, etc.) don't leak to nearby chars.
         self.cmdset.add_default(_EmptyNPCCmdSet)
+        # Speech goes through the same command players use — see
+        # commands/npc_cmds/cmdset_npc_speech.py.
+        from commands.npc_cmds.cmdset_npc_speech import CmdSetNPCSpeech
+
+        self.cmdset.add(CmdSetNPCSpeech, persistent=True)
 
     def get_level(self):
         """Return this NPC's combat level."""

@@ -85,11 +85,11 @@ class InnServiceTest(EvenniaCommandTest):
     def _challenge_line(self):
         """Run the gate, returning what the bartender broadcast (or None).
 
-        ``_msg_room_dark_aware`` delivers to accounts, and test objects
+        ``_say_to_room`` delivers to accounts, and test objects
         have none, so the method is patched and its arguments asserted.
         """
         with patch.object(
-            type(self.bartender), "_msg_room_dark_aware"
+            type(self.bartender), "_say_to_room"
         ) as mock_room:
             bartender_refuses(self.char1)
         return mock_room.call_args[0][0] if mock_room.call_args else None
