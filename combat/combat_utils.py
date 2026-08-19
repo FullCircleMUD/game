@@ -502,8 +502,13 @@ def execute_attack(attacker, target, _is_riposte=False,
                 # so there is nothing to break. Both names resolve per
                 # recipient; the helmet falls back to a bare word when the
                 # slot is empty and the crit immunity came from elsewhere.
+                target.msg(
+                    f"|cYour {getattr(helmet, 'key', None) or 'helmet'} "
+                    "deflects the critical blow!|n"
+                )
                 attacker.location.msg_contents(
                     "|c{defender}'s {helm} deflects the critical blow!|n",
+                    exclude=[target],
                     mapping={"defender": target, "helm": helmet or "helmet"},
                 )
 
