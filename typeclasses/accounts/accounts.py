@@ -714,13 +714,24 @@ Leave Character / Game      |gquit|n
             self.msg(f"|y[Dev] Superuser wallet set to: {settings.SUPERUSER_XRPL_WALLET_ADDRESS}|n")
 
         if self.db.bank is None:
-            from evennia_shards import ROLE_MONOLITH, get_role
-
-            bank = create_object(
-                "typeclasses.accounts.account_bank.AccountBank",
-                key=f"bank-{self.key}",
-                nohome=True,
+            from evennia_shards import (
+                ROLE_MONOLITH,
+                allow_unstamped_insert,
+                get_role,
             )
+
+            # create_object runs on the router, which is unscoped, so the
+            # row lands shard_id=NULL and the library's guard refuses it
+            # by default. This is one of the few inserts that is meant to
+            # land unstamped and is repaired immediately below, so it opts
+            # in explicitly. The block covers only the insert — the stamp
+            # to "*" that follows runs under the guard as normal.
+            with allow_unstamped_insert():
+                bank = create_object(
+                    "typeclasses.accounts.account_bank.AccountBank",
+                    key=f"bank-{self.key}",
+                    nohome=True,
+                )
             # Account banks are account-attached (1:1 with an account
             # that lives on the router) and may be read/written from
             # whichever shard the account is currently puppeting on.
@@ -731,12 +742,11 @@ Leave Character / Game      |gquit|n
             # INSTALLED_APPS there, so the shard_id column doesn't exist
             # on ObjectDB and assigning to it would AttributeError.
             #
-            # Why no bypass is needed: create_object runs on the router
-            # (unscoped tenant context), so the auto-stamp on insert is
-            # skipped and the row lands shard_id=NULL. The subsequent
-            # assignment to "*" then a save() is a legitimate first-stamp
-            # — the __setattr__ immutability check only flags an
-            # already-stamped row being re-stamped, which isn't this case.
+            # The assignment then save() is a legitimate first-stamp: the
+            # __setattr__ immutability check only flags an already-stamped
+            # row being re-stamped, which isn't this case. The guard does
+            # not fire here either — it refuses INSERTs, not UPDATEs of an
+            # already-NULL row.
             if get_role() != ROLE_MONOLITH:
                 bank.shard_id = "*"
                 bank.save()
