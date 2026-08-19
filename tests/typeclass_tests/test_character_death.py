@@ -107,10 +107,22 @@ class TestCharacterDeath(EvenniaTest):
 
     @patch("typeclasses.world_objects.corpse.delay")
     @patch("typeclasses.actors.character.delay")
-    def test_hp_reset_to_one(self, mock_char_delay, mock_corpse_delay):
-        """HP resets to 1 after death."""
+    def test_vitals_restored_to_full(self, mock_char_delay, mock_corpse_delay):
+        """HP, mana and move are restored to full on death.
+
+        Death is the reset. Effects are stripped and hunger and thirst
+        refilled, so the character arrives in purgatory whole rather than
+        on 1 HP with whatever mana and move they died holding.
+        """
+        self.char1.hp = 1
+        self.char1.mana = 0
+        self.char1.move = 0
+
         self.char1.die("combat")
-        self.assertEqual(self.char1.hp, 1)
+
+        self.assertEqual(self.char1.hp, self.char1.effective_hp_max)
+        self.assertEqual(self.char1.mana, self.char1.mana_max)
+        self.assertEqual(self.char1.move, self.char1.move_max)
 
     @patch("typeclasses.world_objects.corpse.delay")
     @patch("typeclasses.actors.character.delay")

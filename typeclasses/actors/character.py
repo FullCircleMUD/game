@@ -885,8 +885,20 @@ class FCMCharacter(
         if xp_penalty > 0:
             self.experience_points -= xp_penalty
 
-        # 10. Reset HP to 1
-        self.hp = 1
+        # 10. Restore HP, mana and move to full
+        #
+        # Death is the reset. Effects and conditions were stripped at step 2
+        # and hunger and thirst refilled at step 8, so leaving the character
+        # on 1 HP with whatever mana and move they died holding was the odd
+        # one out — they arrived at the cemetery still spent, with no way to
+        # recover it except standing around.
+        #
+        # effective_hp_max rather than hp_max: clear_all_effects() has
+        # already removed spell and equipment bonuses, so this is the max
+        # they actually have now, not the one they had mid-fight.
+        self.hp = self.effective_hp_max
+        self.mana = self.mana_max
+        self.move = self.move_max
 
         # 11. Announce death + death cry to adjacent rooms
         if room:
@@ -904,9 +916,12 @@ class FCMCharacter(
         # 13. Teleport to purgatory + start release timer
         purgatory = self._find_purgatory()
         if purgatory:
+            # move_to already renders the room — name, description and
+            # exits, the same as walking in anywhere else. Sending db.desc
+            # again here printed the description a second time, without a
+            # name or exits attached, as the first thing a player sees
+            # after dying.
             self.move_to(purgatory, quiet=True, move_type="teleport")
-            if purgatory.db.desc:
-                self.msg(purgatory.db.desc)
             self.msg(
                 f"\n|yYou will be released automatically in "
                 f"{self.PURGATORY_DURATION} seconds.|n\n"
