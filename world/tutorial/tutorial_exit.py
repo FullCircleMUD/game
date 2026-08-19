@@ -23,6 +23,19 @@ class TutorialCompletionExit(ExitVerticalAware):
         if not self.tutorial_instance_id:
             return
 
+        # Acknowledge before any teardown work starts. Everything that
+        # follows — the script lookup, then stripping tutorial items one at
+        # a time, restoring fungible balances and granting the graduation
+        # reward — happens with the player waiting, and the reward touches
+        # the blockchain mirror. Announcing here, rather than letting
+        # collapse_instance do it, is the difference between a silent pause
+        # after typing `down` and an immediate response.
+        #
+        # Safe at this point: at_traverse has already passed every gate
+        # (encumbrance, height, size) and the move has happened, so this
+        # cannot fire on a refused traversal.
+        traversing_object.msg("|cWrapping up your tutorial — one moment...|n")
+
         # Find the instance script
         try:
             script = ScriptDB.objects.get(id=self.tutorial_instance_id)
@@ -30,4 +43,4 @@ class TutorialCompletionExit(ExitVerticalAware):
             return
 
         if hasattr(script, "collapse_instance"):
-            script.collapse_instance(give_reward=True)
+            script.collapse_instance(give_reward=True, announced=True)

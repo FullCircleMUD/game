@@ -696,7 +696,7 @@ def _phase_5(state):
         "|wTutorial 1 Complete!|n\n\n"
         "You've learned the survival basics:\n\n"
         "  |wMovement:|n     n/s/e/w/u/d, fly up/down, swim up/down\n"
-        "  |wLooking:|n      look, look <thing>, examine <thing>\n"
+        "  |wLooking:|n      look, look <thing>\n"
         "  |wInventory:|n    get, drop, inventory (inv), weight\n"
         "  |wEquipment:|n    wear, wield, hold, remove, equipment (eq)\n"
         "  |wFlying:|n       fly up/down (needs FLY condition)\n"

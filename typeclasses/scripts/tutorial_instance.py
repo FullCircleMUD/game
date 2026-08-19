@@ -173,7 +173,8 @@ class TutorialInstanceScript(DefaultScript):
     #  Collapse / cleanup
     # ------------------------------------------------------------------ #
 
-    def collapse_instance(self, give_reward=False, immediate=False):
+    def collapse_instance(self, give_reward=False, immediate=False,
+                          announced=False):
         """
         Strip tutorial items from the player, delete all instance objects,
         and return the player to the hub.
@@ -184,13 +185,23 @@ class TutorialInstanceScript(DefaultScript):
                 in one tick (tests / fallback). If False (default),
                 chunk deletions across multiple reactor ticks so the
                 reactor stays responsive.
+            announced: True if the caller has already told the player that
+                teardown is starting — TutorialCompletionExit does, the
+                moment the move lands, which is well before the slow part
+                of this method. This then emits a progress line instead of
+                the opening notice, so the player gets a second beat rather
+                than silence while items are stripped, balances restored
+                and the reward granted.
         """
         if self.state == "done" or self.state == "collapsing":
             return
 
         char = self.get_character()
         if char:
-            char.msg("|cWrapping up your tutorial — one moment...|n")
+            if announced:
+                char.msg("|cCollecting your tutorial gear...|n")
+            else:
+                char.msg("|cWrapping up your tutorial — one moment...|n")
 
         self.state = "collapsing"
 
