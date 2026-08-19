@@ -18,6 +18,7 @@ Usage:
 
 import random
 
+from evennia.typeclasses.attributes import AttributeProperty
 from evennia.utils.logger import log_trace
 from evennia.utils.utils import lazy_property
 
@@ -161,9 +162,62 @@ class AIHandler:
 class StateMachineAIMixin:
     """Mixin that provides the .ai lazy property for any object."""
 
+    #: Declared so a spawn rule's ``attrs: {ai_state: idle}`` persists.
+    #: ``evennia-mob-spawner`` applies rule attrs with ``setattr``, which
+    #: only survives the current Python object when the name is backed by
+    #: an ``AttributeProperty`` somewhere in the MRO — otherwise it sets a
+    #: plain instance attribute that vanishes, and the library logs a WARN.
+    #:
+    #: ``category`` must match ``AIHandler.attribute_category``, or the
+    #: declaration would write a different row from the one the handler
+    #: reads and the two would never meet.
+    #:
+    #: ``autocreate=False`` is load-bearing, not a preference. With the
+    #: default True, merely *reading* ``mob.ai_state`` writes the row —
+    #: which would make ``CombatMob.start_ai()``'s
+    #: ``attributes.has("ai_state", ...)`` guard true for every mob and
+    #: silently retire the ``"wander"`` default.
+    ai_state = AttributeProperty(
+        default="idle",
+        category=AIHandler.attribute_category,
+        autocreate=False,
+    )
+
     @lazy_property
     def ai(self):
         return AIHandler(self)
+
+    def ms_at_post_spawn(self):
+        """Start the AI ticker on a mob created by ``evennia-mob-spawner``.
+
+        The library calls this duck-typed hook after it has created the
+        object, stamped its tags, and applied the rule's ``attrs`` — so
+        ``ai_state`` is already on the row, and ``.ai`` has not been read
+        yet, meaning ``AIHandler`` will cache the spawned value rather
+        than a stale default.
+
+        Without this, spawner-created mobs never start their ticker at
+        all: nothing else calls ``start_ai()`` for them. They stay frozen
+        until the next server restart, when the boot sweep in
+        ``at_server_startstop`` adopts them. That produces the confusing
+        half-state where mobs alive at boot behave and mobs spawned since
+        do not — no wandering, no aggro except on a player's arrival, and
+        no wounded retreat.
+
+        Cooperative by design. ``ms_at_post_spawn`` is a single hook name
+        and the library calls it once, so if another mixin further along
+        the MRO also defines one, only the leftmost would run. Each link
+        calls the next before adding its own behaviour. The ``getattr``
+        guard is required because ``object`` does not define the hook, so
+        an unguarded ``super()`` call would raise at the end of the chain.
+        """
+        parent_hook = getattr(super(), "ms_at_post_spawn", None)
+        if parent_hook is not None:
+            parent_hook()
+
+        start_ai = getattr(self, "start_ai", None)
+        if start_ai is not None:
+            start_ai()
 
 
 # Backward-compat alias — remove after all imports are updated.
