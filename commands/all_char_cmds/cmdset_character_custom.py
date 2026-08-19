@@ -34,6 +34,7 @@ from commands.all_char_cmds.cmd_eat import CmdEat
 from commands.all_char_cmds.cmd_hunger import CmdHunger
 from commands.all_char_cmds.cmd_thirst import CmdThirst
 from commands.all_char_cmds.cmd_languages import CmdLanguages
+from commands.all_char_cmds.cmd_conditions import CmdConditions
 from commands.all_char_cmds.cmd_weight import CmdWeight
 from commands.all_char_cmds.cmd_learn import CmdLearn
 from commands.all_char_cmds.cmd_recipes import CmdRecipes
@@ -147,6 +148,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdHunger())
         self.add(CmdThirst())
         self.add(CmdLanguages())
+        self.add(CmdConditions())
         self.add(CmdWeight())
         self.add(CmdWear())
         self.add(CmdWield())
