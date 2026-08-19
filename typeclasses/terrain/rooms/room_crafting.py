@@ -32,7 +32,13 @@ class RoomCrafting(RoomBase):
     # Safe zones
     allow_combat = AttributeProperty(False, autocreate=False)
     allow_pvp = AttributeProperty(False, autocreate=False)
-    allow_death = AttributeProperty(False, autocreate=False)
+    # True, despite this being a peaceful room. allow_death=False is the
+    # arena mechanic — it routes death to _defeat(), which keeps all gear,
+    # gold and XP and teleports the character out on 1 HP. Applied to a
+    # safe room it becomes a consequence-dodge: starve here, or run here
+    # poisoned from somewhere else, and die for free. allow_combat=False
+    # is what makes the room peaceful; it needs no help from this.
+    allow_death = AttributeProperty(True, autocreate=False)
 
     # No vertical movement
     max_height = AttributeProperty(0)
