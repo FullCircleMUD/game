@@ -34,7 +34,12 @@ def ensure_bank(account):
     bank = account.db.bank
     if bank is None:
         from evennia.utils.create import create_object
-        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+        from evennia_shards import (
+            ROLE_MONOLITH,
+            ROLE_ROUTER,
+            allow_unstamped_insert,
+            get_role,
+        )
 
         # Defence-in-depth path. The canonical creation is in
         # typeclasses/accounts/accounts.py:at_post_login, which runs
@@ -59,11 +64,16 @@ def ensure_bank(account):
                 f"set during router-side at_post_login."
             )
 
-        bank = create_object(
-            "typeclasses.accounts.account_bank.AccountBank",
-            key=f"bank-{account.key}",
-            nohome=True,
-        )
+        # On the router (unscoped) the row lands shard_id=NULL, which the
+        # library's guard refuses by default. It is repaired immediately
+        # below, so the insert opts in explicitly. In monolith the guard
+        # is not installed and this is a no-op.
+        with allow_unstamped_insert():
+            bank = create_object(
+                "typeclasses.accounts.account_bank.AccountBank",
+                key=f"bank-{account.key}",
+                nohome=True,
+            )
         # Stamp shard_id="*" so the bank is visible to every shard's
         # auto-filter scope. On the router (unscoped) the auto-stamp
         # is skipped at create time → row lands NULL → the assignment
