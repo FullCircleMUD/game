@@ -62,9 +62,20 @@ evennia-mob-spawner==0.1.1
 
 # Split-deployment / horizontal sharding. Dormant in monolith mode;
 # activated by SHARDS_ROLE in settings_router.py / settings_shard0.py.
+#
+# 0.1.3 refuses any ObjectDB INSERT that would land with shard_id=NULL —
+# a row owned by no shard, invisible to every shard's auto-filter. Two
+# things in this repo depend on that version specifically:
+#   - at_post_login wraps the account-bank insert in the library's
+#     allow_unstamped_insert(), which does not exist before 0.1.3.
+#   - A fresh database must boot shard0 before the router. The router is
+#     unscoped, so its inserts now fail rather than quietly writing NULL
+#     rows for Limbo and the superuser.
+# It also routes all library logging to shards.log under LOG_DIR.
+#
 # 0.1.2 adds SHARDS_TICKET_BIND_IP — see settings_common_shard_config.py,
 # which sets it False because no process on Railway can observe the
 # player's address. 0.1.1 was the first wheel to carry the library's
 # static assets; 0.1.0 shipped Python only, so shard_redirect.js 404'd
 # and cross-shard redirects were received but never acted on.
-evennia-shards==0.1.2
+evennia-shards==0.1.3
