@@ -102,6 +102,7 @@ CURRENCY_TYPES = [
     {"currency_code": "PShaft", "resource_id": None, "name": "PShaft", "unit": "tokens", "description": "Proxy token for Shaft AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
     {"currency_code": "PHaft", "resource_id": None, "name": "PHaft", "unit": "tokens", "description": "Proxy token for Haft AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
     {"currency_code": "PStock", "resource_id": None, "name": "PStock", "unit": "tokens", "description": "Proxy token for Stock AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
+    {"currency_code": "PLeatherStraps", "resource_id": None, "name": "PLeatherStraps", "unit": "tokens", "description": "Proxy token for Leather Straps AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
     # ── Wearables ──
     {"currency_code": "PLeatherGloves", "resource_id": None, "name": "PLeatherGloves", "unit": "tokens", "description": "Proxy token for Leather Gloves AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
     {"currency_code": "PLeatherBelt", "resource_id": None, "name": "PLeatherBelt", "unit": "tokens", "description": "Proxy token for Leather Belt AMM pricing.", "weight_per_unit_kg": "0.000", "is_gold": False, "initial_reserve": "100000"},
@@ -335,7 +336,7 @@ NFT_ITEM_TYPES = [
     # Enchanted wand — generic type, spell_key and charges are per-instance metadata.
     # Not AMM-tradeable (tracking_token omitted); wands exist only via player crafting.
     {"name": "Enchanted Wand", "typeclass": "typeclasses.items.holdables.wand_nft_item.WandNFTItem", "prototype_key": None, "description": "A wand imbued with a bound spell. Zap to release its magic."},
-    {"name": "Leather Straps", "typeclass": _BASE_TC, "prototype_key": "leather_straps", "description": "Tough strips of leather cut for binding and reinforcement."},
+    {"name": "Leather Straps", "typeclass": _BASE_TC, "prototype_key": "leather_straps", "description": "Tough strips of leather cut for binding and reinforcement.", "tracking_token": "PLeatherStraps"},
     # ── Wearables ──
     {"name": "Leather Gloves", "typeclass": _WEARABLE_TC, "prototype_key": "leather_gloves", "description": "Sturdy leather gloves with reinforced palms.", "tracking_token": "PLeatherGloves"},
     {"name": "Leather Belt", "typeclass": _WEARABLE_TC, "prototype_key": "leather_belt", "description": "A wide leather belt with an iron buckle.", "tracking_token": "PLeatherBelt"},
