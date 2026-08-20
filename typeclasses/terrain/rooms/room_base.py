@@ -90,6 +90,21 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         super().at_object_creation()
         self.at_fungible_init()
 
+    def at_object_delete(self):
+        """Empty the room before Evennia relocates what is left.
+
+        Evennia moves a deleted room's contents to their home, which lands
+        mobs, items and corpses in Limbo on every `wb_build` redeploy.
+        Delete them here instead, while the room is still their location.
+        Characters are skipped and go home as before.
+        """
+        from django.conf import settings
+        for obj in list(self.contents):
+            if obj.is_typeclass(settings.BASE_CHARACTER_TYPECLASS, exact=False):
+                continue
+            obj.delete()
+        return True
+
     # --- Zone / District helpers ---
 
     def set_zone(self, zone_name):
