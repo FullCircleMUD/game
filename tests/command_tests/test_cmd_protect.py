@@ -293,8 +293,9 @@ class TestProtectIntercept(_ProtectTestBase):
     def test_protector_takes_lethal_intercept(self, mock_ticker):
         """Protector with low HP takes the hit — target survives.
 
-        FCMCharacter.die() resets HP to 1 (defeat/death flow), so we verify
-        the protected target is untouched (protector intercepted the damage).
+        FCMCharacter.die() restores vitals to full (defeat/death flow), so we
+        verify the protected target is untouched (protector intercepted the
+        damage).
         """
         self._setup_combat(MasteryLevel.GRANDMASTER)
         self.char1.hp = 2  # protector at low HP
@@ -307,8 +308,8 @@ class TestProtectIntercept(_ProtectTestBase):
             execute_attack(self.mob, self.char2)
 
         # Protector took the hit (HP was 2, took large damage, die() fires)
-        # die() resets HP to 1, so char1.hp is 1
-        self.assertLessEqual(self.char1.hp, 2)
+        # die() restores vitals, so full HP is the signature of having died
+        self.assertEqual(self.char1.hp, self.char1.effective_hp_max)
         # Original target is untouched
         self.assertEqual(self.char2.hp, char2_hp_before)
 

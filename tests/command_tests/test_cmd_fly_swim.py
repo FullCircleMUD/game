@@ -219,14 +219,14 @@ class TestCmdFlyConditionGating(EvenniaCommandTest):
         self.assertEqual(self.char1.hp, 100)
 
     def test_fall_hp_floor_zero(self):
-        """Fall damage triggers die() which resets HP to 1."""
+        """Fall damage triggers die() which restores HP to full."""
         self.char1.add_condition(Condition.FLY)
         self.char1.room_vertical_position = 5
         self.room1.max_height = 5
         self.char1.hp = 10  # 50 damage from height 5 would go negative
         self.char1.remove_condition(Condition.FLY)
-        # die() fires when HP hits 0, resetting HP to 1
-        self.assertEqual(self.char1.hp, 1)
+        # die() fires when HP hits 0, restoring HP to full
+        self.assertEqual(self.char1.hp, self.char1.effective_hp_max)
 
 
 # =====================================================================

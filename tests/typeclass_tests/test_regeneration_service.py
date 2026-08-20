@@ -178,16 +178,16 @@ class TestDegeneration(RegenServiceTestBase):
         self.assertEqual(self.char1.hp, 50 - hp_loss)
 
     def test_degen_floors_at_zero(self):
-        """Degen to 0 HP triggers death; die() resets HP to 1."""
+        """Degen to 0 HP triggers death; die() restores vitals to full."""
         self.char1.hunger_level = HungerLevel.STARVING
         self.char1.hp = 1
         self.char1.mana = 1
         self.char1.move = 1
         self._run_tick([self.char1], force_degen=True)
-        # die() fires when HP hits 0, resetting HP to 1
-        self.assertEqual(self.char1.hp, 1)
-        self.assertEqual(self.char1.mana, 0)
-        self.assertEqual(self.char1.move, 0)
+        # die() fires when HP hits 0, restoring HP, mana and move to full
+        self.assertEqual(self.char1.hp, self.char1.effective_hp_max)
+        self.assertEqual(self.char1.mana, self.char1.mana_max)
+        self.assertEqual(self.char1.move, self.char1.move_max)
 
 
 class TestHungerMessages(RegenServiceTestBase):
