@@ -32,11 +32,12 @@ INSTALLED_APPS = list(INSTALLED_APPS) + ["evennia_shards"]  # type: ignore[name-
 # the webclient closes its current WS and opens a new one to this URL
 # with ?ticket=TOKEN appended. The page itself is NOT reloaded.
 #
-# In production this is set via the SHARDS_ROUTER_URL env var on every
-# Railway service.
+# Derived from FCM_HOSTNAME (read in settings.py from /etc/fcm/env).
+# One hostname serves every role; nginx demuxes by path — /ws/ to the
+# router on 4002, /ws/shard0/ to 4012, /ws/shard1/ to 4022.
 ROUTER_URL = os.environ.get(
     "SHARDS_ROUTER_URL",
-    "ws://localhost:4002/",
+    f"wss://{FCM_HOSTNAME}/ws/" if FCM_HOSTNAME else "ws://localhost:4002/",  # noqa: F405
 )
 
 # Map of shard_id -> WebSocket URL. Router uses this to redirect a
@@ -48,16 +49,22 @@ ROUTER_URL = os.environ.get(
 # with shard_count=1 first (see docs/scaling.md for the design
 # rationale).
 #
-# In production, override the per-shard URL via SHARDS_SHARD0_URL,
-# SHARDS_SHARD1_URL, ... env vars.
+# Derived from FCM_HOSTNAME like ROUTER_URL above. Override an individual
+# shard with SHARDS_SHARD0_URL, SHARDS_SHARD1_URL, ... if one ever needs to
+# live somewhere else.
+#
+# Keep the trailing slash. The redirect URL is built by concatenation
+# (`f"{url}?ticket={token}"`), so without it the path is /ws/shard0, which
+# misses nginx's `location /ws/shard0/`, falls through to `location /ws/`,
+# and lands the player on the router instead of the shard.
 SHARD_URLS = {
     "shard0": os.environ.get(
         "SHARDS_SHARD0_URL",
-        "ws://localhost:4012/",
+        f"wss://{FCM_HOSTNAME}/ws/shard0/" if FCM_HOSTNAME else "ws://localhost:4012/",  # noqa: F405
     ),
     "shard1": os.environ.get(
         "SHARDS_SHARD1_URL",
-        "ws://localhost:4022/",
+        f"wss://{FCM_HOSTNAME}/ws/shard1/" if FCM_HOSTNAME else "ws://localhost:4022/",  # noqa: F405
     ),
 }
 
@@ -68,21 +75,21 @@ SHARD_URLS = {
 # requirement is visible to anyone reading just the shard cascade.
 TELNET_ENABLED = False
 
-# Tickets don't record the address they were issued to, because on Railway
-# no process can observe it. Traffic reaches a container through Railway's
-# proxy, so a shard sees a private 100.64.0.0/10 address rather than the
-# player's — never the one the router recorded, so every redirect was
-# refused with "Ticket rejected: IP mismatch".
+# A ticket records the address it was issued to, and the receiving shard
+# refuses a connection from any other — so a stolen token is useless from
+# a second machine.
 #
-# The library resolves the real address from x-forwarded-for, but only when
-# the immediate peer is listed in Evennia's UPSTREAM_IPS, which is an
-# exact-match list and so can't express a proxy drawn from a range.
+# This needs the player's real address on both sides. Evennia reads it from
+# x-forwarded-for, but only when the immediate peer is listed in
+# UPSTREAM_IPS (an exact-match list). Behind nginx the peer is 127.0.0.1,
+# which UPSTREAM_IPS lists by default, and the Cloudflare real-IP snippet
+# gives nginx the player's address to forward. Both conditions hold.
 #
-# What this costs: tickets stay single-use and short-lived, so the loss is
-# only protection against replay from a second address — which was never
-# available here anyway.
+# The check is exact-match, so a player whose address changes between going
+# IC and the shard connecting is refused with "Ticket rejected: IP
+# mismatch". Mobile networks do that.
 #
 # Deployment-wide rather than per-role: the router records the address and
 # the shard checks it, so the two must agree. One line in the shared file
 # makes disagreement impossible.
-SHARDS_TICKET_BIND_IP = False
+SHARDS_TICKET_BIND_IP = True
