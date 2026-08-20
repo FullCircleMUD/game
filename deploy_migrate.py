@@ -1,22 +1,22 @@
 """
-Railway deploy migration script.
+Deploy migration script — run by hand on the server before the first
+`evennia start` against a new database.
 
-Runs Django migrations directly, bypassing Evennia's launcher. On
-Railway all database aliases share one Postgres instance, so a single
-migrate call (with no routers) handles everything.
+    python deploy_migrate.py
+
+Runs Django migrations directly, bypassing Evennia's launcher. When
+DATABASE_URL is set, all database aliases share one Postgres instance
+and the routers are off, so a single migrate call handles everything.
 
 Ensures the pgvector extension exists before migrations run, since
 ai_memory models depend on the vector type.
 
-Called from railway.toml startCommand before `evennia start`.
-
 Fail-loud semantics:
   - Prints DATABASE_URL presence + the actual DB engine and
-    host/name for every alias on startup, so Railway logs show
+    host/name for every alias on startup, so the output shows
     exactly where migrations are going.
-  - Any migration error aborts the script with exit code 1 so
-    Railway marks the deploy as failed instead of quietly starting
-    the server against a broken database.
+  - Any migration error aborts the script with exit code 1 rather
+    than leaving you to start the server against a broken database.
 """
 
 import os

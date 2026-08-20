@@ -1,7 +1,7 @@
 """
 Add pgvector support for NPC memory embeddings.
 
-On PostgreSQL (Railway staging/production):
+On PostgreSQL (deployed):
   - Enables the ``vector`` extension.
   - Adds ``embedding_vector`` column (vector(1536)).
   - Creates an HNSW index for fast cosine similarity search.
