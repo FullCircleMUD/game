@@ -17,15 +17,13 @@ Cascade:
             -> settings.py
 """
 
-import os
-
 from server.conf.settings_common_shard_config import *  # noqa: F401, F403
 
 from evennia_shards import ROLE_SHARD
 
-# Environment first, file default second — see settings_shard0.py.
-SHARDS_ROLE = os.environ.get("SHARDS_ROLE", ROLE_SHARD)
-SHARD_ID = os.environ.get("SHARD_ID", "shard1")
+# Fixed by the file, not the environment — see settings_shard0.py.
+SHARDS_ROLE = ROLE_SHARD
+SHARD_ID = "shard1"
 
 # Shards MUST auto-puppet: the ticket-based auth flow logs the player
 # in, then Evennia's at_post_login reads _last_puppet (which the
@@ -54,13 +52,9 @@ AUTO_PUPPET_ON_LOGIN = True
 DEFAULT_HOME = "#4"
 START_LOCATION = "#2"
 
-# Localhost ports — offset by 20 from the router so a developer can
-# run router + shard0 + shard1 simultaneously without collisions. On
-# Railway each service binds the platform's $PORT and these are not
-# used.
-
-if not os.environ.get("PORT"):
-    WEBSERVER_PORTS = [(4021, 4025)]
+# Localhost ports — offset by 20 from the router so router + shard0 +
+# shard1 can run side by side on one host.
+WEBSERVER_PORTS = [(4021, 4025)]
 WEBSOCKET_CLIENT_PORT = 4022
 AMP_PORT = 4026
 
