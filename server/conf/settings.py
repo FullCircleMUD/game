@@ -230,7 +230,11 @@ AUTO_PUPPET_ON_LOGIN = False
 MAX_NR_CHARACTERS = 4
 MAX_NR_SESSIONS_PER_ACCOUNT = 1
 DEBUG = False
-ADMINS = ('tim@timbaird.com')
+# A list, and the brackets are load-bearing: ('x') is the string 'x', not a
+# tuple. Django validates ADMINS while logging any error response, so a
+# malformed value turns every 4xx into a 500 whose traceback describes the
+# mail handler rather than the original fault.
+ADMINS = ["tim@timbaird.com"]
 PUPPET_LOOK_ON_IC = False
 
 ######################################################################
