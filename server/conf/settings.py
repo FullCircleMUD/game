@@ -50,8 +50,8 @@ import sys
 # file is the one every role loads (monolith directly; router and shards
 # through the cascade), and monolith forks too.
 #
-# Inert off-platform: Railway runs Linux on Postgres, where the marker
-# excludes the package and this block is skipped.
+# Inert on Linux: the requirements marker excludes the package there,
+# so the import fails and this block is skipped.
 # See libraries/evennia-shards/docs/deployment-topology.md § macOS.
 if sys.platform == "darwin":
     try:
@@ -97,30 +97,41 @@ INSTALLED_APPS = INSTALLED_APPS + [
     "evennia_mob_spawner",
 ]
 
-WEBSOCKET_CLIENT_INTERFACE = '0.0.0.0'
-SERVER_HOSTNAME = '0.0.0.0'
+# Bind to loopback only. nginx is the sole client of these ports and
+# reaches them over 127.0.0.1; players arrive on 443 and are proxied in.
+# AMP_INTERFACE is already 127.0.0.1 by Evennia's default.
+WEBSERVER_INTERFACES = ['127.0.0.1']
+WEBSOCKET_CLIENT_INTERFACE = '127.0.0.1'
 LOCKDOWN_MODE = False
 
-# ── Railway port binding ─────────────────────────────────────────────
-# Railway assigns a dynamic $PORT — Evennia must listen on it.
-if os.environ.get("PORT"):
-    WEBSERVER_PORTS = [(int(os.environ["PORT"]), 4005)]
+# ── Public hostname ──────────────────────────────────────────────────
+# One variable names the deployment; everything below is derived from it,
+# so a cutover to a new hostname is a one-word edit in /etc/fcm/env.
+# Unset means local dev, where each derived setting keeps its old value.
+#
+# Every derived setting still honours its own env var, so a box can
+# override any one of them without abandoning the pattern.
+FCM_HOSTNAME = os.environ.get("FCM_HOSTNAME", "")
 
-# Websocket URL for the webclient (Railway routes websocket via separate domain).
+# The name the server advertises (website context, game listings).
+SERVER_HOSTNAME = FCM_HOSTNAME or "localhost"
+
+# Websocket URL for the webclient. nginx terminates TLS and demuxes by
+# path, so this is a path on the game's own hostname.
 WEBSOCKET_CLIENT_URL = os.environ.get(
     "WEBSOCKET_CLIENT_URL",
-    "ws://localhost:4002",
+    f"wss://{FCM_HOSTNAME}/ws/" if FCM_HOSTNAME else "ws://localhost:4002",
 )
 
 # ── Database Configuration ────────────────────────────────────────────
 # DATABASE_URL controls the backend:
-#   - Set (Railway/production): PostgreSQL for all 3 databases
+#   - Set (deployed): PostgreSQL for all four aliases
 #   - Not set (local dev): SQLite files, zero config
 # See docs/database.md for full architecture documentation.
 _DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if _DATABASE_URL:
-    # PostgreSQL mode — all three aliases share one physical PG database.
+    # PostgreSQL mode — all four aliases share one physical PG database.
     # The routers ensure each app's tables migrate to the correct alias.
     _pg_config = dj_database_url.parse(_DATABASE_URL)
     _pg_config["CONN_MAX_AGE"] = 600
@@ -149,8 +160,9 @@ else:
     }
 
 # Database routers — only needed locally where each alias is a separate
-# SQLite file. On Railway all aliases share one Postgres instance, so
-# routers would block migrations from creating tables.
+# SQLite file. When DATABASE_URL is set every alias points at the one
+# Postgres database, so routers would block migrations from creating
+# tables.
 if not _DATABASE_URL:
     DATABASE_ROUTERS = [
         "blockchain.xrpl.db_router.XRPLRouter",
@@ -159,15 +171,22 @@ if not _DATABASE_URL:
     ]
 
 # Django secret key — used to sign cookies/sessions.
-# On Railway, set SECRET_KEY env var. Locally, override in secret_settings.py.
+# Deployed, set SECRET_KEY in /etc/fcm/env. Locally, override in
+# secret_settings.local.
 SECRET_KEY = os.environ.get("SECRET_KEY", "changeme-set-in-secret-settings")
 
-# Host header allowlist — '*' in dev, comma-separated list in prod
-# (e.g. ALLOWED_HOSTS="game.fcmud.world,fcmud.up.railway.app").
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "*").split(",") if h.strip()]
+# Host header allowlist — derived from FCM_HOSTNAME, '*' in dev. Set
+# ALLOWED_HOSTS explicitly (comma-separated) only to serve more than one
+# name, e.g. during a cutover where the old name must keep working.
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get("ALLOWED_HOSTS", FCM_HOSTNAME or "*").split(",")
+    if h.strip()
+]
 
 # In-game traceback display — on in dev for visibility, off in prod to
-# avoid leaking internals to players. Set IN_GAME_ERRORS=false on Railway.
+# avoid leaking internals to players. Set IN_GAME_ERRORS=false in any
+# deployed environment.
 IN_GAME_ERRORS = os.environ.get("IN_GAME_ERRORS", "true").lower() in ("true", "1", "yes")
 
 ######################################################################
@@ -185,9 +204,8 @@ TELNET_ENABLED = False
 SSH_ENABLED = False
 WEBSOCKET_PROTOCOL_CLASS = "server.walletwebclient.WalletWebSocketClient"
 
-# Override in secret_settings.py or set SUPERUSER_ACCOUNT_NAME env var.
-#SUPERUSER_ACCOUNT_NAME = os.environ.get("SUPERUSER_ACCOUNT_NAME", "")
-
+# Read from the environment by Evennia's launcher when it auto-creates
+# the superuser, and from settings by FCM's connect command.
 EVENNIA_SUPERUSER_USERNAME = os.environ.get("EVENNIA_SUPERUSER_USERNAME", "")
 EVENNIA_SUPERUSER_PASSWORD = os.environ.get("EVENNIA_SUPERUSER_PASSWORD", "")
 
@@ -212,7 +230,11 @@ AUTO_PUPPET_ON_LOGIN = False
 MAX_NR_CHARACTERS = 4
 MAX_NR_SESSIONS_PER_ACCOUNT = 1
 DEBUG = False
-ADMINS = ('tim@timbaird.com')
+# A list, and the brackets are load-bearing: ('x') is the string 'x', not a
+# tuple. Django validates ADMINS while logging any error response, so a
+# malformed value turns every 4xx into a 500 whose traceback describes the
+# mail handler rather than the original fault.
+ADMINS = ["tim@timbaird.com"]
 PUPPET_LOOK_ON_IC = False
 
 ######################################################################
@@ -222,12 +244,9 @@ SUPERUSER_XRPL_WALLET_ADDRESS = os.environ.get("SUPERUSER_XRPL_WALLET_ADDRESS", 
 
 # ── XRPL Configuration ──────────────────────────────────────────────
 XRPL_IMPORT_EXPORT_ENABLED = os.environ.get("XRPL_IMPORT_EXPORT_ENABLED", "").lower() in ("true", "1")
-# XRPL network endpoint — environment-specific, not secret.
-# Must be set via env var for deployed environments.
-XRPL_NETWORK_URL = os.environ.get(
-    "XRPL_NETWORK_URL",
-    "wss://xrplcluster.com",
-)
+# XRPL network endpoint. Mainnet everywhere — staging and production
+# share one ledger, so this is the same in every environment.
+XRPL_NETWORK_URL = "wss://xrplcluster.com" # alternative "wss://s1.ripple.com"
 XRPL_ISSUER_ADDRESS = os.environ.get("XRPL_ISSUER_ADDRESS", "")
 XRPL_VAULT_ADDRESS = os.environ.get("XRPL_VAULT_ADDRESS", "")
 XRPL_GOLD_CURRENCY_CODE = "FCMGold"
@@ -253,11 +272,8 @@ XAMAN_API_SECRET = os.environ.get("XAMAN_API_SECRET", "PLACEHOLDER")
 # Pre-alpha: False, Alpha: True, Beta: True
 SUBSCRIPTION_ENABLED = os.environ.get("SUBSCRIPTION_ENABLED", "false").lower() in ("true", "1", "yes")
 # Payment currency (RLUSD on XRPL mainnet).
-SUBSCRIPTION_CURRENCY_CODE = os.environ.get("SUBSCRIPTION_CURRENCY_CODE", "RLUSD")
-SUBSCRIPTION_CURRENCY_ISSUER = os.environ.get(
-    "SUBSCRIPTION_CURRENCY_ISSUER",
-    "rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De",  # RLUSD issuer on XRPL mainnet
-)
+SUBSCRIPTION_CURRENCY_CODE = "RLUSD"
+SUBSCRIPTION_CURRENCY_ISSUER = "rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De"  # RLUSD issuer, XRPL mainnet
 # Payment destination — subscription revenue goes to the issuer wallet.
 SUBSCRIPTION_PAYMENT_DESTINATION = XRPL_ISSUER_ADDRESS
 # Free trial for new accounts (hours). Set to 0 to disable.
@@ -273,7 +289,10 @@ SUBSCRIPTION_BYPASS_SUPERUSER = True
 # Public-facing website URL — used for in-game ToS links and compliance notices.
 # Overridable so a non-production environment points players at its own site
 # rather than sending them to production for the terms they agreed to there.
-GAME_WEBSITE_URL = os.environ.get("GAME_WEBSITE_URL", "https://fcmud.world")
+GAME_WEBSITE_URL = os.environ.get(
+    "GAME_WEBSITE_URL",
+    f"https://{FCM_HOSTNAME}" if FCM_HOSTNAME else "https://fcmud.world",
+)
 
 # NFT image base URL — convention: {base_url}{prototype_key}.png
 NFT_IMAGE_BASE_URL = "https://njqdijnpujooixoehbms.supabase.co/storage/v1/object/public/FCMImages/"
@@ -324,7 +343,7 @@ LLM_EMBEDDING_API_BASE_URL = "https://api.openai.com/v1"  # OpenAI direct (not O
 LLM_EMBEDDING_API_KEY = os.environ.get("LLM_EMBEDDING_API_KEY", "")
 
 # Skill XP — supplementary XP for using class skills (bash, spells, picklock, etc.)
-SKILL_XP_ENABLED = os.environ.get("SKILL_XP_ENABLED", "true").lower() in ("true", "1", "yes")
+SKILL_XP_ENABLED = True
 
 ######################################################################
 # GAME PLAY SETTINGS
@@ -423,22 +442,22 @@ BASE_EXIT_TYPECLASS = "typeclasses.terrain.exits.exit_vertical_aware.ExitVertica
 # ── World builder ────────────────────────────────────────────────────
 # Reads YAML world content from the FullCircleMUD/fcm-world repo.
 # WORLDBUILDER_GITHUB_PAT is the secret — set it in secret_settings.local
-# (or the WORLDBUILDER_GITHUB_PAT env var on Railway). The reader kwargs
+# locally, or in /etc/fcm/env when deployed. The reader kwargs
 # dict is composed at the bottom of this file, AFTER secret_settings is
 # loaded, so the PAT override propagates.
 WORLDBUILDER_READER = "evennia_yaml_reader.github.GitHubReader"
-WORLDBUILDER_REPO = os.environ.get("WORLDBUILDER_REPO", "FullCircleMUD/fcm-world")
+WORLDBUILDER_REPO = "FullCircleMUD/fcm-world"
 WORLDBUILDER_REF = os.environ.get("WORLDBUILDER_REF", "main")
 WORLDBUILDER_GITHUB_PAT = os.environ.get("WORLDBUILDER_GITHUB_PAT", "")
 
 # ── Mob spawner ──────────────────────────────────────────────────────
 # Reads YAML mob spawn rules from the FullCircleMUD/fcm-mobs repo.
 # MOB_SPAWNER_GITHUB_PAT is the secret — set it in secret_settings.local
-# (or the MOB_SPAWNER_GITHUB_PAT env var on Railway). The reader kwargs
+# locally, or in /etc/fcm/env when deployed. The reader kwargs
 # dict is composed at the bottom of this file, AFTER secret_settings is
 # loaded, so the PAT override propagates.
 MOB_SPAWNER_READER = "evennia_yaml_reader.github.GitHubReader"
-MOB_SPAWNER_REPO = os.environ.get("MOB_SPAWNER_REPO", "FullCircleMUD/fcm-mobs")
+MOB_SPAWNER_REPO = "FullCircleMUD/fcm-mobs"
 MOB_SPAWNER_REF = os.environ.get("MOB_SPAWNER_REF", "main")
 MOB_SPAWNER_GITHUB_PAT = os.environ.get("MOB_SPAWNER_GITHUB_PAT", "")
 
@@ -447,13 +466,12 @@ MOB_SPAWNER_GITHUB_PAT = os.environ.get("MOB_SPAWNER_GITHUB_PAT", "")
 # Local development overrides.
 #
 # In dev, secrets live in server/conf/secret_settings.local — a
-# git-crypt encrypted file with a deliberately non-.py extension so
-# Nixpacks/Railway source scanners don't try to parse the encrypted
-# bytes as Python during build. We load it manually via importlib.util
-# when running locally.
+# git-crypt encrypted file. The non-.py extension keeps the encrypted
+# bytes away from anything that scans the tree for Python source, so we
+# load it manually via importlib.util.
 #
-# On Railway (DATABASE_URL set) we skip this entirely — production
-# secrets come from platform env vars.
+# When DATABASE_URL is set (deployed) we skip this entirely — secrets
+# come from the environment, loaded from /etc/fcm/env.
 ######################################################################
 if not os.environ.get("DATABASE_URL"):
     import importlib.util as _importlib_util

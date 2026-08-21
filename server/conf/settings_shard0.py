@@ -21,18 +21,18 @@ Cascade:
             -> settings.py
 """
 
-import os
-
 from server.conf.settings_common_shard_config import *  # noqa: F401, F403
 
 from evennia_shards import ROLE_SHARD
 
-# Environment first, file default second — the same pattern every other
-# setting uses. The defaults make this file stand alone for local dev;
-# the env vars let one deployed service be copied into another shard by
-# setting SHARD_ID, with no code change and no new settings file.
-SHARDS_ROLE = os.environ.get("SHARDS_ROLE", ROLE_SHARD)
-SHARD_ID = os.environ.get("SHARD_ID", "shard0")
+# Role and identity are fixed by the file, not by the environment. All
+# roles on a host share one environment file, so an env-supplied
+# SHARDS_ROLE would reach every process and mis-role all of them at
+# once. The file selected by --settings is the only thing that decides.
+# A new shard therefore means a new settings file, not a copied service
+# with a different env var.
+SHARDS_ROLE = ROLE_SHARD
+SHARD_ID = "shard0"
 
 # Shards MUST auto-puppet: the ticket-based auth flow logs the player
 # in, then Evennia's at_post_login reads _last_puppet (which the
@@ -51,11 +51,9 @@ AUTO_PUPPET_ON_LOGIN = True
 DEFAULT_HOME = "#2"
 START_LOCATION = "#2"
 
-# Localhost ports — offset by 10 from the router so a developer can
-# run both processes simultaneously. On Railway each service binds
-# the platform's $PORT and these are not used.
-if not os.environ.get("PORT"):
-    WEBSERVER_PORTS = [(4011, 4015)]
+# Localhost ports — offset by 10 from the router so router and shard0
+# can run side by side on one host.
+WEBSERVER_PORTS = [(4011, 4015)]
 WEBSOCKET_CLIENT_PORT = 4012
 AMP_PORT = 4016
 

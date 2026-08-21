@@ -1,8 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[deploy]
-releaseCommand = "evennia migrate && evennia migrate --database xrpl && evennia migrate --database ai_memory && evennia migrate --database subscriptions"
-# $DEPLOYMENT_SETTINGS_FILE selects the role — settings_shard0.py or
-# settings_router.py — set per service in the Railway environment.
-startCommand = "python deploy_migrate.py && evennia start --settings $DEPLOYMENT_SETTINGS_FILE -l"

@@ -7,8 +7,8 @@ for dual-backend support:
 
 - ``embedding`` (BinaryField) — numpy binary blob, used on SQLite (local dev).
 - ``embedding_vector`` (VectorField) — pgvector native column, used on
-  PostgreSQL (Railway staging/production). Indexed via HNSW for
-  sub-linear cosine similarity search.
+  PostgreSQL (deployed). Indexed via HNSW for sub-linear cosine
+  similarity search.
 
 See design docs:
 - ``NpcMemory``: DATABASE.md § pgvector for AI Memory

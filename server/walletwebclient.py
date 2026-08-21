@@ -41,6 +41,23 @@ from evennia.server.portal.webclient import CLOSE_NORMAL, WebSocketClient
 class WalletWebSocketClient(WebSocketClient):
     """Custom WebSocket client — delivers geo-country in the initial PCONN."""
 
+    # Cloudflare closes a proxied WebSocket after 100 seconds with nothing
+    # sent in either direction. A player idle in a quiet room sends nothing
+    # and receives nothing, so the connection dies under them.
+    #
+    # A protocol-level ping resets that clock. The browser answers it in its
+    # WebSocket implementation, below JavaScript, so no client change is
+    # needed and nothing reaches the game's message handling.
+    #
+    # Set as class attributes rather than on the factory because neither
+    # factory is ours — Evennia builds the router's, evennia_shards builds
+    # each shard's, and neither exposes a setting. autobahn's
+    # _connectionMade copies factory config only for attributes not already
+    # present on the protocol, so these win. Both roles load this class via
+    # WEBSOCKET_PROTOCOL_CLASS, so one place covers all of them.
+    autoPingInterval = 60  # must stay comfortably under Cloudflare's 100
+    autoPingTimeout = 0    # 0 = keepalive only; never drop on a missed pong
+
     def get_sync_data(self):
         """Override to inject geo_country into the initial PCONN message.
 

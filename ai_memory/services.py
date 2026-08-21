@@ -5,7 +5,7 @@ All functions are synchronous. The caller (LLMMixin) wraps them in
 ``deferToThread`` so they don't block the Twisted reactor.
 
 Dual backend:
-  - **PostgreSQL** (Railway): uses pgvector ``<=>`` operator with HNSW
+  - **PostgreSQL** (deployed): uses pgvector ``<=>`` operator with HNSW
     index for sub-linear cosine similarity search.
   - **SQLite** (local dev): uses numpy cosine similarity in a Python
     loop (unchanged from Phase 1).
