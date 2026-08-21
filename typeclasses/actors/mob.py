@@ -338,7 +338,11 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
         else:
             exi = self.ai.pick_random_exit()
         if exi:
-            exi.at_traverse(self, exi.destination)
+            # EXPERIMENT — ghost-mob hunt. Route wandering through the exit
+            # command, the way a character moves, instead of calling
+            # at_traverse() directly. Restore by swapping these two lines.
+            # exi.at_traverse(self, exi.destination)
+            self.execute_cmd(str(exi.direction))
 
     def flee_to_random_room(self):
         """Flee to any adjacent room within the mob's area."""
