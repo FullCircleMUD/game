@@ -83,6 +83,20 @@ class CombatHandler(DefaultScript):
         self.obj.position = "fighting"
         self.obj.msg("|rYou enter combat!|n")
 
+        # A handler must never exist without a ticker. `_start_ticker` is only
+        # reached through `queue_action`, and the caller queues the real action
+        # from a list built out of `room.contents` — so a combatant missing
+        # from that list gets a handler, `position = "fighting"`, and nothing
+        # else. Nothing re-evaluates after that, because the only thing that
+        # could is a tick that was never scheduled, and the mob stays flagged
+        # as fighting forever.
+        #
+        # This holding tick costs nothing in a normal fight: enter_combat
+        # replaces it synchronously before the reactor gets a turn. When the
+        # queue is missed, the first tick reaches _check_stop_combat() and the
+        # combatant stands itself down.
+        self.queue_action({"key": "hold", "dt": 1})
+
     def auto_attack_first_enemy(self, initiative_delay=0):
         """Auto-queue repeating attack on the first enemy from get_sides().
         Called after all combat handlers are created so sides are populated."""
