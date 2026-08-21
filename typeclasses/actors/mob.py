@@ -299,6 +299,32 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     #  Movement
     # ================================================================== #
 
+    def at_idmapper_flush(self):
+        """Drop cached foreign keys when Evennia flushes its identity map.
+
+        Evennia already intends to do this — ``TypedObject.at_idmapper_flush``
+        clears an object's foreign-key caches so a surviving object cannot go
+        on holding a reference to something the map has since rebuilt. But it
+        looks for those caches under ``_<fieldname>_cache``, which is where
+        Django kept them before 2.0. They now live in ``_state.fields_cache``,
+        so the loop finds nothing and silently clears nothing.
+
+        For a mob that matters. Mobs carry non-persistent attributes, so they
+        are always kept across a flush, and their AI ticker holds them alive.
+        With the cleanup silently doing nothing, a mob walks away still
+        pointing at the room object the map discarded — and its removal from
+        that room's contents cache lands on the discarded copy, while the rest
+        of the game reads the rebuilt one. The room is then left listing a mob
+        that is not in it: a phantom.
+
+        Clearing unconditionally rather than only on the keep path, because an
+        object dropped from the map but held alive elsewhere has exactly the
+        same problem and Evennia does not attempt any cleanup for it at all.
+        """
+        result = super().at_idmapper_flush()
+        self._state.fields_cache.clear()
+        return result
+
     def wander(self):
         """Move to a random adjacent room within the mob's area."""
         if self.max_per_room > 0:
