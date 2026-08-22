@@ -1,1 +1,5 @@
-server/conf/secret_settings.local filter=git-crypt diff=git-crypt
+# git-crypt: every *.local under server/conf/ is encrypted with the repo's
+# symmetric key. The suffix is load-bearing — a secret file named anything
+# else commits in the clear, silently and unrecoverably once pushed.
+# Verify with `git-crypt status <path>` before the first commit of a new one.
+server/conf/*.local filter=git-crypt diff=git-crypt
