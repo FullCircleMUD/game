@@ -124,51 +124,68 @@ WEBSOCKET_CLIENT_URL = os.environ.get(
 )
 
 # ── Database Configuration ────────────────────────────────────────────
-# DATABASE_URL controls the backend:
-#   - Set (deployed): PostgreSQL for all four aliases
-#   - Not set (local dev): SQLite files, zero config
-# See docs/database.md for full architecture documentation.
+# Each alias resolves its own connection, in this order:
+#
+#   1. DATABASE_URL_<ALIAS>  this alias gets its own Postgres instance
+#   2. DATABASE_URL          share the default's Postgres instance
+#   3. SQLite file           local dev, one file per alias
+#
+# So which alias lives on which instance is a deployment decision rather
+# than a code one. Moving an alias onto separate compute is one variable
+# plus a dump/restore (or a fresh migrate) — nothing here changes.
+#
+# `default` is deliberately bare DATABASE_URL with no _DEFAULT synonym:
+# it is the established contract every deploy already sets.
+# See design/database.md for the full architecture.
+from server.conf import db_config
+
 _DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# The non-default aliases, and the SQLite file each falls back to.
+# `default` is absent because it is the special case below.
+_DB_ALIASES = {
+    "xrpl": "xrpl.db3",
+    "ai_memory": "ai_memory.db3",
+    "subscriptions": "subscriptions.db3",
+}
+
+# `default` is handled here rather than through resolve_database() for two
+# reasons: it takes bare DATABASE_URL with no _DEFAULT override, and in
+# SQLite mode it must keep Evennia's own inherited evennia.db3 config
+# rather than have a fresh one built over the top of it.
 if _DATABASE_URL:
-    # PostgreSQL mode — all four aliases share one physical PG database.
-    # The routers ensure each app's tables migrate to the correct alias.
-    _pg_config = dj_database_url.parse(_DATABASE_URL)
-    _pg_config["CONN_MAX_AGE"] = 600
+    _default_config = dj_database_url.parse(_DATABASE_URL)
+    _default_config["CONN_MAX_AGE"] = db_config.CONN_MAX_AGE
+    DATABASES["default"] = _default_config  # type: ignore[name-defined]
 
-    DATABASES["default"] = _pg_config  # type: ignore[name-defined]
-    DATABASES["xrpl"] = {**_pg_config}  # type: ignore[name-defined]
-    DATABASES["ai_memory"] = {**_pg_config}  # type: ignore[name-defined]
-    DATABASES["subscriptions"] = {**_pg_config}  # type: ignore[name-defined]
-else:
-    # SQLite mode — local development. Default DB inherited from
-    # evennia.settings_default (evennia.db3). Custom DBs below.
-    # Migrate with: evennia migrate --database xrpl
-    DATABASES["xrpl"] = {  # type: ignore[name-defined]
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(GAME_DIR, "server", "xrpl.db3"),  # type: ignore[name-defined]
-    }
-    # Migrate with: evennia migrate --database ai_memory
-    DATABASES["ai_memory"] = {  # type: ignore[name-defined]
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(GAME_DIR, "server", "ai_memory.db3"),  # type: ignore[name-defined]
-    }
-    # Migrate with: evennia migrate --database subscriptions
-    DATABASES["subscriptions"] = {  # type: ignore[name-defined]
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(GAME_DIR, "server", "subscriptions.db3"),  # type: ignore[name-defined]
-    }
+# resolve_database() lives in server/conf/db_config.py
+for _alias, _sqlite_file in _DB_ALIASES.items():
+    DATABASES[_alias] = db_config.resolve_database(  # type: ignore[name-defined]
+        _alias, _sqlite_file, GAME_DIR, os.environ  # type: ignore[name-defined]
+    )
 
-# Database routers — only needed locally where each alias is a separate
-# SQLite file. When DATABASE_URL is set every alias points at the one
-# Postgres database, so routers would block migrations from creating
-# tables.
-if not _DATABASE_URL:
-    DATABASE_ROUTERS = [
-        "blockchain.xrpl.db_router.XRPLRouter",
-        "ai_memory.db_router.AiMemoryRouter",
-        "subscriptions.db_router.SubscriptionsRouter",
-    ]
+# ── Database routers ──────────────────────────────────────────────────
+# A router is needed for exactly those aliases that are a physically
+# different database from `default`. Both existing modes fall out of that
+# rule unchanged: locally every alias is its own SQLite file, so all
+# three are active; on one shared Postgres instance every alias is the
+# same database, so none are.
+#
+# Enabling a router in the shared case would be actively harmful — its
+# allow_migrate() would refuse to create the non-default tables while
+# Django still recorded those migrations as applied.
+#
+# The corollary: an alias with an active router is not reached by a bare
+# `migrate` and needs `migrate --database <alias>`. deploy_migrate.py
+# reads that off DATABASE_ROUTERS so the two cannot drift.
+_ROUTER_PATHS = {
+    "xrpl": "blockchain.xrpl.db_router.XRPLRouter",
+    "ai_memory": "ai_memory.db_router.AiMemoryRouter",
+    "subscriptions": "subscriptions.db_router.SubscriptionsRouter",
+}
+
+# active_routers() lives in server/conf/db_config.py
+DATABASE_ROUTERS = db_config.active_routers(DATABASES, _ROUTER_PATHS)  # type: ignore[name-defined]
 
 # Django secret key — used to sign cookies/sessions.
 # Deployed, set SECRET_KEY in /etc/fcm/env. Locally, override in
