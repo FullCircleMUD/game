@@ -53,7 +53,20 @@ import sys
 # Inert on Linux: the requirements marker excludes the package there,
 # so the import fails and this block is skipped.
 # See libraries/evennia-shards/docs/deployment-topology.md § macOS.
-if sys.platform == "darwin":
+#
+# Skipped in Postgres mode as well. The shim protects SQLite connections
+# across twistd's fork; when DATABASE_URL is set no SQLite connection is
+# ever opened, so there is nothing for it to protect and no reason to
+# swap out the stdlib module.
+#
+# It does NOT fix the same hazard for Postgres. `evennia start` against
+# local Postgres on macOS hangs at "Server starting ..." in exactly the
+# way described above — silent, no traceback, nothing in any log — and
+# skipping this block changes nothing, which is how sqlean was ruled out
+# as the cause. psycopg2-binary brings its own C libraries through the
+# fork and has no statically-linked equivalent. Linux is unaffected, so
+# deployed environments do not see it.
+if sys.platform == "darwin" and not os.environ.get("DATABASE_URL"):
     try:
         import sqlean
         import sqlean.dbapi2
