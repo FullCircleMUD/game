@@ -156,6 +156,7 @@ _DB_ALIASES = {
 if _DATABASE_URL:
     _default_config = dj_database_url.parse(_DATABASE_URL)
     _default_config["CONN_MAX_AGE"] = db_config.CONN_MAX_AGE
+    db_config.apply_session_options(_default_config)
     DATABASES["default"] = _default_config  # type: ignore[name-defined]
 
 # resolve_database() lives in server/conf/db_config.py

@@ -37,6 +37,21 @@ def sqlite_at(path):
     return {"ENGINE": "django.db.backends.sqlite3", "NAME": path}
 
 
+def build_databases(env):
+    """Resolve all four aliases from an environment, the way settings.py does."""
+    shared = env.get("DATABASE_URL")
+    databases = {
+        "default": dj_database_url.parse(shared)
+        if shared
+        else sqlite_at(os.path.join(GAME_DIR, "server", "evennia.db3"))
+    }
+    for alias in ROUTER_PATHS:
+        databases[alias] = db_config.resolve_database(
+            alias, f"{alias}.db3", GAME_DIR, env
+        )
+    return databases
+
+
 class TestResolveDatabase(TestCase):
     """resolve_database() picks per-alias URL, then shared URL, then SQLite."""
 
@@ -179,18 +194,7 @@ class TestActiveRouters(TestCase):
     """active_routers() turns the resolved connections into a router list."""
 
     def routers(self, env):
-        """Resolve all four aliases the way settings.py does, then derive."""
-        shared = env.get("DATABASE_URL")
-        databases = {
-            "default": dj_database_url.parse(shared)
-            if shared
-            else sqlite_at(os.path.join(GAME_DIR, "server", "evennia.db3"))
-        }
-        for alias in ROUTER_PATHS:
-            databases[alias] = db_config.resolve_database(
-                alias, f"{alias}.db3", GAME_DIR, env
-            )
-        return db_config.active_routers(databases, ROUTER_PATHS)
+        return db_config.active_routers(build_databases(env), ROUTER_PATHS)
 
     def test_local_sqlite_activates_every_router(self):
         """Four separate files, so every alias needs directing to its own."""
@@ -233,3 +237,94 @@ class TestActiveRouters(TestCase):
             ),
             [],
         )
+
+
+class TestSplitAliases(TestCase):
+    """split_aliases() is the one definition of 'moved off the default box'."""
+
+    def split(self, env):
+        return db_config.split_aliases(build_databases(env))
+
+    def test_local_sqlite_splits_every_alias(self):
+        self.assertEqual(self.split({}), list(ROUTER_PATHS))
+
+    def test_one_shared_postgres_splits_nothing(self):
+        self.assertEqual(self.split({"DATABASE_URL": SHARED}), [])
+
+    def test_only_the_overridden_alias_is_split(self):
+        env = {"DATABASE_URL": SHARED, "DATABASE_URL_AI_MEMORY": VECTORS}
+        self.assertEqual(self.split(env), ["ai_memory"])
+
+    def test_default_is_never_listed_as_split(self):
+        self.assertNotIn("default", self.split({}))
+
+    def test_an_override_naming_the_default_database_is_not_a_split(self):
+        env = {"DATABASE_URL": SHARED, "DATABASE_URL_XRPL": SHARED_NO_PORT}
+        self.assertEqual(self.split(env), [])
+
+
+class TestDistinctTargets(TestCase):
+    """distinct_targets() groups aliases by the database they actually share."""
+
+    def targets(self, env):
+        return db_config.distinct_targets(build_databases(env))
+
+    def test_one_shared_postgres_is_a_single_group(self):
+        groups = self.targets({"DATABASE_URL": SHARED})
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(
+            sorted(next(iter(groups.values()))),
+            ["ai_memory", "default", "subscriptions", "xrpl"],
+        )
+
+    def test_local_sqlite_is_four_groups(self):
+        self.assertEqual(len(self.targets({})), 4)
+
+    def test_a_split_alias_forms_its_own_group(self):
+        groups = self.targets(
+            {"DATABASE_URL": SHARED, "DATABASE_URL_AI_MEMORY": VECTORS}
+        )
+        self.assertEqual(len(groups), 2)
+        self.assertIn(["ai_memory"], list(groups.values()))
+
+    def test_default_leads_the_group_it_shares(self):
+        """deploy_migrate operates on the first alias of each group."""
+        groups = self.targets({"DATABASE_URL": SHARED})
+        self.assertEqual(next(iter(groups.values()))[0], "default")
+
+
+class TestSessionOptions(TestCase):
+    """Every Postgres connection carries the pgvector iterative-scan setting."""
+
+    def resolve(self, env):
+        return db_config.resolve_database(
+            "ai_memory", "ai_memory.db3", GAME_DIR, env
+        )
+
+    def test_postgres_connections_carry_the_setting(self):
+        config = self.resolve({"DATABASE_URL": SHARED})
+        self.assertIn(
+            "hnsw.iterative_scan=relaxed_order", config["OPTIONS"]["options"]
+        )
+
+    def test_sqlite_gets_no_libpq_options(self):
+        """OPTIONS means something else on SQLite; a libpq string would break it."""
+        self.assertNotIn("OPTIONS", self.resolve({}))
+
+    def test_options_already_on_the_url_are_kept(self):
+        url = SHARED + "?options=-c%20statement_timeout%3D5000"
+        config = self.resolve({"DATABASE_URL": url})
+        self.assertIn("statement_timeout", config["OPTIONS"]["options"])
+        self.assertIn(
+            "hnsw.iterative_scan=relaxed_order", config["OPTIONS"]["options"]
+        )
+
+    def test_other_url_options_survive(self):
+        config = self.resolve({"DATABASE_URL": SHARED + "?sslmode=require"})
+        self.assertEqual(config["OPTIONS"]["sslmode"], "require")
+        self.assertIn("hnsw.iterative_scan", config["OPTIONS"]["options"])
+
+    def test_applying_to_a_sqlite_config_is_a_no_op(self):
+        config = sqlite_at("/srv/evennia.db3")
+        db_config.apply_session_options(config)
+        self.assertEqual(config, sqlite_at("/srv/evennia.db3"))

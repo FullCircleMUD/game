@@ -40,6 +40,25 @@ from django.conf import settings
 from django.db import connections
 from django.core.management import call_command
 
+from server.conf import db_config
+
+
+def _table_count(alias):
+    """How many tables exist in the database behind one alias."""
+    conn = connections[alias]
+    conn.ensure_connection()
+    with conn.cursor() as cursor:
+        if "postgresql" in settings.DATABASES[alias].get("ENGINE", ""):
+            cursor.execute(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_schema = 'public'"
+            )
+        else:
+            cursor.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'"
+            )
+        return cursor.fetchone()[0]
+
 
 # ────────────────────────────────────────────────────────────────────
 # Environment + DB diagnostics
@@ -75,6 +94,30 @@ for _alias in sorted(settings.DATABASES.keys()):
     )
 print("", flush=True)
 
+# Aliases can share one database or sit on separate instances. Anything
+# done to a database rather than a table — connect, create extension,
+# count tables — happens once per distinct target, using the first alias
+# that names it. Anything done to an app's tables happens per alias.
+_TARGETS = db_config.distinct_targets(settings.DATABASES)
+_REPRESENTATIVES = [aliases[0] for aliases in _TARGETS.values()]
+_SPLIT_ALIASES = db_config.split_aliases(settings.DATABASES)
+
+print("Distinct databases behind those aliases:", flush=True)
+for _target, _aliases in _TARGETS.items():
+    print(f"  {' + '.join(_aliases):<40s} -> {_target[1] or 'local'}"
+          f"/{_target[3]}", flush=True)
+if _SPLIT_ALIASES:
+    print(
+        f"\nSplit off from default: {', '.join(_SPLIT_ALIASES)}\n"
+        f"  Each needs its own `migrate --database <alias>` — a bare "
+        f"migrate cannot reach an alias whose router is active.",
+        flush=True,
+    )
+else:
+    print("\nNo alias is split off; one bare migrate covers everything.",
+          flush=True)
+print("", flush=True)
+
 _default_engine = settings.DATABASES["default"].get("ENGINE", "")
 _is_postgres = "postgresql" in _default_engine
 
@@ -96,29 +139,36 @@ if _database_url and not _is_postgres:
 # Connection probe — ping the default DB before we do anything else
 # ────────────────────────────────────────────────────────────────────
 
-print("--- Probing default DB connection ---", flush=True)
-try:
-    _conn = connections["default"]
-    _conn.ensure_connection()
-    with _conn.cursor() as _cursor:
-        if _is_postgres:
-            _cursor.execute(
-                "SELECT current_database(), current_user, version()"
-            )
-            _db, _user, _version = _cursor.fetchone()
-            print(f"  database: {_db}", flush=True)
-            print(f"  user:     {_user}", flush=True)
-            print(f"  server:   {_version.splitlines()[0]}", flush=True)
-        else:
-            _cursor.execute("SELECT 1")
-            print("  engine:   sqlite (local dev)", flush=True)
-    print("  probe:    OK", flush=True)
-except Exception as e:
-    print(f"  probe:    FAILED ({e})", flush=True)
-    traceback.print_exc()
-    print("", flush=True)
-    print("FATAL: could not connect to the default database.", flush=True)
-    sys.exit(1)
+print("--- Probing database connections ---", flush=True)
+for _alias in _REPRESENTATIVES:
+    _alias_engine = settings.DATABASES[_alias].get("ENGINE", "")
+    print(f"  [{_alias}]", flush=True)
+    try:
+        _conn = connections[_alias]
+        _conn.ensure_connection()
+        with _conn.cursor() as _cursor:
+            if "postgresql" in _alias_engine:
+                _cursor.execute(
+                    "SELECT current_database(), current_user, version()"
+                )
+                _db, _user, _version = _cursor.fetchone()
+                print(f"    database: {_db}", flush=True)
+                print(f"    user:     {_user}", flush=True)
+                print(f"    server:   {_version.splitlines()[0]}", flush=True)
+            else:
+                _cursor.execute("SELECT 1")
+                print("    engine:   sqlite (local dev)", flush=True)
+        print("    probe:    OK", flush=True)
+    except Exception as e:
+        print(f"    probe:    FAILED ({e})", flush=True)
+        traceback.print_exc()
+        print("", flush=True)
+        print(
+            f"FATAL: could not connect to the database behind '{_alias}'. "
+            "Aborting before any migration runs.",
+            flush=True,
+        )
+        sys.exit(1)
 
 print("", flush=True)
 
@@ -128,28 +178,47 @@ print("", flush=True)
 # ────────────────────────────────────────────────────────────────────
 
 print("--- Ensuring pgvector extension ---", flush=True)
-if _is_postgres:
+# Extensions are per-database, so this has to run in every database that
+# will hold a vector column — not just default's. Lore memory joins this
+# tuple when it lands; if it ends up riding the ai_memory alias rather
+# than taking its own, there is nothing to add.
+_VECTOR_ALIASES = ("ai_memory",)
+
+_vector_databases = {
+    alias: settings.DATABASES[alias]
+    for alias in _VECTOR_ALIASES
+    if alias in settings.DATABASES
+}
+# One create per distinct database, even if several aliases share it.
+_vector_reps = [
+    aliases[0]
+    for aliases in db_config.distinct_targets(_vector_databases).values()
+]
+
+for _alias in _vector_reps:
+    if "postgresql" not in settings.DATABASES[_alias].get("ENGINE", ""):
+        print(f"  [{_alias}] pgvector: SKIPPED (not Postgres)", flush=True)
+        continue
     try:
-        conn = connections["default"]
+        conn = connections[_alias]
         conn.ensure_connection()
         conn.connection.autocommit = True
         with conn.cursor() as cursor:
             cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
         conn.connection.autocommit = False
         conn.close()
-        print("  pgvector: OK", flush=True)
+        print(f"  [{_alias}] pgvector: OK", flush=True)
     except Exception as e:
-        print(f"  pgvector: FAILED ({e})", flush=True)
+        print(f"  [{_alias}] pgvector: FAILED ({e})", flush=True)
         traceback.print_exc()
         print("", flush=True)
         print(
-            "FATAL: pgvector extension could not be created. "
-            "ai_memory migrations depend on it — aborting deploy.",
+            f"FATAL: pgvector extension could not be created in the database "
+            f"behind '{_alias}'. Its migrations create vector columns and "
+            "will fail without it — aborting deploy.",
             flush=True,
         )
         sys.exit(1)
-else:
-    print("  pgvector: SKIPPED (not a Postgres backend)", flush=True)
 
 print("", flush=True)
 
@@ -160,23 +229,14 @@ print("", flush=True)
 # ────────────────────────────────────────────────────────────────────
 
 print("--- Pre-migration table census ---", flush=True)
-try:
-    _conn = connections["default"]
-    _conn.ensure_connection()
-    with _conn.cursor() as _cursor:
-        if _is_postgres:
-            _cursor.execute(
-                "SELECT COUNT(*) FROM information_schema.tables "
-                "WHERE table_schema = 'public'"
-            )
-        else:
-            _cursor.execute(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'"
-            )
-        _count = _cursor.fetchone()[0]
-    print(f"  tables in default DB before migrate: {_count}", flush=True)
-except Exception as e:
-    print(f"  census failed: {e}", flush=True)
+for _alias in _REPRESENTATIVES:
+    try:
+        print(
+            f"  [{_alias}] tables before migrate: {_table_count(_alias)}",
+            flush=True,
+        )
+    except Exception as e:
+        print(f"  [{_alias}] census failed: {e}", flush=True)
 
 print("", flush=True)
 
@@ -187,7 +247,21 @@ print("", flush=True)
 
 print("--- Running migrations ---", flush=True)
 try:
+    # The bare call covers default and every alias sharing its database,
+    # because no router stands between them.
+    print(">> migrate", flush=True)
     call_command("migrate", verbosity=2, interactive=False)
+
+    # A split alias has an active router, whose allow_migrate() refuses
+    # the bare call. Without these it would end up recorded as migrated
+    # with none of its tables created.
+    for _alias in _SPLIT_ALIASES:
+        print("", flush=True)
+        print(f">> migrate --database {_alias}", flush=True)
+        call_command(
+            "migrate", database=_alias, verbosity=2, interactive=False
+        )
+
     print("", flush=True)
     print("--- Migrations complete ---", flush=True)
 except Exception as e:
@@ -210,33 +284,32 @@ except Exception as e:
 
 print("", flush=True)
 print("--- Post-migration table census ---", flush=True)
-try:
-    _conn = connections["default"]
-    _conn.ensure_connection()
-    with _conn.cursor() as _cursor:
-        if _is_postgres:
-            _cursor.execute(
-                "SELECT COUNT(*) FROM information_schema.tables "
-                "WHERE table_schema = 'public'"
-            )
-        else:
-            _cursor.execute(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'"
-            )
-        _count_after = _cursor.fetchone()[0]
-    print(f"  tables in default DB after migrate: {_count_after}", flush=True)
-    if _count_after == 0:
-        print("", flush=True)
-        print(BAR, flush=True)
+_empty = []
+for _alias in _REPRESENTATIVES:
+    try:
+        _count_after = _table_count(_alias)
         print(
-            "FATAL: migrate reported success but the default DB has zero "
-            "tables. Something is very wrong — aborting deploy.",
-            flush=True,
+            f"  [{_alias}] tables after migrate: {_count_after}", flush=True
         )
-        print(BAR, flush=True)
-        sys.exit(1)
-except Exception as e:
-    print(f"  census failed: {e}", flush=True)
+        if _count_after == 0:
+            _empty.append(_alias)
+    except Exception as e:
+        print(f"  [{_alias}] census failed: {e}", flush=True)
+
+# The failure this catches: a router blocks table creation while Django
+# still records the migrations as applied, leaving a database that looks
+# migrated and holds nothing.
+if _empty:
+    print("", flush=True)
+    print(BAR, flush=True)
+    print(
+        "FATAL: migrate reported success but these databases have zero "
+        f"tables: {', '.join(_empty)}. Something is very wrong — aborting "
+        "deploy.",
+        flush=True,
+    )
+    print(BAR, flush=True)
+    sys.exit(1)
 
 print("", flush=True)
 print(BAR, flush=True)

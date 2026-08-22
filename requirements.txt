@@ -27,8 +27,14 @@ xrpl-py
 # Vector memory cosine similarity (ai_memory app)
 numpy
 
-# pgvector Django integration (vector search on PostgreSQL)
-pgvector
+# pgvector Django integration (vector search on PostgreSQL).
+#
+# Pinned because this is only half a version pair — the other half is the
+# `vector` extension installed in the database itself. This package supplies
+# VectorField and the distance functions; floating it means a fresh install
+# can differ from the client tested against that server version, and from
+# what every other deployment is running.
+pgvector==0.5.0
 
 # needed for xaman API
 requests

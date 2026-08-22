@@ -31,6 +31,21 @@ DEFAULT_PORTS = {
     "django.db.backends.oracle": "1521",
 }
 
+# Session parameters set on every Postgres connection.
+#
+# hnsw.iterative_scan — a filtered vector search (``WHERE npc_id = X ORDER
+# BY embedding <=> ...``) asks HNSW for ef_search candidates and only then
+# applies the filter, so it returns whatever few of them survive. Measured
+# on 100k rows across 500 NPCs: 1 row returned of a requested 5. Iterative
+# scans keep pulling candidates until the filter yields enough.
+#
+# Set on the connection rather than in postgresql.conf so it follows the
+# database wherever it lands — an RDS instance has no postgresql.conf to
+# edit, only a parameter group to forget. Postgres accepts the setting on
+# databases where the vector extension is absent, so it is safe on every
+# alias rather than needing to track which one holds the embeddings.
+SESSION_OPTIONS = "-c hnsw.iterative_scan=relaxed_order"
+
 
 def resolve_database(alias, sqlite_filename, game_dir, env):
     """Build the connection config for one database alias.
@@ -58,11 +73,28 @@ def resolve_database(alias, sqlite_filename, game_dir, env):
         config = dj_database_url.parse(url)
         _reject_incomplete_url(config, source)
         config["CONN_MAX_AGE"] = CONN_MAX_AGE
+        apply_session_options(config)
         return config
     return {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": os.path.join(game_dir, "server", sqlite_filename),
     }
+
+
+def apply_session_options(config):
+    """Add SESSION_OPTIONS to a Postgres connection, keeping anything already there.
+
+    A no-op on non-Postgres backends, where ``OPTIONS`` means something
+    entirely different and a libpq string would break the connection.
+
+    Args:
+        config (dict): a Django DATABASES entry, modified in place.
+    """
+    if "postgresql" not in config.get("ENGINE", ""):
+        return
+    options = config.setdefault("OPTIONS", {})
+    existing = str(options.get("options", "")).strip()
+    options["options"] = f"{existing} {SESSION_OPTIONS}".strip()
 
 
 def _reject_incomplete_url(config, source):
@@ -120,14 +152,36 @@ def database_target(config):
     )
 
 
+def split_aliases(databases):
+    """The aliases living on a physically different database from ``default``.
+
+    The single definition of "this alias has been split off", used both to
+    decide which routers to run and which aliases need their own migrate
+    call. Deriving both from one function is what stops the two drifting
+    into a state where a router blocks a table that nothing else creates.
+
+    Args:
+        databases (dict): resolved Django DATABASES, including ``default``.
+
+    Returns:
+        list: alias names, in ``databases`` order, excluding ``default``.
+    """
+    default_target = database_target(databases["default"])
+    return [
+        alias
+        for alias, config in databases.items()
+        if alias != "default" and database_target(config) != default_target
+    ]
+
+
 def active_routers(databases, router_paths):
     """Select the routers Django should run, given the resolved connections.
 
-    A router is needed for exactly those aliases that are a physically
-    different database from ``default``. Both existing deployment modes
-    fall out of that rule with nothing to configure: locally every alias
-    is its own SQLite file, so all routers are active; on one shared
-    Postgres instance every alias is the same database, so none are.
+    A router is needed for exactly the split aliases. Both existing
+    deployment modes fall out of that rule with nothing to configure:
+    locally every alias is its own SQLite file, so all routers are
+    active; on one shared Postgres instance every alias is the same
+    database, so none are.
 
     Enabling a router in the shared case would be actively harmful — its
     ``allow_migrate()`` would refuse to create the non-default tables
@@ -144,9 +198,24 @@ def active_routers(databases, router_paths):
     Returns:
         list: dotted router paths, in ``router_paths`` order.
     """
-    default_target = database_target(databases["default"])
-    return [
-        path
-        for alias, path in router_paths.items()
-        if database_target(databases[alias]) != default_target
-    ]
+    split = set(split_aliases(databases))
+    return [path for alias, path in router_paths.items() if alias in split]
+
+
+def distinct_targets(databases):
+    """Group the aliases by the physical database they share.
+
+    Anything done to a database rather than to a table — connecting,
+    creating an extension, counting what is in there — has to be done
+    once per distinct database, not once per alias.
+
+    Args:
+        databases (dict): resolved Django DATABASES.
+
+    Returns:
+        dict: target tuple -> list of aliases sharing it, first-seen order.
+    """
+    grouped = {}
+    for alias, config in databases.items():
+        grouped.setdefault(database_target(config), []).append(alias)
+    return grouped
