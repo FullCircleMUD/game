@@ -199,26 +199,41 @@ for _alias in _vector_reps:
     if "postgresql" not in settings.DATABASES[_alias].get("ENGINE", ""):
         print(f"  [{_alias}] pgvector: SKIPPED (not Postgres)", flush=True)
         continue
+    _db_name = settings.DATABASES[_alias].get("NAME", "?")
     try:
         conn = connections[_alias]
         conn.ensure_connection()
-        conn.connection.autocommit = True
         with conn.cursor() as cursor:
-            cursor.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        conn.connection.autocommit = False
-        conn.close()
-        print(f"  [{_alias}] pgvector: OK", flush=True)
+            cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+            _present = cursor.fetchone() is not None
     except Exception as e:
-        print(f"  [{_alias}] pgvector: FAILED ({e})", flush=True)
+        print(f"  [{_alias}] pgvector: CHECK FAILED ({e})", flush=True)
         traceback.print_exc()
-        print("", flush=True)
-        print(
-            f"FATAL: pgvector extension could not be created in the database "
-            f"behind '{_alias}'. Its migrations create vector columns and "
-            "will fail without it — aborting deploy.",
-            flush=True,
-        )
         sys.exit(1)
+
+    if _present:
+        print(f"  [{_alias}] pgvector: present in {_db_name}", flush=True)
+        continue
+
+    # Creating it needs superuser, which the app role deliberately is not.
+    # So this reports rather than fixes — with the exact command to run.
+    print(f"  [{_alias}] pgvector: MISSING from {_db_name}", flush=True)
+    print("", flush=True)
+    print(BAR, flush=True)
+    print(
+        f"FATAL: the '{_alias}' alias resolves to database {_db_name!r}, which\n"
+        f"does not have the vector extension. Its migrations create vector\n"
+        f"columns and will fail without it.\n"
+        f"\n"
+        f"Creating an extension requires superuser, which the application role\n"
+        f"is not and should not be. Run this as a database superuser, then\n"
+        f"re-run this script:\n"
+        f"\n"
+        f"    sudo -u postgres psql -d {_db_name} -c 'CREATE EXTENSION vector'\n",
+        flush=True,
+    )
+    print(BAR, flush=True)
+    sys.exit(1)
 
 print("", flush=True)
 
