@@ -205,6 +205,87 @@ class TestCmdPet(_PetTestBase):
         self.assertIn("doesn't know how to fight", result)
         mob.delete()
 
+    def test_someone_elses_pet_is_not_yours_to_command(self):
+        """Only the owner reaches a pet — _find_my_pets filters on owner_key."""
+        _make_mule(self.room1, self.char2)
+        result = self.call(CmdPet(), "stay")
+        self.assertIn("don't have a pet", result)
+
+    def test_unknown_subcommand(self):
+        """An unrecognised verb should list what is available."""
+        _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "juggle")
+        self.assertIn("Unknown pet command", result)
+
+    def test_multiple_pets_are_all_listed(self):
+        """Bare 'pet' with more than one pet shows every one of them."""
+        _make_mule(self.room1, self.char1)
+        _make_horse(self.room1, self.char1)
+        result = self.call(CmdPet(), "")
+        self.assertIn("mule", result.lower())
+        self.assertIn("horse", result.lower())
+
+    def test_follow_when_already_following(self):
+        """Telling a following pet to follow says so rather than re-issuing."""
+        _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "follow")
+        self.assertIn("already following", result)
+
+    def test_stay_when_already_waiting(self):
+        """Telling a waiting pet to stay says so."""
+        mule = _make_mule(self.room1, self.char1)
+        mule.stop_following()
+        result = self.call(CmdPet(), "stay")
+        self.assertIn("already waiting", result)
+
+    def test_name_requires_a_name(self):
+        """'pet name' with nothing after it should ask for one."""
+        mule = _make_mule(self.room1, self.char1)
+        original = mule.key
+        result = self.call(CmdPet(), "name")
+        self.assertIn("Name it what?", result)
+        self.assertEqual(mule.key, original)
+
+    def test_attack_requires_a_target(self):
+        """'pet attack' with nothing after it should ask what to attack."""
+        _make_war_dog(self.room1, self.char1)
+        result = self.call(CmdPet(), "attack")
+        self.assertIn("Attack what?", result)
+
+    def test_pet_refuses_to_attack_its_owner(self):
+        """A pet will not be turned on the person who owns it."""
+        _make_war_dog(self.room1, self.char1)
+        result = self.call(CmdPet(), "attack Char")
+        self.assertIn("refuses to attack you", result)
+
+    def test_dismiss_only_applies_to_summoned_pets(self):
+        """A tamed pet has no creator, so it cannot be dismissed."""
+        mule = _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "dismiss")
+        self.assertIn("isn't a magically", result)
+        self.assertIsNotNone(mule.pk)
+
+
+# ── Familiar-only verbs on an ordinary pet ───────────────────────────
+
+class TestCmdPetFamiliarGuards(_PetTestBase):
+    """look / return / <direction> are familiar-only and say so."""
+
+    def test_look_through_a_non_familiar(self):
+        _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "look")
+        self.assertIn("isn't a familiar", result)
+
+    def test_recall_a_non_familiar(self):
+        _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "return")
+        self.assertIn("isn't a familiar", result)
+
+    def test_remote_move_a_non_familiar(self):
+        _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "north")
+        self.assertIn("isn't a familiar", result)
+
 
 # ── Combat Companion ─────────────────────────────────────────────────
 
@@ -455,6 +536,196 @@ class TestPetTransferOwnership(_PetTestBase):
         )
         self.assertIn("no such token", row.error)
         self.assertFalse(row.resolved)
+
+
+# ── pet owner — the command layer over transfer_ownership ────────────
+
+class TestCmdPetOwner(_PetTestBase):
+    """
+    Test 'pet owner <character>'.
+
+    The ownership write itself is covered by TestPetTransferOwnership.
+    What is tested here is the gate in front of it — who can be named,
+    and that nothing happens without a confirmation.
+    """
+
+    databases = "__all__"
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+        self.account2.attributes.add("wallet_address", WALLET_A)
+        self.char2.location = self.room1
+        self.dog = _make_war_dog(self.room1, self.char1)
+        self.dog.token_id = "TOKEN-PET-OWNER"
+
+    def tearDown(self):
+        if self.dog.pk:
+            self.dog.token_id = None
+        super().tearDown()
+
+    def test_no_argument_asks_who(self):
+        """'pet owner' alone should name what is missing."""
+        result = self.call(CmdPet(), "owner")
+        self.assertIn("Who should own", result)
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+
+    def test_naming_yourself_is_refused(self):
+        """You cannot be given something you already own."""
+        result = self.call(CmdPet(), "owner Char")
+        self.assertIn("already belongs to you", result)
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+
+    def test_unknown_character_is_refused(self):
+        """Nobody by that name here."""
+        result = self.call(CmdPet(), "owner Nobody")
+        self.assertIn("don't see a character", result)
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_declining_the_confirmation_changes_nothing(self, mock_transfer):
+        """Answering N leaves the pet where it was and writes nothing."""
+        result = self.call(CmdPet(), "owner Char2", inputs=["n"])
+        self.assertIn("Transfer cancelled", result)
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+        mock_transfer.assert_not_called()
+
+    def test_confirmation_warns_about_the_nft(self):
+        """The prompt should say what is actually being handed over.
+
+        Driven directly rather than through self.call() — the test harness
+        sends inputs into the generator and discards what it yields, so a
+        yielded prompt never reaches the mocked .msg and cannot be asserted
+        on through the returned string.
+        """
+        gen = CmdPet()._cmd_owner(self.char1, self.dog, "char2")
+
+        prompt = next(gen)
+
+        self.assertIn("NFT", prompt)
+        self.assertIn("Char2", prompt)
+        self.assertIn(self.dog.key, prompt)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_confirming_hands_the_pet_over(self, mock_transfer):
+        """Answering Y transfers ownership and the pet follows its new owner."""
+        result = self.call(CmdPet(), "owner Char2", inputs=["y"])
+        self.assertIn("You give ownership", result)
+        self.assertEqual(self.dog.owner_key, self.char2.key)
+        self.assertEqual(self.dog.pet_state, "following")
+        mock_transfer.assert_called_once()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_the_new_owner_is_told(self, mock_transfer):
+        """The recipient hears about it — they now have a pet to feed."""
+        result = self.call(
+            CmdPet(), "owner Char2", inputs=["y"], receiver=self.char2,
+        )
+        self.assertIn("gives you ownership", result)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_a_failed_write_keeps_the_pet(self, mock_transfer):
+        """If the ownership write fails, the caller is told and keeps the pet."""
+        mock_transfer.side_effect = ValueError("no such token")
+
+        result = self.call(CmdPet(), "owner Char2", inputs=["y"])
+
+        self.assertIn("still yours", result)
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_the_command_can_name_a_specific_pet(self, mock_transfer):
+        """Dot syntax picks which pet changes hands when there are several."""
+        horse = _make_horse(self.room1, self.char1)
+
+        self.call(CmdPet(), ".horse owner Char2", inputs=["y"])
+
+        self.assertEqual(horse.owner_key, self.char2.key)
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+
+
+# ── pet dismiss — destroying a summoned pet ──────────────────────────
+
+class TestCmdPetDismiss(_PetTestBase):
+    """
+    Test 'pet dismiss' on a summoned pet.
+
+    delete() is all-or-nothing: it hands the token back before it removes
+    the object, so a failed ownership write leaves the pet standing there.
+    The command has to say so rather than report a vanishing that did not
+    happen.
+    """
+
+    databases = "__all__"
+
+    def setUp(self):
+        super().setUp()
+        self.dog = _make_war_dog(self.room1, self.char1)
+        self.dog.creator_key = self.char1.key
+        self.dog.token_id = "TOKEN-PET-DISMISS"
+
+    def tearDown(self):
+        # Clear the token before the base class deletes whatever is left —
+        # the mocks are gone by now and the real service would reach for a
+        # mirror row that was never made.
+        for obj in list(self.room1.contents):
+            if getattr(obj, "is_pet", False):
+                obj.token_id = None
+        super().tearDown()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
+    def test_dismiss_destroys_a_summoned_pet(self, mock_craft):
+        """The ordinary case — the pet goes and its token is handed back."""
+        from evennia.objects.models import ObjectDB
+        saved_pk = self.dog.pk
+
+        result = self.call(CmdPet(), "dismiss")
+
+        self.assertIn("vanishes", result)
+        self.assertFalse(ObjectDB.objects.filter(pk=saved_pk).exists())
+        mock_craft.assert_called_once()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
+    def test_a_failed_dismiss_leaves_the_pet_standing(self, mock_craft):
+        """If the token cannot be handed back, the pet is still here."""
+        from evennia.objects.models import ObjectDB
+        mock_craft.side_effect = ValueError("no such token")
+        saved_pk = self.dog.pk
+
+        result = self.call(CmdPet(), "dismiss")
+
+        self.assertIn("refuses to go", result)
+        self.assertNotIn("vanishes", result)
+        self.assertTrue(ObjectDB.objects.filter(pk=saved_pk).exists())
+
+    @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
+    def test_a_failed_dismiss_keeps_the_pet_owned(self, mock_craft):
+        """The pet that refused to go is still the caller's to command."""
+        mock_craft.side_effect = ValueError("no such token")
+
+        self.call(CmdPet(), "dismiss")
+
+        result = self.call(CmdPet(), "stay")
+        self.assertNotIn("don't have a pet", result)
+
+
+# ── pet give — reserved, not yet implemented ─────────────────────────
+
+class TestCmdPetGive(_PetTestBase):
+    """'pet give' is the pet handing something over, and is not built yet."""
+
+    def test_give_reports_that_it_is_not_implemented(self):
+        _make_mule(self.room1, self.char1)
+        result = self.call(CmdPet(), "give rope to Char2")
+        self.assertIn("can't carry anything yet", result)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_give_does_not_transfer_ownership(self, mock_transfer):
+        """The near-miss that matters — 'pet give' must not hand the pet over."""
+        mule = _make_mule(self.room1, self.char1)
+        self.call(CmdPet(), "give Char2")
+        self.assertEqual(mule.owner_key, self.char1.key)
+        mock_transfer.assert_not_called()
 
 
 # ── Deletion dispatch ────────────────────────────────────────────────
