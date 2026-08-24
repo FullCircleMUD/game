@@ -15,6 +15,8 @@ This is a standalone command (not a recipe through cmd_craft) because:
 """
 
 from django.db import router, transaction
+from twisted.internet import threads
+
 from evennia import Command
 from evennia.utils import delay, logger
 from utils.busy import check_busy, progress_bar, start_busy_ticks
@@ -233,8 +235,27 @@ class CmdInset(FCMCommandMixin, Command):
             )
             return
 
+        # --- Start naming now, so it runs while the ticks do ---
+        # The name depends only on the weapon and the gem's effects, both
+        # already known, so the model round-trip can happen during the
+        # progress bar instead of after it. Off the reactor thread, because
+        # it is a network call. The errback turns a failure into None,
+        # which _apply() reads as "use the plain name" — naming is
+        # decoration and must never be why a craft fails.
+        naming = threads.deferToThread(
+            name_generator.generate_inset_name,
+            weapon.key, gem_effects, caller,
+        )
+        naming.addErrback(lambda _failure: None)
+
         # --- Lock, announce, and run the progress ticks ---
         def _finish():
+            # Adding a callback to a deferred that has already fired runs it
+            # straight away, so in the normal case — model back well inside
+            # the tick time — there is no wait here at all.
+            naming.addCallback(_apply)
+
+        def _apply(new_name):
             try:
                 # Transfer gem effects → weapon.wear_effects (extend)
                 weapon.wear_effects = (
@@ -253,10 +274,9 @@ class CmdInset(FCMCommandMixin, Command):
 
                 weapon.is_inset = True
 
-                # Generate LLM name
-                new_name = name_generator.generate_inset_name(
-                    weapon.key, gem_effects, caller
-                )
+                # None means the model gave nothing usable. Keep the weapon's
+                # own name rather than failing the craft over decoration.
+                new_name = new_name or weapon.key
                 weapon.key = new_name
 
                 # Persist updated fields to NFTGameState metadata so the
