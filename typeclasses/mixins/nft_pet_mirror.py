@@ -70,46 +70,54 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         # Actual transition (stable/retrieve)
         self._execute_transition(source_type, dest_type)
 
-    def at_object_delete(self):
-        """Pet deletion — mirror cleanup.
+    def _resolve_delete_disposition(self):
+        """Where a deleted pet's token goes. Read before the deletion.
+
+        A pet is always standing in a room, so the location chain would call
+        every pet unowned. Ownership comes from owner_key instead.
+
+        Returns:
+            str: "CHARACTER" (owned), "ACCOUNT" (stabled) or "WORLD"
+                (no owner — should not happen).
+        """
+        location_type = self._classify_location(self.location)
+        if location_type == "ACCOUNT":
+            return "ACCOUNT"
+        if self.owner_key:
+            return "CHARACTER"
+        return "WORLD"
+
+    def _mirror_on_delete(self, disposition, token_id, tx_hash):
+        """Return a deleted pet's token to the vault.
 
         Owned pet in world → craft_input (CHARACTER → unallocated)
         Stabled pet exported → withdraw_to_chain (ACCOUNT → ONCHAIN)
-        """
-        if self.token_id is None:
-            return True
 
+        Args:
+            disposition (str): what _resolve_delete_disposition() returned.
+            token_id (str): the token, captured before the deletion.
+            tx_hash (str): pending export hash, captured before the deletion.
+        """
         from blockchain.xrpl.services.nft import NFTService
         from evennia.utils import logger
 
-        location_type = self._classify_location(self.location)
+        if disposition == "CHARACTER":
+            # Owned pet in world — death, admin delete, etc
+            NFTService.craft_input(token_id, settings.XRPL_VAULT_ADDRESS)
+        elif disposition == "ACCOUNT":
+            # Stabled pet being exported to external wallet
+            NFTService.withdraw_to_chain(token_id, tx_hash)
+        else:
+            # A pet with no owner should not exist. Despawn it, but say so.
+            logger.log_err(
+                f"PET MIRROR ERROR: Unowned pet #{token_id} deleted. "
+                f"Performing safety despawn."
+            )
+            NFTService.despawn(token_id)
 
-        try:
-            if self.owner_key and location_type != "ACCOUNT":
-                # Owned pet in world — death, admin delete, etc
-                NFTService.craft_input(
-                    self.token_id, settings.XRPL_VAULT_ADDRESS,
-                )
-            elif location_type == "ACCOUNT":
-                # Stabled pet being exported to external wallet
-                tx_hash = getattr(self.ndb, "pending_tx_hash", None)
-                NFTService.withdraw_to_chain(
-                    self.token_id, tx_hash,
-                )
-            else:
-                # This should never happen — pet without owner being deleted.
-                # Safety despawn with logging to investigate.
-                logger.log_err(
-                    f"PET MIRROR ERROR: Unowned pet #{self.token_id} "
-                    f"'{self.key}' deleted from {self.location}. "
-                    f"owner_key={self.owner_key}, location_type={location_type}. "
-                    f"Performing safety despawn."
-                )
-                NFTService.despawn(self.token_id)
-        except ValueError as err:
-            self._log_error("delete", err)
-
-        return True
+    def _delete_failure_wallet(self):
+        """The wallet to name on a failed deletion, or an empty string."""
+        return self._get_owner_wallet() or ""
 
     @staticmethod
     def _resolve_owner(obj):
@@ -137,29 +145,27 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
 
         Room dest → tamed/summoned → craft_output (owner's wallet)
         Account dest → imported from chain → deposit_from_chain
+
+        Failures propagate. This runs inside the transaction opened by
+        NFTMirrorMixin.move_to(), which rolls the creation back — a pet
+        nobody owns in the record should not be standing in the world.
         """
         from blockchain.xrpl.services.nft import NFTService
 
         if dest_type == "ROOM":
             wallet = self._get_owner_wallet()
             char_key = self.owner_key
-            try:
-                NFTService.craft_output(
-                    self.token_id, wallet, char_key,
-                )
-            except ValueError as err:
-                self._log_error("craft_output", err)
+            NFTService.craft_output(
+                self.token_id, wallet, char_key,
+            )
 
         elif dest_type == "ACCOUNT":
             wallet = dest.wallet_address if hasattr(dest, "wallet_address") else None
             tx_hash = kwargs.get("tx_hash")
-            try:
-                NFTService.deposit_from_chain(
-                    self.token_id, wallet,
-                    settings.XRPL_VAULT_ADDRESS, tx_hash,
-                )
-            except ValueError as err:
-                self._log_error("deposit_from_chain", err)
+            NFTService.deposit_from_chain(
+                self.token_id, wallet,
+                settings.XRPL_VAULT_ADDRESS, tx_hash,
+            )
 
     def _execute_transition(self, source_type, dest_type):
         """Pet movement transitions.
@@ -167,23 +173,20 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         ROOM → ACCOUNT: stable → bank()
         ACCOUNT → ROOM: retrieve → unbank()
         (ROOM → ROOM is handled as no-op in at_post_move before this is called)
+
+        Failures propagate. This runs inside the transaction opened by
+        NFTMirrorMixin.move_to(), which rolls the move back rather than
+        leaving the pet stabled with the record saying otherwise.
         """
         from blockchain.xrpl.services.nft import NFTService
 
         if source_type == "ROOM" and dest_type == "ACCOUNT":
             # Stabling — CHARACTER → ACCOUNT
-            try:
-                NFTService.bank(self.token_id)
-            except ValueError as err:
-                self._log_error("bank", err)
+            NFTService.bank(self.token_id)
 
         elif source_type == "ACCOUNT" and dest_type == "ROOM":
             # Retrieving — ACCOUNT → CHARACTER
-            char_key = self.owner_key
-            try:
-                NFTService.unbank(self.token_id, char_key)
-            except ValueError as err:
-                self._log_error("unbank", err)
+            NFTService.unbank(self.token_id, self.owner_key)
 
     @staticmethod
     def _is_same_owner(source_type, source_owner, dest_type, dest_owner):

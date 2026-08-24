@@ -24,6 +24,8 @@ from evennia.typeclasses.attributes import AttributeProperty
 from django.conf import settings
 from django.db import transaction
 
+from blockchain.xrpl.services.reconciliation import record_failure
+
 
 from typeclasses.mixins.character_key import CharacterKeyMixin
 
@@ -335,11 +337,136 @@ class NFTMirrorMixin(CharacterKeyMixin):
     #  Deletion — Mirror Cleanup
     # ================================================================== #
 
+    def delete(self):
+        """
+        Delete this object, and let the ownership write veto the deletion.
+
+        The counterpart to move_to() above, and it needs an override for the
+        opposite reason. Evennia calls at_object_delete() *first*, so the
+        ownership write cannot live there — it has to happen after the
+        object is destroyed, which is only reachable from here.
+
+        Order inside the transaction is the same as everywhere else: the
+        game-side work first, the ownership write last, nothing after it.
+        _mirror_on_delete() is where that write lives, and subclasses
+        override it rather than this — a pet resolves ownership from
+        owner_key, an item from its location chain.
+
+        A rollback restores the rows but not the Python instance: Django
+        clears its pk and the idmapper has already evicted it. So on failure
+        the object is re-fetched by the pk captured beforehand and its
+        location's contents cache rebuilt, since that cache is in-memory and
+        the rollback does not touch it. Whoever called delete() still holds
+        the discarded instance and should not keep using it.
+
+        See design/database.md § Transactions and Split Aliases.
+
+        Returns:
+            bool: True if the deletion and the ownership write both
+                succeeded. False leaves the object in the world.
+        """
+        if self.token_id is None:
+            return super().delete()
+
+        # Location type — CHARACTER, ACCOUNT or WORLD. Behind a method so
+        # pets can answer it from owner_key instead of from where they are
+        # standing. Read before anything is destroyed: afterwards there is
+        # no location left to read.
+        disposition = self._resolve_delete_disposition()
+        saved_pk = self.pk
+        wallet = self._delete_failure_wallet()
+
+        # Captured too: token_id is an AttributeProperty, and after the
+        # deletion its rows are gone, so reading it then raises.
+        token_id = self.token_id
+        tx_hash = getattr(self.ndb, "pending_tx_hash", None)
+        destroyed = False
+
+        try:
+            with transaction.atomic():
+                destroyed = super().delete()
+                if not destroyed:
+                    transaction.set_rollback(True)
+                    return destroyed
+                self._mirror_on_delete(disposition, token_id, tx_hash)
+        except Exception as err:
+            if destroyed:
+                self._reinstate_after_failed_delete(saved_pk)
+            record_failure(
+                "nft_delete", wallet, err,
+                character_key=None,
+                tx_hash=None,
+            )
+            raise
+
+        return destroyed
+
+    @staticmethod
+    def _reinstate_after_failed_delete(saved_pk):
+        """
+        Put a rolled-back deletion back together on the Python side.
+
+        The rows are already restored. What is not restored is the
+        container's contents cache, which delete() emptied in memory when it
+        set location to None.
+
+        Args:
+            saved_pk (int): the pk captured before the deletion.
+        """
+        from evennia.objects.models import ObjectDB
+
+        obj = ObjectDB.objects.filter(pk=saved_pk).first()
+        if obj is not None and obj.location is not None:
+            obj.location.contents_cache.init()
+
+    def _resolve_delete_disposition(self):
+        """
+        Where this object's token should go when it is destroyed.
+
+        Read before the deletion, while there is still a location to read.
+        Overridden by pets, which resolve ownership from owner_key rather
+        than from where the object is sitting.
+
+        Returns:
+            str: "CHARACTER", "ACCOUNT" or "WORLD".
+        """
+        location_type, _owner = self._resolve_owner(self.location)
+        return location_type
+
+    def _delete_failure_wallet(self):
+        """The wallet to name on a failed deletion, or an empty string."""
+        _location_type, owner = self._resolve_owner(self.location)
+        return self._get_owner_wallet(owner) or ""
+
+    def _mirror_on_delete(self, disposition, token_id, tx_hash):
+        """
+        Return this object's token to the vault. The ownership write.
+
+        Called from delete() as the last thing inside the transaction, so a
+        failure here takes the deletion with it. Everything it needs is
+        passed in — the object is already destroyed by this point, so
+        nothing can be read off it.
+
+        Args:
+            disposition (str): what _resolve_delete_disposition() returned.
+            token_id (str): the token, captured before the deletion.
+            tx_hash (str): pending export hash, captured before the deletion.
+        """
+        from blockchain.xrpl.services.nft import NFTService
+
+        if disposition == "CHARACTER":
+            NFTService.craft_input(token_id, settings.XRPL_VAULT_ADDRESS)
+        elif disposition == "ACCOUNT":
+            NFTService.withdraw_to_chain(token_id, tx_hash)
+        else:
+            NFTService.despawn(token_id)
+
     def at_object_delete(self):
         """
         Called just before this object is deleted. Return False to abort.
 
-        Handles container cleanup and mirror state transition.
+        Container cleanup only. The ownership write is not here — it has to
+        run after the object is destroyed, so it lives in delete().
         """
         # --- Container cleanup: delete contents before the container itself ---
         if getattr(self, "is_container", False):
@@ -358,29 +485,6 @@ class NFTMirrorMixin(CharacterKeyMixin):
             for obj in list(self.contents):
                 if getattr(obj, "token_id", None) is not None:
                     obj.delete()
-
-        # --- Now handle this object's own mirror transition ---
-        if self.token_id is None:
-            return True
-
-        from blockchain.xrpl.services.nft import NFTService
-
-        location_type, _owner = self._resolve_owner(self.location)
-
-        try:
-            if location_type == "CHARACTER":
-                NFTService.craft_input(
-                    self.token_id, settings.XRPL_VAULT_ADDRESS,
-                )
-            elif location_type == "ACCOUNT":
-                tx_hash = getattr(self.ndb, "pending_tx_hash", None)
-                NFTService.withdraw_to_chain(
-                    self.token_id, tx_hash,
-                )
-            else:
-                NFTService.despawn(self.token_id)
-        except ValueError as err:
-            self._log_error("delete", err)
 
         return True
 
