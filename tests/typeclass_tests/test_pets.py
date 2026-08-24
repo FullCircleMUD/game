@@ -455,3 +455,85 @@ class TestPetTransferOwnership(_PetTestBase):
         )
         self.assertIn("no such token", row.error)
         self.assertFalse(row.resolved)
+
+
+# ── Deletion dispatch ────────────────────────────────────────────────
+
+class TestPetDeleteDispatch(_PetTestBase):
+    """
+    Test where a deleted pet's token goes.
+
+    A pet stands in a room whether or not it is owned, so the location
+    chain would call every pet unowned. Ownership comes from owner_key.
+    """
+
+    databases = "__all__"
+
+    def setUp(self):
+        super().setUp()
+        self.dog = _make_war_dog(self.room1, self.char1)
+        self.dog.token_id = "TOKEN-PET-DEL"
+
+    def tearDown(self):
+        # Clear tokens on whatever is still in the room — after a rolled-back
+        # delete, self.dog is a discarded instance and the restored object is
+        # a different one.
+        for obj in list(self.room1.contents):
+            if getattr(obj, "is_pet", False):
+                obj.token_id = None
+        super().tearDown()
+
+    def test_owned_pet_in_world_is_a_craft_input(self):
+        """An owned pet standing in a room returns its token to the vault."""
+        self.assertEqual(self.dog._resolve_delete_disposition(), "CHARACTER")
+
+    def test_unowned_pet_is_a_despawn(self):
+        """A pet with no owner is the anomaly case."""
+        self.dog.owner_key = None
+        self.assertEqual(self.dog._resolve_delete_disposition(), "WORLD")
+
+    @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
+    def test_delete_writes_craft_input_for_an_owned_pet(self, mock_craft):
+        """Deleting an owned pet hands its token back."""
+        token = self.dog.token_id
+
+        self.assertTrue(self.dog.delete())
+
+        mock_craft.assert_called_once()
+        self.assertEqual(mock_craft.call_args[0][0], token)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    def test_delete_despawns_an_unowned_pet(self, mock_despawn):
+        """An unowned pet is despawned rather than credited to anyone."""
+        self.dog.owner_key = None
+
+        self.assertTrue(self.dog.delete())
+
+        mock_despawn.assert_called_once()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
+    def test_failed_ownership_write_keeps_the_pet(self, mock_craft):
+        """The pet survives if its token cannot be handed back."""
+        from evennia.objects.models import ObjectDB
+
+        mock_craft.side_effect = ValueError("no such token")
+        saved_pk = self.dog.pk
+
+        with self.assertRaises(ValueError):
+            self.dog.delete()
+
+        self.assertTrue(ObjectDB.objects.filter(pk=saved_pk).exists())
+
+    @patch("blockchain.xrpl.services.nft.NFTService.craft_input")
+    def test_failed_deletion_is_recorded(self, mock_craft):
+        """A failed deletion leaves a row for someone to act on."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        mock_craft.side_effect = ValueError("no such token")
+
+        with self.assertRaises(ValueError):
+            self.dog.delete()
+
+        row = ReconciliationFailure.objects.get(operation="nft_delete")
+        self.assertIn("no such token", row.error)
+        self.assertFalse(row.resolved)

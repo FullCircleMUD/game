@@ -11,6 +11,7 @@ from unittest.mock import patch, MagicMock
 
 from django.conf import settings
 
+from evennia.objects.models import ObjectDB
 from evennia.utils.test_resources import EvenniaTest
 from evennia.utils import create
 
@@ -562,3 +563,148 @@ class TestBaseNFTItemSpawnInto(EvenniaTest):
         self.assertEqual(obj.key, "NFT #10101")
         # Cleanup
         NFTGameState.objects.filter(nftoken_id="10101").delete()
+
+
+class TestContainerDeleteCleanup(EvenniaTest):
+    """
+    Test that destroying a container hands its contents back to the vault.
+
+    Destroying a container destroys what is inside it, so the gold and
+    resources it held are returned to the vault's books and any NFT items
+    inside are deleted in turn. All of it happens inside one transaction.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+
+    def _make_container(self):
+        container = create.create_object(
+            "typeclasses.items.containers.container_nft_item.ContainerNFTItem",
+            key="Backpack",
+            nohome=True,
+        )
+        container.token_id = TOKEN_ID
+        container.db_location = self.room1
+        container.save(update_fields=["db_location"])
+        return container
+
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    @patch("blockchain.xrpl.services.resource.ResourceService.despawn")
+    @patch("blockchain.xrpl.services.gold.GoldService.despawn")
+    def test_held_fungibles_go_back_to_the_vault(
+        self, mock_gold, mock_resource, _mock_nft
+    ):
+        """Gold and resources in a destroyed container are despawned."""
+        container = self._make_container()
+        container.db.gold = 50
+        container.db.resources = {1: 3}
+
+        self.assertTrue(container.delete())
+
+        mock_gold.assert_called_once_with(50, settings.XRPL_VAULT_ADDRESS)
+        mock_resource.assert_called_once_with(
+            1, 3, settings.XRPL_VAULT_ADDRESS,
+        )
+
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    @patch("blockchain.xrpl.services.gold.GoldService.despawn")
+    def test_failed_fungible_return_aborts_the_deletion(
+        self, mock_gold, _mock_nft
+    ):
+        """The container survives if its gold cannot be handed back."""
+        mock_gold.side_effect = ValueError("no spawned row")
+        container = self._make_container()
+        container.db.gold = 50
+        saved_pk = container.pk
+
+        with self.assertRaises(ValueError):
+            container.delete()
+
+        self.assertTrue(ObjectDB.objects.filter(pk=saved_pk).exists())
+
+    @patch("typeclasses.mixins.nft_mirror.NFTMirrorMixin.get_nft_mirror")
+    @patch("typeclasses.mixins.nft_mirror.NFTMirrorMixin.assign_to_blank_token")
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    @patch("blockchain.xrpl.services.gold.GoldService.despawn")
+    def test_failed_deletion_reissues_a_restored_child(
+        self, mock_gold, _mock_nft, mock_assign, mock_mirror
+    ):
+        """A child restored by a rollback gets a fresh token, not deleted."""
+        mock_gold.side_effect = ValueError("no spawned row")
+        mock_assign.return_value = 777
+        mirror = MagicMock()
+        mirror.item_type.name = "Ring"
+        mirror.metadata = {}
+        mock_mirror.return_value = mirror
+
+        container = self._make_container()
+        container.db.gold = 50
+        inner = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a ring", nohome=True,
+        )
+        inner.token_id = 99
+        inner.db_location = container
+        inner.save(update_fields=["db_location"])
+        inner_pk = inner.pk
+
+        with self.assertRaises(ValueError):
+            container.delete()
+
+        # The ring is back, carrying a different token.
+        restored = ObjectDB.objects.filter(pk=inner_pk).first()
+        self.assertIsNotNone(restored)
+        mock_assign.assert_called_once()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    def test_failed_deletion_is_recorded(self, mock_despawn):
+        """A failed deletion leaves a row for someone to act on."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        mock_despawn.side_effect = ValueError("no such token")
+        container = self._make_container()
+
+        with self.assertRaises(ValueError):
+            container.delete()
+
+        row = ReconciliationFailure.objects.get(operation="nft_delete")
+        self.assertIn("no such token", row.error)
+        self.assertFalse(row.resolved)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    def test_failed_deletion_restores_the_contents_cache(self, mock_despawn):
+        """A restored object is back in its location's cached contents."""
+        mock_despawn.side_effect = ValueError("no such token")
+        container = self._make_container()
+        saved_pk = container.pk
+
+        with self.assertRaises(ValueError):
+            container.delete()
+
+        restored = ObjectDB.objects.filter(pk=saved_pk).first()
+        self.assertIn(restored, self.room1.contents)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.despawn")
+    def test_nft_contents_are_deleted_with_the_container(self, mock_despawn):
+        """An NFT item inside a destroyed container is destroyed too."""
+        container = self._make_container()
+        inner = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a ring", nohome=True,
+        )
+        inner.token_id = 99
+        inner.db_location = container
+        inner.save(update_fields=["db_location"])
+        inner_pk = inner.pk
+
+        self.assertTrue(container.delete())
+
+        self.assertFalse(ObjectDB.objects.filter(pk=inner_pk).exists())
+        self.assertEqual(mock_despawn.call_count, 2)

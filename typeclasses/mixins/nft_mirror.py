@@ -5,12 +5,16 @@ Provides the full NFT lifecycle (mirror tracking, ownership transitions,
 factory methods) as a mixin that can be composed into ANY Evennia object —
 whether a DefaultObject (items) or DefaultCharacter (pets/actors).
 
-All NFT mirror/ownership updates flow through this mixin's hooks:
+All NFT mirror/ownership updates flow through two overrides, each of which
+holds its game-side change and its ownership write in one transaction:
 
-    at_post_move    — handles ALL location-based transitions (pickup, drop,
-                      transfer, bank, unbank, spawn, craft_output, reserve_to_account)
-    at_object_delete — handles ALL destruction transitions (despawn, craft_input,
-                       account_to_reserve)
+    move_to  — ALL location-based transitions (pickup, drop, transfer, bank,
+               unbank, spawn, craft_output, reserve_to_account), written by
+               at_post_move() which Evennia calls as move_to()'s last step
+    delete   — ALL destruction transitions (despawn, craft_input,
+               withdraw_to_chain), written by _mirror_on_delete() after the
+               object is gone. at_object_delete() cannot host them: Evennia
+               calls it first, before anything has been destroyed.
 
 Extracted from BaseNFTItem to enable NFT-backed actors (pets, mounts) that
 need actor infrastructure (HP, combat, following) alongside NFT tracking.
@@ -343,14 +347,25 @@ class NFTMirrorMixin(CharacterKeyMixin):
 
         The counterpart to move_to() above, and it needs an override for the
         opposite reason. Evennia calls at_object_delete() *first*, so the
-        ownership write cannot live there — it has to happen after the
+        ownership writes cannot live there — they have to happen after the
         object is destroyed, which is only reachable from here.
 
-        Order inside the transaction is the same as everywhere else: the
-        game-side work first, the ownership write last, nothing after it.
-        _mirror_on_delete() is where that write lives, and subclasses
-        override it rather than this — a pet resolves ownership from
-        owner_key, an item from its location chain.
+        The order is: read everything the writes will need, destroy any NFT
+        contents, destroy this object, then make every ownership write. That
+        keeps the rule the rest of the codebase follows — the irreversible
+        writes last, with nothing on the default connection after them.
+
+        Destroying a container destroys what is inside it, so its gold and
+        resources go back to the vault's books. Those amounts are read up
+        front and written back at the end; the objects holding them do not
+        need to exist by then, only the numbers.
+
+        Its NFT contents are the exception that cannot be reordered. Each
+        child has to be deleted while it still exists — otherwise Evennia's
+        clear_contents() would relocate it to its home instead — and each
+        commits its own ownership write on the way out. A parent deletion
+        that fails after that point leaves the children gone. There is no
+        arrangement that avoids it.
 
         A rollback restores the rows but not the Python instance: Django
         clears its pk and the idmapper has already evicted it. So on failure
@@ -362,7 +377,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
         See design/database.md § Transactions and Split Aliases.
 
         Returns:
-            bool: True if the deletion and the ownership write both
+            bool: True if the deletion and the ownership writes all
                 succeeded. False leaves the object in the world.
         """
         if self.token_id is None:
@@ -380,18 +395,23 @@ class NFTMirrorMixin(CharacterKeyMixin):
         # deletion its rows are gone, so reading it then raises.
         token_id = self.token_id
         tx_hash = getattr(self.ndb, "pending_tx_hash", None)
+        held_gold, held_resources = self._held_fungibles()
         destroyed = False
+        orphaned_children = []
 
         try:
             with transaction.atomic():
+                orphaned_children = self._delete_nft_contents()
                 destroyed = super().delete()
                 if not destroyed:
                     transaction.set_rollback(True)
                     return destroyed
+                self._return_held_fungibles(held_gold, held_resources)
                 self._mirror_on_delete(disposition, token_id, tx_hash)
         except Exception as err:
             if destroyed:
                 self._reinstate_after_failed_delete(saved_pk)
+            self._reissue_orphaned_children(orphaned_children)
             record_failure(
                 "nft_delete", wallet, err,
                 character_key=None,
@@ -400,6 +420,132 @@ class NFTMirrorMixin(CharacterKeyMixin):
             raise
 
         return destroyed
+
+    def _held_fungibles(self):
+        """
+        What this object is holding, read before it is destroyed.
+
+        Returns:
+            tuple: (gold, {resource_id: amount}) — both empty for anything
+                that is not a container carrying fungibles.
+        """
+        if not getattr(self, "is_container", False):
+            return 0, {}
+
+        gold = self.get_gold() if hasattr(self, "get_gold") else 0
+        resources = (
+            self.get_all_resources() if hasattr(self, "get_all_resources")
+            else {}
+        )
+        return gold, {rid: amt for rid, amt in resources.items() if amt > 0}
+
+    def _delete_nft_contents(self):
+        """
+        Destroy any NFT items inside this object.
+
+        Runs before this object is destroyed, because Evennia's
+        clear_contents() would otherwise send them to their home rather than
+        destroying them. Each child's own delete() makes its own ownership
+        write on the xrpl connection, which commits there and then — so this
+        is the one part of a container deletion that cannot be left until
+        the end, and the one part a later rollback cannot undo.
+
+        What each child needs to be rebuilt is read first, because returning
+        a token to the reserve pool blanks its item type and metadata. The
+        object itself is the surviving copy of its own identity.
+
+        Returns:
+            list: one dict per deleted child — pk, item type name and
+                metadata — for _reissue_orphaned_children() if the parent
+                deletion then fails.
+        """
+        if not getattr(self, "is_container", False):
+            return []
+
+        deleted = []
+        for obj in list(self.contents):
+            if getattr(obj, "token_id", None) is None:
+                continue
+
+            mirror = self.get_nft_mirror(obj.token_id)
+            deleted.append({
+                "pk": obj.pk,
+                "item_type": mirror.item_type.name if mirror and mirror.item_type else None,
+                "metadata": dict(mirror.metadata or {}) if mirror else {},
+            })
+            obj.delete()
+
+        return deleted
+
+    @staticmethod
+    def _reissue_orphaned_children(children):
+        """
+        Give a restored child a fresh token after a failed parent deletion.
+
+        The child's own deletion committed on the xrpl connection before the
+        parent failed, so its old token is already back in the reserve pool
+        and blank. The rollback then restores the child object — leaving an
+        item in the world holding a token that no longer belongs to it.
+
+        Rather than destroy the item to match the record, it is given a new
+        token from the pool and its identity written onto it. The player
+        keeps the item; one token goes back and another comes out, which
+        costs the economy nothing. What it carries afterwards is a different
+        token id, which only shows if it is later exported.
+
+        Never raises. This runs while an exception is on its way up, and the
+        original failure matters more than the repair. A dry reserve pool is
+        the one thing that stops it, and a dry pool is a larger problem than
+        this path.
+
+        Args:
+            children (list): what _delete_nft_contents() returned.
+        """
+        from evennia.objects.models import ObjectDB
+        from evennia.utils import logger
+
+        for child in children:
+            try:
+                obj = ObjectDB.objects.filter(pk=child["pk"]).first()
+                if obj is None or not child["item_type"]:
+                    continue
+
+                obj.token_id = NFTMirrorMixin.assign_to_blank_token(
+                    child["item_type"],
+                )
+                if child["metadata"]:
+                    obj.persist_metadata(child["metadata"])
+            except Exception:
+                logger.log_err(
+                    f"Could not reissue a token for restored object "
+                    f"#{child['pk']} after a failed container deletion. "
+                    f"Its old token is in the reserve pool and the object "
+                    f"is holding nothing valid."
+                )
+
+    @staticmethod
+    def _return_held_fungibles(gold, resources):
+        """
+        Hand a destroyed container's gold and resources back to the vault.
+
+        The container is already gone by this point, so this goes to the
+        services directly — there is no local Evennia state left to keep in
+        step, which is the only thing the mixin methods would have added.
+
+        Args:
+            gold (int): what _held_fungibles() found.
+            resources (dict): resource_id to amount.
+        """
+        from blockchain.xrpl.services.gold import GoldService
+        from blockchain.xrpl.services.resource import ResourceService
+
+        vault = settings.XRPL_VAULT_ADDRESS
+
+        if gold > 0:
+            GoldService.despawn(gold, vault)
+
+        for resource_id, amount in resources.items():
+            ResourceService.despawn(resource_id, amount, vault)
 
     @staticmethod
     def _reinstate_after_failed_delete(saved_pk):
@@ -460,33 +606,6 @@ class NFTMirrorMixin(CharacterKeyMixin):
             NFTService.withdraw_to_chain(token_id, tx_hash)
         else:
             NFTService.despawn(token_id)
-
-    def at_object_delete(self):
-        """
-        Called just before this object is deleted. Return False to abort.
-
-        Container cleanup only. The ownership write is not here — it has to
-        run after the object is destroyed, so it lives in delete().
-        """
-        # --- Container cleanup: delete contents before the container itself ---
-        if getattr(self, "is_container", False):
-            if hasattr(self, "get_gold") and self.get_gold() > 0:
-                try:
-                    self.return_gold_to_reserve(self.get_gold())
-                except (ValueError, AttributeError) as err:
-                    self._log_error("container_gold_cleanup", err)
-            if hasattr(self, "get_all_resources"):
-                for rid, amt in list(self.get_all_resources().items()):
-                    if amt > 0:
-                        try:
-                            self.return_resource_to_reserve(rid, amt)
-                        except (ValueError, AttributeError) as err:
-                            self._log_error("container_resource_cleanup", err)
-            for obj in list(self.contents):
-                if getattr(obj, "token_id", None) is not None:
-                    obj.delete()
-
-        return True
 
     # ================================================================== #
     #  Factory Methods
