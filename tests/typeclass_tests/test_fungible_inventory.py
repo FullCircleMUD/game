@@ -1060,6 +1060,51 @@ class TestGoldTransferRollback(EvenniaTest):
 
         self.assertEqual(self.char1.get_resource(WHEAT), 0)
 
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_swap")
+    def test_buy_from_pool_rolls_back(self, mock_swap, mock_record):
+        """A failed recording leaves the player's balances untouched."""
+        mock_swap.return_value = {"tx_hash": "TX", "actual_input": 1,
+                                  "actual_output": 1}
+        mock_record.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 40
+        self.char1.db.resources = {}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.buy_from_pool(WHEAT, 5, 10)
+
+        self.assertEqual(self.char1.get_gold(), 40)
+        self.assertEqual(self.char1.get_resource(WHEAT), 0)
+
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_swap")
+    def test_buy_from_pool_no_swap_no_change(self, mock_swap, mock_record):
+        """A failed swap never reaches the balances or the recording."""
+        mock_swap.side_effect = RuntimeError("swap failed")
+        self.char1.db.gold = 40
+
+        with self.assertRaises(RuntimeError):
+            self.char1.buy_from_pool(WHEAT, 5, 10)
+
+        mock_record.assert_not_called()
+        self.assertEqual(self.char1.get_gold(), 40)
+
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_swap")
+    def test_sell_to_pool_rolls_back(self, mock_swap, mock_record):
+        """A failed recording leaves the player's balances untouched."""
+        mock_swap.return_value = {"tx_hash": "TX", "actual_input": 1,
+                                  "actual_output": 1}
+        mock_record.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 0
+        self.char1.db.resources = {WHEAT: 8}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.sell_to_pool(WHEAT, 3, 9)
+
+        self.assertEqual(self.char1.get_resource(WHEAT), 8)
+        self.assertEqual(self.char1.get_gold(), 0)
+
     @patch("blockchain.xrpl.services.resource.ResourceService.withdraw_to_chain")
     def test_withdraw_resource_to_chain_rolls_back(self, mock_withdraw):
         """A failed chain resource withdrawal debits nothing locally."""

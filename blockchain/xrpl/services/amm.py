@@ -121,13 +121,12 @@ class AMMService:
     def buy_resource(wallet_address, character_key, resource_id, amount,
                      gold_cost, vault_address):
         """
-        Buy a resource from the AMM pool using gold.
+        Buy a resource from the AMM pool using gold. Swap, then record.
 
-        Flow:
-            1. Execute on-chain swap (vault sends FCMGold, receives resource)
-            2. Update game state atomically:
-               - CHARACTER gold → RESERVE (player pays gold)
-               - RESERVE resource → CHARACTER (player receives resource)
+        Callers that also update Evennia state should call the two halves
+        separately, so the game-side write and the ownership write share a
+        transaction and the swap sits outside it — see
+        FungibleInventoryMixin.buy_from_pool().
 
         Args:
             wallet_address: Player's wallet address.
@@ -144,6 +143,34 @@ class AMMService:
             XRPLTransactionError if the on-chain swap fails.
             ValueError if resource_id is unknown.
         """
+        swap_result = AMMService.buy_resource_swap(
+            resource_id, amount, gold_cost,
+        )
+        return AMMService.buy_resource_record(
+            wallet_address, character_key, resource_id, amount,
+            gold_cost, vault_address, swap_result,
+        )
+
+    @staticmethod
+    def buy_resource_swap(resource_id, amount, gold_cost):
+        """
+        Execute the on-chain half of a buy: vault sends gold, receives resource.
+
+        Signals failure by raising, never by its return value — so a caller
+        that goes on to open a transaction can do so unconditionally.
+
+        Args:
+            resource_id: int resource ID to buy.
+            amount: int amount of resource to buy.
+            gold_cost: int gold cost (pre-rounded ceiling).
+
+        Returns:
+            dict: the swap result, to hand to buy_resource_record().
+
+        Raises:
+            XRPLTransactionError if the on-chain swap fails.
+            ValueError if resource_id is unknown.
+        """
         from blockchain.xrpl.xrpl_amm import execute_swap
 
         gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
@@ -151,24 +178,50 @@ class AMMService:
         if not resource_currency:
             raise ValueError(f"Unknown resource_id: {resource_id}")
 
-        # 1. Execute on-chain swap
         memos = [build_memo(MEMO_SWAP, {
             "sell": gold_currency,
             "buy": resource_currency,
             "sellAmt": str(gold_cost),
             "buyAmt": str(amount),
         })]
-        swap_result = execute_swap(
+        return execute_swap(
             from_currency=gold_currency,
             to_currency=resource_currency,
             max_input=gold_cost,
             expected_output=amount,
             memos=memos,
         )
+
+    @staticmethod
+    def buy_resource_record(wallet_address, character_key, resource_id,
+                            amount, gold_cost, vault_address, swap_result):
+        """
+        Record a completed buy swap in the xrpl database.
+
+        Args:
+            wallet_address: Player's wallet address.
+            character_key: Player's character key.
+            resource_id: int resource ID bought.
+            amount: int amount of resource bought.
+            gold_cost: int gold charged (pre-rounded ceiling).
+            vault_address: Vault wallet address.
+            swap_result (dict): what buy_resource_swap() returned.
+
+        Returns:
+            dict {gold_cost, resource_amount, tx_hash, ...}
+
+        Raises:
+            ValueError if resource_id is unknown.
+        """
+        gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
+        resource_currency = get_currency_code(resource_id)
+        if not resource_currency:
+            raise ValueError(f"Unknown resource_id: {resource_id}")
+
         actual_gold_spent = swap_result["actual_input"]
         actual_resource_received = swap_result["actual_output"]
 
-        # 2. Update game state atomically
+        # Update game state atomically
         #
         # Six operations — player side (integers) + AMM side (decimals):
         #   Player pays gold_cost gold → CHARACTER gold -N
@@ -313,13 +366,12 @@ class AMMService:
     def sell_resource(wallet_address, character_key, resource_id, amount,
                       gold_received, vault_address):
         """
-        Sell a resource to the AMM pool for gold.
+        Sell a resource to the AMM pool for gold. Swap, then record.
 
-        Flow:
-            1. Execute on-chain swap (vault sends resource, receives FCMGold)
-            2. Update game state atomically:
-               - CHARACTER resource → RESERVE (player gives up resource)
-               - RESERVE gold → CHARACTER (player receives gold)
+        Callers that also update Evennia state should call the two halves
+        separately, so the game-side write and the ownership write share a
+        transaction and the swap sits outside it — see
+        FungibleInventoryMixin.sell_to_pool().
 
         Args:
             wallet_address: Player's wallet address.
@@ -336,6 +388,34 @@ class AMMService:
             XRPLTransactionError if the on-chain swap fails.
             ValueError if resource_id is unknown.
         """
+        swap_result = AMMService.sell_resource_swap(
+            resource_id, amount, gold_received,
+        )
+        return AMMService.sell_resource_record(
+            wallet_address, character_key, resource_id, amount,
+            gold_received, vault_address, swap_result,
+        )
+
+    @staticmethod
+    def sell_resource_swap(resource_id, amount, gold_received):
+        """
+        Execute the on-chain half of a sell: vault sends resource, gets gold.
+
+        Signals failure by raising, never by its return value — so a caller
+        that goes on to open a transaction can do so unconditionally.
+
+        Args:
+            resource_id: int resource ID to sell.
+            amount: int amount of resource to sell.
+            gold_received: int gold received (pre-rounded floor).
+
+        Returns:
+            dict: the swap result, to hand to sell_resource_record().
+
+        Raises:
+            XRPLTransactionError if the on-chain swap fails.
+            ValueError if resource_id is unknown.
+        """
         from blockchain.xrpl.xrpl_amm import execute_swap
 
         gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
@@ -343,24 +423,51 @@ class AMMService:
         if not resource_currency:
             raise ValueError(f"Unknown resource_id: {resource_id}")
 
-        # 1. Execute on-chain swap
         memos = [build_memo(MEMO_SWAP, {
             "sell": resource_currency,
             "buy": gold_currency,
             "sellAmt": str(amount),
             "buyAmt": str(gold_received),
         })]
-        swap_result = execute_swap(
+        return execute_swap(
             from_currency=resource_currency,
             to_currency=gold_currency,
             max_input=amount,
             expected_output=gold_received,
             memos=memos,
         )
+
+    @staticmethod
+    def sell_resource_record(wallet_address, character_key, resource_id,
+                             amount, gold_received, vault_address,
+                             swap_result):
+        """
+        Record a completed sell swap in the xrpl database.
+
+        Args:
+            wallet_address: Player's wallet address.
+            character_key: Player's character key.
+            resource_id: int resource ID sold.
+            amount: int amount of resource sold.
+            gold_received: int gold paid to the player (pre-rounded floor).
+            vault_address: Vault wallet address.
+            swap_result (dict): what sell_resource_swap() returned.
+
+        Returns:
+            dict {gold_received, resource_amount, tx_hash, ...}
+
+        Raises:
+            ValueError if resource_id is unknown.
+        """
+        gold_currency = settings.XRPL_GOLD_CURRENCY_CODE
+        resource_currency = get_currency_code(resource_id)
+        if not resource_currency:
+            raise ValueError(f"Unknown resource_id: {resource_id}")
+
         actual_resource_spent = swap_result["actual_input"]
         actual_gold_received = swap_result["actual_output"]
 
-        # 2. Update game state atomically
+        # Update game state atomically
         #
         # Six operations — player side (integers) + AMM side (decimals):
         #   Player gives resource → CHARACTER resource -amount

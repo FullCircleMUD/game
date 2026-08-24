@@ -914,13 +914,32 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         char_key = self._get_character_key()
         vault = settings.XRPL_VAULT_ADDRESS
 
-        result = AMMService.buy_resource(
-            wallet, char_key, resource_id, amount, gold_cost, vault,
+        # The swap stays outside the transaction below — a transaction
+        # cannot be held open across a ledger round-trip. It signals failure
+        # by raising rather than by its return value, so a swap that does
+        # not happen never reaches the player's balances at all.
+        swap_result = AMMService.buy_resource_swap(
+            resource_id, amount, gold_cost,
         )
 
-        # Update local Evennia state
-        self._remove_gold(gold_cost)
-        self._add_resource(resource_id, amount)
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_gold(gold_cost)
+                self._add_resource(resource_id, amount)
+                result = AMMService.buy_resource_record(
+                    wallet, char_key, resource_id, amount,
+                    gold_cost, vault, swap_result,
+                )
+        except Exception:
+            # No failure record here, deliberately. The swap moved assets the
+            # game already owns between the vault and its own pool, so the
+            # only effect is a nudge to the next price. Nobody would unwind
+            # it by hand. The player's balances are untouched on both sides,
+            # which is the thing that has to stay consistent.
+            _discard_cached_attributes(self)
+            raise
 
         return result
 
@@ -959,13 +978,32 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         char_key = self._get_character_key()
         vault = settings.XRPL_VAULT_ADDRESS
 
-        result = AMMService.sell_resource(
-            wallet, char_key, resource_id, amount, gold_received, vault,
+        # The swap stays outside the transaction below — a transaction
+        # cannot be held open across a ledger round-trip. It signals failure
+        # by raising rather than by its return value, so a swap that does
+        # not happen never reaches the player's balances at all.
+        swap_result = AMMService.sell_resource_swap(
+            resource_id, amount, gold_received,
         )
 
-        # Update local Evennia state
-        self._remove_resource(resource_id, amount)
-        self._add_gold(gold_received)
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_resource(resource_id, amount)
+                self._add_gold(gold_received)
+                result = AMMService.sell_resource_record(
+                    wallet, char_key, resource_id, amount,
+                    gold_received, vault, swap_result,
+                )
+        except Exception:
+            # No failure record here, deliberately. The swap moved assets the
+            # game already owns between the vault and its own pool, so the
+            # only effect is a nudge to the next price. Nobody would unwind
+            # it by hand. The player's balances are untouched on both sides,
+            # which is the thing that has to stay consistent.
+            _discard_cached_attributes(self)
+            raise
 
         return result
 
