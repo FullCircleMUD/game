@@ -681,3 +681,79 @@ class TestInsetMasteryTiers(EvenniaCommandTest):
             CmdInset(), f"{gem.key} in {weapon.key}", inputs=["n"]
         )
         self.assertIn("cancelled", result)
+
+
+class TestInsetFailuresAreRecorded(EvenniaCommandTest):
+    """
+    Test that both of insetting's known gaps leave a row for an admin.
+
+    Neither can be rolled back — the gold and gem are consumed before the
+    progress ticks, and what follows happens after them — so the only
+    remedy is a person, and the only way a person finds out is the list.
+    """
+
+    databases = "__all__"
+    room_typeclass = "typeclasses.terrain.rooms.room_crafting.RoomCrafting"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.db.crafting_type = "jeweller"
+        self.room1.db.mastery_level = 1
+        self.room1.db.craft_cost = 5
+        self.room1.db.craft_xp_multiplier = 1.0
+        _give_jeweller_skill(self.char1)
+        _give_gold(self.char1, 50)
+
+    @_patch_threads
+    @patch("utils.busy.delay", side_effect=_instant_delay)
+    @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
+    @patch(
+        "commands.room_specific_cmds.crafting.cmd_inset.name_generator"
+        ".generate_inset_name",
+        return_value=None,
+    )
+    def test_an_unnamed_weapon_is_recorded(
+        self, _naming, mock_nft_cls, mock_delay, _threads
+    ):
+        """A model that gives nothing usable leaves the weapon to be named."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        gem = _make_gem(self.char1)
+        weapon = _make_weapon(self.char1)
+        mock_nft = MagicMock()
+        mock_nft.metadata = {}
+        mock_nft_cls.objects.get.return_value = mock_nft
+
+        self.call(CmdInset(), f"{gem.key} in {weapon.key}", inputs=["y"])
+
+        row = ReconciliationFailure.objects.get(operation="inset_unnamed")
+        self.assertEqual(row.character_key, self.char1.key)
+        self.assertFalse(row.resolved)
+
+    @_patch_threads
+    @patch("utils.busy.delay", side_effect=_instant_delay)
+    @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
+    @patch(
+        "commands.room_specific_cmds.crafting.cmd_inset.name_generator"
+        ".generate_inset_name",
+        return_value="Soulrend",
+    )
+    def test_a_failed_application_is_recorded(
+        self, _naming, mock_nft_cls, mock_delay, _threads
+    ):
+        """Consumed but not applied is the case only a person can fix."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        gem = _make_gem(self.char1)
+        weapon = _make_weapon(self.char1)
+        mock_nft_cls.objects.get.side_effect = RuntimeError("mirror gone")
+
+        self.call(CmdInset(), f"{gem.key} in {weapon.key}", inputs=["y"])
+
+        row = ReconciliationFailure.objects.get(operation="inset_finish")
+        self.assertEqual(row.amount, 5)
+        self.assertIn("mirror gone", row.error)

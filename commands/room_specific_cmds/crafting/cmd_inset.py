@@ -22,6 +22,7 @@ from evennia.utils import delay, logger
 from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.models import NFTGameState
+from blockchain.xrpl.services.reconciliation import record_failure
 from commands.command import FCMCommandMixin
 from enums.mastery_level import MasteryLevel
 from enums.room_crafting_type import RoomCraftingType
@@ -275,7 +276,18 @@ class CmdInset(FCMCommandMixin, Command):
                 weapon.is_inset = True
 
                 # None means the model gave nothing usable. Keep the weapon's
-                # own name rather than failing the craft over decoration.
+                # own name rather than failing the craft over decoration, and
+                # leave a row so someone can name it by hand — an unnamed
+                # inset weapon is a thing to fix, not a thing to lose.
+                if not new_name:
+                    record_failure(
+                        "inset_unnamed",
+                        caller._get_wallet(),
+                        f"No usable name came back for weapon token "
+                        f"{weapon.token_id} ('{weapon.key}'). It is inset "
+                        f"and working, but still carries its plain name.",
+                        character_key=caller.key,
+                    )
                 new_name = new_name or weapon.key
                 weapon.key = new_name
 
@@ -298,7 +310,26 @@ class CmdInset(FCMCommandMixin, Command):
                 nft.save(update_fields=["metadata", "updated_at"])
 
             except Exception as err:
-                caller.msg(f"|rInsetting failed: {err}|n")
+                # The gold and the gem are already gone — that transaction
+                # committed before the ticks started, and this runs after
+                # them, so there is nothing left to roll back. The player
+                # has paid and the weapon is unchanged, which only a person
+                # can put right.
+                logger.log_trace("inset: applying the gem to the weapon failed")
+                record_failure(
+                    "inset_finish",
+                    caller._get_wallet(),
+                    f"Gold and gem were consumed but weapon token "
+                    f"{weapon.token_id} was not changed: {err}",
+                    character_key=caller.key,
+                    amount=total_gold,
+                )
+                caller.msg(
+                    f"|rSomething went wrong finishing the setting. Your "
+                    f"gold and {gem_name} are spent and the weapon is "
+                    f"unchanged. This has been logged for an admin to put "
+                    f"right.|n"
+                )
                 return
 
             caller.msg(
