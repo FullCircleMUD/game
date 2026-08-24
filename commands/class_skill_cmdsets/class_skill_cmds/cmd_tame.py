@@ -12,6 +12,9 @@ pet NFT is created that follows the tamer.
 import random
 import time
 
+from django.db import router, transaction
+from evennia.utils import logger
+
 from enums.mastery_level import MasteryLevel
 from enums.skills_enum import skills
 from utils.targeting.helpers import resolve_target
@@ -157,34 +160,54 @@ class CmdTame(CmdSkillBase):
             caller.msg("Error: animal has no pet type configured.")
             return
 
-        # Assign a blank NFT token as this pet type
+        from blockchain.xrpl.models import NFTGameState
+
+        animal_name = target.key
+        room = caller.location
+
+        # Taming takes a wild animal away and gives back a pet, and both
+        # halves write ownership. One xrpl transaction around the lot makes
+        # them one event: nested service calls become savepoints inside it,
+        # so a failure anywhere leaves no half-tamed animal — no token
+        # assigned with the mob still standing there, and no mob destroyed
+        # with nothing to show for it. The outer block covers the Evennia
+        # side. See design/database.md § Transactions and Split Aliases.
         try:
-            token_id = NFTService.assign_item_type(pet_type)
-        except Exception as err:
-            caller.msg(f"Taming failed (system error): {err}")
+            with transaction.atomic():
+                with transaction.atomic(
+                    using=router.db_for_write(NFTGameState)
+                ):
+                    token_id = NFTService.assign_item_type(pet_type)
+                    target.delete()
+                    pet = NFTPetMirrorMixin.spawn_pet(
+                        token_id, room, caller.key,
+                    )
+                    if pet:
+                        pet.start_following(caller)
+        except Exception:
+            # Nothing happened — the animal is still wild and no token was
+            # taken. Trace it, since catching means Evennia's handler never
+            # sees it.
+            logger.log_trace(f"tame: taming {animal_name} failed")
+            caller.msg(
+                f"|r{animal_name} slips away from you — something went "
+                f"wrong and the taming did not take. It is still wild. "
+                f"This has been logged.|n"
+            )
             return
 
-        # Announce success
+        # Announce only once it has actually happened.
         caller.msg(
-            f"|gYou carefully approach {target.key}... it calms under "
+            f"|gYou carefully approach {animal_name}... it calms under "
             f"your hand. You have tamed it!|n"
         )
-        if caller.location:
-            caller.location.msg_contents(
+        if room:
+            room.msg_contents(
                 "|y{tamer} tames {animal}!|n",
                 exclude=[caller],
-                mapping={"tamer": caller, "animal": target},
+                from_obj=caller,
+                mapping={"tamer": caller, "animal": animal_name},
             )
-
-        # Remove the wild mob
-        target.delete()
-
-        # Spawn the pet
-        pet = NFTPetMirrorMixin.spawn_pet(
-            token_id, caller.location, caller.key,
-        )
-        if pet:
-            pet.start_following(caller)
 
         # XP reward — scales with animal difficulty
         xp = required * TAME_XP_PER_SUCCESS

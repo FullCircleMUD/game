@@ -14,8 +14,9 @@ This is a standalone command (not a recipe through cmd_craft) because:
 - Doesn't fit the "consume inputs → spawn output" crafting pipeline
 """
 
+from django.db import router, transaction
 from evennia import Command
-from evennia.utils import delay
+from evennia.utils import delay, logger
 from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.models import NFTGameState
@@ -192,9 +193,6 @@ class CmdInset(FCMCommandMixin, Command):
             caller.msg("You no longer have enough gold.")
             return
 
-        # --- Consume gold ---
-        caller.return_gold_to_sink(total_gold)
-
         # --- Capture gem data before deletion (read directly from the
         # gem's existing fields — wear_effects + ItemRestrictionMixin
         # fields. No custom storage; same field names that exist on the
@@ -208,9 +206,32 @@ class CmdInset(FCMCommandMixin, Command):
             "min_alignment_score": gem.min_alignment_score,
             "max_alignment_score": gem.max_alignment_score,
         }
+        gem_name = gem.key
 
-        # --- Consume the gem (delete → NFTService → RESERVE) ---
-        gem.delete()
+        # --- Consume the gold and the gem together ---
+        # One xrpl transaction around both: nested service calls become
+        # savepoints inside it, so the player cannot end up having paid for
+        # a gem that is still in their pocket, or having lost a gem for
+        # free. The outer block covers the Evennia side. See
+        # design/database.md § Transactions and Split Aliases.
+        try:
+            with transaction.atomic():
+                with transaction.atomic(
+                    using=router.db_for_write(NFTGameState)
+                ):
+                    caller.return_gold_to_sink(total_gold)
+                    gem.delete()
+        except Exception:
+            # Nothing was taken — the gold and the gem are both still
+            # theirs. Trace it, since catching means Evennia's handler
+            # never sees it.
+            logger.log_trace(f"inset: consuming {gem_name} failed")
+            caller.msg(
+                f"|rSomething went wrong and the setting could not be "
+                f"started. Your gold and {gem_name} are untouched. "
+                f"This has been logged.|n"
+            )
+            return
 
         # --- Lock, announce, and run the progress ticks ---
         def _finish():
