@@ -17,6 +17,8 @@ from unittest.mock import patch, MagicMock, PropertyMock
 
 from evennia.utils.test_resources import EvenniaCommandTest
 
+from tests.test_utils.sync_defer import patch_deferToThread
+
 from commands.room_specific_cmds.crafting.cmd_inset import (
     CmdInset,
     _describe_effect,
@@ -27,6 +29,16 @@ from llm.name_generator import ItemNameGenerator
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+# Naming runs off the reactor thread, so the tests need it inline.
+_patch_threads = patch_deferToThread(
+    "commands.room_specific_cmds.crafting.cmd_inset"
+)
+_patch_naming = patch(
+    "commands.room_specific_cmds.crafting.cmd_inset.name_generator"
+    ".generate_inset_name",
+    return_value="LLMName",
+)
 
 
 def _give_gold(char, amount):
@@ -81,19 +93,76 @@ def _make_weapon(char, name="Iron Longsword"):
 
 # ── Unit tests — LLM name generator stub ─────────────────────────────
 
-class TestNameGeneratorStub(TestCase):
-    """Test the LLM name generator stub."""
+class TestInsetNameGenerator(TestCase):
+    """
+    Test the LLM naming of an inset weapon.
 
-    def test_stub_returns_hardcoded_name(self):
-        gen = ItemNameGenerator()
-        result = gen.generate_inset_name("Iron Longsword", [], None)
-        self.assertEqual(result, "LLMName")
+    Never calls a model. Naming is decoration, so what matters is that
+    every unusable answer becomes None and the caller falls back — the
+    craft must not turn on what the model felt like saying.
+    """
 
-    def test_stub_ignores_arguments(self):
-        gen = ItemNameGenerator()
-        effects = [{"type": "condition", "condition": "fly"}]
-        result = gen.generate_inset_name("Test Weapon", effects, "char")
-        self.assertEqual(result, "LLMName")
+    def _generate(self, reply, effects=None):
+        with patch(
+            "llm.service.LLMService.chat_completion", return_value=reply,
+        ):
+            return ItemNameGenerator().generate_inset_name(
+                "Iron Longsword", effects or [], None,
+            )
+
+    def test_a_good_name_comes_through(self):
+        self.assertEqual(self._generate("Soulrend"), "Soulrend")
+
+    def test_two_words_are_allowed(self):
+        self.assertEqual(self._generate("Skyward Edge"), "Skyward Edge")
+
+    def test_quotes_and_full_stops_are_stripped(self):
+        self.assertEqual(self._generate('"Dawnbreaker."'), "Dawnbreaker")
+
+    def test_three_words_are_rejected(self):
+        self.assertIsNone(self._generate("Blade Of The Dawn"))
+
+    def test_an_explanation_is_rejected(self):
+        self.assertIsNone(self._generate(
+            "Here is a name: Dawnbreaker, because it breaks the dawn."
+        ))
+
+    def test_an_overlong_name_is_rejected(self):
+        self.assertIsNone(self._generate("Supercalifragilisticexpialidocious"))
+
+    def test_a_name_with_digits_is_rejected(self):
+        self.assertIsNone(self._generate("Sword +2"))
+
+    def test_no_reply_is_rejected(self):
+        self.assertIsNone(self._generate(None))
+
+    def test_an_empty_reply_is_rejected(self):
+        self.assertIsNone(self._generate("   "))
+
+    def test_a_model_error_is_not_raised(self):
+        """A failing model gives no name rather than breaking the craft."""
+        with patch(
+            "llm.service.LLMService.chat_completion",
+            side_effect=RuntimeError("model down"),
+        ):
+            result = ItemNameGenerator().generate_inset_name(
+                "Iron Longsword", [], None,
+            )
+        self.assertIsNone(result)
+
+    def test_effects_are_described_for_the_prompt(self):
+        """Effect dicts become readable text; anything else is skipped."""
+        described = ItemNameGenerator._describe_effects([
+            {"type": "condition", "condition": "see_invisible"},
+            {"type": "resistance", "effect": "blunt_resistance"},
+            "not a dict",
+        ])
+        self.assertEqual(described, "see invisible, blunt resistance")
+
+    def test_effectless_gem_still_describes_something(self):
+        self.assertEqual(
+            ItemNameGenerator._describe_effects([]), "an unnamed magic",
+        )
 
 
 # ── Unit tests — _describe_effect ─────────────────────────────────────
@@ -147,10 +216,12 @@ class TestInsetSuccess(EvenniaCommandTest):
         _give_jeweller_skill(self.char1)
         _give_gold(self.char1, 50)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_gem_consumed(self, mock_nft_cls, mock_delay):
+    def test_gem_consumed(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Insetting should delete (consume) the gem."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
@@ -163,10 +234,12 @@ class TestInsetSuccess(EvenniaCommandTest):
         # Gem should be deleted
         self.assertNotIn(gem, self.char1.contents)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_gem_effects_extend_weapon_wear_effects(self, mock_nft_cls, mock_delay):
+    def test_gem_effects_extend_weapon_wear_effects(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Gem's wear_effects extend weapon's wear_effects (same field name)."""
         effects = [{"type": "condition", "condition": "fly"}]
         gem = _make_gem(self.char1, effects=effects)
@@ -181,10 +254,12 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.assertEqual(weapon.wear_effects, original + effects)
         self.assertTrue(weapon.is_inset)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_gem_restrictions_transfer_to_weapon_mixin_fields(self, mock_nft_cls, mock_delay):
+    def test_gem_restrictions_transfer_to_weapon_mixin_fields(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Gem's restriction fields (required_races etc.) merge into weapon's
         same fields via ItemRestrictionMixin — no custom storage."""
         restrictions = {"required_races": ["dwarf"], "min_alignment_score": 300}
@@ -199,10 +274,12 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.assertEqual(list(weapon.required_races), ["dwarf"])
         self.assertEqual(weapon.min_alignment_score, 300)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_wear_effects_extended(self, mock_nft_cls, mock_delay):
+    def test_wear_effects_extended(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Weapon's wear_effects should include original + gem effects."""
         gem_effects = [{"type": "condition", "condition": "darkvision"}]
         gem = _make_gem(self.char1, effects=gem_effects)
@@ -219,10 +296,12 @@ class TestInsetSuccess(EvenniaCommandTest):
             original_effects + gem_effects
         )
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_weapon_renamed(self, mock_nft_cls, mock_delay):
+    def test_weapon_renamed(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Weapon should get LLM-generated name."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
@@ -234,10 +313,12 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertEqual(weapon.key, "LLMName")
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_gold_consumed(self, mock_nft_cls, mock_delay):
+    def test_gold_consumed(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Workshop fee should be deducted."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
@@ -249,10 +330,12 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertEqual(self.char1.get_gold(), 45)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_metadata_saved(self, mock_nft_cls, mock_delay):
+    def test_metadata_saved(self, mock_nft_cls, mock_delay, _threads, _naming):
         """NFTGameState metadata should be updated with new name and effects."""
         gem_effects = [{"type": "condition", "condition": "fly"}]
         gem = _make_gem(self.char1, effects=gem_effects)
@@ -269,10 +352,12 @@ class TestInsetSuccess(EvenniaCommandTest):
         self.assertTrue(mock_nft.metadata["is_inset"])
         mock_nft.save.assert_called_once()
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_xp_awarded(self, mock_nft_cls, mock_delay):
+    def test_xp_awarded(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Character should receive XP after insetting."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
@@ -285,10 +370,12 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertEqual(self.char1.experience_points, 10)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_success_message(self, mock_nft_cls, mock_delay):
+    def test_success_message(self, mock_nft_cls, mock_delay, _threads, _naming):
         """Should show success message with the new name."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
@@ -302,10 +389,12 @@ class TestInsetSuccess(EvenniaCommandTest):
 
         self.assertIn("LLMName", result)
 
+    @_patch_naming
+    @_patch_threads
     @patch("utils.busy.delay",
            side_effect=_instant_delay)
     @patch("commands.room_specific_cmds.crafting.cmd_inset.NFTGameState")
-    def test_processing_cleared(self, mock_nft_cls, mock_delay):
+    def test_processing_cleared(self, mock_nft_cls, mock_delay, _threads, _naming):
         """ndb.is_processing should be cleared after insetting."""
         gem = _make_gem(self.char1)
         weapon = _make_weapon(self.char1)
