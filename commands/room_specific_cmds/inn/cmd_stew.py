@@ -16,6 +16,7 @@ Usage:
 """
 
 from django.conf import settings
+from django.db import transaction
 from twisted.internet import threads
 
 from evennia import Command
@@ -23,6 +24,7 @@ from evennia import Command
 from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.inn.service import bartender_refuses
 from enums.hunger_level import HungerLevel
+from utils.attribute_cache import discard_cached_attributes
 
 
 BREAD_RESOURCE_ID = 3
@@ -90,7 +92,12 @@ class CmdStew(FCMCommandMixin, Command):
 
 
 def _threaded_stew_buy(current_gold, wallet, char_key, vault):
-    """Worker thread — get bread price then execute AMM swap."""
+    """
+    Worker thread — get the bread price, then execute the on-chain swap.
+
+    The swap only. Booking it happens on the reactor thread, in a
+    transaction alongside the player's local writes — see _book_stew_buy().
+    """
     from blockchain.xrpl.services.amm import AMMService
 
     try:
@@ -105,17 +112,50 @@ def _threaded_stew_buy(current_gold, wallet, char_key, vault):
             f"{current_gold}."
         )
 
-    result = AMMService.buy_resource(
-        wallet, char_key, BREAD_RESOURCE_ID, 1, gold_cost, vault,
+    swap_result = AMMService.buy_resource_swap(
+        BREAD_RESOURCE_ID, 1, gold_cost,
     )
-    return (gold_cost, result)
+    return (gold_cost, swap_result)
 
 
-def _on_stew_complete(caller, hunger_before, gold_cost, result):
-    """Reactor thread — update Evennia state and feed the character."""
-    if not caller.sessions.count():
-        return
+def _book_stew_buy(caller, gold_cost, swap_result):
+    """
+    Hold the player's local writes and the ownership write together.
 
+    The swap ran in the worker thread and is outside this transaction — one
+    cannot be held open across a ledger round-trip. Inside is the pair that
+    has to agree: what the game says the player holds and what the xrpl
+    database says they own. Local writes go first, so a failure in the
+    ownership write takes them with it.
+    """
+    from blockchain.xrpl.services.amm import AMMService
+
+    wallet = caller._get_wallet()
+    char_key = caller._get_character_key()
+    vault = settings.XRPL_VAULT_ADDRESS
+
+    try:
+        with transaction.atomic():
+            caller._remove_gold(gold_cost)
+            caller._add_resource(BREAD_RESOURCE_ID, 1)
+            AMMService.buy_resource_record(
+                wallet, char_key, BREAD_RESOURCE_ID, 1, gold_cost, vault,
+                swap_result,
+            )
+    except Exception:
+        # The rows are back; the in-memory Attributes are not.
+        discard_cached_attributes(caller)
+        raise
+
+
+def _on_stew_complete(caller, hunger_before, gold_cost, swap_result):
+    """
+    Reactor thread — book the purchase, consume the bread, feed the player.
+
+    The swap has already happened and cannot be undone, so this runs whether
+    or not the player is still connected; a disconnect mid-purchase feeds
+    them rather than wasting the bowl. Only the messages need a session.
+    """
     if gold_cost is None:
         # AMM fallback — use static price
         if not caller.has_gold(FALLBACK_PRICE):
@@ -127,11 +167,13 @@ def _on_stew_complete(caller, hunger_before, gold_cost, result):
         _apply_hunger(caller, hunger_before, FALLBACK_PRICE)
         return
 
-    # AMM purchase succeeded — update local Evennia attributes
-    caller._remove_gold(gold_cost)
-    caller._add_resource(BREAD_RESOURCE_ID, 1)
+    _book_stew_buy(caller, gold_cost, swap_result)
 
-    # Immediately consume the bread
+    # Consuming it is a separate operation, deliberately. It opens its own
+    # transaction, and putting it inside the one above would leave a write
+    # to the default database after the ownership write had committed. If
+    # this fails the player keeps the bread they paid for — not the outcome
+    # they asked for, but nothing is lost.
     caller.return_resource_to_sink(BREAD_RESOURCE_ID, 1)
 
     _apply_hunger(caller, hunger_before, gold_cost)
@@ -147,7 +189,13 @@ def _on_stew_error(caller, failure):
 
 
 def _apply_hunger(caller, current, gold_cost):
-    """Apply the hunger effect and send messages."""
+    """
+    Apply the hunger effect and describe it.
+
+    No session check. A player who dropped out mid-purchase has still eaten,
+    and msg() to a character with no sessions goes nowhere by itself — while
+    the room message should still reach whoever is watching.
+    """
     new_level = HungerLevel(current.value + 1)
     caller.hunger_level = new_level
 

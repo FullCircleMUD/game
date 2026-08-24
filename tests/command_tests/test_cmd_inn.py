@@ -15,7 +15,12 @@ from evennia.utils.test_resources import EvenniaCommandTest
 
 from enums.hunger_level import HungerLevel
 from enums.thirst_level import ThirstLevel
-from commands.room_specific_cmds.inn.cmd_stew import CmdStew, FALLBACK_PRICE
+from commands.room_specific_cmds.inn.cmd_stew import (
+    CmdStew,
+    FALLBACK_PRICE,
+    BREAD_RESOURCE_ID,
+    _book_stew_buy,
+)
 from commands.room_specific_cmds.inn.cmd_ale import CmdAle
 from commands.room_specific_cmds.inn.cmd_menu import CmdMenu
 
@@ -136,3 +141,37 @@ class TestCmdMenu(EvenniaCommandTest):
         self.assertIn("stew", result)
         self.assertIn("ale", result)
         self.assertIn("gold", result)
+
+
+class TestStewBookingRollback(EvenniaCommandTest):
+    """
+    Test that a failed ownership write leaves the stew buyer's balances alone.
+
+    The swap has already happened by the time _book_stew_buy() runs, so what
+    is protected here is the pair that must agree: the game's view of the
+    player's holdings and the xrpl database's.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.db.gold = 100
+        self.char1.db.resources = {}
+
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    def test_booking_failure_rolls_back(self, mock_record):
+        """A failed recording keeps the gold and adds no bread."""
+        mock_record.side_effect = RuntimeError("xrpl write failed")
+
+        with self.assertRaises(RuntimeError):
+            _book_stew_buy(
+                self.char1, 7,
+                {"tx_hash": "TX", "actual_input": 1, "actual_output": 1},
+            )
+
+        self.assertEqual(self.char1.get_gold(), 100)
+        self.assertEqual(self.char1.get_resource(BREAD_RESOURCE_ID), 0)
