@@ -915,3 +915,37 @@ class TestReadOnlyQueries(EvenniaTest):
         result = self.char1.get_all_resources()
         result[999] = 50  # mutate the copy
         self.assertNotIn(999, self.char1.db.resources)
+
+
+class TestGoldTransferRollback(EvenniaTest):
+    """
+    Test that a failing ownership write rolls the local Evennia writes back.
+
+    transfer_gold_to() puts its two local writes and the GoldService call in
+    one transaction on the default connection, local writes first. If the
+    service raises, the exception leaves that block and both local writes
+    must go with it — see design/database.md § Transactions and Split Aliases.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.db.gold = 50
+        self.char1.db.gold = 0
+
+    @patch("blockchain.xrpl.services.gold.GoldService.pickup")
+    def test_service_failure_rolls_back_local_writes(self, mock_pickup):
+        """Neither side keeps its local change when the service raises."""
+        mock_pickup.side_effect = RuntimeError("xrpl write failed")
+
+        with self.assertRaises(RuntimeError):
+            self.room1.transfer_gold_to(self.char1, 25)
+
+        self.assertEqual(self.room1.get_gold(), 50)
+        self.assertEqual(self.char1.get_gold(), 0)

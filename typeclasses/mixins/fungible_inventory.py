@@ -42,6 +42,7 @@ Usage:
 """
 
 from django.conf import settings
+from django.db import transaction
 
 from blockchain.xrpl.currency_cache import get_resource_type, get_all_resource_types
 
@@ -49,6 +50,25 @@ GOLD = settings.GOLD_DISPLAY
 
 
 from typeclasses.mixins.character_key import CharacterKeyMixin
+
+
+def _discard_cached_attributes(obj):
+    """
+    Drop an object's cached Attributes so the next read hits the database.
+
+    A rolled-back transaction restores the rows and nothing else. Evennia's
+    AttributeHandler is still holding the Attribute instances it wrote, and
+    reset_cache() alone does not help — the re-fetch goes through the
+    idmapper, which hands back those same instances. They have to be evicted
+    from the idmapper first.
+
+    Args:
+        obj (Object): the object whose attribute cache is now stale.
+    """
+    for attr in list(obj.attributes.backend._cache.values()):
+        if attr is not None:
+            attr.flush_from_cache(force=True)
+    obj.attributes.reset_cache()
 
 
 class FungibleInventoryMixin(CharacterKeyMixin):
@@ -243,52 +263,73 @@ class FungibleInventoryMixin(CharacterKeyMixin):
                 )
             return
 
-        if source_type == "WORLD" and target_type == "CHARACTER":
-            # SPAWNED → CHARACTER (character picks up gold from ground)
-            GoldService.pickup(
-                target_wallet, amount, vault, target_key,
-            )
+        # Local state first, the ownership write last. A transaction covers
+        # one connection, so these are two transactions on two connections,
+        # not one — and only this order is safe. If the ownership write
+        # fails, the exception leaves this block and Evennia's side rolls
+        # back with it. Reversed, a local failure would strand an ownership
+        # change that cannot be undone. Nothing may write to the default
+        # database after the service call. See design/database.md
+        # § Transactions and Split Aliases.
+        try:
+            with transaction.atomic():
+                self._remove_gold(amount)
+                target._add_gold(amount)
 
-        elif source_type == "CHARACTER" and target_type == "WORLD":
-            # CHARACTER → SPAWNED (character drops gold on ground)
-            GoldService.drop(
-                source_wallet, amount, vault, source_key,
-            )
+                # Each GoldService call below opens its own transaction on
+                # the xrpl connection, down in FungibleService — this block
+                # does not open one. That inner transaction is what commits
+                # the ownership change, and it commits before this outer
+                # block does.
+                if source_type == "WORLD" and target_type == "CHARACTER":
+                    # SPAWNED → CHARACTER (picks up gold from the ground)
+                    GoldService.pickup(
+                        target_wallet, amount, vault, target_key,
+                    )
 
-        elif source_type == "CHARACTER" and target_type == "CHARACTER":
-            # CHARACTER → CHARACTER (trade/give between players)
-            GoldService.transfer(
-                source_wallet, source_key, target_wallet, target_key,
-                amount,
-            )
+                elif source_type == "CHARACTER" and target_type == "WORLD":
+                    # CHARACTER → SPAWNED (drops gold on the ground)
+                    GoldService.drop(
+                        source_wallet, amount, vault, source_key,
+                    )
 
-        elif source_type == "CHARACTER" and target_type == "ACCOUNT":
-            # CHARACTER → ACCOUNT (deposit into bank)
-            GoldService.bank(
-                source_wallet, amount, source_key,
-            )
+                elif source_type == "CHARACTER" and target_type == "CHARACTER":
+                    # CHARACTER → CHARACTER (trade/give between players)
+                    GoldService.transfer(
+                        source_wallet, source_key, target_wallet, target_key,
+                        amount,
+                    )
 
-        elif source_type == "ACCOUNT" and target_type == "CHARACTER":
-            # ACCOUNT → CHARACTER (withdraw from bank)
-            GoldService.unbank(
-                target_wallet, amount, target_key,
-            )
+                elif source_type == "CHARACTER" and target_type == "ACCOUNT":
+                    # CHARACTER → ACCOUNT (deposit into bank)
+                    GoldService.bank(
+                        source_wallet, amount, source_key,
+                    )
 
-        elif source_type == "WORLD" and target_type == "WORLD":
-            # SPAWNED → SPAWNED (e.g. mob gold → corpse on death)
-            # Both vault-owned — no DB location change, just move local state.
-            pass
+                elif source_type == "ACCOUNT" and target_type == "CHARACTER":
+                    # ACCOUNT → CHARACTER (withdraw from bank)
+                    GoldService.unbank(
+                        target_wallet, amount, target_key,
+                    )
 
-        else:
-            # ACCOUNT → ACCOUNT (shouldn't happen)
-            # WORLD → ACCOUNT, ACCOUNT → WORLD (not a normal game flow)
-            raise ValueError(
-                f"Unsupported gold transfer: {source_type} → {target_type}"
-            )
+                elif source_type == "WORLD" and target_type == "WORLD":
+                    # SPAWNED → SPAWNED (e.g. mob gold → corpse on death)
+                    # Both vault-owned — no DB location change here.
+                    pass
 
-        # Update local state on both sides
-        self._remove_gold(amount)
-        target._add_gold(amount)
+                else:
+                    # ACCOUNT → ACCOUNT (shouldn't happen)
+                    # WORLD → ACCOUNT, ACCOUNT → WORLD (not a game flow)
+                    raise ValueError(
+                        f"Unsupported gold transfer: "
+                        f"{source_type} → {target_type}"
+                    )
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            _discard_cached_attributes(target)
+            raise
 
     def receive_gold_from_reserve(self, amount):
         """
