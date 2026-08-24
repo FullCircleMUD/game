@@ -31,6 +31,7 @@ On successful zap:
 """
 
 from evennia import Command
+from evennia.utils import logger
 
 from commands.command import FCMCommandMixin
 from enums.condition import Condition
@@ -178,10 +179,28 @@ class CmdZap(FCMCommandMixin, Command):
         wand.persist_wand_state()
 
         if wand.charges_remaining <= 0:
-            caller.msg(f"|y{wand.key} crumbles to dust — its last charge spent.|n")
             # Unequip before delete so wearslot cleanup runs correctly
             try:
                 caller.remove(wand)
             except Exception:
                 pass
-            wand.delete()
+
+            # Read the name first: after a delete the instance is unusable,
+            # and after a failed one it is a discarded copy.
+            name = wand.key
+            try:
+                wand.delete()
+            except Exception:
+                # delete() is all-or-nothing, so the wand is still here —
+                # spent, but present. It has already recorded the failure;
+                # trace it too, since catching means Evennia's handler never
+                # sees it. The spell itself fired and is unaffected.
+                logger.log_trace(f"zap: destroying spent wand {name} failed")
+                caller.msg(
+                    f"|y{name} is spent, but something went wrong destroying "
+                    f"it — it is still in your inventory with no charges "
+                    f"left. This has been logged.|n"
+                )
+                return
+
+            caller.msg(f"|y{name} crumbles to dust — its last charge spent.|n")

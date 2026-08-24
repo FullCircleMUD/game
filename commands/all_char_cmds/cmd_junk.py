@@ -12,6 +12,7 @@ Usage:
 """
 
 from evennia import Command
+from evennia.utils import logger
 
 from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank._bank_parse import parse_bank_args
@@ -114,8 +115,18 @@ class CmdJunk(FCMCommandMixin, Command):
         name = nft_item.key
         try:
             nft_item.delete()
-        except ValueError as err:
-            caller.msg(f"|rError destroying NFT: {err}|n")
+        except Exception:
+            # delete() is all-or-nothing — the item is still in inventory and
+            # the ownership record still says it is theirs. It has already
+            # written a ReconciliationFailure row, so this only has to say so
+            # in words a player can act on. Trace it too: catching here means
+            # Evennia's handler never sees it.
+            logger.log_trace(f"junk: destroying {name} failed")
+            caller.msg(
+                f"|rSomething went wrong and {name} could not be destroyed. "
+                f"It is still yours. This has been logged — try again, and "
+                f"report it if it keeps happening.|n"
+            )
             return
 
         caller.msg(f"|y{name} has been destroyed.|n")

@@ -10,19 +10,24 @@ Usage:
     pet.<name> <command>       — command a specific pet by name
 
     Commands:
-        follow, stay, feed, status, attack <target>, mount, dismount
+        follow, stay, feed, status, attack <target>, mount, dismount,
+        owner <character>
 
 Examples:
     pet follow                 — first pet follows you
     pet.horse mount            — mount the horse specifically
     pet.dog attack goblin      — dog attacks goblin
     pet.mule stay              — mule stays here
+    pet.dog owner bob          — Bob now owns the dog
 """
 
 from evennia import Command
+from evennia.utils import logger
 
 from commands.command import FCMCommandMixin
 from typeclasses.mixins.familiar_mixin import FamiliarMixin
+from utils.targeting.helpers import resolve_character_in_room
+from utils.targeting.predicates import p_can_see
 
 
 class CmdPet(FCMCommandMixin, Command):
@@ -35,7 +40,8 @@ class CmdPet(FCMCommandMixin, Command):
         pet.<name> <command>   — command a specific pet
 
     Commands: follow, stay, feed, status, attack <target>, mount, dismount,
-             look, <direction>, return, dismiss, name <newname>
+             look, <direction>, return, dismiss, name <newname>,
+             owner <character>
 
     Examples:
         pet follow
@@ -45,6 +51,7 @@ class CmdPet(FCMCommandMixin, Command):
         pet north               — move familiar north (remote scout)
         pet return              — recall familiar to your side
         pet dismiss             — dismiss a summoned familiar
+        pet owner bob           — hand the pet, and its NFT, to Bob
     """
 
     key = "pet"
@@ -116,6 +123,11 @@ class CmdPet(FCMCommandMixin, Command):
         elif args.startswith("name"):
             new_name = args[4:].strip()
             self._cmd_name(caller, pet, new_name)
+        elif args.startswith("owner"):
+            # "give" is deliberately not the verb here — see _cmd_give.
+            yield from self._cmd_owner(caller, pet, args[5:].strip())
+        elif args.startswith("give"):
+            self._cmd_give(caller, pet, args[4:].strip())
         elif args == "look":
             self._cmd_remote_look(caller, pet)
         elif args == "return":
@@ -128,7 +140,7 @@ class CmdPet(FCMCommandMixin, Command):
             caller.msg(
                 "Unknown pet command. Try: follow, stay, feed, status, "
                 "attack <target>, mount, dismount, name <newname>, "
-                "look, return, dismiss, <direction>"
+                "owner <character>, look, return, dismiss, <direction>"
             )
 
     def _find_my_pets(self, caller):
@@ -279,6 +291,81 @@ class CmdPet(FCMCommandMixin, Command):
         if hasattr(pet, "vocalize"):
             pet.vocalize("name")
 
+    def _cmd_give(self, caller, pet, args):
+        """Order the pet to hand something over. Not implemented yet.
+
+        This verb is reserved, not free. Every pet subcommand that reads as
+        an order has the pet as the actor, so "pet give" can only mean the
+        pet giving something away — "pet.mule give me the rope", or giving
+        it to another character in the room. Handing the *pet* itself over
+        is "pet owner <character>".
+
+        Blocked on pets carrying inventory (panniers, saddlebags). When that
+        lands, this should route through CmdGive rather than reimplement it,
+        so pets and characters share one set of give rules — weight checks,
+        at_pre_give/at_give, and the NFT mirror transition.
+        """
+        caller.msg(
+            f"{pet.key} has nothing to give — pets can't carry anything yet."
+        )
+
+    def _cmd_owner(self, caller, pet, target_str):
+        """Hand ownership of the pet to another character in the room.
+
+        The pet does not move — ownership lives on owner_key, not on the
+        location chain — so transfer_ownership() is the only thing that
+        records the change. It also settles the pet's follow state, so
+        nothing here touches following or pet_state.
+        """
+        if not target_str:
+            caller.msg(
+                f"Who should own {pet.key}? Usage: pet owner <character>"
+            )
+            return
+
+        target = resolve_character_in_room(caller, target_str)
+        if not target or not p_can_see(target, caller):
+            caller.msg(f"You don't see a character called '{target_str}' here.")
+            return
+        if target == caller:
+            caller.msg(f"{pet.key} already belongs to you. Try to keep up.")
+            return
+
+        target_name = target.get_display_name(caller)
+        answer = yield (
+            f"\n|r--- WARNING ---|n"
+            f"\nYou are about to transfer ownership of {pet.key}, including"
+            f" its NFT, to {target_name}."
+            f"\n\n|rThis cannot be undone.|n"
+            f"\n\nAre you sure? Y/[N]"
+        )
+        if answer.lower() not in ("y", "yes"):
+            caller.msg("Transfer cancelled.")
+            return
+
+        # False means the ownership write failed and was rolled back — the
+        # pet is still the caller's, in the state it was already in.
+        if not pet.transfer_ownership(target):
+            caller.msg(
+                f"Something went wrong and the transfer did not happen."
+                f" {pet.key} is still yours."
+            )
+            return
+
+        caller.msg(f"You give ownership of {pet.key} to {target_name}.")
+        if getattr(target, "position", "standing") != "sleeping":
+            target.msg(
+                f"{caller.get_display_name(target)} gives you"
+                f" ownership of {pet.key}."
+            )
+        if caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} gives ownership of {pet.key} to {target.key}.",
+                exclude=[caller, target], from_obj=caller,
+            )
+        if hasattr(pet, "vocalize"):
+            pet.vocalize("owner")
+
     def _cmd_dismount(self, caller, pet):
         """Dismount the pet."""
         if not hasattr(pet, "dismount"):
@@ -334,7 +421,20 @@ class CmdPet(FCMCommandMixin, Command):
         # Vocalise BEFORE deletion — once delete() runs, pet.location is gone.
         if hasattr(pet, "vocalize"):
             pet.vocalize("dismiss")
-        pet.delete()
+
+        try:
+            pet.delete()
+        except Exception:
+            # delete() is all-or-nothing, so the pet is still standing here
+            # and still owned. It has already recorded the failure; trace it
+            # too, since catching means Evennia's handler never sees it.
+            logger.log_trace(f"pet dismiss: destroying {name} failed")
+            caller.msg(
+                f"|r{name} refuses to go — something went wrong dismissing "
+                f"it, and it is still with you. This has been logged.|n"
+            )
+            return
+
         caller.msg(f"|C{name} vanishes in a shimmer of arcane energy.|n")
         if caller.location:
             caller.location.msg_contents(
