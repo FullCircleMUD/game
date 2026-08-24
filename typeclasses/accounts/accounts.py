@@ -31,6 +31,7 @@ from evennia.utils.create import create_object
 from evennia.accounts.manager import AccountManager
 from typeclasses.accounts.account_bank import AccountBank
 from evennia.accounts.models import AccountDB
+from evennia_archive.mixins import ArchivableMixin
 from evennia.commands.cmdsethandler import CmdSetHandler
 from evennia.comms.models import ChannelDB
 from evennia.objects.models import ObjectDB
@@ -111,7 +112,7 @@ from evennia.utils.utils import is_iter
 from evennia.typeclasses.attributes import AttributeProperty
 
 
-class Account(DefaultAccount):
+class Account(ArchivableMixin, DefaultAccount):
     """
     An Account is the actual OOC player entity. It doesn't exist in the game,
     but puppets characters.

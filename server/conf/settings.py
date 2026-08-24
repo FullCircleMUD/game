@@ -108,6 +108,7 @@ INSTALLED_APPS = INSTALLED_APPS + [
     "django.contrib.sitemaps",
     "evennia_world_builder",
     "evennia_mob_spawner",
+    "evennia_archive",
 ]
 
 # Bind to loopback only. nginx is the sole client of these ports and
@@ -160,6 +161,10 @@ _DB_ALIASES = {
     "xrpl": "xrpl.db3",
     "ai_memory": "ai_memory.db3",
     "subscriptions": "subscriptions.db3",
+    # A clone of Evennia's own schema holding archived accounts and
+    # characters, so a world rebuild does not cost us our players. Never
+    # run as a game — starting a server against it would populate it.
+    "archive": "archive.db3",
 }
 
 # `default` is handled here rather than through resolve_database() for two
@@ -196,6 +201,10 @@ _ROUTER_PATHS = {
     "xrpl": "blockchain.xrpl.db_router.XRPLRouter",
     "ai_memory": "ai_memory.db_router.AiMemoryRouter",
     "subscriptions": "subscriptions.db_router.SubscriptionsRouter",
+    # Unlike the three above, this router is deliberately not exclusive:
+    # Evennia's own tables belong in the archive, since it is a clone of
+    # Evennia's schema rather than a home for one app's models.
+    "archive": "evennia_archive.db_router.ArchiveRouter",
 }
 
 # active_routers() lives in server/conf/db_config.py

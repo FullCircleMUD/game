@@ -31,7 +31,11 @@ from evennia.utils.utils import lazy_property
 
 from utils.experience_table import EXPERIENCE_TABLE, get_xp_for_next_level, get_xp_gap
 
+from evennia_archive.mixins import ArchivableMixin
+
+
 class FCMCharacter(
+    ArchivableMixin,
     CombatMixin,
     CarryingCapacityMixin,
     FollowableMixin,
