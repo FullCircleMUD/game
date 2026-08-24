@@ -12,9 +12,13 @@ Composed into:
     BasePet(NFTPetMirrorMixin, FollowableMixin, BaseNPC)
 """
 
+from django.conf import settings
+from django.db import transaction
 from evennia.typeclasses.attributes import AttributeProperty
 
+from blockchain.xrpl.services.reconciliation import record_failure
 from typeclasses.mixins.nft_mirror import NFTMirrorMixin
+from utils.attribute_cache import discard_cached_attributes
 from utils.targeting.predicates import p_is_character
 
 
@@ -217,51 +221,77 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
     # ================================================================== #
 
     def transfer_ownership(self, new_owner):
-        """Transfer pet to a new owner. Pet stays in same room.
+        """Transfer pet to a new owner. Pet stays in the same room.
 
-        1. Force dismount if mounted
-        2. Stop following old owner
-        3. Look up old owner's wallet
-        4. Update owner_key to new owner
-        5. Look up new owner's wallet
-        6. Call NFTService.transfer()
-        7. Start following new owner if in same room
+        The pet does not move, so no move hook fires and this is the only
+        place the ownership change is recorded. Local state and the
+        ownership write are held in one transaction on the default
+        connection, the ownership write last — see design/database.md
+        § Transactions and Split Aliases.
+
+        Args:
+            new_owner (Character): who the pet belongs to now.
+
+        Returns:
+            bool: True if ownership changed. False leaves the pet with its
+                original owner, in the state it was already in, and writes
+                a ReconciliationFailure row.
         """
         from blockchain.xrpl.services.nft import NFTService
 
-        # Force dismount
-        if hasattr(self, "force_dismount") and getattr(self, "is_mounted", False):
-            self.force_dismount()
+        # Captured before anything changes, so a failed transfer can put
+        # the pet back as it was. A pet told to wait beside its owner must
+        # not come back following them.
+        original_owner_key = self.owner_key
+        original_state = self.pet_state
 
-        # Stop following old owner
-        self.stop_following()
-
-        # Get old owner's wallet before changing owner_key
-        old_wallet = self._get_owner_wallet()
-        old_key = self.owner_key
-
-        # Update ownership
-        self.owner_key = new_owner.key
-
-        # Get new owner's wallet
-        new_wallet = self._get_owner_wallet(new_owner)
-        new_key = self._get_character_key(new_owner)
-
-        # Mirror update
+        transferred = True
         try:
-            NFTService.transfer(
-                self.token_id, old_wallet, old_key,
-                new_wallet, new_key,
-            )
-        except ValueError as err:
-            self._log_error("transfer", err)
+            with transaction.atomic():
+                if hasattr(self, "force_dismount") and getattr(
+                    self, "is_mounted", False
+                ):
+                    self.force_dismount()
+                self.stop_following()
 
-        # Follow new owner if they're in the same room
-        if new_owner.location == self.location:
-            self.start_following(new_owner)
+                # Read the old wallet before owner_key changes, and the new
+                # one after — _get_owner_wallet() resolves through owner_key.
+                old_wallet = self._get_owner_wallet()
+                self.owner_key = new_owner.key
+
+                NFTService.transfer(
+                    self.token_id, old_wallet, original_owner_key,
+                    self._get_owner_wallet(),
+                    self._get_character_key(new_owner),
+                )
+        except Exception as err:
+            transferred = False
+            # The rows are back; the in-memory Attributes are not, and the
+            # settle below reads owner_key.
+            discard_cached_attributes(self)
+            record_failure(
+                "pet_transfer_ownership",
+                self._get_owner_wallet(),
+                err,
+                character_key=original_owner_key,
+                tx_hash=None,
+            )
+
+        # Runs either way. Ownership is read back rather than assumed: on a
+        # rollback owner_key is the original owner again, and the pet is
+        # restored to the state it was in rather than recomputed.
+        owner = self._get_owner_character()
+        if self.owner_key == original_owner_key:
+            if original_state == "following" and owner:
+                self.start_following(owner)
+            self.pet_state = original_state
+        elif owner and owner.location == self.location:
+            self.start_following(owner)
             self.pet_state = "following"
         else:
             self.pet_state = "waiting"
+
+        return transferred
 
     def _get_owner_character(self):
         """Find owner Character object from owner_key.
@@ -284,7 +314,7 @@ class NFTPetMirrorMixin(NFTMirrorMixin):
         owner = self._get_owner_character()
         if owner is None:
             return None
-        return self._get_owner_wallet(owner)
+        return super()._get_owner_wallet(owner)
 
     def _classify_location(self, obj):
         """Classify a location for pet mirror dispatch.

@@ -372,3 +372,86 @@ class TestPetDotSyntax(_PetTestBase):
         _make_mule(self.room1, self.char1)
         result = self.call(CmdPet(), ".dragon status")
         self.assertIn("don't have a pet", result)
+
+
+# ── Ownership transfer ───────────────────────────────────────────────
+
+class TestPetTransferOwnership(_PetTestBase):
+    """
+    Test transfer_ownership — the one ownership change with no move.
+
+    A pet does not move when it changes hands, so no move hook fires and
+    this method is the only record of the change.
+    """
+
+    databases = "__all__"
+
+    def setUp(self):
+        super().setUp()
+        self.account2.attributes.add("wallet_address", WALLET_A)
+        self.dog = _make_war_dog(self.room1, self.char1)
+        self.dog.token_id = "TOKEN-PET-1"
+
+    def tearDown(self):
+        # Drop the token before the base class deletes the pet — otherwise
+        # at_object_delete() reaches for a mirror row that was never made.
+        if self.dog.pk:
+            self.dog.token_id = None
+        super().tearDown()
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_success_changes_owner_and_follows(self, mock_transfer):
+        """A successful transfer hands the pet over and it follows them."""
+        self.char2.location = self.room1
+
+        self.assertTrue(self.dog.transfer_ownership(self.char2))
+        self.assertEqual(self.dog.owner_key, self.char2.key)
+        self.assertEqual(self.dog.pet_state, "following")
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_success_waits_when_new_owner_elsewhere(self, mock_transfer):
+        """Handed to someone who isn't here, the pet waits."""
+        self.char2.location = self.room2
+
+        self.assertTrue(self.dog.transfer_ownership(self.char2))
+        self.assertEqual(self.dog.owner_key, self.char2.key)
+        self.assertEqual(self.dog.pet_state, "waiting")
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_failure_keeps_original_owner(self, mock_transfer):
+        """A failed ownership write leaves the pet where it was."""
+        mock_transfer.side_effect = ValueError("no such token")
+        self.char2.location = self.room1
+        self.dog.pet_state = "following"
+
+        self.assertFalse(self.dog.transfer_ownership(self.char2))
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+        self.assertEqual(self.dog.pet_state, "following")
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_failure_keeps_a_waiting_pet_waiting(self, mock_transfer):
+        """A waiting pet does not come back following its owner."""
+        mock_transfer.side_effect = ValueError("no such token")
+        self.char2.location = self.room1
+        self.dog.stop_following()
+        self.dog.pet_state = "waiting"
+
+        self.assertFalse(self.dog.transfer_ownership(self.char2))
+        self.assertEqual(self.dog.owner_key, self.char1.key)
+        self.assertEqual(self.dog.pet_state, "waiting")
+
+    @patch("blockchain.xrpl.services.nft.NFTService.transfer")
+    def test_failure_is_recorded(self, mock_transfer):
+        """A failed transfer leaves a row for someone to act on."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        mock_transfer.side_effect = ValueError("no such token")
+        self.char2.location = self.room1
+
+        self.dog.transfer_ownership(self.char2)
+
+        row = ReconciliationFailure.objects.get(
+            operation="pet_transfer_ownership",
+        )
+        self.assertIn("no such token", row.error)
+        self.assertFalse(row.resolved)
