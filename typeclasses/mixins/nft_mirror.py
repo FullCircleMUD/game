@@ -22,6 +22,7 @@ Composed into:
 
 from evennia.typeclasses.attributes import AttributeProperty
 from django.conf import settings
+from django.db import transaction
 
 
 from typeclasses.mixins.character_key import CharacterKeyMixin
@@ -40,6 +41,50 @@ class NFTMirrorMixin(CharacterKeyMixin):
     # ================================================================== #
     #  Evennia Hooks — Mirror Transitions
     # ================================================================== #
+
+    def move_to(self, destination, **kwargs):
+        """
+        Move this object, and let the ownership write veto the move.
+
+        Why this override exists — none of it is visible at the call site:
+
+        Evennia's move_to() calls at_post_move() as its last step, and
+        at_post_move() is where this mixin writes the ownership change to
+        the xrpl database. So the two writes that must agree — where the
+        game says the object is, and who the ownership record says owns it
+        — already happen in the right order, game first. All that is
+        missing is a transaction around them, which is what this adds.
+
+        No transaction can span two databases, so this is the nested shape
+        used throughout: an outer transaction on the default connection,
+        with the xrpl write opening its own inside it. Nothing writes after
+        at_post_move() returns, which is the property that makes it safe.
+        See design/database.md § Transactions and Split Aliases.
+
+        The rollback keys off the return value rather than an exception,
+        because move_to() never raises. Every step inside it is wrapped in
+        Evennia's own try/except, which logs and returns False — so a
+        failed ownership write would otherwise leave the object moved with
+        nobody owning it, and nothing would be raised to say so.
+
+        False also covers the ordinary refusals — at_pre_move declining, a
+        failed lock — where nothing was written and the rollback costs
+        nothing. And set_rollback() rather than raising keeps the contract
+        every caller already relies on: a move that does not happen returns
+        False, it does not explode.
+
+        Args:
+            destination (Object): where to move to.
+            **kwargs: forwarded to Evennia's move_to().
+
+        Returns:
+            bool: True if the move and the ownership write both succeeded.
+        """
+        with transaction.atomic():
+            moved = super().move_to(destination, **kwargs)
+            if not moved:
+                transaction.set_rollback(True)
+            return moved
 
     def at_post_move(self, source_location, move_type="move", **kwargs):
         """
@@ -93,35 +138,33 @@ class NFTMirrorMixin(CharacterKeyMixin):
         )
 
     def _handle_creation(self, dest_type, dest_owner, dest, **kwargs):
-        """Handle NFT creation (source is None — object entering the game)."""
+        """
+        Handle NFT creation (source is None — object entering the game).
+
+        Service failures propagate. Evennia catches them at the top of
+        move_to() and returns False, which rolls the creation back — see
+        this mixin's move_to(). Swallowing them here would leave an object
+        in the world that the ownership record knows nothing about.
+        """
         from blockchain.xrpl.services.nft import NFTService
 
         if dest_type == "CHARACTER":
             wallet = self._get_owner_wallet(dest_owner)
             char_key = self._get_character_key(dest_owner)
-            try:
-                NFTService.craft_output(
-                    self.token_id, wallet, char_key,
-                )
-            except ValueError as err:
-                self._log_error("craft_output", err)
+            NFTService.craft_output(
+                self.token_id, wallet, char_key,
+            )
 
         elif dest_type == "ACCOUNT":
             wallet = dest_owner.wallet_address
             tx_hash = kwargs.get("tx_hash")
-            try:
-                NFTService.deposit_from_chain(
-                    self.token_id, wallet,
-                    settings.XRPL_VAULT_ADDRESS, tx_hash,
-                )
-            except ValueError as err:
-                self._log_error("deposit_from_chain", err)
+            NFTService.deposit_from_chain(
+                self.token_id, wallet,
+                settings.XRPL_VAULT_ADDRESS, tx_hash,
+            )
 
         else:
-            try:
-                NFTService.spawn(self.token_id)
-            except ValueError as err:
-                self._log_error("spawn", err)
+            NFTService.spawn(self.token_id)
 
     def _execute_transition(self, source_type, source_owner,
                             dest_type, dest_owner):
@@ -129,6 +172,9 @@ class NFTMirrorMixin(CharacterKeyMixin):
         Execute a single NFT mirror state transition.
 
         Dispatches the correct NFTService call based on source → dest types.
+
+        Service failures propagate, so the move rolls back with them — see
+        this mixin's move_to().
         """
         from blockchain.xrpl.services.nft import NFTService
 
@@ -138,46 +184,31 @@ class NFTMirrorMixin(CharacterKeyMixin):
         if source_type == "WORLD" and dest_type == "CHARACTER":
             wallet = self._get_owner_wallet(dest_owner)
             char_key = self._get_character_key(dest_owner)
-            try:
-                NFTService.pickup(
-                    self.token_id, wallet, char_key,
-                )
-            except ValueError as err:
-                self._log_error("pickup", err)
+            NFTService.pickup(
+                self.token_id, wallet, char_key,
+            )
 
         elif source_type == "CHARACTER" and dest_type == "WORLD":
-            try:
-                NFTService.drop(
-                    self.token_id, settings.XRPL_VAULT_ADDRESS,
-                )
-            except ValueError as err:
-                self._log_error("drop", err)
+            NFTService.drop(
+                self.token_id, settings.XRPL_VAULT_ADDRESS,
+            )
 
         elif source_type == "CHARACTER" and dest_type == "CHARACTER":
             from_wallet = self._get_owner_wallet(source_owner)
             from_key = self._get_character_key(source_owner)
             to_wallet = self._get_owner_wallet(dest_owner)
             to_key = self._get_character_key(dest_owner)
-            try:
-                NFTService.transfer(
-                    self.token_id, from_wallet, from_key,
-                    to_wallet, to_key,
-                )
-            except ValueError as err:
-                self._log_error("transfer", err)
+            NFTService.transfer(
+                self.token_id, from_wallet, from_key,
+                to_wallet, to_key,
+            )
 
         elif source_type == "CHARACTER" and dest_type == "ACCOUNT":
-            try:
-                NFTService.bank(self.token_id)
-            except ValueError as err:
-                self._log_error("bank", err)
+            NFTService.bank(self.token_id)
 
         elif source_type == "ACCOUNT" and dest_type == "CHARACTER":
             char_key = self._get_character_key(dest_owner)
-            try:
-                NFTService.unbank(self.token_id, char_key)
-            except ValueError as err:
-                self._log_error("unbank", err)
+            NFTService.unbank(self.token_id, char_key)
 
     # ================================================================== #
     #  Container Cascade
@@ -236,25 +267,24 @@ class NFTMirrorMixin(CharacterKeyMixin):
             if dest_type == "CHARACTER" else None
         )
 
-        try:
-            if gold > 0:
-                self._cascade_fungible_gold(
+        # Failures propagate, so a container whose contents cannot be
+        # re-attributed does not move — see this mixin's move_to().
+        if gold > 0:
+            self._cascade_fungible_gold(
+                source_type, dest_type,
+                source_wallet, source_key,
+                dest_wallet, dest_key,
+                gold, vault,
+            )
+
+        for rid, amt in resources.items():
+            if amt > 0:
+                self._cascade_fungible_resource(
                     source_type, dest_type,
                     source_wallet, source_key,
                     dest_wallet, dest_key,
-                    gold, vault,
+                    rid, amt, vault,
                 )
-
-            for rid, amt in resources.items():
-                if amt > 0:
-                    self._cascade_fungible_resource(
-                        source_type, dest_type,
-                        source_wallet, source_key,
-                        dest_wallet, dest_key,
-                        rid, amt, vault,
-                    )
-        except ValueError as err:
-            self._log_error("cascade_fungibles", err)
 
     @staticmethod
     def _cascade_fungible_gold(source_type, dest_type,
