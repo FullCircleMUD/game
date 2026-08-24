@@ -279,7 +279,7 @@ class TestCmdCraftRefund(EvenniaCommandTest):
             CmdCraft(), "training longsword",
             inputs=["y"],
         )
-        self.assertIn("Crafting failed:", result)
+        self.assertIn("did not finish", result)
         # Refunded
         self.assertEqual(self.char1.get_resource(7), 5)
         self.assertEqual(self.char1.get_gold(), 20)

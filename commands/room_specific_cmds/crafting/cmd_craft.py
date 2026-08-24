@@ -23,12 +23,16 @@ spawns NFT item into inventory. Crafting time scales with recipe
 difficulty (mastery level).
 """
 
+from django.db import router, transaction
+
 from evennia import Command
-from evennia.utils import delay
+from evennia.utils import delay, logger
 from utils.busy import check_busy, progress_bar, start_busy_ticks
 
 from blockchain.xrpl.currency_cache import get_resource_type
+from blockchain.xrpl.models import NFTGameState
 from blockchain.xrpl.services.enchantment import EnchantmentService
+from blockchain.xrpl.services.reconciliation import record_failure
 from commands.command import FCMCommandMixin
 from enums.room_crafting_type import RoomCraftingType
 from enums.skills_enum import skills
@@ -496,27 +500,50 @@ class CmdCraft(FCMCommandMixin, Command):
                 )
                 return
 
-        # --- Consume resource ingredients (inventory first, bank remainder) ---
-        # Bank resources: transfer to character first, then sink from character.
-        for res_id, needed in ingredients.items():
-            from_inv, from_bank = resource_split.get(res_id, (needed, 0))
-            if from_bank > 0:
-                bank.transfer_resource_to(caller, res_id, from_bank)
-            caller.return_resource_to_sink(res_id, needed)
+        # --- Consume everything the recipe asks for, or nothing ---
+        # Resources, NFT ingredients, gold and mana in one xrpl transaction
+        # nested inside one on default. The service calls become savepoints,
+        # so a recipe cannot half-consume: the player never loses their
+        # resources to a failure that stops before the gold, or has an
+        # ingredient destroyed for a craft that never starts. See
+        # design/database.md § Transactions and Split Aliases.
+        consumed_nft_info = []  # item type names, for refund on failure
+        try:
+            with transaction.atomic():
+                with transaction.atomic(
+                    using=router.db_for_write(NFTGameState)
+                ):
+                    # Resource ingredients — inventory first, bank remainder.
+                    # Bank resources move to the character, then sink.
+                    for res_id, needed in ingredients.items():
+                        from_inv, from_bank = resource_split.get(
+                            res_id, (needed, 0),
+                        )
+                        if from_bank > 0:
+                            bank.transfer_resource_to(caller, res_id, from_bank)
+                        caller.return_resource_to_sink(res_id, needed)
 
-        # --- Consume NFT item ingredients ---
-        consumed_nft_info = []  # (item_type_name,) for refund on failure
-        for proto_key, items in nft_to_consume.items():
-            for item in items:
-                consumed_nft_info.append(item.key)
-                item.delete()
+                    # NFT item ingredients
+                    for proto_key, items in nft_to_consume.items():
+                        for item in items:
+                            consumed_nft_info.append(item.key)
+                            item.delete()
 
-        # --- Consume gold ---
-        caller.return_gold_to_sink(total_gold)
+                    caller.return_gold_to_sink(total_gold)
 
-        # --- Deduct pre-paid wand mana (Phase 2) ---
-        if wand_mana_cost > 0:
-            caller.mana -= wand_mana_cost
+                    # Pre-paid wand mana (Phase 2)
+                    if wand_mana_cost > 0:
+                        caller.mana -= wand_mana_cost
+        except Exception:
+            # Nothing was taken. Trace it, since catching means Evennia's
+            # handler never sees it.
+            logger.log_trace(f"craft: consuming for {recipe['name']} failed")
+            caller.msg(
+                f"|rSomething went wrong and the {verb} could not be "
+                f"started. Nothing has been taken from you. This has been "
+                f"logged — try again, and report it if it keeps happening.|n"
+            )
+            return
 
         # --- Item type selection ---
         # Wand recipes use a generic "Enchanted Wand" NFTItemType with
@@ -574,10 +601,28 @@ class CmdCraft(FCMCommandMixin, Command):
                         tid = BaseNFTItem.assign_to_blank_token(nft_name)
                         BaseNFTItem.spawn_into(tid, caller)
                     except Exception:
-                        caller.msg(
-                            f"|rFailed to refund {nft_name}.|n"
+                        # The one thing here that cannot be put right from
+                        # code — the ingredient is gone and a replacement
+                        # could not be issued. Only a person can fix it.
+                        logger.log_trace(
+                            f"craft: refunding {nft_name} failed"
                         )
-                caller.msg(f"|rCrafting failed: {err}|n")
+                        record_failure(
+                            "craft_refund",
+                            caller._get_wallet(),
+                            f"{recipe['name']} failed after consuming "
+                            f"{nft_name}, and it could not be refunded.",
+                            character_key=caller.key,
+                        )
+                        caller.msg(
+                            f"|rYour {nft_name} could not be given back. "
+                            f"This has been logged for an admin.|n"
+                        )
+                logger.log_trace(f"craft: making {recipe['name']} failed")
+                caller.msg(
+                    f"|rSomething went wrong and the {verb} did not "
+                    f"finish. What it cost you has been given back.|n"
+                )
                 return
 
             display_name = item.key if item else recipe["name"]
