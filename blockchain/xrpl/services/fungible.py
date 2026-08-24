@@ -10,12 +10,17 @@ game-owned assets. No chain state mirror — the game queries XRPL directly
 when needed.
 
 Zero-balance rows are deleted, not kept (balance > 0 constraint).
-All writes wrapped in transaction.atomic() for ACID guarantees.
+
+All writes are wrapped in transaction.atomic() on the alias the router
+assigns these models. The alias is derived rather than named, because a
+transaction covers one connection and which connection that is depends on
+whether the alias has been split off — see design/database.md
+§ Transactions and Split Aliases.
 """
 
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import F
 
 from blockchain.xrpl.models import (
@@ -38,7 +43,7 @@ class FungibleService:
         Subtract amount from a FungibleGameState row matched by kwargs.
         Deletes row if balance reaches 0 (satisfies balance > 0 constraint).
         Raises ValueError if row missing or insufficient balance.
-        Must be called inside transaction.atomic().
+        Must be called inside transaction.atomic() on this model's alias.
         """
         try:
             row = FungibleGameState.objects.select_for_update().get(
@@ -65,7 +70,7 @@ class FungibleService:
     def _credit(currency_code, amount, **kwargs):
         """
         Add amount to a FungibleGameState row. Creates row if not exists.
-        Must be called inside transaction.atomic().
+        Must be called inside transaction.atomic() on this model's alias.
         """
         row, created = FungibleGameState.objects.get_or_create(
             currency_code=currency_code,
@@ -121,7 +126,7 @@ class FungibleService:
         Currency enters the game world (placed on mob, chest, room).
         RESERVE -> SPAWNED. Issuer-internal — not logged.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=vault_address,
@@ -139,7 +144,7 @@ class FungibleService:
         Currency leaves the game world unlooted (mob despawns, room deleted).
         SPAWNED -> RESERVE. Issuer-internal — not logged.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=vault_address,
@@ -162,7 +167,7 @@ class FungibleService:
         Character picks up currency from the game world.
         SPAWNED (vault) -> CHARACTER (player).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=vault_address,
@@ -189,7 +194,7 @@ class FungibleService:
         Character drops currency on the ground.
         CHARACTER (player) -> SPAWNED (vault).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,
@@ -219,7 +224,7 @@ class FungibleService:
         Character deposits currency into their bank account.
         CHARACTER -> ACCOUNT. Same wallet, different location.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,
@@ -238,7 +243,7 @@ class FungibleService:
         Character withdraws currency from their bank account.
         ACCOUNT -> CHARACTER. Same wallet, different location.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,
@@ -265,7 +270,7 @@ class FungibleService:
 
         Raises ValueError if tx_hash has already been processed.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             if XRPLTransactionLog.objects.filter(
                 tx_hash=tx_hash, status="confirmed",
             ).exists():
@@ -309,7 +314,7 @@ class FungibleService:
 
         Raises ValueError if tx_hash has already been processed.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             if XRPLTransactionLog.objects.filter(
                 tx_hash=tx_hash, status="confirmed",
             ).exists():
@@ -354,7 +359,7 @@ class FungibleService:
         In-game currency transfer between characters (trade, give).
         CHARACTER (sender) -> CHARACTER (receiver).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=from_wallet,
@@ -386,7 +391,7 @@ class FungibleService:
         Crafting consumes currency from character.
         CHARACTER (player) -> RESERVE (vault).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,
@@ -418,7 +423,7 @@ class FungibleService:
         CHARACTER (player) -> SINK (vault).
         Used for: gold fees, crafting inputs, resource consumption, dust.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,
@@ -493,7 +498,7 @@ class FungibleService:
         Consume currency from account into SINK.
         ACCOUNT (player) -> SINK (vault).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,
@@ -519,7 +524,7 @@ class FungibleService:
         Crafting produces currency for character.
         RESERVE (vault) -> CHARACTER (player).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=vault_address,
@@ -550,7 +555,7 @@ class FungibleService:
         Move currency from vault reserve directly to a player's account.
         RESERVE (vault) -> ACCOUNT (player).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=vault_address,
@@ -576,7 +581,7 @@ class FungibleService:
         Move currency from a player's account back to vault reserve.
         ACCOUNT (player) -> RESERVE (vault).
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             FungibleService._debit(
                 currency_code, amount,
                 wallet_address=wallet_address,

@@ -4,10 +4,14 @@ NFTService — game-side operations for XRPL NFTokens.
 Each NFT is a single row in NFTGameState. Moves update location,
 owner_in_game, and character_key.
 
-All writes wrapped in transaction.atomic() for ACID guarantees.
+All writes are wrapped in transaction.atomic() on the alias the router
+assigns these models. The alias is derived rather than named, because a
+transaction covers one connection and which connection that is depends on
+whether the alias has been split off — see design/database.md
+§ Transactions and Split Aliases.
 """
 
-from django.db import transaction
+from django.db import router, transaction
 from django.utils import timezone
 
 from blockchain.xrpl.models import (
@@ -86,7 +90,7 @@ class NFTService:
         """
         if not patch:
             return
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -103,7 +107,7 @@ class NFTService:
     def assign_item_type(item_type_name):
         item_type = NFTItemType.objects.get(name=item_type_name)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = (
                 NFTGameState.objects
                 .select_for_update()
@@ -158,7 +162,7 @@ class NFTService:
 
     @staticmethod
     def pickup(token_id, wallet_address, character_key):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -185,7 +189,7 @@ class NFTService:
 
     @staticmethod
     def drop(token_id, vault_address):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -216,7 +220,7 @@ class NFTService:
 
     @staticmethod
     def bank(token_id):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
                 location=NFTGameState.LOCATION_CHARACTER,
@@ -230,7 +234,7 @@ class NFTService:
 
     @staticmethod
     def unbank(token_id, character_key):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
                 location=NFTGameState.LOCATION_ACCOUNT,
@@ -249,7 +253,7 @@ class NFTService:
     @staticmethod
     def deposit_from_chain(token_id, wallet_address, vault_address, tx_hash):
         """Raises ValueError if tx_hash already processed or NFT not ONCHAIN."""
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             if XRPLTransactionLog.objects.filter(
                 tx_hash=tx_hash, status="confirmed",
             ).exists():
@@ -290,7 +294,7 @@ class NFTService:
     @staticmethod
     def withdraw_to_chain(token_id, tx_hash):
         """Raises ValueError if tx_hash already processed or NFT not ACCOUNT."""
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             if XRPLTransactionLog.objects.filter(
                 tx_hash=tx_hash, status="confirmed",
             ).exists():
@@ -336,7 +340,7 @@ class NFTService:
     @staticmethod
     def transfer(token_id, from_wallet, from_character_key,
                  to_wallet, to_character_key, transfer_type="trade"):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
                 location=NFTGameState.LOCATION_CHARACTER,
@@ -366,7 +370,7 @@ class NFTService:
 
     @staticmethod
     def craft_input(token_id, vault_address):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -395,7 +399,7 @@ class NFTService:
 
     @staticmethod
     def craft_output(token_id, wallet_address, character_key):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -426,7 +430,7 @@ class NFTService:
 
     @staticmethod
     def list_auction(token_id):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
                 location=NFTGameState.LOCATION_CHARACTER,
@@ -440,7 +444,7 @@ class NFTService:
 
     @staticmethod
     def cancel_auction(token_id, character_key):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             updated = NFTGameState.objects.filter(
                 nftoken_id=str(token_id),
                 location=NFTGameState.LOCATION_AUCTION,
@@ -454,7 +458,7 @@ class NFTService:
 
     @staticmethod
     def complete_auction(token_id, winner_wallet, character_key):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -485,7 +489,7 @@ class NFTService:
 
     @staticmethod
     def reserve_to_account(token_id, wallet_address, vault_address):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )
@@ -510,7 +514,7 @@ class NFTService:
 
     @staticmethod
     def account_to_reserve(token_id, vault_address):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NFTGameState)):
             nft = NFTGameState.objects.select_for_update().get(
                 nftoken_id=str(token_id),
             )

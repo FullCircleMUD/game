@@ -15,7 +15,7 @@ import math
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from blockchain.xrpl.models import (
     FungibleGameState,
@@ -180,7 +180,7 @@ class AMMService:
         #
         # Net RESERVE gold: +(gold_cost - actual_gold_spent) = margin
         # Net RESERVE resource: +(actual_resource_received - amount) = surplus
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             # Player pays gold
             FungibleService._debit(
                 gold_currency, Decimal(gold_cost),
@@ -264,7 +264,7 @@ class AMMService:
 
         # Move rounding dust from RESERVE → SINK
         if margin > 0 or resource_dust > 0:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(FungibleGameState)):
                 if margin > 0:
                     FungibleService._debit(
                         gold_currency, margin,
@@ -372,7 +372,7 @@ class AMMService:
         #
         # Net RESERVE resource: +(amount - actual_resource_spent) = surplus
         # Net RESERVE gold: +(actual_gold_received - gold_received) = margin
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             # Player gives resource
             FungibleService._debit(
                 resource_currency, Decimal(amount),
@@ -456,7 +456,7 @@ class AMMService:
 
         # Move rounding dust from RESERVE → SINK
         if margin > 0 or resource_dust > 0:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(FungibleGameState)):
                 if margin > 0:
                     FungibleService._debit(
                         gold_currency, margin,

@@ -18,7 +18,7 @@ import math
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction
+from django.db import router, transaction
 
 from blockchain.xrpl.models import (
     FungibleGameState,
@@ -148,7 +148,7 @@ class NFTAMMService:
         # Net RESERVE FCMGold: +gold_cost
         # Net RESERVE PGold: -actual_pgold_spent
         # Margin: gold_cost - actual_pgold_spent (always >= 0 due to ceil)
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             # Player pays FCMGold
             FungibleService._debit(
                 fcm_gold, Decimal(gold_cost),
@@ -205,7 +205,7 @@ class NFTAMMService:
         # Move rounding dust from RESERVE → SINK
         margin = Decimal(gold_cost) - actual_pgold_spent
         if margin > 0:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(FungibleGameState)):
                 FungibleService._debit(
                     fcm_gold, margin,
                     wallet_address=vault_address,
@@ -287,7 +287,7 @@ class NFTAMMService:
         # Net RESERVE PGold: +actual_pgold_received
         # Net RESERVE FCMGold: -gold_received
         # Margin: actual_pgold_received - gold_received (always >= 0 due to floor)
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(FungibleGameState)):
             # Vault PGold increases (received from AMM)
             FungibleService._credit(
                 pgold, actual_pgold_received,
@@ -344,7 +344,7 @@ class NFTAMMService:
         # Move PGold rounding dust from RESERVE → SINK
         pgold_dust = actual_pgold_received - Decimal(gold_received)
         if pgold_dust > 0:
-            with transaction.atomic():
+            with transaction.atomic(using=router.db_for_write(FungibleGameState)):
                 FungibleService._debit(
                     pgold, pgold_dust,
                     wallet_address=vault_address,

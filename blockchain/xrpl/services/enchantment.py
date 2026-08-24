@@ -13,7 +13,7 @@ select_for_update() and a slot_number tiebreaker.
 Roll happens AFTER consumption, never before purchase.
 """
 
-from django.db import transaction
+from django.db import router, transaction
 
 from blockchain.xrpl.models import EnchantmentSlot
 from world.recipes.enchanting.gem_tables import roll_gem_enchantment
@@ -77,7 +77,7 @@ class EnchantmentService:
 
         On success, advances slot_number and rolls the next outcome.
         """
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(EnchantmentSlot)):
             slot = EnchantmentSlot.objects.select_for_update().get(
                 output_table=output_table,
                 mastery_level=mastery_level,
