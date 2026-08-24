@@ -777,10 +777,23 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         from blockchain.xrpl.services.gold import GoldService
 
         wallet = self._get_wallet()
-        GoldService.deposit_from_chain(
-            wallet, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
-        )
-        self._add_gold(amount)
+
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._add_gold(amount)
+                GoldService.deposit_from_chain(
+                    wallet, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
+                )
+        except Exception:
+            # TODO: record this failure. The chain has already moved and no
+            # transaction can undo it, so a failure here leaves on-chain and
+            # in-game state disagreeing, and it needs manual reconciliation.
+            # A failure row in the xrpl database is the planned home for it.
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     def withdraw_gold_to_chain(self, amount, tx_hash):
         """
@@ -790,10 +803,23 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         from blockchain.xrpl.services.gold import GoldService
 
         wallet = self._get_wallet()
-        GoldService.withdraw_to_chain(
-            wallet, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
-        )
-        self._remove_gold(amount)
+
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_gold(amount)
+                GoldService.withdraw_to_chain(
+                    wallet, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
+                )
+        except Exception:
+            # TODO: record this failure. The chain has already moved and no
+            # transaction can undo it, so a failure here leaves on-chain and
+            # in-game state disagreeing, and it needs manual reconciliation.
+            # A failure row in the xrpl database is the planned home for it.
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     def deposit_resource_from_chain(self, resource_id, amount, tx_hash):
         """
@@ -803,10 +829,24 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         from blockchain.xrpl.services.resource import ResourceService
 
         wallet = self._get_wallet()
-        ResourceService.deposit_from_chain(
-            wallet, resource_id, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
-        )
-        self._add_resource(resource_id, amount)
+
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._add_resource(resource_id, amount)
+                ResourceService.deposit_from_chain(
+                    wallet, resource_id, amount,
+                    settings.XRPL_VAULT_ADDRESS, tx_hash,
+                )
+        except Exception:
+            # TODO: record this failure. The chain has already moved and no
+            # transaction can undo it, so a failure here leaves on-chain and
+            # in-game state disagreeing, and it needs manual reconciliation.
+            # A failure row in the xrpl database is the planned home for it.
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     def withdraw_resource_to_chain(self, resource_id, amount, tx_hash):
         """
@@ -816,10 +856,24 @@ class FungibleInventoryMixin(CharacterKeyMixin):
         from blockchain.xrpl.services.resource import ResourceService
 
         wallet = self._get_wallet()
-        ResourceService.withdraw_to_chain(
-            wallet, resource_id, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
-        )
-        self._remove_resource(resource_id, amount)
+
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_resource(resource_id, amount)
+                ResourceService.withdraw_to_chain(
+                    wallet, resource_id, amount,
+                    settings.XRPL_VAULT_ADDRESS, tx_hash,
+                )
+        except Exception:
+            # TODO: record this failure. The chain has already moved and no
+            # transaction can undo it, so a failure here leaves on-chain and
+            # in-game state disagreeing, and it needs manual reconciliation.
+            # A failure row in the xrpl database is the planned home for it.
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     # ================================================================== #
     #  AMM Pool Trading

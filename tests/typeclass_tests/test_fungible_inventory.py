@@ -1027,3 +1027,46 @@ class TestGoldTransferRollback(EvenniaTest):
             self.char1.return_resource_to_sink(WHEAT, 3)
 
         self.assertEqual(self.char1.get_resource(WHEAT), 8)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.deposit_from_chain")
+    def test_deposit_gold_from_chain_rolls_back(self, mock_deposit):
+        """A failed chain deposit credits nothing locally."""
+        mock_deposit.side_effect = RuntimeError("xrpl write failed")
+
+        with self.assertRaises(RuntimeError):
+            self.char1.deposit_gold_from_chain(20, "TXHASH1")
+
+        self.assertEqual(self.char1.get_gold(), 0)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.withdraw_to_chain")
+    def test_withdraw_gold_to_chain_rolls_back(self, mock_withdraw):
+        """A failed chain withdrawal debits nothing locally."""
+        mock_withdraw.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 40
+
+        with self.assertRaises(RuntimeError):
+            self.char1.withdraw_gold_to_chain(15, "TXHASH2")
+
+        self.assertEqual(self.char1.get_gold(), 40)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.deposit_from_chain")
+    def test_deposit_resource_from_chain_rolls_back(self, mock_deposit):
+        """A failed chain resource deposit credits nothing locally."""
+        mock_deposit.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.resources = {}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.deposit_resource_from_chain(WHEAT, 5, "TXHASH3")
+
+        self.assertEqual(self.char1.get_resource(WHEAT), 0)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.withdraw_to_chain")
+    def test_withdraw_resource_to_chain_rolls_back(self, mock_withdraw):
+        """A failed chain resource withdrawal debits nothing locally."""
+        mock_withdraw.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.resources = {WHEAT: 8}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.withdraw_resource_to_chain(WHEAT, 3, "TXHASH4")
+
+        self.assertEqual(self.char1.get_resource(WHEAT), 8)
