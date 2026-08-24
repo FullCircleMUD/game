@@ -673,3 +673,62 @@ class SaturationSnapshot(models.Model):
 
     def __str__(self):
         return f"SaturationSnapshot({self.hour}: {self.category}/{self.item_key} sat={self.saturation:.2f})"
+
+
+# ─── Reconciliation Failure ────────────────────────────────────────
+
+class ReconciliationFailure(models.Model):
+    """
+    One row per operation that left on-chain and in-game state disagreeing.
+
+    The happy path is already recorded — on the ledger, and in the transfer
+    and transaction logs. This is the exceptions list: the single place to
+    ask "has anything failed?", because everything here needs a person to
+    put it right.
+
+    Only failures a person could act on are recorded. An AMM swap that
+    happens without its recording is not one: it moves assets the game
+    already owns between its own vault and its own pool, and nobody would
+    unwind it by hand. A chain deposit or withdrawal is, because the
+    player's own assets have moved and the game does not reflect it.
+
+    Lives in the xrpl database on purpose. A world rebuild cannot take the
+    list with it, and the list is only useful beside the data it is
+    reconciled against.
+    """
+
+    operation = models.CharField(
+        max_length=40, help_text="Method that failed, e.g. deposit_gold_from_chain",
+    )
+    wallet_address = models.CharField(max_length=50, db_index=True)
+    character_key = models.CharField(max_length=255, null=True, blank=True)
+    currency_code = models.CharField(max_length=40, null=True, blank=True)
+    amount = models.DecimalField(
+        max_digits=36, decimal_places=6, null=True, blank=True,
+    )
+    tx_hash = models.CharField(max_length=64, null=True, blank=True)
+    error = models.TextField(help_text="Exception text, for whoever picks this up")
+
+    resolved = models.BooleanField(
+        default=False, help_text="Set once someone has put it right",
+    )
+    resolved_note = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "xrpl"
+        verbose_name = "Reconciliation Failure"
+        verbose_name_plural = "Reconciliation Failures"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["resolved"], name="xrpl_reconfail_resolved_idx"),
+        ]
+
+    def __str__(self):
+        state = "resolved" if self.resolved else "OPEN"
+        return (
+            f"[{state}] {self.operation} {self.wallet_address} "
+            f"{self.amount or ''} {self.currency_code or ''}".strip()
+        )

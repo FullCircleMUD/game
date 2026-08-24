@@ -44,7 +44,12 @@ Usage:
 from django.conf import settings
 from django.db import transaction
 
-from blockchain.xrpl.currency_cache import get_resource_type, get_all_resource_types
+from blockchain.xrpl.currency_cache import (
+    get_currency_code,
+    get_resource_type,
+    get_all_resource_types,
+)
+from blockchain.xrpl.services.reconciliation import record_failure
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -768,11 +773,17 @@ class FungibleInventoryMixin(CharacterKeyMixin):
                 GoldService.deposit_from_chain(
                     wallet, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
                 )
-        except Exception:
-            # TODO: record this failure. The chain has already moved and no
-            # transaction can undo it, so a failure here leaves on-chain and
-            # in-game state disagreeing, and it needs manual reconciliation.
-            # A failure row in the xrpl database is the planned home for it.
+        except Exception as err:
+            # The chain has moved and no transaction can undo it, so this
+            # leaves on-chain and in-game state disagreeing and needs a
+            # person. Record it before re-raising.
+            record_failure(
+                "deposit_gold_from_chain", wallet, err,
+                character_key=self._get_character_key(),
+                currency_code=settings.XRPL_GOLD_CURRENCY_CODE,
+                amount=amount,
+                tx_hash=tx_hash,
+            )
             # The rows are back; the in-memory Attributes are not.
             discard_cached_attributes(self)
             raise
@@ -794,11 +805,17 @@ class FungibleInventoryMixin(CharacterKeyMixin):
                 GoldService.withdraw_to_chain(
                     wallet, amount, settings.XRPL_VAULT_ADDRESS, tx_hash,
                 )
-        except Exception:
-            # TODO: record this failure. The chain has already moved and no
-            # transaction can undo it, so a failure here leaves on-chain and
-            # in-game state disagreeing, and it needs manual reconciliation.
-            # A failure row in the xrpl database is the planned home for it.
+        except Exception as err:
+            # The chain has moved and no transaction can undo it, so this
+            # leaves on-chain and in-game state disagreeing and needs a
+            # person. Record it before re-raising.
+            record_failure(
+                "withdraw_gold_to_chain", wallet, err,
+                character_key=self._get_character_key(),
+                currency_code=settings.XRPL_GOLD_CURRENCY_CODE,
+                amount=amount,
+                tx_hash=tx_hash,
+            )
             # The rows are back; the in-memory Attributes are not.
             discard_cached_attributes(self)
             raise
@@ -821,11 +838,17 @@ class FungibleInventoryMixin(CharacterKeyMixin):
                     wallet, resource_id, amount,
                     settings.XRPL_VAULT_ADDRESS, tx_hash,
                 )
-        except Exception:
-            # TODO: record this failure. The chain has already moved and no
-            # transaction can undo it, so a failure here leaves on-chain and
-            # in-game state disagreeing, and it needs manual reconciliation.
-            # A failure row in the xrpl database is the planned home for it.
+        except Exception as err:
+            # The chain has moved and no transaction can undo it, so this
+            # leaves on-chain and in-game state disagreeing and needs a
+            # person. Record it before re-raising.
+            record_failure(
+                "deposit_resource_from_chain", wallet, err,
+                character_key=self._get_character_key(),
+                currency_code=get_currency_code(resource_id),
+                amount=amount,
+                tx_hash=tx_hash,
+            )
             # The rows are back; the in-memory Attributes are not.
             discard_cached_attributes(self)
             raise
@@ -848,11 +871,17 @@ class FungibleInventoryMixin(CharacterKeyMixin):
                     wallet, resource_id, amount,
                     settings.XRPL_VAULT_ADDRESS, tx_hash,
                 )
-        except Exception:
-            # TODO: record this failure. The chain has already moved and no
-            # transaction can undo it, so a failure here leaves on-chain and
-            # in-game state disagreeing, and it needs manual reconciliation.
-            # A failure row in the xrpl database is the planned home for it.
+        except Exception as err:
+            # The chain has moved and no transaction can undo it, so this
+            # leaves on-chain and in-game state disagreeing and needs a
+            # person. Record it before re-raising.
+            record_failure(
+                "withdraw_resource_to_chain", wallet, err,
+                character_key=self._get_character_key(),
+                currency_code=get_currency_code(resource_id),
+                amount=amount,
+                tx_hash=tx_hash,
+            )
             # The rows are back; the in-memory Attributes are not.
             discard_cached_attributes(self)
             raise

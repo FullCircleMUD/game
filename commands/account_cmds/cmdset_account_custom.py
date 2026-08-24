@@ -25,6 +25,7 @@ from commands.account_cmds.cmd_import import CmdImport
 from commands.account_cmds.cmd_export import CmdExport
 from commands.account_cmds.cmd_sync_nfts import CmdSyncNfts
 from commands.account_cmds.cmd_reconcile import CmdReconcile
+from commands.account_cmds.cmd_failures import CmdFailures
 from commands.account_cmds.cmd_amm_check import CmdAMMCheck
 from commands.account_cmds.cmd_economy import CmdEconomy
 from commands.account_cmds.cmd_sync_reserves import CmdSyncReserves
@@ -79,6 +80,7 @@ class CmdSetAccountCustom(CmdSet):
         # Admin commands (superuser only)
         self.add(CmdSyncNfts())
         self.add(CmdReconcile())
+        self.add(CmdFailures())
         self.add(CmdAMMCheck())
         self.add(CmdEconomy())
         self.add(CmdSyncReserves())

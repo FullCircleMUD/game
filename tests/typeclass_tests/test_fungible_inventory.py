@@ -1038,6 +1038,35 @@ class TestGoldTransferRollback(EvenniaTest):
 
         self.assertEqual(self.char1.get_gold(), 0)
 
+    @patch("blockchain.xrpl.services.gold.GoldService.deposit_from_chain")
+    def test_chain_failure_is_recorded_for_reconciliation(self, mock_deposit):
+        """A chain failure leaves a row for someone to act on."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        mock_deposit.side_effect = RuntimeError("xrpl write failed")
+
+        with self.assertRaises(RuntimeError):
+            self.char1.deposit_gold_from_chain(20, "TXHASH-REC")
+
+        row = ReconciliationFailure.objects.get(tx_hash="TXHASH-REC")
+        self.assertEqual(row.operation, "deposit_gold_from_chain")
+        self.assertEqual(row.amount, 20)
+        self.assertIn("xrpl write failed", row.error)
+        self.assertFalse(row.resolved)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.sink")
+    def test_non_chain_failure_is_not_recorded(self, mock_sink):
+        """A failure that leaves both sides consistent needs no record."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        mock_sink.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 40
+
+        with self.assertRaises(RuntimeError):
+            self.char1.return_gold_to_sink(15)
+
+        self.assertEqual(ReconciliationFailure.objects.count(), 0)
+
     @patch("blockchain.xrpl.services.gold.GoldService.withdraw_to_chain")
     def test_withdraw_gold_to_chain_rolls_back(self, mock_withdraw):
         """A failed chain withdrawal debits nothing locally."""
