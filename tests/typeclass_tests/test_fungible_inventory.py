@@ -949,3 +949,81 @@ class TestGoldTransferRollback(EvenniaTest):
 
         self.assertEqual(self.room1.get_gold(), 50)
         self.assertEqual(self.char1.get_gold(), 0)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.pickup")
+    def test_resource_service_failure_rolls_back_local_writes(self, mock_pickup):
+        """Neither side keeps its resource change when the service raises."""
+        mock_pickup.side_effect = RuntimeError("xrpl write failed")
+        self.room1.db.resources = {WHEAT: 10}
+        self.char1.db.resources = {}
+
+        with self.assertRaises(RuntimeError):
+            self.room1.transfer_resource_to(self.char1, WHEAT, 4)
+
+        self.assertEqual(self.room1.get_resource(WHEAT), 10)
+        self.assertEqual(self.char1.get_resource(WHEAT), 0)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_output")
+    def test_receive_from_reserve_rolls_back(self, mock_craft_output):
+        """A one-sided receive keeps no local change when the service raises."""
+        mock_craft_output.side_effect = RuntimeError("xrpl write failed")
+
+        with self.assertRaises(RuntimeError):
+            self.char1.receive_gold_from_reserve(30)
+
+        self.assertEqual(self.char1.get_gold(), 0)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_output")
+    def test_receive_resource_from_reserve_rolls_back(self, mock_craft_output):
+        """One-sided resource receive keeps no local change on failure."""
+        mock_craft_output.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.resources = {}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.receive_resource_from_reserve(WHEAT, 6)
+
+        self.assertEqual(self.char1.get_resource(WHEAT), 0)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.craft_input")
+    def test_return_gold_to_reserve_rolls_back(self, mock_craft_input):
+        """Returning gold to reserve keeps the balance on failure."""
+        mock_craft_input.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 40
+
+        with self.assertRaises(RuntimeError):
+            self.char1.return_gold_to_reserve(15)
+
+        self.assertEqual(self.char1.get_gold(), 40)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.craft_input")
+    def test_return_resource_to_reserve_rolls_back(self, mock_craft_input):
+        """Returning a resource to reserve keeps the amount on failure."""
+        mock_craft_input.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.resources = {WHEAT: 8}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.return_resource_to_reserve(WHEAT, 3)
+
+        self.assertEqual(self.char1.get_resource(WHEAT), 8)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.sink")
+    def test_return_gold_to_sink_rolls_back(self, mock_sink):
+        """Sinking gold keeps the balance on failure."""
+        mock_sink.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 40
+
+        with self.assertRaises(RuntimeError):
+            self.char1.return_gold_to_sink(15)
+
+        self.assertEqual(self.char1.get_gold(), 40)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.sink")
+    def test_return_resource_to_sink_rolls_back(self, mock_sink):
+        """Sinking a resource keeps the amount on failure."""
+        mock_sink.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.resources = {WHEAT: 8}
+
+        with self.assertRaises(RuntimeError):
+            self.char1.return_resource_to_sink(WHEAT, 3)
+
+        self.assertEqual(self.char1.get_resource(WHEAT), 8)

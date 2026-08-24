@@ -350,27 +350,35 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         self_type = self._classify_fungible(self)
 
-        if self_type == "WORLD":
-            # RESERVE → SPAWNED (gold appears in room/on mob)
-            GoldService.spawn(amount, vault)
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._add_gold(amount)
 
-        elif self_type == "CHARACTER":
-            # RESERVE → CHARACTER (crafting produces gold for player)
-            wallet = self._get_wallet()
-            char_key = self._get_character_key()
-            GoldService.craft_output(
-                wallet, amount, vault, char_key,
-            )
+                if self_type == "WORLD":
+                    # RESERVE → SPAWNED (gold appears in room/on mob)
+                    GoldService.spawn(amount, vault)
 
-        elif self_type == "ACCOUNT":
-            # RESERVE → ACCOUNT
-            wallet = self._get_wallet()
-            GoldService.reserve_to_account(
-                wallet, amount, vault,
-            )
+                elif self_type == "CHARACTER":
+                    # RESERVE → CHARACTER (crafting produces gold)
+                    wallet = self._get_wallet()
+                    char_key = self._get_character_key()
+                    GoldService.craft_output(
+                        wallet, amount, vault, char_key,
+                    )
 
-        # Update local state
-        self._add_gold(amount)
+                elif self_type == "ACCOUNT":
+                    # RESERVE → ACCOUNT
+                    wallet = self._get_wallet()
+                    GoldService.reserve_to_account(
+                        wallet, amount, vault,
+                    )
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     # ================================================================== #
     #  Resource Transfers
@@ -417,54 +425,64 @@ class FungibleInventoryMixin(CharacterKeyMixin):
                 )
             return
 
-        if source_type == "WORLD" and target_type == "CHARACTER":
-            # SPAWNED → CHARACTER (character picks up resources)
-            ResourceService.pickup(
-                target_wallet, resource_id, amount,
-                vault, target_key,
-            )
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_resource(resource_id, amount)
+                target._add_resource(resource_id, amount)
 
-        elif source_type == "CHARACTER" and target_type == "WORLD":
-            # CHARACTER → SPAWNED (character drops resources)
-            ResourceService.drop(
-                source_wallet, resource_id, amount,
-                vault, source_key,
-            )
+                if source_type == "WORLD" and target_type == "CHARACTER":
+                    # SPAWNED → CHARACTER (character picks up resources)
+                    ResourceService.pickup(
+                        target_wallet, resource_id, amount,
+                        vault, target_key,
+                    )
 
-        elif source_type == "CHARACTER" and target_type == "CHARACTER":
-            # CHARACTER → CHARACTER (trade/give)
-            ResourceService.transfer(
-                source_wallet, source_key, target_wallet, target_key,
-                resource_id, amount,
-            )
+                elif source_type == "CHARACTER" and target_type == "WORLD":
+                    # CHARACTER → SPAWNED (character drops resources)
+                    ResourceService.drop(
+                        source_wallet, resource_id, amount,
+                        vault, source_key,
+                    )
 
-        elif source_type == "CHARACTER" and target_type == "ACCOUNT":
-            # CHARACTER → ACCOUNT (deposit into bank)
-            ResourceService.bank(
-                source_wallet, resource_id, amount,
-                source_key,
-            )
+                elif source_type == "CHARACTER" and target_type == "CHARACTER":
+                    # CHARACTER → CHARACTER (trade/give)
+                    ResourceService.transfer(
+                        source_wallet, source_key, target_wallet, target_key,
+                        resource_id, amount,
+                    )
 
-        elif source_type == "ACCOUNT" and target_type == "CHARACTER":
-            # ACCOUNT → CHARACTER (withdraw from bank)
-            ResourceService.unbank(
-                target_wallet, resource_id, amount,
-                target_key,
-            )
+                elif source_type == "CHARACTER" and target_type == "ACCOUNT":
+                    # CHARACTER → ACCOUNT (deposit into bank)
+                    ResourceService.bank(
+                        source_wallet, resource_id, amount,
+                        source_key,
+                    )
 
-        elif source_type == "WORLD" and target_type == "WORLD":
-            # SPAWNED → SPAWNED (e.g. mob resources → corpse on death)
-            # Both vault-owned — no DB location change, just move local state.
-            pass
+                elif source_type == "ACCOUNT" and target_type == "CHARACTER":
+                    # ACCOUNT → CHARACTER (withdraw from bank)
+                    ResourceService.unbank(
+                        target_wallet, resource_id, amount,
+                        target_key,
+                    )
 
-        else:
-            raise ValueError(
-                f"Unsupported resource transfer: {source_type} → {target_type}"
-            )
+                elif source_type == "WORLD" and target_type == "WORLD":
+                    # SPAWNED → SPAWNED (mob resources → corpse on death)
+                    # Both vault-owned — no DB location change here.
+                    pass
 
-        # Update local state on both sides
-        self._remove_resource(resource_id, amount)
-        target._add_resource(resource_id, amount)
+                else:
+                    raise ValueError(
+                        f"Unsupported resource transfer: "
+                        f"{source_type} → {target_type}"
+                    )
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            _discard_cached_attributes(target)
+            raise
 
     def receive_resource_from_reserve(self, resource_id, amount):
         """
@@ -484,29 +502,38 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         self_type = self._classify_fungible(self)
 
-        if self_type == "WORLD":
-            # RESERVE → SPAWNED
-            ResourceService.spawn(
-                resource_id, amount, vault,
-            )
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._add_resource(resource_id, amount)
 
-        elif self_type == "CHARACTER":
-            # RESERVE → CHARACTER
-            wallet = self._get_wallet()
-            char_key = self._get_character_key()
-            ResourceService.craft_output(
-                wallet, resource_id, amount,
-                vault, char_key,
-            )
+                if self_type == "WORLD":
+                    # RESERVE → SPAWNED
+                    ResourceService.spawn(
+                        resource_id, amount, vault,
+                    )
 
-        elif self_type == "ACCOUNT":
-            # RESERVE → ACCOUNT
-            wallet = self._get_wallet()
-            ResourceService.reserve_to_account(
-                wallet, resource_id, amount, vault,
-            )
+                elif self_type == "CHARACTER":
+                    # RESERVE → CHARACTER
+                    wallet = self._get_wallet()
+                    char_key = self._get_character_key()
+                    ResourceService.craft_output(
+                        wallet, resource_id, amount,
+                        vault, char_key,
+                    )
 
-        self._add_resource(resource_id, amount)
+                elif self_type == "ACCOUNT":
+                    # RESERVE → ACCOUNT
+                    wallet = self._get_wallet()
+                    ResourceService.reserve_to_account(
+                        wallet, resource_id, amount, vault,
+                    )
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     # ================================================================== #
     #  Return to Reserve (self → vault RESERVE)
@@ -543,24 +570,33 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         self_type = self._classify_fungible(self)
 
-        if self_type == "CHARACTER":
-            # CHARACTER → RESERVE (junking, crafting, quest cost, etc.)
-            wallet = self._get_wallet()
-            char_key = self._get_character_key()
-            GoldService.craft_input(
-                wallet, amount, vault, char_key,
-            )
-        elif self_type == "ACCOUNT":
-            # ACCOUNT → RESERVE
-            wallet = self._get_wallet()
-            GoldService.account_to_reserve(
-                wallet, amount, vault,
-            )
-        else:
-            # WORLD → RESERVE (despawn — gold removed from room/ground)
-            GoldService.despawn(amount, vault)
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_gold(amount)
 
-        self._remove_gold(amount)
+                if self_type == "CHARACTER":
+                    # CHARACTER → RESERVE (junking, crafting, quest cost)
+                    wallet = self._get_wallet()
+                    char_key = self._get_character_key()
+                    GoldService.craft_input(
+                        wallet, amount, vault, char_key,
+                    )
+                elif self_type == "ACCOUNT":
+                    # ACCOUNT → RESERVE
+                    wallet = self._get_wallet()
+                    GoldService.account_to_reserve(
+                        wallet, amount, vault,
+                    )
+                else:
+                    # WORLD → RESERVE (despawn — gold removed from ground)
+                    GoldService.despawn(amount, vault)
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     def return_resource_to_reserve(self, resource_id, amount):
         """
@@ -580,27 +616,36 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         self_type = self._classify_fungible(self)
 
-        if self_type == "CHARACTER":
-            # CHARACTER → RESERVE (junking, crafting, quest cost, etc.)
-            wallet = self._get_wallet()
-            char_key = self._get_character_key()
-            ResourceService.craft_input(
-                wallet, resource_id, amount,
-                vault, char_key,
-            )
-        elif self_type == "ACCOUNT":
-            # ACCOUNT → RESERVE
-            wallet = self._get_wallet()
-            ResourceService.account_to_reserve(
-                wallet, resource_id, amount, vault,
-            )
-        else:
-            # WORLD → RESERVE (despawn — resource removed from room/ground)
-            ResourceService.despawn(
-                resource_id, amount, vault,
-            )
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_resource(resource_id, amount)
 
-        self._remove_resource(resource_id, amount)
+                if self_type == "CHARACTER":
+                    # CHARACTER → RESERVE (junking, crafting, quest cost)
+                    wallet = self._get_wallet()
+                    char_key = self._get_character_key()
+                    ResourceService.craft_input(
+                        wallet, resource_id, amount,
+                        vault, char_key,
+                    )
+                elif self_type == "ACCOUNT":
+                    # ACCOUNT → RESERVE
+                    wallet = self._get_wallet()
+                    ResourceService.account_to_reserve(
+                        wallet, resource_id, amount, vault,
+                    )
+                else:
+                    # WORLD → RESERVE (despawn — removed from the ground)
+                    ResourceService.despawn(
+                        resource_id, amount, vault,
+                    )
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     # ================================================================== #
     #  Return to Sink (self → vault SINK)
@@ -640,22 +685,31 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         self_type = self._classify_fungible(self)
 
-        if self_type == "CHARACTER":
-            wallet = self._get_wallet()
-            char_key = self._get_character_key()
-            GoldService.sink(
-                wallet, amount, vault, char_key,
-            )
-        elif self_type == "ACCOUNT":
-            wallet = self._get_wallet()
-            GoldService.sink_account(
-                wallet, amount, vault,
-            )
-        else:
-            # WORLD → SINK (spawned gold consumed without being looted)
-            GoldService.sink_world(amount, vault)
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_gold(amount)
 
-        self._remove_gold(amount)
+                if self_type == "CHARACTER":
+                    wallet = self._get_wallet()
+                    char_key = self._get_character_key()
+                    GoldService.sink(
+                        wallet, amount, vault, char_key,
+                    )
+                elif self_type == "ACCOUNT":
+                    wallet = self._get_wallet()
+                    GoldService.sink_account(
+                        wallet, amount, vault,
+                    )
+                else:
+                    # WORLD → SINK (spawned gold consumed, never looted)
+                    GoldService.sink_world(amount, vault)
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     def return_resource_to_sink(self, resource_id, amount):
         """
@@ -678,25 +732,34 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         self_type = self._classify_fungible(self)
 
-        if self_type == "CHARACTER":
-            wallet = self._get_wallet()
-            char_key = self._get_character_key()
-            ResourceService.sink(
-                wallet, resource_id, amount,
-                vault, char_key,
-            )
-        elif self_type == "ACCOUNT":
-            wallet = self._get_wallet()
-            ResourceService.sink_account(
-                wallet, resource_id, amount, vault,
-            )
-        else:
-            # WORLD → SINK (spawned resource consumed without being looted)
-            ResourceService.sink_world(
-                resource_id, amount, vault,
-            )
+        # Local state first, the ownership write last — same reasoning as
+        # transfer_gold_to() above.
+        try:
+            with transaction.atomic():
+                self._remove_resource(resource_id, amount)
 
-        self._remove_resource(resource_id, amount)
+                if self_type == "CHARACTER":
+                    wallet = self._get_wallet()
+                    char_key = self._get_character_key()
+                    ResourceService.sink(
+                        wallet, resource_id, amount,
+                        vault, char_key,
+                    )
+                elif self_type == "ACCOUNT":
+                    wallet = self._get_wallet()
+                    ResourceService.sink_account(
+                        wallet, resource_id, amount, vault,
+                    )
+                else:
+                    # WORLD → SINK (spawned resource consumed, never looted)
+                    ResourceService.sink_world(
+                        resource_id, amount, vault,
+                    )
+
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            _discard_cached_attributes(self)
+            raise
 
     # ================================================================== #
     #  Chain Deposit / Withdraw (import / export)
