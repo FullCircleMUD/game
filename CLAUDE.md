@@ -78,6 +78,28 @@ Alternatives for guaranteed uniqueness: store the `dbref` at build time; add a u
 
 `ObjectDB.objects.filter(...).delete()` bypasses Evennia's object lifecycle hooks — `at_object_delete()` will not fire, creating orphaned mirror DB records. Always delete individually via `obj.delete()`. Queryset bulk deletes are acceptable ONLY in test `tearDown` for non-Evennia tables.
 
+### Transactions — `atomic()` goes on the alias the router gives you
+
+A transaction covers one **connection**, not one process. `transaction.atomic()` with no argument opens one on `default`, so on a deployment where an alias has been split onto its own database, every write the router sends elsewhere is outside it — not rolled back, and `select_for_update()` raises `TransactionManagementError`.
+
+```python
+# WRONG — transaction on default, query on whichever connection the router picks
+with transaction.atomic():
+    FungibleGameState.objects.select_for_update().get(...)
+
+# RIGHT — same connection for both, in every deployment shape
+with transaction.atomic(using=router.db_for_write(FungibleGameState)):
+    FungibleGameState.objects.select_for_update().get(...)
+```
+
+Derive it; don't write `"xrpl"`. `db_for_write()` returns `None` where no router claims the model, and `atomic(using=None)` means `default` — so one line is correct whether the alias is split or shared. The querysets inside need nothing added.
+
+**Crossing into Evennia state.** No transaction can span two databases. Pair a game-side write with an ownership write by nesting: the outer block on `default`, the service call **last** inside it (the service opens its own on the xrpl connection). Nothing may write to `default` after it — once the inner block commits, nothing can undo it.
+
+**Every failure path calls `discard_cached_attributes()`** (`utils/attribute_cache.py`). A rollback restores the rows and not Evennia's attribute cache, so without it the object keeps reporting a balance the database no longer holds, and nothing raises.
+
+Full rationale, the failure table, and the ledger cases in [design/database.md](../../design/database.md) § Transactions and Split Aliases.
+
 ### Ability score modifiers — compute at check time, NEVER cache
 
 Cached stats (`armor_class`, `initiative_bonus`, `total_hit_bonus`, `total_damage_bonus`, `max_carrying_capacity_kg`, …) store ONLY equipment and spell/potion bonuses. Ability score modifiers (`get_attribute_bonus(score) = floor((score-10)/2)`) and skill mastery bonuses are ALWAYS computed at the point of use.
@@ -301,7 +323,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 | Treasury, fiscal discipline, vault architecture | [TREASURY.md](../../design/treasury.md) |
 | Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../design/subscriptions.md) |
 | Import / export / wallet flow, deferToThread, replay protection | [IMPORT_EXPORT.md](../../design/import-export.md) |
-| Database architecture, 4-DB layout, pgvector | [DATABASE.md](../../design/database.md) |
+| Database architecture, 5-DB layout, transactions across aliases, pgvector | [DATABASE.md](../../design/database.md) |
 | World lore, zones, districts | [WORLD.md](../../design/world.md) |
 | New player experience, tutorial, Millholm onboarding | [NEW_PLAYER_EXPERIENCE.md](../../design/new-player-experience.md) |
 | Inter-zone travel, sail, cartography mastery gates | [INTERZONE_TRAVEL.md](../../design/interzone-travel.md) |
