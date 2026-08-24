@@ -12,11 +12,13 @@ without knowing it's a resource shop — that polymorphism lives here.
 """
 
 from django.conf import settings
+from django.db import transaction
 from twisted.internet import threads
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from blockchain.xrpl.xrpl_tx import XRPLTransactionError
 from typeclasses.actors.npcs.shopkeeper import ShopkeeperNPC
+from utils.attribute_cache import discard_cached_attributes
 
 
 def _session_check(caller):
@@ -105,8 +107,8 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
             gold_price, vault,
         )
         d.addCallback(
-            lambda result: self._on_buy_complete(
-                caller, rid, display, qty, gold_price,
+            lambda swap_result: self._on_buy_complete(
+                caller, rid, display, qty, gold_price, swap_result,
             )
         )
         d.addErrback(
@@ -137,8 +139,8 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
             gold_price, vault,
         )
         d.addCallback(
-            lambda result: self._on_sell_complete(
-                caller, rid, display, qty, gold_price,
+            lambda swap_result: self._on_sell_complete(
+                caller, rid, display, qty, gold_price, swap_result,
             )
         )
         d.addErrback(
@@ -147,11 +149,21 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
 
     # ── Result callbacks (reactor thread) ───────────────────────────
 
-    def _on_buy_complete(self, caller, rid, display, qty, gold_price):
+    def _on_buy_complete(self, caller, rid, display, qty, gold_price,
+                         swap_result):
+        """
+        Book a completed buy swap. Runs on the reactor thread.
+
+        The swap has already happened and cannot be undone, so the trade is
+        booked whether or not the player is still connected — a disconnect
+        mid-trade completes the purchase they asked for rather than voiding
+        it. Only the message needs a live session.
+        """
+        self._record_trade(
+            caller, "buy", rid, qty, gold_price, swap_result,
+        )
         if not _session_check(caller):
             return
-        caller._remove_gold(gold_price)
-        caller._add_resource(rid, qty)
         rt_name = get_resource_type(rid)["name"]
         caller.msg(
             f"You buy {qty} {rt_name} from "
@@ -160,11 +172,14 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
             f"and {caller.get_resource(rid)} {rt_name}."
         )
 
-    def _on_sell_complete(self, caller, rid, display, qty, gold_price):
+    def _on_sell_complete(self, caller, rid, display, qty, gold_price,
+                          swap_result):
+        """Book a completed sell swap. Runs on the reactor thread."""
+        self._record_trade(
+            caller, "sell", rid, qty, gold_price, swap_result,
+        )
         if not _session_check(caller):
             return
-        caller._remove_resource(rid, qty)
-        caller._add_gold(gold_price)
         rt_name = get_resource_type(rid)["name"]
         caller.msg(
             f"You sell {qty} {rt_name} to "
@@ -172,6 +187,48 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
             f"You now have {caller.get_gold()} gold "
             f"and {caller.get_resource(rid)} {rt_name}."
         )
+
+    @staticmethod
+    def _record_trade(caller, direction, rid, qty, gold_price, swap_result):
+        """
+        Hold the player's local writes and the ownership write together.
+
+        The swap ran in the worker thread and is outside this transaction —
+        one cannot be held open across a ledger round-trip. What is inside
+        is the pair that has to agree: what the game says the player holds,
+        and what the xrpl database says they own. Local writes go first, so
+        a failure in the ownership write takes them with it.
+
+        A swap left unbooked by such a failure is tolerated. It moved assets
+        the game already owns between its own vault and its own pool, so the
+        only effect is a nudge to the next price.
+        """
+        from blockchain.xrpl.services.amm import AMMService
+
+        wallet = caller._get_wallet()
+        char_key = caller._get_character_key()
+        vault = settings.XRPL_VAULT_ADDRESS
+
+        try:
+            with transaction.atomic():
+                if direction == "buy":
+                    caller._remove_gold(gold_price)
+                    caller._add_resource(rid, qty)
+                    AMMService.buy_resource_record(
+                        wallet, char_key, rid, qty, gold_price, vault,
+                        swap_result,
+                    )
+                else:
+                    caller._remove_resource(rid, qty)
+                    caller._add_gold(gold_price)
+                    AMMService.sell_resource_record(
+                        wallet, char_key, rid, qty, gold_price, vault,
+                        swap_result,
+                    )
+        except Exception:
+            # The rows are back; the in-memory Attributes are not.
+            discard_cached_attributes(caller)
+            raise
 
     def _on_trade_error(self, caller, failure, direction, qty, display):
         if not _session_check(caller):
@@ -197,12 +254,15 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
 
 def _threaded_resource_trade(direction, wallet, char_key, rid, qty,
                               gold_price, vault):
-    """Worker thread — execute a resource AMM swap."""
+    """
+    Worker thread — execute the on-chain half of a resource AMM swap.
+
+    The swap only. Booking it happens on the reactor thread, in a
+    transaction alongside the player's local writes — see _record_trade().
+    Raises on failure rather than returning a status, so a swap that does
+    not happen never reaches the callback.
+    """
     from blockchain.xrpl.services.amm import AMMService
     if direction == "buy":
-        return AMMService.buy_resource(
-            wallet, char_key, rid, qty, gold_price, vault,
-        )
-    return AMMService.sell_resource(
-        wallet, char_key, rid, qty, gold_price, vault,
-    )
+        return AMMService.buy_resource_swap(rid, qty, gold_price)
+    return AMMService.sell_resource_swap(rid, qty, gold_price)

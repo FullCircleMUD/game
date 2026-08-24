@@ -50,25 +50,7 @@ GOLD = settings.GOLD_DISPLAY
 
 
 from typeclasses.mixins.character_key import CharacterKeyMixin
-
-
-def _discard_cached_attributes(obj):
-    """
-    Drop an object's cached Attributes so the next read hits the database.
-
-    A rolled-back transaction restores the rows and nothing else. Evennia's
-    AttributeHandler is still holding the Attribute instances it wrote, and
-    reset_cache() alone does not help — the re-fetch goes through the
-    idmapper, which hands back those same instances. They have to be evicted
-    from the idmapper first.
-
-    Args:
-        obj (Object): the object whose attribute cache is now stale.
-    """
-    for attr in list(obj.attributes.backend._cache.values()):
-        if attr is not None:
-            attr.flush_from_cache(force=True)
-    obj.attributes.reset_cache()
+from utils.attribute_cache import discard_cached_attributes
 
 
 class FungibleInventoryMixin(CharacterKeyMixin):
@@ -327,8 +309,8 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
-            _discard_cached_attributes(target)
+            discard_cached_attributes(self)
+            discard_cached_attributes(target)
             raise
 
     def receive_gold_from_reserve(self, amount):
@@ -377,7 +359,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     # ================================================================== #
@@ -480,8 +462,8 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
-            _discard_cached_attributes(target)
+            discard_cached_attributes(self)
+            discard_cached_attributes(target)
             raise
 
     def receive_resource_from_reserve(self, resource_id, amount):
@@ -532,7 +514,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     # ================================================================== #
@@ -595,7 +577,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     def return_resource_to_reserve(self, resource_id, amount):
@@ -644,7 +626,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     # ================================================================== #
@@ -708,7 +690,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     def return_resource_to_sink(self, resource_id, amount):
@@ -758,7 +740,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
 
         except Exception:
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     # ================================================================== #
@@ -792,7 +774,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # in-game state disagreeing, and it needs manual reconciliation.
             # A failure row in the xrpl database is the planned home for it.
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     def withdraw_gold_to_chain(self, amount, tx_hash):
@@ -818,7 +800,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # in-game state disagreeing, and it needs manual reconciliation.
             # A failure row in the xrpl database is the planned home for it.
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     def deposit_resource_from_chain(self, resource_id, amount, tx_hash):
@@ -845,7 +827,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # in-game state disagreeing, and it needs manual reconciliation.
             # A failure row in the xrpl database is the planned home for it.
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     def withdraw_resource_to_chain(self, resource_id, amount, tx_hash):
@@ -872,7 +854,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # in-game state disagreeing, and it needs manual reconciliation.
             # A failure row in the xrpl database is the planned home for it.
             # The rows are back; the in-memory Attributes are not.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
     # ================================================================== #
@@ -938,7 +920,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # only effect is a nudge to the next price. Nobody would unwind
             # it by hand. The player's balances are untouched on both sides,
             # which is the thing that has to stay consistent.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
         return result
@@ -1002,7 +984,7 @@ class FungibleInventoryMixin(CharacterKeyMixin):
             # only effect is a nudge to the next price. Nobody would unwind
             # it by hand. The player's balances are untouched on both sides,
             # which is the thing that has to stay consistent.
-            _discard_cached_attributes(self)
+            discard_cached_attributes(self)
             raise
 
         return result

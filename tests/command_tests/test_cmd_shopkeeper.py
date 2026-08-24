@@ -231,8 +231,10 @@ class TestCmdShopAccept(EvenniaCommandTest):
 
     @_patch_sessions_npc
     @_patch_threads_npc
-    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource")
-    def test_accept_buy_executes(self, mock_buy, _mock_threads, _mock_sessions):
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_swap")
+    def test_accept_buy_executes(self, mock_buy, _mock_record,
+                                 _mock_threads, _mock_sessions):
         """Accept executes a pending buy quote via execute_buy()."""
         mock_buy.return_value = {
             "gold_cost": 11,
@@ -283,9 +285,10 @@ class TestCmdResourceBuy(EvenniaCommandTest):
     @_patch_threads_cmdset
     @_patch_threads_npc
     @patch("typeclasses.actors.npcs.resource_shopkeeper.get_resource_type")
-    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource")
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_swap")
     @patch("blockchain.xrpl.services.amm.AMMService.get_buy_price")
-    def test_buy_instant(self, mock_price, mock_buy, mock_rt,
+    def test_buy_instant(self, mock_price, mock_buy, _mock_record, mock_rt,
                           _t_cmdset, _t_npc, _s_cmdset, _s_npc):
         """Instant buy gets price and executes."""
         mock_rt.side_effect = lambda rid: {
@@ -361,9 +364,10 @@ class TestCmdResourceSell(EvenniaCommandTest):
     @_patch_threads_cmdset
     @_patch_threads_npc
     @patch("typeclasses.actors.npcs.resource_shopkeeper.get_resource_type")
-    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource")
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_swap")
     @patch("blockchain.xrpl.services.amm.AMMService.get_sell_price")
-    def test_sell_instant(self, mock_price, mock_sell, mock_rt,
+    def test_sell_instant(self, mock_price, mock_sell, _mock_record, mock_rt,
                            _t_cmdset, _t_npc, _s_cmdset, _s_npc):
         """Instant sell gets price and executes."""
         mock_rt.side_effect = lambda rid: {
@@ -406,9 +410,10 @@ class TestCmdResourceSell(EvenniaCommandTest):
     @_patch_threads_cmdset
     @_patch_threads_npc
     @patch("typeclasses.actors.npcs.resource_shopkeeper.get_resource_type")
-    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource")
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_record")
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_swap")
     @patch("blockchain.xrpl.services.amm.AMMService.get_sell_price")
-    def test_sell_all(self, mock_price, mock_sell, mock_rt,
+    def test_sell_all(self, mock_price, mock_sell, _mock_record, mock_rt,
                        _t_cmdset, _t_npc, _s_cmdset, _s_npc):
         """'sell all wheat' sells the player's entire stock."""
         mock_rt.side_effect = lambda rid: {
@@ -440,3 +445,78 @@ class TestCmdResourceSell(EvenniaCommandTest):
             "Sell what?",
             obj=self.shopkeeper,
         )
+
+
+class TestShopTradeRollback(EvenniaCommandTest):
+    """
+    Test that a failed ownership write leaves the player's balances alone.
+
+    The swap has already happened by the time _record_trade() runs, so what
+    is being protected here is the pair that must agree: the game's view of
+    the player's holdings and the xrpl database's.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.shopkeeper = _make_shopkeeper(self, [1])
+        self.char1._get_wallet = MagicMock(return_value="rTestWallet123")
+        self.char1._get_character_key = MagicMock(return_value="TestChar")
+        self.swap_result = {
+            "tx_hash": "TX999", "actual_input": 1, "actual_output": 1,
+        }
+
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    def test_buy_record_failure_rolls_back(self, mock_record):
+        """A failed buy recording keeps gold and resources unchanged."""
+        mock_record.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 500
+        self.char1.db.resources = {}
+
+        with self.assertRaises(RuntimeError):
+            self.shopkeeper._record_trade(
+                self.char1, "buy", 1, 10, 11, self.swap_result,
+            )
+
+        self.assertEqual(self.char1.get_gold(), 500)
+        self.assertEqual(self.char1.get_resource(1), 0)
+
+    @patch("blockchain.xrpl.services.amm.AMMService.sell_resource_record")
+    def test_sell_record_failure_rolls_back(self, mock_record):
+        """A failed sell recording keeps gold and resources unchanged."""
+        mock_record.side_effect = RuntimeError("xrpl write failed")
+        self.char1.db.gold = 100
+        self.char1.db.resources = {1: 10}
+
+        with self.assertRaises(RuntimeError):
+            self.shopkeeper._record_trade(
+                self.char1, "sell", 1, 10, 9, self.swap_result,
+            )
+
+        self.assertEqual(self.char1.get_gold(), 100)
+        self.assertEqual(self.char1.get_resource(1), 10)
+
+    @patch("blockchain.xrpl.services.amm.AMMService.buy_resource_record")
+    @patch("typeclasses.actors.npcs.resource_shopkeeper.get_resource_type")
+    def test_disconnected_player_still_gets_the_trade(self, mock_rt,
+                                                      mock_record):
+        """A trade books even when the player has no live session."""
+        mock_rt.side_effect = lambda rid: MOCK_RESOURCE_TYPE_WHEAT
+        self.char1.db.gold = 500
+        self.char1.db.resources = {}
+
+        with patch(
+            "typeclasses.actors.npcs.resource_shopkeeper._session_check",
+            return_value=False,
+        ):
+            self.shopkeeper._on_buy_complete(
+                self.char1, 1, "10 Wheat", 10, 11, self.swap_result,
+            )
+
+        mock_record.assert_called_once()
+        self.assertEqual(self.char1.get_gold(), 489)
+        self.assertEqual(self.char1.get_resource(1), 10)
