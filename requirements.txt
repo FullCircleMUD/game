@@ -61,10 +61,10 @@ sqlean.py; sys_platform == "darwin"
 # evennia-yaml-reader arrives transitively via the two builders.
 
 # Declarative YAML world authoring — the wb_build admin command.
-evennia-world-builder==0.1.0
+evennia-world-builder==0.2.0
 
 # Declarative YAML mob spawning — the ms_load admin command.
-evennia-mob-spawner==0.1.1
+evennia-mob-spawner==0.1.2
 
 # Split-deployment / horizontal sharding. Dormant in monolith mode;
 # activated by SHARDS_ROLE in settings_router.py / settings_shard0.py.
@@ -85,3 +85,7 @@ evennia-mob-spawner==0.1.1
 # static assets; 0.1.0 shipped Python only, so shard_redirect.js 404'd
 # and cross-shard redirects were received but never acted on.
 evennia-shards==0.1.3
+
+# Archived accounts and characters, so a world rebuild does not cost us
+# our players.
+evennia-archive==0.1.0
