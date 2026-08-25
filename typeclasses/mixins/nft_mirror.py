@@ -183,6 +183,112 @@ class NFTMirrorMixin(CharacterKeyMixin):
             source_type, source_owner, dest_type, dest_owner,
         )
 
+        # The shard stamp follows the item to wherever it now lives.
+        self._follow_shard(source_location, dest_type, dest_owner, dest)
+
+    def _follow_shard(self, source_location, dest_type, dest_owner, dest):
+        """Move this item's shard stamp to match its new home.
+
+        Banking makes an item global (``"*"``), the same stamp the bank
+        itself carries; taking it out gives it the shard of whatever it
+        moved to. That is what lets Fred bank something on shard0 and
+        Lancelot withdraw it on shard1 — the bank belongs to the account,
+        not to either shard.
+
+        Without this an item keeps the shard it was created on for life.
+        With one populated shard that is invisible; with two, an item
+        banked from shard0 and withdrawn on shard1 stays stamped shard0,
+        and every query shard1 runs filters ``shard_id IN ('shard1', '*')``.
+        The item is simply not there — no error, nothing to see.
+
+        This is not a cross-shard move. ``cross_shard_move`` exists for
+        relocating a character and its inventory between two shards, and
+        brings session redirects and cache-flush messaging with it; it
+        also rejects ``"*"`` as a target, since that is not a shard. What
+        is borrowed from it is only the mechanism for changing the stamp
+        safely — see _restamp_pks.
+
+        Skipped in monolith, where ObjectDB has no shard_id column.
+        """
+        from evennia_shards import GLOBAL_SHARD_ID, ROLE_MONOLITH, get_role
+
+        if get_role() == ROLE_MONOLITH:
+            return
+
+        if dest_type == "ACCOUNT":
+            target = GLOBAL_SHARD_ID
+        else:
+            holder = dest_owner if dest_owner is not None else dest
+            target = getattr(holder, "shard_id", None)
+
+        if not target or target == getattr(self, "shard_id", None):
+            return
+
+        # Contents ride along. A container is banked with everything in
+        # it, and each of those rows carries its own stamp.
+        pks = [self.pk]
+        if getattr(self, "is_container", False):
+            pks.extend(obj.pk for obj in self.contents if obj.pk)
+
+        self._restamp_pks(pks, target, [source_location, dest])
+
+    def _restamp_pks(self, pks, target, containers=()):
+        """Set shard_id on these rows, and drop them from the idmapper.
+
+        ``qs.update`` rather than ``save()``, which is what makes the
+        change possible at all: the shards library flags an assignment to
+        the tenant column on an existing row and the next ``save()``
+        raises. Going straight to SQL is the library's own approach for
+        the same problem — see evennia_shards.handoff.cross_shard_move.
+
+        Then the instances are evicted and the affected containers' caches
+        rebuilt, in that order. Both halves are needed and neither is
+        sufficient alone: ``flush_from_cache`` empties the idmapper but
+        does not touch a ``contents_cache``, which holds *instances*
+        rather than keys — so flushing on its own leaves the destination
+        container serving the evicted object while any query by pk builds
+        a second one for the same row.
+
+        Rebuilding both ends means nothing carries a stale copy: the
+        source cannot show a ghost of an item that has left, and the
+        destination re-reads from the database when something next needs
+        it — a balance check, a withdrawal — rather than trusting memory.
+        """
+        from evennia.objects.models import ObjectDB
+
+        try:
+            with transaction.atomic():
+                ObjectDB.objects.filter(pk__in=pks).update(shard_id=target)
+
+                for obj in [self] + list(getattr(self, "contents", [])):
+                    if obj.pk not in pks:
+                        continue
+                    # Sync in memory before eviction so anything still
+                    # holding this instance reads the new shard, and so a
+                    # later save() is not refused for mutating the tenant
+                    # column. object.__setattr__ bypasses the library's
+                    # __setattr__ wrapper, which is what arms that check.
+                    object.__setattr__(obj, "shard_id", target)
+                    obj.flush_from_cache(force=True)
+
+                for container in containers:
+                    if container is not None and hasattr(
+                        container, "contents_cache"
+                    ):
+                        container.contents_cache.init()
+        except Exception as err:
+            # The move itself has already happened and been mirrored. A
+            # failed stamp leaves the item visible from its old shard
+            # rather than its new one, which needs a person.
+            self._log_error("follow_shard", err)
+            record_failure(
+                operation="follow_shard",
+                wallet_address=self._get_owner_wallet(self.location) or "",
+                error=err,
+                tx_hash=None,
+            )
+
+
     def _handle_creation(self, dest_type, dest_owner, dest, **kwargs):
         """
         Handle NFT creation (source is None — object entering the game).
@@ -191,8 +297,23 @@ class NFTMirrorMixin(CharacterKeyMixin):
         move_to() and returns False, which rolls the creation back — see
         this mixin's move_to(). Swallowing them here would leave an object
         in the world that the ownership record knows nothing about.
+
+        ``recovering=True`` skips the mirror write entirely. A recovery
+        rebuilds the game object for ownership the mirror *already*
+        records — the item has not been crafted, deposited or spawned, it
+        simply lost its Evennia row when the world was rebuilt. Writing
+        here would re-book an arrival that never happened, and
+        deposit_from_chain would want a tx_hash that does not exist.
+
+        The flag is passed through move_to(), which forwards kwargs to
+        this hook. Creating with location= cannot carry it — Evennia fires
+        at_post_move during create_object() with no way to pass kwargs —
+        so a recovery creates with nohome=True and moves afterwards.
         """
         from blockchain.xrpl.services.nft import NFTService
+
+        if kwargs.get("recovering"):
+            return
 
         if dest_type == "CHARACTER":
             wallet = self._get_owner_wallet(dest_owner)
