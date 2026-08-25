@@ -40,13 +40,53 @@ class NFTMirrorMixin(CharacterKeyMixin):
 
     Attributes (persisted):
         token_id — on-chain NFT token ID
+        export_incomplete — this object should not exist
     """
 
     token_id = AttributeProperty(None)
 
+    # Set when an export moved the token to the player's own wallet but the
+    # game copy could not be removed afterwards. The player owns it on chain
+    # and the game still shows it, so it is frozen where it sits: it cannot
+    # be moved, withdrawn from the bank, or exported again.
+    #
+    # There is nothing to repair — the correct end state is that this object
+    # does not exist. An admin deletes it, which clears this with it. The
+    # matching ReconciliationFailure row is how they find out.
+    export_incomplete = AttributeProperty(False)
+
     # ================================================================== #
     #  Evennia Hooks — Mirror Transitions
     # ================================================================== #
+
+    def at_pre_move(self, destination, **kwargs):
+        """
+        Refuse to move an item whose token has already left the game.
+
+        See export_incomplete above. The player owns this on chain, so it
+        must not be taken out of the bank and used, sold or given away
+        while the game still shows it. Holding it still is the only thing
+        that limits the damage until an admin removes it.
+
+        Args:
+            destination (Object): where it would go.
+
+        Returns:
+            bool: False to refuse the move.
+        """
+        if self.export_incomplete:
+            # Whoever is pulling it out is the destination on the paths that
+            # matter — a bank withdrawal moves it to the character. There is
+            # no "who moved me" argument in the hook, and the current
+            # location is the bank, which cannot be messaged.
+            if hasattr(destination, "msg"):
+                destination.msg(
+                    f"|y{self.key} has already been sent to your wallet. "
+                    f"The game's copy is waiting to be cleared up and "
+                    f"cannot be moved.|n"
+                )
+            return False
+        return super().at_pre_move(destination, **kwargs)
 
     def move_to(self, destination, **kwargs):
         """
@@ -341,7 +381,7 @@ class NFTMirrorMixin(CharacterKeyMixin):
     #  Deletion — Mirror Cleanup
     # ================================================================== #
 
-    def delete(self):
+    def delete(self, tx_hash=None):
         """
         Delete this object, and let the ownership write veto the deletion.
 
@@ -349,6 +389,13 @@ class NFTMirrorMixin(CharacterKeyMixin):
         opposite reason. Evennia calls at_object_delete() *first*, so the
         ownership writes cannot live there — they have to happen after the
         object is destroyed, which is only reachable from here.
+
+        A tx_hash means this deletion is an export: the token has already
+        moved to the player's own wallet on chain, and passing the hash is
+        what lets that be recorded rather than guessed at. Only the command
+        that performed the transfer knows it. Every other caller deletes
+        with no argument and the object's location decides the rest —
+        see _mirror_on_delete().
 
         The order is: read everything the writes will need, destroy any NFT
         contents, destroy this object, then make every ownership write. That
@@ -376,6 +423,11 @@ class NFTMirrorMixin(CharacterKeyMixin):
 
         See design/database.md § Transactions and Split Aliases.
 
+        Args:
+            tx_hash (str): the on-chain transaction that moved this token to
+                the player's wallet, for an export. None for every other
+                kind of deletion.
+
         Returns:
             bool: True if the deletion and the ownership writes all
                 succeeded. False leaves the object in the world.
@@ -394,7 +446,6 @@ class NFTMirrorMixin(CharacterKeyMixin):
         # Captured too: token_id is an AttributeProperty, and after the
         # deletion its rows are gone, so reading it then raises.
         token_id = self.token_id
-        tx_hash = getattr(self.ndb, "pending_tx_hash", None)
         held_gold, held_resources = self._held_fungibles()
         destroyed = False
         orphaned_children = []
@@ -586,7 +637,38 @@ class NFTMirrorMixin(CharacterKeyMixin):
 
     def _mirror_on_delete(self, disposition, token_id, tx_hash):
         """
-        Return this object's token to the vault. The ownership write.
+        Record where this object's token went. The ownership write.
+
+        Where the object was decides what its destruction meant, and the
+        bank case is the one that is not obvious:
+
+            CHARACTER — destroyed out of someone's hands. Crafting input,
+                        junked, a corpse rotting. Token back to RESERVE.
+            WORLD     — destroyed where it lay. Despawn, dungeon teardown.
+                        Token back to RESERVE.
+            ACCOUNT   — **exported**. Not "destroyed while banked".
+
+        Nothing in the game destroys a banked item. A player takes it out
+        of the bank to use it, and the only other way it leaves is an
+        export — the on-chain transfer to their own wallet, after which the
+        game copy is deleted. So an object being destroyed out of a bank
+        means exactly one thing, and withdraw_to_chain() is what records it:
+        location ONCHAIN, no in-game owner, because from then on the ledger
+        says who holds it and the game stops tracking that.
+
+        The same split, mirrored, is in _handle_creation(): an object
+        created *into* a bank is an import. The bank is the chain boundary
+        on both sides.
+
+        This is why tx_hash matters and why it is not optional for that
+        branch. Only the command that performed the transfer knows the
+        hash, so it passes it to delete(); the hash is also the replay
+        guard, so a missing one fails the write rather than recording a
+        phantom export.
+
+        NFTService.account_to_reserve() is the method this branch would use
+        if a banked item could be destroyed without an export. It exists,
+        it has no callers, and that is correct — there is no such path.
 
         Called from delete() as the last thing inside the transaction, so a
         failure here takes the deletion with it. Everything it needs is
@@ -596,13 +678,15 @@ class NFTMirrorMixin(CharacterKeyMixin):
         Args:
             disposition (str): what _resolve_delete_disposition() returned.
             token_id (str): the token, captured before the deletion.
-            tx_hash (str): pending export hash, captured before the deletion.
+            tx_hash (str): the export's on-chain transaction hash, captured
+                before the deletion. Only the ACCOUNT branch uses it.
         """
         from blockchain.xrpl.services.nft import NFTService
 
         if disposition == "CHARACTER":
             NFTService.craft_input(token_id, settings.XRPL_VAULT_ADDRESS)
         elif disposition == "ACCOUNT":
+            # Exported — see above. Not a banked item being thrown away.
             NFTService.withdraw_to_chain(token_id, tx_hash)
         else:
             NFTService.despawn(token_id)

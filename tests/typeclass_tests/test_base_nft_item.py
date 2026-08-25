@@ -258,15 +258,14 @@ class TestBaseNFTItemDelete(EvenniaTest):
     def test_delete_from_account_bank_calls_withdraw_to_chain(self, mock_withdraw):
         """Deleting an NFT from an AccountBank = withdraw_to_chain (ACCOUNT → ONCHAIN)."""
         nft = self._place_nft(self.bank)
-        nft.ndb.pending_tx_hash = "0xdeadbeef"
-        nft.delete()
+        nft.delete(tx_hash="0xdeadbeef")
         mock_withdraw.assert_called_once_with(
             TOKEN_ID, "0xdeadbeef",
         )
 
     @patch("blockchain.xrpl.services.nft.NFTService.withdraw_to_chain")
     def test_delete_from_account_bank_no_tx_hash(self, mock_withdraw):
-        """Deleting without a tx_hash stashed passes None."""
+        """Deleting with no tx_hash passes None — the write then refuses."""
         nft = self._place_nft(self.bank)
         nft.delete()
         mock_withdraw.assert_called_once_with(
