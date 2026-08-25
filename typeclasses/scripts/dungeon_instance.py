@@ -22,6 +22,7 @@ import random
 
 from django.utils import timezone
 from evennia import AttributeProperty, DefaultScript, ScriptDB, create_object
+from evennia.utils import logger
 from evennia.utils.search import search_tag
 
 from utils.exit_helpers import OPPOSITES
@@ -449,14 +450,30 @@ class DungeonInstanceScript(DefaultScript):
         for exit_obj in search_tag(self.instance_key, category="dungeon_exit"):
             exit_obj.delete()
 
-        # Return fungibles to reserve, then delete rooms
+        # Return fungibles to reserve, then delete rooms. A failed return
+        # leaves the amount parked at WORLD in the mirror DB with no player
+        # out of pocket, so it is logged rather than recorded — and it must
+        # not abort the collapse, or the instance never reaches "done" and
+        # every room, exit and mob in it leaks.
         for room in search_tag(self.instance_key, category="dungeon_room"):
             gold = room.get_gold()
             if gold > 0:
-                room.return_gold_to_reserve(gold)
+                try:
+                    room.return_gold_to_reserve(gold)
+                except Exception:
+                    logger.log_trace(
+                        f"Dungeon collapse: {gold} gold in {room.key} did not "
+                        f"return to reserve."
+                    )
             for rid, amt in list(room.get_all_resources().items()):
                 if amt > 0:
-                    room.return_resource_to_reserve(rid, amt)
+                    try:
+                        room.return_resource_to_reserve(rid, amt)
+                    except Exception:
+                        logger.log_trace(
+                            f"Dungeon collapse: {amt} of resource {rid} in "
+                            f"{room.key} did not return to reserve."
+                        )
             room.delete()
 
         self.state = "done"

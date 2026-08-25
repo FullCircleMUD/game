@@ -766,3 +766,189 @@ class TestDungeonInstanceCollapse(EvenniaTest):
         present = self.instance.get_present_characters()
         self.assertIn(self.char2, present)
         self.assertNotIn(self.char1, present)
+
+
+# ============================================================== #
+#  Corpse despawn — one failure must not strand the corpse
+# ============================================================== #
+
+class TestCorpseDespawnFailures(EvenniaTest):
+    """A corpse decays on schedule whatever its contents do.
+
+    `delete()` on an NFT item raises when the ownership write fails, and the
+    fungible returns raise when the mirror DB is unreachable. Either one
+    escaping `despawn()` would leave the corpse standing forever — its
+    despawn timer has already fired and nothing reschedules it.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.corpse = create_object(Corpse, key="corpse", location=self.room1)
+        self.corpse.owner_character_key = self.char1.key
+        self.corpse.owner_name = self.char1.key
+
+    def _make_item(self, key):
+        from typeclasses.items.base_nft_item import BaseNFTItem
+
+        return create_object(BaseNFTItem, key=key, location=self.corpse)
+
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_failed_item_delete_does_not_stop_the_corpse(self, mock_delay):
+        """The corpse still goes, and the other items still go with it."""
+        stubborn = self._make_item("a cursed blade")
+        ordinary = self._make_item("a plain knife")
+
+        with patch.object(
+            stubborn, "delete", side_effect=Exception("xrpl down")
+        ):
+            self.corpse.despawn()
+
+        self.assertIsNone(self.corpse.pk)
+        self.assertIsNone(ordinary.pk)
+
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_survivor_of_a_failed_delete_stays_alive(self, mock_delay):
+        """A stranded item is relocated by Evennia, not destroyed."""
+        stubborn = self._make_item("a cursed blade")
+        stubborn_id = stubborn.id
+
+        with patch.object(
+            stubborn, "delete", side_effect=Exception("xrpl down")
+        ):
+            self.corpse.despawn()
+
+        from evennia.objects.models import ObjectDB
+        survivor = ObjectDB.objects.filter(id=stubborn_id).first()
+        self.assertIsNotNone(survivor)
+        self.assertNotEqual(survivor.location, self.corpse)
+
+    @patch("blockchain.xrpl.services.gold.GoldService.despawn")
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_fungibles_still_returned_after_a_failed_item_delete(
+        self, mock_delay, mock_gold_despawn
+    ):
+        """The gold return sits after the item loop and must still run."""
+        stubborn = self._make_item("a cursed blade")
+        self.corpse.db.gold = 25
+
+        with patch.object(
+            stubborn, "delete", side_effect=Exception("xrpl down")
+        ):
+            self.corpse.despawn()
+
+        mock_gold_despawn.assert_called_once()
+        self.assertIsNone(self.corpse.pk)
+
+    @patch(
+        "blockchain.xrpl.services.gold.GoldService.despawn",
+        side_effect=Exception("xrpl down"),
+    )
+    @patch("blockchain.xrpl.services.resource.ResourceService.despawn")
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_failed_gold_return_does_not_stop_the_resources(
+        self, mock_delay, mock_resource_despawn, mock_gold_despawn
+    ):
+        """Gold and resources are independent, and the corpse still goes."""
+        self.corpse.db.gold = 25
+        self.corpse.db.resources = {1: 3}
+
+        self.corpse.despawn()
+
+        mock_resource_despawn.assert_called_once()
+        self.assertIsNone(self.corpse.pk)
+
+    @patch(
+        "blockchain.xrpl.services.resource.ResourceService.despawn",
+        side_effect=Exception("xrpl down"),
+    )
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_failed_resource_return_does_not_stop_the_corpse(
+        self, mock_delay, mock_resource_despawn
+    ):
+        """The last raise point before the corpse deletes itself."""
+        self.corpse.db.resources = {1: 3}
+
+        self.corpse.despawn()
+
+        self.assertIsNone(self.corpse.pk)
+
+
+# ============================================================== #
+#  Corpse timer restart — the server-restart path
+# ============================================================== #
+
+class TestCorpseRestartTimers(EvenniaTest):
+    """Timers are wall-clock timestamps, not live callbacks.
+
+    A server restart loses every scheduled `delay`, so `restart_timers()`
+    reads the stored `unlock_at` / `despawn_at` and either fires the phase
+    that has already passed or reschedules the remainder.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    character_typeclass = "typeclasses.actors.character.FCMCharacter"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from datetime import datetime, timezone as dt_timezone
+
+        self.corpse = create_object(Corpse, key="corpse", location=self.room1)
+        self.corpse.owner_character_key = self.char1.key
+        self.corpse.owner_name = self.char1.key
+        self.now = datetime.now(dt_timezone.utc).timestamp()
+
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_past_despawn_time_deletes_immediately(self, mock_delay):
+        """A corpse that expired while the server was down goes now."""
+        self.corpse.unlock_at = self.now - 400
+        self.corpse.despawn_at = self.now - 100
+
+        self.corpse.restart_timers()
+
+        self.assertIsNone(self.corpse.pk)
+        mock_delay.assert_not_called()
+
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_past_unlock_time_unlocks_and_reschedules_despawn(self, mock_delay):
+        """The unlock has passed but the corpse has time left."""
+        self.corpse.unlock_at = self.now - 100
+        self.corpse.despawn_at = self.now + 200
+
+        self.corpse.restart_timers()
+
+        self.assertTrue(self.corpse.is_unlocked)
+        self.assertIsNotNone(self.corpse.pk)
+        self.assertEqual(mock_delay.call_count, 1)
+        self.assertEqual(mock_delay.call_args.args[1], self.corpse.despawn)
+
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_both_phases_pending_reschedules_both(self, mock_delay):
+        """Nothing has expired — both timers come back."""
+        self.corpse.unlock_at = self.now + 100
+        self.corpse.despawn_at = self.now + 400
+
+        self.corpse.restart_timers()
+
+        self.assertFalse(self.corpse.is_unlocked)
+        self.assertEqual(mock_delay.call_count, 2)
+        scheduled = [call.args[1] for call in mock_delay.call_args_list]
+        self.assertEqual(scheduled, [self.corpse.unlock, self.corpse.despawn])
+
+    @patch("typeclasses.world_objects.corpse.delay")
+    def test_no_timestamps_schedules_nothing(self, mock_delay):
+        """A corpse whose timers were never started is left alone."""
+        self.corpse.restart_timers()
+
+        self.assertIsNotNone(self.corpse.pk)
+        mock_delay.assert_not_called()

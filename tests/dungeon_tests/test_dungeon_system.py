@@ -346,6 +346,29 @@ class TestDungeonInstanceLifecycle(EvenniaCommandTest):
             0,
         )
 
+    @patch(
+        "blockchain.xrpl.services.gold.GoldService.despawn",
+        side_effect=Exception("xrpl down"),
+    )
+    def test_collapse_completes_when_a_gold_return_fails(self, mock_despawn):
+        """A room's gold return raises when the mirror DB is unreachable.
+
+        Letting that escape would leave state at "collapsing" — the script
+        never stops, and every room, exit and mob in the instance leaks.
+        """
+        self.instance.start_dungeon([self.char1])
+        rooms = list(search_tag("test_dungeon_1", category="dungeon_room"))
+        self.assertGreater(len(rooms), 0)
+        rooms[0].db.gold = 30
+
+        self.instance.collapse_instance()
+
+        mock_despawn.assert_called()
+        self.assertEqual(
+            len(list(search_tag("test_dungeon_1", category="dungeon_room"))),
+            0,
+        )
+
     def test_empty_instance_collapses_on_tick(self):
         """Instance with no characters collapses on next tick."""
         self.instance.start_dungeon([self.char1])

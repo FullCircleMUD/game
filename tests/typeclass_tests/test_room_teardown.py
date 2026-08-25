@@ -6,6 +6,8 @@ mobs and items in Limbo on every wb_build redeploy. The hook deletes them
 first; characters are left alone and go home as before.
 """
 
+from unittest.mock import patch
+
 from evennia import create_object
 from evennia.utils.test_resources import EvenniaTest
 
@@ -44,3 +46,25 @@ class TestRoomTeardown(EvenniaTest):
     def test_room_is_deleted(self):
         """The hook returns True, so the room delete still goes through."""
         self.assertTrue(self.room1.delete())
+
+    def test_failed_object_delete_does_not_stop_the_room(self):
+        """An NFT item's delete() raises when its ownership write fails.
+
+        Letting that escape would leave the room standing — and on a
+        wb_build redeploy, a stale duplicate of it.
+        """
+        stubborn = create_object(
+            "typeclasses.objects.Object", key="a cursed crate",
+            location=self.room1,
+        )
+        ordinary = create_object(
+            "typeclasses.objects.Object", key="a crate", location=self.room1
+        )
+
+        with patch.object(
+            stubborn, "delete", side_effect=Exception("xrpl down")
+        ):
+            self.assertTrue(self.room1.delete())
+
+        self.assertIsNone(ordinary.pk)
+        self.assertIsNotNone(stubborn.pk)

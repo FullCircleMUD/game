@@ -16,7 +16,7 @@ can force the synchronous path with `immediate=True`.
 import uuid
 
 from evennia import AttributeProperty, DefaultScript, create_object
-from evennia.utils import delay
+from evennia.utils import delay, logger
 from evennia.utils.search import search_tag
 
 
@@ -215,12 +215,20 @@ class TutorialInstanceScript(DefaultScript):
 
             # Strip tutorial items — unequip first (so at_remove fires and
             # conditions like fly/water_breathing are properly cleaned up),
-            # then delete.
+            # then delete. One item failing must not abort the collapse: the
+            # balance restore, the reward and the trip back to the hub all
+            # come after this loop.
             for item in list(char.contents):
                 if getattr(item.db, "tutorial_item", False):
                     if hasattr(char, "is_worn") and char.is_worn(item):
                         char.remove(item)
-                    item.delete()
+                    try:
+                        item.delete()
+                    except Exception:
+                        logger.log_trace(
+                            f"Tutorial collapse: could not delete {item.key} "
+                            f"from {char.key}."
+                        )
 
             # Restore fungible balances to pre-tutorial snapshot so the
             # tutorial is economically neutral.
@@ -250,7 +258,7 @@ class TutorialInstanceScript(DefaultScript):
 
         if immediate or not targets:
             for obj in targets:
-                obj.delete()
+                self._delete_target(obj)
             self._finish_collapse()
             return
 
@@ -259,16 +267,27 @@ class TutorialInstanceScript(DefaultScript):
 
         self._delete_in_batches(targets, 0)
 
+    @staticmethod
+    def _delete_target(obj):
+        """Delete one tagged object, surviving whatever it throws.
+
+        The tag lookup is a snapshot, so an object may already be gone by the
+        time its turn comes (cascade delete from its room) — that is expected
+        and silent. Anything else is a real failure worth a trace, and must
+        still not stop the rest of the instance being torn down.
+        """
+        if obj.pk is None:
+            return
+        try:
+            obj.delete()
+        except Exception:
+            logger.log_trace(f"Tutorial collapse: could not delete {obj.key}.")
+
     def _delete_in_batches(self, targets, index):
         """Delete tagged objects in batches, yielding to the reactor."""
         end = min(index + _COLLAPSE_BATCH_SIZE, len(targets))
         for i in range(index, end):
-            try:
-                targets[i].delete()
-            except Exception:
-                # An object may already be gone (e.g. cascade delete
-                # from a room). Continue — tag lookup was a snapshot.
-                pass
+            self._delete_target(targets[i])
         if end >= len(targets):
             self._finish_collapse()
             return
@@ -336,14 +355,27 @@ class TutorialInstanceScript(DefaultScript):
                 )
 
     def _restore_object_fungibles(self, obj, snap_gold, snap_resources):
-        """Restore a single object's gold + resources to snapshot values."""
+        """Restore a single object's gold + resources to snapshot values.
+
+        Each adjustment is independent. One failing rolls back cleanly on both
+        sides — the player simply keeps whatever the tutorial moved, which
+        costs the economy its neutrality but leaves nobody out of pocket — and
+        must not stop the remaining adjustments or the rest of the collapse.
+        """
         # --- Gold ---
         current_gold = obj.get_gold() if hasattr(obj, "get_gold") else 0
         delta_gold = current_gold - snap_gold
-        if delta_gold > 0:
-            obj.return_gold_to_reserve(delta_gold)
-        elif delta_gold < 0:
-            obj.receive_gold_from_reserve(-delta_gold)
+        if delta_gold != 0:
+            try:
+                if delta_gold > 0:
+                    obj.return_gold_to_reserve(delta_gold)
+                else:
+                    obj.receive_gold_from_reserve(-delta_gold)
+            except Exception:
+                logger.log_trace(
+                    f"Tutorial collapse: could not restore {obj.key}'s gold "
+                    f"to its pre-tutorial balance of {snap_gold}."
+                )
 
         # --- Resources ---
         current_resources = (
@@ -357,19 +389,39 @@ class TutorialInstanceScript(DefaultScript):
             snap_amt = snap_resources.get(rid, 0)
             curr_amt = current_resources.get(rid, 0)
             delta = curr_amt - snap_amt
-            if delta > 0:
-                obj.return_resource_to_reserve(rid, delta)
-            elif delta < 0:
-                obj.receive_resource_from_reserve(rid, -delta)
+            if delta == 0:
+                continue
+            try:
+                if delta > 0:
+                    obj.return_resource_to_reserve(rid, delta)
+                else:
+                    obj.receive_resource_from_reserve(rid, -delta)
+            except Exception:
+                logger.log_trace(
+                    f"Tutorial collapse: could not restore {obj.key}'s "
+                    f"resource {rid} to its pre-tutorial amount of {snap_amt}."
+                )
 
     def _give_graduation_reward(self, char):
-        """Give per-tutorial rewards, gated once per account."""
-        if self.chunk_num == 1:
-            self._reward_tutorial_1(char)
-        elif self.chunk_num == 2:
-            self._reward_tutorial_2(char)
-        elif self.chunk_num == 3:
-            self._reward_tutorial_3(char)
+        """Give per-tutorial rewards, gated once per account.
+
+        A reward that cannot be granted must not abort the collapse — the
+        player still has to be moved back to the hub and the instance torn
+        down. Both sides stay in agreement on a failure, so the player is
+        simply short a reward: a trace, not a reconciliation row.
+        """
+        try:
+            if self.chunk_num == 1:
+                self._reward_tutorial_1(char)
+            elif self.chunk_num == 2:
+                self._reward_tutorial_2(char)
+            elif self.chunk_num == 3:
+                self._reward_tutorial_3(char)
+        except Exception:
+            logger.log_trace(
+                f"Tutorial collapse: {char.key} did not receive the "
+                f"tutorial {self.chunk_num} graduation reward."
+            )
 
     @staticmethod
     def _register_quest_debt(category, key, amount):

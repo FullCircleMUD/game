@@ -15,6 +15,7 @@ from datetime import datetime, timezone as dt_timezone
 
 from evennia import AttributeProperty
 from evennia.objects.objects import DefaultObject
+from evennia.utils import logger
 from evennia.utils.utils import delay
 
 from enums.death_cause import DeathCause
@@ -152,20 +153,43 @@ class Corpse(UnseenNameMixin, HeightAwareMixin, FungibleInventoryMixin, DefaultO
 
         from typeclasses.items.base_nft_item import BaseNFTItem
 
-        # Return NFT items to reserve (delete triggers at_object_delete → NFTService)
+        # Return NFT items to reserve (delete() makes the ownership write).
+        # One item failing must not strand the corpse — NFTMirrorMixin.delete()
+        # has already put the item's row back and recorded the failure, so log
+        # it and carry on. A survivor stays owned and goes to its home when the
+        # corpse is deleted below.
         for obj in list(self.contents):
             if isinstance(obj, BaseNFTItem):
-                obj.delete()
+                try:
+                    obj.delete()
+                except Exception:
+                    logger.log_trace(
+                        f"Corpse despawn: could not delete {obj.key} from "
+                        f"the corpse of {self.owner_name}."
+                    )
 
-        # Return gold to reserve
+        # Return gold and resources to reserve. A corpse is vault-owned, so a
+        # failure here leaves the amount parked at WORLD in the mirror DB and
+        # no player out of pocket — a log, not a reconciliation row.
         gold = self.get_gold()
         if gold > 0:
-            self.return_gold_to_reserve(gold)
+            try:
+                self.return_gold_to_reserve(gold)
+            except Exception:
+                logger.log_trace(
+                    f"Corpse despawn: {gold} gold from the corpse of "
+                    f"{self.owner_name} did not return to reserve."
+                )
 
-        # Return resources to reserve
         for rid, amt in list(self.get_all_resources().items()):
             if amt > 0:
-                self.return_resource_to_reserve(rid, amt)
+                try:
+                    self.return_resource_to_reserve(rid, amt)
+                except Exception:
+                    logger.log_trace(
+                        f"Corpse despawn: {amt} of resource {rid} from the "
+                        f"corpse of {self.owner_name} did not return to reserve."
+                    )
 
         if self.location:
             self.location.msg_contents(

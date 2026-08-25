@@ -1,6 +1,7 @@
 
 from collections import defaultdict
 from django.utils.translation import gettext as _
+from evennia.utils import logger
 from evennia.utils.utils import (
     compress_whitespace,
     iter_to_str,
@@ -97,12 +98,22 @@ class RoomBase(UnseenNameMixin, QuestTagMixin, FungibleInventoryMixin, DefaultRo
         mobs, items and corpses in Limbo on every `wb_build` redeploy.
         Delete them here instead, while the room is still their location.
         Characters are skipped and go home as before.
+
+        One object failing must not stop the room going away — a raise here
+        propagates out of ``delete()`` and leaves the room standing, which on a
+        ``wb_build`` redeploy means a stale duplicate. Log it and carry on;
+        whatever survives is relocated by Evennia's own ``clear_contents()``.
         """
         from django.conf import settings
         for obj in list(self.contents):
             if obj.is_typeclass(settings.BASE_CHARACTER_TYPECLASS, exact=False):
                 continue
-            obj.delete()
+            try:
+                obj.delete()
+            except Exception:
+                logger.log_trace(
+                    f"Room teardown: could not delete {obj.key} from {self.key}."
+                )
         return True
 
     # --- Zone / District helpers ---

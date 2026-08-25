@@ -219,6 +219,188 @@ class TestTutorialInstanceScript(EvenniaTest):
         self.assertEqual(self.char1.location, self.hub)
 
 
+class TestCollapseSurvivesFailures(EvenniaTest):
+    """A collapse must finish whatever one object or one balance does.
+
+    Everything a player cares about — the balance restore, the reward and
+    the trip back to the hub — comes after the item strip, and the instance
+    itself is only released at the very end.
+    """
+
+    character_typeclass = _CHAR
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from world.tutorial.tutorial_hub_builder import build_tutorial_hub
+
+        self.hub = build_tutorial_hub()
+
+        patcher = patch(_NFT_MOCK_TARGET, side_effect=_mock_spawn_nft)
+        self.mock_spawn_nft = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        self.script = _create_tutorial_script(
+            key="test_tut_failures", autostart=False
+        )
+        self.script.instance_key = self.script.key
+        self.script.hub_room_id = self.hub.id
+        self.script.start()
+        self.script.start_tutorial(self.char1, chunk_num=1, immediate=True)
+
+    def _give_tutorial_item(self, key):
+        return create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+            attributes=[("tutorial_item", True)],
+        )
+
+    def test_failed_item_delete_still_returns_the_player_to_the_hub(self):
+        """The strip loop runs before the hub move — it must not abort it."""
+        stubborn = self._give_tutorial_item("a cursed token")
+        ordinary = self._give_tutorial_item("a plain token")
+
+        with patch.object(
+            stubborn, "delete", side_effect=Exception("xrpl down")
+        ):
+            self.script.collapse_instance(immediate=True)
+
+        self.assertEqual(self.char1.location, self.hub)
+        self.assertIsNone(ordinary.pk)
+        # _finish_collapse() deletes the script — reading .state here
+        # would touch an AttributeProperty on a deleted object.
+        self.assertIsNone(self.script.pk)
+
+    @patch(
+        "blockchain.xrpl.services.gold.GoldService.craft_output",
+        side_effect=Exception("xrpl down"),
+    )
+    def test_failed_reward_does_not_abort_the_collapse(self, mock_output):
+        """A reward that cannot be granted costs the player the reward,
+        not the teardown."""
+        self.script.collapse_instance(give_reward=True, immediate=True)
+
+        mock_output.assert_called()
+        self.assertEqual(self.char1.location, self.hub)
+        # _finish_collapse() deletes the script — reading .state here
+        # would touch an AttributeProperty on a deleted object.
+        self.assertIsNone(self.script.pk)
+
+    def test_delete_target_skips_an_already_deleted_object(self):
+        """The tag lookup is a snapshot; cascade deletes race it."""
+        obj = self._give_tutorial_item("a doomed token")
+        obj.delete()
+
+        # No raise, no log — the object is simply gone.
+        self.script._delete_target(obj)
+
+    def test_delete_target_survives_a_raising_object(self):
+        """Anything else is logged and the batch carries on."""
+        obj = self._give_tutorial_item("a cursed token")
+
+        with patch.object(obj, "delete", side_effect=Exception("xrpl down")):
+            self.script._delete_target(obj)
+
+        self.assertIsNotNone(obj.pk)
+
+
+class TestChunkedCollapse(EvenniaTest):
+    """The default teardown spreads deletions across reactor ticks.
+
+    Every other collapse test forces `immediate=True`, so the batching, the
+    re-scheduling and the final `_finish_collapse()` only run in production.
+    These drive the reactor by hand instead.
+    """
+
+    character_typeclass = _CHAR
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        from world.tutorial.tutorial_hub_builder import build_tutorial_hub
+
+        self.hub = build_tutorial_hub()
+
+        patcher = patch(_NFT_MOCK_TARGET, side_effect=_mock_spawn_nft)
+        self.mock_spawn_nft = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        self.script = _create_tutorial_script(
+            key="test_tut_chunked", autostart=False
+        )
+        self.script.instance_key = self.script.key
+        self.script.hub_room_id = self.hub.id
+        self.script.start()
+        self.script.start_tutorial(self.char1, chunk_num=1, immediate=True)
+        self.instance_key = self.script.instance_key
+
+    def _collapse_draining_the_reactor(self):
+        """Run a chunked collapse, firing each scheduled batch in turn.
+
+        Returns the number of ticks the teardown took.
+        """
+        pending = []
+
+        def _fake_delay(_seconds, func, *args):
+            pending.append((func, args))
+
+        with patch(
+            "typeclasses.scripts.tutorial_instance.delay",
+            side_effect=_fake_delay,
+        ):
+            self.script.collapse_instance()
+            ticks = 0
+            while pending:
+                func, args = pending.pop(0)
+                func(*args)
+                ticks += 1
+        return ticks
+
+    def _remaining_tagged(self):
+        total = 0
+        for category in (
+            "tutorial_mob", "tutorial_item", "tutorial_exit", "tutorial_room",
+        ):
+            total += len(list(search_tag(self.instance_key, category=category)))
+        return total
+
+    def test_chunked_collapse_deletes_everything(self):
+        """The batches between them cover every tagged object."""
+        self.assertGreater(self._remaining_tagged(), 0)
+
+        ticks = self._collapse_draining_the_reactor()
+
+        self.assertGreater(ticks, 0)
+        self.assertEqual(self._remaining_tagged(), 0)
+
+    def test_chunked_collapse_finishes_the_instance(self):
+        """The last batch calls _finish_collapse, which deletes the script."""
+        self._collapse_draining_the_reactor()
+
+        self.assertEqual(self.char1.location, self.hub)
+        self.assertIsNone(self.script.pk)
+
+    def test_chunked_collapse_survives_a_raising_object(self):
+        """One object failing mid-batch must not strand the rest."""
+        rooms = list(search_tag(self.instance_key, category="tutorial_room"))
+        stubborn = rooms[0]
+
+        with patch.object(
+            stubborn, "delete", side_effect=Exception("xrpl down")
+        ):
+            self._collapse_draining_the_reactor()
+
+        self.assertEqual(self._remaining_tagged(), 1)
+        self.assertIsNone(self.script.pk)
+
+
 class TestGraduationReward(EvenniaTest):
     """Test the graduation reward system."""
 
