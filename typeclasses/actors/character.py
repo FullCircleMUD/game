@@ -1,6 +1,8 @@
 
+from evennia.utils import logger
 from evennia.utils.create import create_object
 from evennia.utils.utils import delay
+from twisted.internet import threads
 
 from enums.condition import Condition
 from enums.death_cause import DeathCause
@@ -1564,6 +1566,87 @@ class FCMCharacter(
 
             TelemetryService.record_session_end(acct.id, self.key)
 
+        # Refresh the archived copy. Everything a character gains happens
+        # while puppeted, so this is where a session's progress is banked
+        # — and it fires for the link-dead sweep too, which is the case a
+        # quit-only seam would miss.
+        self.archive_now()
+
+    @property
+    def account_wallet(self):
+        """The wallet address of the account this character belongs to.
+
+        A copy, deliberately. The live link is ``self.account``, but
+        ``restore()`` drops every foreign key — so a character recovered
+        into a rebuilt world has no account, and no way to say which one
+        it belonged to. This attribute is what survives that.
+
+        Stored **unpickled**, so the archive search is plain string
+        equality on ``db_strvalue`` rather than a blob comparison over
+        pickled bytes. The account's own ``wallet_address`` is pickled
+        and stays that way; the two never meet, because they are separate
+        keys and ``find()`` matches either column.
+
+        Read straight off the attribute rather than through
+        ``self.account``: after a restore that is exactly what is missing.
+        """
+        return self.attributes.get("account_wallet", strattr=True)
+
+    @account_wallet.setter
+    def account_wallet(self, value):
+        if not value:
+            self.attributes.remove("account_wallet")
+            return
+        self.attributes.add("account_wallet", str(value), strattr=True)
+
+    def archive_now(self, defer=True, allow_router=False):
+        """Copy this character into the archive.
+
+        Fire-and-forget. Nothing downstream reads the archive, so a
+        failure is logged and never reaches the player — and the next
+        session end rewrites the copy anyway, because archive() is an
+        upsert keyed on archive_id.
+
+        **Does nothing on the router unless asked.** A character is only
+        ever played on a shard, so a router-side archive would be writing
+        a copy that no session could have changed. The router does see
+        character session ends — going IC ends one — and archiving on
+        those would put a write on the handoff path for nothing.
+
+        Character creation is the one exception, and it is a real one:
+        chargen runs on the router, because ``create_character`` is an
+        account-side flow. That call passes ``allow_router=True``.
+
+        Args:
+            defer (bool): run the write on a worker thread. Pass False
+                from anywhere the reactor is shutting down — a deferred
+                dispatched then may never run, and the silence looks
+                exactly like success.
+            allow_router (bool): proceed even on the router. For chargen,
+                which has nowhere else to run.
+        """
+        from evennia_shards import ROLE_ROUTER, get_role
+
+        if not allow_router and get_role() == ROLE_ROUTER:
+            return
+
+        from evennia_archive.api import archive
+
+        if not defer:
+            try:
+                archive(self)
+            except Exception:
+                logger.log_err(f"Failed to archive character {self}")
+                logger.log_trace()
+            return
+
+        d = threads.deferToThread(archive, self)
+        d.addErrback(
+            lambda failure: logger.log_err(
+                f"Failed to archive character {self}: {failure.getTraceback()}"
+            )
+        )
+
     def at_gain_experience_points(self, experience_gained):
 
         self.experience_points += experience_gained
@@ -1586,6 +1669,15 @@ class FCMCharacter(
                 self.msg(" WOOT!! YOU LEVELED UP ")
                 self.msg("***********************\n")
 
+                # Bank the level rather than waiting for the session to
+                # end. A level is the one thing gained mid-session that a
+                # player would genuinely mind losing to a rebuild.
+                #
+                # A multi-level jump archives once per level via the
+                # recursion below. That is a wasted write, not a fault —
+                # archive() is an upsert.
+                self.archive_now()
+
             # Recurse to check for multiple level-ups
             self.at_gain_experience_points(0)
 
@@ -1593,6 +1685,16 @@ class FCMCharacter(
         """
         Hard block: prevent deletion if character holds NFTs or fungibles.
         Returns False to abort deletion.
+
+        On an allowed deletion the archived copy goes too. Delete means
+        gone: without this the character returns at the next world
+        rebuild, over the character cap and holding a name the player
+        thought they had released.
+
+        The three guards above are what make that safe. A character that
+        still owns anything cannot be deleted, so by this line it has no
+        rows in the ownership mirror — which is why its name can be
+        reissued to someone else without inheriting possessions.
         """
         from typeclasses.items.base_nft_item import BaseNFTItem
 
@@ -1607,7 +1709,50 @@ class FCMCharacter(
         if any(amt > 0 for amt in (self.db.resources or {}).values()):
             return False
 
+        self._delete_archived_copy()
         return True
+
+    def _delete_archived_copy(self):
+        """Remove this character from the archive. Never blocks deletion.
+
+        A hard delete with no undo, which is the point — a soft flag
+        would make correctness depend on every restore remembering to
+        filter, and forgetting once resurrects a character someone chose
+        to destroy.
+
+        A failure does not block the delete — the player asked for it and
+        should not wait on the archive — but it is not something they can
+        fix either, and its consequence lands on them: the copy survives,
+        so the character returns at the next world rebuild, putting the
+        account over its cap and reclaiming a name that has since been
+        reissued.
+
+        So it is recorded in the reconciliation failures table as well as
+        the log. That table is the one place an admin asks "what needs
+        putting right", and a stale archived character belongs on it.
+        record_failure() never raises.
+        """
+        archive_id = self.archive_id
+        if not archive_id:
+            return
+
+        from blockchain.xrpl.services.reconciliation import record_failure
+        from evennia_archive.api import delete
+
+        try:
+            delete(archive_id)
+        except Exception as err:
+            logger.log_err(
+                f"Failed to delete archived copy of {self} ({archive_id}); "
+                "it will be restored at the next world rebuild."
+            )
+            logger.log_trace()
+            record_failure(
+                operation="archive_delete_character",
+                wallet_address=self.account_wallet,
+                character_key=self.key,
+                error=err,
+            )
 
     def get_class_string(self):
 

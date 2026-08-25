@@ -689,6 +689,11 @@ def _resolve_skill_training(
             from_obj=caller,
         )
 
+    # Bank the new mastery tier. Training spends points that cannot be
+    # refunded, and the tier it buys may have unlocked spells or recipes
+    # above — none of which is derivable from anywhere else.
+    caller.archive_now()
+
 
 def _resolve_weapon_training(
     caller, trainer, weapon_key,
@@ -712,6 +717,10 @@ def _resolve_weapon_training(
             exclude=[caller],
             from_obj=caller,
         )
+
+    # Same reasoning as skill training: the points are spent and the tier
+    # is not recoverable from anywhere else.
+    caller.archive_now()
 
 
 # ═══════════════════════════════════════════════════════════════════════

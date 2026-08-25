@@ -200,6 +200,11 @@ class CharClassBase:
             f"as a {self.display_name}!"
         )
 
+        # Bank the guild level. Spending a pending level is irreversible
+        # and rewrites hp, mana, move and three skill-point pools, so it
+        # is worth its own write rather than waiting for the session end.
+        character.archive_now()
+
     def get_valid_alignment_range(self):
         """Return (min_score, max_score) tuple for this class. None = no limit."""
         return (self.min_alignment_score, self.max_alignment_score)

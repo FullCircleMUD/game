@@ -1363,8 +1363,25 @@ def _handle_name_input(caller, raw_input, **kwargs):
     if len(name) > 20:
         return "node_name", {"error": "Name must be 20 characters or fewer."}
 
-    # Check uniqueness
+    # Check uniqueness — live world first, then the archive.
+    #
+    # The archive check is what stops a name being handed to a newcomer
+    # while its owner is away. After a world rebuild the live database is
+    # empty of characters, so without it "Fred" is free until the moment
+    # the real Fred signs in — and by then the name is gone. Refusing the
+    # newcomer costs them a retry; letting it through would cost the
+    # returning player their name, and renaming them on restore would
+    # detach them from their gold and items, which are keyed on it.
+    #
+    # This queries db_key, which is indexed, so it is a cheap lookup
+    # rather than the pickled-attribute scan that find() performs.
     exists = ObjectDB.objects.filter(db_key__iexact=name).exists()
+    if not exists:
+        exists = (
+            ObjectDB.objects.using("archive")
+            .filter(db_key__iexact=name)
+            .exists()
+        )
     if exists:
         return "node_name", {"error": f"The name '{name}' is already taken."}
 
@@ -1672,6 +1689,17 @@ def node_create(caller, raw_input, **kwargs):
         char = state["character"]
         _apply_chargen_to_character(char, state)
 
+        # A remort rewrites the character wholesale — race, class,
+        # abilities, skills — so it is the largest single change one can
+        # undergo, and worth banking before they re-enter the game.
+        #
+        # No allow_router here: `remort` is a character command, so this
+        # runs on the shard the character is puppeted on, even though the
+        # menu itself is attached to the account. If remort ever moves to
+        # the OOC menu it will run on the router and need the override,
+        # or it will silently stop archiving.
+        char.archive_now()
+
         caller.ndb._chargen = None
         caller.msg(
             f"\n|g{char.key} has been reborn!|n\n"
@@ -1695,6 +1723,23 @@ def node_create(caller, raw_input, **kwargs):
             return None
 
         _apply_chargen_to_character(new_char, state)
+
+        # Stamp the owning wallet before archiving, not after. This is
+        # the only thing tying a restored character back to an account:
+        # restore() drops db_account, and _playable_characters on the
+        # account side is a list of dbrefs that a rebuild invalidates.
+        # Archive without it and the character is recoverable in
+        # principle and unfindable in practice.
+        new_char.account_wallet = caller.wallet_address
+
+        # Archive the finished character, not the empty shell that
+        # create_character returned — everything chosen here is applied
+        # above, and at_object_creation fired long before any of it.
+        #
+        # allow_router because chargen runs on the router: create_character
+        # is an account-side flow, and archive_now() otherwise refuses
+        # there so that IC/OOC handoffs do not each trigger a write.
+        new_char.archive_now(allow_router=True)
 
         caller.ndb._chargen = None
         caller.msg(

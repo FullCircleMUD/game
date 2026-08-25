@@ -51,6 +51,12 @@ All blockchain service calls go through an encapsulation layer:
 
 **Legitimate boundary-crossing exceptions** (intentionally call services / `xrpl_tx` directly): import/export commands, shopkeeper commands, inn commands (AMM price queries), scheduled scripts (spawn/telemetry/saturation/reallocation), and superuser diagnostic commands (`reconcile`, `sync_nfts`, `run_spawns`, `run_telemetry`, `run_saturation`).
 
+**Recovery goes the other way and must stay that way.** Account and character recovery writes local
+state (`bank.db.gold`, `char.db.resources`, item objects) *from* the mirror and never back to it —
+deliberately not through the mixins, because every mixin route pairs the local update with a service
+call that would re-book gold already banked or an item already owned. Do not "fix" it back into the
+encapsulation layer. See [ACCOUNT_RECOVERY.md](../../design/account-recovery.md).
+
 ### Room/Object lookup — ALWAYS filter by district tag
 
 Evennia's `db_key` is NOT globally unique. Multiple rooms/objects across zones can share a name. The unique identifier is the `dbref`.
@@ -324,6 +330,7 @@ All on-chain XRPL transactions (import/export) are signed by players via Xaman w
 | Subscriptions, trials, gated commands | [SUBSCRIPTIONS.md](../../design/subscriptions.md) |
 | Import / export / wallet flow, deferToThread, replay protection | [IMPORT_EXPORT.md](../../design/import-export.md) |
 | Database architecture, 5-DB layout, transactions across aliases, pgvector | [DATABASE.md](../../design/database.md) |
+| Surviving a world rebuild — archiving, wallet sign-in recovery, name reservation | [ACCOUNT_RECOVERY.md](../../design/account-recovery.md) |
 | World lore, zones, districts | [WORLD.md](../../design/world.md) |
 | New player experience, tutorial, Millholm onboarding | [NEW_PLAYER_EXPERIENCE.md](../../design/new-player-experience.md) |
 | Inter-zone travel, sail, cartography mastery gates | [INTERZONE_TRAVEL.md](../../design/interzone-travel.md) |

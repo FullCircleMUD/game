@@ -26,6 +26,8 @@ from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
+from twisted.internet import threads
+
 import evennia
 from evennia.utils.create import create_object
 from evennia.accounts.manager import AccountManager
@@ -613,6 +615,28 @@ Leave Character / Game      |gquit|n
         if ip and not guest:
             CREATION_THROTTLE.update(ip, "Too many accounts being created.")
         SIGNAL_ACCOUNT_POST_CREATE.send(sender=account, ip=ip)
+
+        # Grant the free trial. This runs here rather than in
+        # at_account_creation because the trial is now keyed on the
+        # wallet, and wallet_address is assigned after create_account()
+        # returns — inside that hook it still reads None.
+        #
+        # The superuser guard comes with it: at_account_creation only
+        # reached this inside `if not self.is_superuser`, and grant_trial
+        # does not check exemption itself.
+        if account and not account.is_superuser:
+            from subscriptions.utils import grant_trial
+
+            grant_trial(account)
+
+        # Archive the new account. This sits here rather than in
+        # at_account_creation because wallet_address is assigned after
+        # create_account() returns, and that hook fires inside it —
+        # archiving there would store an account the wallet search can
+        # never find.
+        if account:
+            account.archive_now()
+
         return account, errors
 
 
@@ -653,10 +677,71 @@ Leave Character / Game      |gquit|n
             bank.wallet_address = self.wallet_address
             self.db.bank = bank   # stores the dbref, auto-resolves on access
 
-            # Grant free trial subscription
-            from subscriptions.utils import grant_trial
+        # This override does not call super(), so ArchivableMixin's own
+        # at_account_creation never runs. Mint the archive identity here.
+        self.at_archive_init()
 
-            grant_trial(self)
+    def archive_now(self, defer=True):
+        """Copy this account into the archive.
+
+        Fire-and-forget. Nothing downstream reads the archive, so a
+        failure is logged and never reaches the player — and the next
+        session end rewrites the copy anyway, because archive() is an
+        upsert keyed on archive_id.
+
+        **Does nothing on a shard.** An account is OOC state, and every
+        change to one — permissions, ToS acceptance, subscription —
+        happens while the player is out of character, which means on the
+        router. A shard could only ever write a copy of what the router
+        already holds, and it would do it on every IC/OOC handoff, which
+        is the hot path. Monolith takes the router's branch, so an
+        unsharded game archives on every session end.
+
+        Args:
+            defer (bool): run the write on a worker thread. Pass False
+                from anywhere the reactor is shutting down — a deferred
+                dispatched then may never run, and the silence looks
+                exactly like success.
+        """
+        from evennia_shards import ROLE_MONOLITH, ROLE_ROUTER, get_role
+
+        if get_role() not in (ROLE_MONOLITH, ROLE_ROUTER):
+            return
+
+        from evennia_archive.api import archive
+
+        if not defer:
+            try:
+                archive(self)
+            except Exception:
+                logger.log_err(f"Failed to archive account {self}")
+                logger.log_trace()
+            return
+
+        d = threads.deferToThread(archive, self)
+        d.addErrback(
+            lambda failure: logger.log_err(
+                f"Failed to archive account {self}: {failure.getTraceback()}"
+            )
+        )
+
+    def at_disconnect(self, reason=None, **kwargs):
+        """Refresh the archived copy as the session ends.
+
+        This is the freshness seam. The copy written at account creation
+        holds creation-time state; without this, a player who is promoted
+        or re-accepts the terms is restored as they were on day one.
+
+        Fires for every way a session ends that goes through the session
+        handler — the quit command, a dropped client, and the link-dead
+        sweep alike. It does not fire on reload or shutdown, which
+        deliberately do not disconnect sessions; those would need
+        at_server_reload / at_server_shutdown, which are not wired up.
+        The gap they leave is an account changed while OOC on the router
+        and never disconnected before a restart.
+        """
+        super().at_disconnect(reason=reason, **kwargs)
+        self.archive_now()
 
     def _refresh_account_scoped_cache(self):
         """Re-read this account's own objects from the database.
