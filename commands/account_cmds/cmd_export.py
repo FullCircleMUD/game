@@ -21,14 +21,21 @@ reactor stays responsive for other players.
 
 from django.conf import settings
 from evennia import Command
-from evennia.utils import delay
+from evennia.utils import delay, logger
 from evennia.utils.evmenu import get_input
 from twisted.internet import threads
 
+from blockchain.xrpl.services.reconciliation import record_failure
 from commands.room_specific_cmds.bank._bank_parse import parse_bank_args
 from subscriptions.utils import has_paid
 
 MAX_POLL_ATTEMPTS = 60  # 2 seconds × 60 = 2-minute timeout
+
+# Removing the game copy after an export has already happened on chain.
+# Retried rather than escalated, because the transfer cannot be undone and
+# most failures at that point are transient.
+NFT_CLEANUP_ATTEMPTS = 3
+NFT_CLEANUP_RETRY_SECONDS = 2
 
 
 class CmdExport(Command):
@@ -345,6 +352,32 @@ def _export_nft(account, bank, wallet, item_id):
         account.msg(f"No item with ID #{item_id} in your bank.")
         return
 
+    # Already exported once, and the game copy is still here because the
+    # cleanup failed. The token is in their wallet — the vault no longer
+    # owns it, so a second export cannot succeed on chain either.
+    if getattr(nft_item, "export_incomplete", False):
+        account.msg(
+            f"|y{nft_item.key} has already been sent to your wallet. The "
+            f"game's copy is waiting to be cleared up by an admin — there "
+            f"is nothing more to export.|n"
+        )
+        return
+
+    # A container has to leave empty. On chain the NFT is the container
+    # itself — there is no representation for what is inside it, so nothing
+    # in there can travel with it. Exporting a full one would destroy the
+    # contents and hand over an empty bag, so refuse and let the player
+    # unpack it themselves. is_empty() covers items, gold and resources.
+    if getattr(nft_item, "is_container", False) and not nft_item.is_empty():
+        account.msg(
+            f"|r{nft_item.key} isn't empty.|n"
+            f"\n{nft_item.get_container_display()}"
+            f"\n|yOnly the container itself can be sent to your wallet — "
+            f"anything inside it would be destroyed. Withdraw it, empty it, "
+            f"and bank it again before exporting.|n"
+        )
+        return
+
     nftoken_id = str(nft_item.token_id)
 
     get_input(
@@ -573,21 +606,97 @@ def _on_nft_poll_result(account, bank, nft_item, nftoken_id, uuid, attempt,
 
     tx_hash = status.get("tx_hash")
 
-    from blockchain.xrpl.services.nft import NFTService
+    # The token is in the player's wallet now. Everything from here is the
+    # game catching up, and none of it can be undone by failing.
+    _finish_nft_export(
+        account, nft_item.pk, nft_item.key, nftoken_id, tx_hash, attempt=0,
+    )
 
-    try:
-        NFTService.withdraw_to_chain(nftoken_id, tx_hash)
-    except ValueError as e:
-        _msg(account, f"|rDB error after NFT transfer: {e}|n")
-        _msg(account, f"|yTx hash: {tx_hash} — contact an admin.|n")
+
+def _finish_nft_export(account, item_pk, name, nftoken_id, tx_hash, attempt):
+    """
+    Remove the game copy of an exported NFT. Reactor thread.
+
+    Retried, because the transfer has already happened on chain and cannot
+    be undone — so a lock or a blip here is worth waiting out rather than
+    escalating to a person. The delete is all-or-nothing, so a failed
+    attempt leaves everything exactly as it was and the next one starts
+    clean.
+
+    The object is re-fetched each time rather than held: a failed delete
+    leaves the instance discarded, with its pk cleared, so retrying on the
+    same Python object would do nothing.
+
+    Args:
+        account (Account): who is exporting.
+        item_pk (int): the game object to remove.
+        name (str): its name, for messages, read before any of this.
+        nftoken_id (str): the token, for the failure record.
+        tx_hash (str): the on-chain transfer, passed to the deletion.
+        attempt (int): 0 on the first try.
+    """
+    from evennia.objects.models import ObjectDB
+
+    nft_item = ObjectDB.objects.filter(pk=item_pk).first()
+    if nft_item is None:
+        # Already gone — an earlier attempt got there.
+        _export_complete_msg(account, name, tx_hash)
         return
 
-    name = nft_item.key
     try:
-        nft_item.delete()
-    except Exception:
-        pass  # DB state already updated, object cleanup is best-effort
+        nft_item.delete(tx_hash=tx_hash)
+    except Exception as err:
+        if attempt + 1 < NFT_CLEANUP_ATTEMPTS:
+            logger.log_trace(
+                f"export: removing {name} failed, attempt {attempt + 1}"
+            )
+            if attempt == 0:
+                _msg(account, "|yFinishing up...|n")
+            delay(
+                NFT_CLEANUP_RETRY_SECONDS, _finish_nft_export,
+                account, item_pk, name, nftoken_id, tx_hash, attempt + 1,
+            )
+            return
 
+        # Out of attempts. The ledger moved and the game did not, and every
+        # check inside the game still agrees with itself — so nothing here
+        # will notice this later. The row is the only trace.
+        logger.log_trace(f"export: removing {name} failed for the last time")
+
+        # Freeze it where it sits. The player owns it on chain now, so it
+        # must not be withdrawn and used while the game still shows it.
+        #
+        # Re-fetched first: the rollback restored the row, but the instance
+        # we were holding had its pk cleared by the failed delete, and
+        # writing an attribute to a row-less object raises.
+        stranded = ObjectDB.objects.filter(pk=item_pk).first()
+        if stranded is not None:
+            stranded.export_incomplete = True
+
+        record_failure(
+            "nft_export",
+            account.attributes.get("wallet_address"),
+            f"{name} (token {nftoken_id}) was sent on chain but the game "
+            f"copy could not be removed after {NFT_CLEANUP_ATTEMPTS} "
+            f"attempts: {err}",
+            tx_hash=tx_hash,
+        )
+        _msg(
+            account,
+            f"|g--- Transfer Complete ---|n"
+            f"\n|w{name}|n is in your wallet."
+            f"\nTx: |w{tx_hash}|n"
+            f"\n|yThe game's copy could not be cleaned up. This has been "
+            f"logged for an admin to finish — it is not something you can "
+            f"fix, and trying to export it again will not work.|n",
+        )
+        return
+
+    _export_complete_msg(account, name, tx_hash)
+
+
+def _export_complete_msg(account, name, tx_hash):
+    """Tell the player the export finished."""
     _msg(
         account,
         f"|g--- Export Complete ---|n"

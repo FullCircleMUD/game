@@ -345,3 +345,161 @@ class TestExportNFT(ExportTestBase):
         )
         self.assertIn("Creating NFT sell offer", result)
         self.assertIn(self.sword, self.bank.contents)
+
+
+# ================================================================== #
+#  NFT export — guards and cleanup after the chain has moved
+# ================================================================== #
+
+class TestExportNFTGuards(ExportTestBase):
+    """
+    Test the two refusals that happen before anything goes on chain.
+
+    Both exist because the transfer cannot be undone: once the token is in
+    the player's wallet, a container's contents are unreachable and a
+    second export is impossible.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.pack = create.create_object(
+            "typeclasses.items.containers.container_nft_item.ContainerNFTItem",
+            key="Backpack",
+            nohome=True,
+        )
+        self.pack.token_id = TOKEN_ID
+        self.pack.db_location = self.bank
+        self.pack.save(update_fields=["db_location"])
+
+    @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
+    def test_empty_container_is_allowed_through(self):
+        """An empty container reaches the confirmation prompt."""
+        with patch(
+            "commands.account_cmds.cmd_export._create_sell_offer",
+        ) as mock_sell:
+            mock_sell.return_value = defer.succeed(("TXSELL", "OFFER1"))
+            result = self.call(
+                CmdExport(), f"#{self.pack.id}", inputs=["n"],
+                caller=self.account,
+            )
+        self.assertIn("Export NFT", result)
+
+    @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
+    def test_container_with_an_item_is_refused(self):
+        """Contents would be destroyed, so it never starts."""
+        inner = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="a ring", nohome=True,
+        )
+        inner.db_location = self.pack
+        inner.save(update_fields=["db_location"])
+
+        result = self.call(
+            CmdExport(), f"#{self.pack.id}", caller=self.account,
+        )
+        self.assertIn("isn't empty", result)
+
+    @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
+    def test_container_with_gold_is_refused(self):
+        """Gold counts as contents too."""
+        self.pack.db.gold = 10
+
+        result = self.call(
+            CmdExport(), f"#{self.pack.id}", caller=self.account,
+        )
+        self.assertIn("isn't empty", result)
+
+    @override_settings(XRPL_IMPORT_EXPORT_ENABLED=True)
+    def test_an_already_exported_item_is_refused(self):
+        """A stranded item cannot be exported again — the vault has no token."""
+        self.pack.export_incomplete = True
+
+        result = self.call(
+            CmdExport(), f"#{self.pack.id}", caller=self.account,
+        )
+        self.assertIn("already been sent to your wallet", result)
+
+
+class TestExportNFTCleanup(ExportTestBase):
+    """
+    Test removing the game copy once the token is in the player's wallet.
+
+    The transfer has happened by this point and cannot be undone, so a
+    failure here is retried rather than escalated — and if it still fails,
+    the item is frozen and recorded rather than left loose.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.sword = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key="Iron Sword",
+            nohome=True,
+        )
+        self.sword.token_id = TOKEN_ID
+        self.sword.db_location = self.bank
+        self.sword.save(update_fields=["db_location"])
+
+    def _finish(self, attempt=0):
+        from commands.account_cmds.cmd_export import _finish_nft_export
+        _finish_nft_export(
+            self.account, self.sword.pk, self.sword.key,
+            str(TOKEN_ID), "TXHASH", attempt=attempt,
+        )
+
+    @patch("blockchain.xrpl.services.nft.NFTService.withdraw_to_chain")
+    def test_success_removes_the_item(self, mock_withdraw):
+        """The ownership write and the deletion happen together."""
+        from evennia.objects.models import ObjectDB
+
+        saved_pk = self.sword.pk
+        self._finish()
+
+        mock_withdraw.assert_called_once_with(TOKEN_ID, "TXHASH")
+        self.assertFalse(ObjectDB.objects.filter(pk=saved_pk).exists())
+
+    @patch("commands.account_cmds.cmd_export.delay")
+    @patch("blockchain.xrpl.services.nft.NFTService.withdraw_to_chain")
+    def test_a_failure_is_retried(self, mock_withdraw, mock_delay):
+        """A transient failure schedules another attempt rather than giving up."""
+        from evennia.objects.models import ObjectDB
+
+        saved_pk = self.sword.pk
+        mock_withdraw.side_effect = ValueError("locked")
+
+        self._finish()
+
+        mock_delay.assert_called_once()
+        # Not frozen yet — there are attempts left.
+        restored = ObjectDB.objects.get(pk=saved_pk)
+        self.assertFalse(restored.export_incomplete)
+
+    @patch("commands.account_cmds.cmd_export.delay")
+    @patch("blockchain.xrpl.services.nft.NFTService.withdraw_to_chain")
+    def test_the_last_attempt_freezes_and_records(self, mock_withdraw,
+                                                  mock_delay):
+        """Out of retries: the item is frozen and an admin is told."""
+        from blockchain.xrpl.models import ReconciliationFailure
+
+        from evennia.objects.models import ObjectDB
+
+        saved_pk = self.sword.pk
+        mock_withdraw.side_effect = ValueError("still locked")
+
+        self._finish(attempt=2)
+
+        mock_delay.assert_not_called()
+        # The flag is set on the restored object, not the discarded one.
+        restored = ObjectDB.objects.get(pk=saved_pk)
+        self.assertTrue(restored.export_incomplete)
+        row = ReconciliationFailure.objects.get(operation="nft_export")
+        self.assertEqual(row.tx_hash, "TXHASH")
+        self.assertFalse(row.resolved)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.withdraw_to_chain")
+    def test_a_frozen_item_cannot_leave_the_bank(self, mock_withdraw):
+        """at_pre_move refuses it, so it cannot be withdrawn and used."""
+        self.sword.export_incomplete = True
+
+        self.assertFalse(self.sword.move_to(self.char1))
+        self.assertEqual(self.sword.location, self.bank)
