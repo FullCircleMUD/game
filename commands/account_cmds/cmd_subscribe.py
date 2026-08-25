@@ -361,6 +361,17 @@ def _on_payment_verified(account, plan, currency_code, tx_hash,
     # Refresh the OOC menu
     account.msg(account.at_look(session=None))
 
+    # Refresh the archived copy, now that both the new expiry and the
+    # payment row are written.
+    #
+    # The session-end archive would catch this eventually, and eventually
+    # is the problem: a player who pays and then loses the server before
+    # logging out would be restored on their old expiry, having paid.
+    # This is the one account change worth its own call — the others
+    # either self-heal at next login (terms of service, staff permissions)
+    # or are small enough to ride on the session end.
+    account.archive_now()
+
 
 def _on_verify_error(account, failure, tx_hash):
     """Reactor thread — on-chain verification failed."""

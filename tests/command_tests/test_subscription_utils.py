@@ -1,6 +1,11 @@
 """
 Tests for subscriptions.utils — is_subscribed, get_subscription_status,
-extend_subscription, grant_trial, _is_exempt.
+extend_subscription, grant_trial, has_had_trial, has_paid, _is_exempt.
+
+A trial is recorded as a zero-amount row in the payment log, keyed on the
+wallet. That makes it survive a world rebuild and makes one-trial-per-
+wallet enforceable; it also means has_paid() has to exclude those rows,
+because has_paid gates export.
 
 evennia test --settings settings tests.command_tests.test_subscription_utils
 """
@@ -12,16 +17,34 @@ from django.test import override_settings
 from evennia.utils.test_resources import EvenniaTest
 
 from subscriptions.utils import (
+    TRIAL_PLAN_KEY,
     _is_exempt,
     extend_subscription,
     get_subscription_status,
     grant_trial,
+    has_had_trial,
     has_paid,
     is_subscribed,
 )
 
 
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+WALLET_B = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+WALLET_C = "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+
+
+def _clear_payments(*wallets):
+    """Remove payment rows for these wallets.
+
+    Scoped by wallet rather than account id, because that is what every
+    query in subscriptions.utils now keys on — a trial row left behind
+    under the same wallet would silently refuse the next trial.
+    """
+    from subscriptions.models import SubscriptionPayment
+
+    SubscriptionPayment.objects.using("subscriptions").filter(
+        wallet_address__in=wallets
+    ).delete()
 
 
 @override_settings(SUBSCRIPTION_ENABLED=True)
@@ -179,12 +202,17 @@ class TestExtendSubscription(EvenniaTest):
 class TestGrantTrial(EvenniaTest):
     """Test grant_trial() logic."""
 
+    # grant_trial writes the trial to the subscriptions database, so this
+    # class touches more than `default`.
+    databases = "__all__"
+
     def create_script(self):
         pass
 
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        _clear_payments(WALLET_A)
 
     def test_grant_trial_sets_expiry(self):
         """Trial sets expiry to now + trial hours."""
@@ -272,10 +300,7 @@ class TestHasPaid(EvenniaTest):
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account.is_superuser = False
         # Clear any payment records left from prior tests
-        from subscriptions.models import SubscriptionPayment
-        SubscriptionPayment.objects.using("subscriptions").filter(
-            account_id=self.account.id
-        ).delete()
+        _clear_payments(WALLET_A)
 
     def test_no_payment_returns_false(self):
         """Account that has never paid returns False."""
@@ -344,3 +369,215 @@ class TestHasPaidWhenDisabled(EvenniaTest):
         """With subscriptions disabled, every account is treated as paid."""
         self.account.is_superuser = False
         self.assertTrue(has_paid(self.account))
+
+
+@override_settings(SUBSCRIPTION_ENABLED=True)
+class TestTrialIsRecorded(EvenniaTest):
+    """A granted trial writes a durable row to the payment log.
+
+    The row is the point: the account attribute holding the expiry is
+    destroyed by a world rebuild, and this is what survives it.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account.subscription_expires_date = None
+        _clear_payments(WALLET_A, WALLET_B, WALLET_C)
+
+    def _trial_rows(self, wallet):
+        from subscriptions.models import SubscriptionPayment
+
+        return list(
+            SubscriptionPayment.objects.using("subscriptions").filter(
+                wallet_address=wallet, plan_key=TRIAL_PLAN_KEY
+            )
+        )
+
+    def test_trial_writes_one_row(self):
+        """Granting a trial records exactly one row for that wallet."""
+        expiry = grant_trial(self.account)
+        rows = self._trial_rows(WALLET_A)
+
+        self.assertIsNotNone(expiry)
+        self.assertEqual(len(rows), 1)
+
+    def test_trial_row_shape(self):
+        """The row carries the trial's terms, not a payment's."""
+        expiry = grant_trial(self.account)
+        row = self._trial_rows(WALLET_A)[0]
+
+        self.assertEqual(row.plan_key, TRIAL_PLAN_KEY)
+        self.assertEqual(row.amount, 0)
+        self.assertEqual(row.wallet_address, WALLET_A)
+        self.assertIsNone(row.old_expiry)
+        self.assertAlmostEqual(
+            row.new_expiry.timestamp(), expiry.timestamp(), delta=2
+        )
+
+    def test_trial_tx_hash_is_derived_from_wallet(self):
+        """tx_hash is unique, so deriving it makes a second trial impossible."""
+        grant_trial(self.account)
+        row = self._trial_rows(WALLET_A)[0]
+
+        self.assertEqual(row.tx_hash, f"{TRIAL_PLAN_KEY}:{WALLET_A}")
+
+    def test_no_wallet_grants_expiry_but_writes_no_row(self):
+        """A walletless account still gets its trial, with nothing to key on.
+
+        Writing the row would mean a tx_hash of "trial:None", which the
+        unique constraint would let exactly one account hold — and the
+        next one would fail account creation outright.
+        """
+        self.account.attributes.remove("wallet_address")
+        self.account.subscription_expires_date = None
+
+        expiry = grant_trial(self.account)
+
+        self.assertIsNotNone(expiry)
+        self.assertEqual(self._trial_rows(None), [])
+
+    def test_has_had_trial_false_before(self):
+        """An unknown wallet has not had a trial."""
+        self.assertFalse(has_had_trial(WALLET_B))
+
+    def test_has_had_trial_true_after(self):
+        """The wallet that was granted a trial reports it."""
+        grant_trial(self.account)
+        self.assertTrue(has_had_trial(WALLET_A))
+
+    def test_has_had_trial_false_for_no_wallet(self):
+        """No wallet is not an error, and is not a prior trial."""
+        self.assertFalse(has_had_trial(None))
+        self.assertFalse(has_had_trial(""))
+
+
+@override_settings(SUBSCRIPTION_ENABLED=True)
+class TestTrialCannotBeTakenTwice(EvenniaTest):
+    """One trial per wallet, across accounts and across rebuilds."""
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account.subscription_expires_date = None
+        _clear_payments(WALLET_A)
+
+    def test_second_trial_on_same_account_refused(self):
+        """Clearing the expiry does not buy a second trial."""
+        first = grant_trial(self.account)
+        self.assertIsNotNone(first)
+
+        # Wipe the fast path so only the wallet gate can refuse.
+        self.account.subscription_expires_date = None
+        second = grant_trial(self.account)
+
+        self.assertIsNone(second)
+        self.assertIsNone(self.account.subscription_expires_date)
+
+    def test_second_trial_on_a_new_account_refused(self):
+        """The rebuild case: fresh account, same wallet, no second trial.
+
+        This is what the payment row exists for. A world rebuild frees
+        every account, so without a wallet-keyed record the same player
+        could take a new trial after every rebuild.
+        """
+        grant_trial(self.account)
+
+        from evennia.utils import create as evennia_create
+
+        newcomer = evennia_create.create_account(
+            "trialfarmer", "farmer@example.com", "pw12345678xyz"
+        )
+        newcomer.attributes.add("wallet_address", WALLET_A)
+        newcomer.subscription_expires_date = None
+
+        self.assertIsNone(grant_trial(newcomer))
+        self.assertIsNone(newcomer.subscription_expires_date)
+
+    def test_a_different_wallet_still_gets_its_trial(self):
+        """The gate is per wallet, not global."""
+        grant_trial(self.account)
+
+        self.account.attributes.add("wallet_address", WALLET_B)
+        self.account.subscription_expires_date = None
+
+        self.assertIsNotNone(grant_trial(self.account))
+
+
+@override_settings(SUBSCRIPTION_ENABLED=True)
+class TestHasPaidIgnoresTrials(EvenniaTest):
+    """has_paid() gates export, so a trial must never satisfy it."""
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.account.is_superuser = False
+        self.account.subscription_expires_date = None
+        _clear_payments(WALLET_A)
+
+    def test_trial_alone_is_not_paid(self):
+        """A trial row must not open export to someone who never paid."""
+        grant_trial(self.account)
+        self.assertTrue(has_had_trial(WALLET_A))
+        self.assertFalse(has_paid(self.account))
+
+    def test_payment_after_trial_is_paid(self):
+        """A real payment alongside the trial row still counts."""
+        from subscriptions.models import SubscriptionPayment
+
+        grant_trial(self.account)
+        SubscriptionPayment.objects.using("subscriptions").create(
+            account_id=self.account.id,
+            account_name=self.account.key,
+            wallet_address=WALLET_A,
+            plan_key="monthly",
+            amount=20,
+            currency_code="RLUSD",
+            tx_hash="HASHTRIALTHENPAID",
+            old_expiry=None,
+            new_expiry=datetime.now(timezone.utc) + timedelta(days=30),
+        )
+
+        self.assertTrue(has_paid(self.account))
+
+    def test_payment_under_a_different_account_id_still_counts(self):
+        """The rebuild case: same wallet, new primary key, still paid.
+
+        Keying on account_id would report a player who has paid for a
+        year as never having paid, and silently close export to them.
+        """
+        from subscriptions.models import SubscriptionPayment
+
+        SubscriptionPayment.objects.using("subscriptions").create(
+            account_id=self.account.id + 9999,
+            account_name="whatever-they-were-called-before",
+            wallet_address=WALLET_A,
+            plan_key="monthly",
+            amount=20,
+            currency_code="RLUSD",
+            tx_hash="HASHREBUILTACCOUNT",
+            old_expiry=None,
+            new_expiry=datetime.now(timezone.utc) + timedelta(days=30),
+        )
+
+        self.assertTrue(has_paid(self.account))
+
+    def test_no_wallet_is_not_paid(self):
+        """Without a wallet there is nothing to match, so nothing is proven."""
+        self.account.attributes.remove("wallet_address")
+        self.assertFalse(has_paid(self.account))

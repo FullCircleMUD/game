@@ -205,10 +205,11 @@ class TestExportGating(EvenniaCommandTest):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
         self.account.is_superuser = False
-        # Clear any payment rows from prior tests
+        # Clear any payment rows from prior tests. Scoped by wallet,
+        # because that is what has_paid() now keys on.
         from subscriptions.models import SubscriptionPayment
         SubscriptionPayment.objects.using("subscriptions").filter(
-            account_id=self.account.id
+            wallet_address=WALLET_A
         ).delete()
 
     def _record_payment(self):
