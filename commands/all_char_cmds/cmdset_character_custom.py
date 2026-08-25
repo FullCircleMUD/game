@@ -8,6 +8,7 @@ from commands.all_char_cmds.cmd_override_pose import CmdPose
 from commands.all_char_cmds.cmd_override_nick import CmdNick
 from commands.all_char_cmds.cmd_override_setdesc import CmdSetDesc
 from commands.all_char_cmds.cmd_override_access import CmdAccess
+from commands.all_char_cmds.cmd_override_name import CmdName
 
 # overrides of default commands
 from commands.all_char_cmds.cmd_override_get import CmdGet
@@ -131,6 +132,7 @@ class CmdSetCharacterCustom(CmdSet):
         self.add(CmdShout())
         self.add(CmdPose())
         self.add(CmdAccess())
+        self.add(CmdName())
 
 
          # CUSTOM COMMANDS
