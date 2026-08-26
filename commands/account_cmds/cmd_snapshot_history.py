@@ -14,11 +14,8 @@ Usage:
 
 from evennia import Command
 
-from blockchain.xrpl.models import (
-    EconomySnapshot,
-    ResourceSnapshot,
-    SaturationSnapshot,
-)
+from telemetry.constants import CATEGORY_ITEM, CATEGORY_RECIPE, CATEGORY_SPELL
+from telemetry.services import TelemetryReadService
 
 
 def _resolve_type(name):
@@ -94,7 +91,7 @@ class CmdSnapshotHistory(Command):
         self.msg("|w=== Snapshot History ===|n\n")
 
         # Economy snapshots
-        economy = EconomySnapshot.objects.order_by("-hour")[:3]
+        economy = TelemetryReadService.recent_economy_snapshots(limit=3)
         if economy:
             self.msg("|wEconomy Snapshots|n (hourly):")
             for snap in economy:
@@ -110,20 +107,15 @@ class CmdSnapshotHistory(Command):
         self.msg("")
 
         # Saturation snapshots — group by hour
-        sat_hours = (
-            SaturationSnapshot.objects
-            .values_list("hour", flat=True)
-            .distinct()
-            .order_by("-hour")[:3]
-        )
+        sat_hours = TelemetryReadService.saturation_hours(limit=3)
         if sat_hours:
             self.msg("|wSaturation Snapshots|n (hourly):")
             for hour in sat_hours:
-                rows = SaturationSnapshot.objects.filter(hour=hour)
-                active = rows.first().active_players_7d if rows.exists() else 0
-                spells = rows.filter(category="spell").count()
-                recipes = rows.filter(category="recipe").count()
-                items = rows.filter(category="item").count()
+                rows = TelemetryReadService.saturation_rows_at(hour)
+                active = rows[0].active_players_7d if rows else 0
+                spells = sum(1 for r in rows if r.category == CATEGORY_SPELL)
+                recipes = sum(1 for r in rows if r.category == CATEGORY_RECIPE)
+                items = sum(1 for r in rows if r.category == CATEGORY_ITEM)
                 self.msg(
                     f"  {hour:%Y-%m-%d %H:%M} UTC  |  "
                     f"{active} active 7d  |  "
@@ -137,15 +129,9 @@ class CmdSnapshotHistory(Command):
         self.msg("")
 
         # Resource snapshots — just a count summary
-        res_hours = (
-            ResourceSnapshot.objects
-            .values_list("hour", flat=True)
-            .distinct()
-            .order_by("-hour")[:1]
-        )
-        if res_hours:
-            latest = res_hours[0]
-            count = ResourceSnapshot.objects.filter(hour=latest).count()
+        latest = TelemetryReadService.latest_resource_hour()
+        if latest:
+            count = len(TelemetryReadService.resource_rows_at(latest))
             self.msg(
                 f"|wResource Snapshots|n: "
                 f"{count} resources tracked "
@@ -157,8 +143,7 @@ class CmdSnapshotHistory(Command):
     # ── Economy detail ────────────────────────────────────────────
 
     def _show_economy_detail(self, index):
-        snaps = EconomySnapshot.objects.order_by("-hour")
-        count = snaps.count()
+        count = TelemetryReadService.economy_snapshot_count()
         if not count:
             self.msg("No economy snapshots found.")
             return
@@ -166,7 +151,7 @@ class CmdSnapshotHistory(Command):
             self.msg(f"Only {count} economy snapshot(s) available.")
             return
 
-        snap = snaps[index - 1]
+        snap = TelemetryReadService.recent_economy_snapshots(limit=index)[-1]
         self.msg(f"|w=== Economy Snapshot #{index} ===|n")
         self.msg(f"|wTimestamp:|n       {snap.hour:%Y-%m-%d %H:%M} UTC")
         self.msg("")
@@ -188,13 +173,7 @@ class CmdSnapshotHistory(Command):
     # ── Saturation detail ─────────────────────────────────────────
 
     def _show_saturation_detail(self, index):
-        hours = (
-            SaturationSnapshot.objects
-            .values_list("hour", flat=True)
-            .distinct()
-            .order_by("-hour")
-        )
-        count = hours.count()
+        count = TelemetryReadService.saturation_hour_count()
         if not count:
             self.msg("No saturation snapshots found.")
             return
@@ -202,11 +181,9 @@ class CmdSnapshotHistory(Command):
             self.msg(f"Only {count} saturation hour(s) available.")
             return
 
-        hour = hours[index - 1]
-        rows = SaturationSnapshot.objects.filter(hour=hour).order_by(
-            "category", "item_key"
-        )
-        active = rows.first().active_players_7d if rows.exists() else 0
+        hour = TelemetryReadService.saturation_hours(limit=index)[-1]
+        rows = TelemetryReadService.saturation_rows_at(hour)
+        active = rows[0].active_players_7d if rows else 0
 
         self.msg(f"|w=== Saturation Snapshot #{index} — {hour:%Y-%m-%d %H:%M} UTC ===|n")
         self.msg(f"|wActive Players (7d):|n {active}\n")
@@ -219,7 +196,7 @@ class CmdSnapshotHistory(Command):
 
             sat_pct = f"{row.saturation * 100:.1f}%" if row.saturation else "n/a"
 
-            if current_cat in ("spell", "recipe"):
+            if current_cat in (CATEGORY_SPELL, CATEGORY_RECIPE):
                 self.msg(
                     f"  {row.item_key}: "
                     f"sat={sat_pct}  "
@@ -238,13 +215,7 @@ class CmdSnapshotHistory(Command):
     # ── Resource detail ───────────────────────────────────────────
 
     def _show_resources_detail(self, index):
-        hours = (
-            ResourceSnapshot.objects
-            .values_list("hour", flat=True)
-            .distinct()
-            .order_by("-hour")
-        )
-        count = hours.count()
+        count = TelemetryReadService.resource_hour_count()
         if not count:
             self.msg("No resource snapshots found.")
             return
@@ -252,10 +223,8 @@ class CmdSnapshotHistory(Command):
             self.msg(f"Only {count} resource hour(s) available.")
             return
 
-        hour = hours[index - 1]
-        rows = ResourceSnapshot.objects.filter(hour=hour).order_by(
-            "currency_code"
-        )
+        hour = TelemetryReadService.resource_hours(limit=index)[-1]
+        rows = TelemetryReadService.resource_rows_at(hour)
 
         self.msg(f"|w=== Resource Snapshot #{index} — {hour:%Y-%m-%d %H:%M} UTC ===|n\n")
 

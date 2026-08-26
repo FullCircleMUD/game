@@ -54,20 +54,13 @@ class ResourceCalculator(BaseCalculator):
         Returns Decimal.
         """
         from blockchain.xrpl.currency_cache import get_currency_code
-        from blockchain.xrpl.models import ResourceSnapshot
+        from telemetry.services import TelemetryReadService
 
         currency_code = get_currency_code(resource_id)
         if not currency_code:
             return Decimal(0)
 
-        snapshots = (
-            ResourceSnapshot.objects.filter(currency_code=currency_code)
-            .order_by("-hour")[:24]
-        )
-        values = [s.consumed_1h for s in snapshots]
-        if not values:
-            return Decimal(0)
-        return sum(values) / len(values)
+        return TelemetryReadService.average_consumption(currency_code)
 
     @staticmethod
     def _get_latest_buy_price(resource_id):
@@ -76,21 +69,13 @@ class ResourceCalculator(BaseCalculator):
         Returns Decimal or None if no AMM pool exists.
         """
         from blockchain.xrpl.currency_cache import get_currency_code
-        from blockchain.xrpl.models import ResourceSnapshot
+        from telemetry.services import TelemetryReadService
 
         currency_code = get_currency_code(resource_id)
         if not currency_code:
             return None
 
-        snapshot = (
-            ResourceSnapshot.objects.filter(
-                currency_code=currency_code,
-                amm_buy_price__isnull=False,
-            )
-            .order_by("-hour")
-            .first()
-        )
-        return snapshot.amm_buy_price if snapshot else None
+        return TelemetryReadService.latest_buy_price(currency_code)
 
     # ================================================================== #
     #  Price modifier — extracted from ResourceSpawnService

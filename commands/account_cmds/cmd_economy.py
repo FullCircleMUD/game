@@ -47,9 +47,9 @@ class CmdEconomy(Command):
 
 def _show_latest_snapshot(caller):
     """Display the most recent EconomySnapshot + top resources."""
-    from blockchain.xrpl.models import EconomySnapshot, ResourceSnapshot
+    from telemetry.services import TelemetryReadService
 
-    snap = EconomySnapshot.objects.first()
+    snap = TelemetryReadService.latest_economy_snapshot()
     if not snap:
         caller.msg("|yNo economy snapshots yet. Wait for the hourly aggregator.|n")
         return
@@ -84,10 +84,8 @@ def _show_latest_snapshot(caller):
     )
 
     # Per-resource summary (top resources by total in CHARACTER + ACCOUNT)
-    resources = (
-        ResourceSnapshot.objects.filter(hour=snap.hour)
-        .exclude(currency_code__startswith="FCMGold")
-        .order_by("-in_character")[:12]
+    resources = TelemetryReadService.top_resource_rows_at(
+        snap.hour, limit=12, exclude_prefix="FCMGold",
     )
 
     if resources:
@@ -111,17 +109,10 @@ def _show_latest_snapshot(caller):
 
 def _show_resource_detail(caller, resource_filter):
     """Show recent history for a single resource."""
-    from blockchain.xrpl.models import ResourceSnapshot
+    from telemetry.services import TelemetryReadService
 
     # Find matching currency code
-    matches = (
-        ResourceSnapshot.objects.filter(
-            currency_code__icontains=resource_filter,
-        )
-        .values_list("currency_code", flat=True)
-        .distinct()[:5]
-    )
-    matches = list(matches)
+    matches = TelemetryReadService.match_currency_codes(resource_filter)
 
     if not matches:
         caller.msg(f"|yNo snapshots found matching '{resource_filter}'.|n")
@@ -134,7 +125,7 @@ def _show_resource_detail(caller, resource_filter):
         return
 
     code = matches[0]
-    snapshots = ResourceSnapshot.objects.filter(currency_code=code)[:24]
+    snapshots = TelemetryReadService.resource_history(code, limit=24)
 
     if not snapshots:
         caller.msg(f"|yNo snapshots for {code}.|n")

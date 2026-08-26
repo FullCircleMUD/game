@@ -24,7 +24,7 @@ evennia test --settings settings tests.typeclass_tests.test_session_end_telemetr
 from evennia.utils.test_resources import EvenniaTest
 
 from blockchain.xrpl.models import PlayerSession
-from blockchain.xrpl.services.telemetry import TelemetryService
+from telemetry.services import TelemetryWriteService
 
 
 class SessionEndTest(EvenniaTest):
@@ -39,7 +39,7 @@ class SessionEndTest(EvenniaTest):
     def setUp(self):
         super().setUp()
         self.char1.account = self.account
-        TelemetryService.record_session_start(self.account.id, self.char1.key)
+        TelemetryWriteService.record_session_start(self.account.id, self.char1.key)
 
     def _open_rows(self):
         return PlayerSession.objects.filter(

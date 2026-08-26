@@ -371,9 +371,9 @@ def at_server_cold_stop():
 
 def _close_stale_sessions():
     """Close any player sessions left open from a server crash."""
-    from blockchain.xrpl.services.telemetry import TelemetryService
+    from telemetry.services import TelemetryWriteService
 
-    TelemetryService.close_stale_sessions()
+    TelemetryWriteService.close_stale_sessions()
 
 
 # ================================================================== #

@@ -9,13 +9,8 @@ Three tabs:
 
 from django.views.generic import TemplateView
 
-from blockchain.xrpl.models import (
-    CurrencyType,
-    EconomySnapshot,
-    NFTGameState,
-    NFTItemType,
-    ResourceSnapshot,
-)
+from blockchain.xrpl.models import CurrencyType, NFTGameState, NFTItemType
+from telemetry.services import TelemetryReadService
 from web.website.views.seo import SeoMixin
 
 
@@ -31,11 +26,7 @@ class MarketsView(SeoMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
 
         # Get the most recent snapshot hour
-        latest = (
-            ResourceSnapshot.objects.order_by("-hour")
-            .values_list("hour", flat=True)
-            .first()
-        )
+        latest = TelemetryReadService.latest_resource_hour()
 
         # Build lookup sets for filtering snapshot rows
         # Resource currencies: have a resource_id (wheat, iron ore, etc.)
@@ -54,9 +45,7 @@ class MarketsView(SeoMixin, TemplateView):
         names = dict(CurrencyType.objects.values_list("currency_code", "name"))
 
         if latest:
-            snapshots = ResourceSnapshot.objects.filter(hour=latest).order_by(
-                "currency_code"
-            )
+            snapshots = TelemetryReadService.resource_rows_at(latest)
 
             resources = []
             equipment = []
@@ -151,14 +140,10 @@ class MarketsView(SeoMixin, TemplateView):
                 )
         ctx["tradeables"] = tradeables
 
-        # Gold headline from EconomySnapshot
-        eco = (
-            EconomySnapshot.objects.order_by("-hour")
-            .values("gold_circulation", "gold_sinks_1h")
-            .first()
-        )
+        # Gold headline from the latest economy snapshot
+        eco = TelemetryReadService.latest_economy_snapshot()
         if eco:
-            ctx["gold_circulation"] = eco["gold_circulation"]
-            ctx["gold_sinks_1h"] = eco["gold_sinks_1h"]
+            ctx["gold_circulation"] = eco.gold_circulation
+            ctx["gold_sinks_1h"] = eco.gold_sinks_1h
 
         return ctx

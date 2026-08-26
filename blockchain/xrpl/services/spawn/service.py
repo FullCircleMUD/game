@@ -217,10 +217,11 @@ class SpawnService:
         snapshot rows created by telemetry (+0s) and saturation (+60s)
         services earlier in the pipeline.
         """
-        from blockchain.xrpl.models import ResourceSnapshot, SaturationSnapshot
         from blockchain.xrpl.currency_cache import get_currency_code
         from django.conf import settings
         from django.utils import timezone
+
+        from telemetry.services import TelemetryWriteService
 
         now = timezone.now()
         bucket = now.replace(minute=0, second=0, microsecond=0)
@@ -229,32 +230,22 @@ class SpawnService:
             if item_type == "resource":
                 currency_code = get_currency_code(type_key)
                 if currency_code:
-                    ResourceSnapshot.objects.filter(
-                        hour=bucket, currency_code=currency_code,
-                    ).update(
-                        spawn_budget=bs.total,
-                        spawn_quest_debt=bs.quest_debt,
-                        spawn_placed=bs.dispatched_this_hour,
-                        spawn_dropped=bs.dropped_this_hour,
+                    TelemetryWriteService.apply_resource_spawn_counters(
+                        bucket, currency_code,
+                        bs.total, bs.quest_debt,
+                        bs.dispatched_this_hour, bs.dropped_this_hour,
                     )
             elif item_type == "gold":
-                gold_code = settings.XRPL_GOLD_CURRENCY_CODE
-                ResourceSnapshot.objects.filter(
-                    hour=bucket, currency_code=gold_code,
-                ).update(
-                    spawn_budget=bs.total,
-                    spawn_quest_debt=bs.quest_debt,
-                    spawn_placed=bs.dispatched_this_hour,
-                    spawn_dropped=bs.dropped_this_hour,
+                TelemetryWriteService.apply_resource_spawn_counters(
+                    bucket, settings.XRPL_GOLD_CURRENCY_CODE,
+                    bs.total, bs.quest_debt,
+                    bs.dispatched_this_hour, bs.dropped_this_hour,
                 )
             elif item_type == "knowledge":
-                SaturationSnapshot.objects.filter(
-                    hour=bucket, item_key=type_key,
-                ).update(
-                    spawn_budget=bs.total,
-                    spawn_quest_debt=bs.quest_debt,
-                    spawn_placed=bs.dispatched_this_hour,
-                    spawn_dropped=bs.dropped_this_hour,
+                TelemetryWriteService.apply_saturation_spawn_counters(
+                    bucket, type_key,
+                    bs.total, bs.quest_debt,
+                    bs.dispatched_this_hour, bs.dropped_this_hour,
                 )
 
     @staticmethod

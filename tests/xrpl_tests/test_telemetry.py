@@ -24,6 +24,7 @@ from blockchain.xrpl.models import (
     ResourceSnapshot,
 )
 from blockchain.xrpl.services.telemetry import TelemetryService
+from telemetry.services import TelemetryWriteService
 
 
 def _dt(year, month, day, hour, minute=0, second=0):
@@ -61,9 +62,9 @@ class TestSessionTracking(TestCase):
     def test_record_session_start(self):
         """record_session_start creates a PlayerSession row."""
         now = _dt(2026, 3, 19, 10, 0, 0)
-        with patch("blockchain.xrpl.services.telemetry.timezone") as tz:
+        with patch("telemetry.services.write.timezone") as tz:
             tz.now.return_value = now
-            TelemetryService.record_session_start(1, "TestChar")
+            TelemetryWriteService.record_session_start(1, "TestChar")
 
         session = PlayerSession.objects.get()
         self.assertEqual(session.account_id, 1)
@@ -79,9 +80,9 @@ class TestSessionTracking(TestCase):
             account_id=1, character_key="TestChar", started_at=start,
         )
 
-        with patch("blockchain.xrpl.services.telemetry.timezone") as tz:
+        with patch("telemetry.services.write.timezone") as tz:
             tz.now.return_value = end
-            TelemetryService.record_session_end(1, "TestChar")
+            TelemetryWriteService.record_session_end(1, "TestChar")
 
         session = PlayerSession.objects.get()
         self.assertEqual(session.ended_at, end)
@@ -97,9 +98,9 @@ class TestSessionTracking(TestCase):
             started_at=_dt(2026, 3, 19, 10, 0, 0),
         )
 
-        with patch("blockchain.xrpl.services.telemetry.timezone") as tz:
+        with patch("telemetry.services.write.timezone") as tz:
             tz.now.return_value = _dt(2026, 3, 19, 11, 0, 0)
-            TelemetryService.record_session_end(1, "TestChar")
+            TelemetryWriteService.record_session_end(1, "TestChar")
 
         sessions = PlayerSession.objects.order_by("started_at")
         self.assertIsNone(sessions[0].ended_at)  # older stays open
@@ -122,9 +123,9 @@ class TestSessionTracking(TestCase):
             ended_at=_dt(2026, 3, 19, 8, 0, 0),
         )
 
-        with patch("blockchain.xrpl.services.telemetry.timezone") as tz:
+        with patch("telemetry.services.write.timezone") as tz:
             tz.now.return_value = _dt(2026, 3, 19, 12, 0, 0)
-            TelemetryService.close_stale_sessions()
+            TelemetryWriteService.close_stale_sessions()
 
         self.assertEqual(
             PlayerSession.objects.filter(ended_at__isnull=True).count(), 0,
@@ -135,10 +136,10 @@ class TestSessionTracking(TestCase):
 
     def test_session_end_no_open_session(self):
         """record_session_end is a no-op if no open session exists."""
-        with patch("blockchain.xrpl.services.telemetry.timezone") as tz:
+        with patch("telemetry.services.write.timezone") as tz:
             tz.now.return_value = _dt(2026, 3, 19, 12, 0, 0)
             # Should not raise
-            TelemetryService.record_session_end(999, "NoChar")
+            TelemetryWriteService.record_session_end(999, "NoChar")
 
         self.assertEqual(PlayerSession.objects.count(), 0)
 

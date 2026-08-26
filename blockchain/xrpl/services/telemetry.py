@@ -1,14 +1,13 @@
 """
-Economy telemetry service.
+Economy telemetry aggregator.
 
-Aggregates raw economic data (transfer logs, game state, gold sinks,
-AMM prices, player sessions) into hourly snapshot tables for the
-spawn algorithm and admin monitoring.
+Reads the raw economic data this app owns — transfer logs, game state,
+gold sinks, AMM prices — and records the hourly totals through the
+telemetry API for the spawn algorithm and admin monitoring.
 
-Game code should NOT import this directly except from:
-- character hooks (session start/end)
-- the TelemetryAggregatorScript (hourly snapshots)
-- the economy admin command (reading snapshots)
+Game code should NOT import this directly except from the
+TelemetryAggregatorScript, which drives the hourly run. Reading the
+resulting snapshots is TelemetryReadService's job, not this module's.
 """
 
 import logging
@@ -16,69 +15,23 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from blockchain.xrpl.models import (
     CurrencyType,
-    EconomySnapshot,
     FungibleGameState,
     FungibleTransferLog,
     NFTGameState,
     NFTItemType,
-    PlayerSession,
-    ResourceSnapshot,
 )
+from telemetry.services import TelemetryReadService, TelemetryWriteService
 
 logger = logging.getLogger("evennia")
 
 
 class TelemetryService:
     """Aggregates economy data into hourly snapshots."""
-
-    # ================================================================== #
-    #  Session tracking
-    # ================================================================== #
-
-    @staticmethod
-    def record_session_start(account_id, character_key):
-        """Record the start of a play session. Called from at_post_puppet."""
-        PlayerSession.objects.create(
-            account_id=account_id,
-            character_key=character_key,
-            started_at=timezone.now(),
-        )
-
-    @staticmethod
-    def record_session_end(account_id, character_key):
-        """Close the most recent open session. Called from at_post_unpuppet."""
-        session = (
-            PlayerSession.objects.filter(
-                account_id=account_id,
-                character_key=character_key,
-                ended_at__isnull=True,
-            )
-            .order_by("-started_at")
-            .first()
-        )
-        if session:
-            session.ended_at = timezone.now()
-            session.save(update_fields=["ended_at"])
-
-    @staticmethod
-    def close_stale_sessions():
-        """Close any sessions still open (crash recovery).
-
-        Called on server boot. Sets ended_at = now for any open sessions,
-        since we can't know when they actually ended.
-        """
-        count = PlayerSession.objects.filter(ended_at__isnull=True).update(
-            ended_at=timezone.now(),
-        )
-        if count:
-            logger.info(
-                f"Telemetry: closed {count} stale session(s) from crash recovery"
-            )
 
     # ================================================================== #
     #  Snapshot aggregation
@@ -100,13 +53,11 @@ class TelemetryService:
         gold_code = settings.XRPL_GOLD_CURRENCY_CODE
 
         # ── Player activity ──
-        players_online = PlayerSession.objects.filter(
-            ended_at__isnull=True,
-        ).values("account_id").distinct().count()
+        players_online = TelemetryReadService.players_online()
 
-        unique_1h = _unique_players_since(hour_ago)
-        unique_24h = _unique_players_since(day_ago)
-        unique_7d = _unique_players_since(week_ago)
+        unique_1h = TelemetryReadService.unique_players_since(hour_ago)
+        unique_24h = TelemetryReadService.unique_players_since(day_ago)
+        unique_7d = TelemetryReadService.unique_players_since(week_ago)
 
         # ── Gold state ──
         gold_circulation = _sum_balance(
@@ -156,9 +107,9 @@ class TelemetryService:
         ).count()
 
         # ── Write EconomySnapshot ──
-        EconomySnapshot.objects.update_or_create(
-            hour=bucket,
-            defaults={
+        TelemetryWriteService.write_economy_snapshot(
+            bucket,
+            {
                 "players_online": players_online,
                 "unique_players_1h": unique_1h,
                 "unique_players_24h": unique_24h,
@@ -250,11 +201,7 @@ class TelemetryService:
                     "amm_sell_price": prices.get("sell_1_raw"),
                 }
 
-            ResourceSnapshot.objects.update_or_create(
-                hour=bucket,
-                currency_code=code,
-                defaults=defaults,
-            )
+            TelemetryWriteService.write_resource_snapshot(bucket, code, defaults)
 
         logger.info(
             f"Telemetry snapshot: {bucket:%Y-%m-%d %H:%M} — "
@@ -266,19 +213,6 @@ class TelemetryService:
 # ================================================================== #
 #  Helper functions (module-private)
 # ================================================================== #
-
-def _unique_players_since(since):
-    """Count distinct account_ids with sessions overlapping the period."""
-    return (
-        PlayerSession.objects.filter(
-            Q(ended_at__isnull=True) | Q(ended_at__gte=since),
-            started_at__lte=timezone.now(),
-        )
-        .values("account_id")
-        .distinct()
-        .count()
-    )
-
 
 def _sum_balance(currency_code, locations):
     """Sum FungibleGameState balance for a currency across locations."""

@@ -61,13 +61,9 @@ class KnowledgeCalculator(BaseCalculator):
         Returns the snapshot object or None if no snapshot exists or
         eligible_players == 0.
         """
-        from blockchain.xrpl.models import SaturationSnapshot
+        from telemetry.services import TelemetryReadService
 
-        snapshot = (
-            SaturationSnapshot.objects.filter(item_key=item_key)
-            .order_by("-hour")
-            .first()
-        )
+        snapshot = TelemetryReadService.latest_saturation(item_key)
         if not snapshot:
             return None
 

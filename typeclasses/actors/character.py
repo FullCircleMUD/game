@@ -1229,9 +1229,9 @@ class FCMCharacter(
             self.account.attributes.remove("graceful_logout")
         # Telemetry: record session start
         if self.account:
-            from blockchain.xrpl.services.telemetry import TelemetryService
+            from telemetry.services import TelemetryWriteService
 
-            TelemetryService.record_session_start(self.account.id, self.key)
+            TelemetryWriteService.record_session_start(self.account.id, self.key)
         # Reconcile mastery-derived knowledge. Normally a no-op, so a
         # routine login is silent. It earns its place when the game gains
         # a spell or recipe a character already has the mastery for —
@@ -1562,9 +1562,9 @@ class FCMCharacter(
         # Telemetry: record session end
         acct = account or self.account
         if acct:
-            from blockchain.xrpl.services.telemetry import TelemetryService
+            from telemetry.services import TelemetryWriteService
 
-            TelemetryService.record_session_end(acct.id, self.key)
+            TelemetryWriteService.record_session_end(acct.id, self.key)
 
         # Refresh the archived copy. Everything a character gains happens
         # while puppeted, so this is where a session's progress is banked

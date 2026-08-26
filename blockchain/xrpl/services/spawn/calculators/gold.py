@@ -53,13 +53,9 @@ class GoldCalculator(BaseCalculator):
 
         Returns Decimal.
         """
-        from blockchain.xrpl.models import EconomySnapshot
+        from telemetry.services import TelemetryReadService
 
-        snapshots = EconomySnapshot.objects.order_by("-hour")[:24]
-        values = [s.gold_sinks_1h for s in snapshots]
-        if not values:
-            return Decimal(0)
-        return sum(values) / len(values)
+        return TelemetryReadService.average_gold_sinks()
 
     @staticmethod
     def _get_gold_reserve():

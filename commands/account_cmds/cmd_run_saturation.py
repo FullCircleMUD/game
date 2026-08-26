@@ -41,10 +41,8 @@ class CmdRunSaturation(Command):
         def _run():
             from blockchain.xrpl.services.nft_saturation import NFTSaturationService
             NFTSaturationService.take_snapshot()
-            from blockchain.xrpl.models import SaturationSnapshot
-            hours = SaturationSnapshot.objects.values("hour").distinct().count()
-            rows = SaturationSnapshot.objects.count()
-            return hours, rows
+            from telemetry.services import TelemetryReadService
+            return TelemetryReadService.saturation_totals()
 
         def _done(result):
             hours, rows = result

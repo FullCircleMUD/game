@@ -16,15 +16,16 @@ import logging
 from collections import defaultdict
 from datetime import timedelta
 
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.utils import timezone
 
-from blockchain.xrpl.models import (
-    NFTGameState,
-    NFTItemType,
-    PlayerSession,
-    SaturationSnapshot,
+from blockchain.xrpl.models import NFTGameState, NFTItemType
+from telemetry.constants import (
+    CATEGORY_ITEM,
+    CATEGORY_RECIPE,
+    CATEGORY_SPELL,
 )
+from telemetry.services import TelemetryReadService, TelemetryWriteService
 
 logger = logging.getLogger("blockchain.xrpl")
 
@@ -171,11 +172,11 @@ class NFTSaturationService:
             eligible = _players_at_or_above(school_dist, spell.min_mastery.value)
             sat = (known_by + unlearned) / eligible if eligible > 0 else 0.0
             # Prefixed key matches spawn config type_key (scroll_X)
-            SaturationSnapshot.objects.update_or_create(
-                hour=hour,
-                item_key=f"scroll_{spell_key}",
-                category=SaturationSnapshot.CATEGORY_SPELL,
-                defaults={
+            TelemetryWriteService.write_saturation_snapshot(
+                hour,
+                f"scroll_{spell_key}",
+                CATEGORY_SPELL,
+                {
                     "active_players_7d": active_count,
                     "eligible_players": eligible,
                     "known_by": known_by,
@@ -197,11 +198,11 @@ class NFTSaturationService:
             eligible = _players_at_or_above(skill_dist, recipe["min_mastery"].value)
             sat = (known_by + unlearned) / eligible if eligible > 0 else 0.0
             # Prefixed key matches spawn config type_key (recipe_X)
-            SaturationSnapshot.objects.update_or_create(
-                hour=hour,
-                item_key=f"recipe_{recipe_key}",
-                category=SaturationSnapshot.CATEGORY_RECIPE,
-                defaults={
+            TelemetryWriteService.write_saturation_snapshot(
+                hour,
+                f"recipe_{recipe_key}",
+                CATEGORY_RECIPE,
+                {
                     "active_players_7d": active_count,
                     "eligible_players": eligible,
                     "known_by": known_by,
@@ -214,11 +215,11 @@ class NFTSaturationService:
 
         # 6c. NFT item types in circulation (non-scroll, non-recipe)
         for item_name, count in circulation_counts.items():
-            SaturationSnapshot.objects.update_or_create(
-                hour=hour,
-                item_key=item_name,
-                category=SaturationSnapshot.CATEGORY_ITEM,
-                defaults={
+            TelemetryWriteService.write_saturation_snapshot(
+                hour,
+                item_name,
+                CATEGORY_ITEM,
+                {
                     "active_players_7d": active_count,
                     "eligible_players": 0,
                     "known_by": 0,
@@ -247,17 +248,7 @@ class NFTSaturationService:
             character_key strings for loading character objects.
         """
         cutoff = timezone.now() - timedelta(days=7)
-
-        char_keys = set(
-            PlayerSession.objects.filter(
-                Q(ended_at__isnull=True) | Q(ended_at__gte=cutoff),
-                started_at__lte=timezone.now(),
-            )
-            .values_list("character_key", flat=True)
-            .distinct()
-        )
-
-        return len(char_keys), char_keys
+        return TelemetryReadService.active_character_keys(cutoff)
 
     @staticmethod
     def get_knowledge_counts(active_character_keys):

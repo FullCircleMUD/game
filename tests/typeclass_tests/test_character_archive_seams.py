@@ -109,7 +109,7 @@ class TestUnpuppetArchives(CharacterArchiveTestBase):
         with patch.object(
             type(self.char1), "archive_now"
         ) as archive_now, patch(
-            "blockchain.xrpl.services.telemetry.TelemetryService."
+            "telemetry.services.write.TelemetryWriteService."
             "record_session_end"
         ):
             self.char1.at_post_unpuppet(self.account)
@@ -121,7 +121,7 @@ class TestUnpuppetArchives(CharacterArchiveTestBase):
         with patch.object(
             type(self.char1), "archive_now"
         ) as archive_now, patch(
-            "blockchain.xrpl.services.telemetry.TelemetryService."
+            "telemetry.services.write.TelemetryWriteService."
             "record_session_end"
         ):
             self.char1.at_post_unpuppet(None)
