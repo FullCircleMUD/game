@@ -15,7 +15,7 @@ from unittest.mock import patch
 from django.utils import timezone
 from evennia.utils.test_resources import EvenniaCommandTest
 
-from blockchain.xrpl.models import EconomySnapshot, ResourceSnapshot
+from telemetry.models import EconomySnapshot, ResourceSnapshot
 from commands.account_cmds.cmd_economy import CmdEconomy, _fmt
 
 NOW = timezone.now().replace(minute=0, second=0, microsecond=0)
@@ -68,7 +68,7 @@ class TestFmt(PlainTestCase):
 
 @patch("evennia_shards.get_role")
 class TestEconomyRoleGuard(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -95,7 +95,7 @@ class TestEconomyRoleGuard(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestShowLatestSnapshot(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -152,7 +152,7 @@ class TestShowLatestSnapshot(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestShowResourceDetail(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass

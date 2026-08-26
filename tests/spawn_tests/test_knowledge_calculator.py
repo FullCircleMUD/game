@@ -141,7 +141,7 @@ class TestGetSnapshotDB(EvenniaTest):
         """_get_snapshot returns the most recent hour's snapshot."""
         from datetime import timedelta
         from django.utils import timezone
-        from blockchain.xrpl.models import SaturationSnapshot
+        from telemetry.models import SaturationSnapshot
 
         now = timezone.now().replace(minute=0, second=0, microsecond=0)
         prev_hour = now - timedelta(hours=1)
@@ -172,7 +172,7 @@ class TestGetSnapshotDB(EvenniaTest):
     def test_returns_none_when_zero_eligible(self):
         """_get_snapshot returns None when eligible_players is 0."""
         from django.utils import timezone
-        from blockchain.xrpl.models import SaturationSnapshot
+        from telemetry.models import SaturationSnapshot
 
         hour = timezone.now().replace(minute=0, second=0, microsecond=0)
         SaturationSnapshot.objects.create(
@@ -188,7 +188,7 @@ class TestGetSnapshotDB(EvenniaTest):
     def test_end_to_end_budget_from_db(self):
         """Full path: DB snapshot → _get_snapshot → calculate → correct gap."""
         from django.utils import timezone
-        from blockchain.xrpl.models import SaturationSnapshot
+        from telemetry.models import SaturationSnapshot
 
         hour = timezone.now().replace(minute=0, second=0, microsecond=0)
         SaturationSnapshot.objects.create(

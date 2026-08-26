@@ -15,7 +15,7 @@ from unittest.mock import patch
 from django.utils import timezone
 from evennia.utils.test_resources import EvenniaCommandTest
 
-from blockchain.xrpl.models import EconomySnapshot, ResourceSnapshot, SaturationSnapshot
+from telemetry.models import EconomySnapshot, ResourceSnapshot, SaturationSnapshot
 from commands.account_cmds.cmd_snapshot_history import CmdSnapshotHistory, _resolve_type
 
 NOW = timezone.now().replace(minute=0, second=0, microsecond=0)
@@ -81,7 +81,7 @@ class TestResolveType(PlainTestCase):
 
 @patch("evennia_shards.get_role")
 class TestSnapshotHistoryRoleGuard(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -108,7 +108,7 @@ class TestSnapshotHistoryRoleGuard(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestSnapshotHistorySummary(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -147,7 +147,7 @@ class TestSnapshotHistorySummary(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestSnapshotHistoryArgParsing(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -173,7 +173,7 @@ class TestSnapshotHistoryArgParsing(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestEconomyDetail(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -206,7 +206,7 @@ class TestEconomyDetail(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestSaturationDetail(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -246,7 +246,7 @@ class TestSaturationDetail(EvenniaCommandTest):
 
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestResourceDetail(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass

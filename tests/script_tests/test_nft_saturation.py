@@ -14,12 +14,8 @@ from datetime import timedelta
 from django.utils import timezone
 from evennia.utils.test_resources import EvenniaTest
 
-from blockchain.xrpl.models import (
-    NFTGameState,
-    NFTItemType,
-    PlayerSession,
-    SaturationSnapshot,
-)
+from blockchain.xrpl.models import NFTGameState, NFTItemType
+from telemetry.models import PlayerSession, SaturationSnapshot
 from blockchain.xrpl.services.nft_saturation import (
     NFTSaturationService,
     SCROLL_TYPECLASS,

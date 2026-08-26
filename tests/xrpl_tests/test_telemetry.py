@@ -17,12 +17,10 @@ from django.test import TestCase
 
 from blockchain.xrpl.models import (
     CurrencyType,
-    EconomySnapshot,
     FungibleGameState,
     FungibleTransferLog,
-    PlayerSession,
-    ResourceSnapshot,
 )
+from telemetry.models import EconomySnapshot, PlayerSession, ResourceSnapshot
 from blockchain.xrpl.services.telemetry import TelemetryService
 from telemetry.services import TelemetryWriteService
 
@@ -57,7 +55,7 @@ def _create_transfer_log(currency_code, from_wallet, to_wallet, amount,
 class TestSessionTracking(TestCase):
     """Test PlayerSession start/end/stale cleanup."""
 
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def test_record_session_start(self):
         """record_session_start creates a PlayerSession row."""
@@ -147,7 +145,7 @@ class TestSessionTracking(TestCase):
 class TestTakeSnapshot(TestCase):
     """Test TelemetryService.take_snapshot() aggregation."""
 
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def setUp(self):
         """Seed minimum data: gold currency type."""
@@ -316,7 +314,7 @@ class TestTakeSnapshot(TestCase):
 class TestResourceSnapshot(TestCase):
     """Test per-resource snapshot creation."""
 
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def setUp(self):
         """Seed currencies."""

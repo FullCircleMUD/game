@@ -16,13 +16,13 @@ from decimal import Decimal
 from django.db.models import Q
 from django.utils import timezone
 
-from blockchain.xrpl.models import (
+from telemetry.constants import DEFAULT_AVERAGE_HOURS
+from telemetry.models import (
     EconomySnapshot,
     PlayerSession,
     ResourceSnapshot,
     SaturationSnapshot,
 )
-from telemetry.constants import DEFAULT_AVERAGE_HOURS
 
 
 class TelemetryReadService:

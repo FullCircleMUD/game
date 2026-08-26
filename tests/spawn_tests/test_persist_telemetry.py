@@ -12,7 +12,7 @@ from unittest.mock import patch, MagicMock
 from django.utils import timezone
 from evennia.utils.test_resources import EvenniaTest
 
-from blockchain.xrpl.models import ResourceSnapshot, SaturationSnapshot
+from telemetry.models import ResourceSnapshot, SaturationSnapshot
 from blockchain.xrpl.services.spawn.budget import BudgetState
 from blockchain.xrpl.services.spawn.service import SpawnService
 

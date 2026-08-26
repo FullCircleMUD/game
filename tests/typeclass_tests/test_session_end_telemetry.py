@@ -23,7 +23,7 @@ evennia test --settings settings tests.typeclass_tests.test_session_end_telemetr
 
 from evennia.utils.test_resources import EvenniaTest
 
-from blockchain.xrpl.models import PlayerSession
+from telemetry.models import PlayerSession
 from telemetry.services import TelemetryWriteService
 
 

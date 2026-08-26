@@ -9,7 +9,7 @@ import logging
 
 from django.utils import timezone
 
-from blockchain.xrpl.models import (
+from telemetry.models import (
     EconomySnapshot,
     PlayerSession,
     ResourceSnapshot,

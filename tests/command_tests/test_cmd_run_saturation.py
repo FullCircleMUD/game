@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 from evennia.utils.test_resources import EvenniaCommandTest
 
-from blockchain.xrpl.models import SaturationSnapshot
+from telemetry.models import SaturationSnapshot
 from commands.account_cmds.cmd_run_saturation import CmdRunSaturation
 
 TAKE_SNAPSHOT = "blockchain.xrpl.services.nft_saturation.NFTSaturationService.take_snapshot"
@@ -68,7 +68,7 @@ def _saturation(hour, item_key="ZZZ Test Spell", category="spell"):
 @patch(TAKE_SNAPSHOT)
 @patch("evennia_shards.get_role")
 class TestRunSaturationRoleGuard(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass
@@ -97,7 +97,7 @@ class TestRunSaturationRoleGuard(EvenniaCommandTest):
 @patch(TAKE_SNAPSHOT)
 @patch("evennia_shards.get_role", return_value="monolith")
 class TestRunSaturationOutcomes(EvenniaCommandTest):
-    databases = {"default", "xrpl"}
+    databases = {"default", "xrpl", "telemetry"}
 
     def create_script(self):
         pass

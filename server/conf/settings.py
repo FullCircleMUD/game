@@ -105,6 +105,7 @@ INSTALLED_APPS = INSTALLED_APPS + [
     "blockchain.xrpl",
     "ai_memory",
     "subscriptions",
+    "telemetry",
     "django.contrib.sitemaps",
     "evennia_world_builder",
     "evennia_mob_spawner",
@@ -161,6 +162,11 @@ _DB_ALIASES = {
     "xrpl": "xrpl.db3",
     "ai_memory": "ai_memory.db3",
     "subscriptions": "subscriptions.db3",
+    # Play sessions and the hourly snapshots. Kept off the xrpl database
+    # because it is the record of who owns what and must survive a world
+    # rebuild; telemetry is append-only measurement of the same economy,
+    # and the two have no row that references the other.
+    "telemetry": "telemetry.db3",
     # A clone of Evennia's own schema holding archived accounts and
     # characters, so a world rebuild does not cost us our players. Never
     # run as a game — starting a server against it would populate it.
@@ -201,6 +207,7 @@ _ROUTER_PATHS = {
     "xrpl": "blockchain.xrpl.db_router.XRPLRouter",
     "ai_memory": "ai_memory.db_router.AiMemoryRouter",
     "subscriptions": "subscriptions.db_router.SubscriptionsRouter",
+    "telemetry": "telemetry.db_router.TelemetryRouter",
     # Unlike the three above, this router is deliberately not exclusive:
     # Evennia's own tables belong in the archive, since it is a clone of
     # Evennia's schema rather than a home for one app's models.
