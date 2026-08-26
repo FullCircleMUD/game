@@ -69,6 +69,7 @@ class _MockCaller:
     def __init__(self, chargen_state=None):
         self.ndb = MagicMock()
         self.ndb._chargen = chargen_state or {}
+        self.wallet_address = "rTestWallet1111111111111111111111"
         self._messages = []
 
     def msg(self, text="", **kwargs):
@@ -495,6 +496,8 @@ class TestNameNode(BaseEvenniaTest):
             "server.main_menu.chargen.chargen_menu.ObjectDB.objects"
         ) as mock_objects:
             mock_objects.filter.return_value.exists.return_value = False
+            archive_qs = mock_objects.using.return_value
+            archive_qs.filter.return_value.exists.return_value = False
             result = _handle_name_input(caller, "Thorin")
 
         self.assertEqual(result, "node_confirm")
@@ -541,6 +544,8 @@ class TestNameNode(BaseEvenniaTest):
             "server.main_menu.chargen.chargen_menu.ObjectDB.objects"
         ) as mock_objects:
             mock_objects.filter.return_value.exists.return_value = False
+            archive_qs = mock_objects.using.return_value
+            archive_qs.filter.return_value.exists.return_value = False
             _handle_name_input(caller, "thorin")
         self.assertEqual(caller.ndb._chargen["char_name"], "Thorin")
 
@@ -1358,6 +1363,8 @@ class TestMultiWordName(BaseEvenniaTest):
             "server.main_menu.chargen.chargen_menu.ObjectDB.objects"
         ) as mock_objects:
             mock_objects.filter.return_value.exists.return_value = False
+            archive_qs = mock_objects.using.return_value
+            archive_qs.filter.return_value.exists.return_value = False
             result = _handle_name_input(caller, '"bob jane"')
         self.assertEqual(result, "node_confirm")
         self.assertEqual(caller.ndb._chargen["char_name"], "Bob Jane")
@@ -1369,6 +1376,8 @@ class TestMultiWordName(BaseEvenniaTest):
             "server.main_menu.chargen.chargen_menu.ObjectDB.objects"
         ) as mock_objects:
             mock_objects.filter.return_value.exists.return_value = False
+            archive_qs = mock_objects.using.return_value
+            archive_qs.filter.return_value.exists.return_value = False
             result = _handle_name_input(caller, '"thorin"')
         self.assertEqual(result, "node_confirm")
         self.assertEqual(caller.ndb._chargen["char_name"], "Thorin")
