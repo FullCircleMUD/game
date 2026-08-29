@@ -192,6 +192,52 @@ class BaseActor(
             text = f"{subject} {rule.arrival}{rule.end}"
         self._announce_movement(destination, text, move_type, phrase, extra)
 
+    def at_idmapper_flush(self):
+        """Drop cached foreign keys — this actor's, and those of what it carries.
+
+        Evennia already intends the first half. ``TypedObject.at_idmapper_flush``
+        clears an object's foreign-key caches so a surviving object cannot go on
+        holding a reference to something the map has since rebuilt. It looks for
+        them under ``_<fieldname>_cache``, which is where Django kept them before
+        2.0; they now live in ``_state.fields_cache``, so the loop finds nothing
+        and silently clears nothing.
+
+        Two things go stale as a result, and they are different directions of the
+        same asymmetry. A container's ``contents_cache`` stores primary keys and
+        resolves them through the idmapper on every read, so it cannot go stale.
+        A child stores the *resolved object* in its foreign-key cache and never
+        looks again — so the thing holding a parent pointer is the thing holding
+        a corpse.
+
+        **Its own pointers.** An actor kept across a flush still points at the
+        room object the map discarded. For a mob that is load-bearing: its
+        removal from that room's contents cache lands on the discarded copy while
+        the rest of the game reads the rebuilt one, leaving the room listing a mob
+        that is not in it.
+
+        **Its contents' pointers.** Observed live: all six pieces of a character's
+        equipment resolved ``db_location`` to a *dead* copy of their owner, while
+        the live character's own contents cache listed them correctly. The items
+        were pinning a character that had gone out of the world, one corpse per
+        IC/OOC cycle.
+
+        Clearing rather than evicting is deliberate. ``flush_from_cache()`` would
+        pop entries from ``__instance_cache__`` — the dict ``flush_instance_cache``
+        is iterating when it calls this hook — raising ``RuntimeError`` mid-flush.
+        It would also risk a second instance of any item something else still
+        holds, which is the very fault being removed. Clearing mutates nothing the
+        flush is walking; the item simply re-resolves on next access.
+
+        Unconditional rather than only on the keep path, because an object dropped
+        from the map but held alive elsewhere has the same problem and Evennia
+        does not attempt any cleanup for it at all.
+        """
+        result = super().at_idmapper_flush()
+        self._state.fields_cache.clear()
+        for obj in self.contents:
+            obj._state.fields_cache.clear()
+        return result
+
     def at_object_creation(self):
         super().at_object_creation()
         # Auto-init composed mixins if present. Defensive pattern —
