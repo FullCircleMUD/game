@@ -17,9 +17,27 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 
-# Persistent connections. Postgres only — SQLite reconnects are free and
-# holding the file open across requests buys nothing.
-CONN_MAX_AGE = 600
+# Close each connection when the work that opened it finishes.
+#
+# Django reconsiders a persistent connection only when the same thread
+# next starts or finishes a request, and every thread here is
+# short-lived: a web request thread, or a worker dispatched by
+# defer_to_db_thread. A thread that serves one request and then goes
+# quiet is never asked again, so a non-zero age leaves the connection
+# open indefinitely rather than for that many seconds. Measured on
+# staging: the web pool drifted up ~2 connections an hour while the site
+# was quiet, and only gave them back when traffic happened to land on
+# those same threads.
+#
+# Zero costs a connect per unit of work — a few milliseconds on a local
+# socket — and bounds the count by concurrent work rather than by thread
+# pool size. It also means no thread holds a handle across an idle gap,
+# which is where a connection dies underneath us and the next query
+# raises InterfaceError.
+#
+# Postgres only. SQLite reconnects are free and holding the file open
+# across requests buys nothing.
+CONN_MAX_AGE = 0
 
 # An omitted port and an explicitly-stated default port name the same
 # server, but dj_database_url leaves PORT empty for the first and set for
