@@ -23,6 +23,7 @@ from utils.targeting.predicates import (
     p_object_visible_to,
     p_passes_lock,
     p_same_height_value,
+    p_worn,
 )
 
 _traversable = p_passes_lock("traverse")
@@ -1065,37 +1066,34 @@ def resolve_target(caller, target_str, target_type, aoe=None,
     #
     # Searches: caller.contents only — worn/equipped items.
     #
-    # Returns: a single worn item matching target_str, or None.
+    # Returns: the list of worn items matching target_str.
     #
-    # Structural filtering: none. Same rationale as items_inventory —
-    # actors, fixed world items and exits cannot exist in a character's
-    # contents. The walk passes only caller-supplied extra_predicates.
+    # Structural filtering: none beyond the worn check. Actors, fixed
+    # world items and exits cannot exist in a character's contents, so
+    # the walk passes p_worn plus caller-supplied extra_predicates.
     #
-    # ONLY worn items are returned. FCMCharacter.search supports an
-    # ``only_worn=True`` kwarg that filters to items the character
-    # has equipped via the wearslot system (``is_worn(obj)``).
-    #
-    # Same result-stage filtering as items_inventory above, and the
-    # same defect in mirror image: a carried item can win the match
-    # and be filtered out, hiding a worn one of the same name.
-    # ``p_worn`` is the candidate-stage form. Not migrated.
+    # ONLY worn items are candidates, via p_worn — the mirror of
+    # items_inventory, and filtered at candidate selection for the same
+    # reason. Filtering after the match lets a carried item win on an
+    # exact key and then be stripped, hiding the worn item the player
+    # meant. remove is the command that would feel it.
     #
     # Height is not relevant in an equipment search.
     #
     # Visibility, type checks etc. are the caller's responsibility
     # via extra_predicates.
+    #
+    # Returns the matched LIST, for the reasons given under
+    # items_inventory above. Callers wanting one object take the first.
     # ─────────────────────────────────────────────────────────────────
     if target_type == "items_equipped":
-        candidates = walk_contents(caller, caller, *extra_predicates)
+        candidates = walk_contents(caller, caller, p_worn, *extra_predicates)
         if not candidates:
-            return None, []
-        target = caller.search(
-            target_str, candidates=candidates,
-            quiet=True, only_worn=True, stacked=stacked,
+            return [], []
+        matches = caller.search(
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
-        if isinstance(target, list):
-            target = target[0] if target else None
-        return target, []
+        return list(make_iter(matches or [])), []
 
     # ── items_room_all ───────────────────────────────────────────────
     #

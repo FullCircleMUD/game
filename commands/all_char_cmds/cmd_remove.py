@@ -83,6 +83,7 @@ class CmdRemove(FCMCommandMixin, Command):
                 caller, parsed.search_term, "items_equipped",
                 extra_predicates=(p_can_perceive,),
             )
+            item = item[0] if item else None
             if not item:
                 caller.msg(f"You aren't wearing '{parsed.search_term}'.")
                 return

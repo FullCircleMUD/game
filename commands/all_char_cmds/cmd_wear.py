@@ -105,6 +105,7 @@ class CmdWear(FCMCommandMixin, Command):
                     caller, parsed.search_term, "items_equipped",
                     extra_predicates=(p_can_perceive,),
                 )
+                worn = worn[0] if worn else None
                 if worn:
                     caller.msg(f"You must remove {worn.key} first.")
                 else:

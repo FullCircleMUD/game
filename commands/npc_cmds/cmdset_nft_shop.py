@@ -70,6 +70,7 @@ def _match_worn(caller, item_name):
         caller, item_name, "items_equipped",
         extra_predicates=(p_is_typeclass(BaseNFTItem),),
     )
+    worn = worn[0] if worn else None
     return worn
 
 

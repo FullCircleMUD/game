@@ -122,6 +122,7 @@ class CmdDeposit(FCMCommandMixin, Command):
 
         if not matches:
             worn, _ = resolve_target(caller, search_term, "items_equipped")
+            worn = worn[0] if worn else None
             if worn:
                 caller.msg(f"You must remove {worn.key} first.")
             else:

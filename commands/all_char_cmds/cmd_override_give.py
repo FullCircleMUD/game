@@ -401,6 +401,7 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
             # "remove first" message instead of "not carrying" when the
             # only match is currently equipped.
             worn, _ = resolve_target(caller, search_term, "items_equipped")
+            worn = worn[0] if worn else None
             if worn:
                 caller.msg(f"You'll have to remove {worn.key} first.")
                 return

@@ -75,6 +75,7 @@ class CmdLight(FCMCommandMixin, Command):
             caller, query, "items_equipped",
             extra_predicates=(p_can_perceive,),
         )
+        item = item[0] if item else None
         if not item:
             caller.msg(f"You aren't wearing '{query}'.")
             return
@@ -129,6 +130,7 @@ class CmdExtinguish(FCMCommandMixin, Command):
             caller, query, "items_equipped",
             extra_predicates=(p_can_perceive,),
         )
+        item = item[0] if item else None
         if not item:
             caller.msg(f"You aren't wearing '{query}'.")
             return
