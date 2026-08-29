@@ -22,7 +22,46 @@ def at_server_init():
     """
     This is called first as the server is starting up, regardless of how.
     """
+    _patch_command_nesting_leak()
     _register_dungeon_templates()
+
+
+def _patch_command_nesting_leak():
+    """Stop Evennia's command-nesting counter pinning every actor forever.
+
+    ``cmdhandler._COMMAND_NESTING`` counts recursion depth per caller, but
+    only ever does ``+= 1`` / ``-= 1`` — it never removes the key. Because
+    it is a ``defaultdict`` keyed on the object itself, every character and
+    every mob that has ever run a single command keeps a strong reference
+    for the life of the process, and none of them can be garbage collected.
+
+    Characters accumulate one dead copy per IC/OOC cycle. Mobs land in it
+    too: they drive themselves through ``execute_cmd`` for attacking,
+    fleeing and wandering, so in practice every mob that has ever acted is
+    held.
+
+    Replacing the dict is enough — ``cmdhandler`` resolves the global at
+    call time, so no Evennia file is edited and this survives an upgrade.
+    Nested commands still balance, since only the outermost decrement
+    reaches zero.
+
+    Remove when upstream fixes it. ``tests/server_tests/test_command_nesting_leak.py``
+    fails loudly if a future Evennia renames or restructures the counter,
+    which would otherwise make this patch silently stop applying.
+    """
+    from collections import defaultdict
+    import evennia.commands.cmdhandler as cmdhandler
+
+    class _SelfClearingNesting(defaultdict):
+        """A nesting counter that forgets a caller once it returns to zero."""
+
+        def __setitem__(self, key, value):
+            if value <= 0:
+                self.pop(key, None)
+            else:
+                super().__setitem__(key, value)
+
+    cmdhandler._COMMAND_NESTING = _SelfClearingNesting(lambda: 0)
 
 
 def at_server_start():
