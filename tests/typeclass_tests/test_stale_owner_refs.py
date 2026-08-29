@@ -78,6 +78,9 @@ class TestActorClearsItsOwnPointers(EvenniaTest):
 class TestActorClearsItsContentsPointers(EvenniaTest):
     """The observed bug: equipment pinning a dead copy of its owner."""
 
+    # at_post_puppet writes a telemetry session row on the xrpl alias.
+    databases = "__all__"
+
     def create_script(self):
         pass
 
@@ -127,6 +130,52 @@ class TestActorClearsItsContentsPointers(EvenniaTest):
             "the hook evicted objects from the identity map",
         )
         self.assertIn(item.id, cache)
+
+    def test_puppeting_clears_stale_owner_references(self):
+        """The path that actually fires in production.
+
+        ``evennia_shards`` evicts a character at login with
+        ``flush_from_cache(force=True)``, and ``force`` short-circuits the
+        ``if force or self.at_idmapper_flush()`` test — so the flush hook never
+        runs on the path that replaces the instance. Verified live: tracing the
+        hook across an OOC/IC cycle recorded zero calls. ``at_post_puppet`` is
+        where the clearing has to happen.
+        """
+        # char1 comes with an account attached; at_post_puppet needs one.
+        char = self.char1
+        item = create.create_object(_VANILLA_OBJ, key="a torch", location=char)
+
+        item.location  # bind
+        self.assertIn("db_location", item._state.fields_cache)
+
+        char.at_post_puppet()
+
+        self.assertNotIn(
+            "db_location", item._state.fields_cache,
+            "carried item kept its stale owner across puppeting — the corpse "
+            "from the previous session stays pinned",
+        )
+
+    def test_force_flush_skips_the_idmapper_hook(self):
+        """Records why at_idmapper_flush alone was not enough.
+
+        If this ever fails, upstream has changed ``flush_from_cache`` to
+        consult the hook even under ``force``, and the at_post_puppet call
+        may be redundant.
+        """
+        char = create.create_object(_CHAR, key="Forced", location=self.room1)
+        calls = []
+        original = type(char).at_idmapper_flush
+        try:
+            type(char).at_idmapper_flush = lambda s: calls.append(s.pk) or True
+            char.flush_from_cache(force=True)
+        finally:
+            type(char).at_idmapper_flush = original
+        self.assertEqual(
+            calls, [],
+            "force=True now consults at_idmapper_flush — re-check whether the "
+            "at_post_puppet clearing is still needed",
+        )
 
     def test_survives_a_real_flush_without_raising(self):
         """The whole point of clearing over evicting — no mutation mid-walk."""

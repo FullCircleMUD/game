@@ -1198,6 +1198,17 @@ class FCMCharacter(
 
     def at_post_puppet(self, **kwargs):
         """Called after player connects to this character."""
+        # This instance is the replacement for one the login path evicted:
+        # evennia_shards calls flush_from_cache(force=True) in at_post_login so
+        # refresh_from_db() can re-read the row. Anything still holding the
+        # evicted copy keeps it alive — carried items cache their owner in
+        # _state.fields_cache and never look again, so equipment goes on
+        # pointing at the character that just left, one corpse per login.
+        #
+        # Clearing here rather than in at_idmapper_flush because force=True
+        # short-circuits that hook: it never runs on this path.
+        self.clear_stale_object_refs()
+
         # Distinguish an explicit @ic entry (where vanilla Evennia
         # messaging — "You become X" + "X has entered the game"
         # broadcast — is appropriate) from a mid-game cross-shard

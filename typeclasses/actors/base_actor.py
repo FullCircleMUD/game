@@ -233,10 +233,29 @@ class BaseActor(
         does not attempt any cleanup for it at all.
         """
         result = super().at_idmapper_flush()
+        self.clear_stale_object_refs()
+        return result
+
+    def clear_stale_object_refs(self):
+        """Drop this actor's cached foreign keys and those of what it carries.
+
+        Called from two places, because the identity map is left behind by two
+        different events and only one of them is a flush.
+
+        ``at_idmapper_flush`` covers the periodic flush. It is **not** enough on
+        its own: ``evennia_shards`` evicts a character at login with
+        ``flush_from_cache(force=True)``, and ``force`` short-circuits the
+        ``if force or self.at_idmapper_flush()`` test in Evennia's
+        ``flush_from_cache`` — so the hook never runs on the path that actually
+        replaces the instance. Verified live: tracing the hook and taking a
+        character out and back in recorded zero calls.
+
+        ``FCMCharacter.at_post_puppet`` covers that path, running once the
+        replacement instance exists so the carried items re-resolve onto it.
+        """
         self._state.fields_cache.clear()
         for obj in self.contents:
             obj._state.fields_cache.clear()
-        return result
 
     def at_object_creation(self):
         super().at_object_creation()
