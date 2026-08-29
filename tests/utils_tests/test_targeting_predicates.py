@@ -27,13 +27,17 @@ from utils.targeting.predicates import (
     p_is_typeclass,
     p_larger_than,
     p_living,
+    p_at_full_durability,
     p_not_actor,
     p_not_exit,
+    p_not_gem_inset,
     p_not_typeclass,
+    p_not_worn,
     p_object_visible_to,
     p_passes_lock,
     p_same_height,
     p_smaller_than,
+    p_worn,
 )
 
 
@@ -658,3 +662,73 @@ class TestPredicates(EvenniaTest):
 
     def test_p_excluding_with_nothing_admits_everything(self):
         self.assertTrue(p_excluding()(SimpleNamespace(), caller=None))
+
+    # ── p_not_worn / p_worn ───────────────────────────────────────
+
+    def _wearer(self, *worn):
+        """A caller whose ``is_worn`` reports the given objects as equipped."""
+        # Identity, not equality — two bare SimpleNamespaces compare equal.
+        return SimpleNamespace(is_worn=lambda obj: any(w is obj for w in worn))
+
+    def test_p_not_worn_rejects_equipped_item(self):
+        item = SimpleNamespace()
+        self.assertFalse(p_not_worn(item, self._wearer(item)))
+
+    def test_p_not_worn_admits_carried_item(self):
+        carried, equipped = SimpleNamespace(), SimpleNamespace()
+        self.assertTrue(p_not_worn(carried, self._wearer(equipped)))
+
+    def test_p_not_worn_admits_when_caller_cannot_wear(self):
+        """A chest or a mob has no wearslots — nothing it holds is worn."""
+        self.assertTrue(p_not_worn(SimpleNamespace(), SimpleNamespace()))
+
+    def test_p_worn_admits_equipped_item(self):
+        item = SimpleNamespace()
+        self.assertTrue(p_worn(item, self._wearer(item)))
+
+    def test_p_worn_rejects_carried_item(self):
+        carried, equipped = SimpleNamespace(), SimpleNamespace()
+        self.assertFalse(p_worn(carried, self._wearer(equipped)))
+
+    def test_p_worn_rejects_when_caller_cannot_wear(self):
+        self.assertFalse(p_worn(SimpleNamespace(), SimpleNamespace()))
+
+    def test_p_worn_and_p_not_worn_are_exact_opposites(self):
+        equipped, carried = SimpleNamespace(), SimpleNamespace()
+        wearer = self._wearer(equipped)
+        for obj in (equipped, carried):
+            self.assertNotEqual(p_worn(obj, wearer), p_not_worn(obj, wearer))
+
+    # ── p_at_full_durability ──────────────────────────────────────
+
+    def test_p_at_full_durability_admits_intact_item(self):
+        item = SimpleNamespace(max_durability=20, durability=20)
+        self.assertTrue(p_at_full_durability(item, caller=None))
+
+    def test_p_at_full_durability_rejects_damaged_item(self):
+        item = SimpleNamespace(max_durability=20, durability=19)
+        self.assertFalse(p_at_full_durability(item, caller=None))
+
+    def test_p_at_full_durability_admits_unbreakable_item(self):
+        """max_durability of 0 means the durability system is skipped."""
+        item = SimpleNamespace(max_durability=0, durability=None)
+        self.assertTrue(p_at_full_durability(item, caller=None))
+
+    def test_p_at_full_durability_admits_item_with_no_durability_at_all(self):
+        self.assertTrue(p_at_full_durability(SimpleNamespace(), caller=None))
+
+    def test_p_at_full_durability_treats_uninitialised_as_full(self):
+        """durability is None until at_durability_init runs."""
+        item = SimpleNamespace(max_durability=20, durability=None)
+        self.assertTrue(p_at_full_durability(item, caller=None))
+
+    # ── p_not_gem_inset ───────────────────────────────────────────
+
+    def test_p_not_gem_inset_rejects_inset_weapon(self):
+        self.assertFalse(p_not_gem_inset(SimpleNamespace(is_inset=True), None))
+
+    def test_p_not_gem_inset_admits_plain_weapon(self):
+        self.assertTrue(p_not_gem_inset(SimpleNamespace(is_inset=False), None))
+
+    def test_p_not_gem_inset_admits_item_that_cannot_be_inset(self):
+        self.assertTrue(p_not_gem_inset(SimpleNamespace(), caller=None))

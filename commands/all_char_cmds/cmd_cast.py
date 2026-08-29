@@ -120,6 +120,8 @@ class CmdCast(FCMCommandMixin, Command):
             aoe=spell_match.aoe,
             extra_predicates=extra,
         )
+        # items_inventory returns a list; actor types return one object.
+        target = next(iter(target), None) if isinstance(target, list) else target
         if target is None and spell_match.target_type != "none":
             return
 

@@ -8,7 +8,7 @@ checks. Compose them by filtering a candidate list before passing it to
 
 **Predicates are added only when a real consumer needs them.** Do not
 pre-populate this module with speculative filters. See
-docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
+design/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 
 
 ============================================================================
@@ -455,6 +455,72 @@ def p_is_open_exit(obj, caller):  # noqa: ARG001 — caller unused, uniform sign
     if getattr(obj, "is_locked", False):
         return False
     return getattr(obj, "is_open", True)
+
+
+def p_not_worn(obj, caller):
+    """True unless ``caller`` currently has ``obj`` equipped.
+
+    Worn gear stays in ``caller.contents``, so an inventory walk sees it
+    alongside everything carried. Any command that acts on carried items
+    — drop, give, deposit, sell — wants it filtered out at candidate
+    selection, BEFORE name matching. Filtering afterwards lets a worn
+    item win the match and leave nothing behind, so a spare with the
+    same name becomes unreachable.
+
+    A caller with no wearslots (a chest, a corpse, a mob) wears nothing,
+    so everything it holds passes.
+
+    Pairs with ``p_worn``. Commands that want to say "remove it first"
+    re-walk with ``p_worn`` once the carried walk comes back empty —
+    that message is command-layer policy, not a filter.
+    """
+    is_worn = getattr(caller, "is_worn", None)
+    return not (callable(is_worn) and is_worn(obj))
+
+
+def p_worn(obj, caller):
+    """True if ``caller`` currently has ``obj`` equipped.
+
+    The inverse of ``p_not_worn``. Consumers: ``remove``, and the
+    second pass of any command that needs to explain why the carried
+    walk found nothing.
+    """
+    is_worn = getattr(caller, "is_worn", None)
+    return bool(callable(is_worn) and is_worn(obj))
+
+
+def p_at_full_durability(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True if ``obj`` has taken no durability damage.
+
+    Reads ``DurabilityMixin``'s two attributes. ``max_durability == 0``
+    means the item is unbreakable and skips the durability system
+    entirely, so it is trivially at full durability. ``durability`` is
+    ``None`` until ``at_durability_init`` runs, which likewise means
+    nothing has damaged it yet.
+
+    An object with neither attribute passes — "not damaged" is the
+    honest answer for something that cannot be damaged.
+
+    Consumers: shopkeepers, who won't buy damaged goods.
+    """
+    max_dur = getattr(obj, "max_durability", 0) or 0
+    if max_dur <= 0:
+        return True
+    current = getattr(obj, "durability", None)
+    if current is None:
+        return True
+    return current >= max_dur
+
+
+def p_not_gem_inset(obj, caller):  # noqa: ARG001 — caller unused, uniform signature
+    """True unless ``obj`` has been modified with a gem inset.
+
+    ``is_inset`` comes from ``WeaponMechanicsMixin``; anything else
+    cannot be inset and passes.
+
+    Consumers: shopkeepers, who cannot price a bespoke item.
+    """
+    return not getattr(obj, "is_inset", False)
 
 
 def p_is_typeclass(*typeclasses):

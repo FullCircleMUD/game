@@ -16,7 +16,14 @@ touch the caller's game state, not the shop's pricing backend.
 """
 
 from evennia import Command
+
 from utils.db_threads import defer_to_db_thread
+from utils.targeting.helpers import resolve_target
+from utils.targeting.predicates import (
+    p_at_full_durability,
+    p_is_typeclass,
+    p_not_gem_inset,
+)
 
 from commands.command import FCMCommandMixin
 from commands.npc_cmds.cmdset_shop_base import (
@@ -44,33 +51,45 @@ def _find_item_type_by_name(name, tradeable_types):
     return None
 
 
-def _match_by_name(candidates, item_name):
-    """Return the members of ``candidates`` matching ``item_name``.
+def _match_carried(caller, item_name):
+    """Name-match ``item_name`` against the carried NFTs — worn gear excluded."""
+    from typeclasses.items.base_nft_item import BaseNFTItem
 
-    Exact key matches win outright; only when there are none does the
-    partial match run.
+    matches, _ = resolve_target(
+        caller, item_name, "items_inventory",
+        extra_predicates=(p_is_typeclass(BaseNFTItem),),
+    )
+    return matches
+
+
+def _match_worn(caller, item_name):
+    """Name-match against equipped NFTs — only to word the refusal."""
+    from typeclasses.items.base_nft_item import BaseNFTItem
+
+    worn, _ = resolve_target(
+        caller, item_name, "items_equipped",
+        extra_predicates=(p_is_typeclass(BaseNFTItem),),
+    )
+    return worn
+
+
+def _resolve_sale_type(item, tradeable_names):
+    """Resolve ``item`` to the NFTItemType this shop would trade it as.
+
+    The shop's own check, not a predicate — it leaves the object to
+    query the mirror and consult the stock list. Runs last, on the
+    handful of items that already matched by name.
+
+    Returns ``(item_type, None)`` or ``(None, refusal_message)``.
     """
-    name_lower = item_name.lower().strip()
-    exact = [obj for obj in candidates if obj.key.lower() == name_lower]
-    if exact:
-        return exact
-    return [obj for obj in candidates if name_lower in obj.key.lower()]
-
-
-def _check_sellable(item, tradeable_names):
-    """Judge one item against every gate the shop applies to a sale.
-
-    Returns ``(item_type, None)`` when the item can be sold here, or
-    ``(None, refusal_message)`` for the first gate it fails.
-    """
-    from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
     from blockchain.xrpl.models import NFTGameState
+    from blockchain.xrpl.services.nft import NFTService
 
     if not item.token_id:
         return None, f"{item.key} is not a valid NFT item."
 
     try:
-        nft = NFTGameState.objects.get(nftoken_id=str(item.token_id))
+        nft = NFTService.get_nft(item.token_id)
     except NFTGameState.DoesNotExist:
         return None, f"{item.key} has no blockchain record."
 
@@ -85,58 +104,63 @@ def _check_sellable(item, tradeable_names):
     if item_type.name not in tradeable_names:
         return None, f"This shop doesn't trade in {item_type.name}."
 
-    max_dur = getattr(item, "max_durability", 0) or 0
-    cur_dur = getattr(item, "durability", None)
-    if cur_dur is None:
-        cur_dur = max_dur
-    if max_dur > 0 and cur_dur < max_dur:
+    return item_type, None
+
+
+def _evaluate_for_sale(caller, item, tradeable_names):
+    """Put one item through every remaining gate the shop applies.
+
+    Predicates first — they read attributes the item already carries —
+    then the type resolution, which costs a query. Returns
+    ``(item_type, None)`` when the shop will buy this item, or
+    ``(None, refusal_message)`` for the first gate it fails.
+    """
+    if not p_at_full_durability(item, caller):
+        max_dur = getattr(item, "max_durability", 0) or 0
+        cur_dur = getattr(item, "durability", None)
+        if cur_dur is None:
+            cur_dur = max_dur
         return None, (
             f"I don't buy damaged goods. Repair your "
-            f"{item_type.name} first. ({cur_dur}/{max_dur} durability)"
+            f"{item.key} first. ({cur_dur}/{max_dur} durability)"
         )
 
-    if isinstance(item, WeaponNFTItem) and item.is_inset:
+    if not p_not_gem_inset(item, caller):
         return None, (
-            f"That {item_type.name} has been modified with a gem inset. "
+            f"That {item.key} has been modified with a gem inset. "
             f"I can't price bespoke items — try the auction house."
         )
 
-    return item_type, None
+    return _resolve_sale_type(item, tradeable_names)
 
 
 def _find_inventory_item(caller, item_name, tradeable_types):
     """Find an NFT in the caller's inventory eligible for sale at this shop.
 
-    Three steps, in order:
+    Three passes, in order:
 
-    1. **Name.** Matched against carried items only. Worn gear is not a
-       candidate, so it can neither be sold nor shadow a carried item
-       that shares its name. Worn items are matched separately, purely
-       to phrase the refusal when nothing carried matches.
+    1. **Name.** ``items_inventory`` filters the inventory to unworn
+       NFTs and matches the name against what survives. Worn gear is
+       not a candidate, so it can neither be sold nor shadow a carried
+       item sharing its name. An ``items_equipped`` lookup runs only to
+       phrase the refusal when nothing carried matched.
     2. **Ambiguity.** Decided on the name alone. Two identical pairs of
        pants are one answer, not a question; corduroy pants beside
        leather pants are a question.
-    3. **Condition.** Among the copies sharing that name, take one the
-       shop will actually buy. The refusal — damaged, gem-inset, not
-       stocked here — surfaces only when no copy passes.
+    3. **Condition.** Each matched item goes through the remaining
+       predicates and the shop's type resolution, one at a time. The
+       first item to pass everything is the sale. A refusal surfaces
+       only when no item passes.
 
     Returns ``(item_obj, item_type)`` or ``(None, None)`` with error
     messages sent to the caller.
     """
-    from typeclasses.items.base_nft_item import BaseNFTItem
-
-    can_check_worn = hasattr(caller, "is_worn")
-
-    def is_worn(obj):
-        return can_check_worn and caller.is_worn(obj)
-
-    nfts = [obj for obj in caller.contents if isinstance(obj, BaseNFTItem)]
-    matches = _match_by_name([obj for obj in nfts if not is_worn(obj)], item_name)
+    matches = _match_carried(caller, item_name)
 
     if not matches:
-        worn = _match_by_name([obj for obj in nfts if is_worn(obj)], item_name)
+        worn = _match_worn(caller, item_name)
         if worn:
-            caller.msg(f"Remove {worn[0].key} before selling it.")
+            caller.msg(f"Remove {worn.key} before selling it.")
         else:
             caller.msg(f"You don't have '{item_name}' in your inventory.")
         return None, None
@@ -148,7 +172,7 @@ def _find_inventory_item(caller, item_name, tradeable_types):
     tradeable_names = {t.name for t in tradeable_types}
     first_refusal = None
     for obj in matches:
-        item_type, refusal = _check_sellable(obj, tradeable_names)
+        item_type, refusal = _evaluate_for_sale(caller, obj, tradeable_names)
         if item_type is not None:
             return obj, item_type
         if first_refusal is None:

@@ -104,6 +104,8 @@ class CmdZap(FCMCommandMixin, Command):
             aoe=spell.aoe,
             extra_predicates=extra,
         )
+        # items_inventory returns a list; actor types return one object.
+        target = next(iter(target), None) if isinstance(target, list) else target
         if target is None and spell.target_type != "none":
             return
 

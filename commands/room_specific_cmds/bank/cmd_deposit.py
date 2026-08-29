@@ -28,6 +28,7 @@ from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 from typeclasses.items.base_nft_item import BaseNFTItem
 from utils.item_parse import parse_item_args
+from utils.targeting.helpers import resolve_target
 
 GOLD = settings.GOLD_DISPLAY
 
@@ -108,17 +109,32 @@ class CmdDeposit(FCMCommandMixin, Command):
             caller.msg("Something went wrong depositing that item.")
 
     def _deposit_item(self, caller, bank, search_term):
-        """Deposit an item from inventory by name (fuzzy match)."""
-        obj = caller.search(
-            search_term,
-            location=caller,
-            nofound_string=f"You aren't carrying '{search_term}'.",
-            exclude_worn=True,
-        )
-        if not obj:
+        """Deposit an item from inventory by name (fuzzy match).
+
+        Worn gear is filtered out at candidate selection, so it can
+        neither be deposited nor shadow a carried item sharing its name;
+        a worn-only match runs afterwards purely to say so. Identical
+        copies are not an ambiguous request — bank one of them. Whether
+        an item is bankable is judged per item, so a non-NFT match never
+        blocks an NFT one with the same name.
+        """
+        matches, _ = resolve_target(caller, search_term, "items_inventory")
+
+        if not matches:
+            worn, _ = resolve_target(caller, search_term, "items_equipped")
+            if worn:
+                caller.msg(f"You must remove {worn.key} first.")
+            else:
+                caller.msg(f"You aren't carrying '{search_term}'.")
             return
 
-        if not isinstance(obj, BaseNFTItem):
+        if len({obj.key.lower() for obj in matches}) > 1:
+            # Distinct names — let Evennia render its multimatch list.
+            caller.search(search_term, candidates=matches)
+            return
+
+        obj = next((o for o in matches if isinstance(o, BaseNFTItem)), None)
+        if obj is None:
             caller.msg("You can only deposit NFT items into the bank.")
             return
 

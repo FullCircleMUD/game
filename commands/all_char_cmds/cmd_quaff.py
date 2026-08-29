@@ -80,6 +80,7 @@ class CmdQuaff(FCMCommandMixin, Command):
             caller, query, "items_inventory",
             extra_predicates=(p_can_perceive,),
         )
+        item = item[0] if item else None
         if not item:
             caller.msg(f"You aren't carrying '{query}'.")
             return

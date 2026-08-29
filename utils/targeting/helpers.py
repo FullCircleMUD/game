@@ -3,8 +3,10 @@
 Thin wrappers over ``caller.search`` that pre-filter candidate lists
 with FCM semantic predicates and then delegate string matching to
 Evennia. Helpers are added only when a real consumer needs them — see
-docs/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
+design/unified-search-system.md and the Evennia-first rule in CLAUDE.md.
 """
+
+from evennia.utils.utils import make_iter
 
 from utils.targeting.predicates import (
     p_can_perceive,
@@ -17,6 +19,7 @@ from utils.targeting.predicates import (
     p_living,
     p_not_actor,
     p_not_exit,
+    p_not_worn,
     p_object_visible_to,
     p_passes_lock,
     p_same_height_value,
@@ -1022,26 +1025,41 @@ def resolve_target(caller, target_str, target_type, aoe=None,
     # needed to exclude them. 
     # The walk passes only caller-supplied extra_predicates.
     #
-    # Worn/equipped items are excluded via Evennia's exclude_worn
-    # search kwarg — this is NOT a predicate, it's handled by
-    # caller.search() at the name-matching step.
+    # Worn/equipped items are excluded by p_not_worn, in the walk —
+    # at candidate selection, BEFORE the name match runs.
+    #
+    # That ordering is the point. Evennia's search prefers an exact key
+    # match over a longer partial one, so a worn item whose name is
+    # exactly what the player typed wins outright and the carried item
+    # that would otherwise have matched is discarded as weaker. Strip
+    # the worn one afterwards and nothing is left — the carried item
+    # never entered the results to survive the strip. Filter first and
+    # the worn item never competes.
+    #
+    # The cost is the "remove it first" message: an item that is not a
+    # candidate cannot be reported. Callers recover it with a second
+    # items_equipped lookup when this one comes back empty — see
+    # cmd_drop, cmd_give, cmd_wear.
     #
     # Height is not relevant in an inventory search
     #
     # Visibility, container checks etc. are the caller's
     # responsibility via extra_predicates.
+    #
+    # Returns the matched LIST, never a single object. Collapsing here
+    # would hide ambiguity from every caller and make the reason an
+    # item was rejected unrecoverable. What several matches mean is a
+    # command-layer judgement: identical copies are usually an answer,
+    # two different items are a question.
     # ─────────────────────────────────────────────────────────────────
     if target_type == "items_inventory":
-        candidates = walk_contents(caller, caller, *extra_predicates)
+        candidates = walk_contents(caller, caller, p_not_worn, *extra_predicates)
         if not candidates:
-            return None, []
-        target = caller.search(
-            target_str, candidates=candidates,
-            quiet=True, exclude_worn=True, stacked=stacked,
+            return [], []
+        matches = caller.search(
+            target_str, candidates=candidates, quiet=True, stacked=stacked,
         )
-        if isinstance(target, list):
-            target = target[0] if target else None
-        return target, []
+        return list(make_iter(matches or [])), []
 
     # ── items_equipped ───────────────────────────────────────────────
     #
@@ -1056,6 +1074,11 @@ def resolve_target(caller, target_str, target_type, aoe=None,
     # ONLY worn items are returned. FCMCharacter.search supports an
     # ``only_worn=True`` kwarg that filters to items the character
     # has equipped via the wearslot system (``is_worn(obj)``).
+    #
+    # Same result-stage filtering as items_inventory above, and the
+    # same defect in mirror image: a carried item can win the match
+    # and be filtered out, hiding a worn one of the same name.
+    # ``p_worn`` is the candidate-stage form. Not migrated.
     #
     # Height is not relevant in an equipment search.
     #

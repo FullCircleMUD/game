@@ -410,6 +410,7 @@ class CmdOffer(CmdTradeBase):
                     caller, name, "items_inventory",
                     extra_predicates=(p_can_see,),
                 )
+                obj = obj[0] if obj else None
                 if not obj:
                     caller.msg(f"You aren't carrying '{name}'.")
                     return

@@ -69,6 +69,7 @@ class CmdRefill(FCMCommandMixin, Command):
             caller, self.container_name, "items_inventory",
             extra_predicates=(p_can_see,),
         )
+        container = container[0] if container else None
         if not container:
             caller.msg(
                 f"You don't see '{self.container_name}' in your inventory."

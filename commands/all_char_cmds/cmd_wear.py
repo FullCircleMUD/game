@@ -98,6 +98,7 @@ class CmdWear(FCMCommandMixin, Command):
                 caller, parsed.search_term, "items_inventory",
                 extra_predicates=(p_can_perceive,),
             )
+            item = item[0] if item else None
             if not item:
                 # Check if already worn — specific error vs "not carrying"
                 worn, _ = resolve_target(

@@ -71,6 +71,7 @@ class CmdDrink(FCMCommandMixin, Command):
                 caller, query, "items_inventory",
                 extra_predicates=(p_can_perceive,),
             )
+            container = container[0] if container else None
             if not container:
                 caller.msg(f"You aren't carrying '{query}'.")
                 return

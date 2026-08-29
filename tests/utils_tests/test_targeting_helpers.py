@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from evennia.objects.objects import DefaultCharacter, DefaultExit
+from evennia.utils import create
 from evennia.utils.test_resources import EvenniaTest
 
 from utils.targeting.helpers import (
@@ -1442,6 +1443,9 @@ class TestResolveTargetInventoryItems(EvenniaTest):
         caller = MagicMock()
         caller.msg = MagicMock()
         caller.location = SimpleNamespace(contents=[])
+        # A bare MagicMock returns a truthy mock for everything, which
+        # p_not_worn would read as "all of it is equipped".
+        caller.is_worn = MagicMock(return_value=False)
         return caller
 
     # ── items_inventory ──────────────────────────────────────────
@@ -1450,32 +1454,23 @@ class TestResolveTargetInventoryItems(EvenniaTest):
         sword = _make_item("sword")
         caller = self._caller()
         caller.contents = [sword]
-        caller.search = MagicMock(return_value=sword)
+        caller.search = MagicMock(return_value=[sword])
         target, _ = resolve_target(caller, "sword", "items_inventory")
-        self.assertIs(target, sword)
+        self.assertEqual(target, [sword])
 
-    def test_items_inventory_passes_exclude_worn(self):
-        sword = _make_item("sword")
-        caller = self._caller()
-        caller.contents = [sword]
-        caller.search = MagicMock(return_value=sword)
-        resolve_target(caller, "sword", "items_inventory")
-        _, kwargs = caller.search.call_args
-        self.assertTrue(kwargs.get("exclude_worn"))
-
-    def test_items_inventory_empty_returns_none(self):
+    def test_items_inventory_empty_returns_empty(self):
         caller = self._caller()
         caller.contents = []
         target, _ = resolve_target(caller, "sword", "items_inventory")
-        self.assertIsNone(target)
+        self.assertEqual(target, [])
 
-    def test_items_inventory_no_match_returns_none(self):
+    def test_items_inventory_no_match_returns_empty(self):
         sword = _make_item("sword")
         caller = self._caller()
         caller.contents = [sword]
         caller.search = MagicMock(return_value=None)
         target, _ = resolve_target(caller, "hammer", "items_inventory")
-        self.assertIsNone(target)
+        self.assertEqual(target, [])
 
     def test_items_inventory_passes_stacked(self):
         coin = _make_item("coin")
@@ -1510,6 +1505,134 @@ class TestResolveTargetInventoryItems(EvenniaTest):
         caller.contents = []
         target, _ = resolve_target(caller, "helm", "items_equipped")
         self.assertIsNone(target)
+
+
+def _matches(result):
+    """Normalise a resolver result to a list, whatever shape it came in.
+
+    Lets the behaviour tests below assert what was found without also
+    asserting how it was packaged — the packaging is pinned separately
+    by TestItemsInventoryReturnShape.
+    """
+    if result is None:
+        return []
+    if isinstance(result, (list, tuple)):
+        return list(result)
+    return [result]
+
+
+class TestItemsInventoryBehaviour(EvenniaTest):
+    """What ``items_inventory`` finds, using a real character and real search.
+
+    The class above mocks ``caller.search`` and therefore tests the
+    plumbing — which kwargs were passed — not the outcome. These tests
+    run the real matcher over a real inventory, which is the only way
+    the worn-item interactions show up.
+    """
+
+    def create_script(self):
+        pass
+
+    def _carry(self, key, worn=False):
+        item = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+        if worn:
+            slots = self.char1.db.wearslots
+            free = next(s for s, occupant in slots.items() if occupant is None)
+            slots[free] = item
+            self.char1.db.wearslots = slots
+        return item
+
+    def _resolve(self, term, **kwargs):
+        target, _ = resolve_target(self.char1, term, "items_inventory", **kwargs)
+        return _matches(target)
+
+    def test_finds_a_carried_item_by_full_name(self):
+        cap = self._carry("leather cap")
+        self.assertIn(cap, self._resolve("leather cap"))
+
+    def test_finds_a_carried_item_by_partial_name(self):
+        cap = self._carry("leather cap")
+        self.assertIn(cap, self._resolve("leather"))
+
+    def test_empty_inventory_finds_nothing(self):
+        self.assertEqual(self._resolve("leather cap"), [])
+
+    def test_no_match_finds_nothing(self):
+        self._carry("leather cap")
+        self.assertEqual(self._resolve("hammer"), [])
+
+    def test_worn_item_is_never_returned(self):
+        self._carry("leather cap", worn=True)
+        self.assertEqual(self._resolve("leather cap"), [])
+
+    def test_extra_predicates_are_applied(self):
+        self._carry("leather cap")
+        rejects_everything = lambda obj, caller: False  # noqa: E731
+        self.assertEqual(
+            self._resolve("leather cap", extra_predicates=(rejects_everything,)),
+            [],
+        )
+
+    def test_worn_exact_name_does_not_shadow_a_carried_item(self):
+        """The worn cap wins the exact match, then is stripped — and the
+        carried cap was already discarded as the weaker partial match."""
+        self._carry("leather cap", worn=True)
+        warding = self._carry("leather cap of warding")
+        self.assertIn(warding, self._resolve("leather cap"))
+
+    def test_two_distinct_matches_are_both_returned(self):
+        """Genuinely ambiguous — the caller must get both and decide."""
+        leather = self._carry("leather cap")
+        iron = self._carry("iron cap")
+        found = self._resolve("cap")
+        self.assertIn(leather, found)
+        self.assertIn(iron, found)
+
+    def test_identical_copies_are_both_returned(self):
+        """Not ambiguous to a player, but the caller still decides that."""
+        first = self._carry("leather cap")
+        second = self._carry("leather cap")
+        found = self._resolve("leather cap")
+        self.assertIn(first, found)
+        self.assertIn(second, found)
+
+
+class TestItemsInventoryReturnShape(EvenniaTest):
+    """``items_inventory`` returns the matched list, never a single object.
+
+    Collapsing to ``target[0]`` inside the resolver hides ambiguity from
+    every caller and makes the refusal reason unrecoverable. Deciding
+    what several matches mean belongs to the command.
+    """
+
+    def create_script(self):
+        pass
+
+    def _carry(self, key):
+        return create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+
+    def test_a_single_match_still_returns_a_list(self):
+        self._carry("leather cap")
+        target, _ = resolve_target(self.char1, "leather cap", "items_inventory")
+        self.assertIsInstance(target, list)
+        self.assertEqual(len(target), 1)
+
+    def test_no_match_returns_an_empty_list(self):
+        self._carry("leather cap")
+        target, _ = resolve_target(self.char1, "hammer", "items_inventory")
+        self.assertEqual(target, [])
+
+    def test_empty_inventory_returns_an_empty_list(self):
+        target, _ = resolve_target(self.char1, "leather cap", "items_inventory")
+        self.assertEqual(target, [])
 
 
 class TestResolveTargetRoomItems(EvenniaTest):

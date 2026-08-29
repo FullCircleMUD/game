@@ -81,6 +81,7 @@ class CmdRefuel(FCMCommandMixin, Command):
             caller, query, "items_inventory",
             extra_predicates=(p_can_perceive,),
         )
+        item = item[0] if item else None
         if not item:
             item, _ = resolve_target(
                 caller, query, "items_equipped",

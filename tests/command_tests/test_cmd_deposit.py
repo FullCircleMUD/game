@@ -164,3 +164,109 @@ class TestCmdDepositNFT(EvenniaCommandTest):
     def test_deposit_unknown_arg(self):
         """deposit with unrecognized argument tries item search."""
         self.call(CmdDeposit(), "banana", "You aren't carrying")
+
+
+class TestCmdDepositDuplicates(EvenniaCommandTest):
+    """Depositing by name when several items answer to that name.
+
+    Identical copies are not an ambiguous request — deposit one. Worn
+    gear is not a candidate at all, and must not turn a deposit of the
+    spare in your pack into a question.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_bank.RoomBank"
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.bank = create.create_object(
+            "typeclasses.accounts.account_bank.AccountBank",
+            key=f"bank-{self.account.key}",
+            nohome=True,
+        )
+        self.bank.wallet_address = WALLET_A
+        self.account.db.bank = self.bank
+        self._next_token = 500
+
+    def _make_item(self, key, worn=False):
+        """Put an NFT in char1's inventory without firing the mirror hooks."""
+        self._next_token += 1
+        item = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key=key,
+            nohome=True,
+        )
+        item.token_id = self._next_token
+        item.db_location = self.char1
+        item.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()
+
+        if worn:
+            slots = self.char1.db.wearslots
+            free = next(s for s, occupant in slots.items() if occupant is None)
+            slots[free] = item
+            self.char1.db.wearslots = slots
+
+        return item
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_two_identical_copies_deposit_one(self, _mock_bank):
+        """Two of the same thing is not a question — bank one of them."""
+        first = self._make_item("Brown Corduroy Pants")
+        second = self._make_item("Brown Corduroy Pants")
+
+        self.call(
+            CmdDeposit(), "brown corduroy pants",
+            "You deposit Brown Corduroy Pants",
+        )
+        banked = [o for o in (first, second) if o.location == self.bank]
+        self.assertEqual(len(banked), 1)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_worn_copy_does_not_block_depositing_a_spare(self, _mock_bank):
+        """The reported shape: wearing one pair, carrying two spares."""
+        worn = self._make_item("Brown Corduroy Pants", worn=True)
+        spare_a = self._make_item("Brown Corduroy Pants")
+        spare_b = self._make_item("Brown Corduroy Pants")
+
+        self.call(
+            CmdDeposit(), "brown corduroy pants",
+            "You deposit Brown Corduroy Pants",
+        )
+        self.assertEqual(worn.location, self.char1)
+        banked = [o for o in (spare_a, spare_b) if o.location == self.bank]
+        self.assertEqual(len(banked), 1)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_only_copy_worn_asks_for_removal(self, _mock_bank):
+        worn = self._make_item("Brown Corduroy Pants", worn=True)
+
+        self.call(CmdDeposit(), "brown corduroy pants", "You must remove")
+        self.assertEqual(worn.location, self.char1)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_different_names_still_ask_which(self, _mock_bank):
+        """Two distinct items sharing a word is a real ambiguity."""
+        corduroy = self._make_item("Brown Corduroy Pants")
+        leather = self._make_item("Black Leather Pants")
+
+        self.call(CmdDeposit(), "pants", "More than one match")
+        self.assertEqual(corduroy.location, self.char1)
+        self.assertEqual(leather.location, self.char1)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_worn_exact_match_does_not_shadow_a_carried_item(self, _mock_bank):
+        """An exact-named worn item must not hide a carried longer name."""
+        worn = self._make_item("Brown Corduroy Pants", worn=True)
+        deluxe = self._make_item("Brown Corduroy Pants Deluxe")
+
+        self.call(
+            CmdDeposit(), "brown corduroy pants",
+            "You deposit Brown Corduroy Pants Deluxe",
+        )
+        self.assertEqual(worn.location, self.char1)
+        self.assertEqual(deluxe.location, self.bank)

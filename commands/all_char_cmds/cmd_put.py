@@ -186,6 +186,7 @@ class CmdPut(FCMCommandMixin, Command):
             caller, search_term, "items_inventory",
             extra_predicates=(p_can_perceive,),
         )
+        obj = obj[0] if obj else None
         if not obj:
             caller.msg(f"You aren't carrying '{search_term}'.")
             return

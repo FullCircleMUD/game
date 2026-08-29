@@ -28,6 +28,7 @@ from evennia.utils import create
 from evennia.utils.test_resources import EvenniaCommandTest
 
 from blockchain.xrpl.models import NFTGameState, NFTItemType
+from blockchain.xrpl.services.nft import NFTService
 from commands.npc_cmds.cmdset_nft_shop import _find_inventory_item
 
 
@@ -83,9 +84,13 @@ class NFTShopMatchingTest(EvenniaCommandTest):
         self._next_token = 9000
         self.char1.msg = MagicMock()
 
+        # The mirror hooks fire on move_to, so the service is stubbed —
+        # but get_nft is a plain mirror read the shop depends on, so it
+        # keeps its real implementation.
         patcher = patch("blockchain.xrpl.services.nft.NFTService")
         self.addCleanup(patcher.stop)
-        patcher.start()
+        service = patcher.start()
+        service.get_nft.side_effect = NFTService.get_nft
 
     # ── builders ─────────────────────────────────────────────────────
 
