@@ -299,6 +299,41 @@ class CombatMob(CombatMixin, StateMachineAIMixin, FungibleInventoryMixin, Follow
     #  Movement
     # ================================================================== #
 
+    # >>>>>>>>>>>>>>>>>>>>>>>> DIAGNOSTIC — REMOVE ME <<<<<<<<<<<<<<<<<<<<<<<<
+    #
+    # GHOST-MOB DIAGNOSTIC. Not a fix. Delete this whole method when the
+    # question below has been answered. Grep for "DIAGNOSTIC — REMOVE ME".
+    #
+    # The question: is ghosting a contents-cache-versus-database divergence
+    # at all? Four sessions have assumed so and none has proven it. This
+    # settles it by brute force — after every mob move, both rooms' caches
+    # are thrown away and rebuilt from the rows, so no cached entry can
+    # survive a move regardless of how it got there.
+    #
+    #   Ghosting STOPS   -> it is a cache divergence, confirmed. The hunt
+    #                       narrows to why the cache diverges.
+    #   Ghosting CONTINUES -> it is NOT a cache problem, and the framing in
+    #                       ops/scratch/ghost-mob-diagnosis-2026-08-21.md is
+    #                       wrong from the start. More valuable answer.
+    #
+    # Cost: two indexed queries per mob move. Tolerable for a diagnostic on
+    # one zone; unacceptable at the scale this game is heading for. It must
+    # not ship.
+    #
+    # ``__dict__.get`` rather than the ``contents_cache`` property on
+    # purpose: reading the property BUILDS a cache on a room that has none,
+    # and building one instantiates everything in it. That is the trap that
+    # voided an earlier round of readings — see "Measurement traps" in the
+    # diagnosis file. Only rooms that already have a cache are rebuilt; a
+    # room without one has nothing stale to fix.
+    def at_post_move(self, source_location, **kwargs):
+        super().at_post_move(source_location, **kwargs)
+        for room in (source_location, self.location):
+            handler = room.__dict__.get("contents_cache") if room else None
+            if handler is not None:
+                handler.init()
+    # >>>>>>>>>>>>>>>>>>>>>>>> DIAGNOSTIC — REMOVE ME <<<<<<<<<<<<<<<<<<<<<<<<
+
     def wander(self):
         """Move to a random adjacent room within the mob's area."""
         if self.max_per_room > 0:
