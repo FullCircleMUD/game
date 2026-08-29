@@ -44,90 +44,118 @@ def _find_item_type_by_name(name, tradeable_types):
     return None
 
 
-def _find_inventory_item(caller, item_name, tradeable_types):
-    """Find an NFT in the caller's inventory eligible for sale at this shop.
+def _match_by_name(candidates, item_name):
+    """Return the members of ``candidates`` matching ``item_name``.
 
-    Returns ``(item_obj, item_type)`` or ``(None, None)`` with error
-    messages sent to the caller.
+    Exact key matches win outright; only when there are none does the
+    partial match run.
     """
-    from typeclasses.items.base_nft_item import BaseNFTItem
+    name_lower = item_name.lower().strip()
+    exact = [obj for obj in candidates if obj.key.lower() == name_lower]
+    if exact:
+        return exact
+    return [obj for obj in candidates if name_lower in obj.key.lower()]
+
+
+def _check_sellable(item, tradeable_names):
+    """Judge one item against every gate the shop applies to a sale.
+
+    Returns ``(item_type, None)`` when the item can be sold here, or
+    ``(None, refusal_message)`` for the first gate it fails.
+    """
     from typeclasses.items.weapons.weapon_nft_item import WeaponNFTItem
     from blockchain.xrpl.models import NFTGameState
 
-    name_lower = item_name.lower().strip()
-
-    # Exact match on inventory items first
-    item = None
-    for obj in caller.contents:
-        if not isinstance(obj, BaseNFTItem):
-            continue
-        if obj.key.lower() == name_lower:
-            item = obj
-            break
-
-    if item is None:
-        partials = [
-            obj for obj in caller.contents
-            if isinstance(obj, BaseNFTItem) and name_lower in obj.key.lower()
-        ]
-        if len(partials) == 1:
-            item = partials[0]
-        elif len(partials) > 1:
-            caller.msg("I'm afraid you'll have to be more specific.")
-            return None, None
-
-    if item is None:
-        caller.msg(f"You don't have '{item_name}' in your inventory.")
-        return None, None
-
     if not item.token_id:
-        caller.msg(f"{item.key} is not a valid NFT item.")
-        return None, None
+        return None, f"{item.key} is not a valid NFT item."
 
     try:
         nft = NFTGameState.objects.get(nftoken_id=str(item.token_id))
     except NFTGameState.DoesNotExist:
-        caller.msg(f"{item.key} has no blockchain record.")
-        return None, None
+        return None, f"{item.key} has no blockchain record."
 
     if not nft.item_type:
-        caller.msg(f"{item.key} has no item type assigned.")
-        return None, None
+        return None, f"{item.key} has no item type assigned."
 
     item_type = nft.item_type
 
     if not item_type.tracking_token:
-        caller.msg(f"I don't deal in {item_type.name}.")
-        return None, None
+        return None, f"I don't deal in {item_type.name}."
 
-    tradeable_names = {t.name for t in tradeable_types}
     if item_type.name not in tradeable_names:
-        caller.msg(f"This shop doesn't trade in {item_type.name}.")
-        return None, None
+        return None, f"This shop doesn't trade in {item_type.name}."
 
     max_dur = getattr(item, "max_durability", 0) or 0
     cur_dur = getattr(item, "durability", None)
     if cur_dur is None:
         cur_dur = max_dur
     if max_dur > 0 and cur_dur < max_dur:
-        caller.msg(
+        return None, (
             f"I don't buy damaged goods. Repair your "
             f"{item_type.name} first. ({cur_dur}/{max_dur} durability)"
         )
-        return None, None
 
     if isinstance(item, WeaponNFTItem) and item.is_inset:
-        caller.msg(
+        return None, (
             f"That {item_type.name} has been modified with a gem inset. "
             f"I can't price bespoke items — try the auction house."
         )
+
+    return item_type, None
+
+
+def _find_inventory_item(caller, item_name, tradeable_types):
+    """Find an NFT in the caller's inventory eligible for sale at this shop.
+
+    Three steps, in order:
+
+    1. **Name.** Matched against carried items only. Worn gear is not a
+       candidate, so it can neither be sold nor shadow a carried item
+       that shares its name. Worn items are matched separately, purely
+       to phrase the refusal when nothing carried matches.
+    2. **Ambiguity.** Decided on the name alone. Two identical pairs of
+       pants are one answer, not a question; corduroy pants beside
+       leather pants are a question.
+    3. **Condition.** Among the copies sharing that name, take one the
+       shop will actually buy. The refusal — damaged, gem-inset, not
+       stocked here — surfaces only when no copy passes.
+
+    Returns ``(item_obj, item_type)`` or ``(None, None)`` with error
+    messages sent to the caller.
+    """
+    from typeclasses.items.base_nft_item import BaseNFTItem
+
+    can_check_worn = hasattr(caller, "is_worn")
+
+    def is_worn(obj):
+        return can_check_worn and caller.is_worn(obj)
+
+    nfts = [obj for obj in caller.contents if isinstance(obj, BaseNFTItem)]
+    matches = _match_by_name([obj for obj in nfts if not is_worn(obj)], item_name)
+
+    if not matches:
+        worn = _match_by_name([obj for obj in nfts if is_worn(obj)], item_name)
+        if worn:
+            caller.msg(f"Remove {worn[0].key} before selling it.")
+        else:
+            caller.msg(f"You don't have '{item_name}' in your inventory.")
         return None, None
 
-    if hasattr(caller, "is_worn") and caller.is_worn(item):
-        caller.msg(f"Remove {item.key} before selling it.")
+    if len({obj.key.lower() for obj in matches}) > 1:
+        caller.msg("I'm afraid you'll have to be more specific.")
         return None, None
 
-    return item, item_type
+    tradeable_names = {t.name for t in tradeable_types}
+    first_refusal = None
+    for obj in matches:
+        item_type, refusal = _check_sellable(obj, tradeable_names)
+        if item_type is not None:
+            return obj, item_type
+        if first_refusal is None:
+            first_refusal = refusal
+
+    caller.msg(first_refusal)
+    return None, None
 
 
 # ── CmdNFTQuote ──────────────────────────────────────────────────────
