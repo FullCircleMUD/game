@@ -9,7 +9,7 @@ Usage (OOC, superuser only):
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdReconcile(Command):
@@ -50,7 +50,7 @@ class CmdReconcile(Command):
         caller.msg("|c--- XRPL Reconciliation ---|n")
         caller.msg("Querying vault on-chain balances...")
 
-        d = threads.deferToThread(_run_reconcile)
+        d = defer_to_db_thread(_run_reconcile)
         d.addCallback(lambda rows: _on_reconcile_complete(caller, rows))
         d.addErrback(lambda f: _on_reconcile_error(caller, f))
 

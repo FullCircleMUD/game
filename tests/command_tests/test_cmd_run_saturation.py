@@ -8,7 +8,7 @@ the role guard is patched at its source, evennia_shards.get_role.
 NFTSaturationService.take_snapshot() itself is mocked out — it's
 already covered thoroughly by tests/script_tests/test_nft_saturation.py.
 These tests are about the command's own logic: dispatch, the
-hours/rows count query, and message formatting. threads.deferToThread
+hours/rows count query, and message formatting. defer_to_db_thread
 is patched with a side effect that actually runs the closure passed to
 it (catching exceptions into a fake Failure), so the inline
 _run()/_done() functions execute for real instead of being skipped.
@@ -63,7 +63,7 @@ def _saturation(hour, item_key="ZZZ Test Spell", category="spell"):
     )
 
 
-@patch("commands.account_cmds.cmd_run_saturation.threads.deferToThread",
+@patch("commands.account_cmds.cmd_run_saturation.defer_to_db_thread",
        side_effect=_sync_defer)
 @patch(TAKE_SNAPSHOT)
 @patch("evennia_shards.get_role")
@@ -92,7 +92,7 @@ class TestRunSaturationRoleGuard(EvenniaCommandTest):
         mock_snapshot.assert_called_once()
 
 
-@patch("commands.account_cmds.cmd_run_saturation.threads.deferToThread",
+@patch("commands.account_cmds.cmd_run_saturation.defer_to_db_thread",
        side_effect=_sync_defer)
 @patch(TAKE_SNAPSHOT)
 @patch("evennia_shards.get_role", return_value="monolith")

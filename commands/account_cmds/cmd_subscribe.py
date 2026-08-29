@@ -12,7 +12,7 @@ from django.conf import settings
 from evennia import Command
 from evennia.utils import delay
 from evennia.utils.evmenu import get_input
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 MAX_POLL_ATTEMPTS = 60  # 2 seconds × 60 = 2-minute timeout
 
@@ -175,7 +175,7 @@ def _on_subscribe_confirmed(
     })]
 
     account.msg("|cCreating payment request...|n")
-    d = threads.deferToThread(
+    d = defer_to_db_thread(
         _create_subscription_payload,
         destination,
         hex_code,
@@ -243,7 +243,7 @@ def _poll_subscription_payment(
         _msg(account, "|r--- Timed out waiting for Xaman signing ---|n")
         return
 
-    d = threads.deferToThread(_get_payload_status, uuid)
+    d = defer_to_db_thread(_get_payload_status, uuid)
     d.addCallback(
         lambda status: _on_poll_result(
             account,
@@ -300,7 +300,7 @@ def _on_poll_result(
 
     # Verify on-chain in worker thread
     account.msg("|cVerifying on-chain payment...|n")
-    d = threads.deferToThread(
+    d = defer_to_db_thread(
         _verify_subscription_payment,
         tx_hash,
         destination,

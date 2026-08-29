@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from evennia import DefaultScript
 from evennia.utils import logger
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
@@ -67,7 +67,7 @@ class UnifiedSpawnScript(HeartbeatMixin, DefaultScript):
                 return
             self.db.last_run_hour = hour_bucket
 
-            threads.deferToThread(self._service.run_hourly_cycle)
+            defer_to_db_thread(self._service.run_hourly_cycle)
 
             self.record_work()
         except Exception:

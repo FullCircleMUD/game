@@ -2,7 +2,7 @@
 from evennia.utils import logger
 from evennia.utils.create import create_object
 from evennia.utils.utils import delay
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from enums.condition import Condition
 from enums.death_cause import DeathCause
@@ -1640,7 +1640,7 @@ class FCMCharacter(
                 logger.log_trace()
             return
 
-        d = threads.deferToThread(archive, self)
+        d = defer_to_db_thread(archive, self)
         d.addErrback(
             lambda failure: logger.log_err(
                 f"Failed to archive character {self}: {failure.getTraceback()}"

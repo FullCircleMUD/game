@@ -177,9 +177,9 @@ class TestCosignerKeepAliveHeartbeat(TestCase):
 
 class TestTelemetryAggregatorHeartbeat(TestCase):
 
-    @patch("typeclasses.scripts.telemetry_service.threads")
+    @patch("typeclasses.scripts.telemetry_service.defer_to_db_thread")
     @patch("typeclasses.scripts.telemetry_service.datetime")
-    def test_off_slot_minute_records_repeat_only(self, mock_datetime, _mock_threads):
+    def test_off_slot_minute_records_repeat_only(self, mock_datetime, _mock_defer):
         import datetime as real_datetime
         from typeclasses.scripts.telemetry_service import TelemetryAggregatorScript
 
@@ -193,9 +193,9 @@ class TestTelemetryAggregatorHeartbeat(TestCase):
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertFalse(hasattr(service.ndb, "last_work"))
 
-    @patch("typeclasses.scripts.telemetry_service.threads")
+    @patch("typeclasses.scripts.telemetry_service.defer_to_db_thread")
     @patch("typeclasses.scripts.telemetry_service.datetime")
-    def test_on_slot_minute_records_work_too(self, mock_datetime, mock_threads):
+    def test_on_slot_minute_records_work_too(self, mock_datetime, mock_defer):
         import datetime as real_datetime
         from typeclasses.scripts.telemetry_service import TelemetryAggregatorScript
 
@@ -207,16 +207,16 @@ class TestTelemetryAggregatorHeartbeat(TestCase):
 
         TelemetryAggregatorScript.at_repeat(service)
 
-        mock_threads.deferToThread.assert_called_once()
+        mock_defer.assert_called_once()
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertTrue(hasattr(service.ndb, "last_work"))
 
 
 class TestNftSaturationHeartbeat(TestCase):
 
-    @patch("typeclasses.scripts.nft_saturation_service.threads")
+    @patch("typeclasses.scripts.nft_saturation_service.defer_to_db_thread")
     @patch("typeclasses.scripts.nft_saturation_service.datetime")
-    def test_off_slot_minute_records_repeat_only(self, mock_datetime, _mock_threads):
+    def test_off_slot_minute_records_repeat_only(self, mock_datetime, _mock_defer):
         import datetime as real_datetime
         from typeclasses.scripts.nft_saturation_service import NFTSaturationScript
 
@@ -230,9 +230,9 @@ class TestNftSaturationHeartbeat(TestCase):
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertFalse(hasattr(service.ndb, "last_work"))
 
-    @patch("typeclasses.scripts.nft_saturation_service.threads")
+    @patch("typeclasses.scripts.nft_saturation_service.defer_to_db_thread")
     @patch("typeclasses.scripts.nft_saturation_service.datetime")
-    def test_on_slot_minute_records_work_too(self, mock_datetime, mock_threads):
+    def test_on_slot_minute_records_work_too(self, mock_datetime, mock_defer):
         import datetime as real_datetime
         from typeclasses.scripts.nft_saturation_service import NFTSaturationScript
 
@@ -244,16 +244,16 @@ class TestNftSaturationHeartbeat(TestCase):
 
         NFTSaturationScript.at_repeat(service)
 
-        mock_threads.deferToThread.assert_called_once()
+        mock_defer.assert_called_once()
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertTrue(hasattr(service.ndb, "last_work"))
 
 
 class TestUnifiedSpawnHeartbeat(TestCase):
 
-    @patch("typeclasses.scripts.unified_spawn_service.threads")
+    @patch("typeclasses.scripts.unified_spawn_service.defer_to_db_thread")
     @patch("typeclasses.scripts.unified_spawn_service.datetime")
-    def test_off_slot_minute_records_repeat_only(self, mock_datetime, _mock_threads):
+    def test_off_slot_minute_records_repeat_only(self, mock_datetime, _mock_defer):
         import datetime as real_datetime
         from typeclasses.scripts.unified_spawn_service import UnifiedSpawnScript
 
@@ -267,9 +267,9 @@ class TestUnifiedSpawnHeartbeat(TestCase):
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertFalse(hasattr(service.ndb, "last_work"))
 
-    @patch("typeclasses.scripts.unified_spawn_service.threads")
+    @patch("typeclasses.scripts.unified_spawn_service.defer_to_db_thread")
     @patch("typeclasses.scripts.unified_spawn_service.datetime")
-    def test_on_slot_minute_without_service_records_repeat_only(self, mock_datetime, _mock_threads):
+    def test_on_slot_minute_without_service_records_repeat_only(self, mock_datetime, _mock_defer):
         """hasattr(self, '_service') is False until at_start() runs —
         the gate must stay closed even at the right minute."""
         import datetime as real_datetime
@@ -286,9 +286,9 @@ class TestUnifiedSpawnHeartbeat(TestCase):
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertFalse(hasattr(service.ndb, "last_work"))
 
-    @patch("typeclasses.scripts.unified_spawn_service.threads")
+    @patch("typeclasses.scripts.unified_spawn_service.defer_to_db_thread")
     @patch("typeclasses.scripts.unified_spawn_service.datetime")
-    def test_on_slot_minute_with_service_records_work_too(self, mock_datetime, mock_threads):
+    def test_on_slot_minute_with_service_records_work_too(self, mock_datetime, mock_defer):
         import datetime as real_datetime
         from typeclasses.scripts.unified_spawn_service import UnifiedSpawnScript
 
@@ -301,7 +301,7 @@ class TestUnifiedSpawnHeartbeat(TestCase):
 
         UnifiedSpawnScript.at_repeat(service)
 
-        mock_threads.deferToThread.assert_called_once()
+        mock_defer.assert_called_once()
         self.assertTrue(hasattr(service.ndb, "last_repeat"))
         self.assertTrue(hasattr(service.ndb, "last_work"))
 

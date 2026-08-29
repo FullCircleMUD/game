@@ -16,7 +16,7 @@ service backs the prices — the NPC owns that binding.
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from commands.command import FCMCommandMixin
 from commands.npc_cmds.cmdset_shop_base import ShopCmdSet, _msg_if_connected, _session_check
@@ -121,7 +121,7 @@ class CmdResourceQuote(FCMCommandMixin, Command):
             return
 
         caller.msg("|cChecking market price...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             _fetch_price, shopkeeper, direction, rid, amount,
         )
         d.addCallback(
@@ -215,7 +215,7 @@ class CmdResourceBuy(FCMCommandMixin, Command):
             return
 
         caller.msg("|cChecking market price...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             shopkeeper.get_buy_price, rid, amount,
         )
         d.addCallback(
@@ -273,7 +273,7 @@ class CmdResourceSell(FCMCommandMixin, Command):
             return
 
         caller.msg("|cChecking market price...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             shopkeeper.get_sell_price, rid, amount,
         )
         d.addCallback(

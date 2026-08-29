@@ -1,14 +1,14 @@
 """
-Test utility — synchronous replacement for twisted.internet.threads.deferToThread.
+Test utility — synchronous replacement for utils.db_threads.defer_to_db_thread.
 
-In tests there is no running Twisted reactor, so deferToThread would never
+In tests there is no running Twisted reactor, so the real helper would never
 deliver results. This helper creates an already-fired Deferred so callbacks
 execute inline (synchronously).
 
 Usage in tests:
-    from tests.test_utils.sync_defer import patch_deferToThread
+    from tests.test_utils.sync_defer import patch_defer_to_db_thread
 
-    @patch_deferToThread("commands.npc_cmds.cmdset_resource_shop")
+    @patch_defer_to_db_thread("commands.npc_cmds.cmdset_resource_shop")
     def test_something(self):
         ...
 """
@@ -29,13 +29,13 @@ def _sync_defer_to_thread(fn, *args, **kwargs):
         return fail(Failure(e))
 
 
-def patch_deferToThread(module_path):
+def patch_defer_to_db_thread(module_path):
     """
-    Decorator that patches threads.deferToThread in the given module.
+    Decorator that patches defer_to_db_thread in the given module.
 
     Args:
-        module_path: dotted module path where 'threads' is imported.
+        module_path: dotted module path importing defer_to_db_thread.
                      e.g. "commands.npc_cmds.cmdset_resource_shop"
     """
-    return patch(f"{module_path}.threads.deferToThread",
+    return patch(f"{module_path}.defer_to_db_thread",
                  side_effect=_sync_defer_to_thread)

@@ -103,7 +103,7 @@ class TestArchiveNowIsScopedToTheRouter(BaseEvenniaTest):
 
     def _archive_calls(self, role):
         with patch(
-            "typeclasses.accounts.accounts.threads.deferToThread", _sync_defer
+            "typeclasses.accounts.accounts.defer_to_db_thread", _sync_defer
         ), patch("evennia_shards.get_role", return_value=role), patch(
             "evennia_archive.api.archive"
         ) as archive:
@@ -124,7 +124,7 @@ class TestArchiveNowIsScopedToTheRouter(BaseEvenniaTest):
     def test_failure_is_logged_not_raised(self):
         """A failed archive must never reach the player."""
         with patch(
-            "typeclasses.accounts.accounts.threads.deferToThread", _sync_defer
+            "typeclasses.accounts.accounts.defer_to_db_thread", _sync_defer
         ), patch("evennia_shards.get_role", return_value=ROLE_MONOLITH), patch(
             "evennia_archive.api.archive",
             side_effect=RuntimeError("archive is down"),

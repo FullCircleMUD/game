@@ -20,7 +20,7 @@ Usage:
 from evennia import Command, GLOBAL_SCRIPTS, create_script, logger
 from evennia.utils.evmenu import get_input
 from evennia_shards import get_role
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from server.conf.at_server_startstop import _select_scripts
 
@@ -224,7 +224,7 @@ class CmdServices(Command):
         )
 
     def _do_reset_targeted(self, key, typeclass_path):
-        d = threads.deferToThread(_reset_one, key, typeclass_path)
+        d = defer_to_db_thread(_reset_one, key, typeclass_path)
         d.addCallback(lambda _: self.msg(f"|g{key} reset.|n"))
         d.addErrback(
             lambda f: self.msg(f"|rReset failed: {f.getErrorMessage()}|n")

@@ -9,7 +9,7 @@ Runs in a background thread so the game stays responsive.
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdRunSpawns(Command):
@@ -118,7 +118,7 @@ class CmdRunSpawns(Command):
             return True
 
         self.msg("|yRunning spawn cycle...|n")
-        d = threads.deferToThread(_run)
+        d = defer_to_db_thread(_run)
         d.addCallback(lambda _: self.msg("|gSpawn cycle complete.|n"))
         d.addErrback(
             lambda f: self.msg(f"|rSpawn cycle failed: {f.getErrorMessage()}|n")

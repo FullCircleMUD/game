@@ -10,7 +10,7 @@ import logging
 
 import httpx
 from django.conf import settings
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 logger = logging.getLogger(__name__)
 
@@ -31,4 +31,4 @@ def _blocking_ping():
 
 def warm_cosigner():
     """Fire-and-forget keep-alive ping. Safe to call from the reactor thread."""
-    threads.deferToThread(_blocking_ping)
+    defer_to_db_thread(_blocking_ping)

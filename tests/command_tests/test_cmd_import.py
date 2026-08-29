@@ -123,7 +123,7 @@ class TestImportGuards(ImportTestBase):
 #  Gold import tests
 # ================================================================== #
 
-@patch("commands.account_cmds.cmd_import.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_import.defer_to_db_thread", _sync_defer)
 class TestImportGold(ImportTestBase):
     """Test gold import flow."""
 
@@ -194,7 +194,7 @@ class TestImportGold(ImportTestBase):
 #  Resource import tests
 # ================================================================== #
 
-@patch("commands.account_cmds.cmd_import.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_import.defer_to_db_thread", _sync_defer)
 class TestImportResource(ImportTestBase):
     """Test resource import flow."""
 
@@ -224,7 +224,7 @@ class TestImportResource(ImportTestBase):
 #  NFT import tests
 # ================================================================== #
 
-@patch("commands.account_cmds.cmd_import.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_import.defer_to_db_thread", _sync_defer)
 class TestImportNFT(ImportTestBase):
     """Test NFT import flow."""
 

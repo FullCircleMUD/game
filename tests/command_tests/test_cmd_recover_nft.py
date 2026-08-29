@@ -49,7 +49,7 @@ class TestRecoverNftUsageAndRoleGuard(EvenniaCommandTest):
     def test_router_allowed(self, mock_role):
         mock_role.return_value = "router"
         with patch(
-            "commands.account_cmds.cmd_recover_nft.threads.deferToThread"
+            "commands.account_cmds.cmd_recover_nft.defer_to_db_thread"
         ) as mock_defer:
             result = self.call(CmdRecoverNft(), "rSOMEWALLET", caller=self.account)
         self.assertIn("Querying wallet rSOMEWALLET for orphaned NFTs", result)
@@ -58,7 +58,7 @@ class TestRecoverNftUsageAndRoleGuard(EvenniaCommandTest):
     def test_monolith_allowed(self, mock_role):
         mock_role.return_value = "monolith"
         with patch(
-            "commands.account_cmds.cmd_recover_nft.threads.deferToThread"
+            "commands.account_cmds.cmd_recover_nft.defer_to_db_thread"
         ) as mock_defer:
             result = self.call(CmdRecoverNft(), "rSOMEWALLET", caller=self.account)
         self.assertIn("Querying wallet rSOMEWALLET for orphaned NFTs", result)
@@ -212,7 +212,7 @@ class TestRecoverNext(PlainTestCase):
         _recover_next(caller, "rWALLET", [{"nftoken_id": "A" * 64}], 0)
         caller.msg.assert_not_called()
 
-    @patch("commands.account_cmds.cmd_recover_nft.threads.deferToThread")
+    @patch("commands.account_cmds.cmd_recover_nft.defer_to_db_thread")
     def test_dispatches_sell_offer_creation_for_current_index(self, mock_defer):
         caller = MagicMock()
         caller.sessions.count.return_value = 1
@@ -258,7 +258,7 @@ class TestOnPollResult(PlainTestCase):
         _on_poll_result(**kw, status={"expired": False, "resolved": True, "signed": False})
         mock_next.assert_called_once_with(kw["caller"], "rWALLET", kw["orphans"], 1)
 
-    @patch("commands.account_cmds.cmd_recover_nft.threads.deferToThread")
+    @patch("commands.account_cmds.cmd_recover_nft.defer_to_db_thread")
     def test_signed_dispatches_accept(self, mock_defer):
         kw = self._base_kwargs()
         kw["caller"].sessions.count.return_value = 1

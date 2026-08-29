@@ -74,7 +74,7 @@ class FakeSession:
         return "\n".join(self.messages)
 
 
-@patch.object(connect.threads, "deferToThread", _sync_defer)
+@patch.object(connect, "defer_to_db_thread", _sync_defer)
 class TestArchiveLookupBranch(BaseEvenniaTest):
     """Which path a wallet takes when no live account exists."""
 
@@ -149,7 +149,7 @@ class TestArchiveLookupBranch(BaseEvenniaTest):
         log_err.assert_called_once()
 
 
-@patch.object(connect.threads, "deferToThread", _sync_defer)
+@patch.object(connect, "defer_to_db_thread", _sync_defer)
 class TestArchiveUnreachableRefuses(BaseEvenniaTest):
     """A failed archive lookup must refuse, never fall through.
 
@@ -200,7 +200,7 @@ class TestArchiveUnreachableRefuses(BaseEvenniaTest):
         self.assertIsNone(self.fake_session.logged_in_as)
 
 
-@patch.object(connect.threads, "deferToThread", _sync_defer)
+@patch.object(connect, "defer_to_db_thread", _sync_defer)
 class TestBankRecovery(BaseEvenniaTest):
     """Banked items are rebuilt from the mirror, which is only ever read."""
 
@@ -396,7 +396,7 @@ class TestBankRecovery(BaseEvenniaTest):
         self.assertIn("ownership records are intact", self.fake_session.output)
 
 
-@patch.object(connect.threads, "deferToThread", _sync_defer)
+@patch.object(connect, "defer_to_db_thread", _sync_defer)
 class TestCharacterRecovery(BaseEvenniaTest):
     """Restoring an account is only half the job.
 

@@ -22,7 +22,7 @@ from django.conf import settings
 from evennia import Command
 from evennia.utils import delay
 from evennia.utils.evmenu import get_input
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from commands.room_specific_cmds.bank._bank_parse import parse_bank_args
 from subscriptions.utils import is_subscribed, has_paid
@@ -135,7 +135,7 @@ class CmdImport(Command):
 def _import_gold(account, bank, wallet, amount):
     """Start gold import — query wallet balance in worker thread."""
     account.msg("|cQuerying wallet...|n")
-    d = threads.deferToThread(_get_wallet_balances, wallet)
+    d = defer_to_db_thread(_get_wallet_balances, wallet)
     d.addCallback(
         lambda balances: _on_gold_balances(account, bank, wallet, amount, balances)
     )
@@ -194,7 +194,7 @@ def _on_gold_import_confirmed(account, bank, wallet, amount, answer):
     })]
 
     account.msg("|cCreating payment request...|n")
-    d = threads.deferToThread(
+    d = defer_to_db_thread(
         _create_payment_payload, hex_code, amount, memos,
     )
     d.addCallback(
@@ -225,7 +225,7 @@ def _import_resource(account, bank, wallet, amount, resource_id,
         return
 
     account.msg("|cQuerying wallet...|n")
-    d = threads.deferToThread(_get_wallet_balances, wallet)
+    d = defer_to_db_thread(_get_wallet_balances, wallet)
     d.addCallback(
         lambda balances: _on_resource_balances(
             account, bank, wallet, amount, resource_id, resource_info,
@@ -292,7 +292,7 @@ def _on_resource_import_confirmed(account, bank, wallet, amount, resource_id,
     })]
 
     account.msg(f"|cCreating payment request...|n")
-    d = threads.deferToThread(
+    d = defer_to_db_thread(
         _create_payment_payload, hex_code, amount, memos,
     )
     d.addCallback(
@@ -338,7 +338,7 @@ def _poll_xaman_fungible_import(account, bank, asset_type, currency_code,
         _msg(account, "|r--- Timed out waiting for Xaman signing ---|n")
         return
 
-    d = threads.deferToThread(_get_payload_status, uuid)
+    d = defer_to_db_thread(_get_payload_status, uuid)
     d.addCallback(
         lambda status: _on_fungible_poll_result(
             account, bank, asset_type, currency_code, resource_id, amount,
@@ -373,7 +373,7 @@ def _on_fungible_poll_result(account, bank, asset_type, currency_code,
     hex_code = encode_currency_hex(currency_code)
 
     account.msg("|cVerifying on-chain payment...|n")
-    d = threads.deferToThread(
+    d = defer_to_db_thread(
         _verify_fungible_payment, tx_hash, hex_code, amount,
     )
     d.addCallback(
@@ -439,7 +439,7 @@ def _on_verify_error(account, failure, tx_hash):
 def _import_nft(account, bank, wallet, nft_args):
     """Start NFT import — query wallet in worker thread."""
     account.msg("|cQuerying wallet...|n")
-    d = threads.deferToThread(_get_wallet_nfts, wallet)
+    d = defer_to_db_thread(_get_wallet_nfts, wallet)
     d.addCallback(
         lambda nfts: _on_wallet_nfts(account, bank, wallet, nft_args, nfts)
     )
@@ -523,7 +523,7 @@ def _on_nft_import_confirmed(account, bank, nftoken_id, nft_name, answer):
     from blockchain.xrpl.memo import build_memo, MEMO_NFT_IMPORT
     memos = [build_memo(MEMO_NFT_IMPORT, {"nftId": nftoken_id})]
     account.msg("|cCreating sell offer request...|n")
-    d = threads.deferToThread(
+    d = defer_to_db_thread(
         _create_nft_sell_offer_payload, nftoken_id, memos,
     )
     d.addCallback(
@@ -562,7 +562,7 @@ def _poll_xaman_nft_import(account, bank, nftoken_id, nft_name, uuid,
         _msg(account, "|r--- Timed out waiting for Xaman signing ---|n")
         return
 
-    d = threads.deferToThread(_get_payload_status, uuid)
+    d = defer_to_db_thread(_get_payload_status, uuid)
     d.addCallback(
         lambda status: _on_nft_poll_result(
             account, bank, nftoken_id, nft_name, uuid, attempt, status,
@@ -595,7 +595,7 @@ def _on_nft_poll_result(account, bank, nftoken_id, nft_name, uuid, attempt,
     from blockchain.xrpl.memo import build_memo, MEMO_NFT_IMPORT
     memos = [build_memo(MEMO_NFT_IMPORT, {"nftId": nftoken_id})]
     account.msg("|cAccepting NFT transfer...|n")
-    d = threads.deferToThread(_accept_nft_import, tx_hash, memos)
+    d = defer_to_db_thread(_accept_nft_import, tx_hash, memos)
     d.addCallback(
         lambda accept_tx_hash: _on_nft_accepted(
             account, bank, nftoken_id, nft_name, accept_tx_hash,

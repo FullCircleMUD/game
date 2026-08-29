@@ -6,7 +6,7 @@ get_role() is imported locally inside func() (not at module level), so
 the role guard is patched at its source, evennia_shards.get_role.
 
 The success/error messages are wired via addCallback/addErrback on the
-Deferred that threads.deferToThread() returns — a _FakeDeferred stands
+Deferred that defer_to_db_thread() returns — a _FakeDeferred stands
 in so those inline lambdas actually run during the test instead of only
 being asserted as "some callback was registered".
 
@@ -49,7 +49,7 @@ class TestRunTelemetryRoleGuard(EvenniaCommandTest):
         result = self.call(CmdRunTelemetry(), "", caller=self.account)
         self.assertIn("can only be run OOC on the router", result)
 
-    @patch("commands.account_cmds.cmd_run_telemetry.threads.deferToThread")
+    @patch("commands.account_cmds.cmd_run_telemetry.defer_to_db_thread")
     def test_router_allowed_dispatches_snapshot(self, mock_defer, mock_role):
         mock_role.return_value = "router"
         mock_defer.return_value = _FakeDeferred(result=None)
@@ -61,7 +61,7 @@ class TestRunTelemetryRoleGuard(EvenniaCommandTest):
         mock_defer.assert_called_once_with(TelemetryService.take_snapshot)
         self.assertIn("Taking telemetry snapshot", result)
 
-    @patch("commands.account_cmds.cmd_run_telemetry.threads.deferToThread")
+    @patch("commands.account_cmds.cmd_run_telemetry.defer_to_db_thread")
     def test_monolith_allowed_dispatches_snapshot(self, mock_defer, mock_role):
         mock_role.return_value = "monolith"
         mock_defer.return_value = _FakeDeferred(result=None)
@@ -73,7 +73,7 @@ class TestRunTelemetryRoleGuard(EvenniaCommandTest):
 
 
 @patch("evennia_shards.get_role", return_value="monolith")
-@patch("commands.account_cmds.cmd_run_telemetry.threads.deferToThread")
+@patch("commands.account_cmds.cmd_run_telemetry.defer_to_db_thread")
 class TestRunTelemetryOutcomes(EvenniaCommandTest):
 
     def create_script(self):

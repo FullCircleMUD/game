@@ -12,7 +12,7 @@ Usage (OOC, superuser only):
 from decimal import Decimal
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdAMMCheck(Command):
@@ -46,7 +46,7 @@ class CmdAMMCheck(Command):
         caller.msg("|c--- AMM Pool Status ---|n")
         caller.msg("Querying AMM pools...")
 
-        d = threads.deferToThread(_query_pools, resource_filter)
+        d = defer_to_db_thread(_query_pools, resource_filter)
         d.addCallback(lambda pools: _on_pools_complete(caller, pools))
         d.addErrback(lambda f: _on_pools_error(caller, f))
 

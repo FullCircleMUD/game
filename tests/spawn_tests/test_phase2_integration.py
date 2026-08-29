@@ -195,7 +195,7 @@ class TestUnifiedSpawnScript(EvenniaTest):
         script.delete()
 
     @patch("typeclasses.scripts.unified_spawn_service.datetime")
-    @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
+    @patch("typeclasses.scripts.unified_spawn_service.defer_to_db_thread")
     def test_at_repeat_fires_on_slot_minute(self, mock_defer, mock_datetime):
         """at_repeat() should defer run_hourly_cycle() when the slot minute hits."""
         from datetime import datetime as real_datetime, timezone
@@ -217,7 +217,7 @@ class TestUnifiedSpawnScript(EvenniaTest):
         script.delete()
 
     @patch("typeclasses.scripts.unified_spawn_service.datetime")
-    @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
+    @patch("typeclasses.scripts.unified_spawn_service.defer_to_db_thread")
     def test_at_repeat_skips_outside_slot_minute(self, mock_defer, mock_datetime):
         """at_repeat() should no-op when the current minute is not the slot minute."""
         from datetime import datetime as real_datetime, timezone
@@ -240,7 +240,7 @@ class TestUnifiedSpawnScript(EvenniaTest):
         script.delete()
 
     @patch("typeclasses.scripts.unified_spawn_service.datetime")
-    @patch("typeclasses.scripts.unified_spawn_service.threads.deferToThread")
+    @patch("typeclasses.scripts.unified_spawn_service.defer_to_db_thread")
     def test_at_repeat_double_fire_guard(self, mock_defer, mock_datetime):
         """Second at_repeat() within the same hour must not double-fire."""
         from datetime import datetime as real_datetime, timezone

@@ -10,7 +10,7 @@ Usage:
 
 from django.conf import settings
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdWallet(Command):
@@ -36,7 +36,7 @@ class CmdWallet(Command):
             return
 
         account.msg("|cReading wallet from XRPL...|n")
-        d = threads.deferToThread(_fetch_wallet_data, wallet)
+        d = defer_to_db_thread(_fetch_wallet_data, wallet)
         d.addCallback(lambda data: _display_wallet(account, wallet, *data))
         d.addErrback(lambda f: _on_error(account))
 

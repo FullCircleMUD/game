@@ -16,7 +16,7 @@ Usage (OOC, superuser only):
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdSyncReserves(Command):
@@ -55,7 +55,7 @@ class CmdSyncReserves(Command):
         caller.msg("|c--- Sync Reserves ---|n")
         caller.msg("Querying vault on-chain balances...")
 
-        d = threads.deferToThread(_run_sync_reserves)
+        d = defer_to_db_thread(_run_sync_reserves)
         d.addCallback(lambda rows: _on_sync_complete(caller, rows))
         d.addErrback(lambda f: _on_sync_error(caller, f))
 

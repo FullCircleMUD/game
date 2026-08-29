@@ -15,7 +15,7 @@ from contextlib import contextmanager
 
 from django.conf import settings
 from evennia.utils import class_from_module, utils, delay, logger
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 from evennia.accounts.models import AccountDB
 
 COMMAND_DEFAULT_CLASS = utils.class_from_module(settings.COMMAND_DEFAULT_CLASS)
@@ -86,7 +86,7 @@ class CmdUnconnectedConnect(COMMAND_DEFAULT_CLASS):
         from blockchain.xrpl.xaman import create_signin_payload
 
         session.msg("|cContacting Xaman...|n")
-        d = threads.deferToThread(create_signin_payload)
+        d = defer_to_db_thread(create_signin_payload)
         d.addCallback(lambda payload: _on_signin_payload(session, address, payload))
         d.addErrback(lambda f: session.msg(f"|rError contacting Xaman: {f.getErrorMessage()}|n"))
 
@@ -117,7 +117,7 @@ def _poll_xaman(session, uuid, address, attempt):
         _clear_xaman_state(session)
         return
 
-    d = threads.deferToThread(get_payload_status, uuid)
+    d = defer_to_db_thread(get_payload_status, uuid)
     d.addCallback(lambda status: _on_poll_result(session, uuid, address, attempt, status))
     d.addErrback(lambda f: _on_poll_error(session, f))
 
@@ -175,7 +175,7 @@ def _on_poll_result(session, uuid, address, attempt, status):
     session.msg("|cNo active account for this wallet.|n")
     session.msg("|cChecking whether your account has been archived...|n")
 
-    d = threads.deferToThread(_find_archived_account, wallet_address)
+    d = defer_to_db_thread(_find_archived_account, wallet_address)
     d.addCallback(lambda ids: _on_archive_lookup(session, address, wallet_address, ids))
     d.addErrback(lambda f: _on_archive_error(session, f))
 
@@ -226,7 +226,7 @@ def _on_archive_lookup(session, address, wallet_address, archive_ids):
 
     session.msg("|gArchived account found — restoring your account...|n")
 
-    d = threads.deferToThread(_restore_account, archive_ids[0])
+    d = defer_to_db_thread(_restore_account, archive_ids[0])
     d.addCallback(lambda acct: _on_account_restored(session, address, acct))
     d.addErrback(lambda f: _on_archive_error(session, f))
 
@@ -243,7 +243,7 @@ def _on_account_restored(session, address, acct):
     session.msg(f"|gAccount |w{acct.key}|n|g restored.|n")
     session.msg("|cRecovering your bank...|n")
 
-    d = threads.deferToThread(_restore_bank, acct)
+    d = defer_to_db_thread(_restore_bank, acct)
     d.addCallback(lambda count: _on_bank_restored(session, address, acct, count))
     d.addErrback(lambda f: _on_bank_restore_error(session, address, acct, f))
 
@@ -437,7 +437,7 @@ def _on_bank_restored(session, address, acct, count):
 
     session.msg("|cLooking for your characters...|n")
 
-    d = threads.deferToThread(_restore_characters, acct)
+    d = defer_to_db_thread(_restore_characters, acct)
     d.addCallback(lambda chars: _on_characters_restored(session, address, acct, chars))
     d.addErrback(lambda f: _on_character_restore_error(session, address, acct, f))
 
@@ -459,7 +459,7 @@ def _on_bank_restore_error(session, address, acct, failure):
 
     session.msg("|cLooking for your characters...|n")
 
-    d = threads.deferToThread(_restore_characters, acct)
+    d = defer_to_db_thread(_restore_characters, acct)
     d.addCallback(lambda chars: _on_characters_restored(session, address, acct, chars))
     d.addErrback(lambda f: _on_character_restore_error(session, address, acct, f))
 

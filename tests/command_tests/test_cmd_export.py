@@ -115,7 +115,7 @@ class TestExportGuards(ExportTestBase):
 #  Gold export tests
 # ================================================================== #
 
-@patch("commands.account_cmds.cmd_export.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_export.defer_to_db_thread", _sync_defer)
 class TestExportGold(ExportTestBase):
     """Test gold export flow."""
 
@@ -240,7 +240,7 @@ class TestExportGold(ExportTestBase):
 #  Resource export tests
 # ================================================================== #
 
-@patch("commands.account_cmds.cmd_export.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_export.defer_to_db_thread", _sync_defer)
 class TestExportResource(ExportTestBase):
     """Test resource export flow."""
 
@@ -277,7 +277,7 @@ class TestExportResource(ExportTestBase):
 #  NFT export tests
 # ================================================================== #
 
-@patch("commands.account_cmds.cmd_export.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_export.defer_to_db_thread", _sync_defer)
 class TestExportNFT(ExportTestBase):
     """Test NFT export flow."""
 

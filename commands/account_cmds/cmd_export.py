@@ -23,7 +23,7 @@ from django.conf import settings
 from evennia import Command
 from evennia.utils import delay, logger
 from evennia.utils.evmenu import get_input
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from blockchain.xrpl.services.reconciliation import record_failure
 from commands.room_specific_cmds.bank._bank_parse import parse_bank_args
@@ -147,7 +147,7 @@ def _export_gold(account, bank, wallet, amount):
     currency_code = settings.XRPL_GOLD_CURRENCY_CODE
 
     account.msg("|cChecking trust line...|n")
-    d = threads.deferToThread(_check_trust_line, wallet, currency_code)
+    d = defer_to_db_thread(_check_trust_line, wallet, currency_code)
     d.addCallback(
         lambda has_trust: _on_gold_trust_checked(
             account, bank, wallet, amount, currency_code, has_trust,
@@ -190,7 +190,7 @@ def _on_gold_confirmed(account, bank, wallet, amount, currency_code, answer):
         "type": "gold", "currency": currency_code, "amount": str(amount),
     })]
     account.msg("|cSending gold to your wallet...|n")
-    d = threads.deferToThread(_send_payment, wallet, currency_code, amount, memos)
+    d = defer_to_db_thread(_send_payment, wallet, currency_code, amount, memos)
     d.addCallback(
         lambda tx_hash: _on_gold_sent(account, bank, amount, tx_hash)
     )
@@ -249,7 +249,7 @@ def _export_resource(account, bank, wallet, amount, resource_id,
         return
 
     account.msg("|cChecking trust line...|n")
-    d = threads.deferToThread(_check_trust_line, wallet, currency_code)
+    d = defer_to_db_thread(_check_trust_line, wallet, currency_code)
     d.addCallback(
         lambda has_trust: _on_resource_trust_checked(
             account, bank, wallet, amount, resource_id, resource_info,
@@ -299,7 +299,7 @@ def _on_resource_confirmed(account, bank, wallet, amount, resource_id,
         "type": "resource", "currency": currency_code, "amount": str(amount),
     })]
     account.msg(f"|cSending {name} to your wallet...|n")
-    d = threads.deferToThread(_send_payment, wallet, currency_code, amount, memos)
+    d = defer_to_db_thread(_send_payment, wallet, currency_code, amount, memos)
     d.addCallback(
         lambda tx_hash: _on_resource_sent(
             account, bank, amount, resource_id, resource_info, tx_hash,
@@ -401,7 +401,7 @@ def _on_nft_confirmed(account, bank, wallet, nft_item, nftoken_id, answer):
     from blockchain.xrpl.memo import build_memo, MEMO_NFT_EXPORT
     memos = [build_memo(MEMO_NFT_EXPORT, {"nftId": nftoken_id})]
     account.msg("|cCreating NFT sell offer...|n")
-    d = threads.deferToThread(_create_sell_offer, nftoken_id, wallet, memos)
+    d = defer_to_db_thread(_create_sell_offer, nftoken_id, wallet, memos)
     d.addCallback(
         lambda data: _on_sell_offer_created(
             account, bank, nft_item, nftoken_id, data,
@@ -428,7 +428,7 @@ def _on_sell_offer_created(account, bank, nft_item, nftoken_id, data):
 
     from blockchain.xrpl.memo import build_memo, MEMO_NFT_EXPORT
     memos = [build_memo(MEMO_NFT_EXPORT, {"nftId": nftoken_id})]
-    d = threads.deferToThread(_create_accept_payload, offer_id, memos)
+    d = defer_to_db_thread(_create_accept_payload, offer_id, memos)
     d.addCallback(
         lambda payload: _on_accept_payload(
             account, bank, nft_item, nftoken_id, offer_id, payload,
@@ -487,7 +487,7 @@ def _handle_missing_trust_line(account, wallet, currency_code):
     hex_code = encode_currency_hex(currency_code)
     memos = [build_memo(MEMO_TRUST, {"currency": currency_code})]
 
-    d = threads.deferToThread(_create_trustline_payload, hex_code, memos)
+    d = defer_to_db_thread(_create_trustline_payload, hex_code, memos)
     d.addCallback(
         lambda payload: _on_trustline_payload(
             account, currency_code, payload,
@@ -535,7 +535,7 @@ def _poll_xaman_trust_line(account, uuid, currency_code, attempt):
         _msg(account, "|r--- Timed out waiting for Xaman signing ---|n")
         return
 
-    d = threads.deferToThread(_get_payload_status, uuid)
+    d = defer_to_db_thread(_get_payload_status, uuid)
     d.addCallback(
         lambda status: _on_trust_poll_result(
             account, uuid, currency_code, attempt, status,
@@ -577,7 +577,7 @@ def _poll_xaman_nft_export(account, bank, nft_item, nftoken_id, uuid,
         _msg(account, "|yThe sell offer may still be pending. Try again later.|n")
         return
 
-    d = threads.deferToThread(_get_payload_status, uuid)
+    d = defer_to_db_thread(_get_payload_status, uuid)
     d.addCallback(
         lambda status: _on_nft_poll_result(
             account, bank, nft_item, nftoken_id, uuid, attempt, status,

@@ -13,7 +13,7 @@ from django.conf import settings
 from evennia import Command
 from evennia.utils.evtable import EvTable
 from evennia.utils.utils import delay
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 MAX_POLL_ATTEMPTS = 60  # 2 minutes at 2s intervals
@@ -52,7 +52,7 @@ class CmdRecoverNft(Command):
             return
 
         caller.msg(f"|cQuerying wallet {wallet} for orphaned NFTs...|n")
-        d = threads.deferToThread(_find_orphans, wallet)
+        d = defer_to_db_thread(_find_orphans, wallet)
         d.addCallback(lambda orphans: _on_orphans_found(caller, wallet, orphans))
         d.addErrback(lambda f: caller.msg(
             f"|rError querying wallet: {f.getErrorMessage()}|n"
@@ -134,7 +134,7 @@ def _recover_next(caller, wallet, orphans, index):
     )
     caller.msg("|cCreating sell offer request...|n")
 
-    d = threads.deferToThread(_create_sell_offer_payload, nftoken_id)
+    d = defer_to_db_thread(_create_sell_offer_payload, nftoken_id)
     d.addCallback(
         lambda payload: _on_payload_created(
             caller, wallet, orphans, index, nftoken_id, payload,
@@ -175,7 +175,7 @@ def _poll_xaman(caller, wallet, orphans, index, nftoken_id, uuid, attempt):
         _recover_next(caller, wallet, orphans, index + 1)
         return
 
-    d = threads.deferToThread(_get_payload_status, uuid)
+    d = defer_to_db_thread(_get_payload_status, uuid)
     d.addCallback(
         lambda status: _on_poll_result(
             caller, wallet, orphans, index, nftoken_id, uuid, attempt, status,
@@ -217,7 +217,7 @@ def _on_poll_result(caller, wallet, orphans, index, nftoken_id, uuid,
 
     # Vault accepts the offer
     caller.msg("|cAccepting NFT transfer to vault...|n")
-    d = threads.deferToThread(_accept_offer, tx_hash)
+    d = defer_to_db_thread(_accept_offer, tx_hash)
     d.addCallback(
         lambda accept_hash: _on_accepted(
             caller, wallet, orphans, index, nftoken_id, accept_hash,

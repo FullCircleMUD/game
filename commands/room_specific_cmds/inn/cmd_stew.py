@@ -17,7 +17,7 @@ Usage:
 
 from django.conf import settings
 from django.db import transaction
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from evennia import Command
 
@@ -69,7 +69,7 @@ class CmdStew(FCMCommandMixin, Command):
         current_gold = caller.get_gold()
 
         caller.msg("|cThe bartender ladles a bowl of stew...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             _threaded_stew_buy, current_gold, wallet, char_key, vault,
         )
         d.addCallback(

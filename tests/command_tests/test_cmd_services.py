@@ -103,7 +103,7 @@ class TestServicesNameResolution(EvenniaCommandTest):
 
 
 @patch("commands.account_cmds.cmd_services.get_role", return_value="monolith")
-@patch("commands.account_cmds.cmd_services.threads.deferToThread",
+@patch("commands.account_cmds.cmd_services.defer_to_db_thread",
        lambda func, *a, **kw: MagicMock())
 class TestServicesArgParsing(EvenniaCommandTest):
     """Test argument parsing — unknown keys, force, named target."""
@@ -181,7 +181,7 @@ class TestServicesArgParsing(EvenniaCommandTest):
 
 
 @patch("commands.account_cmds.cmd_services.get_role", return_value="shard")
-@patch("commands.account_cmds.cmd_services.threads.deferToThread",
+@patch("commands.account_cmds.cmd_services.defer_to_db_thread",
        lambda func, *a, **kw: MagicMock())
 class TestServicesRoleGating(EvenniaCommandTest):
     """A router-only script must be structurally unreachable from a shard."""

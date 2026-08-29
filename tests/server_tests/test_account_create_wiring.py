@@ -68,7 +68,7 @@ def _clear_payments(wallet):
 
 
 @override_settings(SUBSCRIPTION_ENABLED=True)
-@patch("typeclasses.accounts.accounts.threads.deferToThread", _sync_defer)
+@patch("typeclasses.accounts.accounts.defer_to_db_thread", _sync_defer)
 class TestAccountCreateWiring(BaseEvenniaTest):
     """The tail of Account.create() grants the trial and archives."""
 
@@ -189,7 +189,7 @@ class TestAccountCreateWiring(BaseEvenniaTest):
 
 
 @override_settings(SUBSCRIPTION_ENABLED=True)
-@patch("typeclasses.accounts.accounts.threads.deferToThread", _sync_defer)
+@patch("typeclasses.accounts.accounts.defer_to_db_thread", _sync_defer)
 class TestSuperuserGetsNoTrial(BaseEvenniaTest):
     """The superuser guard came across with the moved call.
 

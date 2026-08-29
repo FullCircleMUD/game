@@ -398,7 +398,8 @@ class LLMMixin:
                               ``"leave"``, ``"combat"``
             callback: optional callable(response_text) for custom handling
         """
-        from twisted.internet import reactor, threads
+        from twisted.internet import reactor
+        from utils.db_threads import defer_to_db_thread
 
         if not self.llm_enabled:
             return
@@ -476,7 +477,7 @@ class LLMMixin:
             logger.exception("LLM error for %s: %s", self.key, failure)
             self._deliver_fallback(speaker, interaction_type)
 
-        d = threads.deferToThread(_do_llm_call)
+        d = defer_to_db_thread(_do_llm_call)
         d.addCallback(lambda result: reactor.callFromThread(_on_response, result))
         d.addErrback(lambda failure: reactor.callFromThread(_on_error, failure))
 
@@ -561,7 +562,8 @@ class LLMMixin:
 
     def _llm_decide_and_respond(self, speaker, message):
         """Ask LLM if this speech is relevant, then respond if yes."""
-        from twisted.internet import reactor, threads
+        from twisted.internet import reactor
+        from utils.db_threads import defer_to_db_thread
 
         now = time.time()
         last_call = self.db.llm_last_call_time or 0.0
@@ -594,7 +596,7 @@ class LLMMixin:
             if result and "yes" in result.strip().lower():
                 self.llm_respond(speaker, message, interaction_type="say")
 
-        d = threads.deferToThread(_do_decision)
+        d = defer_to_db_thread(_do_decision)
         d.addCallback(lambda r: reactor.callFromThread(_on_decision, r))
         d.addErrback(lambda f: None)  # silently ignore errors on decision
 

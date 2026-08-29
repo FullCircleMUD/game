@@ -13,7 +13,7 @@ without knowing it's a resource shop — that polymorphism lives here.
 
 from django.conf import settings
 from django.db import transaction
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from blockchain.xrpl.currency_cache import get_resource_type
 from blockchain.xrpl.xrpl_tx import XRPLTransactionError
@@ -102,7 +102,7 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
         vault = settings.XRPL_VAULT_ADDRESS
 
         caller.msg("|cProcessing trade...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             _threaded_resource_trade, "buy", wallet, char_key, rid, qty,
             gold_price, vault,
         )
@@ -134,7 +134,7 @@ class ResourceShopkeeperNPC(ShopkeeperNPC):
         vault = settings.XRPL_VAULT_ADDRESS
 
         caller.msg("|cProcessing trade...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             _threaded_resource_trade, "sell", wallet, char_key, rid, qty,
             gold_price, vault,
         )

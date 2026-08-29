@@ -21,7 +21,7 @@ from commands.npc_cmds.cmdset_resource_shop import (
     CmdResourceSell,
 )
 from commands.npc_cmds.cmdset_shop_base import CmdShopList, CmdShopAccept
-from tests.test_utils.sync_defer import patch_deferToThread
+from tests.test_utils.sync_defer import patch_defer_to_db_thread
 
 
 MOCK_RESOURCE_TYPE_WHEAT = {
@@ -48,8 +48,8 @@ MOCK_RESOURCE_TYPE_FLOUR = {
 # The cmdset dispatches worker-thread tasks from two modules — the cmdset
 # itself (for price quotes) and the NPC's execute_buy/execute_sell (for
 # trade execution). Both need the sync patch applied in these tests.
-_patch_threads_cmdset = patch_deferToThread("commands.npc_cmds.cmdset_resource_shop")
-_patch_threads_npc = patch_deferToThread(
+_patch_threads_cmdset = patch_defer_to_db_thread("commands.npc_cmds.cmdset_resource_shop")
+_patch_threads_npc = patch_defer_to_db_thread(
     "typeclasses.actors.npcs.resource_shopkeeper"
 )
 _patch_sessions_cmdset = patch(

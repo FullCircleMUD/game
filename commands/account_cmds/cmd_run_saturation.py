@@ -7,7 +7,7 @@ on a fresh server.
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdRunSaturation(Command):
@@ -51,7 +51,7 @@ class CmdRunSaturation(Command):
             self.msg("|gSaturation snapshot complete.|n")
             self.msg(f"Snapshot data: {rows} items tracked across {hours} hour(s).")
 
-        d = threads.deferToThread(_run)
+        d = defer_to_db_thread(_run)
         d.addCallback(_done)
         d.addErrback(
             lambda f: self.msg(f"|rSaturation snapshot failed: {f.getErrorMessage()}|n")

@@ -17,7 +17,7 @@ from unittest.mock import patch, MagicMock, PropertyMock
 
 from evennia.utils.test_resources import EvenniaCommandTest
 
-from tests.test_utils.sync_defer import patch_deferToThread
+from tests.test_utils.sync_defer import patch_defer_to_db_thread
 
 from commands.room_specific_cmds.crafting.cmd_inset import (
     CmdInset,
@@ -31,7 +31,7 @@ from llm.name_generator import ItemNameGenerator
 WALLET_A = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 # Naming runs off the reactor thread, so the tests need it inline.
-_patch_threads = patch_deferToThread(
+_patch_threads = patch_defer_to_db_thread(
     "commands.room_specific_cmds.crafting.cmd_inset"
 )
 _patch_naming = patch(

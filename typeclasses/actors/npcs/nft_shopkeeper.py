@@ -17,7 +17,7 @@ paranoia guard at the typeclass boundary.
 """
 
 from django.conf import settings
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from blockchain.xrpl.xrpl_tx import XRPLTransactionError
 from typeclasses.actors.npcs.shopkeeper import ShopkeeperNPC
@@ -116,7 +116,7 @@ class NFTShopkeeperNPC(ShopkeeperNPC):
         vault = settings.XRPL_VAULT_ADDRESS
 
         caller.msg("|cProcessing trade...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             _threaded_nft_buy, tracking_token, gold_price,
             caller.get_gold(), wallet, char_key, vault,
         )
@@ -158,7 +158,7 @@ class NFTShopkeeperNPC(ShopkeeperNPC):
         vault = settings.XRPL_VAULT_ADDRESS
 
         caller.msg("|cProcessing trade...|n")
-        d = threads.deferToThread(
+        d = defer_to_db_thread(
             _threaded_nft_sell, tracking_token, gold_price,
             wallet, char_key, vault,
         )

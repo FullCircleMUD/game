@@ -198,22 +198,25 @@ if caller.location and result.get("third"):
 
 For actions where an invisible actor still produces observable side-effects, use `RoomBase.msg_contents_with_invis_alt(normal_msg, invis_msg, from_obj=caller)` (see `cmd_craft.py`, `cmd_repair.py`, `cmd_process.py`).
 
-### Non-blocking XRPL (`deferToThread`)
+### Non-blocking XRPL (`defer_to_db_thread`)
 
-All XRPL network calls must use `threads.deferToThread()` so the Twisted reactor stays responsive. The sync wrappers in `xrpl_tx.py` / `xrpl_amm.py` are kept as-is — the non-blocking change is at each **callsite**.
+All XRPL network calls must go to a worker thread so the Twisted reactor stays responsive. The sync wrappers in `xrpl_tx.py` / `xrpl_amm.py` are kept as-is — the non-blocking change is at each **callsite**.
+
+**`utils.db_threads.defer_to_db_thread()` is the only permitted dispatch.** A bare `twisted.internet.threads` import fails `tests/utils_tests/test_db_threads.py`.
 
 ```python
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 def func(self):
     caller.msg("|cProcessing...|n")
-    d = threads.deferToThread(blocking_fn, arg1, arg2)
+    d = defer_to_db_thread(blocking_fn, arg1, arg2)
     d.addCallback(lambda result: _on_success(caller, result))
     d.addErrback(lambda failure: _on_error(caller, failure))
 ```
 
 **Thread safety:**
-- XRPL / network calls and Django ORM queries run in worker threads (safe — connection-per-thread).
+- XRPL / network calls and Django ORM queries run in worker threads. Django's connections are thread-local, so a worker opens its own per alias — and nothing in Twisted ever closes them. `defer_to_db_thread` wraps the target so `connections.close_all()` runs on the worker thread, which is the only side of the boundary where it can reach them. Do not close from a callback or errback: those run on the reactor thread and would walk the wrong thread's connections.
+- Use it for every worker dispatch, not only the ones that query. `close_all()` is a no-op on a thread that opened nothing, and a function that does not query today is one edit away from doing so.
 - Evennia `self.db` attribute access must stay on the reactor thread (do it in callbacks).
 - All callbacks should check `caller.sessions.count() > 0` for disconnection safety.
 

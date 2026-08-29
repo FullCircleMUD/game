@@ -72,7 +72,7 @@ class TestAMMCheckRoleGuard(EvenniaCommandTest):
     def test_router_allowed(self, mock_role):
         mock_role.return_value = "router"
         with patch(
-            "commands.account_cmds.cmd_amm_check.threads.deferToThread"
+            "commands.account_cmds.cmd_amm_check.defer_to_db_thread"
         ) as mock_defer:
             result = self.call(CmdAMMCheck(), "", caller=self.account)
         self.assertIn("Querying AMM pools", result)
@@ -81,7 +81,7 @@ class TestAMMCheckRoleGuard(EvenniaCommandTest):
     def test_monolith_allowed(self, mock_role):
         mock_role.return_value = "monolith"
         with patch(
-            "commands.account_cmds.cmd_amm_check.threads.deferToThread"
+            "commands.account_cmds.cmd_amm_check.defer_to_db_thread"
         ) as mock_defer:
             result = self.call(CmdAMMCheck(), "", caller=self.account)
         self.assertIn("Querying AMM pools", result)

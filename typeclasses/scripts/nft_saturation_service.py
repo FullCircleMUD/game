@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 
 from evennia import DefaultScript
 from evennia.utils import logger
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
@@ -53,7 +53,7 @@ class NFTSaturationScript(HeartbeatMixin, DefaultScript):
 
             from blockchain.xrpl.services.nft_saturation import NFTSaturationService
 
-            threads.deferToThread(NFTSaturationService.take_snapshot)
+            defer_to_db_thread(NFTSaturationService.take_snapshot)
 
             self.record_work()
         except Exception:

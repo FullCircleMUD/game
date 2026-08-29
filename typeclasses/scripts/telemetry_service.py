@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from evennia import DefaultScript
 from evennia.utils import logger
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from typeclasses.scripts.heartbeat_script import HeartbeatMixin
 
@@ -54,7 +54,7 @@ class TelemetryAggregatorScript(HeartbeatMixin, DefaultScript):
 
             from blockchain.xrpl.services.telemetry import TelemetryService
 
-            threads.deferToThread(TelemetryService.take_snapshot)
+            defer_to_db_thread(TelemetryService.take_snapshot)
 
             self.record_work()
         except Exception:

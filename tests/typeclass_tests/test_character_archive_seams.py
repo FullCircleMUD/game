@@ -48,7 +48,7 @@ class CharacterArchiveTestBase(BaseEvenniaTest):
 
     def _archive_calls(self, role, **kwargs):
         with patch.object(
-            character_module.threads, "deferToThread", _sync_defer
+            character_module, "defer_to_db_thread", _sync_defer
         ), patch("evennia_shards.get_role", return_value=role), patch(
             "evennia_archive.api.archive"
         ) as archive:
@@ -77,7 +77,7 @@ class TestArchiveNowRoleGuard(CharacterArchiveTestBase):
 
     def test_failure_is_logged_not_raised(self):
         with patch.object(
-            character_module.threads, "deferToThread", _sync_defer
+            character_module, "defer_to_db_thread", _sync_defer
         ), patch("evennia_shards.get_role", return_value=ROLE_SHARD), patch(
             "evennia_archive.api.archive",
             side_effect=RuntimeError("archive is down"),

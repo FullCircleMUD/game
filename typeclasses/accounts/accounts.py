@@ -26,7 +26,7 @@ from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.utils.translation import gettext as _
 
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 import evennia
 from evennia.utils.create import create_object
@@ -718,7 +718,7 @@ Leave Character / Game      |gquit|n
                 logger.log_trace()
             return
 
-        d = threads.deferToThread(archive, self)
+        d = defer_to_db_thread(archive, self)
         d.addErrback(
             lambda failure: logger.log_err(
                 f"Failed to archive account {self}: {failure.getTraceback()}"

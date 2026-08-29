@@ -35,7 +35,7 @@ class TestReconcileRoleGuard(EvenniaCommandTest):
     def test_router_allowed(self, mock_role):
         mock_role.return_value = "router"
         with patch(
-            "commands.account_cmds.cmd_reconcile.threads.deferToThread"
+            "commands.account_cmds.cmd_reconcile.defer_to_db_thread"
         ) as mock_defer:
             result = self.call(CmdReconcile(), "", caller=self.account)
         self.assertIn("Querying vault on-chain balances", result)
@@ -44,7 +44,7 @@ class TestReconcileRoleGuard(EvenniaCommandTest):
     def test_monolith_allowed(self, mock_role):
         mock_role.return_value = "monolith"
         with patch(
-            "commands.account_cmds.cmd_reconcile.threads.deferToThread"
+            "commands.account_cmds.cmd_reconcile.defer_to_db_thread"
         ) as mock_defer:
             result = self.call(CmdReconcile(), "", caller=self.account)
         self.assertIn("Querying vault on-chain balances", result)

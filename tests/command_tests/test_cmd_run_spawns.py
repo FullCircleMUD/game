@@ -16,7 +16,7 @@ and focus on what belongs to this command: dispatch, the "create a
 service if missing" branch, and the preview loop's per-item-type
 formatting/error-handling.
 
-threads.deferToThread is patched with a side effect that actually runs
+defer_to_db_thread is patched with a side effect that actually runs
 the closure passed to it (catching exceptions into a fake Failure), so
 the inline _run()/callback functions execute for real.
 
@@ -38,7 +38,7 @@ RESOURCE_AVG = "blockchain.xrpl.services.spawn.calculators.resource.ResourceCalc
 RESOURCE_PRICE = "blockchain.xrpl.services.spawn.calculators.resource.ResourceCalculator._get_latest_buy_price"
 RESOURCE_MODIFIER = "blockchain.xrpl.services.spawn.calculators.resource.ResourceCalculator.price_modifier"
 KNOWLEDGE_SNAPSHOT = "blockchain.xrpl.services.spawn.calculators.knowledge.KnowledgeCalculator._get_snapshot"
-DEFER = "commands.account_cmds.cmd_run_spawns.threads.deferToThread"
+DEFER = "commands.account_cmds.cmd_run_spawns.defer_to_db_thread"
 
 
 class _FakeDeferred:

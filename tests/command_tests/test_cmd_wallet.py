@@ -61,7 +61,7 @@ class TestWalletGuards(WalletTestBase):
         )
 
 
-@patch("commands.account_cmds.cmd_wallet.threads.deferToThread", _sync_defer)
+@patch("commands.account_cmds.cmd_wallet.defer_to_db_thread", _sync_defer)
 class TestWalletDisplay(WalletTestBase):
     """Test wallet display output."""
 

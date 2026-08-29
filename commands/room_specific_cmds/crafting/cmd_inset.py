@@ -15,7 +15,7 @@ This is a standalone command (not a recipe through cmd_craft) because:
 """
 
 from django.db import router, transaction
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from evennia import Command
 from evennia.utils import delay, logger
@@ -243,7 +243,7 @@ class CmdInset(FCMCommandMixin, Command):
         # it is a network call. The errback turns a failure into None,
         # which _apply() reads as "use the plain name" — naming is
         # decoration and must never be why a craft fails.
-        naming = threads.deferToThread(
+        naming = defer_to_db_thread(
             name_generator.generate_inset_name,
             weapon.key, gem_effects, caller,
         )

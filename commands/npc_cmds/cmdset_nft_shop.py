@@ -16,7 +16,7 @@ touch the caller's game state, not the shop's pricing backend.
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from commands.command import FCMCommandMixin
 from commands.npc_cmds.cmdset_shop_base import (
@@ -186,7 +186,7 @@ class CmdNFTQuote(FCMCommandMixin, Command):
                 return
 
             caller.msg("|cChecking market price...|n")
-            d = threads.deferToThread(shopkeeper.get_buy_price, item_type.name, 1)
+            d = defer_to_db_thread(shopkeeper.get_buy_price, item_type.name, 1)
             d.addCallback(
                 lambda price: _on_quote_price(
                     caller, shopkeeper, "buy", item_type, None, price,
@@ -203,7 +203,7 @@ class CmdNFTQuote(FCMCommandMixin, Command):
                 return
 
             caller.msg("|cChecking market price...|n")
-            d = threads.deferToThread(shopkeeper.get_sell_price, item_type.name, 1)
+            d = defer_to_db_thread(shopkeeper.get_sell_price, item_type.name, 1)
             d.addCallback(
                 lambda price: _on_quote_price(
                     caller, shopkeeper, "sell", item_type, item, price,
@@ -288,7 +288,7 @@ class CmdNFTBuy(FCMCommandMixin, Command):
             return
 
         caller.msg("|cChecking market price...|n")
-        d = threads.deferToThread(shopkeeper.get_buy_price, item_type.name, 1)
+        d = defer_to_db_thread(shopkeeper.get_buy_price, item_type.name, 1)
         d.addCallback(
             lambda gold_price: _dispatch_instant(
                 caller, shopkeeper, "buy", item_type, None, gold_price,
@@ -342,7 +342,7 @@ class CmdNFTSell(FCMCommandMixin, Command):
             return
 
         caller.msg("|cChecking market price...|n")
-        d = threads.deferToThread(shopkeeper.get_sell_price, item_type.name, 1)
+        d = defer_to_db_thread(shopkeeper.get_sell_price, item_type.name, 1)
         d.addCallback(
             lambda gold_price: _dispatch_instant(
                 caller, shopkeeper, "sell", item_type, item, gold_price,

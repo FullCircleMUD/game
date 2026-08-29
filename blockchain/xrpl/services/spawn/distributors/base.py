@@ -14,7 +14,7 @@ ticks and carries out what the planner returns.
 import logging
 
 from evennia.utils.utils import delay
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 from blockchain.xrpl.services.spawn.budget import BudgetState
 from blockchain.xrpl.services.spawn.planner import plan_tick
@@ -88,7 +88,7 @@ class BaseDistributor:
             self._run_tick(type_key, tick_amount, budget_state, is_final)
             return
 
-        threads.deferToThread(
+        defer_to_db_thread(
             self._run_tick, type_key, tick_amount, budget_state, is_final,
         )
 

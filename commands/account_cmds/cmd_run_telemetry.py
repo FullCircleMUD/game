@@ -7,7 +7,7 @@ is available for the spawn system and economy dashboard.
 """
 
 from evennia import Command
-from twisted.internet import threads
+from utils.db_threads import defer_to_db_thread
 
 
 class CmdRunTelemetry(Command):
@@ -38,7 +38,7 @@ class CmdRunTelemetry(Command):
         from blockchain.xrpl.services.telemetry import TelemetryService
 
         self.msg("|yTaking telemetry snapshot...|n")
-        d = threads.deferToThread(TelemetryService.take_snapshot)
+        d = defer_to_db_thread(TelemetryService.take_snapshot)
         d.addCallback(lambda _: self.msg("|gTelemetry snapshot complete.|n"))
         d.addErrback(
             lambda f: self.msg(f"|rTelemetry snapshot failed: {f.getErrorMessage()}|n")
