@@ -27,10 +27,21 @@ from django.conf import settings
 from commands.command import FCMCommandMixin
 from commands.room_specific_cmds.bank.cmd_balance import ensure_bank
 from typeclasses.items.base_nft_item import BaseNFTItem
-from utils.item_parse import parse_item_args
-from utils.targeting.helpers import resolve_target
+from utils.item_parse import ALL, split_quantity
+from utils.targeting.helpers import all_inventory, resolve_target
 
 GOLD = settings.GOLD_DISPLAY
+
+
+def _amount(quantity):
+    """Turn a parsed quantity into the amount the fungible handlers want.
+
+    They read ``None`` as "all of it", so ``ALL`` maps to ``None`` and a
+    missing quantity maps to one.
+    """
+    if quantity is ALL:
+        return None
+    return 1 if quantity is None else quantity
 
 
 class CmdDeposit(FCMCommandMixin, Command):
@@ -63,24 +74,41 @@ class CmdDeposit(FCMCommandMixin, Command):
             return
 
         bank = ensure_bank(account)
-        parsed = parse_item_args(self.args)
+        split = split_quantity(self.args)
 
-        if parsed is None:
+        if split is None or split.subject is None:
             caller.msg("Deposit what? Try: deposit sword, deposit gold, deposit 5 wheat")
             return
+        quantity, subject = split
 
-        if parsed.type == "token_id":
-            self._deposit_nft(caller, bank, parsed.token_id)
-        elif parsed.type == "gold":
-            self._deposit_gold(caller, bank, parsed.amount)
-        elif parsed.type == "resource":
+        # An item ID is a name the split cannot read, so it is checked
+        # before the name goes anywhere near the inventory search.
+        if subject.startswith("#") and subject[1:].isdigit():
+            self._deposit_nft(caller, bank, int(subject[1:]))
+            return
+        if subject.isdigit():
+            self._deposit_nft(caller, bank, int(subject))
+            return
+
+        kind, payload = all_inventory(caller, subject)
+
+        if kind == "gold":
+            self._deposit_gold(caller, bank, _amount(quantity))
+        elif kind == "resource":
             self._deposit_resource(
-                caller, bank, parsed.amount, parsed.resource_id, parsed.resource_info
+                caller, bank, _amount(quantity),
+                payload["resource_id"], payload,
             )
-        elif parsed.type == "item":
-            self._deposit_item(caller, bank, parsed.search_term)
-        else:  # type == "all"
-            caller.msg("Deposit what? Try: deposit all gold, deposit all wheat")
+        elif kind == "ambiguous":
+            caller.msg(
+                "Did you mean "
+                + " or ".join(info["name"] for info in payload)
+                + "?"
+            )
+        elif kind == "items":
+            self._deposit_items(caller, bank, subject, payload, quantity)
+        else:
+            self._no_match(caller, subject)
 
     def _deposit_nft(self, caller, bank, item_id):
         """Deposit an NFT from inventory into the bank by item ID."""
@@ -108,30 +136,23 @@ class CmdDeposit(FCMCommandMixin, Command):
         else:
             caller.msg("Something went wrong depositing that item.")
 
-    def _deposit_item(self, caller, bank, search_term):
-        """Deposit an item from inventory by name (fuzzy match).
+    def _deposit_items(self, caller, bank, subject, matches, quantity):
+        """Bank the one item the player meant, or say why there isn't one.
 
-        Worn gear is filtered out at candidate selection, so it can
-        neither be deposited nor shadow a carried item sharing its name;
-        a worn-only match runs afterwards purely to say so. Identical
-        copies are not an ambiguous request — bank one of them. Whether
-        an item is bankable is judged per item, so a non-NFT match never
-        blocks an NFT one with the same name.
+        Identical copies are not an ambiguous request — bank one of
+        them. Whether an item is bankable is judged per item, so a
+        non-NFT match never blocks an NFT one with the same name.
         """
-        matches, _ = resolve_target(caller, search_term, "items_inventory")
-
-        if not matches:
-            worn, _ = resolve_target(caller, search_term, "items_equipped")
-            worn = worn[0] if worn else None
-            if worn:
-                caller.msg(f"You must remove {worn.key} first.")
-            else:
-                caller.msg(f"You aren't carrying '{search_term}'.")
+        if quantity is not None:
+            caller.msg(
+                f"You can't deposit {quantity} of those — only gold and "
+                f"resources come in amounts."
+            )
             return
 
         if len({obj.key.lower() for obj in matches}) > 1:
             # Distinct names — let Evennia render its multimatch list.
-            caller.search(search_term, candidates=matches)
+            caller.search(subject, candidates=matches)
             return
 
         obj = next((o for o in matches if isinstance(o, BaseNFTItem)), None)
@@ -148,6 +169,20 @@ class CmdDeposit(FCMCommandMixin, Command):
             )
         else:
             caller.msg("Something went wrong depositing that item.")
+
+    def _no_match(self, caller, subject):
+        """Nothing carried answers to that name. Say the most useful thing.
+
+        Worn gear is not a candidate, so it surfaces only here — and
+        only to explain why the thing the player can see on themselves
+        was not banked.
+        """
+        worn, _ = resolve_target(caller, subject, "items_equipped")
+        worn = worn[0] if worn else None
+        if worn:
+            caller.msg(f"You must remove {worn.key} first.")
+            return
+        caller.msg(f"You aren't carrying '{subject}'.")
 
     def _deposit_gold(self, caller, bank, amount):
         """Deposit gold into the bank."""

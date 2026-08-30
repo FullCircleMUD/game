@@ -2,7 +2,7 @@
 Override of Evennia's default give command.
 
 Adds fungible support (gold and resources) alongside the existing
-object (NFT) give. Uses the shared parse_item_args() parser for
+object (NFT) give. Uses the shared split_quantity() parser for
 standardised syntax across all item commands.
 
 Usage:
@@ -27,8 +27,9 @@ from evennia.utils import utils
 from commands.command import FCMCommandMixin
 from blockchain.xrpl.currency_cache import get_all_resource_types
 from typeclasses.items.base_nft_item import BaseNFTItem
-from utils.item_parse import parse_item_args
+from utils.item_parse import ALL, split_quantity
 from utils.targeting.helpers import (
+    all_inventory,
     resolve_character_in_room,
     resolve_target,
 )
@@ -39,6 +40,17 @@ from utils.weight_check import (
 )
 
 GOLD = settings.GOLD_DISPLAY
+
+
+def _amount(quantity):
+    """Turn a parsed quantity into the amount the fungible handlers want.
+
+    They read ``None`` as "all of it", so ``ALL`` maps to ``None`` and a
+    missing quantity maps to one.
+    """
+    if quantity is ALL:
+        return None
+    return 1 if quantity is None else quantity
 
 
 class CmdGive(FCMCommandMixin, NumberedTargetCommand):
@@ -110,33 +122,50 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
         # ---------------------------------------------------------- #
         #  Parse self.lhs through shared parser
         # ---------------------------------------------------------- #
-        parsed = parse_item_args(self.lhs)
-        if not parsed:
+        split = split_quantity(self.lhs)
+        if split is None:
             caller.msg("Give what?")
             return
+        quantity, subject = split
 
-        if self.number > 0 and parsed.type in ("gold", "resource"):
-            parsed = parsed._replace(amount=self.number)
-
-        if parsed.type == "item" and parsed.amount is not None:
-            self.number = parsed.amount
+        # NumberedTargetCommand.parse already lifted a leading decimal
+        # out of self.lhs into self.number, so the split never sees it.
+        if self.number:
+            quantity = self.number
 
         # ---------------------------------------------------------- #
         #  Dispatch
         # ---------------------------------------------------------- #
-        if parsed.type == "all":
+        if subject is None:  # bare "all"
             yield from self._give_all(caller, target)
-        elif parsed.type == "gold":
-            self._give_fungible_gold(caller, target, parsed.amount)
-        elif parsed.type == "resource":
+            return
+
+        if subject.startswith("#") and subject[1:].isdigit():
+            self._give_by_token_id(caller, target, int(subject[1:]))
+            return
+        if subject.isdigit():
+            self._give_by_token_id(caller, target, int(subject))
+            return
+
+        kind, payload = all_inventory(caller, subject, p_can_see)
+
+        if kind == "gold":
+            self._give_fungible_gold(caller, target, _amount(quantity))
+        elif kind == "resource":
             self._give_fungible_resource(
                 caller, target,
-                parsed.resource_id, parsed.resource_info, parsed.amount,
+                payload["resource_id"], payload, _amount(quantity),
             )
-        elif parsed.type == "token_id":
-            self._give_by_token_id(caller, target, parsed.token_id)
-        else:  # type == "item"
-            self._give_object(caller, target, parsed.search_term)
+        elif kind == "ambiguous":
+            caller.msg(
+                "Did you mean "
+                + " or ".join(info["name"] for info in payload)
+                + "?"
+            )
+        elif kind == "items":
+            self._give_objects(caller, target, subject, payload, quantity)
+        else:
+            self._no_match(caller, subject)
 
     # ============================================================== #
     #  Token ID lookup
@@ -388,54 +417,55 @@ class CmdGive(FCMCommandMixin, NumberedTargetCommand):
     #  Standard object (NFT) give
     # ============================================================== #
 
-    def _give_object(self, caller, target, search_term):
-        """Standard Evennia object give with fuzzy matching."""
-        to_give, _ = resolve_target(
-            caller, search_term, "items_inventory",
-            extra_predicates=(p_can_see,),
-            stacked=self.number or 0,
-        )
-
-        if not to_give:
-            # Secondary lookup against worn items — gives a useful
-            # "remove first" message instead of "not carrying" when the
-            # only match is currently equipped.
-            worn, _ = resolve_target(caller, search_term, "items_equipped")
-            worn = worn[0] if worn else None
-            if worn:
-                caller.msg(f"You'll have to remove {worn.key} first.")
-                return
-            caller.msg(f"You aren't carrying '{search_term}'.")
+    def _give_objects(self, caller, target, subject, objs, quantity):
+        """Give the one item the player meant, or say why there isn't one."""
+        if quantity is not None:
+            self.msg(
+                f"You can't give {quantity} of those — only gold and "
+                f"resources come in amounts."
+            )
             return
 
-        to_give = utils.make_iter(to_give)
+        # Identical copies are an answer, not a question. Two different
+        # things sharing a word are a question, and handing over either
+        # without asking is harder to undo than dropping it.
+        if len({obj.key.lower() for obj in objs}) > 1:
+            caller.search(subject, candidates=objs)
+            return
+
+        obj = objs[0]
         target_name = target.get_display_name(caller)
 
-        for obj in to_give:
-            if not obj.at_pre_give(caller, target):
-                return
-            ok, _ = check_can_carry(target, get_item_weight(obj))
-            if not ok:
-                caller.msg(f"{target_name} can't carry that much.")
-                return
+        if not obj.at_pre_give(caller, target):
+            return
+        ok, _ = check_can_carry(target, get_item_weight(obj))
+        if not ok:
+            caller.msg(f"{target_name} can't carry that much.")
+            return
 
-        moved = []
-        for obj in to_give:
-            if obj.move_to(target, quiet=True, move_type="give"):
-                moved.append(obj)
-                obj.at_give(caller, target)
-
-        if not moved:
+        if not obj.move_to(target, quiet=True, move_type="give"):
             caller.msg(f"You could not give that to {target_name}.")
-        else:
-            obj_name = to_give[0].get_numbered_name(len(moved), caller, return_string=True)
-            caller.msg(f"You give {obj_name} to {target_name}.")
-            if getattr(target, "position", "standing") != "sleeping":
-                target.msg(
-                    f"{caller.get_display_name(target)} gives you {obj_name}."
-                )
-            if caller.location:
-                caller.location.msg_contents(
-                    f"{caller.key} gives {obj_name} to {target.key}.",
-                    exclude=[caller, target], from_obj=caller,
-                )
+            return
+
+        obj.at_give(caller, target)
+        obj_name = obj.get_numbered_name(1, caller, return_string=True)
+        caller.msg(f"You give {obj_name} to {target_name}.")
+        if getattr(target, "position", "standing") != "sleeping":
+            target.msg(
+                f"{caller.get_display_name(target)} gives you {obj_name}."
+            )
+        if caller.location:
+            caller.location.msg_contents(
+                f"{caller.key} gives {obj_name} to {target.key}.",
+                exclude=[caller, target], from_obj=caller,
+            )
+
+    def _no_match(self, caller, subject):
+        """Nothing carried answers to that name. Say the most useful thing."""
+        worn, _ = resolve_target(caller, subject, "items_equipped")
+        worn = worn[0] if worn else None
+        if worn:
+            caller.msg(f"You'll have to remove {worn.key} first.")
+            return
+        caller.msg(f"You aren't carrying '{subject}'.")
+

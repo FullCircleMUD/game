@@ -65,7 +65,7 @@ class TestCmdGiveGold(EvenniaCommandTest):
     def test_give_gold_none(self):
         """give gold when you have none should show error."""
         self.char1.db.gold = 0
-        self.call(CmdGive(), "50 gold to Char2", "You don't have any gold.")
+        self.call(CmdGive(), "50 gold to Char2", "You aren't carrying 'gold'.")
 
     def test_give_to_self(self):
         """give to yourself should show error."""
@@ -113,7 +113,7 @@ class TestCmdGiveResource(EvenniaCommandTest):
     def test_give_resource_none(self):
         """give resource when you have none should show error."""
         self.char1.db.resources = {}
-        self.call(CmdGive(), "5 wheat to Char2", "You don't have any Wheat.")
+        self.call(CmdGive(), "5 wheat to Char2", "You aren't carrying 'wheat'.")
 
 
 class TestCmdGiveObject(EvenniaCommandTest):
@@ -342,3 +342,88 @@ class TestCmdGiveSightless(EvenniaCommandTest):
         self.char1.add_condition(Condition.DARKVISION)
         self.call(CmdGive(), "sword to Char2")
         self.assertIn(self.sword, self.char2.contents)
+
+
+class TestCmdGiveAmbiguousName(EvenniaCommandTest):
+    """The mirror of TestCmdDropAmbiguousName, for give.
+
+    Same rule, higher stakes: an unasked-for item handed to another
+    character is harder to get back than one dropped on the floor.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"  # parse_item_args queries the xrpl alias
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+
+    def _carry(self, key, worn=False):
+        item = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+        if worn:
+            slots = self.char1.db.wearslots
+            free = next(s for s, occupant in slots.items() if occupant is None)
+            slots[free] = item
+            self.char1.db.wearslots = slots
+        return item
+
+    def _given(self, *items):
+        return [i for i in items if i.location == self.char2]
+
+    def test_one_match_is_given(self):
+        cap = self._carry("faded cap")
+        self.call(CmdGive(), "faded cap to Char2")
+        self.assertEqual(self._given(cap), [cap])
+
+    def test_two_identical_copies_give_exactly_one(self):
+        first = self._carry("faded cap")
+        second = self._carry("faded cap")
+        self.call(CmdGive(), "faded cap to Char2")
+        self.assertEqual(len(self._given(first, second)), 1)
+
+    def test_two_distinct_matches_ask_which(self):
+        leather = self._carry("faded cap")
+        iron = self._carry("spotted cap")
+        self.call(CmdGive(), "cap to Char2", "More than one match")
+        self.assertEqual(self._given(leather, iron), [])
+
+    def test_exact_name_beats_a_longer_partial(self):
+        plain = self._carry("faded cap")
+        warding = self._carry("faded cap of warding")
+        self.call(CmdGive(), "faded cap to Char2")
+        self.assertEqual(self._given(plain, warding), [plain])
+
+    def test_a_count_on_an_item_is_refused(self):
+        """Only fungibles stack — two caps are two things, not a pile."""
+        caps = [self._carry("faded cap") for _ in range(3)]
+        self.call(CmdGive(), "2 faded cap to Char2")
+        self.assertEqual(self._given(*caps), [])
+
+    def test_all_of_an_item_is_refused_the_same_way(self):
+        caps = [self._carry("faded cap") for _ in range(3)]
+        self.call(CmdGive(), "all faded cap to Char2")
+        self.assertEqual(self._given(*caps), [])
+
+    def test_a_count_still_works_on_a_fungible(self):
+        self.char1.db.resources = {1: 20}  # wheat
+        with patch("blockchain.xrpl.services.resource.ResourceService.transfer"):
+            self.call(CmdGive(), "5 wheat to Char2")
+        self.assertEqual(self.char1.get_resource(1), 15)
+
+    def test_a_worn_copy_is_kept_and_the_carried_one_given(self):
+        worn = self._carry("faded cap", worn=True)
+        carried = self._carry("faded cap")
+        self.call(CmdGive(), "faded cap to Char2")
+        self.assertEqual(self._given(worn, carried), [carried])
+
+    def test_only_a_worn_match_asks_for_removal(self):
+        worn = self._carry("faded cap", worn=True)
+        self.call(CmdGive(), "faded cap to Char2", "You'll have to remove")
+        self.assertEqual(self._given(worn), [])

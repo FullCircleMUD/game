@@ -25,7 +25,7 @@ from utils.busy import (
     fumble_seconds,
     start_busy,
 )
-from utils.item_parse import parse_item_args
+from utils.item_parse import split_quantity
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -60,9 +60,19 @@ class CmdWear(FCMCommandMixin, Command):
             caller.msg("Wear what?")
             return
 
-        parsed = parse_item_args(self.args)
-        if not parsed:
+        split = split_quantity(self.args)
+        if split is None:
             caller.msg("Wear what?")
+            return
+        quantity, subject = split
+
+        # Bare "all" is the bulk action. "all helmet" is a count, and
+        # only fungibles have amounts — you cannot wear a fungible.
+        if subject is not None and quantity is not None:
+            caller.msg(
+                "You wear one piece at a time — only gold and "
+                "resources come in amounts."
+            )
             return
 
         if check_busy(caller):
@@ -75,45 +85,50 @@ class CmdWear(FCMCommandMixin, Command):
             start_busy(
                 caller,
                 fumble_seconds(),
-                lambda: self._wear(caller, parsed),
+                lambda: self._wear(caller, subject),
                 self_msg="You fumble blindly through your pack, dressing by feel...",
                 busy_msg=FUMBLE_BUSY_MESSAGE,
                 busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 
-        self._wear(caller, parsed)
+        self._wear(caller, subject)
 
-    def _wear(self, caller, parsed):
+    def _wear(self, caller, subject):
         """Find the item and put it on. Success or failure both."""
         # Bulk: wear all equippables in one pass
-        if parsed.type == "all":
+        if subject is None:
             return self._wear_all(caller)
 
-        # Find the item
-        if parsed.type == "token_id":
-            item = self._find_by_token_id(caller, parsed.token_id)
-        elif parsed.type == "item":
-            item, _ = resolve_target(
-                caller, parsed.search_term, "items_inventory",
+        # Carried items only, and never the fungible table — you cannot
+        # wear gold, so "wear gold ring" is always the ring.
+        if subject.startswith("#") and subject[1:].isdigit():
+            item = self._find_by_token_id(caller, int(subject[1:]))
+        elif subject.isdigit():
+            item = self._find_by_token_id(caller, int(subject))
+        else:
+            matches, _ = resolve_target(
+                caller, subject, "items_inventory",
                 extra_predicates=(p_can_perceive,),
             )
-            item = item[0] if item else None
-            if not item:
-                # Check if already worn — specific error vs "not carrying"
+            if not matches:
+                # Already worn is a different answer to not carried.
                 worn, _ = resolve_target(
-                    caller, parsed.search_term, "items_equipped",
+                    caller, subject, "items_equipped",
                     extra_predicates=(p_can_perceive,),
                 )
                 worn = worn[0] if worn else None
                 if worn:
                     caller.msg(f"You must remove {worn.key} first.")
                 else:
-                    caller.msg(f"You aren't carrying '{parsed.search_term}'.")
+                    caller.msg(f"You aren't carrying '{subject}'.")
                 return
-        else:
-            caller.msg("Wear what?")
-            return
+            # Identical copies are an answer; two different garments
+            # sharing a word are a question Evennia already asks well.
+            if len({obj.key.lower() for obj in matches}) > 1:
+                caller.search(subject, candidates=matches)
+                return
+            item = matches[0]
 
         if not item:
             return

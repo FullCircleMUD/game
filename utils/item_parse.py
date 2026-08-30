@@ -31,6 +31,73 @@ ParsedItem = namedtuple(
     ["type", "amount", "resource_id", "resource_info", "token_id", "search_term"],
 )
 
+QuantifiedArgs = namedtuple("QuantifiedArgs", ["quantity", "subject"])
+
+#: What ``quantity`` holds when the player asked for everything.
+ALL = "all"
+
+
+def split_quantity(args):
+    """Split "how many" from "of what".
+
+    The first question every command with a countable argument asks,
+    whatever it goes on to search — inventory, a room, a container, a
+    corpse. ``get all gold``, ``drop 5 wheat`` and ``deposit all wheat``
+    differ in scope, not in shape, so the splitting belongs in one
+    place and the searching belongs to the command.
+
+    **Counts lead.** ``5 wheat``, never ``wheat 5``. One order across
+    every command, so a player who learns it once has learned it
+    everywhere. A trailing number is part of the name, which also keeps
+    an item called "key 3" reachable by that name.
+
+    Accepted forms, space or dot::
+
+        cap             → (None, "cap")
+        5 wheat         → (5, "wheat")
+        5.wheat         → (5, "wheat")
+        all wheat       → (ALL, "wheat")
+        all.wheat       → (ALL, "wheat")
+        all             → (ALL, None)
+
+    Judges nothing. It does not know what stacks, what the caller
+    holds, or whether the command accepts a count at all — a count on
+    something that cannot be counted is rejected downstream, where the
+    answer is known. Zero and a subject of "5" are reported as typed
+    for the same reason.
+
+    Args:
+        args: the raw argument string, or None.
+
+    Returns:
+        ``QuantifiedArgs(quantity, subject)`` where ``quantity`` is an
+        int, ``ALL``, or None, and ``subject`` is a string or None
+        (bare "all"). Returns None for empty input, matching
+        ``parse_item_args``.
+    """
+    if not args or not args.strip():
+        return None
+
+    text = args.strip()
+    head, sep, tail = text.partition(".")
+    if not sep:
+        head, _, tail = text.partition(" ")
+
+    quantity = None
+    if head.lower() == ALL:
+        quantity = ALL
+    elif head.isdigit():
+        quantity = int(head)
+
+    subject = " ".join(tail.split()) or None
+
+    # A number with nothing to count is a name, however odd — only
+    # "all" carries meaning on its own.
+    if quantity is None or (subject is None and quantity is not ALL):
+        return QuantifiedArgs(None, " ".join(text.split()))
+
+    return QuantifiedArgs(quantity, subject)
+
 
 def _match_fungible(name):
     """

@@ -54,26 +54,26 @@ class TestCmdDepositGold(EvenniaCommandTest):
     @patch("blockchain.xrpl.services.gold.GoldService.bank")
     def test_deposit_gold_amount(self, mock_bank):
         """deposit gold 50 should deposit 50."""
-        self.call(CmdDeposit(), "gold 50", "You deposit 50")
+        self.call(CmdDeposit(), "50 gold", "You deposit 50")
         self.assertEqual(self.char1.get_gold(), 50)
         self.assertEqual(self.bank.get_gold(), 50)
 
     @patch("blockchain.xrpl.services.gold.GoldService.bank")
     def test_deposit_gold_all(self, mock_bank):
         """deposit gold all should deposit everything."""
-        self.call(CmdDeposit(), "gold all", "You deposit 100")
+        self.call(CmdDeposit(), "all gold", "You deposit 100")
         self.assertEqual(self.char1.get_gold(), 0)
         self.assertEqual(self.bank.get_gold(), 100)
 
     def test_deposit_gold_insufficient(self):
         """deposit more gold than you have should show error."""
         self.char1.db.gold = 10
-        self.call(CmdDeposit(), "gold 50", "You only have 10")
+        self.call(CmdDeposit(), "50 gold", "You only have 10")
 
     def test_deposit_gold_none(self):
         """deposit gold when you have none should show error."""
         self.char1.db.gold = 0
-        self.call(CmdDeposit(), "gold", "You don't have any gold")
+        self.call(CmdDeposit(), "gold", "You aren't carrying 'gold'")
 
 
 class TestCmdDepositResource(EvenniaCommandTest):
@@ -103,21 +103,21 @@ class TestCmdDepositResource(EvenniaCommandTest):
     @patch("blockchain.xrpl.services.resource.ResourceService.bank")
     def test_deposit_resource_amount(self, mock_bank):
         """deposit wheat 5 should deposit 5 wheat."""
-        self.call(CmdDeposit(), "wheat 5", "You deposit 5")
+        self.call(CmdDeposit(), "5 wheat", "You deposit 5")
         self.assertEqual(self.char1.get_resource(1), 15)
         self.assertEqual(self.bank.get_resource(1), 5)
 
     @patch("blockchain.xrpl.services.resource.ResourceService.bank")
     def test_deposit_resource_all(self, mock_bank):
         """deposit wheat all should deposit all wheat."""
-        self.call(CmdDeposit(), "wheat all", "You deposit 20")
+        self.call(CmdDeposit(), "all wheat", "You deposit 20")
         self.assertEqual(self.char1.get_resource(1), 0)
         self.assertEqual(self.bank.get_resource(1), 20)
 
     def test_deposit_resource_insufficient(self):
         """deposit more resource than you have should show error."""
         self.char1.db.resources = {1: 2}
-        self.call(CmdDeposit(), "wheat 10", "You only have 2")
+        self.call(CmdDeposit(), "10 wheat", "You only have 2")
 
 
 class TestCmdDepositNFT(EvenniaCommandTest):
@@ -270,3 +270,107 @@ class TestCmdDepositDuplicates(EvenniaCommandTest):
         )
         self.assertEqual(worn.location, self.char1)
         self.assertEqual(deluxe.location, self.bank)
+
+
+class TestDepositFungibleVersusItem(EvenniaCommandTest):
+    """Choosing between a resource and an item named after it.
+
+    "leather" is a resource, and plenty of gear is named for it. Reading
+    the first word against the resource table and discarding the rest
+    answers "you don't have any Leather" and leaves a leather cap
+    unreachable by the only name it has.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_bank.RoomBank"
+    databases = "__all__"
+
+    LEATHER = 9
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.bank = create.create_object(
+            "typeclasses.accounts.account_bank.AccountBank",
+            key=f"bank-{self.account.key}",
+            nohome=True,
+        )
+        self.bank.wallet_address = WALLET_A
+        self.bank.db.gold = 0
+        self.bank.db.resources = {}
+        self.account.db.bank = self.bank
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+        self._next_token = 700
+
+    def _carry(self, key):
+        self._next_token += 1
+        item = create.create_object(
+            "typeclasses.items.base_nft_item.BaseNFTItem",
+            key=key,
+            nohome=True,
+        )
+        item.token_id = self._next_token
+        item.db_location = self.char1
+        item.save(update_fields=["db_location"])
+        self.char1.contents_cache.init()
+        return item
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.bank")
+    def test_the_resource_name_banks_the_resource_when_held(self, _mock):
+        self.char1.db.resources = {self.LEATHER: 10}
+        self.call(CmdDeposit(), "leather")
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 9)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.bank")
+    def test_a_partial_resource_name_banks_the_resource(self, _mock):
+        self.char1.db.resources = {self.LEATHER: 10}
+        self.call(CmdDeposit(), "leat")
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 9)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_the_resource_name_finds_the_item_when_none_is_held(self, _mock):
+        cap = self._carry("leather cap")
+        self.call(CmdDeposit(), "leather")
+        self.assertEqual(cap.location, self.bank)
+
+    @patch("blockchain.xrpl.services.nft.NFTService.bank")
+    def test_a_longer_name_takes_the_item_over_the_held_resource(self, _mock):
+        self.char1.db.resources = {self.LEATHER: 10}
+        cap = self._carry("leather cap")
+        self.call(CmdDeposit(), "leather cap")
+        self.assertEqual(cap.location, self.bank)
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 10)
+
+    def test_a_longer_name_does_not_fall_back_to_the_resource(self):
+        """No cap to bank — say so, don't quietly bank leather instead."""
+        self.char1.db.resources = {self.LEATHER: 10}
+        self.call(CmdDeposit(), "leather cap")
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 10)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.bank")
+    def test_a_leading_count_banks_that_many(self, _mock):
+        """Counts lead — `deposit 5 wheat`, not `deposit wheat 5`."""
+        self.char1.db.resources = {1: 20}
+        self.call(CmdDeposit(), "5 wheat")
+        self.assertEqual(self.char1.get_resource(1), 15)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.bank")
+    def test_all_of_a_resource(self, _mock):
+        self.char1.db.resources = {1: 20}
+        self.call(CmdDeposit(), "all wheat")
+        self.assertEqual(self.char1.get_resource(1), 0)
+
+    def test_a_count_on_an_item_is_refused(self):
+        cap = self._carry("faded cap")
+        self.call(CmdDeposit(), "2 faded cap")
+        self.assertEqual(cap.location, self.char1)
+
+    def test_holding_two_matching_resources_asks_which(self):
+        self.char1.db.resources = {4: 5, 5: 5}  # Iron Ore, Iron Ingot
+        self.call(CmdDeposit(), "iron", "Did you mean")
+        self.assertEqual(self.char1.get_resource(4), 5)
+        self.assertEqual(self.char1.get_resource(5), 5)
+

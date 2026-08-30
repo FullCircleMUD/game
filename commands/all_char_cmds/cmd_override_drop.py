@@ -2,8 +2,9 @@
 Override of Evennia's default drop command.
 
 Adds fungible support (gold and resources) alongside the existing
-object (NFT) drop. Uses the shared parse_item_args() parser for
-standardised syntax across all item commands.
+object (NFT) drop. Counts lead and are split off by
+split_quantity(); all_inventory() then decides whether the name meant
+a fungible or a thing.
 
 Usage:
     drop <obj>                    — drop an object (NFT)
@@ -30,12 +31,23 @@ from utils.busy import (
     fumble_seconds,
     start_busy,
 )
-from utils.item_parse import parse_item_args
-from utils.targeting.helpers import resolve_target
+from utils.item_parse import ALL, split_quantity
+from utils.targeting.helpers import all_inventory, resolve_target
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
 
 GOLD = settings.GOLD_DISPLAY
+
+
+def _amount(quantity):
+    """Turn a parsed quantity into the amount the fungible handlers want.
+
+    They read ``None`` as "all of it", so ``ALL`` maps to ``None`` and a
+    missing quantity maps to one.
+    """
+    if quantity is ALL:
+        return None
+    return 1 if quantity is None else quantity
 
 
 class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
@@ -73,32 +85,70 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
         # ---------------------------------------------------------- #
         #  Parse args through shared parser
         # ---------------------------------------------------------- #
-        parsed = parse_item_args(self.args)
-        if not parsed:
+        split = split_quantity(self.args)
+        if split is None:
             caller.msg("Drop what?")
             return
+        quantity, subject = split
 
-        if self.number > 0 and parsed.type in ("gold", "resource"):
-            parsed = parsed._replace(amount=self.number)
-
-        if parsed.type == "item" and parsed.amount is not None:
-            self.number = parsed.amount
+        # NumberedTargetCommand.parse already lifted a leading decimal
+        # into self.number and removed it from self.args, so the split
+        # never sees it. Evennia doing this natively is itself an
+        # argument for counts leading. The dot forms and "all" reach
+        # the split untouched.
+        if self.number:
+            quantity = self.number
 
         # ---------------------------------------------------------- #
         #  Dispatch
         # ---------------------------------------------------------- #
-        if parsed.type == "all":
+        if subject is None:  # bare "all"
             yield from self._drop_all(caller)
-        elif parsed.type == "gold":
-            self._drop_fungible_gold(caller, parsed.amount)
-        elif parsed.type == "resource":
-            self._drop_fungible_resource(
-                caller, parsed.resource_id, parsed.resource_info, parsed.amount
+            return
+
+        if subject.startswith("#") and subject[1:].isdigit():
+            self._drop_by_token_id(caller, int(subject[1:]))
+            return
+        if subject.isdigit():
+            self._drop_by_token_id(caller, int(subject))
+            return
+
+        # Sightless: the search costs time, and the answer waits for it.
+        # The whole resolution defers, fungibles included — finding coins
+        # in your pack by touch is the same rummaging as finding a cap.
+        if looker_is_blind(caller):
+            start_busy(
+                caller,
+                fumble_seconds(),
+                lambda: self._resolve_and_drop(caller, subject, quantity),
+                self_msg="You fumble blindly through your pack...",
+                busy_msg=FUMBLE_BUSY_MESSAGE,
+                busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
-        elif parsed.type == "token_id":
-            self._drop_by_token_id(caller, parsed.token_id)
-        else:  # type == "item"
-            self._drop_object(caller, parsed.search_term)
+            return
+
+        self._resolve_and_drop(caller, subject, quantity)
+
+    def _resolve_and_drop(self, caller, subject, quantity):
+        """Work out what the name meant, then act on it."""
+        kind, payload = all_inventory(caller, subject, p_can_perceive)
+
+        if kind == "gold":
+            self._drop_fungible_gold(caller, _amount(quantity))
+        elif kind == "resource":
+            self._drop_fungible_resource(
+                caller, payload["resource_id"], payload, _amount(quantity),
+            )
+        elif kind == "ambiguous":
+            caller.msg(
+                "Did you mean "
+                + " or ".join(info["name"] for info in payload)
+                + "?"
+            )
+        elif kind == "items":
+            self._drop_objects(caller, subject, payload, quantity)
+        else:
+            self._no_match(caller, subject)
 
     # ============================================================== #
     #  Token ID lookup
@@ -280,59 +330,41 @@ class CmdDrop(FCMCommandMixin, NumberedTargetCommand):
     #  Standard object (NFT) drop
     # ============================================================== #
 
-    def _drop_object(self, caller, search_term):
-        """Standard Evennia object drop with fuzzy matching."""
-        # No sight check — your own pack is found by touch. Sightlessness
-        # costs the time spent searching, and the search runs before the
-        # outcome is known.
-        if looker_is_blind(caller):
-            start_busy(
-                caller,
-                fumble_seconds(),
-                lambda: self._do_drop_object(caller, search_term),
-                self_msg="You fumble blindly through your pack...",
-                busy_msg=FUMBLE_BUSY_MESSAGE,
-                busy_move_msg=FUMBLE_MOVE_MESSAGE,
+    def _drop_objects(self, caller, subject, objs, quantity):
+        """Drop the one item the player meant, or say why there isn't one."""
+        if quantity is not None:
+            self.msg(
+                f"You can't drop {quantity} of those — only gold and "
+                f"resources come in amounts."
             )
             return
 
-        self._do_drop_object(caller, search_term)
+        # Identical copies are an answer, not a question. Two different
+        # things sharing a word are a question, and dropping either
+        # without asking loses the player something they didn't name.
+        if len({obj.key.lower() for obj in objs}) > 1:
+            caller.search(subject, candidates=objs)
+            return
 
-    def _do_drop_object(self, caller, search_term):
-        """Find the item and drop it. Success or failure both."""
-        objs, _ = resolve_target(
-            caller, search_term, "items_inventory",
-            extra_predicates=(p_can_perceive,),
-            stacked=self.number or 0,
+        obj = objs[0]
+        if not obj.at_pre_drop(caller):
+            return
+
+        if not obj.move_to(caller.location, quiet=True, move_type="drop"):
+            self.msg("That can't be dropped.")
+            return
+
+        obj.at_drop(caller)
+        obj_name = obj.get_numbered_name(1, caller, return_string=True)
+        caller.location.msg_contents(
+            f"$You() $conj(drop) {obj_name}.", from_obj=caller,
         )
 
-        if not objs:
-            # Secondary lookup against worn items — gives a useful
-            # "remove first" message instead of "not carrying" when the
-            # only match is currently equipped.
-            worn, _ = resolve_target(caller, search_term, "items_equipped")
-            worn = worn[0] if worn else None
-            if worn:
-                caller.msg(f"You'll have to remove {worn.key} first.")
-                return
-            caller.msg(f"You aren't carrying '{search_term}'.")
+    def _no_match(self, caller, subject):
+        """Nothing carried answers to that name. Say the most useful thing."""
+        worn, _ = resolve_target(caller, subject, "items_equipped")
+        worn = worn[0] if worn else None
+        if worn:
+            caller.msg(f"You'll have to remove {worn.key} first.")
             return
-        objs = utils.make_iter(objs)
-
-        for obj in objs:
-            if not obj.at_pre_drop(caller):
-                return
-
-        moved = []
-        for obj in objs:
-            if obj.move_to(caller.location, quiet=True, move_type="drop"):
-                moved.append(obj)
-                obj.at_drop(caller)
-
-        if not moved:
-            self.msg("That can't be dropped.")
-        else:
-            obj_name = moved[0].get_numbered_name(len(moved), caller, return_string=True)
-            caller.location.msg_contents(
-                f"$You() $conj(drop) {obj_name}.", from_obj=caller,
-            )
+        caller.msg(f"You aren't carrying '{subject}'.")

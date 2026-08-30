@@ -19,7 +19,7 @@ from utils.busy import (
     fumble_seconds,
     start_busy,
 )
-from utils.item_parse import parse_item_args
+from utils.item_parse import split_quantity
 from utils.targeting.helpers import resolve_target
 from utils.targeting.predicates import p_can_perceive
 from utils.visibility import looker_is_blind
@@ -48,9 +48,19 @@ class CmdRemove(FCMCommandMixin, Command):
             caller.msg("Remove what?")
             return
 
-        parsed = parse_item_args(self.args)
-        if not parsed:
+        split = split_quantity(self.args)
+        if split is None or split.subject is None:
             caller.msg("Remove what?")
+            return
+        quantity, subject = split
+
+        # Gear comes off one piece at a time — only fungibles have
+        # amounts, and you cannot wear a fungible.
+        if quantity is not None:
+            caller.msg(
+                "You remove one piece at a time — only gold and "
+                "resources come in amounts."
+            )
             return
 
         if check_busy(caller):
@@ -64,32 +74,37 @@ class CmdRemove(FCMCommandMixin, Command):
             start_busy(
                 caller,
                 fumble_seconds(),
-                lambda: self._remove(caller, parsed),
+                lambda: self._remove(caller, subject),
                 self_msg="You feel over your gear in the dark, working at the straps...",
                 busy_msg=FUMBLE_BUSY_MESSAGE,
                 busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 
-        self._remove(caller, parsed)
+        self._remove(caller, subject)
 
-    def _remove(self, caller, parsed):
+    def _remove(self, caller, subject):
         """Find the equipped item and take it off. Success or failure both."""
-        # Find the item — equipped items only
-        if parsed.type == "token_id":
-            item = self._find_by_token_id(caller, parsed.token_id)
-        elif parsed.type == "item":
-            item, _ = resolve_target(
-                caller, parsed.search_term, "items_equipped",
+        # Equipped items only, and never the fungible table — you
+        # cannot wear gold, so "remove gold ring" is always the ring.
+        if subject.startswith("#") and subject[1:].isdigit():
+            item = self._find_by_token_id(caller, int(subject[1:]))
+        elif subject.isdigit():
+            item = self._find_by_token_id(caller, int(subject))
+        else:
+            matches, _ = resolve_target(
+                caller, subject, "items_equipped",
                 extra_predicates=(p_can_perceive,),
             )
-            item = item[0] if item else None
-            if not item:
-                caller.msg(f"You aren't wearing '{parsed.search_term}'.")
+            if not matches:
+                caller.msg(f"You aren't wearing '{subject}'.")
                 return
-        else:
-            caller.msg("Remove what?")
-            return
+            # A matched pair is an answer; a gold ring beside a silver
+            # one is a question Evennia already knows how to ask.
+            if len({obj.key.lower() for obj in matches}) > 1:
+                caller.search(subject, candidates=matches)
+                return
+            item = matches[0]
 
         if not item:
             return

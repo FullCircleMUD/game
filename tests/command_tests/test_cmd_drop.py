@@ -58,7 +58,7 @@ class TestCmdDropGold(EvenniaCommandTest):
     def test_drop_gold_none(self):
         """drop gold when you have none should show error."""
         self.char1.db.gold = 0
-        self.call(CmdDrop(), "50 gold", "You don't have any gold.")
+        self.call(CmdDrop(), "50 gold", "You aren't carrying 'gold'.")
 
 
 class TestCmdDropResource(EvenniaCommandTest):
@@ -100,7 +100,7 @@ class TestCmdDropResource(EvenniaCommandTest):
     def test_drop_resource_none(self):
         """drop resource when you have none should show error."""
         self.char1.db.resources = {}
-        self.call(CmdDrop(), "5 wheat", "You don't have any Wheat.")
+        self.call(CmdDrop(), "5 wheat", "You aren't carrying 'wheat'.")
 
 
 class TestCmdDropObject(EvenniaCommandTest):
@@ -252,3 +252,185 @@ class TestCmdDropAll(EvenniaCommandTest):
         self.char1.db.gold = 0
         self.char1.db.resources = {}
         self.call(CmdDrop(), "all", "You aren't carrying anything.")
+
+
+class TestCmdDropAmbiguousName(EvenniaCommandTest):
+    """How many items one name should drop, and when to ask instead.
+
+    Identical copies are an answer — drop one. Two different items that
+    happen to share a word are a question, and dropping either without
+    asking loses the player something they did not name. Neither case
+    had a test, which is how the count was free to change unnoticed.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"  # parse_item_args queries the xrpl alias
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.room1.always_lit = True
+
+    def _carry(self, key, worn=False):
+        item = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+        if worn:
+            slots = self.char1.db.wearslots
+            free = next(s for s, occupant in slots.items() if occupant is None)
+            slots[free] = item
+            self.char1.db.wearslots = slots
+        return item
+
+    def _dropped(self, *items):
+        return [i for i in items if i.location == self.room1]
+
+    def test_one_match_is_dropped(self):
+        cap = self._carry("faded cap")
+        self.call(CmdDrop(), "faded cap")
+        self.assertEqual(self._dropped(cap), [cap])
+
+    def test_two_identical_copies_drop_exactly_one(self):
+        first = self._carry("faded cap")
+        second = self._carry("faded cap")
+        self.call(CmdDrop(), "faded cap")
+        self.assertEqual(len(self._dropped(first, second)), 1)
+
+    def test_two_distinct_matches_ask_which(self):
+        leather = self._carry("faded cap")
+        iron = self._carry("spotted cap")
+        self.call(CmdDrop(), "cap", "More than one match")
+        self.assertEqual(self._dropped(leather, iron), [])
+
+    def test_exact_name_beats_a_longer_partial(self):
+        plain = self._carry("faded cap")
+        warding = self._carry("faded cap of warding")
+        self.call(CmdDrop(), "faded cap")
+        self.assertEqual(self._dropped(plain, warding), [plain])
+
+    def test_a_count_on_an_item_is_refused(self):
+        """Only fungibles stack. Every NFT carries its own token_id, so
+        two caps are two things, not a pile of two."""
+        caps = [self._carry("faded cap") for _ in range(3)]
+        self.call(CmdDrop(), "2 faded cap")
+        self.assertEqual(self._dropped(*caps), [])
+
+    def test_all_of_an_item_is_refused_the_same_way(self):
+        caps = [self._carry("faded cap") for _ in range(3)]
+        self.call(CmdDrop(), "all faded cap")
+        self.assertEqual(self._dropped(*caps), [])
+
+    def test_a_refused_count_says_so_before_searching(self):
+        """The refusal is about the request, so an ambiguous name or a
+        name that matches nothing changes none of it."""
+        self._carry("faded cap")
+        self._carry("spotted cap")
+        result = self.call(CmdDrop(), "2 cap")
+        self.assertNotIn("More than one match", result)
+
+    def test_a_count_still_works_on_a_fungible(self):
+        """The rule is about what stacks, not about counting itself."""
+        self.char1.db.resources = {1: 20}  # wheat
+        with patch("blockchain.xrpl.services.resource.ResourceService.drop"):
+            self.call(CmdDrop(), "5 wheat")
+        self.assertEqual(self.char1.get_resource(1), 15)
+
+    def test_a_worn_copy_is_kept_and_the_carried_one_dropped(self):
+        worn = self._carry("faded cap", worn=True)
+        carried = self._carry("faded cap")
+        self.call(CmdDrop(), "faded cap")
+        self.assertEqual(self._dropped(worn, carried), [carried])
+
+    def test_only_a_worn_match_asks_for_removal(self):
+        worn = self._carry("faded cap", worn=True)
+        self.call(CmdDrop(), "faded cap", "You'll have to remove")
+        self.assertEqual(self._dropped(worn), [])
+
+
+class TestFungibleVersusItemName(EvenniaCommandTest):
+    """Choosing between a resource and an item whose name starts with it.
+
+    "leather" is a resource, and plenty of items are named after it. A
+    player typing "leather cap" wants the cap; matching the first word
+    against the resource table and discarding the rest answers "you
+    don't have any Leather" and leaves the cap unreachable by the only
+    name it has.
+
+    The chain: a name that is the resource, whole or partial, is the
+    resource — but only if the character actually holds some. A name
+    that goes past the resource is an item name, and never falls back
+    to the resource, because the extra words said what was meant.
+    """
+
+    room_typeclass = "typeclasses.terrain.rooms.room_base.RoomBase"
+    databases = "__all__"
+
+    LEATHER = 9
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+        self.room1.db.gold = 0
+        self.room1.db.resources = {}
+
+    def _hold_leather(self, amount=10):
+        self.char1.db.resources = {self.LEATHER: amount}
+
+    def _carry(self, key):
+        return create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.drop")
+    def test_the_resource_name_drops_the_resource_when_held(self, _mock):
+        self._hold_leather()
+        self.call(CmdDrop(), "leather")
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 9)
+
+    @patch("blockchain.xrpl.services.resource.ResourceService.drop")
+    def test_a_partial_resource_name_drops_the_resource_when_held(self, _mock):
+        self._hold_leather()
+        self.call(CmdDrop(), "leat")
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 9)
+
+    def test_the_resource_name_finds_the_item_when_no_resource_is_held(self):
+        cap = self._carry("leather cap")
+        self.call(CmdDrop(), "leather")
+        self.assertEqual(cap.location, self.room1)
+
+    def test_a_partial_resource_name_finds_the_item_when_none_is_held(self):
+        cap = self._carry("leather cap")
+        self.call(CmdDrop(), "leat")
+        self.assertEqual(cap.location, self.room1)
+
+    def test_a_longer_name_takes_the_item_over_the_held_resource(self):
+        self._hold_leather()
+        cap = self._carry("leather cap")
+        self.call(CmdDrop(), "leather cap")
+        self.assertEqual(cap.location, self.room1)
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 10)
+
+    def test_a_longer_name_does_not_fall_back_to_the_resource(self):
+        """No cap to find — say so, don't quietly drop leather instead."""
+        self._hold_leather()
+        self.call(CmdDrop(), "leather cap")
+        self.assertEqual(self.char1.get_resource(self.LEATHER), 10)
+
+    def test_two_matching_items_and_no_resource_asks_which(self):
+        cap = self._carry("leather cap")
+        armour = self._carry("leather armour")
+        self.call(CmdDrop(), "leather", "More than one match")
+        self.assertEqual(cap.location, self.char1)
+        self.assertEqual(armour.location, self.char1)

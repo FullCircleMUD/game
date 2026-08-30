@@ -2287,3 +2287,232 @@ class TestAoESecondaries(EvenniaTest):
         )
         self.assertIsNone(target)
         self.assertEqual(secondaries, [])
+
+
+class TestResourceInventory(EvenniaTest):
+    """Naming a fungible the caller actually holds.
+
+    A pure string parser cannot answer this: "leather" is the resource
+    only if the character has some, and is otherwise a word that several
+    items are named after. The hold check is what makes the fall-through
+    to an item search safe.
+    """
+
+    databases = "__all__"
+
+    LEATHER = 9
+
+    def create_script(self):
+        pass
+
+    def _resolve(self, name):
+        from utils.targeting.helpers import resource_inventory
+        return resource_inventory(self.char1, name)
+
+    def setUp(self):
+        super().setUp()
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+
+    def test_the_full_name_of_a_held_resource(self):
+        self.char1.db.resources = {self.LEATHER: 10}
+        kind, info = self._resolve("leather")
+        self.assertEqual(kind, "resource")
+        self.assertEqual(info["resource_id"], self.LEATHER)
+
+    def test_a_partial_name_of_a_held_resource(self):
+        self.char1.db.resources = {self.LEATHER: 10}
+        kind, info = self._resolve("leat")
+        self.assertEqual(kind, "resource")
+        self.assertEqual(info["resource_id"], self.LEATHER)
+
+    def test_a_resource_the_caller_does_not_hold_is_not_a_match(self):
+        self.assertIsNone(self._resolve("leather"))
+
+    def test_gold_when_held(self):
+        self.char1.db.gold = 5
+        self.assertEqual(self._resolve("gold"), ("gold", None))
+
+    def test_gold_when_not_held(self):
+        self.assertIsNone(self._resolve("gold"))
+
+    def test_a_name_that_goes_past_the_resource_is_not_a_match(self):
+        """"leather cap" is an item name, even to someone holding leather."""
+        self.char1.db.resources = {self.LEATHER: 10}
+        self.assertIsNone(self._resolve("leather cap"))
+
+    def test_gold_followed_by_more_is_not_gold(self):
+        """`remove gold ring` must not resolve to the currency.
+
+        The old parser matched the first word against the fungible
+        table and discarded the rest, so a gold ring was unreachable by
+        its own name. The whole string has to match, or be a prefix of,
+        a fungible name — "gold ring" is neither.
+        """
+        self.char1.db.gold = 100
+        self.assertIsNone(self._resolve("gold ring"))
+
+    def test_a_partial_of_gold_is_still_gold(self):
+        self.char1.db.gold = 100
+        self.assertEqual(self._resolve("gol"), ("gold", None))
+
+    def test_a_multi_word_resource_matches_in_full(self):
+        self.char1.db.resources = {4: 3}  # Iron Ore
+        kind, info = self._resolve("iron ore")
+        self.assertEqual(kind, "resource")
+        self.assertEqual(info["resource_id"], 4)
+
+
+class TestAllInventory(EvenniaTest):
+    """The composed lookup: fungible first, items second, no going back.
+
+    One place decides whether a typed name means a resource or a thing,
+    so every command that accepts either asks the same question and
+    gets the same answer.
+    """
+
+    databases = "__all__"
+
+    LEATHER = 9
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+
+    def _resolve(self, name, *predicates):
+        from utils.targeting.helpers import all_inventory
+        return all_inventory(self.char1, name, *predicates)
+
+    def _carry(self, key, worn=False):
+        item = create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+        if worn:
+            slots = self.char1.db.wearslots
+            free = next(s for s, occupant in slots.items() if occupant is None)
+            slots[free] = item
+            self.char1.db.wearslots = slots
+        return item
+
+    def test_a_held_resource_wins_on_its_own_name(self):
+        self.char1.db.resources = {self.LEATHER: 10}
+        kind, info = self._resolve("leather")
+        self.assertEqual(kind, "resource")
+        self.assertEqual(info["resource_id"], self.LEATHER)
+
+    def test_a_held_resource_wins_on_a_partial_name(self):
+        self.char1.db.resources = {self.LEATHER: 10}
+        kind, _ = self._resolve("leat")
+        self.assertEqual(kind, "resource")
+
+    def test_an_unheld_resource_name_falls_through_to_items(self):
+        cap = self._carry("leather cap")
+        self.assertEqual(self._resolve("leather"), ("items", [cap]))
+
+    def test_an_unheld_partial_name_falls_through_to_items(self):
+        cap = self._carry("leather cap")
+        self.assertEqual(self._resolve("leat"), ("items", [cap]))
+
+    def test_a_longer_name_takes_the_item_over_a_held_resource(self):
+        self.char1.db.resources = {self.LEATHER: 10}
+        cap = self._carry("leather cap")
+        self.assertEqual(self._resolve("leather cap"), ("items", [cap]))
+
+    def test_a_longer_name_never_falls_back_to_the_resource(self):
+        """Nothing to find. The extra words said what was meant."""
+        self.char1.db.resources = {self.LEATHER: 10}
+        self.assertEqual(self._resolve("leather cap"), (None, None))
+
+    def test_several_matching_items_are_all_returned(self):
+        cap = self._carry("leather cap")
+        armour = self._carry("leather armour")
+        kind, items = self._resolve("leather")
+        self.assertEqual(kind, "items")
+        self.assertCountEqual(items, [cap, armour])
+
+    def test_a_gold_ring_is_an_item_not_currency(self):
+        """The worked case: carrying gold and carrying the ring."""
+        self.char1.db.gold = 100
+        ring = self._carry("gold ring")
+        self.assertEqual(self._resolve("gold ring"), ("items", [ring]))
+
+    def test_worn_items_are_not_candidates(self):
+        self._carry("leather cap", worn=True)
+        self.assertEqual(self._resolve("leather"), (None, None))
+
+    def test_nothing_held_and_nothing_carried(self):
+        self.assertEqual(self._resolve("leather"), (None, None))
+
+    def test_extra_predicates_reach_the_item_step(self):
+        self._carry("leather cap")
+        rejects_everything = lambda obj, caller: False  # noqa: E731
+        self.assertEqual(
+            self._resolve("leather", rejects_everything), (None, None),
+        )
+
+
+class TestFungibleAmbiguity(EvenniaTest):
+    """A partial that fits more than one fungible the caller holds.
+
+    "iron" is Iron Ore and Iron Ingot both. Guessing either would move
+    the wrong commodity, and falling through to an item search would
+    answer "you aren't carrying that" to someone who plainly is. Ask.
+
+    Ambiguity is judged among fungibles the caller actually holds —
+    someone with only ore has said enough.
+    """
+
+    databases = "__all__"
+
+    IRON_ORE = 4
+    IRON_INGOT = 5
+
+    def create_script(self):
+        pass
+
+    def setUp(self):
+        super().setUp()
+        self.char1.db.gold = 0
+        self.char1.db.resources = {}
+
+    def _resolve(self, name):
+        from utils.targeting.helpers import all_inventory
+        return all_inventory(self.char1, name)
+
+    def _carry(self, key):
+        return create.create_object(
+            "evennia.objects.objects.DefaultObject",
+            key=key,
+            location=self.char1,
+        )
+
+    def test_holding_both_asks_which(self):
+        self.char1.db.resources = {self.IRON_ORE: 5, self.IRON_INGOT: 5}
+        kind, options = self._resolve("iron")
+        self.assertEqual(kind, "ambiguous")
+        self.assertCountEqual(
+            [i["resource_id"] for i in options],
+            [self.IRON_ORE, self.IRON_INGOT],
+        )
+
+    def test_holding_only_one_resolves_it(self):
+        self.char1.db.resources = {self.IRON_ORE: 5}
+        kind, info = self._resolve("iron")
+        self.assertEqual(kind, "resource")
+        self.assertEqual(info["resource_id"], self.IRON_ORE)
+
+    def test_holding_neither_falls_through_to_items(self):
+        key = self._carry("iron key")
+        self.assertEqual(self._resolve("iron"), ("items", [key]))
+
+    def test_the_full_name_is_never_ambiguous(self):
+        self.char1.db.resources = {self.IRON_ORE: 5, self.IRON_INGOT: 5}
+        kind, info = self._resolve("iron ore")
+        self.assertEqual(kind, "resource")
+        self.assertEqual(info["resource_id"], self.IRON_ORE)

@@ -222,3 +222,216 @@ class TestParseItemArgs(EvenniaTest):
         self.assertIsNone(result.resource_id)
         self.assertIsNone(result.resource_info)
         self.assertIsNone(result.token_id)
+
+
+class TestSplitQuantity(EvenniaTest):
+    """Splitting "how many" from "of what".
+
+    Every command that takes a countable argument asks the same
+    question first, whatever it goes on to search — inventory, a room,
+    a container, a corpse. `get all gold`, `drop 5 wheat` and
+    `deposit wheat all` differ in scope, not in shape.
+
+    The helper judges nothing. It does not know what stacks, what the
+    caller holds, or whether the command accepts a count at all; it
+    reports what was typed and leaves every decision downstream.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def _split(self, args):
+        from utils.item_parse import split_quantity
+        return split_quantity(args)
+
+    # ── no quantity ───────────────────────────────────────────────
+
+    def test_a_bare_subject(self):
+        self.assertEqual(self._split("cap"), (None, "cap"))
+
+    def test_a_multi_word_subject(self):
+        self.assertEqual(self._split("leather cap"), (None, "leather cap"))
+
+    def test_empty_input(self):
+        self.assertIsNone(self._split(""))
+
+    def test_whitespace_input(self):
+        self.assertIsNone(self._split("   "))
+
+    def test_none_input(self):
+        self.assertIsNone(self._split(None))
+
+    # ── leading count ─────────────────────────────────────────────
+
+    def test_a_leading_number(self):
+        self.assertEqual(self._split("5 wheat"), (5, "wheat"))
+
+    def test_a_leading_number_with_a_dot(self):
+        self.assertEqual(self._split("5.wheat"), (5, "wheat"))
+
+    def test_a_leading_number_before_a_multi_word_subject(self):
+        self.assertEqual(self._split("2 leather cap"), (2, "leather cap"))
+
+    def test_a_dotted_number_before_a_multi_word_subject(self):
+        self.assertEqual(self._split("2.leather cap"), (2, "leather cap"))
+
+    # ── all ───────────────────────────────────────────────────────
+
+    def test_leading_all(self):
+        self.assertEqual(self._split("all wheat"), ("all", "wheat"))
+
+    def test_leading_all_with_a_dot(self):
+        self.assertEqual(self._split("all.wheat"), ("all", "wheat"))
+
+    def test_all_is_case_insensitive(self):
+        self.assertEqual(self._split("ALL wheat"), ("all", "wheat"))
+
+    def test_all_on_its_own_has_no_subject(self):
+        self.assertEqual(self._split("all"), ("all", None))
+
+    def test_a_word_merely_starting_with_all_is_a_subject(self):
+        self.assertEqual(self._split("allspice"), (None, "allspice"))
+
+    # ── trailing count ────────────────────────────────────────────
+
+    def test_a_trailing_number(self):
+        """`deposit gold 50` is in use, so the trailing form is kept."""
+        self.assertEqual(self._split("gold 50"), (50, "gold"))
+
+    def test_a_trailing_all(self):
+        self.assertEqual(self._split("wheat all"), ("all", "wheat"))
+
+    def test_a_trailing_number_after_a_multi_word_subject(self):
+        self.assertEqual(self._split("iron ore 5"), (5, "iron ore"))
+
+    def test_the_cost_of_the_trailing_form(self):
+        """A subject genuinely ending in a number is read as a count.
+
+        Nothing in the game is named this way today. Recorded because
+        it is the price of supporting `deposit gold 50`, and because a
+        future item called "key 3" would be unreachable by name.
+        """
+        self.assertEqual(self._split("key 3"), (3, "key"))
+
+    # ── things that are not counts ────────────────────────────────
+
+    def test_a_bare_number_is_a_subject(self):
+        """Nothing to count — `drop 5` names something, however oddly."""
+        self.assertEqual(self._split("5"), (None, "5"))
+
+    def test_a_negative_number_is_part_of_the_subject(self):
+        self.assertEqual(self._split("-3 wheat"), (None, "-3 wheat"))
+
+    def test_zero_is_reported_as_typed(self):
+        """The helper does not judge. Rejecting zero is the command's job."""
+        self.assertEqual(self._split("0 wheat"), (0, "wheat"))
+
+    def test_surrounding_whitespace_is_ignored(self):
+        self.assertEqual(self._split("  2   cap  "), (2, "cap"))
+
+
+class TestSplitQuantity(EvenniaTest):
+    """Splitting "how many" from "of what".
+
+    Every command that takes a countable argument asks the same
+    question first, whatever it goes on to search — inventory, a room,
+    a container, a corpse. `get all gold`, `drop 5 wheat` and
+    `deposit all wheat` differ in scope, not in shape.
+
+    **Counts lead.** `5 wheat`, not `wheat 5`. One order everywhere, so
+    a player who learns it on one command has learned it on all of
+    them. A trailing number is part of the name, which also keeps an
+    item called "key 3" reachable.
+
+    The helper judges nothing. It does not know what stacks, what the
+    caller holds, or whether the command accepts a count at all; it
+    reports what was typed and leaves every decision downstream.
+    """
+
+    databases = "__all__"
+
+    def create_script(self):
+        pass
+
+    def _split(self, args):
+        from utils.item_parse import split_quantity
+        return split_quantity(args)
+
+    # ── no count ──────────────────────────────────────────────────
+
+    def test_a_bare_subject(self):
+        self.assertEqual(self._split("cap"), (None, "cap"))
+
+    def test_a_multi_word_subject(self):
+        self.assertEqual(self._split("leather cap"), (None, "leather cap"))
+
+    def test_empty_input(self):
+        self.assertIsNone(self._split(""))
+
+    def test_whitespace_input(self):
+        self.assertIsNone(self._split("   "))
+
+    def test_none_input(self):
+        self.assertIsNone(self._split(None))
+
+    # ── leading count ─────────────────────────────────────────────
+
+    def test_a_leading_number(self):
+        self.assertEqual(self._split("5 wheat"), (5, "wheat"))
+
+    def test_a_leading_number_with_a_dot(self):
+        self.assertEqual(self._split("5.wheat"), (5, "wheat"))
+
+    def test_a_leading_number_before_a_multi_word_subject(self):
+        self.assertEqual(self._split("2 leather cap"), (2, "leather cap"))
+
+    def test_a_dotted_number_before_a_multi_word_subject(self):
+        self.assertEqual(self._split("2.leather cap"), (2, "leather cap"))
+
+    # ── all ───────────────────────────────────────────────────────
+
+    def test_leading_all(self):
+        self.assertEqual(self._split("all wheat"), ("all", "wheat"))
+
+    def test_leading_all_with_a_dot(self):
+        self.assertEqual(self._split("all.wheat"), ("all", "wheat"))
+
+    def test_all_is_case_insensitive(self):
+        self.assertEqual(self._split("ALL wheat"), ("all", "wheat"))
+
+    def test_all_on_its_own_has_no_subject(self):
+        self.assertEqual(self._split("all"), ("all", None))
+
+    def test_a_word_merely_starting_with_all_is_a_subject(self):
+        self.assertEqual(self._split("allspice"), (None, "allspice"))
+
+    # ── trailing numbers are part of the name ─────────────────────
+
+    def test_a_trailing_number_is_not_a_count(self):
+        """Counts lead. `deposit gold 50` is the old order and will be
+        refactored to `deposit 50 gold`, not accommodated here."""
+        self.assertEqual(self._split("gold 50"), (None, "gold 50"))
+
+    def test_a_trailing_all_is_not_a_count(self):
+        self.assertEqual(self._split("wheat all"), (None, "wheat all"))
+
+    def test_an_item_name_ending_in_a_number_survives(self):
+        self.assertEqual(self._split("key 3"), (None, "key 3"))
+
+    # ── things that are not counts ────────────────────────────────
+
+    def test_a_bare_number_is_a_subject(self):
+        """Nothing to count — `drop 5` names something, however oddly."""
+        self.assertEqual(self._split("5"), (None, "5"))
+
+    def test_a_negative_number_is_part_of_the_subject(self):
+        self.assertEqual(self._split("-3 wheat"), (None, "-3 wheat"))
+
+    def test_zero_is_reported_as_typed(self):
+        """The helper does not judge. Rejecting zero is the command's job."""
+        self.assertEqual(self._split("0 wheat"), (0, "wheat"))
+
+    def test_surrounding_whitespace_is_ignored(self):
+        self.assertEqual(self._split("  2   cap  "), (2, "cap"))

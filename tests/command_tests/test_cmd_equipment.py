@@ -207,6 +207,46 @@ class TestCmdWear(EvenniaCommandTest):
         """Wear with no arguments should show error."""
         self.call(CmdWear(), "", "Wear what?")
 
+    # ── which one, and how many ───────────────────────────────────
+
+    def test_two_identical_items_wear_one(self):
+        """Two of the same helmet is an answer, not a question."""
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        self.call(CmdWear(), "Iron Helmet", "You wear Iron Helmet")
+
+    def test_two_distinct_matches_ask_which(self):
+        iron = _make_wearable(
+            "Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        steel = _make_wearable(
+            "Steel Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        self.call(CmdWear(), "helmet", "More than one match")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HEAD))
+        self.assertEqual(iron.location, self.char1)
+        self.assertEqual(steel.location, self.char1)
+
+    def test_a_name_starting_with_a_resource_is_still_an_item(self):
+        """`wear gold ring` is the ring, never the currency."""
+        self.char1.db.gold = 100
+        ring = _make_wearable(
+            "Gold Ring", HumanoidWearSlot.LEFT_RING_FINGER.value, self.char1)
+        self.call(CmdWear(), "Gold Ring", "You wear Gold Ring")
+        self.assertIs(
+            self.char1.get_slot(HumanoidWearSlot.LEFT_RING_FINGER), ring)
+
+    def test_a_count_is_refused(self):
+        """You put on one piece at a time."""
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        self.call(CmdWear(), "2 Iron Helmet", "You wear one piece at a time")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HEAD))
+
+    def test_all_of_one_item_is_refused_but_bare_all_still_works(self):
+        """`wear all helmet` is a count; `wear all` is the bulk action."""
+        _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1)
+        self.call(CmdWear(), "all Iron Helmet", "You wear one piece at a time")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HEAD))
+
     def test_wear_by_token_id(self):
         """Wearing by dbref should work."""
         helmet = _make_wearable("Iron Helmet", HumanoidWearSlot.HEAD.value, self.char1, token_id=7)
@@ -366,6 +406,42 @@ class TestCmdWield(EvenniaCommandTest):
         """Wield with no arguments should show error."""
         self.call(CmdWield(), "", "Wield what?")
 
+    # ── which weapon, and how many ────────────────────────────────
+
+    def test_two_identical_weapons_wield_one(self):
+        """Two of the same sword is an answer, not a question."""
+        _make_weapon("Iron Longsword", self.char1)
+        _make_weapon("Iron Longsword", self.char1)
+        self.call(CmdWield(), "Iron Longsword", "You wield Iron Longsword")
+
+    def test_two_distinct_matches_ask_which(self):
+        """Two different swords sharing a word is a real question."""
+        iron = _make_weapon("Iron Longsword", self.char1)
+        steel = _make_weapon("Steel Longsword", self.char1)
+        self.call(CmdWield(), "longsword", "More than one match")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.WIELD))
+        self.assertEqual(iron.location, self.char1)
+        self.assertEqual(steel.location, self.char1)
+
+    def test_exact_name_beats_a_longer_partial(self):
+        """Typing a weapon's full name is never ambiguous."""
+        plain = _make_weapon("Iron Longsword", self.char1)
+        _make_weapon("Iron Longsword of Flame", self.char1)
+        self.call(CmdWield(), "Iron Longsword", "You wield Iron Longsword")
+        self.assertIs(self.char1.get_slot(HumanoidWearSlot.WIELD), plain)
+
+    def test_a_count_is_refused(self):
+        """You wield one weapon. Only fungibles come in amounts."""
+        _make_weapon("Iron Longsword", self.char1)
+        _make_weapon("Iron Longsword", self.char1)
+        self.call(CmdWield(), "2 Iron Longsword", "You wield one weapon at a time")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.WIELD))
+
+    def test_all_of_a_weapon_is_refused_the_same_way(self):
+        _make_weapon("Iron Longsword", self.char1)
+        self.call(CmdWield(), "all Iron Longsword", "You wield one weapon at a time")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.WIELD))
+
 
 # ================================================================== #
 #  Hold Command Tests
@@ -403,6 +479,41 @@ class TestCmdHold(EvenniaCommandTest):
     def test_hold_no_args(self):
         """Hold with no arguments should show error."""
         self.call(CmdHold(), "", "Hold what?")
+
+    # ── which one, and how many ───────────────────────────────────
+
+    def test_two_identical_items_hold_one(self):
+        """Two of the same torch is an answer, not a question."""
+        _make_holdable("Brass Torch", self.char1)
+        _make_holdable("Brass Torch", self.char1)
+        self.call(CmdHold(), "Brass Torch", "You hold Brass Torch")
+
+    def test_two_distinct_matches_ask_which(self):
+        brass = _make_holdable("Brass Torch", self.char1)
+        pitch = _make_holdable("Pitch Torch", self.char1)
+        self.call(CmdHold(), "torch", "More than one match")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HOLD))
+        self.assertEqual(brass.location, self.char1)
+        self.assertEqual(pitch.location, self.char1)
+
+    def test_a_name_starting_with_a_resource_is_still_an_item(self):
+        """`hold gold lantern` is the lantern, never the currency."""
+        self.char1.db.gold = 100
+        lantern = _make_holdable("Gold Lantern", self.char1)
+        self.call(CmdHold(), "Gold Lantern", "You hold Gold Lantern")
+        self.assertIs(self.char1.get_slot(HumanoidWearSlot.HOLD), lantern)
+
+    def test_a_count_is_refused(self):
+        """You hold one thing. Only fungibles come in amounts."""
+        _make_holdable("Brass Torch", self.char1)
+        _make_holdable("Brass Torch", self.char1)
+        self.call(CmdHold(), "2 Brass Torch", "You hold one thing at a time")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HOLD))
+
+    def test_all_of_an_item_is_refused_the_same_way(self):
+        _make_holdable("Brass Torch", self.char1)
+        self.call(CmdHold(), "all Brass Torch", "You hold one thing at a time")
+        self.assertIsNone(self.char1.get_slot(HumanoidWearSlot.HOLD))
 
     # --- Holding by touch ---
     #
@@ -537,6 +648,64 @@ class TestCmdRemove(EvenniaCommandTest):
     def test_remove_no_args(self):
         """Remove with no arguments should show error."""
         self.call(CmdRemove(), "", "Remove what?")
+
+    # ── which one, and how many ───────────────────────────────────
+
+    def test_two_identical_worn_items_remove_one(self):
+        """A matched pair is an answer, not a question."""
+        left = _make_wearable(
+            "Copper Earring", HumanoidWearSlot.LEFT_EAR.value, self.char1)
+        right = _make_wearable(
+            "Copper Earring", HumanoidWearSlot.RIGHT_EAR.value, self.char1)
+        self.char1.wear(left)
+        self.char1.wear(right)
+        self.call(CmdRemove(), "earring", "You remove Copper Earring")
+
+    def test_two_distinct_worn_matches_ask_which(self):
+        """A gold ring and a silver ring are a real question."""
+        gold = _make_wearable(
+            "Gold Ring", HumanoidWearSlot.LEFT_RING_FINGER.value, self.char1)
+        silver = _make_wearable(
+            "Silver Ring", HumanoidWearSlot.RIGHT_RING_FINGER.value, self.char1)
+        self.char1.wear(gold)
+        self.char1.wear(silver)
+        self.call(CmdRemove(), "ring", "More than one match")
+        self.assertIs(
+            self.char1.get_slot(HumanoidWearSlot.LEFT_RING_FINGER), gold)
+        self.assertIs(
+            self.char1.get_slot(HumanoidWearSlot.RIGHT_RING_FINGER), silver)
+
+    def test_exact_name_beats_a_longer_partial(self):
+        plain = _make_wearable(
+            "Gold Ring", HumanoidWearSlot.LEFT_RING_FINGER.value, self.char1)
+        warding = _make_wearable(
+            "Gold Ring of Warding", HumanoidWearSlot.RIGHT_RING_FINGER.value,
+            self.char1)
+        self.char1.wear(plain)
+        self.char1.wear(warding)
+        self.call(CmdRemove(), "Gold Ring", "You remove Gold Ring")
+        self.assertIsNone(
+            self.char1.get_slot(HumanoidWearSlot.LEFT_RING_FINGER))
+        self.assertIs(
+            self.char1.get_slot(HumanoidWearSlot.RIGHT_RING_FINGER), warding)
+
+    def test_a_count_is_refused(self):
+        """You take gear off one piece at a time."""
+        left = _make_wearable(
+            "Copper Earring", HumanoidWearSlot.LEFT_EAR.value, self.char1)
+        right = _make_wearable(
+            "Copper Earring", HumanoidWearSlot.RIGHT_EAR.value, self.char1)
+        self.char1.wear(left)
+        self.char1.wear(right)
+        self.call(CmdRemove(), "2 earring", "You remove one piece at a time")
+        self.assertIs(self.char1.get_slot(HumanoidWearSlot.LEFT_EAR), left)
+
+    def test_all_of_a_worn_item_is_refused_the_same_way(self):
+        left = _make_wearable(
+            "Copper Earring", HumanoidWearSlot.LEFT_EAR.value, self.char1)
+        self.char1.wear(left)
+        self.call(CmdRemove(), "all earring", "You remove one piece at a time")
+        self.assertIs(self.char1.get_slot(HumanoidWearSlot.LEFT_EAR), left)
 
     # --- Undressing by touch ---
     #

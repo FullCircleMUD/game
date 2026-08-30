@@ -14,7 +14,7 @@ from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.holdables.holdable_nft_item import HoldableNFTItem
 from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
-from utils.item_parse import parse_item_args
+from utils.item_parse import split_quantity
 from utils.targeting.helpers import resolve_target
 from utils.busy import (
     FUMBLE_BUSY_MESSAGE,
@@ -55,9 +55,19 @@ class CmdHold(FCMCommandMixin, Command):
         if check_busy(caller):
             return
 
-        parsed = parse_item_args(self.args)
-        if not parsed:
+        split = split_quantity(self.args)
+        if split is None or split.subject is None:
             caller.msg("Hold what?")
+            return
+        quantity, subject = split
+
+        # You hold one thing — only fungibles have amounts, and you
+        # cannot hold a fungible.
+        if quantity is not None:
+            caller.msg(
+                "You hold one thing at a time — only gold and "
+                "resources come in amounts."
+            )
             return
 
         # No sight check — it is your own pack, and you know what is in it
@@ -68,31 +78,37 @@ class CmdHold(FCMCommandMixin, Command):
             start_busy(
                 caller,
                 fumble_seconds(),
-                lambda: self._hold(caller, parsed),
+                lambda: self._hold(caller, subject),
                 self_msg="You fumble blindly through your pack...",
                 busy_msg=FUMBLE_BUSY_MESSAGE,
                 busy_move_msg=FUMBLE_MOVE_MESSAGE,
             )
             return
 
-        self._hold(caller, parsed)
+        self._hold(caller, subject)
 
-    def _hold(self, caller, parsed):
+    def _hold(self, caller, subject):
         """Resolve the item and hold it. The outcome, success or failure."""
-        if parsed.type == "token_id":
-            item = self._find_by_token_id(caller, parsed.token_id)
-        elif parsed.type == "item":
-            item, _ = resolve_target(
-                caller, parsed.search_term, "items_inventory",
+        # Carried items only, and never the fungible table — you cannot
+        # hold gold, so "hold gold lantern" is always the lantern.
+        if subject.startswith("#") and subject[1:].isdigit():
+            item = self._find_by_token_id(caller, int(subject[1:]))
+        elif subject.isdigit():
+            item = self._find_by_token_id(caller, int(subject))
+        else:
+            matches, _ = resolve_target(
+                caller, subject, "items_inventory",
                 extra_predicates=(p_can_perceive,),
             )
-            item = item[0] if item else None
-            if not item:
-                caller.msg(f"You aren't carrying '{parsed.search_term}'.")
+            if not matches:
+                caller.msg(f"You aren't carrying '{subject}'.")
                 return
-        else:
-            caller.msg("Hold what?")
-            return
+            # Identical copies are an answer; two different things
+            # sharing a word are a question Evennia already asks well.
+            if len({obj.key.lower() for obj in matches}) > 1:
+                caller.search(subject, candidates=matches)
+                return
+            item = matches[0]
 
         if not item:
             return

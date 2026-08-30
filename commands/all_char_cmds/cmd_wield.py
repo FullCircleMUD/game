@@ -12,7 +12,8 @@ from commands.command import FCMCommandMixin
 from enums.wearslot import HumanoidWearSlot
 from typeclasses.items.weapons.weapon_mechanics_mixin import WeaponMechanicsMixin
 from typeclasses.items.base_nft_item import BaseNFTItem
-from utils.item_parse import parse_item_args
+from utils.item_parse import split_quantity
+from utils.targeting.helpers import resolve_target
 
 
 class CmdWield(FCMCommandMixin, Command):
@@ -38,19 +39,29 @@ class CmdWield(FCMCommandMixin, Command):
             caller.msg("Wield what?")
             return
 
-        parsed = parse_item_args(self.args)
-        if not parsed:
+        split = split_quantity(self.args)
+        if split is None or split.subject is None:
             caller.msg("Wield what?")
+            return
+        quantity, subject = split
+
+        # A weapon is not a commodity — you wield one, or none.
+        # Plain Command, so no NumberedTargetCommand.parse to work
+        # around: the split sees the whole argument.
+        if quantity is not None:
+            caller.msg(
+                "You wield one weapon at a time — only gold and "
+                "resources come in amounts."
+            )
             return
 
         # Find the item
-        if parsed.type == "token_id":
-            item = self._find_by_token_id(caller, parsed.token_id)
-        elif parsed.type == "item":
-            item = caller.search(parsed.search_term, location=caller, exclude_worn=True)
+        if subject.startswith("#") and subject[1:].isdigit():
+            item = self._find_by_token_id(caller, int(subject[1:]))
+        elif subject.isdigit():
+            item = self._find_by_token_id(caller, int(subject))
         else:
-            caller.msg("Wield what?")
-            return
+            item = self._find_carried(caller, subject)
 
         if not item:
             return
@@ -85,6 +96,32 @@ class CmdWield(FCMCommandMixin, Command):
                 from_obj=caller,
                 exclude=[caller],
             )
+
+    def _find_carried(self, caller, subject):
+        """Resolve a carried weapon by name, or say why there isn't one.
+
+        Worn and wielded gear is excluded at candidate selection by
+        ``items_inventory``, so an equipped weapon can neither be
+        re-wielded nor hide a carried one sharing its name.
+        """
+        matches, _ = resolve_target(caller, subject, "items_inventory")
+
+        if not matches:
+            worn, _ = resolve_target(caller, subject, "items_equipped")
+            worn = worn[0] if worn else None
+            if worn:
+                caller.msg(f"You are already using {worn.key}.")
+            else:
+                caller.msg(f"You aren't carrying '{subject}'.")
+            return None
+
+        # Identical copies are an answer; two different weapons sharing
+        # a word are a question Evennia already knows how to ask.
+        if len({obj.key.lower() for obj in matches}) > 1:
+            caller.search(subject, candidates=matches)
+            return None
+
+        return matches[0]
 
     def _find_by_token_id(self, caller, item_id):
         """Find an NFT in caller's inventory by item ID."""

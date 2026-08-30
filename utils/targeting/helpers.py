@@ -284,6 +284,100 @@ def resolve_item_in_source(caller, source, search_term, **kwargs):
     return caller.search(search_term, candidates=candidates, **kwargs)
 
 
+_GOLD_WORDS = ("gold", "coins", "coin", "gold coins", "gold coin")
+
+
+def resource_inventory(caller, name):
+    """Resolve ``name`` to a fungible the caller actually holds.
+
+    The whole typed string has to be the fungible name or a prefix of
+    it. "leather" and "leat" match Leather; "leather cap" matches
+    nothing, because a name that runs past the fungible is an item name
+    that happens to start with a resource word.
+
+    The hold check is what makes falling through to an item search
+    safe: "leather" means the resource to someone carrying leather, and
+    means a leather cap to everyone else. A pure string parser cannot
+    make that distinction because it never sees the character.
+
+    It also settles ambiguity. "iron" fits both Iron Ore and Iron
+    Ingot, but only counts as ambiguous when the caller holds both —
+    someone with only ore has said enough. An exact name is never
+    ambiguous, however much else starts the same way.
+
+    Returns ``("gold", None)``, ``("resource", info)``,
+    ``("ambiguous", [info, ...])``, or ``None``. ``info`` carries
+    ``resource_id``, so callers need nothing else.
+    """
+    from blockchain.xrpl.currency_cache import get_all_resource_types
+
+    term = name.lower().strip()
+    if not term:
+        return None
+
+    if any(word == term or word.startswith(term) for word in _GOLD_WORDS):
+        get_gold = getattr(caller, "get_gold", None)
+        return ("gold", None) if get_gold and get_gold() > 0 else None
+
+    get_resource = getattr(caller, "get_resource", None)
+    if not get_resource:
+        return None
+
+    def held(info):
+        return (get_resource(info["resource_id"]) or 0) > 0
+
+    resources = list(get_all_resource_types().values())
+
+    for info in resources:
+        if info["name"].lower() == term:
+            return ("resource", info) if held(info) else None
+
+    partial = [i for i in resources if i["name"].lower().startswith(term)]
+    owned = [i for i in partial if held(i)]
+    if len(owned) == 1:
+        return "resource", owned[0]
+    if len(owned) > 1:
+        return "ambiguous", owned
+    return None
+
+
+def all_inventory(caller, name, *predicates):
+    """Resolve ``name`` against everything a character is carrying.
+
+    Fungibles first, items second, and never back again. One place
+    decides whether a typed name means a resource or a thing, so every
+    command that accepts either asks the same question and gets the
+    same answer — and a bug in that decision has one home.
+
+    The chain:
+
+    1. Does the name match a fungible, whole or partial, and does the
+       caller hold any? Then it is that fungible.
+    2. Otherwise search carried items, worn gear excluded.
+    3. A name that runs past a fungible ("leather cap") never reaches
+       step 1, and does not fall back to it when step 2 finds nothing.
+       The extra words said what was meant.
+
+    Returns ``("gold", None)``, ``("resource", info)``,
+    ``("ambiguous", [info, ...])``, ``("items", [objects])``, or
+    ``(None, None)``. Both list-shaped answers are questions for the
+    command to put to the player: which resource, or which item.
+
+    Consumers: the commands that accept either kind — ``drop``,
+    ``give``, ``deposit``, ``put``. Commands that can only mean an
+    object (``wear``, ``remove``, ``hold``, ``wield``) want
+    ``items_inventory`` directly.
+    """
+    fungible = resource_inventory(caller, name)
+    if fungible is not None:
+        return fungible
+
+    items, _ = resolve_target(
+        caller, name, "items_inventory", extra_predicates=predicates,
+    )
+    return ("items", items) if items else (None, None)
+
+
 def resolve_container(caller, name):
     """Find a container by name — inventory first, then room.
 
