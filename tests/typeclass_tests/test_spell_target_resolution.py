@@ -37,11 +37,11 @@ class TestResolveInventoryItem(EvenniaTest):
     def test_finds_carried_item_by_name(self):
         wand = self._spawn_inv_item("training wand")
         result, _secondaries = resolve_target(self.char1, "training wand", "items_inventory")
-        self.assertEqual(result, wand)
+        self.assertEqual(result, [wand])
 
     def test_returns_none_for_unknown_inventory_name(self):
         result, _secondaries = resolve_target(self.char1, "phantom item", "items_inventory")
-        self.assertIsNone(result)
+        self.assertEqual(result, [])
 
     def test_does_not_match_room_objects(self):
         """A WorldChest in the room must not satisfy an inventory_item lookup."""
@@ -51,7 +51,7 @@ class TestResolveInventoryItem(EvenniaTest):
             location=self.room1,
         )
         result, _secondaries = resolve_target(self.char1, "iron chest", "items_inventory")
-        self.assertIsNone(result)
+        self.assertEqual(result, [])
 
     def test_empty_target_str_returns_none(self):
         result, _secondaries = resolve_target(self.char1, "", "items_inventory")

@@ -27,6 +27,10 @@ class TestCmdDropGold(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        # Pin the light. Room darkness folds in the day/night phase, so
+        # a suite long enough to cross into night would otherwise start
+        # fumbling — every drop searches the pack now, coins included.
+        self.room1.always_lit = True
         self.char1.db.gold = 100
         self.char1.db.resources = {}
         self.room1.db.gold = 0
@@ -73,6 +77,7 @@ class TestCmdDropResource(EvenniaCommandTest):
     def setUp(self):
         super().setUp()
         self.account.attributes.add("wallet_address", WALLET_A)
+        self.room1.always_lit = True  # see TestCmdDropGold.setUp
         self.char1.db.gold = 0
         self.char1.db.resources = {1: 20}  # 20 wheat
         self.room1.db.gold = 0
